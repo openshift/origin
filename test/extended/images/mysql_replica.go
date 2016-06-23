@@ -27,8 +27,8 @@ var (
 		{
 			"5.5",
 			"https://raw.githubusercontent.com/openshift/mysql/master/5.5/examples/replica/mysql_replica.json",
-			// TODO: Investigate why this is broken.
-			true,
+			// NOTE: Set to true in case of flakes.
+			false,
 		},
 		{
 			"5.6",
@@ -80,7 +80,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 		defer cleanup(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
+		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "1Gi", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
@@ -172,14 +172,17 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).To(o.Equal(1))
 
-		g.By("after slave is scaled to 0 and then back to 4 replicas")
-		err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=0").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
+		// NOTE: Commented out, current template does not support multiple replicas.
+		/*
+			g.By("after slave is scaled to 0 and then back to 4 replicas")
+			err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=0").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
+		*/
 	}
 }
 

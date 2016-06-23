@@ -106,7 +106,7 @@ func TestParameterGenerators(t *testing.T) {
 			map[string]generator.Generator{},
 			false,
 			makeParameter("PARAM-fail-foo-gen", "foo", "", false),
-			field.ErrorTypeNotFound,
+			field.ErrorTypeInvalid,
 			"template.parameters[0]",
 		},
 		{ // No str generator, should fail

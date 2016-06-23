@@ -130,7 +130,7 @@ type Config struct {
 	// CallbackURL is a URL which is called upon successful build to inform about that fact.
 	CallbackURL string
 
-	// ScriptsURL is a URL describing the localization of STI scripts used during build process.
+	// ScriptsURL is a URL describing the localization of S2I scripts used during build process.
 	ScriptsURL string
 
 	// Destination specifies a location where the untar operation will place its artifacts.
@@ -410,10 +410,11 @@ func IsInvalidFilename(name string) bool {
 // When the destination is not specified, the source get copied into current
 // working directory in container.
 func (l *VolumeList) Set(value string) error {
+	if len(value) == 0 {
+		return fmt.Errorf("invalid format, must be source:destination")
+	}
 	mount := strings.Split(value, ":")
 	switch len(mount) {
-	case 0:
-		return fmt.Errorf("invalid format, must be source:destination")
 	case 1:
 		mount = append(mount, "")
 		fallthrough

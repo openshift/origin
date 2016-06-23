@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: hook
+spec:
+  replicas: 1
+  selector:
+    name: hook
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Retry
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/echo `date`; /bin/true
+  template:
+    metadata:
+      labels:
+        name: hook
+    spec:
+      containers:
+      - image: "docker.io/openshift/deployment-example:v1"
+        name: myapp
+  triggers:
+  - type: ConfigChange

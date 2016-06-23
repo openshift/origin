@@ -11,7 +11,7 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
 source "${OS_ROOT}/hack/lib/init.sh"
-os::log::install_errexit
+os::log::stacktrace::install
 os::util::environment::setup_time_vars
 
 function cleanup()
@@ -309,6 +309,27 @@ os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.ku
 
 # test config files from env vars
 os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
+
+# test completion command help
+os::cmd::expect_success_and_text "oc completion -h" "prints shell code"
+os::cmd::expect_success_and_text "openshift completion -h" "prints shell code"
+os::cmd::expect_success_and_text "oadm completion -h" "prints shell code"
+# test completion command output
+os::cmd::expect_failure_and_text "oc completion" "Shell not specified."
+os::cmd::expect_success "oc completion bash"
+os::cmd::expect_success "oc completion zsh"
+os::cmd::expect_failure_and_text "oc completion test_shell" 'Unsupported shell type "test_shell"'
+# test completion command for openshift
+os::cmd::expect_failure_and_text "openshift completion" "Shell not specified."
+os::cmd::expect_success "openshift completion bash"
+os::cmd::expect_success "openshift completion zsh"
+os::cmd::expect_failure_and_text "openshift completion test_shell" 'Unsupported shell type "test_shell"'
+# test completion command for oadm
+os::cmd::expect_failure_and_text "oadm completion" "Shell not specified."
+os::cmd::expect_success "oadm completion bash"
+os::cmd::expect_success "oadm completion zsh"
+os::cmd::expect_failure_and_text "oadm completion test_shell" 'Unsupported shell type "test_shell"'
+echo "oc completion: ok"
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube

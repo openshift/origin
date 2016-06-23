@@ -3,6 +3,7 @@ package project
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/flynn/go-shlex"
@@ -299,6 +300,8 @@ func toSepMapParts(value map[interface{}]interface{}, sep string) ([]string, err
 		if sk, ok := k.(string); ok {
 			if sv, ok := v.(string); ok {
 				parts = append(parts, sk+sep+sv)
+			} else if sv, ok := v.(int); ok {
+				parts = append(parts, sk+sep+strconv.FormatInt(int64(sv), 10))
 			} else {
 				return nil, fmt.Errorf("Cannot unmarshal '%v' of type %T into a string value", v, v)
 			}

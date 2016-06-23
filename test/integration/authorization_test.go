@@ -11,16 +11,106 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
+
+func TestClusterReaderCoverage(t *testing.T) {
+	testutil.RequireEtcd(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	discoveryClient := client.NewDiscoveryClient(clusterAdminClient.RESTClient)
+
+	// (map[string]*unversioned.APIResourceList, error)
+	allResourceList, err := discoveryClient.ServerResources()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	allResources := map[unversioned.GroupResource]bool{}
+	for _, resources := range allResourceList {
+		version, err := unversioned.ParseGroupVersion(resources.GroupVersion)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		for _, resource := range resources.APIResources {
+			allResources[version.WithResource(resource.Name).GroupResource()] = true
+		}
+	}
+
+	escalatingResources := map[unversioned.GroupResource]bool{
+		oauthapi.Resource("oauthauthorizetokens"): true,
+		oauthapi.Resource("oauthaccesstokens"):    true,
+		oauthapi.Resource("oauthclients"):         true,
+		imageapi.Resource("imagestreams/secrets"): true,
+		kapi.Resource("secrets"):                  true,
+		kapi.Resource("pods/exec"):                true,
+		kapi.Resource("pods/proxy"):               true,
+		kapi.Resource("pods/portforward"):         true,
+		kapi.Resource("nodes/proxy"):              true,
+		kapi.Resource("services/proxy"):           true,
+	}
+
+	readerRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, rule := range readerRole.Rules {
+		for _, group := range rule.APIGroups {
+			for resource := range rule.Resources {
+				gr := unversioned.GroupResource{Group: group, Resource: resource}
+				if escalatingResources[gr] {
+					t.Errorf("cluster-reader role has escalating resource %v.  Check pkg/cmd/server/bootstrappolicy/policy.go.", gr)
+				}
+				delete(allResources, gr)
+			}
+		}
+	}
+
+	// remove escalating resources that cluster-reader should not have access to
+	for resource := range escalatingResources {
+		delete(allResources, resource)
+	}
+
+	// remove resources without read APIs
+	nonreadingResources := []unversioned.GroupResource{
+		buildapi.Resource("buildconfigs/instantiatebinary"), buildapi.Resource("buildconfigs/instantiate"), buildapi.Resource("builds/clone"),
+		deployapi.Resource("deploymentconfigrollbacks"), deployapi.Resource("generatedeploymentconfigs"),
+		imageapi.Resource("imagestreamimports"), imageapi.Resource("imagestreammappings"),
+		extensionsapi.Resource("deployments/rollback"),
+		kapi.Resource("pods/attach"), kapi.Resource("namespaces/finalize"),
+	}
+	for _, resource := range nonreadingResources {
+		delete(allResources, resource)
+	}
+
+	// anything left in the map is missing from the permissions
+	if len(allResources) > 0 {
+		t.Errorf("cluster-reader role is missing %v.  Check pkg/cmd/server/bootstrappolicy/policy.go.", allResources)
+	}
+}
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	testutil.RequireEtcd(t)
@@ -138,7 +228,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	roleWithGroup.Name = "with-group"
 	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
 		Verbs:     sets.NewString("list"),
-		Resources: sets.NewString(authorizationapi.BuildGroupName),
+		Resources: sets.NewString("resourcegroup:builds"),
 	})
 	if _, err := clusterAdminClient.ClusterRoles().Create(roleWithGroup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1053,7 +1143,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
 			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
-			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
+			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
 			!reflect.DeepEqual(actualResponse.Users.List(), expectedResponse.Users.List()) ||
@@ -1080,7 +1170,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
 			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
-			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
+			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
 			!reflect.DeepEqual(actualResponse.Users.List(), expectedResponse.Users.List()) ||

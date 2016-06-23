@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -38,6 +39,20 @@ func TestRestartingPodWarning(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 
+	sort.Sort(osgraph.ByNodeID(markers))
+	if !strings.HasPrefix(markers[0].Message, "container ") {
+		t.Fatalf("message %q should state container", markers[0].Message)
+	}
+	if !strings.HasPrefix(markers[1].Message, "container ") {
+		t.Fatalf("message %q should state container", markers[1].Message)
+	}
+	if !strings.HasPrefix(markers[2].Message, "container ") {
+		t.Fatalf("message %q should state container", markers[2].Message)
+	}
+	if strings.HasPrefix(markers[3].Message, "container ") {
+		t.Fatalf("message %q should not state container", markers[3].Message)
+	}
+
 	future, _ := time.Parse(time.RFC3339, "2015-07-13T19:46:06Z")
 	nowFn = func() unversioned.Time { return unversioned.NewTime(future.UTC()) }
 	markers = FindRestartingPods(g, osgraph.DefaultNamer, "oc logs", "oadm policy")
@@ -53,5 +68,16 @@ func TestRestartingPodWarning(t *testing.T) {
 	}
 	if e, a := RestartingPodWarning, markers[2].Key; e != a {
 		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	sort.Sort(osgraph.ByNodeID(markers))
+	if !strings.HasPrefix(markers[0].Message, "container ") {
+		t.Fatalf("message %q should state container", markers[0].Message)
+	}
+	if !strings.HasPrefix(markers[1].Message, "container ") {
+		t.Fatalf("message %q should state container", markers[1].Message)
+	}
+	if strings.HasPrefix(markers[2].Message, "container ") {
+		t.Fatalf("message %q should not state container", markers[2].Message)
 	}
 }

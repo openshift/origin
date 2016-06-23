@@ -15,7 +15,7 @@ STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/lib/init.sh"
 source "${OS_ROOT}/contrib/node/install-sdn.sh"
-os::log::install_errexit
+os::log::stacktrace::install
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
@@ -97,7 +97,7 @@ function image {
   echo "--- $1 ---"
   build $1:latest $2
   #docker build -t $1:latest $2
-  docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
+  docker tag $1:latest $1:${OS_RELEASE_COMMIT}
   git clean -fdx $2
   local ENDTIME=$(date +%s); echo "--- $1 took $(($ENDTIME - $STARTTIME)) seconds ---"
   echo

@@ -185,7 +185,30 @@ const (
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
   %[1]s exec mypod -c ruby-container -i -t -- bash -il`
+
+	completionLong = `This command prints shell code which must be evaluation to provide interactive
+completion of openshift cli commands.`
+
+	completionExample = `  # Generate the openshift cli completion code for bash
+  source <(oc completion bash)
+
+  # The above example depends on the bash-completion
+framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+
+  brew install bash-completion
+  source $(brew --prefix)/etc/bash_completion
+  source <(oc completion bash)
+
+  # In zsh, the following will load openshift cli zsh completion:
+  source <(oc completion zsh)`
 )
+
+func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdCompletion(f.Factory, out)
+	cmd.Long = completionLong
+	cmd.Example = completionExample
+	return cmd
+}
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
@@ -245,14 +268,18 @@ func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 }
 
 const (
-	proxyLong = `Run a proxy to the Kubernetes API server`
+	proxyLong = `Run a proxy to the API server`
 
-	proxyExample = `  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+	proxyExample = `  # Run a proxy to the api server on port 8011, serving static content from ./local/www/
   %[1]s proxy --port=8011 --www=./local/www/
 
-  # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-  # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
-  %[1]s proxy --api-prefix=k8s-api`
+  # Run a proxy to the api server on an arbitrary local port.
+  # The chosen port for the server will be output to stdout.
+  %[1]s proxy --port=0
+
+  # Run a proxy to the api server, changing the api prefix to my-api
+  # This makes e.g. the pods api available at localhost:8011/my-api/api/v1/pods/
+  %[1]s proxy --api-prefix=/my-api`
 )
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command

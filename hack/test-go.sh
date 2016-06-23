@@ -44,7 +44,7 @@ start_time=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/lib/init.sh"
 cd "${OS_ROOT}"
-os::log::install_errexit
+os::log::stacktrace::install
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "test-go"
 

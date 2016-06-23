@@ -252,7 +252,7 @@ function os::build::build_static_binaries() {
 }
 readonly -f os::build::build_static_binaries
 
-# Build binaries targets specified
+# Build binary targets specified
 #
 # Input:
 #   $@ - targets and go flags.  If no targets are set then all binaries targets
@@ -260,8 +260,19 @@ readonly -f os::build::build_static_binaries
 #   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
 #     then just the host architecture is built.
 function os::build::build_binaries() {
+  local -a binaries=( "$@" )
   # Create a sub-shell so that we don't pollute the outer environment
-  (
+  ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )  
+}
+
+# Build binary targets specified. Should always be run in a sub-shell so we don't leak GOBIN
+#
+# Input:
+#   $@ - targets and go flags.  If no targets are set then all binaries targets
+#     are built.
+#   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
+#     then just the host architecture is built.
+os::build::internal::build_binaries() {
     # Check for `go` binary and set ${GOPATH}.
     os::build::setup_env
 
@@ -328,7 +339,6 @@ function os::build::build_binaries() {
           "$(dirname ${test})"
       done
     done
-  )
 }
 readonly -f os::build::build_binaries
 
@@ -805,6 +815,46 @@ function os::build::commit_range() {
   echo "$1"
 }
 readonly -f os::build::commit_range
+
+function os::build::gen-completions() {
+  local dest="$1"
+  local shell="$2"
+  local skipprefix="${3:-}"
+
+  # We do this in a tmpdir in case the dest has other non-autogenned files
+  # We don't want to include them in the list of gen'd files
+  local tmpdir="${OS_ROOT}/_tmp/gen_comp"
+  mkdir -p "${tmpdir}"
+  # generate the new files
+  ${OS_OUTPUT_BINPATH}/${platform}/oc completion ${shell} > $tmpdir/oc
+  ${OS_OUTPUT_BINPATH}/${platform}/openshift completion ${shell} > $tmpdir/openshift
+  ${OS_OUTPUT_BINPATH}/${platform}/oadm completion ${shell} > $tmpdir/oadm
+  # create the list of generated files
+  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
+
+  # remove all old generated file from the destination
+  while read file; do
+    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
+      local original generated
+      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
+      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
+      if [[ "${original}" == "${generated}" ]]; then
+        # overwrite generated with original.
+        mv "${dest}/${file}" "${tmpdir}/${file}"
+      fi
+    else
+      rm "${dest}/${file}" || true
+    fi
+  done <"${dest}/.files_generated"
+
+  # put the new generated file into the destination
+  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
+  #cleanup
+  rm -rf "${tmpdir}"
+
+  echo "Assets generated in ${dest}"
+}
+readonly -f os::build::gen-completions
 
 function os::build::gen-docs() {
   local cmd="$1"

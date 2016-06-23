@@ -174,6 +174,23 @@ release-binaries: clean
 	hack/extract-release.sh
 .PHONY: release-binaries
 
+# Release the integrated components for OpenShift, logging and metrics.
+#
+# Example:
+#   make release-components
+release-components: clean
+	hack/release-components.sh
+.PHONY: release-components
+
+# Perform an official release. Requires HEAD of the repository to have a matching
+# tag. Will push images that are tagged tagged with the latest release commit.
+#
+# Example:
+#   make perform-official-release
+perform-official-release: | release-binaries release-components
+	OS_PUSH_ALWAYS="1" OS_PUSH_TAG="HEAD" OS_PUSH_LOCAL="1" hack/push-release.sh
+.PHONY: perform-official-release
+
 # Build the cross compiled release binaries
 #
 # Example:

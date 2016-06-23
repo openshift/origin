@@ -113,20 +113,22 @@ func (o ProjectsOptions) RunProjects() error {
 	defaultContextName := cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
 
 	var msg string
-	var current string
 	projects, err := getProjects(client)
 	if err == nil {
 		switch len(projects) {
 		case 0:
 			msg += "You are not a member of any projects. You can request a project to be created with the 'new-project' command."
 		case 1:
-			msg += fmt.Sprintf("You have one project on this server: %q.", api.DisplayNameAndNameForProject(&projects[0]))
+			if o.DisplayShort {
+				msg += fmt.Sprintf("%s", api.DisplayNameAndNameForProject(&projects[0]))
+			} else {
+				msg += fmt.Sprintf("You have one project on this server: %q.", api.DisplayNameAndNameForProject(&projects[0]))
+			}
 		default:
 			asterisk := ""
 			count := 0
 			if !o.DisplayShort {
 				msg += "You have access to the following projects and can switch between them with 'oc project <projectname>':\n"
-				asterisk = "  * "
 			}
 			for _, project := range projects {
 				count = count + 1
@@ -136,17 +138,19 @@ func (o ProjectsOptions) RunProjects() error {
 					displayName = project.Annotations["displayName"]
 				}
 
-				current = ""
-				if currentProjectExists && currentProject == project.Name && !o.DisplayShort {
-					current = " (current)"
+				if currentProjectExists && !o.DisplayShort {
+					asterisk = "    "
+					if currentProject == project.Name {
+						asterisk = "  * "
+					}
 				}
 				if len(displayName) > 0 && displayName != project.Name && !o.DisplayShort {
-					msg += fmt.Sprintf("\n  * %s (%s)%s", displayName, project.Name, current)
+					msg += fmt.Sprintf("\n  "+asterisk+"%s (%s)", displayName, project.Name)
 				} else {
 					if o.DisplayShort && count == 1 {
 						linebreak = ""
 					}
-					msg += fmt.Sprintf(linebreak+asterisk+"%s%s", project.Name, current)
+					msg += fmt.Sprintf(linebreak+asterisk+"%s", project.Name)
 				}
 			}
 		}

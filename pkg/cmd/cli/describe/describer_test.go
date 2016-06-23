@@ -437,6 +437,19 @@ func TestDescribeBuildSpec(t *testing.T) {
 			},
 			want: "Empty Source",
 		},
+		{
+			spec: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{},
+					Strategy: buildapi.BuildStrategy{
+						JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
+							Jenkinsfile: "openshiftBuild",
+						},
+					},
+				},
+			},
+			want: "openshiftBuild",
+		},
 	}
 	for _, tt := range tests {
 		var b bytes.Buffer

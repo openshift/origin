@@ -57,6 +57,29 @@ Encrypt data with AES-256-CBC encryption
 ====
 
 
+== oadm completion
+Output shell completion code for the given shell (bash or zsh)
+
+====
+
+[options="nowrap"]
+----
+  # Generate the openshift cli completion code for bash
+  source <(oc completion bash)
+
+  # The above example depends on the bash-completion
+framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+
+  brew install bash-completion
+  source $(brew --prefix)/etc/bash_completion
+  source <(oc completion bash)
+
+  # In zsh, the following will load openshift cli zsh completion:
+  source <(oc completion zsh)
+----
+====
+
+
 == oadm config
 Change configuration files for the client
 

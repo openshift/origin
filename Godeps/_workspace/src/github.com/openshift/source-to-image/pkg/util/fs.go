@@ -91,18 +91,18 @@ func (h *fs) Copy(source string, dest string) (err error) {
 	if err != nil {
 		return err
 	}
+	defer sourcefile.Close()
 	sourceinfo, err := os.Stat(source)
 	if err != nil {
 		return err
 	}
-	defer sourcefile.Close()
 
 	if sourceinfo.IsDir() {
 		glog.V(5).Infof("D %q -> %q", source, dest)
 		return h.CopyContents(source, dest)
 	}
 
-	destinfo, err := os.Stat(dest)
+	destinfo, _ := os.Stat(dest)
 	if destinfo != nil && destinfo.IsDir() {
 		return fmt.Errorf("destination must be full path to a file, not directory")
 	}

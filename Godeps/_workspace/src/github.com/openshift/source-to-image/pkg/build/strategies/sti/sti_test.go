@@ -365,12 +365,12 @@ func TestPostExecute(t *testing.T) {
 			t.Errorf("(%d) Unexpected commit container command: %#v, expected %q", i, dh.CommitContainerOpts.Command, expectedCmd)
 		}
 		if dh.CommitContainerOpts.Repository != tc.tag {
-			t.Errorf("(%d) Unexpected tag commited, expected %s, got %s", i, tc.tag, dh.CommitContainerOpts.Repository)
+			t.Errorf("(%d) Unexpected tag commited, expected %q, got %q", i, tc.tag, dh.CommitContainerOpts.Repository)
 		}
 		// Ensure image removal when incremental and previousImageID present
 		if tc.incremental && tc.previousImageID != "" {
 			if dh.RemoveImageName != "test-image" {
-				t.Errorf("(%d) Previous image was not removed: %s", i, dh.RemoveImageName)
+				t.Errorf("(%d) Previous image was not removed: %q", i, dh.RemoveImageName)
 			}
 		} else {
 			if dh.RemoveImageName != "" {
@@ -379,7 +379,7 @@ func TestPostExecute(t *testing.T) {
 		}
 		// Ensure Callback was called
 		if ci.CallbackURL != bh.config.CallbackURL {
-			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %s", i, bh.config.CallbackURL, ci.CallbackURL)
+			t.Errorf("(%d) Unexpected callbackURL, expected %q, got %q", i, bh.config.CallbackURL, ci.CallbackURL)
 		}
 	}
 }

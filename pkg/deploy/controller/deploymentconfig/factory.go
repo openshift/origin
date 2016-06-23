@@ -9,82 +9,232 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// DeploymentConfigControllerFactory can create a DeploymentConfigController which obtains
-// DeploymentConfigs from a queue populated from a watch of all DeploymentConfigs.
-type DeploymentConfigControllerFactory struct {
-	// Client is an OpenShift client.
-	Client osclient.Interface
-	// KubeClient is a Kubernetes client.
-	KubeClient kclient.Interface
-	// Codec is used to encode/decode.
-	Codec runtime.Codec
-}
+const (
+	// We must avoid creating new replication controllers until the {replication controller,pods} store
+	// has synced. If it hasn't synced, to avoid a hot loop, we'll wait this long between checks.
+	StoreSyncedPollPeriod = 100 * time.Millisecond
+)
 
-// Create creates a DeploymentConfigController.
-func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableController {
-	deploymentConfigLW := &cache.ListWatch{
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).List(options)
-		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-			return factory.Client.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
-		},
-	}
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue, 2*time.Minute).Run()
-
+// NewDeploymentConfigController creates a new DeploymentConfigController.
+func NewDeploymentConfigController(dcInformer, rcInformer framework.SharedIndexInformer, oc osclient.Interface, kc kclient.Interface, codec runtime.Codec) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	eventBroadcaster.StartRecordingToSink(kc.Events(""))
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deploymentconfig-controller"})
 
-	configController := NewDeploymentConfigController(factory.KubeClient, factory.Client, factory.Codec, recorder)
+	c := &DeploymentConfigController{
+		dn: oc,
+		rn: kc,
 
-	return &controller.RetryController{
-		Queue: queue,
-		RetryManager: controller.NewQueueRetryManager(
-			queue,
-			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, retries controller.Retry) bool {
-				config := obj.(*deployapi.DeploymentConfig)
-				// no retries for a fatal error
-				if _, isFatal := err.(fatalError); isFatal {
-					glog.V(4).Infof("Will not retry fatal error for deploymentConfig %s/%s: %v", config.Namespace, config.Name, err)
-					utilruntime.HandleError(err)
-					return false
-				}
-				// infinite retries for a transient error
-				if _, isTransient := err.(transientError); isTransient {
-					glog.V(4).Infof("Retrying deploymentConfig %s/%s with error: %v", config.Namespace, config.Name, err)
-					return true
-				}
-				utilruntime.HandleError(err)
-				// no retries for anything else
-				if retries.Count > 0 {
-					return false
-				}
-				return true
-			},
-			flowcontrol.NewTokenBucketRateLimiter(1, 10),
-		),
-		Handle: func(obj interface{}) error {
-			config := obj.(*deployapi.DeploymentConfig)
-			copied, err := dcCopy(config)
-			if err != nil {
-				return err
-			}
-			return configController.Handle(copied)
-		},
+		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+
+		recorder: recorder,
+		codec:    codec,
 	}
+
+	c.dcStore.Indexer = dcInformer.GetIndexer()
+	dcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    c.addDeploymentConfig,
+		UpdateFunc: c.updateDeploymentConfig,
+		DeleteFunc: c.deleteDeploymentConfig,
+	})
+
+	c.rcStore.Indexer = rcInformer.GetIndexer()
+	rcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    c.addReplicationController,
+		UpdateFunc: c.updateReplicationController,
+		DeleteFunc: c.deleteReplicationController,
+	})
+
+	c.dcStoreSynced = dcInformer.HasSynced
+	c.rcStoreSynced = rcInformer.HasSynced
+
+	return c
+}
+
+// Run begins watching and syncing.
+func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	// Wait for the rc and dc stores to sync before starting any work in this controller.
+	ready := make(chan struct{})
+	go c.waitForSyncedStores(ready)
+	select {
+	case <-ready:
+	case <-stopCh:
+		return
+	}
+
+	for i := 0; i < workers; i++ {
+		go wait.Until(c.worker, time.Second, stopCh)
+	}
+
+	<-stopCh
+	glog.Infof("Shutting down deploymentconfig controller")
+	c.queue.ShutDown()
+}
+
+func (c *DeploymentConfigController) waitForSyncedStores(ready chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	for !c.dcStoreSynced() || !c.rcStoreSynced() {
+		glog.V(4).Infof("Waiting for the dc and rc controllers to sync before starting the deployment config controller workers")
+		time.Sleep(StoreSyncedPollPeriod)
+	}
+	close(ready)
+}
+
+func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
+	dc := obj.(*deployapi.DeploymentConfig)
+	glog.V(4).Infof("Adding deployment config %q", dc.Name)
+	c.enqueueDeploymentConfig(dc)
+}
+
+func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}) {
+	oldDc := old.(*deployapi.DeploymentConfig)
+	glog.V(4).Infof("Updating deployment config %q", oldDc.Name)
+	c.enqueueDeploymentConfig(cur.(*deployapi.DeploymentConfig))
+}
+
+func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
+	dc, ok := obj.(*deployapi.DeploymentConfig)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			glog.Errorf("Couldn't get object from tombstone %+v", obj)
+			return
+		}
+		dc, ok = tombstone.Obj.(*deployapi.DeploymentConfig)
+		if !ok {
+			glog.Errorf("Tombstone contained object that is not a deployment config: %+v", obj)
+			return
+		}
+	}
+	glog.V(4).Infof("Deleting deployment config %q", dc.Name)
+	c.enqueueDeploymentConfig(dc)
+}
+
+// addReplicationController enqueues the deployment that manages a replicationcontroller when the replicationcontroller is created.
+func (c *DeploymentConfigController) addReplicationController(obj interface{}) {
+	rc := obj.(*kapi.ReplicationController)
+	glog.V(4).Infof("Replication controller %q added.", rc.Name)
+	// We are waiting for the deployment config store to sync but still there are pathological
+	// cases of highly latent watches.
+	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+// updateReplicationController figures out which deploymentconfig is managing this replication
+// controller and requeues the deployment config.
+func (c *DeploymentConfigController) updateReplicationController(old, cur interface{}) {
+	// A periodic relist will send update events for all known controllers.
+	if kapi.Semantic.DeepEqual(old, cur) {
+		return
+	}
+
+	curRC := cur.(*kapi.ReplicationController)
+	glog.V(4).Infof("Replication controller %q updated.", curRC.Name)
+	if dc, err := c.dcStore.GetConfigForController(curRC); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+// deleteReplicationController enqueues the deployment that manages a replicationcontroller when
+// the replicationcontroller is deleted. obj could be an *kapi.ReplicationController, or
+// a DeletionFinalStateUnknown marker item.
+func (c *DeploymentConfigController) deleteReplicationController(obj interface{}) {
+	rc, ok := obj.(*kapi.ReplicationController)
+
+	// When a delete is dropped, the relist will notice a pod in the store not
+	// in the list, leading to the insertion of a tombstone object which contains
+	// the deleted key/value.
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			return
+		}
+		rc, ok = tombstone.Obj.(*kapi.ReplicationController)
+		if !ok {
+			glog.Errorf("Tombstone contained object that is not a replication controller %#v", obj)
+			return
+		}
+	}
+	glog.V(4).Infof("Replication controller %q deleted.", rc.Name)
+	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *deployapi.DeploymentConfig) {
+	key, err := kcontroller.KeyFunc(dc)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %#v: %v", dc, err)
+		return
+	}
+	c.queue.Add(key)
+}
+
+func (c *DeploymentConfigController) worker() {
+	for {
+		if quit := c.work(); quit {
+			return
+		}
+	}
+}
+
+func (c *DeploymentConfigController) work() bool {
+	key, quit := c.queue.Get()
+	if quit {
+		return true
+	}
+	defer c.queue.Done(key)
+
+	dc, err := c.getByKey(key.(string))
+	if err != nil {
+		glog.Error(err.Error())
+	}
+
+	if dc == nil {
+		return false
+	}
+
+	copied, err := dcCopy(dc)
+	if err != nil {
+		glog.Error(err.Error())
+		return false
+	}
+
+	err = c.Handle(copied)
+	c.handleErr(err, key)
+
+	return false
+}
+
+func (c *DeploymentConfigController) getByKey(key string) (*deployapi.DeploymentConfig, error) {
+	obj, exists, err := c.dcStore.Indexer.GetByKey(key)
+	if err != nil {
+		glog.V(2).Infof("Unable to retrieve deployment config %q from store: %v", key, err)
+		c.queue.AddRateLimited(key)
+		return nil, err
+	}
+	if !exists {
+		glog.V(4).Infof("Deployment config %q has been deleted", key)
+		return nil, nil
+	}
+
+	return obj.(*deployapi.DeploymentConfig), nil
 }
 
 func dcCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {

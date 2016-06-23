@@ -345,6 +345,18 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 }
 
 func describeJenkinsPipelineStrategy(s *buildapi.JenkinsPipelineBuildStrategy, out *tabwriter.Writer) {
+	if len(s.JenkinsfilePath) != 0 {
+		formatString(out, "Jenkinsfile path", s.JenkinsfilePath)
+	}
+	if len(s.Jenkinsfile) != 0 {
+		fmt.Fprintf(out, "Jenkinsfile contents:\n")
+		for _, s := range strings.Split(s.Jenkinsfile, "\n") {
+			fmt.Fprintf(out, "  %s\n", s)
+		}
+	}
+	if len(s.Jenkinsfile) == 0 && len(s.JenkinsfilePath) == 0 {
+		formatString(out, "Jenkinsfile", "from source repository root")
+	}
 }
 
 // DescribeTriggers generates information about the triggers associated with a

@@ -1,4 +1,0 @@
-#!/bin/bash
-
-[[ ! -s secret1 ]] && echo "relative-secret1=empty"
-[[ ! -s /tmp/secret3 ]] && echo "secret3=empty"

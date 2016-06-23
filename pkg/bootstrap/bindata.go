@@ -2834,7 +2834,7 @@ var _examplesJenkinsPipelinePipelinetemplateJson = []byte(`{
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('agent') {\nstage 'build'\nopenShiftBuild(buildConfig: 'ruby-sample-build', showBuildLogs: 'true')\nstage 'deploy'\nopenShiftDeploy(deploymentConfig: 'frontend')\n}"
+            "jenkinsfile": "node('agent') {\nstage 'build'\nopenshiftBuild(buildConfig: 'ruby-sample-build', showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: 'frontend')\n}"
           }
         }
       }

@@ -2,6 +2,7 @@ package origin
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -86,6 +87,7 @@ import (
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+	"github.com/openshift/origin/pkg/version"
 
 	"github.com/openshift/origin/pkg/build/registry/buildclone"
 	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
@@ -347,8 +349,37 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]stri
 	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initHealthCheckRoute(root, "/healthz")
 	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+	initVersionRoute(container, "/version/openshift")
 
 	return messages, nil
+}
+
+// initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
+func initVersionRoute(container *restful.Container, path string) {
+	// Set up a service to return the git code version.
+	versionWS := new(restful.WebService)
+	versionWS.Path(path)
+	versionWS.Doc("git code version from which this is built")
+	versionWS.Route(
+		versionWS.GET("/").To(handleVersion).
+			Doc("get the code version").
+			Operation("getCodeVersion").
+			Produces(restful.MIME_JSON).
+			Consumes(restful.MIME_JSON))
+
+	container.Add(versionWS)
+}
+
+// handleVersion writes the server's version information.
+func handleVersion(req *restful.Request, resp *restful.Response) {
+	output, err := json.MarshalIndent(version.Get(), "", "  ")
+	if err != nil {
+		http.Error(resp.ResponseWriter, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	resp.ResponseWriter.Header().Set("Content-Type", "application/json")
+	resp.ResponseWriter.WriteHeader(http.StatusOK)
+	resp.ResponseWriter.Write(output)
 }
 
 func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
