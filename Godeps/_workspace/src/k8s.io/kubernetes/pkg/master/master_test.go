@@ -461,7 +461,7 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 		},
 	}
 
-	assert.Equal(3, len(groupList.Groups))
+	assert.Equal(4, len(groupList.Groups))
 	for _, group := range groupList.Groups {
 		if !expectGroupNames.Has(group.Name) {
 			t.Errorf("got unexpected group %s", group.Name)
@@ -488,7 +488,7 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	assert.Equal(4, len(groupList.Groups))
+	assert.Equal(5, len(groupList.Groups))
 
 	expectGroupNames.Insert("company.com")
 	expectVersions["company.com"] = []unversioned.GroupVersionForDiscovery{thirdPartyGV}

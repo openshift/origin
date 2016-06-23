@@ -84,6 +84,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 	etcdmetrics "k8s.io/kubernetes/pkg/storage/etcd/metrics"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	daemonetcd "k8s.io/kubernetes/pkg/registry/daemonset/etcd"
@@ -102,6 +103,8 @@ type Config struct {
 	DeleteCollectionWorkers int
 	EventTTL                time.Duration
 	KubeletClient           kubeletclient.KubeletClient
+	RESTStorageProviders    map[string]RESTStorageProvider
+
 	// Used to start and monitor tunneling
 	Tunneler genericapiserver.Tunneler
 
@@ -147,6 +150,9 @@ type thirdPartyEntry struct {
 	group   unversioned.APIGroup
 }
 
+type RESTOptionsGetter func(resource unversioned.GroupResource) generic.RESTOptions
+type RESTStorageProvider func(apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool)
+
 // New returns a new instance of Master from the given config.
 // Certain config fields will be set to a default value if unset.
 // Certain config fields must be specified, including:
@@ -169,6 +175,14 @@ func New(c *Config) (*Master, error) {
 
 		disableThirdPartyControllerForTesting: c.disableThirdPartyControllerForTesting,
 	}
+
+	// Add some hardcoded storage for now.  Append to the map.
+	if c.RESTStorageProviders == nil {
+		c.RESTStorageProviders = map[string]RESTStorageProvider{}
+	}
+	c.RESTStorageProviders[autoscaling.GroupName] = buildAutoscalingResources
+	c.RESTStorageProviders[batch.GroupName] = buildBatchResources
+	c.RESTStorageProviders[appsapi.GroupName] = buildAppsResources
 	m.InstallAPIs(c)
 
 	// TODO: Attempt clean shutdown?
@@ -235,9 +249,6 @@ func (m *Master) InstallAPIs(c *Config) {
 		m.MuxHelper.HandleFunc("/metrics", defaultMetricsHandler)
 	}
 
-	// allGroups records all supported groups at /apis
-	allGroups := []unversioned.APIGroup{}
-
 	// Install extensions unless disabled.
 	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(extensionsapiv1beta1.SchemeGroupVersion) {
 		var err error
@@ -261,114 +272,27 @@ func (m *Master) InstallAPIs(c *Config) {
 			NegotiatedSerializer:   api.Codecs,
 		}
 		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
-
-		extensionsGVForDiscovery := unversioned.GroupVersionForDiscovery{
-			GroupVersion: extensionsGroupMeta.GroupVersion.String(),
-			Version:      extensionsGroupMeta.GroupVersion.Version,
-		}
-		group := unversioned.APIGroup{
-			Name:             extensionsGroupMeta.GroupVersion.Group,
-			Versions:         []unversioned.GroupVersionForDiscovery{extensionsGVForDiscovery},
-			PreferredVersion: extensionsGVForDiscovery,
-		}
-		allGroups = append(allGroups, group)
 	}
 
-	// Install autoscaling unless disabled.
-	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(autoscalingapiv1.SchemeGroupVersion) {
-		autoscalingResources := m.getAutoscalingResources(c)
-		autoscalingGroupMeta := registered.GroupOrDie(autoscaling.GroupName)
+	restOptionsGetter := func(resource unversioned.GroupResource) generic.RESTOptions {
+		return m.GetRESTOptionsOrDie(c, resource)
+	}
 
-		// Hard code preferred group version to autoscaling/v1
-		autoscalingGroupMeta.GroupVersion = autoscalingapiv1.SchemeGroupVersion
+	// stabilize order.
+	// TODO find a better way to configure priority of groups
+	for _, group := range sets.StringKeySet(c.RESTStorageProviders).List() {
+		if !c.APIResourceConfigSource.AnyResourcesForGroupEnabled(group) {
+			continue
+		}
 
-		apiGroupInfo := genericapiserver.APIGroupInfo{
-			GroupMeta: *autoscalingGroupMeta,
-			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
-				"v1": autoscalingResources,
-			},
-			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                 api.Scheme,
-			ParameterCodec:         api.ParameterCodec,
-			NegotiatedSerializer:   api.Codecs,
+		restStorageBuilder := c.RESTStorageProviders[group]
+		apiGroupInfo, enabled := restStorageBuilder(c.APIResourceConfigSource, restOptionsGetter)
+		if !enabled {
+			continue
 		}
 		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
-
-		autoscalingGVForDiscovery := unversioned.GroupVersionForDiscovery{
-			GroupVersion: autoscalingGroupMeta.GroupVersion.String(),
-			Version:      autoscalingGroupMeta.GroupVersion.Version,
-		}
-		group := unversioned.APIGroup{
-			Name:             autoscalingGroupMeta.GroupVersion.Group,
-			Versions:         []unversioned.GroupVersionForDiscovery{autoscalingGVForDiscovery},
-			PreferredVersion: autoscalingGVForDiscovery,
-		}
-		allGroups = append(allGroups, group)
 	}
 
-	// Install batch unless disabled.
-	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(batchapiv1.SchemeGroupVersion) {
-		batchResources := m.getBatchResources(c)
-		batchGroupMeta := registered.GroupOrDie(batch.GroupName)
-
-		// Hard code preferred group version to batch/v1
-		batchGroupMeta.GroupVersion = batchapiv1.SchemeGroupVersion
-
-		apiGroupInfo := genericapiserver.APIGroupInfo{
-			GroupMeta: *batchGroupMeta,
-			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
-				"v1": batchResources,
-			},
-			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                 api.Scheme,
-			ParameterCodec:         api.ParameterCodec,
-			NegotiatedSerializer:   api.Codecs,
-		}
-		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
-
-		batchGVForDiscovery := unversioned.GroupVersionForDiscovery{
-			GroupVersion: batchGroupMeta.GroupVersion.String(),
-			Version:      batchGroupMeta.GroupVersion.Version,
-		}
-		group := unversioned.APIGroup{
-			Name:             batchGroupMeta.GroupVersion.Group,
-			Versions:         []unversioned.GroupVersionForDiscovery{batchGVForDiscovery},
-			PreferredVersion: batchGVForDiscovery,
-		}
-		allGroups = append(allGroups, group)
-	}
-
-	if c.APIResourceConfigSource.AnyResourcesForVersionEnabled(appsapi.SchemeGroupVersion) {
-		appsResources := m.getAppsResources(c)
-		appsGroupMeta := registered.GroupOrDie(apps.GroupName)
-
-		// Hard code preferred group version to apps/v1alpha1
-		appsGroupMeta.GroupVersion = appsapi.SchemeGroupVersion
-
-		apiGroupInfo := genericapiserver.APIGroupInfo{
-			GroupMeta: *appsGroupMeta,
-			VersionedResourcesStorageMap: map[string]map[string]rest.Storage{
-				"v1alpha1": appsResources,
-			},
-			OptionsExternalVersion: &registered.GroupOrDie(api.GroupName).GroupVersion,
-			Scheme:                 api.Scheme,
-			ParameterCodec:         api.ParameterCodec,
-			NegotiatedSerializer:   api.Codecs,
-		}
-		apiGroupsInfo = append(apiGroupsInfo, apiGroupInfo)
-
-		appsGVForDiscovery := unversioned.GroupVersionForDiscovery{
-			GroupVersion: appsGroupMeta.GroupVersion.String(),
-			Version:      appsGroupMeta.GroupVersion.Version,
-		}
-		group := unversioned.APIGroup{
-			Name:             appsGroupMeta.GroupVersion.Group,
-			Versions:         []unversioned.GroupVersionForDiscovery{appsGVForDiscovery},
-			PreferredVersion: appsGVForDiscovery,
-		}
-		allGroups = append(allGroups, group)
-
-	}
 	if err := m.InstallAPIGroups(apiGroupsInfo); err != nil {
 		glog.Fatalf("Error in registering group versions: %v", err)
 	}
@@ -808,46 +732,82 @@ func (m *Master) getExtensionResources(c *Config) map[string]rest.Storage {
 	return storage
 }
 
-// getAutoscalingResources returns the resources for autoscaling api
-func (m *Master) getAutoscalingResources(c *Config) map[string]rest.Storage {
-	// TODO update when we support more than one version of this group
-	version := autoscalingapiv1.SchemeGroupVersion
+// NewDefaultAPIGroupInfo returns a complete APIGroupInfo stubbed with "normal" values
+// exposed for easier composition from other packages
+func NewDefaultAPIGroupInfo(group string) genericapiserver.APIGroupInfo {
+	groupMeta := registered.GroupOrDie(group)
 
-	storage := map[string]rest.Storage{}
-	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("horizontalpodautoscalers")) {
-		hpaStorage, hpaStatusStorage := horizontalpodautoscaleretcd.NewREST(m.GetRESTOptionsOrDie(c, autoscaling.Resource("horizontalpodautoscalers")))
-		storage["horizontalpodautoscalers"] = hpaStorage
-		storage["horizontalpodautoscalers/status"] = hpaStatusStorage
+	return genericapiserver.APIGroupInfo{
+		GroupMeta:                    *groupMeta,
+		VersionedResourcesStorageMap: map[string]map[string]rest.Storage{},
+		OptionsExternalVersion:       &registered.GroupOrDie(api.GroupName).GroupVersion,
+		Scheme:                       api.Scheme,
+		ParameterCodec:               api.ParameterCodec,
+		NegotiatedSerializer:         api.Codecs,
 	}
-	return storage
 }
 
-// getBatchResources returns the resources for batch api
-func (m *Master) getBatchResources(c *Config) map[string]rest.Storage {
-	// TODO update when we support more than one version of this group
-	version := batchapiv1.SchemeGroupVersion
+func buildAutoscalingResources(apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
+	apiGroupInfo := NewDefaultAPIGroupInfo(autoscaling.GroupName)
 
-	storage := map[string]rest.Storage{}
-	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("jobs")) {
-		jobsStorage, jobsStatusStorage := jobetcd.NewREST(m.GetRESTOptionsOrDie(c, batch.Resource("jobs")))
-		storage["jobs"] = jobsStorage
-		storage["jobs/status"] = jobsStatusStorage
+	storageForVersion := func(version unversioned.GroupVersion) map[string]rest.Storage {
+		storage := map[string]rest.Storage{}
+		if apiResourceConfigSource.ResourceEnabled(version.WithResource("horizontalpodautoscalers")) {
+			hpaStorage, hpaStatusStorage := horizontalpodautoscaleretcd.NewREST(restOptionsGetter(autoscaling.Resource("horizontalpodautoscalers")))
+			storage["horizontalpodautoscalers"] = hpaStorage
+			storage["horizontalpodautoscalers/status"] = hpaStatusStorage
+		}
+		return storage
 	}
-	return storage
+
+	if apiResourceConfigSource.AnyResourcesForVersionEnabled(autoscalingapiv1.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[autoscalingapiv1.SchemeGroupVersion.Version] = storageForVersion(autoscalingapiv1.SchemeGroupVersion)
+		apiGroupInfo.GroupMeta.GroupVersion = autoscalingapiv1.SchemeGroupVersion
+	}
+
+	return apiGroupInfo, true
 }
 
-// getPetSetResources returns the resources for apps api
-func (m *Master) getAppsResources(c *Config) map[string]rest.Storage {
-	// TODO update when we support more than one version of this group
-	version := appsapi.SchemeGroupVersion
+func buildBatchResources(apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
+	apiGroupInfo := NewDefaultAPIGroupInfo(batch.GroupName)
 
-	storage := map[string]rest.Storage{}
-	if c.APIResourceConfigSource.ResourceEnabled(version.WithResource("petsets")) {
-		petsetStorage, petsetStatusStorage := petsetetcd.NewREST(m.GetRESTOptionsOrDie(c, apps.Resource("petsets")))
-		storage["petsets"] = petsetStorage
-		storage["petsets/status"] = petsetStatusStorage
+	storageForVersion := func(version unversioned.GroupVersion) map[string]rest.Storage {
+		storage := map[string]rest.Storage{}
+		if apiResourceConfigSource.ResourceEnabled(version.WithResource("jobs")) {
+			jobsStorage, jobsStatusStorage := jobetcd.NewREST(restOptionsGetter(batch.Resource("jobs")))
+			storage["jobs"] = jobsStorage
+			storage["jobs/status"] = jobsStatusStorage
+		}
+		return storage
 	}
-	return storage
+
+	if apiResourceConfigSource.AnyResourcesForVersionEnabled(batchapiv1.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[batchapiv1.SchemeGroupVersion.Version] = storageForVersion(batchapiv1.SchemeGroupVersion)
+		apiGroupInfo.GroupMeta.GroupVersion = batchapiv1.SchemeGroupVersion
+	}
+
+	return apiGroupInfo, true
+}
+
+func buildAppsResources(apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
+	apiGroupInfo := NewDefaultAPIGroupInfo(appsapi.GroupName)
+
+	storageForVersion := func(version unversioned.GroupVersion) map[string]rest.Storage {
+		storage := map[string]rest.Storage{}
+		if apiResourceConfigSource.ResourceEnabled(version.WithResource("petsets")) {
+			petsetStorage, petsetStatusStorage := petsetetcd.NewREST(restOptionsGetter(apps.Resource("petsets")))
+			storage["petsets"] = petsetStorage
+			storage["petsets/status"] = petsetStatusStorage
+		}
+		return storage
+	}
+
+	if apiResourceConfigSource.AnyResourcesForVersionEnabled(appsapi.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[appsapi.SchemeGroupVersion.Version] = storageForVersion(appsapi.SchemeGroupVersion)
+		apiGroupInfo.GroupMeta.GroupVersion = appsapi.SchemeGroupVersion
+	}
+
+	return apiGroupInfo, true
 }
 
 // findExternalAddress returns ExternalIP of provided node with fallback to LegacyHostIP.

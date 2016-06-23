@@ -30,6 +30,9 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&kapi.ListOptions{},
 		&ClusterResourceQuota{},
 		&ClusterResourceQuotaList{},
+
+		&kapi.DeleteOptions{},
+		&kapi.ListOptions{},
 	)
 }
 

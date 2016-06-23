@@ -105,10 +105,14 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 		if err != nil {
 			return genericrest.RESTOptions{}, err
 		}
-		// TODO: choose destination group/version based on input group/resource
+		// TODO: choose destination group/version based on input group/resource, probably want to ALWAYS make a new etcd storage
 		// TODO: Tune the cache size
-		groupVersion := unversioned.GroupVersion{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion}
-		g.etcdHelper = etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupVersion), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericapiserver.DefaultDeserializationCacheSize)
+		groupVersions := []unversioned.GroupVersion{
+			{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion},
+			// TODO extend our storage config to describe targets for multiple groups
+			{Group: "quota.openshift.io", Version: "v1"},
+		}
+		g.etcdHelper = etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupVersions...), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericapiserver.DefaultDeserializationCacheSize)
 	}
 
 	configuredCacheSize, specified := g.cacheSizes[resource]

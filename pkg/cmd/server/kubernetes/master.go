@@ -11,6 +11,7 @@ import (
 
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	appsv1alpha1 "k8s.io/kubernetes/pkg/apis/apps/v1alpha1"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
@@ -56,6 +58,11 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/util/restoptions"
+
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
+	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
 )
 
 const (
@@ -69,6 +76,7 @@ const (
 // a single string value).
 func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error) {
 	c.Master.RestfulContainer = container
+	c.Master.RESTStorageProviders[quotaapi.GroupName] = buildQuotaResources
 	_, err := master.New(c.Master)
 	if err != nil {
 		return nil, err
@@ -93,6 +101,33 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 	}
 
 	return messages, nil
+}
+
+// restInPeace returns the given storage if the error is nil, or fatals
+func restInPeace(s rest.StandardStorage, err error) rest.StandardStorage {
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return s
+}
+
+func buildQuotaResources(apiResourceConfigSource genericapiserver.APIResourceConfigSource, restOptionsGetter master.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
+	apiGroupInfo := master.NewDefaultAPIGroupInfo(quotaapiv1.GroupName)
+
+	storageForVersion := func(version unversioned.GroupVersion) map[string]rest.Storage {
+		storage := map[string]rest.Storage{}
+		if apiResourceConfigSource.ResourceEnabled(version.WithResource("clusterresourcequotas")) {
+			storage["clusterresourcequotas"] = restInPeace(clusterresourcequotaregistry.NewStorage(restoptions.UpstreamGetterFunc(restOptionsGetter)))
+		}
+		return storage
+	}
+
+	if apiResourceConfigSource.AnyResourcesForVersionEnabled(quotaapiv1.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[quotaapiv1.SchemeGroupVersion.Version] = storageForVersion(quotaapiv1.SchemeGroupVersion)
+		apiGroupInfo.GroupMeta.GroupVersion = quotaapiv1.SchemeGroupVersion
+	}
+
+	return apiGroupInfo, true
 }
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
