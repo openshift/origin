@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/openshift-sdn/pkg/exec"
+	"k8s.io/kubernetes/pkg/util/exec"
 )
 
 type Transaction struct {
+	execer exec.Interface
 	bridge string
 	err    error
 }
@@ -16,8 +17,8 @@ type Transaction struct {
 // NewTransaction begins a new OVS transaction for a given bridge. If an error
 // occurs at any step in the transaction, it will be recorded until
 // EndTransaction(), and any further calls on the transaction will be ignored.
-func NewTransaction(bridge string) *Transaction {
-	return &Transaction{bridge: bridge}
+func NewTransaction(execer exec.Interface, bridge string) *Transaction {
+	return &Transaction{execer: execer, bridge: bridge}
 }
 
 func (tx *Transaction) exec(cmd string, args ...string) (string, error) {
@@ -25,15 +26,15 @@ func (tx *Transaction) exec(cmd string, args ...string) (string, error) {
 		return "", tx.err
 	}
 
-	cmdpath, err := exec.LookPath(cmd)
+	cmdpath, err := tx.execer.LookPath(cmd)
 	if err != nil {
 		tx.err = fmt.Errorf("OVS is not installed")
 		return "", tx.err
 	}
 
-	var output string
-	output, tx.err = exec.Exec(cmdpath, args...)
-	return output, tx.err
+	var output []byte
+	output, tx.err = tx.execer.Command(cmdpath, args...).CombinedOutput()
+	return string(output), tx.err
 }
 
 func (tx *Transaction) vsctlExec(args ...string) (string, error) {

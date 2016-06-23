@@ -16,6 +16,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 )
 
@@ -50,7 +51,8 @@ func getPluginVersion(multitenant bool) []string {
 func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
 	var found bool
 
-	itx := ipcmd.NewTransaction(LBR)
+	kexec := kexec.New()
+	itx := ipcmd.NewTransaction(kexec, LBR)
 	addrs, err := itx.GetAddresses()
 	itx.EndTransaction()
 	if err != nil {
@@ -67,7 +69,7 @@ func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
 		return false
 	}
 
-	otx := ovs.NewTransaction(BR)
+	otx := ovs.NewTransaction(kexec, BR)
 	flows, err := otx.DumpFlows()
 	otx.EndTransaction()
 	if err != nil {
@@ -107,7 +109,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	)
 
 	for i := 0; i < maxIntervals; i++ {
-		itx := ipcmd.NewTransaction(device)
+		itx := ipcmd.NewTransaction(kexec.New(), device)
 		routes, err := itx.GetRoutes()
 		if err != nil {
 			glog.Errorf("Could not get routes for dev %s: %v", device, err)
@@ -146,7 +148,8 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 
 	mtuStr := fmt.Sprint(mtu)
 
-	itx := ipcmd.NewTransaction(LBR)
+	kexec := kexec.New()
+	itx := ipcmd.NewTransaction(kexec, LBR)
 	itx.SetLink("down")
 	itx.IgnoreError()
 	itx.DeleteLink()
@@ -176,7 +179,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(VLINUXBR)
+	itx = ipcmd.NewTransaction(kexec, VLINUXBR)
 	itx.DeleteLink()
 	itx.IgnoreError()
 	itx.AddLink("mtu", mtuStr, "type", "veth", "peer", "name", VOVSBR, "mtu", mtuStr)
@@ -187,7 +190,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(VOVSBR)
+	itx = ipcmd.NewTransaction(kexec, VOVSBR)
 	itx.SetLink("up")
 	itx.SetLink("txqueuelen", "0")
 	err = itx.EndTransaction()
@@ -195,14 +198,14 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(LBR)
+	itx = ipcmd.NewTransaction(kexec, LBR)
 	itx.AddSlave(VLINUXBR)
 	err = itx.EndTransaction()
 	if err != nil {
 		return false, err
 	}
 
-	otx := ovs.NewTransaction(BR)
+	otx := ovs.NewTransaction(kexec, BR)
 	otx.AddBridge("fail-mode=secure", "protocols=OpenFlow13")
 	otx.AddPort(VXLAN, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
 	otx.AddPort(TUN, 2, "type=internal")
@@ -274,7 +277,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(TUN)
+	itx = ipcmd.NewTransaction(kexec, TUN)
 	itx.AddAddress(gwCIDR)
 	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
 	itx.SetLink("mtu", mtuStr)
@@ -287,7 +290,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 
 	// Clean up docker0 since docker won't
-	itx = ipcmd.NewTransaction("docker0")
+	itx = ipcmd.NewTransaction(kexec, "docker0")
 	itx.SetLink("down")
 	itx.IgnoreError()
 	itx.DeleteLink()
@@ -316,7 +319,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 
 	// Table 253: rule version; note action is hex bytes separated by '.'
-	otx = ovs.NewTransaction(BR)
+	otx = ovs.NewTransaction(kexec, BR)
 	pluginVersion := getPluginVersion(plugin.multitenant)
 	otx.AddFlow("%s, %s%s.%s", VERSION_TABLE, VERSION_ACTION, pluginVersion[0], pluginVersion[1])
 	err = otx.EndTransaction()
@@ -329,7 +332,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 
 func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 	glog.Infof("AddHostSubnetRules for %s", hostSubnetToString(subnet))
-	otx := ovs.NewTransaction(BR)
+	otx := ovs.NewTransaction(kexec.New(), BR)
 
 	otx.AddFlow("table=1, priority=100, tun_src=%s, actions=goto_table:5", subnet.HostIP)
 	otx.AddFlow("table=8, priority=100, arp, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
@@ -345,7 +348,7 @@ func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 	glog.Infof("DeleteHostSubnetRules for %s", hostSubnetToString(subnet))
 
-	otx := ovs.NewTransaction(BR)
+	otx := ovs.NewTransaction(kexec.New(), BR)
 	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
 	otx.DeleteFlows("table=8, nw_dst=%s", subnet.Subnet)
 	err := otx.EndTransaction()
@@ -362,7 +365,7 @@ func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint) error
 
 	glog.V(5).Infof("AddServiceRules for %v", service)
 
-	otx := ovs.NewTransaction(BR)
+	otx := ovs.NewTransaction(kexec.New(), BR)
 	for _, port := range service.Spec.Ports {
 		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, int(port.Port)))
 		err := otx.EndTransaction()
@@ -380,7 +383,7 @@ func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) error {
 
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 
-	otx := ovs.NewTransaction(BR)
+	otx := ovs.NewTransaction(kexec.New(), BR)
 	for _, port := range service.Spec.Ports {
 		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port)))
 		err := otx.EndTransaction()

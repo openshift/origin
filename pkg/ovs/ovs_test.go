@@ -5,25 +5,45 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/openshift-sdn/pkg/exec"
+	"k8s.io/kubernetes/pkg/util/exec"
 )
 
-func normalSetup() {
-	exec.SetTestMode()
-	exec.AddTestProgram("/usr/bin/ovs-ofctl")
-	exec.AddTestProgram("/usr/bin/ovs-vsctl")
+func normalSetup() *exec.FakeExec {
+	return &exec.FakeExec{
+		LookPathFunc: func(prog string) (string, error) {
+			if prog == "ovs-ofctl" || prog == "ovs-vsctl" {
+				return "/sbin/" + prog, nil
+			} else {
+				return "", fmt.Errorf("%s not found", prog)
+			}
+		},
+	}
 }
 
-func missingSetup() {
-	exec.SetTestMode()
+func missingSetup() *exec.FakeExec {
+	return &exec.FakeExec{
+		LookPathFunc: func(prog string) (string, error) {
+			return "", fmt.Errorf("%s not found", prog)
+		},
+	}
+}
+
+func addTestResult(fexec *exec.FakeExec, command string, output string, err error) {
+	fcmd := exec.FakeCmd{
+		CombinedOutputScript: []exec.FakeCombinedOutputAction{
+			func() ([]byte, error) { return []byte(output), err },
+		},
+	}
+	fexec.CommandScript = append(fexec.CommandScript,
+		func(cmd string, args ...string) exec.Cmd { return exec.InitFakeCmd(&fcmd, cmd, args...) })
 }
 
 func TestTransactionSuccess(t *testing.T) {
-	normalSetup()
-	exec.AddTestResult("/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
-	exec.AddTestResult("/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
+	fexec := normalSetup()
+	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
+	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
 
-	otx := NewTransaction("br0")
+	otx := NewTransaction(fexec, "br0")
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
 	err := otx.EndTransaction()
@@ -33,10 +53,10 @@ func TestTransactionSuccess(t *testing.T) {
 }
 
 func TestTransactionFailure(t *testing.T) {
-	normalSetup()
-	exec.AddTestResult("/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
+	fexec := normalSetup()
+	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
 
-	otx := NewTransaction("br0")
+	otx := NewTransaction(fexec, "br0")
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
 	err := otx.EndTransaction()
@@ -46,8 +66,8 @@ func TestTransactionFailure(t *testing.T) {
 }
 
 func TestDumpFlows(t *testing.T) {
-	normalSetup()
-	exec.AddTestResult("/usr/bin/ovs-ofctl -O OpenFlow13 dump-flows br0", `OFPST_FLOW reply (OF1.3) (xid=0x2):
+	fexec := normalSetup()
+	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 dump-flows br0", `OFPST_FLOW reply (OF1.3) (xid=0x2):
  cookie=0x0, duration=13271.779s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=192.168.1.0/24 actions=set_field:0a:7b:e6:19:11:cf->eth_dst,output:2
  cookie=0x0, duration=13271.776s, table=0, n_packets=1, n_bytes=42, priority=100,arp,arp_tpa=192.168.1.0/24 actions=set_field:10.19.17.34->tun_dst,output:1
  cookie=0x3, duration=13267.277s, table=0, n_packets=788539827, n_bytes=506520926762, priority=100,ip,nw_dst=192.168.2.2 actions=output:3
@@ -57,7 +77,7 @@ func TestDumpFlows(t *testing.T) {
  cookie=0x0, duration=13284.67s, table=0, n_packets=782815611, n_bytes=179416494325, priority=50 actions=output:2
 `, nil)
 
-	otx := NewTransaction("br0")
+	otx := NewTransaction(fexec, "br0")
 	flows, err := otx.DumpFlows()
 	otx.EndTransaction()
 	if err != nil {
@@ -73,8 +93,8 @@ func TestDumpFlows(t *testing.T) {
 }
 
 func TestOVSMissing(t *testing.T) {
-	missingSetup()
-	otx := NewTransaction("br0")
+	fexec := missingSetup()
+	otx := NewTransaction(fexec, "br0")
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
 	err := otx.EndTransaction()
