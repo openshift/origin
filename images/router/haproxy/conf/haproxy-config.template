@@ -39,11 +39,11 @@ defaults
   option httplog
   log global
 {{ end }}
-  timeout connect 5s
-  timeout client 30s
-  timeout server 30s
+  timeout connect {{env "HAPROXY_DEFAULT_CONNECT_TIMEOUT" "5s"}}
+  timeout client {{env "HAPROXY_DEFAULT_CLIENT_TIMEOUT" "30s"}}
+  timeout server {{env "HAPROXY_DEFAULT_SERVER_TIMEOUT" "30s"}}
   # Long timeout for WebSocket connections.
-  timeout tunnel 1h
+  timeout tunnel {{env "HAPROXY_DEFAULT_TUNNEL_TIMEOUT" "1h"}}
 
 {{ if (gt .StatsPort 0) }}
 listen stats :{{.StatsPort}}
