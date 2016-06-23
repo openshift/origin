@@ -15,6 +15,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -90,6 +91,15 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImag
 	istNode := g.Find(imagegraph.ImageStreamTagNodeName(ist))
 	if istNode == nil {
 		return "", NotFoundErr(fmt.Sprintf("%q", ist.Name))
+	}
+
+	markers := buildanalysis.FindCircularBuilds(g, d.namer)
+	if len(markers) > 0 {
+		for _, marker := range markers {
+			if strings.Contains(marker.Message, ist.Name) {
+				return marker.Message, nil
+			}
+		}
 	}
 
 	buildInputEdgeKinds := []string{buildedges.BuildTriggerImageEdgeKind}

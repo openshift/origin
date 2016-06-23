@@ -30,6 +30,19 @@ func TestChainDescriber(t *testing.T) {
 		includeInputImg  bool
 	}{
 		{
+			testName:         "circular test",
+			namespaces:       sets.NewString("example"),
+			output:           "",
+			defaultNamespace: "example",
+			name:             "ruby-22-centos7",
+			tag:              "latest",
+			path:             "../../../api/graph/test/circular.yaml",
+			humanReadable: map[string]int{
+				"Cycle detected in build configurations: bc/ruby-22-centos7 -> istag/ruby-hello-world:latest -> bc/ruby-hello-world -> istag/ruby-something-else:latest -> bc/ruby-something-else -> istag/ruby-22-centos7:latest -> bc/ruby-22-centos7": 1,
+			},
+			expectedErr: nil,
+		},
+		{
 			testName:         "human readable test - single namespace",
 			namespaces:       sets.NewString("test"),
 			output:           "",
