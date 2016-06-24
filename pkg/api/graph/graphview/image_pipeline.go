@@ -75,6 +75,7 @@ func NewImagePipelineFromBuildConfigNode(g osgraph.Graph, bcNode *buildgraph.Bui
 	flow.Source = src
 	flow.Build = bcNode
 	flow.LastSuccessfulBuild, flow.LastUnsuccessfulBuild, flow.ActiveBuilds = buildedges.RelevantBuilds(g, flow.Build)
+	flow.Image = findBuildOutput(g, bcNode)
 
 	// we should have at most one
 	for _, buildOutputNode := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
@@ -159,6 +160,14 @@ func findBuildInputs(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (base 
 		base = input.(ImageTagLocation)
 	}
 
+	return
+}
+
+func findBuildOutput(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (result ImageTagLocation) {
+	for _, output := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
+		result = output.(ImageTagLocation)
+		return
+	}
 	return
 }
 

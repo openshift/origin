@@ -672,9 +672,9 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 func describeStandaloneBuildGroup(f formatter, pipeline graphview.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
-		lines := []string{describeBuildInPipeline(f, pipeline.Build.BuildConfig, pipeline.BaseImage)}
+		lines := []string{describeBuildInPipeline(f, pipeline, namespace)}
 		if pipeline.Image != nil {
-			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(f, pipeline.Image, namespace)))
+			lines = append(lines, fmt.Sprintf("-> %s", describeImageTagInPipeline(f, pipeline.Image, namespace)))
 		}
 		return lines
 	case pipeline.Image != nil:
@@ -687,11 +687,11 @@ func describeStandaloneBuildGroup(f formatter, pipeline graphview.ImagePipeline,
 func describeImageInPipeline(f formatter, pipeline graphview.ImagePipeline, namespace string) string {
 	switch {
 	case pipeline.Image != nil && pipeline.Build != nil:
-		return fmt.Sprintf("%s <- %s", describeImageTagInPipeline(f, pipeline.Image, namespace), describeBuildInPipeline(f, pipeline.Build.BuildConfig, pipeline.BaseImage))
+		return fmt.Sprintf("%s <- %s", describeImageTagInPipeline(f, pipeline.Image, namespace), describeBuildInPipeline(f, pipeline, namespace))
 	case pipeline.Image != nil:
 		return describeImageTagInPipeline(f, pipeline.Image, namespace)
 	case pipeline.Build != nil:
-		return describeBuildInPipeline(f, pipeline.Build.BuildConfig, pipeline.BaseImage)
+		return describeBuildInPipeline(f, pipeline, namespace)
 	default:
 		return "<unknown>"
 	}
@@ -709,33 +709,31 @@ func describeImageTagInPipeline(f formatter, image graphview.ImageTagLocation, n
 	}
 }
 
-func describeBuildInPipeline(f formatter, build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
+func describeBuildInPipeline(f formatter, pipeline graphview.ImagePipeline, namespace string) string {
+	bldType := ""
 	switch {
-	case build.Spec.Strategy.DockerStrategy != nil:
-		// TODO: handle case where no source repo
-		source, ok := describeSourceInPipeline(&build.Spec.Source)
-		if !ok {
-			return fmt.Sprintf("bc/%s unconfigured docker build - no source set", build.Name)
-		}
-		return fmt.Sprintf("bc/%s docker build of %s", build.Name, source)
-	case build.Spec.Strategy.SourceStrategy != nil:
-		source, ok := describeSourceInPipeline(&build.Spec.Source)
-		if !ok {
-			return fmt.Sprintf("bc/%s unconfigured source build", build.Name)
-		}
-		if baseImage == nil {
-			return fmt.Sprintf("bc/%s %s; no image set", build.Name, source)
-		}
-		return fmt.Sprintf("bc/%s builds %s with %s", build.Name, source, baseImage.ImageSpec())
-	case build.Spec.Strategy.CustomStrategy != nil:
-		source, ok := describeSourceInPipeline(&build.Spec.Source)
-		if !ok {
-			return fmt.Sprintf("bc/%s custom build ", build.Name)
-		}
-		return fmt.Sprintf("bc/%s custom build of %s", build.Name, source)
+	case pipeline.Build.BuildConfig.Spec.Strategy.DockerStrategy != nil:
+		bldType = "docker"
+	case pipeline.Build.BuildConfig.Spec.Strategy.SourceStrategy != nil:
+		bldType = "source"
+	case pipeline.Build.BuildConfig.Spec.Strategy.CustomStrategy != nil:
+		bldType = "custom"
+	case pipeline.Build.BuildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return fmt.Sprintf("bc/%s is a Jenkins Pipeline", pipeline.Build.BuildConfig.Name)
 	default:
-		return fmt.Sprintf("bc/%s unrecognized build", build.Name)
+		return fmt.Sprintf("bc/%s unrecognized build", pipeline.Build.BuildConfig.Name)
 	}
+
+	source, ok := describeSourceInPipeline(&pipeline.Build.BuildConfig.Spec.Source)
+	if !ok {
+		return fmt.Sprintf("bc/%s unconfigured %s build", pipeline.Build.BuildConfig.Name, bldType)
+	}
+
+	retStr := fmt.Sprintf("bc/%s %s builds %s", pipeline.Build.BuildConfig.Name, bldType, source)
+	if pipeline.BaseImage != nil {
+		retStr = retStr + fmt.Sprintf(" on %s", describeImageTagInPipeline(f, pipeline.BaseImage, namespace))
+	}
+	return retStr
 }
 
 func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSuccessfulBuild *buildgraph.BuildNode, lastUnsuccessfulBuild *buildgraph.BuildNode, activeBuilds []*buildgraph.BuildNode, pushTargetResolved bool, includeSuccess bool) []string {
