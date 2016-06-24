@@ -13,7 +13,6 @@ import (
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // strategy implements behavior for DeploymentConfig objects
@@ -62,14 +61,6 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 
 	// Persist status
 	newDc.Status = oldDc.Status
-
-	// oc deploy --latest from new clients and image change controller updates on deployment
-	// configs without config change triggers.
-	if newVersion == oldVersion && deployutil.IsInstantiated(newDc) {
-		// TODO: Have an endpoint for this and avoid hacking it here.
-		newDc.Status.LatestVersion = oldVersion + 1
-		delete(newDc.Annotations, api.DeploymentInstantiatedAnnotation)
-	}
 
 	// oc deploy --latest from old clients
 	// TODO: Remove once we drop support for older clients
