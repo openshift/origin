@@ -1,8 +1,13 @@
 package plugin
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,27 +22,29 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
+
+	cniinvoke "github.com/containernetworking/cni/pkg/invoke"
+	cnitypes "github.com/containernetworking/cni/pkg/types"
 )
 
 type OsdnNode struct {
 	multitenant        bool
 	registry           *Registry
 	localIP            string
-	localSubnet        *osapi.HostSubnet
 	hostName           string
 	podNetworkReady    chan struct{}
 	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
-	host               knetwork.Host
-	cniConfig          []byte
+	masterKubeConfig   string
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (api.OsdnNodePlugin, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32, masterKubeConfig string) (*OsdnNode, error) {
 	if !IsOpenShiftNetworkPlugin(pluginName) {
 		return nil, nil
 	}
@@ -66,6 +73,10 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		}
 	}
 
+	if err := writeCNIConfig(masterKubeConfig, hostname, mtu); err != nil {
+		return nil, err
+	}
+
 	plugin := &OsdnNode{
 		multitenant:        IsOpenShiftMultitenantNetworkPlugin(pluginName),
 		registry:           newRegistry(osClient, kClient),
@@ -74,10 +85,43 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		vnids:              newNodeVNIDMap(),
 		podNetworkReady:    make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
+		masterKubeConfig:   masterKubeConfig,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
 	}
 	return plugin, nil
+}
+
+func getCNIConfig(masterKubeConfig string, hostname string, mtu uint32) ([]byte, error) {
+	return json.Marshal(&api.CNINetConfig{
+		NetConf: cnitypes.NetConf{
+			Name: "openshift-sdn",
+			Type: "openshift-sdn",
+		},
+		MasterKubeConfig: masterKubeConfig,
+		NodeName:         hostname,
+		MTU:              mtu,
+	})
+}
+
+const cniConfigFile string = "80-openshift-sdn.conf"
+
+func writeCNIConfig(masterKubeConfig string, hostname string, mtu uint32) error {
+	cniConfig, err := getCNIConfig(masterKubeConfig, hostname, mtu)
+	if err != nil {
+		return err
+	}
+
+	cniConfigPath := filepath.Join(kubeletcni.DefaultNetDir, cniConfigFile)
+	if err := os.MkdirAll(path.Dir(cniConfigPath), 0700); err != nil {
+		return fmt.Errorf("failed to create CNI config directory: %v", err)
+	}
+
+	if err := ioutil.WriteFile(cniConfigPath, cniConfig, 0700); err != nil {
+		return fmt.Errorf("failed to create CNI config file: %v", err)
+	}
+
+	return nil
 }
 
 func (node *OsdnNode) Start() error {
@@ -122,6 +166,40 @@ func (node *OsdnNode) Start() error {
 	}
 
 	node.markPodNetworkReady()
+
+	return nil
+}
+
+// FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
+// See https://github.com/containernetworking/cni/issues/89
+func (node *OsdnNode) UpdatePod(namespace string, name string, id kubeletTypes.ContainerID) error {
+	pluginPath, err := cniinvoke.FindInPath("openshift-sdn", []string{kubeletcni.DefaultCNIDir})
+	if err != nil {
+		return err
+	}
+
+	cniConfig, err := getCNIConfig(node.masterKubeConfig, node.hostName, node.mtu)
+	if err != nil {
+		return err
+	}
+
+	args := &cniinvoke.Args{
+		Command:     "UPDATE",
+		ContainerID: id.String(),
+		NetNS:       "/blahblah/foobar", // plugin finds out namespace itself
+		PluginArgs: [][2]string{
+			{"K8S_POD_NAMESPACE", namespace},
+			{"K8S_POD_NAME", name},
+			{"K8S_POD_INFRA_CONTAINER_ID", id.String()},
+			{"OPENSHIFT_ACTION", "UPDATE"},
+		},
+		IfName: knetwork.DefaultInterfaceName,
+		Path:   filepath.Dir(pluginPath),
+	}
+
+	if _, err := cniinvoke.ExecPluginWithResult(pluginPath, cniConfig, args); err != nil {
+		return fmt.Errorf("failed to update pod network: %v", err)
+	}
 
 	return nil
 }
