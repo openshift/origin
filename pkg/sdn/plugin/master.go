@@ -6,10 +6,9 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/pkg/netutils"
-
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"

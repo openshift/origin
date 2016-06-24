@@ -10,8 +10,7 @@ os::provision::install-sdn() {
     mkdir -p ${target}
   fi
 
-  local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
-  local osdn_plugin_path="${osdn_base_path}/plugins/osdn"
+  local osdn_plugin_path="${deployed_root}/pkg/sdn/plugin"
   mkdir -p "${target}/bin/"
   pushd "${osdn_plugin_path}" > /dev/null
     install bin/openshift-sdn-ovs "${target}/bin/"

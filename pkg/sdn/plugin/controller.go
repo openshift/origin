@@ -10,10 +10,10 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/pkg/ipcmd"
-	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/pkg/ovs"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/util/ipcmd"
+	"github.com/openshift/origin/pkg/util/netutils"
+	"github.com/openshift/origin/pkg/util/ovs"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kexec "k8s.io/kubernetes/pkg/util/exec"

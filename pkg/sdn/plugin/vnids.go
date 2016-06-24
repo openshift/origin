@@ -16,8 +16,8 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/openshift-sdn/pkg/netutils"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 const (
