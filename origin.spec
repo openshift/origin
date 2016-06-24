@@ -196,8 +196,8 @@ go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test
 
 %if 0%{?make_redistributable}
 # Build clients for other platforms
-GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
-GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
+GOOS=windows GOARCH=386 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
+GOOS=darwin GOARCH=amd64 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
 %endif
 
 #Build our pod
