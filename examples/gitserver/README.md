@@ -74,7 +74,7 @@ a 'git clone' of the repository.
 
    ```
    $ oc get pods | grep git           ## get the git server pod
-   $ oc port-forward -p PODNAME 8080  ## start port-forward where PODNAME is the git server pod
+   $ oc port-forward PODNAME 8080     ## start port-forward where PODNAME is the git server pod
    ```
 
    In this case, the URL of your git server will be your local host:
