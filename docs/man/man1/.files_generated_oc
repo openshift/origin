@@ -90,6 +90,7 @@ oc-config-use-context.1
 oc-config-view.1
 oc-config.1
 oc-convert.1
+oc-create-clusterresourcequota.1
 oc-create-configmap.1
 oc-create-deploymentconfig.1
 oc-create-identity.1

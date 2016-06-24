@@ -1,56 +1,36 @@
-.TH "OC" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OC CREATE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-oc create \- Create a resource by filename or stdin
+oc create clusterresourcequota \- Create cluster resource quota resource.
 
 
 .SH SYNOPSIS
 .PP
-\fBoc create\fP [OPTIONS]
+\fBoc create clusterresourcequota\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Create a resource by filename or stdin
+Create a cluster resource quota that controls certain resources.
 
 .PP
-JSON and YAML formats are accepted.
+Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.
 
 
 .SH OPTIONS
 .PP
-\fB\-f\fP, \fB\-\-filename\fP=[]
-    Filename, directory, or URL to file to use to create the resource
-
-.PP
-\fB\-\-include\-extended\-apis\fP=true
-    If true, include definitions of new APIs via calls to the API server. [default true]
+\fB\-\-hard\fP=[]
+    The resource to constrain: RESOURCE=QUANTITY (pods=10)
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
     Output mode. Use "\-o name" for shorter output (resource/name).
 
 .PP
-\fB\-\-record\fP=false
-    Record current kubectl command in the resource annotation.
-
-.PP
-\fB\-R\fP, \fB\-\-recursive\fP=false
-    If true, process directory recursively.
-
-.PP
-\fB\-\-save\-config\fP=false
-    If true, the configuration of current object will be saved in its annotation. This is useful when you want to perform kubectl apply on this object in the future.
-
-.PP
-\fB\-\-schema\-cache\-dir\fP="\~/.kube/schema"
-    If non\-empty, load/store cached API schemas in this directory, default is '$HOME/.kube/schema'
-
-.PP
-\fB\-\-validate\fP=false
-    If true, use a schema to validate the input before sending it
+\fB\-\-project\-selector\fP=""
+    The project selector for the cluster resource quota
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -124,11 +104,8 @@ JSON and YAML formats are accepted.
 .RS
 
 .nf
-  # Create a pod using the data in pod.json.
-  oc create \-f pod.json
-  
-  # Create a pod based on the JSON passed into stdin.
-  cat pod.json | oc create \-f \-
+  # Create an cluster resource quota limited to 10 pods
+  oc create clusterresourcequota limit\-bob \-\-project\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
 
 .fi
 .RE
@@ -136,7 +113,7 @@ JSON and YAML formats are accepted.
 
 .SH SEE ALSO
 .PP
-\fBoc(1)\fP, \fBoc\-create\-namespace(1)\fP, \fBoc\-create\-secret(1)\fP, \fBoc\-create\-configmap(1)\fP, \fBoc\-create\-serviceaccount(1)\fP, \fBoc\-create\-route(1)\fP, \fBoc\-create\-policybinding(1)\fP, \fBoc\-create\-deploymentconfig(1)\fP, \fBoc\-create\-clusterresourcequota(1)\fP, \fBoc\-create\-user(1)\fP, \fBoc\-create\-identity(1)\fP, \fBoc\-create\-useridentitymapping(1)\fP, \fBoc\-create\-imagestream(1)\fP,
+\fBoc\-create(1)\fP,
 
 
 .SH HISTORY
