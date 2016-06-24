@@ -105,6 +105,18 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
+func DeploymentConfigDeepCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	objCopy, err := api.Scheme.DeepCopy(dc)
+	if err != nil {
+		return nil, err
+	}
+	copied, ok := objCopy.(*deployapi.DeploymentConfig)
+	if !ok {
+		return nil, fmt.Errorf("expected DeploymentConfig, got %#v", objCopy)
+	}
+	return copied, nil
+}
+
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {

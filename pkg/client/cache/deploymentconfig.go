@@ -3,25 +3,18 @@ package cache
 import (
 	"fmt"
 
-	"github.com/golang/glog"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // StoreToDeploymentConfigLister gives a store List and Exists methods. The store must contain only deploymentconfigs.
 type StoreToDeploymentConfigLister struct {
 	cache.Indexer
-}
-
-// Exists checks if the given deploymentconfig exists in the store.
-func (s *StoreToDeploymentConfigLister) Exists(dc *deployapi.DeploymentConfig) (bool, error) {
-	_, exists, err := s.Indexer.Get(dc)
-	return exists, err
 }
 
 // List all deploymentconfigs in the store.
@@ -44,6 +37,22 @@ func (s *StoreToDeploymentConfigLister) GetConfigForController(rc *kapi.Replicat
 		return nil, fmt.Errorf("deployment config %q not found", dcName)
 	}
 	return obj.(*deployapi.DeploymentConfig), nil
+}
+
+func (s *StoreToDeploymentConfigLister) GetConfigsForImageStream(stream *imageapi.ImageStream) ([]*deployapi.DeploymentConfig, error) {
+	items, err := s.Indexer.ByIndex(ImageStreamReferenceIndex, stream.Namespace+"/"+stream.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	var configs []*deployapi.DeploymentConfig
+
+	for _, obj := range items {
+		config := obj.(*deployapi.DeploymentConfig)
+		configs = append(configs, config)
+	}
+
+	return configs, nil
 }
 
 func (s *StoreToDeploymentConfigLister) DeploymentConfigs(namespace string) storeDeploymentConfigsNamespacer {
@@ -83,18 +92,9 @@ func (s storeDeploymentConfigsNamespacer) List(selector labels.Selector) ([]*dep
 		return configs, nil
 	}
 
-	key := &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Namespace: s.namespace}}
-	items, err := s.indexer.Index(cache.NamespaceIndex, key)
+	items, err := s.indexer.ByIndex(cache.NamespaceIndex, s.namespace)
 	if err != nil {
-		// Ignore error; do slow search without index.
-		glog.Warningf("can not retrieve list of objects using index : %v", err)
-		for _, obj := range s.indexer.List() {
-			dc := obj.(*deployapi.DeploymentConfig)
-			if s.namespace == dc.Namespace && selector.Matches(labels.Set(dc.Labels)) {
-				configs = append(configs, dc)
-			}
-		}
-		return configs, nil
+		return nil, err
 	}
 	for _, obj := range items {
 		dc := obj.(*deployapi.DeploymentConfig)

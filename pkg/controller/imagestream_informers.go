@@ -10,24 +10,24 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-type DeploymentConfigInformer interface {
+type ImageStreamInformer interface {
 	Informer() framework.SharedIndexInformer
 	Indexer() cache.Indexer
-	Lister() *oscache.StoreToDeploymentConfigLister
+	Lister() *oscache.StoreToImageStreamLister
 }
 
-type deploymentConfigInformer struct {
+type imageStreamInformer struct {
 	*sharedInformerFactory
 }
 
-func (f *deploymentConfigInformer) Informer() framework.SharedIndexInformer {
+func (f *imageStreamInformer) Informer() framework.SharedIndexInformer {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	informerObj := &deployapi.DeploymentConfig{}
+	informerObj := &imageapi.ImageStream{}
 	informerType := reflect.TypeOf(informerObj)
 	informer, exists := f.informers[informerType]
 	if exists {
@@ -37,27 +37,27 @@ func (f *deploymentConfigInformer) Informer() framework.SharedIndexInformer {
 	informer = framework.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return f.originClient.DeploymentConfigs(kapi.NamespaceAll).List(options)
+				return f.originClient.ImageStreams(kapi.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return f.originClient.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+				return f.originClient.ImageStreams(kapi.NamespaceAll).Watch(options)
 			},
 		},
 		informerObj,
 		f.defaultResync,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc, oscache.ImageStreamReferenceIndex: oscache.ImageStreamReferenceIndexFunc},
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 	f.informers[informerType] = informer
 
 	return informer
 }
 
-func (f *deploymentConfigInformer) Indexer() cache.Indexer {
+func (f *imageStreamInformer) Indexer() cache.Indexer {
 	informer := f.Informer()
 	return informer.GetIndexer()
 }
 
-func (f *deploymentConfigInformer) Lister() *oscache.StoreToDeploymentConfigLister {
+func (f *imageStreamInformer) Lister() *oscache.StoreToImageStreamLister {
 	informer := f.Informer()
-	return &oscache.StoreToDeploymentConfigLister{Indexer: informer.GetIndexer()}
+	return &oscache.StoreToImageStreamLister{Indexer: informer.GetIndexer()}
 }
