@@ -129,9 +129,12 @@ func canTrigger(config, decoded *deployapi.DeploymentConfig) (bool, []deployapi.
 
 		// We need stronger checks in order to validate that this template
 		// change is an image change. Look at the deserialized config's
-		// triggers and compare with the present trigger.
-		if !triggeredByDifferentImage(*t.ImageChangeParams, *decoded) {
-			continue
+		// triggers and compare with the present trigger. Initial deployments
+		// should always trigger since there is no previous config to compare to.
+		if config.Status.LatestVersion > 0 {
+			if !triggeredByDifferentImage(*t.ImageChangeParams, *decoded) {
+				continue
+			}
 		}
 
 		canTriggerByImageChange = true
