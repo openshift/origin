@@ -670,7 +670,20 @@ func TestHandleScenarios(t *testing.T) {
 			2*time.Minute,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc, codec)
+		podInformer := framework.NewSharedIndexInformer(
+			&cache.ListWatch{
+				ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+					return kc.Pods(kapi.NamespaceAll).List(options)
+				},
+				WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+					return kc.Pods(kapi.NamespaceAll).Watch(options)
+				},
+			},
+			&kapi.Pod{},
+			2*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		)
+		c := NewDeploymentConfigController(dcInformer, rcInformer, podInformer, oc, kc, codec)
 
 		for i := range toStore {
 			c.rcStore.Add(&toStore[i])

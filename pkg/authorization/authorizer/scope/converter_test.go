@@ -286,7 +286,18 @@ type fakePolicyGetter struct {
 	err          error
 }
 
-func (f *fakePolicyGetter) GetClusterPolicy(ctx kapi.Context, id string) (*authorizationapi.ClusterPolicy, error) {
+func (f *fakePolicyGetter) List(kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+	policy, err := f.Get("")
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &authorizationapi.ClusterPolicyList{}
+	ret.Items = append(ret.Items, *policy)
+	return ret, f.err
+}
+
+func (f *fakePolicyGetter) Get(id string) (*authorizationapi.ClusterPolicy, error) {
 	ret := &authorizationapi.ClusterPolicy{}
 	ret.Roles = map[string]*authorizationapi.ClusterRole{}
 	for i := range f.clusterRoles {

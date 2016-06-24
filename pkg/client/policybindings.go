@@ -21,6 +21,18 @@ type PolicyBindingInterface interface {
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
+type PolicyBindingsListerNamespacer interface {
+	PolicyBindings(namespace string) PolicyBindingLister
+}
+type SyncedPolicyBindingsListerNamespacer interface {
+	PolicyBindingsListerNamespacer
+	LastSyncResourceVersion() string
+}
+type PolicyBindingLister interface {
+	List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error)
+	Get(name string) (*authorizationapi.PolicyBinding, error)
+}
+
 // policyBindings implements PolicyBindingsNamespacer interface
 type policyBindings struct {
 	r  *Client

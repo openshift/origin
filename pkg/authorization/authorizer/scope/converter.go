@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	"github.com/openshift/origin/pkg/client"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -19,7 +19,7 @@ import (
 
 // ScopesToRules takes the scopes and return the rules back.  We ALWAYS add the discovery rules and it is possible to get some rules and and
 // an error since errors aren't fatal to evaluation
-func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	rules := append([]authorizationapi.PolicyRule{}, authorizationapi.DiscoveryRule)
 
 	errors := []error{}
@@ -59,7 +59,7 @@ type ScopeEvaluator interface {
 	Handles(scope string) bool
 	Describe(scope string) string
 	Validate(scope string) error
-	ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error)
+	ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error)
 }
 
 // ScopeEvaluators map prefixes to a function that handles that prefix
@@ -117,7 +117,7 @@ func (userEvaluator) Describe(scope string) string {
 	}
 }
 
-func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	switch scope {
 	case UserIndicator + UserInfo:
 		return []authorizationapi.PolicyRule{
@@ -204,7 +204,7 @@ func (e clusterRoleEvaluator) Describe(scope string) string {
 	return roleName + " access in the " + scopeNamespace + " project, " + escalatingPhrase
 }
 
-func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter rulevalidation.ClusterPolicyGetter) ([]authorizationapi.PolicyRule, error) {
+func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
@@ -215,7 +215,7 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 		return []authorizationapi.PolicyRule{}, nil
 	}
 
-	policy, err := clusterPolicyGetter.GetClusterPolicy(kapi.NewContext(), "default")
+	policy, err := clusterPolicyGetter.Get("default")
 	if err != nil {
 		return nil, err
 	}

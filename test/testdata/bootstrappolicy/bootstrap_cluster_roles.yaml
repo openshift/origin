@@ -217,6 +217,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - clusterresourcequotas
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes
     - routes/status
     verbs:

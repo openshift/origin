@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/version"
@@ -59,6 +60,7 @@ type Interface interface {
 	ClusterPolicyBindingsInterface
 	ClusterRolesInterface
 	ClusterRoleBindingsInterface
+	ClusterResourceQuotasInterface
 }
 
 // Builds provides a REST client for Builds
@@ -262,6 +264,10 @@ func (c *Client) ClusterRoleBindings() ClusterRoleBindingInterface {
 	return newClusterRoleBindings(c)
 }
 
+func (c *Client) ClusterResourceQuotas() ClusterResourceQuotaInterface {
+	return newClusterResourceQuotas(c)
+}
+
 // Client is an OpenShift client object
 type Client struct {
 	*restclient.RESTClient
@@ -281,6 +287,12 @@ func New(c *restclient.Config) (*Client, error) {
 	}
 
 	return &Client{client}, nil
+}
+
+// DiscoveryClient returns a discovery client.
+func (c *Client) Discovery() discovery.DiscoveryInterface {
+	d := NewDiscoveryClient(c.RESTClient)
+	return d
 }
 
 // SetOpenShiftDefaults sets the default settings on the passed

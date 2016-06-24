@@ -231,6 +231,10 @@ readonly -f os::util::environment::setup_etcd_vars
 #  - export MASTER_CONFIG_DIR
 #  - export NODE_CONFIG_DIR
 function os::util::environment::setup_server_vars() {
+    # turn on cache mutation detector every time we start a server
+    KUBE_CACHE_MUTATION_DETECTOR="${KUBE_CACHE_MUTATION_DETECTOR:-true}"
+    export KUBE_CACHE_MUTATION_DETECTOR
+
     API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip)}"
     export API_BIND_HOST
     API_HOST="${API_HOST:-${API_BIND_HOST}}"

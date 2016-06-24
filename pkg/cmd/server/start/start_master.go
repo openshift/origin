@@ -414,6 +414,9 @@ func (m *Master) Start() error {
 
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 		}()
+	} else {
+		openshiftConfig.Informers.Start(utilwait.NeverStop)
+
 	}
 
 	return nil
@@ -442,8 +445,8 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// Must start policy caching immediately
+	oc.Informers.StartCore(utilwait.NeverStop)
 	oc.RunGroupCache()
-	oc.RunPolicyCache()
 	oc.RunProjectCache()
 
 	unprotectedInstallers := []origin.APIInstaller{}

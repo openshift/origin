@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-const GroupName = "quota.openshift.io"
+const GroupName = ""
 
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
@@ -30,6 +30,9 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&kapi.ListOptions{},
 		&ClusterResourceQuota{},
 		&ClusterResourceQuotaList{},
+
+		&kapi.DeleteOptions{},
+		&kapi.ListOptions{},
 	)
 }
 

@@ -167,11 +167,6 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
 }
 
-// RunPolicyCache starts the policy cache
-func (c *MasterConfig) RunPolicyCache() {
-	c.PolicyCache.Run()
-}
-
 // RunAssetServer starts the asset server for the OpenShift UI.
 func (c *MasterConfig) RunAssetServer() {
 
@@ -344,9 +339,10 @@ func (c *MasterConfig) RunDeployerPodController() {
 func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
 	rcInformer := c.Informers.ReplicationControllers().Informer()
+	podInformer := c.Informers.Pods().Informer()
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
-	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, osclient, kclient, c.EtcdHelper.Codec())
+	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.EtcdHelper.Codec())
 	// TODO: Make the stop channel actually work.
 	stopCh := make(chan struct{})
 	// TODO: Make the number of workers configurable.

@@ -19,7 +19,7 @@ os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
 os::cmd::expect_failure 'oc whoami --as deads'
 os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
-os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '*'
+os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '.*'
 
 os::cmd::expect_success 'oc login -u local-admin -p pw'
 os::cmd::expect_success 'oc new-project foo'

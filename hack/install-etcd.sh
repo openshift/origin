@@ -12,8 +12,8 @@ os::log::stacktrace::install
 
 etcd_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json github.com/coreos/etcd/etcdserver)
 
-mkdir -p "${OS_ROOT}/_tools"
-cd "${OS_ROOT}/_tools"
+mkdir -p "${OS_ROOT}/_output/tools"
+cd "${OS_ROOT}/_output/tools"
 
 if [ ! -d etcd ]; then
   mkdir -p etcd
