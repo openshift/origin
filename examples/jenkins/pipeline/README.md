@@ -27,9 +27,13 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
 4. run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
-        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/pipelinetemplate.json
+        If you used cluster up:
+        $ oc new-app jenkins-pipeline-example
 
-    At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined.
+        Otherwise:
+        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/samplepipeline.json
+
+    At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined by the sample-pipeline template.
 
 5. View/Manage Jenkins (optional)
 
