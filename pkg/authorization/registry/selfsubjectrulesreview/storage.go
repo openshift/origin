@@ -46,20 +46,20 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	errors := []error{}
 
 	rules := []authorizationapi.PolicyRule{}
-	namespaceRules, err := r.ruleResolver.GetEffectivePolicyRules(ctx)
+	namespaceRuleSets, err := r.ruleResolver.GetEffectivePolicyRules(ctx)
 	if err != nil {
 		errors = append(errors, err)
 	}
-	for _, rule := range namespaceRules {
+	for _, rule := range rulevalidation.RulesFromRuleSets(namespaceRuleSets) {
 		rules = append(rules, rulevalidation.BreakdownRule(rule)...)
 	}
 	if len(namespace) != 0 {
 		masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
-		clusterRules, err := r.ruleResolver.GetEffectivePolicyRules(masterContext)
+		clusterRuleSets, err := r.ruleResolver.GetEffectivePolicyRules(masterContext)
 		if err != nil {
 			errors = append(errors, err)
 		}
-		for _, rule := range clusterRules {
+		for _, rule := range rulevalidation.RulesFromRuleSets(clusterRuleSets) {
 			rules = append(rules, rulevalidation.BreakdownRule(rule)...)
 		}
 	}

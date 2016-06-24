@@ -18,7 +18,7 @@ import (
 func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, name string, ruleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
 	ruleResolutionErrors := []error{}
 
-	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
+	ownerLocalRuleSets, err := ruleResolver.GetEffectivePolicyRules(ctx)
 	if err != nil {
 		// do not fail in this case.  Rules are purely additive, so we can continue with a coverage check based on the rules we have
 		user, _ := kapi.UserFrom(ctx)
@@ -26,7 +26,7 @@ func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, n
 		ruleResolutionErrors = append(ruleResolutionErrors, err)
 	}
 	masterContext := kapi.WithNamespace(ctx, "")
-	ownerGlobalRules, err := ruleResolver.GetEffectivePolicyRules(masterContext)
+	ownerGlobalRuleSets, err := ruleResolver.GetEffectivePolicyRules(masterContext)
 	if err != nil {
 		// do not fail in this case.  Rules are purely additive, so we can continue with a coverage check based on the rules we have
 		user, _ := kapi.UserFrom(ctx)
@@ -34,9 +34,9 @@ func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, n
 		ruleResolutionErrors = append(ruleResolutionErrors, err)
 	}
 
-	ownerRules := make([]authorizationapi.PolicyRule, 0, len(ownerGlobalRules)+len(ownerLocalRules))
-	ownerRules = append(ownerRules, ownerLocalRules...)
-	ownerRules = append(ownerRules, ownerGlobalRules...)
+	ownerRules := make([]authorizationapi.PolicyRule, 0, len(ownerGlobalRuleSets)+len(ownerLocalRuleSets))
+	ownerRules = append(ownerRules, RulesFromRuleSets(ownerLocalRuleSets)...)
+	ownerRules = append(ownerRules, RulesFromRuleSets(ownerGlobalRuleSets)...)
 
 	ownerRightsCover, missingRights := Covers(ownerRules, role.Rules())
 	if !ownerRightsCover {

@@ -132,19 +132,21 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
 	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
 
-	allRules, ruleRetrievalError := a.ruleResolver.GetEffectivePolicyRules(ctx)
+	allRuleSets, ruleRetrievalError := a.ruleResolver.GetEffectivePolicyRules(ctx)
 
-	for _, rule := range allRules {
-		matches, err := attributes.RuleMatches(rule)
-		if err != nil {
-			return false, "", err
-		}
-		if matches {
-			namespace := kapi.NamespaceValue(ctx)
-			if len(namespace) == 0 {
-				return true, "allowed by cluster rule", nil
+	for _, ruleSet := range allRuleSets {
+		for _, rule := range ruleSet {
+			matches, err := attributes.RuleMatches(rule)
+			if err != nil {
+				return false, "", err
 			}
-			return true, "allowed by rule in " + namespace, nil
+			if matches {
+				namespace := kapi.NamespaceValue(ctx)
+				if len(namespace) == 0 {
+					return true, "allowed by cluster rule", nil
+				}
+				return true, "allowed by rule in " + namespace, nil
+			}
 		}
 	}
 

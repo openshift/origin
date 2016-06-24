@@ -32,7 +32,7 @@ type AuthorizationRuleResolver interface {
 	// GetEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of
 	// PolicyRules may not be complete, but it contains all retrievable rules.  This is done because policy rules are purely additive and policy determinations
 	// can be made on the basis of those rules that are found.
-	GetEffectivePolicyRules(ctx kapi.Context) ([]authorizationapi.PolicyRule, error)
+	GetEffectivePolicyRules(ctx kapi.Context) ([][]authorizationapi.PolicyRule, error)
 }
 
 func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorizationinterfaces.RoleBinding, error) {
@@ -116,7 +116,7 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationinterfaces.RoleBi
 // GetEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of
 // PolicyRules may not be complete, but it contains all retrievable rules.  This is done because policy rules are purely additive and policy determinations
 // can be made on the basis of those rules that are found.
-func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]authorizationapi.PolicyRule, error) {
+func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([][]authorizationapi.PolicyRule, error) {
 	roleBindings, err := a.GetRoleBindings(ctx)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]autho
 	}
 
 	errs := []error{}
-	rules := make([]authorizationapi.PolicyRule, 0, len(roleBindings))
+	rules := make([][]authorizationapi.PolicyRule, 0, len(roleBindings))
 	for _, roleBinding := range roleBindings {
 		if !appliesToUser(roleBinding.Users(), roleBinding.Groups(), user) {
 			continue
@@ -139,9 +139,7 @@ func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]autho
 			continue
 		}
 
-		for _, curr := range role.Rules() {
-			rules = append(rules, curr)
-		}
+		rules = append(rules, role.Rules())
 	}
 
 	return rules, kerrors.NewAggregate(errs)
@@ -158,4 +156,14 @@ func appliesToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {
 	}
 
 	return false
+}
+
+// RulesFromRuleSets converts the [][]PolicyRule to the more "normal" []PolicyRule for non-hotpath code
+func RulesFromRuleSets(rulesets [][]authorizationapi.PolicyRule) []authorizationapi.PolicyRule {
+	rules := make([]authorizationapi.PolicyRule, 0, len(rulesets))
+	for _, ruleset := range rulesets {
+		rules = append(rules, ruleset...)
+	}
+
+	return rules
 }
