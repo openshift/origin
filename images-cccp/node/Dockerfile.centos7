@@ -1,0 +1,40 @@
+#
+# This is an OpenShift Origin node image with integrated OpenvSwitch SDN
+# If you do not require OVS SDN you should just use the origin image
+#
+# The standard name for this image is openshift/node
+#
+
+FROM openshift/origin
+
+# Based on work by: Peter Schiffer <pschiffe@redhat.com>
+MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
+
+# We need to install openvswitch for the client portions, the daemons are expected
+# to run in another container
+
+RUN INSTALL_PKGS="origin-sdn-ovs libmnl libnetfilter_conntrack openvswitch \
+    libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
+    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
+    ceph-common iscsi-initiator-utils" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum clean all
+
+RUN mkdir -p \
+    /usr/lib/systemd/system/origin-node.service.d \
+    /usr/lib/systemd/system/docker.service.d
+
+# All of the following are placed in images/node by hack/build-images.sh
+# They won't exist in the git checkout
+ADD scripts/* /usr/local/bin/
+RUN chmod +x /usr/local/bin/* /usr/bin/openshift-*
+
+VOLUME [ "/etc/origin/node", "/var/lib/origin" ]
+WORKDIR /var/lib/origin
+
+ENV HOME /root
+ENV OPENSHIFT_CONTAINERIZED true
+ENV KUBECONFIG /etc/origin/node/node.kubeconfig
+ENTRYPOINT []
+CMD [ "/usr/local/bin/origin-node-run.sh" ]
