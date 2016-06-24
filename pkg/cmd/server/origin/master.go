@@ -443,24 +443,23 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	policyStorage, err := policyetcd.NewStorage(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver)
-
 	policyBindingStorage, err := policybindingetcd.NewStorage(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver)
 
 	clusterPolicyStorage, err := clusterpolicystorage.NewStorage(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, c.RuleResolver)
-
 	clusterPolicyBindingStorage, err := clusterpolicybindingstorage.NewStorage(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
-	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyBindingRegistry, c.RuleResolver)
 
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.Informers.ClusterPolicies().Lister().ClusterPolicies())
+
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver)
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver)
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
