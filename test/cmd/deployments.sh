@@ -97,12 +97,12 @@ echo "get: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/rollback"
-os::cmd::expect_success 'oc rollback database --to-version=1 -o=yaml'
-os::cmd::expect_success 'oc rollback dc/database --to-version=1 -o=yaml'
-os::cmd::expect_success 'oc rollback dc/database --to-version=1 --dry-run'
-os::cmd::expect_success 'oc rollback database-1 -o=yaml'
-os::cmd::expect_success 'oc rollback rc/database-1 -o=yaml'
 # should fail because there's no previous deployment
+os::cmd::expect_failure 'oc rollback database --to-version=1 -o=yaml'
+os::cmd::expect_failure 'oc rollback dc/database --to-version=1 -o=yaml'
+os::cmd::expect_failure 'oc rollback dc/database --to-version=1 --dry-run'
+os::cmd::expect_failure 'oc rollback database-1 -o=yaml'
+os::cmd::expect_failure 'oc rollback rc/database-1 -o=yaml'
 os::cmd::expect_failure 'oc rollback database -o yaml'
 echo "rollback: ok"
 os::test::junit::declare_suite_end

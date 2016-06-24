@@ -126,6 +126,16 @@ func DeepCopy_api_DeploymentConfigRollback(in DeploymentConfigRollback, out *Dep
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
+	out.Name = in.Name
+	if in.UpdatedAnnotations != nil {
+		in, out := in.UpdatedAnnotations, &out.UpdatedAnnotations
+		*out = make(map[string]string)
+		for key, val := range in {
+			(*out)[key] = val
+		}
+	} else {
+		out.UpdatedAnnotations = nil
+	}
 	if err := DeepCopy_api_DeploymentConfigRollbackSpec(in.Spec, &out.Spec, c); err != nil {
 		return err
 	}
@@ -136,6 +146,7 @@ func DeepCopy_api_DeploymentConfigRollbackSpec(in DeploymentConfigRollbackSpec, 
 	if err := api.DeepCopy_api_ObjectReference(in.From, &out.From, c); err != nil {
 		return err
 	}
+	out.Revision = in.Revision
 	out.IncludeTriggers = in.IncludeTriggers
 	out.IncludeTemplate = in.IncludeTemplate
 	out.IncludeReplicationMeta = in.IncludeReplicationMeta

@@ -1,7 +1,6 @@
 package deploymentconfig
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -18,11 +17,13 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 const (
-	// We must avoid creating new replication controllers until the {replication controller,pods} store
-	// has synced. If it hasn't synced, to avoid a hot loop, we'll wait this long between checks.
+	// We must avoid creating new replication controllers until the deployment config and replication
+	// controller stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
+	// between checks.
 	StoreSyncedPollPeriod = 100 * time.Millisecond
 )
 
@@ -69,7 +70,7 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 
 	// Wait for the rc and dc stores to sync before starting any work in this controller.
 	ready := make(chan struct{})
-	go c.waitForSyncedStores(ready)
+	go c.waitForSyncedStores(ready, stopCh)
 	select {
 	case <-ready:
 	case <-stopCh:
@@ -85,12 +86,16 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 	c.queue.ShutDown()
 }
 
-func (c *DeploymentConfigController) waitForSyncedStores(ready chan struct{}) {
+func (c *DeploymentConfigController) waitForSyncedStores(ready chan<- struct{}, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 
 	for !c.dcStoreSynced() || !c.rcStoreSynced() || !c.podStoreSynced() {
 		glog.V(4).Infof("Waiting for the dc, rc, and pod caches to sync before starting the deployment config controller workers")
-		time.Sleep(StoreSyncedPollPeriod)
+		select {
+		case <-time.After(StoreSyncedPollPeriod):
+		case <-stopCh:
+			return
+		}
 	}
 	close(ready)
 }
@@ -102,9 +107,9 @@ func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
 }
 
 func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}) {
-	oldDc := old.(*deployapi.DeploymentConfig)
-	glog.V(4).Infof("Updating deployment config %q", oldDc.Name)
-	c.enqueueDeploymentConfig(cur.(*deployapi.DeploymentConfig))
+	dc := cur.(*deployapi.DeploymentConfig)
+	glog.V(4).Infof("Updating deployment config %q", dc.Name)
+	c.enqueueDeploymentConfig(dc)
 }
 
 func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
@@ -125,7 +130,10 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 	c.enqueueDeploymentConfig(dc)
 }
 
-// addReplicationController enqueues the deployment that manages a replicationcontroller when the replicationcontroller is created.
+// addReplicationController figures out which deploymentconfig is managing this replication
+// controller and requeues the deployment config.
+// TODO: Determine if we need to resync here. Would be useful for adoption but we cannot
+// adopt right now.
 func (c *DeploymentConfigController) addReplicationController(obj interface{}) {
 	rc := obj.(*kapi.ReplicationController)
 	glog.V(4).Infof("Replication controller %q added.", rc.Name)
@@ -211,7 +219,7 @@ func (c *DeploymentConfigController) work() bool {
 		return false
 	}
 
-	copied, err := dcCopy(dc)
+	copied, err := deployutil.DeploymentConfigDeepCopy(dc)
 	if err != nil {
 		glog.Error(err.Error())
 		return false
@@ -236,16 +244,4 @@ func (c *DeploymentConfigController) getByKey(key string) (*deployapi.Deployment
 	}
 
 	return obj.(*deployapi.DeploymentConfig), nil
-}
-
-func dcCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	objCopy, err := kapi.Scheme.DeepCopy(dc)
-	if err != nil {
-		return nil, err
-	}
-	copied, ok := objCopy.(*deployapi.DeploymentConfig)
-	if !ok {
-		return nil, fmt.Errorf("expected DeploymentConfig, got %#v", objCopy)
-	}
-	return copied, nil
 }

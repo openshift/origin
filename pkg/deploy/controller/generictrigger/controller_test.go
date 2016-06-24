@@ -2,19 +2,54 @@ package generictrigger
 
 import (
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	testapi "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-var codec = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+var (
+	codec      = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+	mock       = &testclient.Fake{}
+	dcInformer = framework.NewSharedIndexInformer(
+		&cache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return mock.DeploymentConfigs(kapi.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return mock.DeploymentConfigs(kapi.NamespaceAll).Watch(options)
+			},
+		},
+		&deployapi.DeploymentConfig{},
+		2*time.Minute,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+
+	streamInformer = framework.NewSharedIndexInformer(
+		&cache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return mock.ImageStreams(kapi.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return mock.ImageStreams(kapi.NamespaceAll).Watch(options)
+			},
+		},
+		&imageapi.ImageStream{},
+		2*time.Minute,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
+)
 
 // TestHandle_newConfigNoTriggers ensures that a change to a config with no
 // triggers doesn't result in a new config version bump.
@@ -22,7 +57,7 @@ func TestHandle_newConfigNoTriggers(t *testing.T) {
 	fake := &testclient.Fake{}
 	kFake := &ktestclient.Fake{}
 
-	controller := NewDeploymentTriggerController(fake, kFake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, kFake, codec)
 
 	config := testapi.OkDeploymentConfig(1)
 	config.Namespace = kapi.NamespaceDefault
@@ -51,7 +86,7 @@ func TestHandle_newConfigTriggers(t *testing.T) {
 	})
 	kFake := &ktestclient.Fake{}
 
-	controller := NewDeploymentTriggerController(fake, kFake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, kFake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
 	config.Namespace = kapi.NamespaceDefault
@@ -123,7 +158,7 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 			return true, deployment, nil
 		})
 
-		controller := NewDeploymentTriggerController(fake, kFake, codec)
+		controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, kFake, codec)
 
 		s.modify(config)
 		if err := controller.Handle(config); err != nil {
@@ -169,7 +204,7 @@ func TestHandle_waitForImageController(t *testing.T) {
 		return true, nil, nil
 	})
 
-	controller := NewDeploymentTriggerController(fake, kFake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, kFake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
 	config.Namespace = kapi.NamespaceDefault
@@ -236,7 +271,7 @@ func TestHandle_automaticImageUpdates(t *testing.T) {
 			return true, deployment, nil
 		})
 
-		controller := NewDeploymentTriggerController(fake, kFake, codec)
+		controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, kFake, codec)
 
 		config := testapi.OkDeploymentConfig(test.version)
 		config.Namespace = kapi.NamespaceDefault

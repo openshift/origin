@@ -241,7 +241,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 	})
 
 	g.Describe("generation", func() {
-		g.It("should deploy based on a status version bump", func() {
+		g.It("should deploy based on a status version bump [Conformance]", func() {
 			resource, name, err := createFixture(oc, generationFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -297,7 +297,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 	})
 
 	g.Describe("paused", func() {
-		g.It("should never run a new deployment", func() {
+		g.It("should disable actions on deployments [Conformance]", func() {
 			resource, name, err := createFixture(oc, pausedDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -307,18 +307,22 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
+			g.By("verifying that we cannot start a new deployment")
 			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
 
+			g.By("verifying that we cannot cancel a deployment")
 			out, err = oc.Run("deploy").Args(resource, "--cancel").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deployment config"))
 
+			g.By("verifying that we cannot retry a deployment")
 			out, err = oc.Run("deploy").Args(resource, "--retry").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
 
+			g.By("verifying that we cannot rollback a deployment")
 			out, err = oc.Run("rollback").Args(resource, "--to-version", "1").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deployment config"))
@@ -351,6 +355,38 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
 			o.Expect(out).To(o.ContainSubstring("no such file or directory"))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying hook pod (retry #1)"))
+		})
+	})
+
+	g.Describe("rolled back", func() {
+		g.It("should rollback to an older deployment [Conformance]", func() {
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			_, err = oc.Run("deploy").Args(name, "--latest").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we are on the second version")
+			version, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			version = strings.Trim(version, "\"")
+			o.Expect(version).To(o.ContainSubstring("2"))
+
+			g.By("verifying that we can rollback")
+			_, err = oc.Run("rollback").Args(resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we are on the third version")
+			version, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			version = strings.Trim(version, "\"")
+			o.Expect(version).To(o.ContainSubstring("3"))
 		})
 	})
 })

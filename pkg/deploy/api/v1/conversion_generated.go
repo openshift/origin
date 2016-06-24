@@ -273,6 +273,16 @@ func autoConvert_v1_DeploymentConfigRollback_To_api_DeploymentConfigRollback(in 
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
+	out.Name = in.Name
+	if in.UpdatedAnnotations != nil {
+		in, out := &in.UpdatedAnnotations, &out.UpdatedAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	} else {
+		out.UpdatedAnnotations = nil
+	}
 	if err := Convert_v1_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -286,6 +296,16 @@ func Convert_v1_DeploymentConfigRollback_To_api_DeploymentConfigRollback(in *Dep
 func autoConvert_api_DeploymentConfigRollback_To_v1_DeploymentConfigRollback(in *deploy_api.DeploymentConfigRollback, out *DeploymentConfigRollback, s conversion.Scope) error {
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
+	}
+	out.Name = in.Name
+	if in.UpdatedAnnotations != nil {
+		in, out := &in.UpdatedAnnotations, &out.UpdatedAnnotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	} else {
+		out.UpdatedAnnotations = nil
 	}
 	if err := Convert_api_DeploymentConfigRollbackSpec_To_v1_DeploymentConfigRollbackSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -302,6 +322,7 @@ func autoConvert_v1_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollback
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
 	}
+	out.Revision = in.Revision
 	out.IncludeTriggers = in.IncludeTriggers
 	out.IncludeTemplate = in.IncludeTemplate
 	out.IncludeReplicationMeta = in.IncludeReplicationMeta
@@ -318,6 +339,7 @@ func autoConvert_api_DeploymentConfigRollbackSpec_To_v1_DeploymentConfigRollback
 	if err := s.Convert(&in.From, &out.From, 0); err != nil {
 		return err
 	}
+	out.Revision = in.Revision
 	out.IncludeTriggers = in.IncludeTriggers
 	out.IncludeTemplate = in.IncludeTemplate
 	out.IncludeReplicationMeta = in.IncludeReplicationMeta

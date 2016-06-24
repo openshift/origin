@@ -16,10 +16,6 @@ type PodInformer interface {
 	Lister() *cache.StoreToPodLister
 }
 
-func (f *sharedInformerFactory) Pods() PodInformer {
-	return &podInformer{sharedInformerFactory: f}
-}
-
 type podInformer struct {
 	*sharedInformerFactory
 }
@@ -73,10 +69,6 @@ type ReplicationControllerInformer interface {
 	Informer() framework.SharedIndexInformer
 	Indexer() cache.Indexer
 	Lister() *cache.StoreToReplicationControllerLister
-}
-
-func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerInformer {
-	return &replicationControllerInformer{sharedInformerFactory: f}
 }
 
 type replicationControllerInformer struct {

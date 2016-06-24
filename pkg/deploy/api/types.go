@@ -418,6 +418,10 @@ type DeploymentConfigList struct {
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
 	unversioned.TypeMeta
+	// Name of the deployment config that will be rolled back.
+	Name string
+	// UpdatedAnnotations is a set of new annotations that will be added in the deployment config.
+	UpdatedAnnotations map[string]string
 	// Spec defines the options to rollback generation.
 	Spec DeploymentConfigRollbackSpec
 }
@@ -426,6 +430,8 @@ type DeploymentConfigRollback struct {
 type DeploymentConfigRollbackSpec struct {
 	// From points to a ReplicationController which is a deployment.
 	From kapi.ObjectReference
+	// Revision to rollback to. If set to 0, rollback to the last revision.
+	Revision int64
 	// IncludeTriggers specifies whether to include config Triggers.
 	IncludeTriggers bool
 	// IncludeTemplate specifies whether to include the PodTemplateSpec.
