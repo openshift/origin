@@ -148,6 +148,23 @@ func ValidateDeploymentConfigStatusUpdate(newConfig *deployapi.DeploymentConfig,
 func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
 	result := field.ErrorList{}
 
+	if len(rollback.Name) == 0 {
+		result = append(result, field.Required(field.NewPath("name"), "name of the deployment config is missing"))
+	} else if !kvalidation.IsDNS1123Subdomain(rollback.Name) {
+		result = append(result, field.Invalid(field.NewPath("name"), rollback.Name, "name of the deployment config is invalid"))
+	}
+
+	specPath := field.NewPath("spec")
+	if rollback.Spec.Revision < 0 {
+		result = append(result, field.Invalid(specPath.Child("revision"), rollback.Spec.Revision, "must be non-negative"))
+	}
+
+	return result
+}
+
+func ValidateDeploymentConfigRollbackDeprecated(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
+	result := field.ErrorList{}
+
 	fromPath := field.NewPath("spec", "from")
 	if len(rollback.Spec.From.Name) == 0 {
 		result = append(result, field.Required(fromPath.Child("name"), ""))

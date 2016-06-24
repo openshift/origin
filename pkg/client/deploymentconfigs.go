@@ -25,6 +25,7 @@ type DeploymentConfigInterface interface {
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
+	RollbackDeprecated(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	GetScale(name string) (*extensions.Scale, error)
 	UpdateScale(scale *extensions.Scale) (*extensions.Scale, error)
 	UpdateStatus(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
@@ -101,6 +102,20 @@ func (c *deploymentConfigs) Generate(name string) (result *deployapi.DeploymentC
 
 // Rollback rolls a deploymentConfig back to a previous configuration
 func (c *deploymentConfigs) Rollback(config *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.r.Post().
+		Namespace(c.ns).
+		Resource("deploymentConfigs").
+		Name(config.Name).
+		SubResource("rollback").
+		Body(config).
+		Do().
+		Into(result)
+	return
+}
+
+// RollbackDeprecated rolls a deploymentConfig back to a previous configuration
+func (c *deploymentConfigs) RollbackDeprecated(config *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
 	err = c.r.Post().
 		Namespace(c.ns).

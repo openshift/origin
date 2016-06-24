@@ -57,8 +57,10 @@ func (DeploymentConfigList) SwaggerDoc() map[string]string {
 }
 
 var map_DeploymentConfigRollback = map[string]string{
-	"":     "DeploymentConfigRollback provides the input to rollback generation.",
-	"spec": "Spec defines the options to rollback generation.",
+	"":                   "DeploymentConfigRollback provides the input to rollback generation.",
+	"name":               "Name of the deployment config that will be rolled back.",
+	"updatedAnnotations": "UpdatedAnnotations is a set of new annotations that will be added in the deployment config.",
+	"spec":               "Spec defines the options to rollback generation.",
 }
 
 func (DeploymentConfigRollback) SwaggerDoc() map[string]string {
@@ -68,6 +70,7 @@ func (DeploymentConfigRollback) SwaggerDoc() map[string]string {
 var map_DeploymentConfigRollbackSpec = map[string]string{
 	"":                       "DeploymentConfigRollbackSpec represents the options for rollback generation.",
 	"from":                   "From points to a ReplicationController which is a deployment.",
+	"revision":               "Revision to rollback to. If set to 0, rollback to the last revision.",
 	"includeTriggers":        "IncludeTriggers specifies whether to include config Triggers.",
 	"includeTemplate":        "IncludeTemplate specifies whether to include the PodTemplateSpec.",
 	"includeReplicationMeta": "IncludeReplicationMeta specifies whether to include the replica count and selector.",
