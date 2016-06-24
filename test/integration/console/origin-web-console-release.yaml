@@ -1,0 +1,51 @@
+---
+  kind: "Template"
+  apiVersion: "v1"
+  metadata: 
+    name: "origin-web-console-release"
+    annotations: 
+      description: "Sets up a build config to run tests against an origin web console server.  Note: server must be set up to use AllowAllPasswordIdentityProvider for the tests to run."
+  objects: 
+    - 
+      kind: "BuildConfig"
+      apiVersion: "v1"
+      metadata: 
+        name: "origin-web-console-release"
+      spec: 
+        triggers: 
+          - 
+            type: "ConfigChange"
+          - 
+            type: "ImageChange"
+        source: 
+          type: "Git"
+          git: 
+            uri: "${GIT_REPO}"
+            ref: "${GIT_REF}"
+          secrets: null
+        strategy: 
+          type: "Source"
+          sourceStrategy: 
+            from: 
+              kind: "DockerImage"
+              name: "openshift/origin-web-console-release:latest"
+        postCommit: 
+          args: 
+            - "hack/test-integration-headless.sh"
+            - "--baseUrl=${CONSOLE_PUBLIC_URL}"
+            - "--browser=firefox"
+  parameters: 
+    - 
+      name: "CONSOLE_PUBLIC_URL"
+      description: "Base url for the console, must include the path to the console and end in a slash. For example https://www.example.com/console/"
+      required: true
+    - 
+      name: "GIT_REF"
+      description: "Git ref of the console that is being tested.  Must match the version of the console being tested so the right tests and test dependencies are being used."
+      value: "master"
+      required: true
+    - 
+      name: "GIT_REPO"
+      description: "Git repo URL for the fork of the console that is being tested.  Must match the version of the console being tested so the right tests and test dependencies are being used."
+      value: "https://github.com/openshift/origin-web-console.git"
+      required: true
