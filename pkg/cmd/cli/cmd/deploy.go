@@ -245,8 +245,19 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 		return err
 	}
 
-	config.Status.LatestVersion++
-	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	request := &deployapi.DeploymentRequest{
+		Name:   config.Name,
+		Latest: false,
+		Force:  true,
+	}
+
+	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Instantiate(request)
+	// Pre 1.4 servers don't support the instantiate endpoint. Fallback to incrementing
+	// latestVersion on them.
+	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
+		config.Status.LatestVersion++
+		dc, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	}
 	if err != nil {
 		return err
 	}
