@@ -177,7 +177,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	skipped := 0
-	errored := 0
+	errored := []*resource.Info{}
 	for _, info := range infos {
 		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, containerMatch)
@@ -188,7 +188,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			for _, c := range containers {
 				if !overwrite {
 					if err := validateNoOverwrites(c.Env, env); err != nil {
-						errored++
+						errored = append(errored, info)
 						return err
 					}
 				}
@@ -217,7 +217,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 				}
 				if !overwrite {
 					if err := validateNoOverwrites(*vars, env); err != nil {
-						errored++
+						errored = append(errored, info)
 						return err
 					}
 				}
@@ -243,8 +243,8 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	if one && skipped == len(infos) {
 		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
-	if errored == len(infos) {
-		return fmt.Errorf("no environment variable has been set")
+	if len(errored) == len(infos) {
+		return cmdutil.ErrExit
 	}
 
 	if list {
@@ -284,7 +284,13 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	}
 
 	failed := false
+updates:
 	for i, info := range infos {
+		for _, erroredInfo := range errored {
+			if info == erroredInfo {
+				continue updates
+			}
+		}
 		newData, err := json.Marshal(objects[i])
 		if err != nil {
 			return err
