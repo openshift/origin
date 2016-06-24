@@ -32,11 +32,11 @@ type vnidMap struct {
 	lock sync.Mutex
 }
 
-func newVnidMap() vnidMap {
-	return vnidMap{ids: make(map[string]uint)}
+func newVnidMap() *vnidMap {
+	return &vnidMap{ids: make(map[string]uint)}
 }
 
-func (vmap vnidMap) GetVNID(name string) (uint, error) {
+func (vmap *vnidMap) GetVNID(name string) (uint, error) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -53,7 +53,7 @@ func (vmap vnidMap) GetVNID(name string) (uint, error) {
 // and if service/pod-setup tries to lookup vnid map then it may fail.
 // So, use this method to alleviate this problem. This method will
 // retry vnid lookup before giving up.
-func (vmap vnidMap) WaitAndGetVNID(name string) (uint, error) {
+func (vmap *vnidMap) WaitAndGetVNID(name string) (uint, error) {
 	// Try few times up to 2 seconds
 	retries := 20
 	retryInterval := 100 * time.Millisecond
@@ -68,7 +68,7 @@ func (vmap vnidMap) WaitAndGetVNID(name string) (uint, error) {
 	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
-func (vmap vnidMap) SetVNID(name string, id uint) {
+func (vmap *vnidMap) SetVNID(name string, id uint) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -76,7 +76,7 @@ func (vmap vnidMap) SetVNID(name string, id uint) {
 	log.Infof("Associate netid %d to namespace %q", id, name)
 }
 
-func (vmap vnidMap) UnsetVNID(name string) (id uint, err error) {
+func (vmap *vnidMap) UnsetVNID(name string) (id uint, err error) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -90,7 +90,7 @@ func (vmap vnidMap) UnsetVNID(name string) (id uint, err error) {
 	return id, nil
 }
 
-func (vmap vnidMap) CheckVNID(id uint) bool {
+func (vmap *vnidMap) CheckVNID(id uint) bool {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -102,7 +102,7 @@ func (vmap vnidMap) CheckVNID(id uint) bool {
 	return false
 }
 
-func (vmap vnidMap) GetAllocatedVNIDs() []uint {
+func (vmap *vnidMap) GetAllocatedVNIDs() []uint {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -119,7 +119,7 @@ func (vmap vnidMap) GetAllocatedVNIDs() []uint {
 	return ids
 }
 
-func (vmap vnidMap) PopulateVNIDs(registry *Registry) error {
+func (vmap *vnidMap) PopulateVNIDs(registry *Registry) error {
 	nets, err := registry.GetNetNamespaces()
 	if err != nil {
 		return err
@@ -178,7 +178,6 @@ func (master *OsdnMaster) assignVNID(namespaceName string) error {
 	if master.isAdminNamespace(namespaceName) {
 		netid = AdminVNID
 	} else {
-		var err error
 		netid, err = master.netIDManager.GetNetID()
 		if err != nil {
 			return err
@@ -249,13 +248,13 @@ func (master *OsdnMaster) watchNamespaces() {
 		log.V(5).Infof("Watch %s event for Namespace %q", strings.Title(string(eventType)), name)
 		switch eventType {
 		case watch.Added, watch.Modified:
-			err := master.assignVNID(name)
+			err = master.assignVNID(name)
 			if err != nil {
 				log.Errorf("Error assigning netid: %v", err)
 				continue
 			}
 		case watch.Deleted:
-			err := master.revokeVNID(name)
+			err = master.revokeVNID(name)
 			if err != nil {
 				log.Errorf("Error revoking netid: %v", err)
 				continue
@@ -283,7 +282,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, netID uint) error {
 		return err
 	}
 	for _, pod := range pods {
-		err := node.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(getPodContainerID(&pod)))
+		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(getPodContainerID(&pod)))
 		if err != nil {
 			return err
 		}
@@ -296,10 +295,10 @@ func (node *OsdnNode) updatePodNetwork(namespace string, netID uint) error {
 	}
 	errList := []error{}
 	for _, svc := range services {
-		if err := node.DeleteServiceRules(&svc); err != nil {
+		if err = node.DeleteServiceRules(&svc); err != nil {
 			log.Error(err)
 		}
-		if err := node.AddServiceRules(&svc, netID); err != nil {
+		if err = node.AddServiceRules(&svc, netID); err != nil {
 			errList = append(errList, err)
 		}
 	}
@@ -321,7 +320,8 @@ func (node *OsdnNode) watchNetNamespaces() {
 		switch eventType {
 		case watch.Added, watch.Modified:
 			// Skip this event if the old and new network ids are same
-			oldNetID, err := node.vnids.GetVNID(netns.NetName)
+			var oldNetID uint
+			oldNetID, err = node.vnids.GetVNID(netns.NetName)
 			if (err == nil) && (oldNetID == netns.NetID) {
 				continue
 			}
@@ -335,7 +335,7 @@ func (node *OsdnNode) watchNetNamespaces() {
 			}
 		case watch.Deleted:
 			// updatePodNetwork needs vnid, so unset vnid after this call
-			err := node.updatePodNetwork(netns.NetName, AdminVNID)
+			err = node.updatePodNetwork(netns.NetName, AdminVNID)
 			if err != nil {
 				log.Errorf("Failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
 			}
@@ -382,18 +382,19 @@ func (node *OsdnNode) watchServices() {
 				if !isServiceChanged(oldsvc, serv) {
 					continue
 				}
-				if err := node.DeleteServiceRules(oldsvc); err != nil {
+				if err = node.DeleteServiceRules(oldsvc); err != nil {
 					log.Error(err)
 				}
 			}
 
-			netid, err := node.vnids.WaitAndGetVNID(serv.Namespace)
+			var netid uint
+			netid, err = node.vnids.WaitAndGetVNID(serv.Namespace)
 			if err != nil {
 				log.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)
 				continue
 			}
 
-			if err := node.AddServiceRules(serv, netid); err != nil {
+			if err = node.AddServiceRules(serv, netid); err != nil {
 				log.Error(err)
 				continue
 			}
@@ -401,7 +402,7 @@ func (node *OsdnNode) watchServices() {
 		case watch.Deleted:
 			delete(services, string(serv.UID))
 
-			if err := node.DeleteServiceRules(serv); err != nil {
+			if err = node.DeleteServiceRules(serv); err != nil {
 				log.Error(err)
 			}
 		}

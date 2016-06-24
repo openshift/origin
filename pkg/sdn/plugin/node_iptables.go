@@ -36,15 +36,13 @@ func newNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration) *NodeI
 }
 
 func (n *NodeIPTables) Setup() error {
-	err := n.syncIPTableRules()
-	if err != nil {
+	if err := n.syncIPTableRules(); err != nil {
 		return err
 	}
 
 	// If firewalld is running, reload will call this method
 	n.ipt.AddReloadFunc(func() {
-		err := n.syncIPTableRules()
-		if err != nil {
+		if err := n.syncIPTableRules(); err != nil {
 			glog.Errorf("Reloading openshift iptables failed: %v", err)
 		}
 	})
