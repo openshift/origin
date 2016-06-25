@@ -1,6 +1,9 @@
 package docker
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -20,7 +23,7 @@ import (
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockermachine"
-	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
+	dockerErr "github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/client"
@@ -45,6 +48,8 @@ const (
 
 	defaultImages         = "openshift/origin-${component}:${version}"
 	defaultOpenShiftImage = "openshift/origin:${version}"
+
+	openshiftBin = "openshift"
 
 	cmdUpLong = `
 Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
@@ -96,6 +101,7 @@ var (
 		"jenkins pipeline":   "examples/jenkins/pipeline/jenkinstemplate.json",
 		"sample pipeline":    "examples/jenkins/pipeline/samplepipeline.json",
 	}
+	ErrLinuxOnlyOption = errors.New("Option available only for linux")
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
@@ -130,6 +136,8 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
+	// FIXME: didn't check how --image works yet, make it override it.
+	cmd.Flags().StringVar(&config.CustomBinaryPath, "binary-path", "", "Run openshift cluster with a locally compiled binary. This will override --image argument.")
 	return cmd
 }
 
@@ -181,6 +189,8 @@ type ClientStartConfig struct {
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
+
+	CustomBinaryPath string
 }
 
 func (c *ClientStartConfig) addTask(name string, fn taskFunc) {
@@ -212,6 +222,13 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Ensure that the OpenShift Docker image is available. If not present,
 	// pull it.
 	c.addTask(fmt.Sprintf("Checking for %s image", c.openShiftImage()), c.CheckOpenShiftImage)
+
+	// If we specified a custom binary, we build on top of the openshift/origin
+	// image a new image named openshift-custom and use that for oc cluster up.
+	// This overrides --image.
+	if len(c.CustomBinaryPath) > 0 {
+		c.addTask("Injecting custom OpenShift binary", c.rebuildOriginImage)
+	}
 
 	// Ensure that the Docker daemon has the right --insecure-registry argument. If
 	// not, then exit.
@@ -342,7 +359,7 @@ func (c *ClientStartConfig) CheckOpenShiftClient(out io.Writer) error {
 		kubeConfigError = fmt.Errorf("cannot access %s: %v", kubeConfig, err)
 	}
 	if kubeConfigError != nil {
-		return errors.ErrKubeConfigNotWriteable(kubeConfig, kubeConfigError)
+		return dockerErr.ErrKubeConfigNotWriteable(kubeConfig, kubeConfigError)
 	}
 	return nil
 }
@@ -356,7 +373,7 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 		glog.V(2).Infof("Getting client for Docker machine %q", c.DockerMachine)
 		c.dockerClient, c.engineAPIClient, err = getDockerMachineClient(c.DockerMachine, out)
 		if err != nil {
-			return errors.ErrNoDockerMachineClient(c.DockerMachine, err)
+			return dockerErr.ErrNoDockerMachineClient(c.DockerMachine, err)
 		}
 		return nil
 	}
@@ -382,7 +399,7 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 	}
 	c.dockerClient, _, err = dockerutil.NewHelper().GetClient()
 	if err != nil {
-		return errors.ErrNoDockerClient(err)
+		return dockerErr.ErrNoDockerClient(err)
 	}
 	// FIXME: Workaround for docker engine API client on OS X - sets the default to
 	// the wrong DOCKER_HOST string
@@ -394,10 +411,10 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 	}
 	c.engineAPIClient, err = dockerclient.NewEnvClient()
 	if err != nil {
-		return errors.ErrNoDockerClient(err)
+		return dockerErr.ErrNoDockerClient(err)
 	}
 	if err = c.dockerClient.Ping(); err != nil {
-		return errors.ErrCannotPingDocker(err)
+		return dockerErr.ErrCannotPingDocker(err)
 	}
 	glog.V(4).Infof("Docker ping succeeded")
 	return nil
@@ -409,15 +426,15 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 func (c *ClientStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error {
 	exists, running, err := c.DockerHelper().GetContainerState(openShiftContainer)
 	if err != nil {
-		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
+		return dockerErr.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
 	if running {
-		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop current %q container.", openShiftContainer)
+		return dockerErr.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop current %q container.", openShiftContainer)
 	}
 	if exists {
 		err = c.DockerHelper().RemoveContainer(openShiftContainer)
 		if err != nil {
-			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
+			return dockerErr.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
 		fmt.Fprintf(out, "Deleted existing OpenShift container\n")
 	}
@@ -437,7 +454,7 @@ func (c *ClientStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
 		return err
 	}
 	if !hasArg {
-		return errors.ErrNoInsecureRegistryArgument()
+		return dockerErr.ErrNoInsecureRegistryArgument()
 	}
 	return nil
 }
@@ -505,14 +522,14 @@ func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
 			return nil
 		}
 	}
-	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+	return dockerErr.NewError("a port needed by OpenShift is not available").WithCause(err)
 }
 
 // DetermineServerIP gets an appropriate IP address to communicate with the OpenShift server
 func (c *ClientStartConfig) DetermineServerIP(out io.Writer) error {
 	ip, err := c.determineIP(out)
 	if err != nil {
-		return errors.NewError("cannot determine a server IP to use").WithCause(err)
+		return dockerErr.NewError("cannot determine a server IP to use").WithCause(err)
 	}
 	c.ServerIP = ip
 	fmt.Fprintf(out, "Using %s as the server IP\n", ip)
@@ -687,7 +704,7 @@ func (c *ClientStartConfig) importObjects(out io.Writer, locations map[string]st
 		glog.V(2).Infof("Importing %s from %s", name, location)
 		err = openshift.ImportObjects(f, openShiftNamespace, location)
 		if err != nil {
-			return errors.NewError("cannot import %s", name).WithCause(err).WithDetails(c.OpenShiftHelper().OriginLog())
+			return dockerErr.NewError("cannot import %s", name).WithCause(err).WithDetails(c.OpenShiftHelper().OriginLog())
 		}
 	}
 	return nil
@@ -702,7 +719,7 @@ func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, *doc
 		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
 		err := dockermachine.Start(machine)
 		if err != nil {
-			return nil, nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
+			return nil, nil, dockerErr.NewError("cannot start Docker machine %q", machine).WithCause(err)
 		}
 		fmt.Fprintf(out, "Started Docker machine '%s'\n", machine)
 	}
@@ -719,7 +736,7 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 		glog.V(2).Infof("Using docker machine %q to determine server IP", c.DockerMachine)
 		ip, err := dockermachine.IP(c.DockerMachine)
 		if err != nil {
-			return "", errors.NewError("Could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
+			return "", dockerErr.NewError("Could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
 		}
 		fmt.Fprintf(out, "Using docker-machine IP %s as the host IP\n", ip)
 		return ip, nil
@@ -759,5 +776,137 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 		}
 		glog.V(2).Infof("OpenShift additional ip test failed: %v", err)
 	}
-	return "", errors.NewError("cannot determine an IP to use for your server.")
+	return "", dockerErr.NewError("cannot determine an IP to use for your server.")
+}
+
+// rebuildOriginImage rebuilds the openshift/origin image to run with a
+// binary from a local path.
+func (c *ClientStartConfig) rebuildOriginImage(out io.Writer) error {
+	var bogusBuffer bytes.Buffer
+
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		return ErrLinuxOnlyOption
+	}
+	if err := removePreviousCustomImage(out, c.dockerClient); err != nil {
+		return err
+	}
+	file, err := os.Stat(c.CustomBinaryPath)
+	if err != nil {
+		return err
+	}
+	fileMode := file.Mode()
+	// there is no guarantee that the user will point to an actual openshift
+	// binary
+	if !fileMode.IsRegular() {
+		return fmt.Errorf("%s is not a regular file!", c.CustomBinaryPath)
+	}
+	fmt.Fprint(out, "Creating temporary Dockerfile\n")
+	dockerfilePath, err := createTmpDockerfile(c.CustomBinaryPath)
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(out, "Building OpenShift custom image\n")
+	dockerfileRoot := filepath.Dir(dockerfilePath)
+	if err = c.dockerClient.BuildImage(
+		docker.BuildImageOptions{
+			Name:           "openshift/origin:latest",
+			ContextDir:     dockerfileRoot,
+			Dockerfile:     "Dockerfile",
+			SuppressOutput: true,
+			OutputStream:   bufio.NewWriter(&bogusBuffer),
+		}); err != nil {
+		return err
+	}
+	if err = tmpDirCleanup(dockerfileRoot); err != nil {
+		return err
+	}
+	return nil
+}
+
+// removePreviousCustomImage removes a previously built custom origin image
+func removePreviousCustomImage(out io.Writer, dockerClient *docker.Client) error {
+	imageMeta, err := dockerClient.InspectImage("openshift/origin:dev")
+	if err == docker.ErrNoSuchImage {
+		return nil
+	}
+	fmt.Fprint(out, "Removing previous custom image\n")
+	if err = dockerClient.RemoveImage(imageMeta.ID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// createTmpDockerfile creates a temporary Dockerfile that is used to build the
+// custom origin image with the specified binary.
+func createTmpDockerfile(binPath string) (dockerfilePath string, err error) {
+	// TODO: if this turns out to be useful all builder images would need to be
+	// updated (s2i-builder and docker-builder) with the binary in order for this
+	// to work properly.
+	originBuilderImage := "openshift/origin:latest"
+	// this should be built on top of the base image to save stacking on multiple
+	// layers.
+	// https://github.com/rhcarvalho/openshift-devtools/blob/master/extras/rebuild-openshift-image.sh#L19
+	dockerFile := []byte(fmt.Sprintf(`
+FROM %s
+COPY openshift /usr/bin/openshift
+`, originBuilderImage))
+	dockerfilePath = filepath.Join("/tmp", "custom_origin_dockerfile", "Dockerfile")
+	dockerfileRoot := filepath.Dir(dockerfilePath)
+	// make sure we remove any previously created directory together with its
+	// contents so that it doesn't error out when recreating.
+	// FIXME: move this to a proper defer later
+	if err = tmpDirCleanup(dockerfileRoot); err != nil {
+		return "", err
+	}
+	if err = os.Mkdir(dockerfileRoot, 0755); err != nil {
+		return "", err
+	}
+	file, err := os.Create(dockerfilePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	_, err = file.Write(dockerFile)
+	if err != nil {
+		return "", err
+	}
+	if err = copyBinaryToTemp(binPath, dockerfileRoot); err != nil {
+		return "", err
+	}
+	return dockerfilePath, err
+}
+
+// copyBinaryToTemp copies the specified openshift binary to the context
+// directory that docker uses to build the current custom origin image.
+func copyBinaryToTemp(binPath string, dockerfileRoot string) error {
+	srcBin, err := os.Open(binPath)
+	if err != nil {
+		return err
+	}
+	defer srcBin.Close()
+	tmpBin, err := os.Create(filepath.Join(dockerfileRoot, "openshift"))
+	if err != nil {
+		return err
+	}
+	defer tmpBin.Close()
+	_, err = io.Copy(tmpBin, srcBin)
+	if err != nil {
+		return err
+	}
+	if err = tmpBin.Sync(); err != nil {
+		return err
+	}
+
+	if err = os.Chmod(filepath.Join(dockerfileRoot, "openshift"), 0755); err != nil {
+		return err
+	}
+	return nil
+}
+
+// tmpDirCleanup removes the context directory of the Dockerfile.
+func tmpDirCleanup(dockerfileRoot string) error {
+	if err := os.RemoveAll(dockerfileRoot); err != nil {
+		return err
+	}
+	return nil
 }
