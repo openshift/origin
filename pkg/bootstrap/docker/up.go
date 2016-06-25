@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -134,6 +136,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
+	// FIXME: didn't check how --image works yet, make it override it.
 	cmd.Flags().StringVar(&config.CustomBinaryPath, "binary-path", "", "Run openshift cluster with a locally compiled binary. This will override --image argument.")
 	return cmd
 }
@@ -779,6 +782,8 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 // rebuildOriginImage rebuilds the openshift/origin image to run with a
 // binary from a local path.
 func (c *ClientStartConfig) rebuildOriginImage(out io.Writer) error {
+	var bogusBuffer bytes.Buffer
+
 	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
 		return ErrLinuxOnlyOption
 	}
@@ -804,16 +809,14 @@ func (c *ClientStartConfig) rebuildOriginImage(out io.Writer) error {
 	dockerfileRoot := filepath.Dir(dockerfilePath)
 	if err = c.dockerClient.BuildImage(
 		docker.BuildImageOptions{
-			Name:           "openshift-custom:latest",
+			Name:           "openshift/origin:latest",
 			ContextDir:     dockerfileRoot,
 			Dockerfile:     "Dockerfile",
 			SuppressOutput: true,
-			OutputStream:   out,
+			OutputStream:   bufio.NewWriter(&bogusBuffer),
 		}); err != nil {
 		return err
 	}
-	c.Image = "openshift-custom"
-	c.ImageVersion = "latest"
 	if err = tmpDirCleanup(dockerfileRoot); err != nil {
 		return err
 	}
@@ -822,7 +825,7 @@ func (c *ClientStartConfig) rebuildOriginImage(out io.Writer) error {
 
 // removePreviousCustomImage removes a previously built custom origin image
 func removePreviousCustomImage(out io.Writer, dockerClient *docker.Client) error {
-	imageMeta, err := dockerClient.InspectImage("origin-custom:latest")
+	imageMeta, err := dockerClient.InspectImage("openshift/origin:dev")
 	if err == docker.ErrNoSuchImage {
 		return nil
 	}
@@ -836,10 +839,17 @@ func removePreviousCustomImage(out io.Writer, dockerClient *docker.Client) error
 // createTmpDockerfile creates a temporary Dockerfile that is used to build the
 // custom origin image with the specified binary.
 func createTmpDockerfile(binPath string) (dockerfilePath string, err error) {
-	dockerFile := []byte(`
-FROM openshift/origin:latest
+	// TODO: if this turns out to be useful all builder images would need to be
+	// updated (s2i-builder and docker-builder) with the binary in order for this
+	// to work properly.
+	originBuilderImage := "openshift/origin:latest"
+	// this should be built on top of the base image to save stacking on multiple
+	// layers.
+	// https://github.com/rhcarvalho/openshift-devtools/blob/master/extras/rebuild-openshift-image.sh#L19
+	dockerFile := []byte(fmt.Sprintf(`
+FROM %s
 COPY openshift /usr/bin/openshift
-`)
+`, originBuilderImage))
 	dockerfilePath = filepath.Join("/tmp", "custom_origin_dockerfile", "Dockerfile")
 	dockerfileRoot := filepath.Dir(dockerfilePath)
 	// make sure we remove any previously created directory together with its
