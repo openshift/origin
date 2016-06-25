@@ -216,14 +216,16 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// If one exists but not running, delete it.
 	c.addTask("Checking for existing OpenShift container", c.CheckExistingOpenShiftContainer)
 
-	// If we specified a custom binary directory, we kick off building the openshift/origin image with the custom binary and tag it as latest. This overrides --image
-	if len(c.CustomBinaryPath) > 0 {
-		c.addTask("Injecting custom OpenShift binary", c.rebuildOriginImage)
-	}
-
 	// Ensure that the OpenShift Docker image is available. If not present,
 	// pull it.
 	c.addTask(fmt.Sprintf("Checking for %s image", c.openShiftImage()), c.CheckOpenShiftImage)
+
+	// If we specified a custom binary, we build on top of the openshift/origin
+	// image a new image named openshift-custom and use that for oc cluster up.
+	// This overrides --image.
+	if len(c.CustomBinaryPath) > 0 {
+		c.addTask("Injecting custom OpenShift binary", c.rebuildOriginImage)
+	}
 
 	// Ensure that the Docker daemon has the right --insecure-registry argument. If
 	// not, then exit.
@@ -812,9 +814,9 @@ func (c *ClientStartConfig) rebuildOriginImage(out io.Writer) error {
 	}
 	c.Image = "openshift-custom"
 	c.ImageVersion = "latest"
-	// if err = tmpDirCleanup(dockerfileRoot); err != nil {
-	// 	return err
-	// }
+	if err = tmpDirCleanup(dockerfileRoot); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -842,6 +844,7 @@ COPY openshift /usr/bin/openshift
 	dockerfileRoot := filepath.Dir(dockerfilePath)
 	// make sure we remove any previously created directory together with its
 	// contents so that it doesn't error out when recreating.
+	// FIXME: move this to a proper defer later
 	if err = tmpDirCleanup(dockerfileRoot); err != nil {
 		return "", err
 	}
