@@ -200,7 +200,7 @@ func (s *S2IBuilder) Build() error {
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
 	allowedUIDs := os.Getenv(api.AllowedUIDs)
-	glog.V(0).Infof("The value of %s is [%s]", api.AllowedUIDs, allowedUIDs)
+	glog.V(4).Infof("The value of %s is [%s]", api.AllowedUIDs, allowedUIDs)
 	if len(allowedUIDs) > 0 {
 		err := config.AllowedUIDs.Set(allowedUIDs)
 		if err != nil {
@@ -208,7 +208,7 @@ func (s *S2IBuilder) Build() error {
 		}
 	}
 	dropCaps := os.Getenv(api.DropCapabilities)
-	glog.V(0).Infof("The value of %s is [%s]", api.DropCapabilities, dropCaps)
+	glog.V(4).Infof("The value of %s is [%s]", api.DropCapabilities, dropCaps)
 	if len(dropCaps) > 0 {
 		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
@@ -227,7 +227,7 @@ func (s *S2IBuilder) Build() error {
 	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
 	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
 
-	glog.V(0).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
+	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
 	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
 	if err != nil {
 		return err
@@ -261,11 +261,11 @@ func (s *S2IBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.V(0).Infof("Using provided push secret for pushing %s image", pushTag)
+			glog.V(3).Infof("Using provided push secret for pushing %s image", pushTag)
 		} else {
-			glog.V(0).Infof("No push secret provided")
+			glog.V(3).Infof("No push secret provided")
 		}
-		glog.V(0).Infof("Pushing image %s ...", pushTag)
+		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		if err := pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
 			// write extended error message to assist in problem resolution
 			msg := fmt.Sprintf("Failed to push image. Response from registry is: %v", err)

@@ -210,7 +210,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
 
 	// Recursive clone if we're not going to checkout a ref and submodule update later
-	glog.V(0).Infof("Cloning source from %s", gitSource.URI)
+	glog.V(3).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
 	quiet := !glog.Is(5)
