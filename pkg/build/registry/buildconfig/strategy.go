@@ -48,8 +48,14 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
-	bc := obj.(*api.BuildConfig)
-	dropUnknownTriggers(bc)
+	newBC := obj.(*api.BuildConfig)
+	oldBC := old.(*api.BuildConfig)
+	dropUnknownTriggers(newBC)
+	// Do not allow the build version to go backwards or we'll
+	// get conflicts with existing builds.
+	if newBC.Status.LastVersion < oldBC.Status.LastVersion {
+		newBC.Status.LastVersion = oldBC.Status.LastVersion
+	}
 }
 
 // Validate validates a new policy.
