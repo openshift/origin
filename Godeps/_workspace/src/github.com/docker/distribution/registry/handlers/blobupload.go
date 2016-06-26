@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 
 	"github.com/docker/distribution"
 	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/storage"
 	"github.com/gorilla/handlers"
 )
 
@@ -44,9 +45,9 @@ func blobUploadDispatcher(ctx *Context, r *http.Request) http.Handler {
 		}
 		buh.State = state
 
-		if state.Name != ctx.Repository.Name() {
+		if state.Name != ctx.Repository.Named().Name() {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ctxu.GetLogger(ctx).Infof("mismatched repository name in upload state: %q != %q", state.Name, buh.Repository.Name())
+				ctxu.GetLogger(ctx).Infof("mismatched repository name in upload state: %q != %q", state.Name, buh.Repository.Named().Name())
 				buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadInvalid.WithDetail(err))
 			})
 		}
@@ -74,28 +75,14 @@ func blobUploadDispatcher(ctx *Context, r *http.Request) http.Handler {
 		}
 		buh.Upload = upload
 
-		if state.Offset > 0 {
-			// Seek the blob upload to the correct spot if it's non-zero.
-			// These error conditions should be rare and demonstrate really
-			// problems. We basically cancel the upload and tell the client to
-			// start over.
-			if nn, err := upload.Seek(buh.State.Offset, os.SEEK_SET); err != nil {
-				defer upload.Close()
-				ctxu.GetLogger(ctx).Infof("error seeking blob upload: %v", err)
-				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadInvalid.WithDetail(err))
-					upload.Cancel(buh)
-				})
-			} else if nn != buh.State.Offset {
-				defer upload.Close()
-				ctxu.GetLogger(ctx).Infof("seek to wrong offest: %d != %d", nn, buh.State.Offset)
-				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadInvalid.WithDetail(err))
-					upload.Cancel(buh)
-				})
-			}
+		if size := upload.Size(); size != buh.State.Offset {
+			defer upload.Close()
+			ctxu.GetLogger(ctx).Infof("upload resumed at wrong offest: %d != %d", size, buh.State.Offset)
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadInvalid.WithDetail(err))
+				upload.Cancel(buh)
+			})
 		}
-
 		return closeResources(handler, buh.Upload)
 	}
 
@@ -116,13 +103,29 @@ type blobUploadHandler struct {
 }
 
 // StartBlobUpload begins the blob upload process and allocates a server-side
-// blob writer session.
+// blob writer session, optionally mounting the blob from a separate repository.
 func (buh *blobUploadHandler) StartBlobUpload(w http.ResponseWriter, r *http.Request) {
+	var options []distribution.BlobCreateOption
+
+	fromRepo := r.FormValue("from")
+	mountDigest := r.FormValue("mount")
+
+	if mountDigest != "" && fromRepo != "" {
+		opt, err := buh.createBlobMountOption(fromRepo, mountDigest)
+		if opt != nil && err == nil {
+			options = append(options, opt)
+		}
+	}
+
 	blobs := buh.Repository.Blobs(buh)
-	upload, err := blobs.Create(buh)
+	upload, err := blobs.Create(buh, options...)
 
 	if err != nil {
-		if err == distribution.ErrUnsupported {
+		if ebm, ok := err.(distribution.ErrBlobMounted); ok {
+			if err := buh.writeBlobCreatedHeaders(w, ebm.Descriptor); err != nil {
+				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			}
+		} else if err == distribution.ErrUnsupported {
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnsupported)
 		} else {
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
@@ -221,10 +224,7 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
 		return
 	}
 
-	size := buh.State.Offset
-	if offset, err := buh.Upload.Seek(0, os.SEEK_CUR); err == nil {
-		size = offset
-	}
+	size := buh.Upload.Size()
 
 	desc, err := buh.Upload.Commit(buh, distribution.Descriptor{
 		Digest: dgst,
@@ -262,18 +262,10 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
 
 		return
 	}
-
-	// Build our canonical blob url
-	blobURL, err := buh.urlBuilder.BuildBlobURL(buh.Repository.Name(), desc.Digest)
-	if err != nil {
+	if err := buh.writeBlobCreatedHeaders(w, desc); err != nil {
 		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		return
 	}
-
-	w.Header().Set("Location", blobURL)
-	w.Header().Set("Content-Length", "0")
-	w.Header().Set("Docker-Content-Digest", desc.Digest.String())
-	w.WriteHeader(http.StatusCreated)
 }
 
 // CancelBlobUpload cancels an in-progress upload of a blob.
@@ -298,21 +290,10 @@ func (buh *blobUploadHandler) CancelBlobUpload(w http.ResponseWriter, r *http.Re
 // uploads always start at a 0 offset. This allows disabling resumable push by
 // always returning a 0 offset on check status.
 func (buh *blobUploadHandler) blobUploadResponse(w http.ResponseWriter, r *http.Request, fresh bool) error {
-
-	var offset int64
-	if !fresh {
-		var err error
-		offset, err = buh.Upload.Seek(0, os.SEEK_CUR)
-		if err != nil {
-			ctxu.GetLogger(buh).Errorf("unable get current offset of blob upload: %v", err)
-			return err
-		}
-	}
-
 	// TODO(stevvooe): Need a better way to manage the upload state automatically.
-	buh.State.Name = buh.Repository.Name()
+	buh.State.Name = buh.Repository.Named().Name()
 	buh.State.UUID = buh.Upload.ID()
-	buh.State.Offset = offset
+	buh.State.Offset = buh.Upload.Size()
 	buh.State.StartedAt = buh.Upload.StartedAt()
 
 	token, err := hmacKey(buh.Config.HTTP.Secret).packUploadState(buh.State)
@@ -322,7 +303,7 @@ func (buh *blobUploadHandler) blobUploadResponse(w http.ResponseWriter, r *http.
 	}
 
 	uploadURL, err := buh.urlBuilder.BuildBlobUploadChunkURL(
-		buh.Repository.Name(), buh.Upload.ID(),
+		buh.Repository.Named(), buh.Upload.ID(),
 		url.Values{
 			"_state": []string{token},
 		})
@@ -331,15 +312,58 @@ func (buh *blobUploadHandler) blobUploadResponse(w http.ResponseWriter, r *http.
 		return err
 	}
 
-	endRange := offset
+	endRange := buh.Upload.Size()
 	if endRange > 0 {
 		endRange = endRange - 1
 	}
 
 	w.Header().Set("Docker-Upload-UUID", buh.UUID)
 	w.Header().Set("Location", uploadURL)
+
 	w.Header().Set("Content-Length", "0")
 	w.Header().Set("Range", fmt.Sprintf("0-%d", endRange))
 
+	return nil
+}
+
+// mountBlob attempts to mount a blob from another repository by its digest. If
+// successful, the blob is linked into the blob store and 201 Created is
+// returned with the canonical url of the blob.
+func (buh *blobUploadHandler) createBlobMountOption(fromRepo, mountDigest string) (distribution.BlobCreateOption, error) {
+	dgst, err := digest.ParseDigest(mountDigest)
+	if err != nil {
+		return nil, err
+	}
+
+	ref, err := reference.ParseNamed(fromRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	canonical, err := reference.WithDigest(ref, dgst)
+	if err != nil {
+		return nil, err
+	}
+
+	return storage.WithMountFrom(canonical), nil
+}
+
+// writeBlobCreatedHeaders writes the standard headers describing a newly
+// created blob. A 201 Created is written as well as the canonical URL and
+// blob digest.
+func (buh *blobUploadHandler) writeBlobCreatedHeaders(w http.ResponseWriter, desc distribution.Descriptor) error {
+	ref, err := reference.WithDigest(buh.Repository.Named(), desc.Digest)
+	if err != nil {
+		return err
+	}
+	blobURL, err := buh.urlBuilder.BuildBlobURL(ref)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Location", blobURL)
+	w.Header().Set("Content-Length", "0")
+	w.Header().Set("Docker-Content-Digest", desc.Digest.String())
+	w.WriteHeader(http.StatusCreated)
 	return nil
 }

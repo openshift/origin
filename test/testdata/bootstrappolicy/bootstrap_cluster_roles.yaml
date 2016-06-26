@@ -1544,6 +1544,7 @@ items:
     attributeRestrictions: null
     resources:
     - images
+    - imagestreamtags
     verbs:
     - delete
     - get
@@ -1553,7 +1554,6 @@ items:
     resources:
     - imagestreamimages
     - imagestreams/secrets
-    - imagestreamtags
     verbs:
     - get
   - apiGroups:

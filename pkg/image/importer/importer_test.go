@@ -32,14 +32,14 @@ func expectStatusError(status unversioned.Status, message string) bool {
 }
 
 func TestImport(t *testing.T) {
-	m := &schema1.SignedManifest{Raw: []byte(etcdManifest)}
+	m := &schema1.SignedManifest{}
 	if err := json.Unmarshal([]byte(etcdManifest), m); err != nil {
 		t.Fatal(err)
 	}
 	insecureRetriever := &mockRetriever{
 		repo: &mockRepository{
-			getByTagErr: fmt.Errorf("no such tag"),
-			getErr:      fmt.Errorf("no such digest"),
+			getTagErr: fmt.Errorf("no such tag"),
+			getErr:    fmt.Errorf("no such digest"),
 		},
 	}
 	testCases := []struct {
@@ -65,8 +65,8 @@ func TestImport(t *testing.T) {
 		{
 			retriever: &mockRetriever{
 				repo: &mockRepository{
-					getByTagErr: fmt.Errorf("no such tag"),
-					getErr:      fmt.Errorf("no such digest"),
+					getTagErr: fmt.Errorf("no such tag"),
+					getErr:    fmt.Errorf("no such digest"),
 				},
 			},
 			isi: api.ImageStreamImport{
@@ -158,8 +158,16 @@ func TestImport(t *testing.T) {
 		{
 			retriever: &mockRetriever{
 				repo: &mockRepository{
-					tags:        []string{"v1", "other", "v2", "3", "3.1", "abc"},
-					getByTagErr: fmt.Errorf("no such tag"),
+					manifest: m,
+					tags: map[string]string{
+						"v1":    "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
+						"other": "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
+						"v2":    "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
+						"3":     "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
+						"3.1":   "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
+						"abc":   "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
+					},
+					getTagErr: fmt.Errorf("no such tag"),
 				},
 			},
 			isi: api.ImageStreamImport{

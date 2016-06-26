@@ -75,12 +75,12 @@ func TestHTTPSink(t *testing.T) {
 		{
 			statusCode: http.StatusOK,
 			events: []Event{
-				createTestEvent("push", "library/test", schema1.ManifestMediaType)},
+				createTestEvent("push", "library/test", schema1.MediaTypeSignedManifest)},
 		},
 		{
 			statusCode: http.StatusOK,
 			events: []Event{
-				createTestEvent("push", "library/test", schema1.ManifestMediaType),
+				createTestEvent("push", "library/test", schema1.MediaTypeSignedManifest),
 				createTestEvent("push", "library/test", layerMediaType),
 				createTestEvent("push", "library/test", layerMediaType),
 			},

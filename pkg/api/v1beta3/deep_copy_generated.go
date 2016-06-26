@@ -1959,12 +1959,15 @@ func deepCopy_v1beta3_Image(in imageapiv1beta3.Image, out *imageapiv1beta3.Image
 	} else {
 		out.DockerImageLayers = nil
 	}
+	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
+	out.DockerImageConfig = in.DockerImageConfig
 	return nil
 }
 
 func deepCopy_v1beta3_ImageLayer(in imageapiv1beta3.ImageLayer, out *imageapiv1beta3.ImageLayer, c *conversion.Cloner) error {
 	out.Name = in.Name
 	out.Size = in.Size
+	out.MediaType = in.MediaType
 	return nil
 }
 
