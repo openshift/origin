@@ -448,16 +448,6 @@ func (SourceRevision) SwaggerDoc() map[string]string {
 	return map_SourceRevision
 }
 
-var map_VolumeSpec = map[string]string{
-	"":            "VolumeSpec is a mapping between paths on the builder image and paths on the runtime image where files should be copied.",
-	"source":      "Source is the path on the builder image of the artifact.",
-	"destination": "Destination is the path on the runtime image where the artifact should be copied.",
-}
-
-func (VolumeSpec) SwaggerDoc() map[string]string {
-	return map_VolumeSpec
-}
-
 var map_WebHookTrigger = map[string]string{
 	"":         "WebHookTrigger is a trigger that gets invoked using a webhook type of post",
 	"secret":   "secret used to validate requests.",

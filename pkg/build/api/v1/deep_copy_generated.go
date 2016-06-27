@@ -51,7 +51,6 @@ func init() {
 		DeepCopy_v1_SourceBuildStrategy,
 		DeepCopy_v1_SourceControlUser,
 		DeepCopy_v1_SourceRevision,
-		DeepCopy_v1_VolumeSpec,
 		DeepCopy_v1_WebHookTrigger,
 	); err != nil {
 		// if one of the deep copy functions is malformed, detect it immediately.
@@ -902,9 +901,9 @@ func DeepCopy_v1_SourceBuildStrategy(in SourceBuildStrategy, out *SourceBuildStr
 	}
 	if in.RuntimeArtifacts != nil {
 		in, out := in.RuntimeArtifacts, &out.RuntimeArtifacts
-		*out = make([]VolumeSpec, len(in))
+		*out = make([]ImageSourcePath, len(in))
 		for i := range in {
-			if err := DeepCopy_v1_VolumeSpec(in[i], &(*out)[i], c); err != nil {
+			if err := DeepCopy_v1_ImageSourcePath(in[i], &(*out)[i], c); err != nil {
 				return err
 			}
 		}
@@ -931,12 +930,6 @@ func DeepCopy_v1_SourceRevision(in SourceRevision, out *SourceRevision, c *conve
 	} else {
 		out.Git = nil
 	}
-	return nil
-}
-
-func DeepCopy_v1_VolumeSpec(in VolumeSpec, out *VolumeSpec, c *conversion.Cloner) error {
-	out.Source = in.Source
-	out.Destination = in.Destination
 	return nil
 }
 

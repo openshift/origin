@@ -88,8 +88,6 @@ func init() {
 		Convert_api_SourceControlUser_To_v1_SourceControlUser,
 		Convert_v1_SourceRevision_To_api_SourceRevision,
 		Convert_api_SourceRevision_To_v1_SourceRevision,
-		Convert_v1_VolumeSpec_To_api_VolumeSpec,
-		Convert_api_VolumeSpec_To_v1_VolumeSpec,
 		Convert_v1_WebHookTrigger_To_api_WebHookTrigger,
 		Convert_api_WebHookTrigger_To_v1_WebHookTrigger,
 	); err != nil {
@@ -1778,9 +1776,9 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 	}
 	if in.RuntimeArtifacts != nil {
 		in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
-		*out = make([]VolumeSpec, len(*in))
+		*out = make([]ImageSourcePath, len(*in))
 		for i := range *in {
-			if err := Convert_api_VolumeSpec_To_v1_VolumeSpec(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_api_ImageSourcePath_To_v1_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1829,9 +1827,9 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 	}
 	if in.RuntimeArtifacts != nil {
 		in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
-		*out = make([]build_api.VolumeSpec, len(*in))
+		*out = make([]build_api.ImageSourcePath, len(*in))
 		for i := range *in {
-			if err := Convert_v1_VolumeSpec_To_api_VolumeSpec(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_ImageSourcePath_To_api_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1893,26 +1891,6 @@ func autoConvert_api_SourceRevision_To_v1_SourceRevision(in *build_api.SourceRev
 		out.Git = nil
 	}
 	return nil
-}
-
-func autoConvert_v1_VolumeSpec_To_api_VolumeSpec(in *VolumeSpec, out *build_api.VolumeSpec, s conversion.Scope) error {
-	out.Source = in.Source
-	out.Destination = in.Destination
-	return nil
-}
-
-func Convert_v1_VolumeSpec_To_api_VolumeSpec(in *VolumeSpec, out *build_api.VolumeSpec, s conversion.Scope) error {
-	return autoConvert_v1_VolumeSpec_To_api_VolumeSpec(in, out, s)
-}
-
-func autoConvert_api_VolumeSpec_To_v1_VolumeSpec(in *build_api.VolumeSpec, out *VolumeSpec, s conversion.Scope) error {
-	out.Source = in.Source
-	out.Destination = in.Destination
-	return nil
-}
-
-func Convert_api_VolumeSpec_To_v1_VolumeSpec(in *build_api.VolumeSpec, out *VolumeSpec, s conversion.Scope) error {
-	return autoConvert_api_VolumeSpec_To_v1_VolumeSpec(in, out, s)
 }
 
 func autoConvert_v1_WebHookTrigger_To_api_WebHookTrigger(in *WebHookTrigger, out *build_api.WebHookTrigger, s conversion.Scope) error {
