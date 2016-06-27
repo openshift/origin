@@ -1,0 +1,133 @@
+.TH "OADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oadm build\-chain \- Output the inputs and dependencies of your builds
+
+
+.SH SYNOPSIS
+.PP
+\fBoadm build\-chain\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Output the inputs and dependencies of your builds
+
+.PP
+Supported formats for the generated graph are dot and a human\-readable output.
+Tag and namespace are optional and if they are not specified, 'latest' and the
+default namespace will be used respectively.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-all\fP=false
+    Build dependency tree for the specified image stream tag across all namespaces
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output format of dependency tree
+
+.PP
+\fB\-\-reverse\fP=false
+    If true, show the istags dependencies instead of its dependants.
+
+.PP
+\fB\-\-trigger\-only\fP=true
+    If true, only include dependencies based on build triggers. If false, include all dependencies.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Build the dependency tree for the 'latest' tag in <image\-stream>
+  oadm build\-chain <image\-stream>
+
+  # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  oadm build\-chain <image\-stream>:v2 \-o dot | dot \-T svg \-o deps.svg
+
+  # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  oadm build\-chain <image\-stream> \-n test \-\-all
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBoadm(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

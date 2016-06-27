@@ -1,0 +1,163 @@
+.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli process \- Process a template into list of resources
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli process\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Process template into a list of resources specified in filename or stdin
+
+.PP
+Templates allow parameterization of resources prior to being sent to the server for creation or
+update. Templates have "parameters", which may either be generated on creation or set by the user,
+as well as metadata describing the template.
+
+.PP
+The output of the process command is always a list of one or more resources. You may pipe the
+output to the create command over STDIN (using the '\-f \-' option) or redirect it to a file.
+
+
+.SH OPTIONS
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=""
+    Filename or URL to file to read a template
+
+.PP
+\fB\-l\fP, \fB\-\-labels\fP=""
+    Label to set in all resources for this template
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP="json"
+    Output format. One of: describe|json|yaml|name|template|templatefile.
+
+.PP
+\fB\-\-output\-version\fP=""
+    Output the formatted object with the given version (default api\-version).
+
+.PP
+\fB\-\-parameters\fP=false
+    Do not process but only print available parameters
+
+.PP
+\fB\-\-raw\fP=false
+    If true output the processed template instead of the template's objects. Implied by \-o describe
+
+.PP
+\fB\-t\fP, \fB\-\-template\fP=""
+    Template string or path to template file to use when \-o=template or \-o=templatefile.  The template format is golang templates [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]]
+
+.PP
+\fB\-v\fP, \fB\-\-value\fP=[]
+    Specify a list of key\-value pairs (eg. \-v FOO=BAR,BAR=FOO) to set/override parameter values
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Convert template.json file into resource list and pass to create
+  openshift cli process \-f template.json | openshift cli create \-f \-
+
+  # Process template while passing a user\-defined label
+  openshift cli process \-f template.json \-l name=mytemplate
+
+  # Convert stored template into resource list
+  openshift cli process foo
+
+  # Convert stored template into resource list by setting/overriding parameter values
+  openshift cli process foo PARM1=VALUE1 PARM2=VALUE2
+
+  # Convert template stored in different namespace into a resource list
+  openshift cli process openshift//foo
+
+  # Convert template.json into resource list
+  cat template.json | openshift cli process \-f \-
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

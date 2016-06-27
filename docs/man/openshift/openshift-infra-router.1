@@ -1,0 +1,189 @@
+.TH "OPENSHIFT INFRA" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift infra router \- Start a router
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift infra router\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start a router
+
+.PP
+This command launches a router connected to your cluster master. The router listens for routes and endpoints
+created by users and keeps a local router configuration up to date with those changes.
+
+.PP
+You may customize the router by providing your own \-\-template and \-\-reload scripts.
+
+.PP
+You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has
+access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all
+namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note
+that you must have a cluster\-wide administrative role to view all namespaces.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-default\-certificate\fP=""
+    The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format
+
+.PP
+\fB\-\-default\-certificate\-path\fP=""
+    A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format
+
+.PP
+\fB\-\-extended\-validation\fP=false
+    If set, then an additional extended validation step is performed on all routes admitted in by this router.
+
+.PP
+\fB\-\-fields\fP=""
+    A field selector to apply to routes to watch
+
+.PP
+\fB\-\-hostname\-template\fP=""
+    If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}\-${namespace}.myapps.mycompany.com')
+
+.PP
+\fB\-\-include\-udp\-endpoints\fP=false
+    If true, UDP endpoints will be considered as candidates for routing
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-interval\fP=0
+    Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.
+
+.PP
+\fB\-\-kubernetes\fP="
+\[la]http://localhost:8080"\[ra]
+    The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.
+
+.PP
+\fB\-\-labels\fP=""
+    A label selector to apply to the routes to watch
+
+.PP
+\fB\-\-master\fP="
+\[la]http://localhost:8080"\[ra]
+    The address the master can be reached on (host, host:port, or URL).
+
+.PP
+\fB\-\-name\fP="public"
+    The name the router will identify itself with in the route status
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-namespace\-labels\fP=""
+    A label selector to apply to namespaces to watch
+
+.PP
+\fB\-\-override\-hostname\fP=false
+    Override the spec.host value for a route with \-\-hostname\-template
+
+.PP
+\fB\-\-project\-labels\fP=""
+    A label selector to apply to projects to watch; if '*' watches all projects the client can access
+
+.PP
+\fB\-\-reload\fP=""
+    The path to the reload script to use
+
+.PP
+\fB\-\-resync\-interval\fP=0
+    The interval at which the route list should be fully refreshed
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-stats\-password\fP=""
+    If the underlying router implementation can provide statistics this is the requested password for auth.
+
+.PP
+\fB\-\-stats\-port\fP=""
+    If the underlying router implementation can provide statistics this is a hint to expose it on this port.
+
+.PP
+\fB\-\-stats\-user\fP=""
+    If the underlying router implementation can provide statistics this is the requested username for auth.
+
+.PP
+\fB\-\-template\fP=""
+    The path to the template file to use
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+.PP
+\fB\-\-working\-dir\fP="/var/lib/haproxy/router"
+    The working directory for the router plugin
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-infra(1)\fP, \fBopenshift\-infra\-router\-version(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

@@ -1,0 +1,138 @@
+.TH "OPENSHIFT CLI CREATE ROUTE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli create route passthrough \- Create a route that uses passthrough TLS termination
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli create route passthrough\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Create a route that uses passthrough TLS termination
+
+.PP
+Specify the service (either just its name or using type/name syntax) that the
+generated route should expose via the \-\-service flag.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-hostname\fP=""
+    Set a hostname for the new route
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output mode. Use "\-o name" for shorter output (resource/name).
+
+.PP
+\fB\-\-port\fP=""
+    Name of the service port or number of the container port the route will route traffic to
+
+.PP
+\fB\-\-schema\-cache\-dir\fP="\~/.kube/schema"
+    If non\-empty, load/store cached API schemas in this directory, default is '$HOME/.kube/schema'
+
+.PP
+\fB\-\-service\fP=""
+    Name of the service that the new route is exposing
+
+.PP
+\fB\-\-validate\fP=false
+    If true, use a schema to validate the input before sending it
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Create a passthrough route named "my\-route" that exposes the frontend service.
+  openshift cli create route passthrough my\-route \-\-service=frontend
+  
+  # Create a passthrough route that exposes the frontend service and specify
+  # a hostname. If the route name is omitted, the service name will be re\-used.
+  openshift cli create route passthrough \-\-service=frontend \-\-hostname=www.example.com
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-create\-route(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator
