@@ -413,13 +413,15 @@ func (SecretSpec) SwaggerDoc() map[string]string {
 }
 
 var map_SourceBuildStrategy = map[string]string{
-	"":            "SourceBuildStrategy defines input parameters specific to an Source build.",
-	"from":        "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled",
-	"pullSecret":  "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries",
-	"env":         "env contains additional environment variables you want to pass into a builder container",
-	"scripts":     "scripts is the location of Source scripts",
-	"incremental": "incremental flag forces the Source build to do incremental builds if true.",
-	"forcePull":   "forcePull describes if the builder should pull the images from registry prior to building.",
+	"":                 "SourceBuildStrategy defines input parameters specific to an Source build.",
+	"from":             "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled",
+	"pullSecret":       "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries",
+	"env":              "env contains additional environment variables you want to pass into a builder container",
+	"scripts":          "scripts is the location of Source scripts",
+	"incremental":      "incremental flag forces the Source build to do incremental builds if true.",
+	"forcePull":        "forcePull describes if the builder should pull the images from registry prior to building.",
+	"runtimeImage":     "RuntimeImage is the optinal image that is used to run an application without unneeded dependencies installed.",
+	"runtimeArtifacts": "RuntimeArtifacts holds the mapping between the artifacts paths on the builder image and the paths on the runtime image where they should be copied.",
 }
 
 func (SourceBuildStrategy) SwaggerDoc() map[string]string {
@@ -444,6 +446,16 @@ var map_SourceRevision = map[string]string{
 
 func (SourceRevision) SwaggerDoc() map[string]string {
 	return map_SourceRevision
+}
+
+var map_VolumeSpec = map[string]string{
+	"":            "VolumeSpec is a mapping between paths on the builder image and paths on the runtime image where files should be copied.",
+	"source":      "Source is the path on the builder image of the artifact.",
+	"destination": "Destination is the path on the runtime image where the artifact should be copied.",
+}
+
+func (VolumeSpec) SwaggerDoc() map[string]string {
+	return map_VolumeSpec
 }
 
 var map_WebHookTrigger = map[string]string{

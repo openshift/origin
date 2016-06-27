@@ -479,6 +479,24 @@ type SourceBuildStrategy struct {
 
 	// forcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty"`
+
+	// RuntimeImage is the optinal image that is used to run an application
+	// without unneeded dependencies installed.
+	RuntimeImage *kapi.ObjectReference `json:"runtimeImage,omitempty"`
+
+	// RuntimeArtifacts holds the mapping between the artifacts paths on the builder image and the paths on the runtime image where they should be copied.
+	RuntimeArtifacts []VolumeSpec `json:"runtimeArtifacts,omitempty"`
+}
+
+// VolumeSpec is a mapping between paths on the builder image and paths on the
+// runtime image where files should be copied.
+type VolumeSpec struct {
+	// Source is the path on the builder image of the artifact.
+	Source string `json:"source,omitempty"`
+
+	// Destination is the path on the runtime image where the artifact should be
+	// copied.
+	Destination string `json:"destination,omitempty"`
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.

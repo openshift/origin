@@ -20355,6 +20355,31 @@
      "forcePull": {
       "type": "boolean",
       "description": "forcePull describes if the builder should pull the images from registry prior to building."
+     },
+     "runtimeImage": {
+      "$ref": "v1.ObjectReference",
+      "description": "RuntimeImage is the optinal image that is used to run an application without unneeded dependencies installed."
+     },
+     "runtimeArtifacts": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.VolumeSpec"
+      },
+      "description": "RuntimeArtifacts holds the mapping between the artifacts paths on the builder image and the paths on the runtime image where they should be copied."
+     }
+    }
+   },
+   "v1.VolumeSpec": {
+    "id": "v1.VolumeSpec",
+    "description": "VolumeSpec is a mapping between paths on the builder image and paths on the runtime image where files should be copied.",
+    "properties": {
+     "source": {
+      "type": "string",
+      "description": "Source is the path on the builder image of the artifact."
+     },
+     "destination": {
+      "type": "string",
+      "description": "Destination is the path on the runtime image where the artifact should be copied."
      }
     }
    },

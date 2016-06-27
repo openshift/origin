@@ -51,6 +51,7 @@ func init() {
 		DeepCopy_v1_SourceBuildStrategy,
 		DeepCopy_v1_SourceControlUser,
 		DeepCopy_v1_SourceRevision,
+		DeepCopy_v1_VolumeSpec,
 		DeepCopy_v1_WebHookTrigger,
 	); err != nil {
 		// if one of the deep copy functions is malformed, detect it immediately.
@@ -890,6 +891,26 @@ func DeepCopy_v1_SourceBuildStrategy(in SourceBuildStrategy, out *SourceBuildStr
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
 	out.ForcePull = in.ForcePull
+	if in.RuntimeImage != nil {
+		in, out := in.RuntimeImage, &out.RuntimeImage
+		*out = new(api_v1.ObjectReference)
+		if err := api_v1.DeepCopy_v1_ObjectReference(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.RuntimeImage = nil
+	}
+	if in.RuntimeArtifacts != nil {
+		in, out := in.RuntimeArtifacts, &out.RuntimeArtifacts
+		*out = make([]VolumeSpec, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_VolumeSpec(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RuntimeArtifacts = nil
+	}
 	return nil
 }
 
@@ -910,6 +931,12 @@ func DeepCopy_v1_SourceRevision(in SourceRevision, out *SourceRevision, c *conve
 	} else {
 		out.Git = nil
 	}
+	return nil
+}
+
+func DeepCopy_v1_VolumeSpec(in VolumeSpec, out *VolumeSpec, c *conversion.Cloner) error {
+	out.Source = in.Source
+	out.Destination = in.Destination
 	return nil
 }
 
