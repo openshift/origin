@@ -134,9 +134,9 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, pass
 
 	allRuleSets, ruleRetrievalError := a.ruleResolver.GetEffectivePolicyRules(ctx)
 
-	for _, ruleSet := range allRuleSets {
-		for _, rule := range ruleSet {
-			matches, err := attributes.RuleMatches(rule)
+	for i := range allRuleSets {
+		for j := range allRuleSets[i] {
+			matches, err := attributes.RuleMatches(allRuleSets[i][j])
 			if err != nil {
 				return false, "", err
 			}
