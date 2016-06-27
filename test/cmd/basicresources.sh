@@ -263,6 +263,15 @@ os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{
 echo "expose: ok"
 os::test::junit::declare_suite_end
 
+# Test that resource printer includes resource kind on multiple resources
+os::test::junit::declare_suite_start "cmd/basicresources/get"
+os::cmd::expect_success 'oc create imagestream test1'
+os::cmd::expect_success 'oc new-app node'
+os::cmd::expect_success_and_text 'oc get all' 'is/test1'
+os::cmd::expect_success_and_not_text 'oc get is' 'is/test1'
+echo "resource printer: ok"
+os::test::junit::declare_suite_end
+
 # Test OAuth access token describer
 os::cmd::expect_success 'oc create -f test/testdata/oauthaccesstoken.yaml'
 os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
