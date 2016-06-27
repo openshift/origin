@@ -29,22 +29,20 @@ var _ = g.Describe("[builds][Slow] the s2i build should support proxies", func()
 		g.It("should start a build and wait for the build to to fail", func() {
 			g.By("starting the build")
 			out, err := oc.Run("start-build").Args("sample-build").Output()
-			if err != nil {
-				fmt.Fprintln(g.GinkgoWriter, out)
-			}
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("verifying the build sample-build-1 output")
 			// The git ls-remote check should exit the build when the remote
 			// repository is not accessible. It should never get to the clone.
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			o.Expect(err).To(o.HaveOccurred())
-			out, err = oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).NotTo(o.ContainSubstring("clone"))
-			if !strings.Contains(out, `unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`) {
-				fmt.Fprintf(g.GinkgoWriter, "\n: build logs: %s\n", out)
+			o.Expect(buildLog).NotTo(o.ContainSubstring("clone"))
+			if !strings.Contains(buildLog, `unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`) {
+				fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
 			}
-			o.Expect(out).To(o.ContainSubstring(`unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`))
+			o.Expect(buildLog).To(o.ContainSubstring(`unable to access 'https://github.com/openshift/ruby-hello-world.git/': Failed connect to 127.0.0.1:3128`))
 			g.By("verifying the build sample-build-1 status")
 			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
 			o.Expect(err).NotTo(o.HaveOccurred())

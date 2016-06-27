@@ -46,6 +46,7 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 
 			g.By("starting a test build")
 			buildName, err := oc.Run("start-build").Args("test").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", buildName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")

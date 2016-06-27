@@ -34,9 +34,12 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting the rootable-ruby build with --wait flag")
-			err = oc.Run("start-build").Args("rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture),
-				"--wait").Execute()
-			// debug for failures on jenkins
+			out, err := oc.Run("start-build").Args("rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture)).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nrootable-ruby start-build output:\n%s\n", out)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for build to complete")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "rootable-ruby-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("rootable-ruby", oc)
 			}
@@ -47,9 +50,9 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("start the root-access-build with the --wait flag")
-			err = oc.Run("start-build").Args("root-access-build", "--wait").Execute()
-			// debug for failures on jenkins
-			if err == nil {
+			out, err = oc.Run("start-build").Args("root-access-build", "--wait").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nroot-access-build start-build output:\n%s\n", out)
+			if err == nil { // Dump logs if invocation does *not* fail.
 				exutil.DumpBuildLogs("root-access-build", oc)
 			}
 			o.Expect(err).To(o.HaveOccurred())

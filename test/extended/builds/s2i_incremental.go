@@ -40,22 +40,27 @@ var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			buildName, err := oc.Run("start-build").Args("initial-build").Output()
+			out, err := oc.Run("start-build").Args("initial-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\ninitial-build start-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "initial-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("initial-build", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build using the image produced by the last build")
-			buildName, err = oc.Run("start-build").Args("internal-build").Output()
+			out, err = oc.Run("start-build").Args("internal-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\ninternal-build start-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "internal-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("internal-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")
@@ -71,7 +76,7 @@ var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod container has saved artifacts")
-			out, err := oc.Run("exec").Args("-p", buildTestPod, "--", "curl", "http://0.0.0.0:8080").Output()
+			out, err = oc.Run("exec").Args("-p", buildTestPod, "--", "curl", "http://0.0.0.0:8080").Output()
 			if err != nil {
 				logs, _ := oc.Run("logs").Args(buildTestPod).Output()
 				e2e.Failf("Failed to curl in application container: \n%q, pod logs: \n%q", out, logs)

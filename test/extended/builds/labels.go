@@ -39,6 +39,7 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 
 			g.By("starting a test build")
 			buildName, err := oc.Run("start-build").Args("test").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", buildName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("o.Expecting the S2I build is in Complete phase")
@@ -75,6 +76,7 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 
 			g.By("starting a test build")
 			buildName, err := oc.Run("start-build").Args("test").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", buildName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("o.Expecting the Docker build is in Complete phase")

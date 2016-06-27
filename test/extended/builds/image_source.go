@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -33,9 +34,12 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			g.By("Creating build configs for source build")
 			err := oc.Run("create").Args("-f", buildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("starting the source strategy build")
-			err = oc.Run("start-build").Args("imagesourcebuild").Execute()
+			out, err := oc.Run("start-build").Args("imagesourcebuild").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("expecting the builds to complete successfully")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "imagesourcebuild-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
@@ -51,7 +55,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to contain the file from the input image")
-			out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
+			out, err = oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("jenkins.war"))
 		})
@@ -61,9 +65,12 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			g.By("Creating build configs for docker build")
 			err := oc.Run("create").Args("-f", buildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("starting the docker strategy build")
-			err = oc.Run("start-build").Args("imagedockerbuild").Execute()
+			out, err := oc.Run("start-build").Args("imagedockerbuild").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("expect the builds to complete successfully")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "imagedockerbuild-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
@@ -79,7 +86,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to contain the file from the input image")
-			out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
+			out, err = oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("jenkins.war"))
 		})
