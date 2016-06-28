@@ -233,6 +233,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Authorizer:            authorizer,
 		JenkinsPipelineConfig: options.JenkinsPipelineConfig,
 		RESTClientConfig:      *privilegedLoopbackClientConfig,
+		Informers:             informerFactory,
+		ClusterQuotaMapper:    clusterQuotaMappingController.GetClusterQuotaMapper(),
 	}
 
 	plugins := []admission.Interface{}
