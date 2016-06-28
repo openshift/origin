@@ -92,8 +92,14 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy == nil {
 		return fmt.Errorf("the source to image builder must be used with the source strategy")
 	}
-
+	var runtimeImageName string
 	var push bool
+	runtimeImage := s.build.Spec.Strategy.SourceStrategy.RuntimeImage
+	runtimeArtifacts := copyArtifactSourceList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
+
+	if runtimeImage != nil && len(runtimeImage.Name) > 0 {
+		runtimeImageName = runtimeImage.Name
+	}
 
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
 	if contextDir == "." || contextDir == "/" {
@@ -188,6 +194,8 @@ func (s *S2IBuilder) Build() error {
 		Injections:                injections,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 		BlockOnBuild:              true,
+		RuntimeImage:              runtimeImageName,
+		RuntimeArtifacts:          runtimeArtifacts,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
@@ -372,4 +380,14 @@ func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
 		config.HTTPSProxy = proxyURL
 	}
 	return config, nil
+}
+
+func copyArtifactSourceList(artifactsMapping []api.ImageSourcePath) (volumeList []s2iapi.VolumeSpec) {
+	for _, mappedPath := range artifactsMapping {
+		volumeList = append(volumeList, s2iapi.VolumeSpec{
+			Source:      mappedPath.SourcePath,
+			Destination: mappedPath.DestinationDir,
+		})
+	}
+	return volumeList
 }
