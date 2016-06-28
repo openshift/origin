@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	docker "github.com/fsouza/go-dockerclient"
+	dockertypes "github.com/docker/engine-api/types"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
@@ -43,20 +43,18 @@ func TestMapState(t *testing.T) {
 }
 
 func TestToRuntimeContainer(t *testing.T) {
-	original := &docker.APIContainers{
-		ID:      "ab2cdf",
-		Image:   "bar_image",
-		Created: 12345,
-		Names:   []string{"/k8s_bar.5678_foo_ns_1234_42"},
-		Status:  "Up 5 hours",
+	original := &dockertypes.Container{
+		ID:     "ab2cdf",
+		Image:  "bar_image",
+		Names:  []string{"/k8s_bar.5678_foo_ns_1234_42"},
+		Status: "Up 5 hours",
 	}
 	expected := &kubecontainer.Container{
-		ID:      kubecontainer.ContainerID{"docker", "ab2cdf"},
-		Name:    "bar",
-		Image:   "bar_image",
-		Hash:    0x5678,
-		Created: 12345,
-		State:   kubecontainer.ContainerStateRunning,
+		ID:    kubecontainer.ContainerID{Type: "docker", ID: "ab2cdf"},
+		Name:  "bar",
+		Image: "bar_image",
+		Hash:  0x5678,
+		State: kubecontainer.ContainerStateRunning,
 	}
 
 	actual, err := toRuntimeContainer(original)
@@ -69,15 +67,17 @@ func TestToRuntimeContainer(t *testing.T) {
 }
 
 func TestToRuntimeImage(t *testing.T) {
-	original := &docker.APIImages{
+	original := &dockertypes.Image{
 		ID:          "aeeea",
 		RepoTags:    []string{"abc", "def"},
+		RepoDigests: []string{"123", "456"},
 		VirtualSize: 1234,
 	}
 	expected := &kubecontainer.Image{
-		ID:       "aeeea",
-		RepoTags: []string{"abc", "def"},
-		Size:     1234,
+		ID:          "aeeea",
+		RepoTags:    []string{"abc", "def"},
+		RepoDigests: []string{"123", "456"},
+		Size:        1234,
 	}
 
 	actual, err := toRuntimeImage(original)

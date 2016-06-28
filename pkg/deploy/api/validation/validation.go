@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -19,31 +20,105 @@ import (
 
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateDeploymentConfigSpec(config.Spec)...)
+	allErrs = append(allErrs, ValidateDeploymentConfigStatus(config.Status)...)
+	return allErrs
+}
 
-	// TODO: Refactor to validate spec and status separately
-	for i := range config.Spec.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Spec.Triggers[i], field.NewPath("spec", "triggers").Index(i))...)
-	}
-
-	var spec *kapi.PodSpec
-	if config.Spec.Template != nil {
-		spec = &config.Spec.Template.Spec
-	}
+func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.ErrorList {
+	allErrs := field.ErrorList{}
 	specPath := field.NewPath("spec")
-	allErrs = append(allErrs, validateDeploymentStrategy(&config.Spec.Strategy, spec, field.NewPath("spec", "strategy"))...)
-	if config.Spec.Template == nil {
+	for i := range spec.Triggers {
+		allErrs = append(allErrs, validateTrigger(&spec.Triggers[i], specPath.Child("triggers").Index(i))...)
+	}
+
+	var podSpec *kapi.PodSpec
+	if spec.Template != nil {
+		podSpec = &spec.Template.Spec
+	}
+	allErrs = append(allErrs, validateDeploymentStrategy(&spec.Strategy, podSpec, specPath.Child("strategy"))...)
+	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
-		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(config.Spec.Template, specPath.Child("template"))...)
+		originalContainerImageNames := getContainerImageNames(spec.Template)
+		defer setContainerImageNames(spec.Template, originalContainerImageNames)
+		handleEmptyImageReferences(spec.Template, spec.Triggers)
+		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(spec.Template, specPath.Child("template"))...)
 	}
-	if config.Status.LatestVersion < 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "latestVersion"), config.Status.LatestVersion, "latestVersion cannot be negative"))
+	if spec.Replicas < 0 {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), spec.Replicas, "replicas cannot be negative"))
 	}
-	if config.Spec.Replicas < 0 {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), config.Spec.Replicas, "replicas cannot be negative"))
+	if len(spec.Selector) == 0 {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), spec.Selector, "selector cannot be empty"))
 	}
-	if len(config.Spec.Selector) == 0 {
-		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), config.Spec.Selector, "selector cannot be empty"))
+	return allErrs
+}
+
+func getContainerImageNames(template *kapi.PodTemplateSpec) []string {
+	originalContainerImageNames := make([]string, len(template.Spec.Containers))
+	for i := range template.Spec.Containers {
+		originalContainerImageNames[i] = template.Spec.Containers[i].Image
+	}
+	return originalContainerImageNames
+}
+
+func setContainerImageNames(template *kapi.PodTemplateSpec, originalNames []string) {
+	for i := range template.Spec.Containers {
+		template.Spec.Containers[i].Image = originalNames[i]
+	}
+}
+
+func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []deployapi.DeploymentTriggerPolicy) {
+	// if we have both an ICT defined and an empty Template->PodSpec->Container->Image field, we are going
+	// to modify this method's local copy (a pointer was NOT used for the parameter) by setting the field to a non-empty value to
+	// work around the k8s validation as our ICT will supply the image field value
+	containerEmptyImageInICT := make(map[string]bool)
+	for _, container := range template.Spec.Containers {
+		if len(container.Image) == 0 {
+			containerEmptyImageInICT[container.Name] = false
+		}
+	}
+
+	if len(containerEmptyImageInICT) == 0 {
+		return
+	}
+
+	needToChangeImageField := false
+	for _, trigger := range triggers {
+		// note, the validateTrigger call above will add an error if ImageChangeParams is nil, but
+		// we can still fall down this path so account for it being nil
+		if trigger.Type != deployapi.DeploymentTriggerOnImageChange || trigger.ImageChangeParams == nil {
+			continue
+		}
+
+		for _, container := range trigger.ImageChangeParams.ContainerNames {
+			if _, ok := containerEmptyImageInICT[container]; ok {
+				needToChangeImageField = true
+				containerEmptyImageInICT[container] = true
+			}
+		}
+	}
+
+	if needToChangeImageField {
+		for i, container := range template.Spec.Containers {
+			// only update containers listed in the ict
+			match, ok := containerEmptyImageInICT[container.Name]
+			if match && ok {
+				template.Spec.Containers[i].Image = "unset"
+			}
+		}
+	}
+
+}
+
+func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) field.ErrorList {
+	allErrs := field.ErrorList{}
+	statusPath := field.NewPath("status")
+	if status.LatestVersion < 0 {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), status.LatestVersion, "latestVersion cannot be negative"))
+	}
+	if status.ObservedGeneration < int64(0) {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), status.ObservedGeneration, "observedGeneration cannot be negative"))
 	}
 	return allErrs
 }
@@ -51,16 +126,43 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorLis
 func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
+	allErrs = append(allErrs, ValidateDeploymentConfigStatusUpdate(newConfig, oldConfig)...)
+	return allErrs
+}
+
+func ValidateDeploymentConfigStatusUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateDeploymentConfigStatus(newConfig.Status)...)
 	statusPath := field.NewPath("status")
 	if newConfig.Status.LatestVersion < oldConfig.Status.LatestVersion {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))
 	} else if newConfig.Status.LatestVersion > (oldConfig.Status.LatestVersion + 1) {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion can only be incremented by 1"))
 	}
+	if newConfig.Status.ObservedGeneration < oldConfig.Status.ObservedGeneration {
+		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), newConfig.Status.ObservedGeneration, "observedGeneration cannot be decremented"))
+	}
 	return allErrs
 }
 
 func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
+	result := field.ErrorList{}
+
+	if len(rollback.Name) == 0 {
+		result = append(result, field.Required(field.NewPath("name"), "name of the deployment config is missing"))
+	} else if !kvalidation.IsDNS1123Subdomain(rollback.Name) {
+		result = append(result, field.Invalid(field.NewPath("name"), rollback.Name, "name of the deployment config is invalid"))
+	}
+
+	specPath := field.NewPath("spec")
+	if rollback.Spec.Revision < 0 {
+		result = append(result, field.Invalid(specPath.Child("revision"), rollback.Spec.Revision, "must be non-negative"))
+	}
+
+	return result
+}
+
+func ValidateDeploymentConfigRollbackDeprecated(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
 	result := field.ErrorList{}
 
 	fromPath := field.NewPath("spec", "from")
@@ -86,6 +188,10 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 		errs = append(errs, field.Required(fldPath.Child("type"), ""))
 	}
 
+	if strategy.CustomParams != nil {
+		errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
+	}
+
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
@@ -100,19 +206,27 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
 			errs = append(errs, field.Required(fldPath.Child("customParams"), ""))
-		} else {
-			errs = append(errs, validateCustomParams(strategy.CustomParams, fldPath.Child("customParams"))...)
 		}
+		if strategy.RollingParams != nil {
+			errs = append(errs, validateRollingParams(strategy.RollingParams, pod, fldPath.Child("rollingParams"))...)
+		}
+		if strategy.RecreateParams != nil {
+			errs = append(errs, validateRecreateParams(strategy.RecreateParams, pod, fldPath.Child("recreateParams"))...)
+		}
+	case "":
+		errs = append(errs, field.Required(fldPath.Child("type"), "strategy type is required"))
+	default:
+		errs = append(errs, field.Invalid(fldPath.Child("type"), strategy.Type, "unsupported strategy type, use \"Custom\" instead and specify your own strategy"))
 	}
 
 	if strategy.Labels != nil {
-		errs = append(errs, validation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
+		errs = append(errs, unversionedvalidation.ValidateLabels(strategy.Labels, fldPath.Child("labels"))...)
 	}
 	if strategy.Annotations != nil {
 		errs = append(errs, validation.ValidateAnnotations(strategy.Annotations, fldPath.Child("annotations"))...)
 	}
 
-	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
+	errs = append(errs, validation.ValidateResourceRequirements(&strategy.Resources, fldPath.Child("resources"))...)
 
 	return errs
 }
@@ -120,9 +234,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
-	if len(params.Image) == 0 {
-		errs = append(errs, field.Required(fldPath.Child("image"), ""))
-	}
+	errs = append(errs, validateEnv(params.Environment, fldPath.Child("environment"))...)
 
 	return errs
 }
@@ -207,7 +319,7 @@ func validateEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
 
 	for i, ev := range vars {
 		vErrs := field.ErrorList{}
-		idxPath := fldPath.Child("name").Index(i)
+		idxPath := fldPath.Index(i).Child("name")
 		if len(ev.Name) == 0 {
 			vErrs = append(vErrs, field.Required(idxPath, ""))
 		}

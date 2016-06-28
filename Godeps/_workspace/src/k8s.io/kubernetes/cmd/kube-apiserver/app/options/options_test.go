@@ -17,62 +17,26 @@ limitations under the License.
 package options
 
 import (
-	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"github.com/spf13/pflag"
 )
 
-func TestGenerateStorageVersionMap(t *testing.T) {
-	testCases := []struct {
-		legacyVersion   string
-		storageVersions string
-		defaultVersions string
-		expectedMap     map[string]string
-	}{
-		{
-			legacyVersion:   "v1",
-			storageVersions: "v1,extensions/v1beta1",
-			expectedMap: map[string]string{
-				api.GroupName:        "v1",
-				extensions.GroupName: "extensions/v1beta1",
-			},
-		},
-		{
-			legacyVersion:   "",
-			storageVersions: "extensions/v1beta1,v1",
-			expectedMap: map[string]string{
-				api.GroupName:        "v1",
-				extensions.GroupName: "extensions/v1beta1",
-			},
-		},
-		{
-			legacyVersion:   "",
-			storageVersions: "autoscaling=extensions/v1beta1,v1",
-			defaultVersions: "extensions/v1beta1,v1,autoscaling/v1",
-			expectedMap: map[string]string{
-				api.GroupName:         "v1",
-				autoscaling.GroupName: "extensions/v1beta1",
-				extensions.GroupName:  "extensions/v1beta1",
-			},
-		},
-		{
-			legacyVersion:   "",
-			storageVersions: "",
-			expectedMap:     map[string]string{},
-		},
+func TestAddFlagsFlag(t *testing.T) {
+	// TODO: This only tests the enable-swagger-ui flag for now.
+	// Expand the test to include other flags as well.
+	f := pflag.NewFlagSet("addflagstest", pflag.ContinueOnError)
+	s := NewAPIServer()
+	s.AddFlags(f)
+	if s.EnableSwaggerUI {
+		t.Errorf("Expected s.EnableSwaggerUI to be false by default")
 	}
-	for i, test := range testCases {
-		s := APIServer{
-			DeprecatedStorageVersion: test.legacyVersion,
-			StorageVersions:          test.storageVersions,
-			DefaultStorageVersions:   test.defaultVersions,
-		}
-		output := s.StorageGroupsToGroupVersions()
-		if !reflect.DeepEqual(test.expectedMap, output) {
-			t.Errorf("%v: unexpected error. expect: %v, got: %v", i, test.expectedMap, output)
-		}
+
+	args := []string{
+		"--enable-swagger-ui=true",
+	}
+	f.Parse(args)
+	if !s.EnableSwaggerUI {
+		t.Errorf("Expected s.EnableSwaggerUI to be true")
 	}
 }

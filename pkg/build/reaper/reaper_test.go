@@ -24,7 +24,7 @@ var (
 	configName = strings.Repeat("a", validation.DNS1123LabelMaxLength)
 )
 
-func makeBuildConfig(version int, deleting bool) *buildapi.BuildConfig {
+func makeBuildConfig(version int64, deleting bool) *buildapi.BuildConfig {
 	ret := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:        configName,
@@ -149,23 +149,10 @@ func TestStop(t *testing.T) {
 			},
 			err: false,
 		},
-		"no config, some builds": {
-			oc: newBuildListFake(makeBuildList(2)),
+		"no config, no or some builds": {
+			oc: testclient.NewSimpleFake(notFound(), makeBuildList(2)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", configName),
-				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				ktestclient.NewDeleteAction("builds", "default", "build-1"),
-				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
-				ktestclient.NewDeleteAction("builds", "default", "build-2"),
-			},
-			err: false,
-		},
-		"no config, no builds": {
-			oc: testclient.NewSimpleFake(notFound()),
-			expected: []ktestclient.Action{
-				ktestclient.NewGetAction("buildconfigs", "default", configName),
-				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
 			},
 			err: true,
 		},

@@ -8,7 +8,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -44,12 +43,12 @@ var (
 )
 
 func (a *buildByStrategy) Admit(attr admission.Attributes) error {
-	if resource := attr.GetResource(); resource != buildsResource && resource != buildConfigsResource {
+	if resource := attr.GetResource().GroupResource(); resource != buildsResource && resource != buildConfigsResource {
 		return nil
 	}
 	// Explicitly exclude the builds/details subresource because it's only
 	// updating commit info and cannot change build type.
-	if attr.GetResource() == buildsResource && attr.GetSubresource() == "details" {
+	if attr.GetResource().GroupResource() == buildsResource && attr.GetSubresource() == "details" {
 		return nil
 	}
 	switch obj := attr.GetObject().(type) {
@@ -83,6 +82,8 @@ func resourceForStrategyType(strategy buildapi.BuildStrategy) (unversioned.Group
 		return buildapi.Resource(authorizationapi.CustomBuildResource), nil
 	case strategy.SourceStrategy != nil:
 		return buildapi.Resource(authorizationapi.SourceBuildResource), nil
+	case strategy.JenkinsPipelineStrategy != nil:
+		return buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), nil
 	default:
 		return unversioned.GroupResource{}, fmt.Errorf("unrecognized build strategy: %#v", strategy)
 	}
@@ -99,19 +100,18 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 	strategy := build.Spec.Strategy
 	resource, err := resourceForStrategyType(strategy)
 	if err != nil {
-		return err
+		return admission.NewForbidden(attr, err)
 	}
-	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:         "create",
-			Group:        resource.Group,
-			Resource:     resource.Resource,
-			Content:      build,
-			ResourceName: resourceName(build.ObjectMeta),
-		},
-		User:   attr.GetUserInfo().GetName(),
-		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
-	}
+	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
+		&authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:         "create",
+				Group:        resource.Group,
+				Resource:     resource.Resource,
+				Content:      build,
+				ResourceName: resourceName(build.ObjectMeta),
+			},
+		})
 	return a.checkAccess(strategy, subjectAccessReview, attr)
 }
 
@@ -119,34 +119,33 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 	strategy := buildConfig.Spec.Strategy
 	resource, err := resourceForStrategyType(strategy)
 	if err != nil {
-		return err
+		return admission.NewForbidden(attr, err)
 	}
-	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
-			Verb:         "create",
-			Group:        resource.Group,
-			Resource:     resource.Resource,
-			Content:      buildConfig,
-			ResourceName: resourceName(buildConfig.ObjectMeta),
-		},
-		User:   attr.GetUserInfo().GetName(),
-		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
-	}
+	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
+		&authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:         "create",
+				Group:        resource.Group,
+				Resource:     resource.Resource,
+				Content:      buildConfig,
+				ResourceName: resourceName(buildConfig.ObjectMeta),
+			},
+		})
 	return a.checkAccess(strategy, subjectAccessReview, attr)
 }
 
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
-	switch attr.GetResource() {
+	switch attr.GetResource().GroupResource() {
 	case buildsResource:
 		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
-			return err
+			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(build, attr)
 	case buildConfigsResource:
 		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
-			return err
+			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildConfigAuthorization(build, attr)
 	default:
@@ -157,7 +156,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAccessReview *authorizationapi.LocalSubjectAccessReview, attr admission.Attributes) error {
 	resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
 	if err != nil {
-		return err
+		return admission.NewForbidden(attr, err)
 	}
 	if !resp.Allowed {
 		return notAllowed(strategy, attr)

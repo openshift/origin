@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -122,18 +123,18 @@ type GetFunc func(api.Context, runtime.Object) (runtime.Object, error)
 type InitWatchFunc func()
 type InjectErrFunc func(err error)
 type IsErrorFunc func(err error) bool
-type SetFunc func(api.Context, runtime.Object) error
+type CreateFunc func(api.Context, runtime.Object) error
 type SetRVFunc func(uint64)
 type UpdateFunc func(runtime.Object) runtime.Object
 
 // Test creating an object.
-func (t *Tester) TestCreate(valid runtime.Object, setFn SetFunc, getFn GetFunc, invalid ...runtime.Object) {
+func (t *Tester) TestCreate(valid runtime.Object, createFn CreateFunc, getFn GetFunc, invalid ...runtime.Object) {
 	t.testCreateHasMetadata(copyOrDie(valid))
 	if !t.generatesName {
 		t.testCreateGeneratesName(copyOrDie(valid))
 	}
 	t.testCreateEquals(copyOrDie(valid), getFn)
-	t.testCreateAlreadyExisting(copyOrDie(valid), setFn)
+	t.testCreateAlreadyExisting(copyOrDie(valid), createFn)
 	if t.clusterScope {
 		t.testCreateDiscardsObjectNamespace(copyOrDie(valid))
 		t.testCreateIgnoresContextNamespace(copyOrDie(valid))
@@ -146,29 +147,31 @@ func (t *Tester) TestCreate(valid runtime.Object, setFn SetFunc, getFn GetFunc, 
 }
 
 // Test updating an object.
-func (t *Tester) TestUpdate(valid runtime.Object, setFn SetFunc, getFn GetFunc, updateFn UpdateFunc, invalidUpdateFn ...UpdateFunc) {
-	t.testUpdateEquals(copyOrDie(valid), setFn, getFn, updateFn)
-	t.testUpdateFailsOnVersionTooOld(copyOrDie(valid), setFn, getFn)
+func (t *Tester) TestUpdate(valid runtime.Object, createFn CreateFunc, getFn GetFunc, updateFn UpdateFunc, invalidUpdateFn ...UpdateFunc) {
+	t.testUpdateEquals(copyOrDie(valid), createFn, getFn, updateFn)
+	t.testUpdateFailsOnVersionTooOld(copyOrDie(valid), createFn, getFn)
 	t.testUpdateOnNotFound(copyOrDie(valid))
 	if !t.clusterScope {
-		t.testUpdateRejectsMismatchedNamespace(copyOrDie(valid), setFn)
+		t.testUpdateRejectsMismatchedNamespace(copyOrDie(valid), createFn)
 	}
-	t.testUpdateInvokesValidation(copyOrDie(valid), setFn, invalidUpdateFn...)
+	t.testUpdateInvokesValidation(copyOrDie(valid), createFn, invalidUpdateFn...)
+	t.testUpdateWithWrongUID(copyOrDie(valid), createFn, getFn)
 }
 
 // Test deleting an object.
-func (t *Tester) TestDelete(valid runtime.Object, setFn SetFunc, getFn GetFunc, isNotFoundFn IsErrorFunc) {
+func (t *Tester) TestDelete(valid runtime.Object, createFn CreateFunc, getFn GetFunc, isNotFoundFn IsErrorFunc) {
 	t.testDeleteNonExist(copyOrDie(valid))
-	t.testDeleteNoGraceful(copyOrDie(valid), setFn, getFn, isNotFoundFn)
+	t.testDeleteNoGraceful(copyOrDie(valid), createFn, getFn, isNotFoundFn)
+	t.testDeleteWithUID(copyOrDie(valid), createFn, getFn, isNotFoundFn)
 }
 
 // Test gracefully deleting an object.
-func (t *Tester) TestDeleteGraceful(valid runtime.Object, setFn SetFunc, getFn GetFunc, expectedGrace int64) {
-	t.testDeleteGracefulHasDefault(copyOrDie(valid), setFn, getFn, expectedGrace)
-	t.testDeleteGracefulWithValue(copyOrDie(valid), setFn, getFn, expectedGrace)
-	t.testDeleteGracefulUsesZeroOnNil(copyOrDie(valid), setFn, expectedGrace)
-	t.testDeleteGracefulExtend(copyOrDie(valid), setFn, getFn, expectedGrace)
-	t.testDeleteGracefulImmediate(copyOrDie(valid), setFn, getFn, expectedGrace)
+func (t *Tester) TestDeleteGraceful(valid runtime.Object, createFn CreateFunc, getFn GetFunc, expectedGrace int64) {
+	t.testDeleteGracefulHasDefault(copyOrDie(valid), createFn, getFn, expectedGrace)
+	t.testDeleteGracefulWithValue(copyOrDie(valid), createFn, getFn, expectedGrace)
+	t.testDeleteGracefulUsesZeroOnNil(copyOrDie(valid), createFn, expectedGrace)
+	t.testDeleteGracefulExtend(copyOrDie(valid), createFn, getFn, expectedGrace)
+	t.testDeleteGracefulImmediate(copyOrDie(valid), createFn, getFn, expectedGrace)
 }
 
 // Test getting object.
@@ -199,12 +202,12 @@ func (t *Tester) TestWatch(
 // =============================================================================
 // Creation tests.
 
-func (t *Tester) testCreateAlreadyExisting(obj runtime.Object, setFn SetFunc) {
+func (t *Tester) testCreateAlreadyExisting(obj runtime.Object, createFn CreateFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo1")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -391,12 +394,12 @@ func (t *Tester) testCreateResetsUserData(valid runtime.Object) {
 // =============================================================================
 // Update tests.
 
-func (t *Tester) testUpdateEquals(obj runtime.Object, setFn SetFunc, getFn GetFunc, updateFn UpdateFunc) {
+func (t *Tester) testUpdateEquals(obj runtime.Object, createFn CreateFunc, getFn GetFunc, updateFn UpdateFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo2")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -426,13 +429,13 @@ func (t *Tester) testUpdateEquals(obj runtime.Object, setFn SetFunc, getFn GetFu
 	}
 }
 
-func (t *Tester) testUpdateFailsOnVersionTooOld(obj runtime.Object, setFn SetFunc, getFn GetFunc) {
+func (t *Tester) testUpdateFailsOnVersionTooOld(obj runtime.Object, createFn CreateFunc, getFn GetFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo3")
 
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -453,12 +456,12 @@ func (t *Tester) testUpdateFailsOnVersionTooOld(obj runtime.Object, setFn SetFun
 	}
 }
 
-func (t *Tester) testUpdateInvokesValidation(obj runtime.Object, setFn SetFunc, invalidUpdateFn ...UpdateFunc) {
+func (t *Tester) testUpdateInvokesValidation(obj runtime.Object, createFn CreateFunc, invalidUpdateFn ...UpdateFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo4")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -471,6 +474,26 @@ func (t *Tester) testUpdateInvokesValidation(obj runtime.Object, setFn SetFunc, 
 		if !errors.IsInvalid(err) && !errors.IsBadRequest(err) {
 			t.Errorf("expected invalid or bad request error, got %v", err)
 		}
+	}
+}
+
+func (t *Tester) testUpdateWithWrongUID(obj runtime.Object, createFn CreateFunc, getFn GetFunc) {
+	ctx := t.TestContext()
+	foo := copyOrDie(obj)
+	t.setObjectMeta(foo, "foo5")
+	objectMeta := t.getObjectMetaOrFail(foo)
+	objectMeta.UID = types.UID("UID0000")
+	if err := createFn(ctx, foo); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	objectMeta.UID = types.UID("UID1111")
+
+	obj, created, err := t.storage.(rest.Updater).Update(ctx, foo)
+	if created || obj != nil {
+		t.Errorf("expected nil object and no creation for object: %v", foo)
+	}
+	if err == nil || !errors.IsConflict(err) {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 
@@ -493,12 +516,12 @@ func (t *Tester) testUpdateOnNotFound(obj runtime.Object) {
 	}
 }
 
-func (t *Tester) testUpdateRejectsMismatchedNamespace(obj runtime.Object, setFn SetFunc) {
+func (t *Tester) testUpdateRejectsMismatchedNamespace(obj runtime.Object, createFn CreateFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo1")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -520,12 +543,12 @@ func (t *Tester) testUpdateRejectsMismatchedNamespace(obj runtime.Object, setFn 
 // =============================================================================
 // Deletion tests.
 
-func (t *Tester) testDeleteNoGraceful(obj runtime.Object, setFn SetFunc, getFn GetFunc, isNotFoundFn IsErrorFunc) {
+func (t *Tester) testDeleteNoGraceful(obj runtime.Object, createFn CreateFunc, getFn GetFunc, isNotFoundFn IsErrorFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo1")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	objectMeta := t.getObjectMetaOrFail(foo)
@@ -557,15 +580,51 @@ func (t *Tester) testDeleteNonExist(obj runtime.Object) {
 
 }
 
-// =============================================================================
-// Graceful Deletion tests.
-
-func (t *Tester) testDeleteGracefulHasDefault(obj runtime.Object, setFn SetFunc, getFn GetFunc, expectedGrace int64) {
+//  This test the fast-fail path. We test that the precondition gets verified
+//  again before deleting the object in tests of pkg/storage/etcd.
+func (t *Tester) testDeleteWithUID(obj runtime.Object, createFn CreateFunc, getFn GetFunc, isNotFoundFn IsErrorFunc) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo1")
-	if err := setFn(ctx, foo); err != nil {
+	objectMeta := t.getObjectMetaOrFail(foo)
+	objectMeta.UID = types.UID("UID0000")
+	if err := createFn(ctx, foo); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	obj, err := t.storage.(rest.GracefulDeleter).Delete(ctx, objectMeta.Name, api.NewPreconditionDeleteOptions("UID1111"))
+	if err == nil || !errors.IsConflict(err) {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	obj, err = t.storage.(rest.GracefulDeleter).Delete(ctx, objectMeta.Name, api.NewPreconditionDeleteOptions("UID0000"))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if !t.returnDeletedObject {
+		if status, ok := obj.(*unversioned.Status); !ok {
+			t.Errorf("expected status of delete, got %v", status)
+		} else if status.Status != unversioned.StatusSuccess {
+			t.Errorf("expected success, got: %v", status.Status)
+		}
+	}
+
+	_, err = getFn(ctx, foo)
+	if err == nil || !isNotFoundFn(err) {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+// =============================================================================
+// Graceful Deletion tests.
+
+func (t *Tester) testDeleteGracefulHasDefault(obj runtime.Object, createFn CreateFunc, getFn GetFunc, expectedGrace int64) {
+	ctx := t.TestContext()
+
+	foo := copyOrDie(obj)
+	t.setObjectMeta(foo, "foo1")
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	objectMeta := t.getObjectMetaOrFail(foo)
@@ -574,7 +633,7 @@ func (t *Tester) testDeleteGracefulHasDefault(obj runtime.Object, setFn SetFunc,
 		t.Errorf("unexpected error: %v", err)
 	}
 	if _, err := getFn(ctx, foo); err != nil {
-		t.Fatalf("did not gracefully delete resource", err)
+		t.Fatalf("did not gracefully delete resource: %v", err)
 	}
 
 	object, err := t.storage.(rest.Getter).Get(ctx, objectMeta.Name)
@@ -587,12 +646,12 @@ func (t *Tester) testDeleteGracefulHasDefault(obj runtime.Object, setFn SetFunc,
 	}
 }
 
-func (t *Tester) testDeleteGracefulWithValue(obj runtime.Object, setFn SetFunc, getFn GetFunc, expectedGrace int64) {
+func (t *Tester) testDeleteGracefulWithValue(obj runtime.Object, createFn CreateFunc, getFn GetFunc, expectedGrace int64) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo2")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	objectMeta := t.getObjectMetaOrFail(foo)
@@ -601,7 +660,7 @@ func (t *Tester) testDeleteGracefulWithValue(obj runtime.Object, setFn SetFunc, 
 		t.Errorf("unexpected error: %v", err)
 	}
 	if _, err := getFn(ctx, foo); err != nil {
-		t.Fatalf("did not gracefully delete resource", err)
+		t.Fatalf("did not gracefully delete resource: %v", err)
 	}
 
 	object, err := t.storage.(rest.Getter).Get(ctx, objectMeta.Name)
@@ -614,12 +673,12 @@ func (t *Tester) testDeleteGracefulWithValue(obj runtime.Object, setFn SetFunc, 
 	}
 }
 
-func (t *Tester) testDeleteGracefulExtend(obj runtime.Object, setFn SetFunc, getFn GetFunc, expectedGrace int64) {
+func (t *Tester) testDeleteGracefulExtend(obj runtime.Object, createFn CreateFunc, getFn GetFunc, expectedGrace int64) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo3")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	objectMeta := t.getObjectMetaOrFail(foo)
@@ -628,7 +687,7 @@ func (t *Tester) testDeleteGracefulExtend(obj runtime.Object, setFn SetFunc, get
 		t.Errorf("unexpected error: %v", err)
 	}
 	if _, err := getFn(ctx, foo); err != nil {
-		t.Fatalf("did not gracefully delete resource", err)
+		t.Fatalf("did not gracefully delete resource: %v", err)
 	}
 
 	// second delete duration is ignored
@@ -646,12 +705,12 @@ func (t *Tester) testDeleteGracefulExtend(obj runtime.Object, setFn SetFunc, get
 	}
 }
 
-func (t *Tester) testDeleteGracefulImmediate(obj runtime.Object, setFn SetFunc, getFn GetFunc, expectedGrace int64) {
+func (t *Tester) testDeleteGracefulImmediate(obj runtime.Object, createFn CreateFunc, getFn GetFunc, expectedGrace int64) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo4")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	objectMeta := t.getObjectMetaOrFail(foo)
@@ -660,7 +719,7 @@ func (t *Tester) testDeleteGracefulImmediate(obj runtime.Object, setFn SetFunc, 
 		t.Errorf("unexpected error: %v", err)
 	}
 	if _, err := getFn(ctx, foo); err != nil {
-		t.Fatalf("did not gracefully delete resource", err)
+		t.Fatalf("did not gracefully delete resource: %v", err)
 	}
 
 	// second delete is immediate, resource is deleted
@@ -679,12 +738,12 @@ func (t *Tester) testDeleteGracefulImmediate(obj runtime.Object, setFn SetFunc, 
 	}
 }
 
-func (t *Tester) testDeleteGracefulUsesZeroOnNil(obj runtime.Object, setFn SetFunc, expectedGrace int64) {
+func (t *Tester) testDeleteGracefulUsesZeroOnNil(obj runtime.Object, createFn CreateFunc, expectedGrace int64) {
 	ctx := t.TestContext()
 
 	foo := copyOrDie(obj)
 	t.setObjectMeta(foo, "foo5")
-	if err := setFn(ctx, foo); err != nil {
+	if err := createFn(ctx, foo); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	objectMeta := t.getObjectMetaOrFail(foo)

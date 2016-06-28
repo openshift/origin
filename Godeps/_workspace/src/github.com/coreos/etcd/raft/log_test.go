@@ -243,7 +243,7 @@ func TestLogMaybeAppend(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if tt.wpanic != true {
+					if !tt.wpanic {
 						t.Errorf("%d: panic = %v, want %v", i, true, tt.wpanic)
 					}
 				}
@@ -273,7 +273,7 @@ func TestLogMaybeAppend(t *testing.T) {
 	}
 }
 
-// TestCompactionSideEffects ensures that all the log related funcationality works correctly after
+// TestCompactionSideEffects ensures that all the log related functionality works correctly after
 // a compaction.
 func TestCompactionSideEffects(t *testing.T) {
 	var i uint64
@@ -335,6 +335,39 @@ func TestCompactionSideEffects(t *testing.T) {
 	}
 	if len(ents) != 1 {
 		t.Errorf("len(entries) = %d, want = %d", len(ents), 1)
+	}
+}
+
+func TestHasNextEnts(t *testing.T) {
+	snap := pb.Snapshot{
+		Metadata: pb.SnapshotMetadata{Term: 1, Index: 3},
+	}
+	ents := []pb.Entry{
+		{Term: 1, Index: 4},
+		{Term: 1, Index: 5},
+		{Term: 1, Index: 6},
+	}
+	tests := []struct {
+		applied uint64
+		hasNext bool
+	}{
+		{0, true},
+		{3, true},
+		{4, true},
+		{5, false},
+	}
+	for i, tt := range tests {
+		storage := NewMemoryStorage()
+		storage.ApplySnapshot(snap)
+		raftLog := newLog(storage, raftLogger)
+		raftLog.append(ents...)
+		raftLog.maybeCommit(5, 1)
+		raftLog.appliedTo(tt.applied)
+
+		hasNext := raftLog.hasNextEnts()
+		if hasNext != tt.hasNext {
+			t.Errorf("#%d: hasNext = %v, want %v", i, hasNext, tt.hasNext)
+		}
 	}
 }
 
@@ -422,7 +455,7 @@ func TestCommitTo(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if tt.wpanic != true {
+					if !tt.wpanic {
 						t.Errorf("%d: panic = %v, want %v", i, true, tt.wpanic)
 					}
 				}
@@ -515,7 +548,7 @@ func TestCompaction(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if tt.wallow == true {
+					if tt.wallow {
 						t.Errorf("%d: allow = %v, want %v: %v", i, false, true, r)
 					}
 				}

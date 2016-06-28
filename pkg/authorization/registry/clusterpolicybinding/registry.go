@@ -29,6 +29,11 @@ type WatchingRegistry interface {
 	WatchClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
 }
 
+type ReadOnlyClusterPolicyInterface interface {
+	List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
+	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
+}
+
 // Storage is an interface for a standard REST Storage backend
 type Storage interface {
 	rest.StandardStorage
@@ -109,4 +114,16 @@ func (s *simulatedStorage) GetPolicyBinding(ctx kapi.Context, name string) (*aut
 
 func (s *simulatedStorage) DeletePolicyBinding(ctx kapi.Context, name string) error {
 	return s.clusterRegistry.DeleteClusterPolicyBinding(ctx, name)
+}
+
+type ReadOnlyClusterPolicyBinding struct {
+	Registry
+}
+
+func (s ReadOnlyClusterPolicyBinding) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	return s.ListClusterPolicyBindings(kapi.WithNamespace(kapi.NewContext(), ""), &options)
+}
+
+func (s ReadOnlyClusterPolicyBinding) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+	return s.GetClusterPolicyBinding(kapi.WithNamespace(kapi.NewContext(), ""), name)
 }

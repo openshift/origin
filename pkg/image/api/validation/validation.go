@@ -9,7 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -59,7 +59,57 @@ func validateImage(image *api.Image, fldPath *field.Path) field.ErrorList {
 		}
 	}
 
+	for i, sig := range image.Signatures {
+		result = append(result, validateImageSignature(&sig, fldPath.Child("signatures").Index(i))...)
+	}
+
 	return result
+}
+
+func validateImageSignature(signature *api.ImageSignature, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(signature.Type) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("type"), ""))
+	}
+	if len(signature.Content) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("content"), ""))
+	}
+
+	var trustedCondition, forImageCondition *api.SignatureCondition
+	for i := range signature.Conditions {
+		cond := &signature.Conditions[i]
+		if cond.Type == api.SignatureTrusted && (trustedCondition == nil || !cond.LastProbeTime.Before(trustedCondition.LastProbeTime)) {
+			trustedCondition = cond
+		} else if cond.Type == api.SignatureForImage && forImageCondition == nil || !cond.LastProbeTime.Before(forImageCondition.LastProbeTime) {
+			forImageCondition = cond
+		}
+	}
+
+	if trustedCondition != nil && forImageCondition == nil {
+		msg := fmt.Sprintf("missing %q condition type", api.SignatureForImage)
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("conditions"), signature.Conditions, msg))
+	} else if forImageCondition != nil && trustedCondition == nil {
+		msg := fmt.Sprintf("missing %q condition type", api.SignatureTrusted)
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("conditions"), signature.Conditions, msg))
+	}
+
+	if trustedCondition == nil || trustedCondition.Status == kapi.ConditionUnknown {
+		if len(signature.ImageIdentity) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("imageIdentity"), signature.ImageIdentity, "must be unset for unknown signature state"))
+		}
+		if len(signature.SignedClaims) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("signedClaims"), signature.SignedClaims, "must be unset for unknown signature state"))
+		}
+		if signature.IssuedBy != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("issuedBy"), signature.IssuedBy, "must be unset for unknown signature state"))
+		}
+		if signature.IssuedTo != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("issuedTo"), signature.IssuedTo, "must be unset for unknown signature state"))
+		}
+	}
+
+	return allErrs
 }
 
 func ValidateImageUpdate(newImage, oldImage *api.Image) field.ErrorList {
@@ -202,7 +252,7 @@ func ValidateImageStreamTagUpdate(newIST, oldIST *api.ImageStreamTag) field.Erro
 	newISTCopy.Tag, oldISTCopy.Tag = nil, nil
 	newISTCopy.Generation = oldISTCopy.Generation
 	if !kapi.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
-		glog.Infof("objects differ: ", util.ObjectDiff(oldISTCopy, newISTCopy))
+		glog.Infof("objects differ: ", diff.ObjectDiff(oldISTCopy, newISTCopy))
 		result = append(result, field.Invalid(field.NewPath("metadata"), "", "may not update fields other than metadata.annotations"))
 	}
 

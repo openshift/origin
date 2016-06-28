@@ -7,6 +7,6 @@ type TestSuitesBuilder interface {
 	// AddSuite adds a test suite to the collection
 	AddSuite(suite *api.TestSuite)
 
-	// Build retuns the built structure
+	// Build returns the built structure
 	Build() *api.TestSuites
 }

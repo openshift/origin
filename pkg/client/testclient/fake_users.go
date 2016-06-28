@@ -3,6 +3,7 @@ package testclient
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -52,4 +53,8 @@ func (c *FakeUsers) Update(inObj *userapi.User) (*userapi.User, error) {
 func (c *FakeUsers) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("users", name), nil)
 	return err
+}
+
+func (c *FakeUsers) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("users", opts))
 }

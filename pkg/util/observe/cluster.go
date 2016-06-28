@@ -118,6 +118,6 @@ func previousResourceVersion(v storage.Versioner, resourceVersion string) (strin
 	if err != nil {
 		return "", err
 	}
-	v.UpdateObject(e, nil, version-1)
+	v.UpdateObject(e, version-1)
 	return e.ResourceVersion, nil
 }

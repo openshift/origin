@@ -126,7 +126,7 @@ func (s *SpdyRoundTripper) dial(req *http.Request) (net.Conn, error) {
 	}
 
 	if s.tlsConfig == nil {
- 		s.tlsConfig = &tls.Config{}
+		s.tlsConfig = &tls.Config{}
 	}
 
 	if len(s.tlsConfig.ServerName) == 0 {

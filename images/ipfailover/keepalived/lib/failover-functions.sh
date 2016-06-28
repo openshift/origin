@@ -12,6 +12,29 @@ readonly KEEPALIVED_CONFIG="/etc/keepalived/keepalived.conf"
 readonly KEEPALIVED_DEFAULTS="/etc/sysconfig/keepalived"
 
 
+function cleanup() {
+  echo "  - Cleaning up ... "
+  [ -n "$1" ] && kill -TERM $1
+
+  local interface=$(get_network_device "$NETWORK_INTERFACE")
+  local vips=$(expand_ip_ranges "$HA_VIPS")
+  echo "  - Releasing VIPs ${vips} (interface ${interface}) ... "
+
+  local regex='^.*?/[0-9]+$'
+
+  for vip in ${vips}; do
+    echo "  - Releasing VIP ${vip} ... "
+    if [[ ${vip} =~ ${regex} ]] ; then
+      ip addr del ${vip} dev ${interface} || :
+    else
+      ip addr del ${vip}/32 dev ${interface} || :
+    fi
+  done
+
+  exit 0
+}
+
+
 function setup_failover() {
   echo "  - Loading ip_vs module ..."
   modprobe ip_vs
@@ -34,6 +57,10 @@ function start_failover_services() {
   [ -f "$KEEPALIVED_DEFAULTS" ] && source "$KEEPALIVED_DEFAULTS"
 
   killall -9 /usr/sbin/keepalived &> /dev/null || :
-  /usr/sbin/keepalived $KEEPALIVED_OPTIONS -n --log-console
+  /usr/sbin/keepalived $KEEPALIVED_OPTIONS -n --log-console &
+  local pid=$!
+
+  trap "cleanup ${pid}" SIGHUP SIGINT SIGTERM
+  wait ${pid}
 }
 

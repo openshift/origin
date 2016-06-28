@@ -2,11 +2,11 @@ package format_test
 
 import (
 	"fmt"
-	"strings"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
+	"strings"
 )
 
 //recursive struct

@@ -12,6 +12,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/proxy/scheduler"
 	"github.com/docker/distribution/registry/storage"
 	"github.com/docker/distribution/registry/storage/cache/memory"
@@ -42,17 +43,12 @@ func (sbs statsBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, 
 	return sbs.blobs.Get(ctx, dgst)
 }
 
-func (sbs statsBlobStore) Enumerate(ctx context.Context, ingester func(digest.Digest) error) error {
-	sbs.stats["enumerate"]++
-	return sbs.blobs.Enumerate(ctx, ingester)
-}
-
-func (sbs statsBlobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
+func (sbs statsBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
 	sbsMu.Lock()
 	sbs.stats["create"]++
 	sbsMu.Unlock()
 
-	return sbs.blobs.Create(ctx)
+	return sbs.blobs.Create(ctx, options...)
 }
 
 func (sbs statsBlobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
@@ -119,6 +115,11 @@ func (te *testEnv) RemoteStats() *map[string]int {
 
 // Populate remote store and record the digests
 func makeTestEnv(t *testing.T, name string) *testEnv {
+	nameRef, err := reference.ParseNamed(name)
+	if err != nil {
+		t.Fatalf("unable to parse reference: %s", err)
+	}
+
 	ctx := context.Background()
 
 	truthDir, err := ioutil.TempDir("", "truth")
@@ -131,21 +132,35 @@ func makeTestEnv(t *testing.T, name string) *testEnv {
 		t.Fatalf("unable to create tempdir: %s", err)
 	}
 
+	localDriver, err := filesystem.FromParameters(map[string]interface{}{
+		"rootdirectory": truthDir,
+	})
+	if err != nil {
+		t.Fatalf("unable to create filesystem driver: %s", err)
+	}
+
 	// todo: create a tempfile area here
-	localRegistry, err := storage.NewRegistry(ctx, filesystem.New(truthDir), storage.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), storage.EnableRedirect, storage.DisableDigestResumption)
+	localRegistry, err := storage.NewRegistry(ctx, localDriver, storage.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), storage.EnableRedirect, storage.DisableDigestResumption)
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
-	localRepo, err := localRegistry.Repository(ctx, name)
+	localRepo, err := localRegistry.Repository(ctx, nameRef)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
 	}
 
-	truthRegistry, err := storage.NewRegistry(ctx, filesystem.New(cacheDir), storage.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()))
+	cacheDriver, err := filesystem.FromParameters(map[string]interface{}{
+		"rootdirectory": cacheDir,
+	})
+	if err != nil {
+		t.Fatalf("unable to create filesystem driver: %s", err)
+	}
+
+	truthRegistry, err := storage.NewRegistry(ctx, cacheDriver, storage.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()))
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
-	truthRepo, err := truthRegistry.Repository(ctx, name)
+	truthRepo, err := truthRegistry.Repository(ctx, nameRef)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
 	}
@@ -163,9 +178,11 @@ func makeTestEnv(t *testing.T, name string) *testEnv {
 	s := scheduler.New(ctx, inmemory.New(), "/scheduler-state.json")
 
 	proxyBlobStore := proxyBlobStore{
-		remoteStore: truthBlobs,
-		localStore:  localBlobs,
-		scheduler:   s,
+		repositoryName: nameRef,
+		remoteStore:    truthBlobs,
+		localStore:     localBlobs,
+		scheduler:      s,
+		authChallenger: &mockChallenger{},
 	}
 
 	te := &testEnv{
@@ -215,6 +232,40 @@ func populate(t *testing.T, te *testEnv, blobCount, size, numUnique int) {
 	te.inRemote = inRemote
 	te.numUnique = numUnique
 }
+func TestProxyStoreGet(t *testing.T) {
+	te := makeTestEnv(t, "foo/bar")
+
+	localStats := te.LocalStats()
+	remoteStats := te.RemoteStats()
+
+	populate(t, te, 1, 10, 1)
+	_, err := te.store.Get(te.ctx, te.inRemote[0].Digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if (*localStats)["get"] != 1 && (*localStats)["put"] != 1 {
+		t.Errorf("Unexpected local counts")
+	}
+
+	if (*remoteStats)["get"] != 1 {
+		t.Errorf("Unexpected remote get count")
+	}
+
+	_, err = te.store.Get(te.ctx, te.inRemote[0].Digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if (*localStats)["get"] != 2 && (*localStats)["put"] != 1 {
+		t.Errorf("Unexpected local counts")
+	}
+
+	if (*remoteStats)["get"] != 1 {
+		t.Errorf("Unexpected remote get count")
+	}
+
+}
 
 func TestProxyStoreStat(t *testing.T) {
 	te := makeTestEnv(t, "foo/bar")
@@ -240,6 +291,11 @@ func TestProxyStoreStat(t *testing.T) {
 	if (*remoteStats)["stat"] != remoteBlobCount {
 		t.Errorf("Unexpected remote stat count")
 	}
+
+	if te.store.authChallenger.(*mockChallenger).count != len(te.inRemote) {
+		t.Fatalf("Unexpected auth challenge count, got %#v", te.store.authChallenger)
+	}
+
 }
 
 func TestProxyStoreServeHighConcurrency(t *testing.T) {
@@ -303,10 +359,7 @@ func testProxyStoreServe(t *testing.T, te *testEnv, numClients int) {
 				}
 
 				bodyBytes := w.Body.Bytes()
-				localDigest, err := digest.FromBytes(bodyBytes)
-				if err != nil {
-					t.Fatalf("Error making digest from blob")
-				}
+				localDigest := digest.FromBytes(bodyBytes)
 				if localDigest != remoteBlob.Digest {
 					t.Fatalf("Mismatching blob fetch from proxy")
 				}
@@ -340,10 +393,7 @@ func testProxyStoreServe(t *testing.T, te *testEnv, numClients int) {
 			t.Fatalf(err.Error())
 		}
 
-		dl, err := digest.FromBytes(w.Body.Bytes())
-		if err != nil {
-			t.Fatalf("Error making digest from blob")
-		}
+		dl := digest.FromBytes(w.Body.Bytes())
 		if dl != dr.Digest {
 			t.Errorf("Mismatching blob fetch from proxy")
 		}

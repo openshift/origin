@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
 
 const (
@@ -38,7 +38,7 @@ const (
 
 func newStorage(t *testing.T) (ControllerStorage, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	restOptions := generic.RESTOptions{etcdStorage, generic.UndecoratedStorage, 1}
+	restOptions := generic.RESTOptions{Storage: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
 	storage := NewStorage(restOptions)
 	return storage, server
 }
@@ -87,7 +87,7 @@ var validController = validNewController()
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Controller.Etcd)
+	test := registrytest.New(t, storage.Controller.Store)
 	controller := validNewController()
 	controller.ObjectMeta = api.ObjectMeta{}
 	test.TestCreate(
@@ -107,7 +107,7 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Controller.Etcd)
+	test := registrytest.New(t, storage.Controller.Store)
 	test.TestUpdate(
 		// valid
 		validNewController(),
@@ -118,11 +118,6 @@ func TestUpdate(t *testing.T) {
 			return object
 		},
 		// invalid updateFunc
-		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.ReplicationController)
-			object.UID = "newUID"
-			return object
-		},
 		func(obj runtime.Object) runtime.Object {
 			object := obj.(*api.ReplicationController)
 			object.Name = ""
@@ -139,7 +134,7 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Controller.Etcd)
+	test := registrytest.New(t, storage.Controller.Store)
 	test.TestDelete(validNewController())
 }
 
@@ -196,21 +191,21 @@ func TestGenerationNumber(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Controller.Etcd)
+	test := registrytest.New(t, storage.Controller.Store)
 	test.TestGet(validNewController())
 }
 
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Controller.Etcd)
+	test := registrytest.New(t, storage.Controller.Store)
 	test.TestList(validNewController())
 }
 
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Controller.Etcd)
+	test := registrytest.New(t, storage.Controller.Store)
 	test.TestWatch(
 		validController,
 		// matching labels
@@ -273,7 +268,7 @@ func TestScaleGet(t *testing.T) {
 	}
 	got := obj.(*autoscaling.Scale)
 	if !api.Semantic.DeepEqual(want, got) {
-		t.Errorf("unexpected scale: %s", util.ObjectDiff(want, got))
+		t.Errorf("unexpected scale: %s", diff.ObjectDiff(want, got))
 	}
 }
 
@@ -286,7 +281,7 @@ func TestScaleUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting new replication controller %v: %v", *validController, err)
 	}
-	replicas := 12
+	replicas := int32(12)
 	update := autoscaling.Scale{
 		ObjectMeta: api.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: autoscaling.ScaleSpec{

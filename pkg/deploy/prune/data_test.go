@@ -17,8 +17,8 @@ func mockDeploymentConfig(namespace, name string) *deployapi.DeploymentConfig {
 }
 
 func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationController {
-	item.Spec.Replicas = replicas
-	item.Status.Replicas = replicas
+	item.Spec.Replicas = int32(replicas)
+	item.Status.Replicas = int32(replicas)
 	return item
 }
 

@@ -33,13 +33,13 @@ the server details -- can be provided through flags. If not provided, the comman
 prompt for user input as needed.`
 
 	loginExample = `  # Log in interactively
-  $ %[1]s login
+  %[1]s login
 
   # Log in to the given server with the given certificate authority file
-  $ %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
+  %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
 
   # Log in to the given server with the given credentials (will not prompt interactively)
-  $ %[1]s login localhost:8443 --username=myuser --password=mypass`
+  %[1]s login localhost:8443 --username=myuser --password=mypass`
 )
 
 // NewCmdLogin implements the OpenShift cli login command

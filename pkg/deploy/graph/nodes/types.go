@@ -18,6 +18,12 @@ func DeploymentConfigNodeName(o *deployapi.DeploymentConfig) osgraph.UniqueName 
 type DeploymentConfigNode struct {
 	osgraph.Node
 	*deployapi.DeploymentConfig
+
+	IsFound bool
+}
+
+func (n DeploymentConfigNode) Found() bool {
+	return n.IsFound
 }
 
 func (n DeploymentConfigNode) Object() interface{} {

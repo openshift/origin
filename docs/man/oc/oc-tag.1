@@ -1,0 +1,152 @@
+.TH "OC" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oc tag \- Tag existing images into image streams
+
+
+.SH SYNOPSIS
+.PP
+\fBoc tag\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Tag existing images into image streams
+
+.PP
+The tag command allows you to take an existing tag or image from an image
+stream, or a Docker image pull spec, and set it as the most recent image for a
+tag in 1 or more other image streams. It is similar to the 'docker tag'
+command, but it operates on image streams instead.
+
+.PP
+Pass the \-\-insecure flag if your external registry does not have a valid HTTPS
+certificate, or is only served over HTTP. Pass \-\-scheduled to have the server
+regularly check the tag for updates and import the latest version (which can
+then trigger builds and deployments). Note that \-\-scheduled is only allowed for
+Docker images.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-alias\fP=false
+    Should the destination tag be updated whenever the source tag changes. Defaults to false.
+
+.PP
+\fB\-d\fP, \fB\-\-delete\fP=false
+    Delete the provided spec tags
+
+.PP
+\fB\-\-insecure\fP=false
+    Set to true if importing the specified Docker image requires HTTP or has a self\-signed certificate.
+
+.PP
+\fB\-\-reference\fP=false
+    Should the destination tag continue to pull from the source namespace. Defaults to false.
+
+.PP
+\fB\-\-scheduled\fP=false
+    Set a Docker image to be periodically imported from a remote repository.
+
+.PP
+\fB\-\-source\fP=""
+    Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
+  oc tag openshift/ruby:2.0 yourproject/ruby:tip
+
+  # Tag a specific image.
+  oc tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
+
+  # Tag an external Docker image.
+  oc tag \-\-source=docker openshift/origin:latest yourproject/ruby:tip
+
+  # Remove the specified spec tag from an image stream.
+  oc tag openshift/origin:latest \-d
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBoc(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

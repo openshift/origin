@@ -5,10 +5,11 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -16,15 +17,15 @@ import (
 
 // REST implements a RESTStorage for image streams against etcd.
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 	subjectAccessReviewRegistry subjectaccessreview.Registry
 }
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	prefix := "/imagestreams"
 
-	store := etcdgeneric.Etcd{
+	store := registry.Store{
 		NewFunc: func() runtime.Object { return &api.ImageStream{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
@@ -32,12 +33,12 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultR
 		// Produces a path that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix.
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
+			return registry.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		// Produces a path that etcd understands, to the resource by combining
 		// the namespace in the context with the given prefix
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, name)
+			return registry.NamespaceKeyFunc(ctx, prefix, name)
 		},
 		// Retrieve the name field of an image
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
@@ -52,8 +53,8 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultR
 		ReturnDeletedObject: false,
 	}
 
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
-	rest := &REST{Etcd: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
+	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier)
+	rest := &REST{Store: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
 	strategy.ImageStreamGetter = rest
 
 	store.CreateStrategy = strategy
@@ -80,7 +81,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry imagestream.DefaultR
 
 // StatusREST implements the REST endpoint for changing the status of an image stream.
 type StatusREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 func (r *StatusREST) New() runtime.Object {
@@ -94,7 +95,7 @@ func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Objec
 
 // InternalREST implements the REST endpoint for changing both the spec and status of an image stream.
 type InternalREST struct {
-	store *etcdgeneric.Etcd
+	store *registry.Store
 }
 
 func (r *InternalREST) New() runtime.Object {

@@ -183,6 +183,18 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig"))...)
 	}
 
+	validationResults.Append(ValidateControllerConfig(config.ControllerConfig, fldPath.Child("controllerConfig")))
+
+	return validationResults
+}
+
+func ValidateControllerConfig(config api.ControllerConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if config.ServiceServingCert.Signer != nil {
+		validationResults.AddErrors(ValidateCertInfo(*config.ServiceServingCert.Signer, true, fldPath.Child("serviceServingCert.signer"))...)
+	}
+
 	return validationResults
 }
 

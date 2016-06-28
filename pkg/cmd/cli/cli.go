@@ -15,6 +15,9 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/cluster"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
@@ -39,9 +42,9 @@ cluster under the 'adm' subcommand.
 const cliExplain = `
 To create a new application, login to your server and then run new-app:
 
-  $ %[1]s login https://mycluster.mycompany.com
-  $ %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git
-  $ %[1]s logs -f bc/ruby-hello-world
+  %[1]s login https://mycluster.mycompany.com
+  %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+  %[1]s logs -f bc/ruby-ex
 
 This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds
 the source code from GitHub. A build will start automatically, push the resulting image to the
@@ -50,16 +53,16 @@ registry, and a deployment will roll that change out in your project.
 Once your application is deployed, use the status, describe, and get commands to see more about
 the created components:
 
-  $ %[1]s status
-  $ %[1]s describe deploymentconfig ruby-hello-world
-  $ %[1]s get pods
+  %[1]s status
+  %[1]s describe deploymentconfig ruby-ex
+  %[1]s get pods
 
 To make this application visible outside of the cluster, use the expose command on the service
 we just created to create a 'route' (which will connect your application over the HTTP port
 to a public domain name).
 
-  $ %[1]s expose svc/ruby-hello-world
-  $ %[1]s status
+  %[1]s expose svc/ruby-ex
+  %[1]s status
 
 You should now see the URL the application can be reached at.
 
@@ -94,7 +97,9 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdNewApplication(fullName, f, out),
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
+				cmd.NewCmdProjects(fullName, f, out),
 				cmd.NewCmdExplain(fullName, f, out),
+				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, out),
 			},
 		},
 		{
@@ -104,7 +109,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdRollback(fullName, f, out),
 				cmd.NewCmdNewBuild(fullName, f, in, out),
 				cmd.NewCmdStartBuild(fullName, f, in, out),
-				cmd.NewCmdCancelBuild(fullName, f, out),
+				cmd.NewCmdCancelBuild(fullName, f, in, out),
 				cmd.NewCmdImportImage(fullName, f, out),
 				cmd.NewCmdTag(fullName, f, out),
 			},
@@ -132,7 +137,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdLogs(cmd.LogsRecommendedName, fullName, f, out),
 				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
-				cmd.NewCmdPortForward(fullName, f),
+				cmd.NewCmdPortForward(fullName, f, out, errout),
 				cmd.NewCmdDebug(fullName, f, in, out, errout),
 				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdProxy(fullName, f, out),
@@ -152,6 +157,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdExport(fullName, f, in, out),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
 				cmd.NewCmdConvert(fullName, f, out),
+				importer.NewCmdImport(fullName, f, in, out, errout),
 			},
 		},
 		{
@@ -160,6 +166,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
 				cmd.NewCmdConfig(fullName, "config"),
 				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
+				cmd.NewCmdCompletion(fullName, f, out),
 			},
 		},
 	}
@@ -176,6 +183,16 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	changeSharedFlagDefaults(cmds)
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
+
+	// experimental commands are those that are bundled with the binary but not displayed to end users
+	// directly
+	experimental := &cobra.Command{
+		Use: "ex", // Because this command exposes no description, it will not be shown in help
+	}
+	experimental.AddCommand(
+		dockerbuild.NewCmdDockerbuild(fullName, f, out, errout),
+	)
+	cmds.AddCommand(experimental)
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName, false))

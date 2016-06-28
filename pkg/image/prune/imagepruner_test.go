@@ -265,7 +265,7 @@ func bc(namespace, name, strategyType, fromKind, fromNamespace, fromName string)
 			Name:      name,
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildSpec(strategyType, fromKind, fromNamespace, fromName),
+			CommonSpec: commonSpec(strategyType, fromKind, fromNamespace, fromName),
 		},
 	}
 }
@@ -282,12 +282,14 @@ func build(namespace, name, strategyType, fromKind, fromNamespace, fromName stri
 			Namespace: namespace,
 			Name:      name,
 		},
-		Spec: buildSpec(strategyType, fromKind, fromNamespace, fromName),
+		Spec: buildapi.BuildSpec{
+			CommonSpec: commonSpec(strategyType, fromKind, fromNamespace, fromName),
+		},
 	}
 }
 
-func buildSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi.BuildSpec {
-	spec := buildapi.BuildSpec{
+func commonSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi.CommonSpec {
+	spec := buildapi.CommonSpec{
 		Strategy: buildapi.BuildStrategy{},
 	}
 	switch strategyType {

@@ -3,6 +3,7 @@ package key
 import (
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,12 +11,21 @@ import (
 )
 
 type staticReadableKeySetRepo struct {
+	mu  sync.RWMutex
 	ks  KeySet
 	err error
 }
 
 func (r *staticReadableKeySetRepo) Get() (KeySet, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.ks, r.err
+}
+
+func (r *staticReadableKeySetRepo) set(ks KeySet, err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.ks, r.err = ks, err
 }
 
 func TestKeySyncerSync(t *testing.T) {
@@ -97,8 +107,7 @@ func TestKeySyncerSync(t *testing.T) {
 	defer close(stop)
 
 	for i, st := range steps {
-		from.ks = st.fromKS
-		from.err = st.fromErr
+		from.set(st.fromKS, st.fromErr)
 
 		fc.Advance(st.advance)
 		fc.BlockUntil(1)
@@ -176,7 +185,7 @@ func TestSync(t *testing.T) {
 			t.Errorf("case %d: unexpected error: %v", i, err)
 			continue
 		}
-		exp, err := sync(from, to, fc)
+		exp, err := syncKeySet(from, to, fc)
 		if err != nil {
 			t.Errorf("case %d: unexpected error: %v", i, err)
 			continue
@@ -198,7 +207,7 @@ func TestSyncFail(t *testing.T) {
 		from := &staticReadableKeySetRepo{ks: nil, err: tt}
 		to := NewPrivateKeySetRepo()
 
-		if _, err := sync(from, to, clockwork.NewFakeClock()); err == nil {
+		if _, err := syncKeySet(from, to, clockwork.NewFakeClock()); err == nil {
 			t.Errorf("case %d: expected non-nil error", i)
 		}
 	}

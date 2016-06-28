@@ -1,5 +1,34 @@
 <!-- BEGIN MUNGE: UNVERSIONED_WARNING -->
 
+<!-- BEGIN STRIP_FOR_RELEASE -->
+
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+
+<h2>PLEASE NOTE: This document applies to the HEAD of the source tree</h2>
+
+If you are using a released version of Kubernetes, you should
+refer to the docs that go with that version.
+
+<!-- TAG RELEASE_LINK, added by the munger automatically -->
+<strong>
+The latest release of this document can be found
+[here](http://releases.k8s.io/release-1.2/examples/guestbook-go/_src/README.md).
+
+Documentation for other releases can be found at
+[releases.k8s.io](http://releases.k8s.io).
+</strong>
+--
+
+<!-- END STRIP_FOR_RELEASE -->
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
 
@@ -7,43 +36,22 @@
 
 This process employs building two docker images, one compiles the source and the other hosts the compiled binaries.
 
-Releasing the image requires that you have access to the docker registry user account which will host the image.
+Releasing the image requires that you have access to the docker registry user account which will host the image. You can specify the registry including the user account by setting the environment variable `REGISTRY`.
 
 To build and release the guestbook image:
 
     cd examples/guestbook-go/_src
-    ./script/release.sh
+    make release
 
-#### Step by step
+To build and release the guestbook image with a different registry and version:
 
-If you may want to, you can build and push the image step by step.
+    VERSION=v4 REGISTRY="docker.io/luebken" make build
 
-###### Start fresh before building
+If you want to, you can build and push the image step by step:
 
-    ./script/clean.sh 2> /dev/null
-
-###### Build
-
-Builds a docker image that builds the app and packages it into a minimal docker image
-
-    ./script/build.sh
-
-###### Push
-
-Accepts an optional tag (defaults to "latest")
-
-    ./script/push.sh [TAG]
-
-###### Clean up
-
-    ./script/clean.sh
-
-
-
-
-<!-- BEGIN MUNGE: IS_VERSIONED -->
-<!-- TAG IS_VERSIONED -->
-<!-- END MUNGE: IS_VERSIONED -->
+    make clean
+    make build
+    make push
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

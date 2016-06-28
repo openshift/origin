@@ -32,8 +32,6 @@ import (
 	"k8s.io/kubernetes/cmd/libs/go2idl/generator"
 	"k8s.io/kubernetes/cmd/libs/go2idl/namer"
 	"k8s.io/kubernetes/cmd/libs/go2idl/types"
-
-	//"github.com/golang/glog"
 )
 
 const (
@@ -134,10 +132,12 @@ type importRuleFile struct{}
 
 func (importRuleFile) AssembleFile(f *generator.File, path string) error {
 	return nil
+}
 
+// TODO: make a flag to enable this, or expose this information in some other way.
+func (importRuleFile) listEntireImportTree(f *generator.File, path string) error {
 	// If the file exists, populate its current imports. This is mostly to help
 	// humans figure out what they need to fix.
-	// TODO: add a command line flag to enable this? Or require that it always stay up-to-date?
 	if _, err := os.Stat(path); err != nil {
 		// Ignore packages which haven't opted in by adding an .import-restrictions file.
 		return nil
@@ -233,7 +233,7 @@ func (importRuleFile) VerifyFile(f *generator.File, path string) error {
 // importRules produces a file with a set for a single type.
 type importRules struct {
 	myPackage *types.Package
-	imports   *generator.ImportTracker
+	imports   namer.ImportTracker
 }
 
 var (

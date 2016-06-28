@@ -136,7 +136,7 @@ func generate(genericParams map[string]interface{}) (runtime.Object, error) {
 		}
 		ports = append(ports, api.ServicePort{
 			Name:     name,
-			Port:     port,
+			Port:     int32(port),
 			Protocol: api.Protocol(params["protocol"]),
 		})
 	}
@@ -151,11 +151,11 @@ func generate(genericParams map[string]interface{}) (runtime.Object, error) {
 			Ports:    ports,
 		},
 	}
-	targetPortString, found := params["target-port"]
-	if !found {
-		targetPortString, found = params["container-port"]
+	targetPortString := params["target-port"]
+	if len(targetPortString) == 0 {
+		targetPortString = params["container-port"]
 	}
-	if found && len(targetPortString) > 0 {
+	if len(targetPortString) > 0 {
 		var targetPort intstr.IntOrString
 		if portNum, err := strconv.Atoi(targetPortString); err != nil {
 			targetPort = intstr.FromString(targetPortString)
@@ -171,7 +171,7 @@ func generate(genericParams map[string]interface{}) (runtime.Object, error) {
 		// should be the same as Port
 		for i := range service.Spec.Ports {
 			port := service.Spec.Ports[i].Port
-			service.Spec.Ports[i].TargetPort = intstr.FromInt(port)
+			service.Spec.Ports[i].TargetPort = intstr.FromInt(int(port))
 		}
 	}
 	if params["create-external-load-balancer"] == "true" {

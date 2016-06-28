@@ -2,8 +2,6 @@ package api
 
 import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
-
-	"github.com/docker/distribution"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
@@ -55,6 +53,23 @@ type DockerConfig struct {
 	Labels          map[string]string   `json:"Labels,omitempty"`
 }
 
+// Descriptor describes targeted content. Used in conjunction with a blob
+// store, a descriptor can be used to fetch, store and target any kind of
+// blob. The struct also describes the wire protocol format. Fields should
+// only be added but never changed.
+type Descriptor struct {
+	// MediaType describe the type of the content. All text based formats are
+	// encoded as utf-8.
+	MediaType string `json:"mediaType,omitempty"`
+
+	// Size in bytes of content.
+	Size int64 `json:"size,omitempty"`
+
+	// Digest uniquely identifies the content. A byte stream can be verified
+	// against against this digest.
+	Digest string `json:"digest,omitempty"`
+}
+
 // DockerImageManifest represents the Docker v2 image format.
 type DockerImageManifest struct {
 	SchemaVersion int    `json:"schemaVersion"`
@@ -68,8 +83,8 @@ type DockerImageManifest struct {
 	History      []DockerHistory `json:"history"`
 
 	// schema2
-	Layers []distribution.Descriptor `json:"layers"`
-	Config distribution.Descriptor   `json:"config"`
+	Layers []Descriptor `json:"layers"`
+	Config Descriptor   `json:"config"`
 }
 
 // DockerFSLayer is a container struct for BlobSums defined in an image manifest
@@ -105,4 +120,28 @@ type DockerV1CompatibilityImage struct {
 // compatibility information for size
 type DockerV1CompatibilityImageSize struct {
 	Size int64 `json:"size,omitempty"`
+}
+
+// DockerImageConfig stores the image configuration
+type DockerImageConfig struct {
+	DockerImage `json:",inline"`
+	RootFS      *DockerConfigRootFS   `json:"rootfs,omitempty"`
+	History     []DockerConfigHistory `json:"history,omitempty"`
+	OSVersion   string                `json:"os.version,omitempty"`
+	OSFeatures  []string              `json:"os.features,omitempty"`
+}
+
+// DockerConfigHistory stores build commands that were used to create an image
+type DockerConfigHistory struct {
+	Created    unversioned.Time `json:"created"`
+	Author     string           `json:"author,omitempty"`
+	CreatedBy  string           `json:"created_by,omitempty"`
+	Comment    string           `json:"comment,omitempty"`
+	EmptyLayer bool             `json:"empty_layer,omitempty"`
+}
+
+// DockerConfigRootFS describes images root filesystem
+type DockerConfigRootFS struct {
+	Type    string   `json:"type"`
+	DiffIDs []string `json:"diff_ids,omitempty"`
 }

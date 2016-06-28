@@ -38,7 +38,7 @@ type testDataParser struct {
 	testEndPattern         *regexp.Regexp
 }
 
-// MarksBeginning determines if the line marks the begining of a test case
+// MarksBeginning determines if the line marks the beginning of a test case
 func (p *testDataParser) MarksBeginning(line string) bool {
 	return p.testStartPattern.MatchString(line)
 }
@@ -82,7 +82,7 @@ func (p *testDataParser) ExtractDuration(line string) (string, bool) {
 	return "", false
 }
 
-// ExtractMessage extracts a message (e.g. for signalling why a failure or skip occured) from a test output line
+// ExtractMessage extracts a message (e.g. for signalling why a failure or skip occurred) from a test output line
 func (p *testDataParser) ExtractMessage(line string) (string, bool) {
 	if matches := p.testConclusionPattern.FindStringSubmatch(line); len(matches) > 5 && len(matches[5]) > 0 {
 		return matches[5], true
@@ -112,7 +112,7 @@ type testSuiteDataParser struct {
 	suiteConclusionPattern  *regexp.Regexp
 }
 
-// MarksBeginning determines if the line marks the begining of a test suite
+// MarksBeginning determines if the line marks the beginning of a test suite
 func (p *testSuiteDataParser) MarksBeginning(line string) bool {
 	return p.suiteDeclarationPattern.MatchString(line)
 }

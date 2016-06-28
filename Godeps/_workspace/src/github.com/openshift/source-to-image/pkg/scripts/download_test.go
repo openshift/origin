@@ -30,8 +30,8 @@ func (f *FakeHTTPGet) get(url string) (*http.Response, error) {
 	}, f.err
 }
 
-func getHTTPReader() (*HttpURLReader, *FakeHTTPGet) {
-	sr := &HttpURLReader{}
+func getHTTPReader() (*HTTPURLReader, *FakeHTTPGet) {
+	sr := &HTTPURLReader{}
 	g := &FakeHTTPGet{content: "test content", statusCode: 200}
 	sr.Get = g.get
 	return sr, g

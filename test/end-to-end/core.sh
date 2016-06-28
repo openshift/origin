@@ -8,14 +8,9 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-os::log::install_errexit
-
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 os::util::environment::setup_time_vars
-
-source "${OS_ROOT}/hack/lib/test/junit.sh"
 trap os::test::junit::reconcile_output EXIT
 
 TEST_ASSETS="${TEST_ASSETS:-false}"
@@ -63,12 +58,8 @@ os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.de
 os::cmd::expect_success 'openshift admin policy add-role-to-user view e2e-user --namespace=default'
 
 # pre-load some image streams and templates
-os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift'
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift'
 os::cmd::expect_success 'oc create -f examples/jenkins/application-template.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/db-templates/mongodb-ephemeral-template.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/db-templates/mysql-ephemeral-template.json --namespace=openshift'
-os::cmd::expect_success 'oc create -f examples/db-templates/postgresql-ephemeral-template.json --namespace=openshift'
 
 # create test project so that this shows up in the console
 os::cmd::expect_success "openshift admin new-project test --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
@@ -79,18 +70,26 @@ os::cmd::expect_success "openshift admin new-project cache --description='This i
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
-DROP_SYN_DURING_RESTART=1 install_router
-install_registry
-
 echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
 echo "[INFO] Pulled ruby-22-centos7"
 
+os::cmd::expect_success "oc create serviceaccount ipfailover"
+os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ipfailover"
+os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --credentials=${KUBECONFIG} --service-account=ipfailover"
+
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
 
+echo "[INFO] Waiting for IP failover to deploy"
+os::cmd::try_until_text "oc get rc/ipfailover-1 --template \"{{ index .metadata.annotations \\\"openshift.io/deployment.phase\\\" }}\"" "Complete"
+os::cmd::expect_success "oc delete all -l ipfailover=ipfailover"
+
 # check to make sure that logs for rc works
-oc logs rc/docker-registry-1 > /dev/null
+os::cmd::expect_success "oc logs rc/docker-registry-1 > /dev/null"
+# check that we can get a remote shell to a dc or rc
+os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "5000"
+os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
@@ -187,8 +186,13 @@ os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Usin
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
 
 echo "[INFO] Testing deployment logs and failing pre and mid hooks ..."
+# test hook selectors
+os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/complete-dc-hooks.yaml"
+os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
+os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-mid  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
+os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 # test the pre hook on a rolling deployment
-oc create -f test/fixtures/failing-dc.yaml
+oc create -f test/testdata/failing-dc.yaml
 tryuntil oc get rc/failing-dc-1
 oc logs -f dc/failing-dc
 wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
@@ -201,18 +205,28 @@ os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:
 os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:34:56Z --loglevel=6 dc/failing-dc 2>&1' 'test pre hook executed'
 oc delete dc/failing-dc
 # test the mid hook on a recreate deployment and the health check
-oc create -f test/fixtures/failing-dc-mid.yaml
+oc create -f test/testdata/failing-dc-mid.yaml
 tryuntil oc get rc/failing-dc-mid-1
 oc logs -f dc/failing-dc-mid
 wait_for_command "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc-mid' 'test mid hook executed'
-oc deploy failing-dc-mid --latest
+# The following command is the equivalent of 'oc deploy --latest' on old clients
+# Ensures we won't break those while removing the dc status update from oc
+os::cmd::expect_success "oc patch dc/failing-dc-mid -p '{\"status\":{\"latestVersion\":2}}'"
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc-mid' 'test mid hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc-mid'  'test mid hook executed'
 
 echo "[INFO] Run pod diagnostics"
 # Requires a node to run the origin-deployer pod; expects registry deployed, deployer image pulled
 os::cmd::expect_success_and_text 'oadm diagnostics DiagnosticPod --images='"'""${USE_IMAGES}""'" 'Running diagnostic: PodCheckDns'
+
+# This needed because docker 1.10+ utilizes cross-repo mount feature. Docker client keeps track of source
+# repositories for all the blobs. If it uploads a blob to a repository of registry having an entry in this
+# mapping, it will request a mount from this repository. The authorization check is done for both destination
+# and mounted repository. Without the next statement, the auth check for mounted repository
+# (cache/ruby-22-centos7) will fail.
+# TODO: remove this once the registry can access global blob store without a layer link authorization check
+oc policy -n cache add-role-to-user system:image-puller system:serviceaccount:test:builder
 
 
 echo "[INFO] Applying STI application config"
@@ -241,7 +255,7 @@ os::cmd::expect_success 'oc logs buildconfig/ruby-sample-build --loglevel=6'
 echo "logs: ok"
 
 echo "[INFO] Starting a deployment to test scaling and image tag..."
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 # scaling which might conflict with the deployment should work
 os::cmd::expect_success 'oc scale dc/test-deployment-config --replicas=2'
 os::cmd::try_until_text 'oc get rc/test-deployment-config-1 -o yaml' 'Complete'
@@ -261,10 +275,11 @@ frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .ite
 # when running as a restricted pod the registry will run with a pre-allocated
 # user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
 os::cmd::expect_success_and_text "oc exec -p ${frontend_pod} id" '1000'
-os::cmd::expect_success_and_text "oc rsh ${frontend_pod} id -u" '1000'
+os::cmd::expect_success_and_text "oc rsh pod/${frontend_pod} id -u" '1000'
 os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 # Test retrieving application logs from dc
-oc logs dc/frontend | grep "Connecting to production database"
+os::cmd::expect_success_and_text "oc logs dc/frontend" 'Connecting to production database'
+os::cmd::expect_success_and_text "oc deploy frontend" 'deployed'
 
 # Port forwarding
 echo "[INFO] Validating port-forward"
@@ -329,15 +344,17 @@ echo "[INFO] Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
 os::cmd::expect_success "openshift admin new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
 NODE_NAME=`oc get node --no-headers | awk '{print $1}'`
-os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='${NODE_NAME}' -f test/fixtures/node-selector/pods.json | oc create -n node-selector -f -"
+os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='${NODE_NAME}' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
 # The pod without a node name should fail to schedule
 os::cmd::try_until_text 'oc get events -n node-selector' 'pod-without-node-name.+FailedScheduling' $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet
-os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+NodeSelectorMismatching' $((20*TIME_SEC))
+os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+MatchNodeSelector' $((20*TIME_SEC))
 
 
 # Image pruning
 echo "[INFO] Validating image pruning"
+# builder service account should have the power to create new image streams: prune in this case
+os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
 os::cmd::expect_success 'docker pull busybox'
 os::cmd::expect_success 'docker pull gcr.io/google_containers/pause'
 os::cmd::expect_success 'docker pull openshift/hello-openshift'
@@ -360,11 +377,11 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 
 # set up pruner user
 os::cmd::expect_success 'oadm policy add-cluster-role-to-user system:image-pruner e2e-pruner'
+os::cmd::try_until_text 'oadm policy who-can list images' 'e2e-pruner'
 os::cmd::expect_success 'oc login -u e2e-pruner -p pass'
 
 # run image pruning
-os::cmd::expect_success "oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm &> '${LOG_DIR}/prune-images.log'"
-os::cmd::expect_success_and_not_text "cat ${LOG_DIR}/prune-images.log" 'error'
+os::cmd::expect_success_and_not_text "oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm" 'error'
 
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 # record the storage after pruning

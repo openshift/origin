@@ -63,6 +63,14 @@ func (f *FakeAPIInterface) ListThirdPartyResources() []string {
 }
 
 func TestSyncAPIs(t *testing.T) {
+	resourcesNamed := func(names ...string) []expapi.ThirdPartyResource {
+		result := []expapi.ThirdPartyResource{}
+		for _, name := range names {
+			result = append(result, expapi.ThirdPartyResource{ObjectMeta: api.ObjectMeta{Name: name}})
+		}
+		return result
+	}
+
 	tests := []struct {
 		list              *expapi.ThirdPartyResourceList
 		apis              []string
@@ -72,26 +80,14 @@ func TestSyncAPIs(t *testing.T) {
 	}{
 		{
 			list: &expapi.ThirdPartyResourceList{
-				Items: []expapi.ThirdPartyResource{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name: "foo.example.com",
-						},
-					},
-				},
+				Items: resourcesNamed("foo.example.com"),
 			},
 			expectedInstalled: []string{"foo.example.com"},
 			name:              "simple add",
 		},
 		{
 			list: &expapi.ThirdPartyResourceList{
-				Items: []expapi.ThirdPartyResource{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name: "foo.example.com",
-						},
-					},
-				},
+				Items: resourcesNamed("foo.example.com"),
 			},
 			apis: []string{
 				"/apis/example.com",
@@ -101,13 +97,7 @@ func TestSyncAPIs(t *testing.T) {
 		},
 		{
 			list: &expapi.ThirdPartyResourceList{
-				Items: []expapi.ThirdPartyResource{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name: "foo.example.com",
-						},
-					},
-				},
+				Items: resourcesNamed("foo.example.com"),
 			},
 			apis: []string{
 				"/apis/example.com",
@@ -123,18 +113,7 @@ func TestSyncAPIs(t *testing.T) {
 		},
 		{
 			list: &expapi.ThirdPartyResourceList{
-				Items: []expapi.ThirdPartyResource{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name: "foo.example.com",
-						},
-					},
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name: "foo.company.com",
-						},
-					},
-				},
+				Items: resourcesNamed("foo.example.com", "foo.company.com"),
 			},
 			apis: []string{
 				"/apis/company.com",
@@ -145,13 +124,7 @@ func TestSyncAPIs(t *testing.T) {
 		},
 		{
 			list: &expapi.ThirdPartyResourceList{
-				Items: []expapi.ThirdPartyResource{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name: "foo.example.com",
-						},
-					},
-				},
+				Items: resourcesNamed("foo.example.com"),
 			},
 			apis: []string{
 				"/apis/company.com",
@@ -172,7 +145,7 @@ func TestSyncAPIs(t *testing.T) {
 		cntrl := ThirdPartyController{master: &fake}
 
 		if err := cntrl.syncResourceList(test.list); err != nil {
-			t.Errorf("[%s] unexpected error: %v", test.name)
+			t.Errorf("[%s] unexpected error: %v", test.name, err)
 		}
 		if len(test.expectedInstalled) != len(fake.installed) {
 			t.Errorf("[%s] unexpected installed APIs: %d, expected %d (%#v)", test.name, len(fake.installed), len(test.expectedInstalled), fake.installed[0])

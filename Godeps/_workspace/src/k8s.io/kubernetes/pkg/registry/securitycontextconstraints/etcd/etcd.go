@@ -22,25 +22,30 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for security context constraints against etcd
 type REST struct {
-	*etcdgeneric.Etcd
+	*registry.Store
 }
 
 const Prefix = "/securitycontextconstraints"
 
 // NewStorage returns a RESTStorage object that will work against security context constraints objects.
-func NewStorage(s storage.Interface) *REST {
-	store := &etcdgeneric.Etcd{
+func NewStorage(opts generic.RESTOptions) *REST {
+
+	newListFunc := func() runtime.Object { return &api.SecurityContextConstraintsList{} }
+
+	storageInterface := opts.Decorator(opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.SecurityContextConstraints), &api.SecurityContextConstraints{}, Prefix, securitycontextconstraints.Strategy, newListFunc)
+
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.SecurityContextConstraints{} },
-		NewListFunc: func() runtime.Object { return &api.SecurityContextConstraintsList{} },
+		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx api.Context) string {
 			return Prefix
 		},
@@ -58,7 +63,7 @@ func NewStorage(s storage.Interface) *REST {
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,
 		ReturnDeletedObject: true,
-		Storage:             s,
+		Storage:             storageInterface,
 	}
 	return &REST{store}
 }

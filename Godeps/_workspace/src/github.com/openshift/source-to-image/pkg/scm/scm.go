@@ -41,14 +41,14 @@ func DownloaderForSource(s string, forceCopy bool) (build.Downloader, string, er
 	}
 
 	if details.FileExists && (details.UseCopy || forceCopy) {
-		return &file.File{util.NewFileSystem()}, s, nil
+		return &file.File{FileSystem: util.NewFileSystem()}, s, nil
 	}
 
 	// If the source is valid  Git protocol (file://, ssh://, git://, git@, etc..) use Git
 	// binary to download the sources
 	g := git.New()
 	if g.ValidCloneSpec(s) {
-		return &git.Clone{g, util.NewFileSystem()}, s, nil
+		return &git.Clone{Git: g, FileSystem: util.NewFileSystem()}, s, nil
 	}
 
 	return nil, s, fmt.Errorf("no downloader defined for location: %q", s)

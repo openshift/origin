@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -65,6 +66,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&secretLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
+		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Extensions()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.C},
@@ -107,6 +109,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	kubeedges.AddAllRequestedServiceAccountEdges(g)
 	kubeedges.AddAllMountableSecretEdges(g)
 	kubeedges.AddAllMountedSecretEdges(g)
+	kubeedges.AddHPAScaleRefEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
@@ -151,6 +154,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	standaloneImages, coveredByImages := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
 	coveredNodes.Insert(coveredByImages.List()...)
+
+	standalonePods, coveredByPods := graphview.AllPods(g, coveredNodes)
+	coveredNodes.Insert(coveredByPods.List()...)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
@@ -216,6 +222,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		for _, standaloneRC := range standaloneRCs {
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRCInServiceGroup(f, standaloneRC.RC)...)
+		}
+
+		monopods, err := filterBoringPods(standalonePods)
+		if err != nil {
+			return err
+		}
+		for _, monopod := range monopods {
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeMonopod(f, monopod.Pod)...)
 		}
 
 		allMarkers := osgraph.Markers{}
@@ -335,6 +350,9 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		},
 		kubeanalysis.FindDuelingReplicationControllers,
 		kubeanalysis.FindMissingSecrets,
+		kubeanalysis.FindHPASpecsMissingCPUTargets,
+		kubeanalysis.FindHPASpecsMissingScaleRefs,
+		kubeanalysis.FindOverlappingHPAs,
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
@@ -403,6 +421,8 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 		return namespaceNameWithType("sa", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.ReplicationControllerNode:
 		return namespaceNameWithType("rc", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.HorizontalPodAutoscalerNode:
+		return namespaceNameWithType("hpa", t.HorizontalPodAutoscaler.Name, t.HorizontalPodAutoscaler.Namespace, f.currentNamespace, f.hideNamespace)
 
 	case *imagegraph.ImageStreamNode:
 		return namespaceNameWithType("is", t.ImageStream.Name, t.ImageStream.Namespace, f.currentNamespace, f.hideNamespace)
@@ -493,6 +513,16 @@ func describeRCInServiceGroup(f formatter, rcNode *kubegraph.ReplicationControll
 }
 
 func describePodInServiceGroup(f formatter, podNode *kubegraph.PodNode) []string {
+	images := []string{}
+	for _, container := range podNode.Pod.Spec.Containers {
+		images = append(images, container.Image)
+	}
+
+	lines := []string{fmt.Sprintf("%s runs %s", f.ResourceName(podNode), strings.Join(images, ", "))}
+	return lines
+}
+
+func describeMonopod(f formatter, podNode *kubegraph.PodNode) []string {
 	images := []string{}
 	for _, container := range podNode.Pod.Spec.Containers {
 		images = append(images, container.Image)
@@ -1015,11 +1045,11 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, expo
 func portOrNodePort(spec kapi.ServiceSpec, port kapi.ServicePort) string {
 	switch {
 	case spec.Type != kapi.ServiceTypeNodePort:
-		return strconv.Itoa(port.Port)
+		return strconv.Itoa(int(port.Port))
 	case port.NodePort == 0:
 		return "<initializing>"
 	default:
-		return strconv.Itoa(port.NodePort)
+		return strconv.Itoa(int(port.NodePort))
 	}
 }
 
@@ -1043,7 +1073,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 				pairs = append(pairs, externalPort)
 				continue
 			}
-			if port.Port == int(port.TargetPort.IntVal) {
+			if port.Port == port.TargetPort.IntVal {
 				pairs = append(pairs, port.TargetPort.String())
 			} else {
 				pairs = append(pairs, fmt.Sprintf("%s->%s", externalPort, port.TargetPort.String()))
@@ -1051,6 +1081,30 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		}
 		return " ports " + strings.Join(pairs, ", ")
 	}
+}
+
+func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
+	monopods := []graphview.Pod{}
+
+	for _, pod := range pods {
+		actualPod, ok := pod.Pod.Object().(*kapi.Pod)
+		if !ok {
+			continue
+		}
+		meta, err := kapi.ObjectMetaFor(actualPod)
+		if err != nil {
+			return nil, err
+		}
+		_, isDeployerPod := meta.Labels[deployapi.DeployerPodForDeploymentLabel]
+		_, isBuilderPod := meta.Annotations[buildapi.BuildAnnotation]
+		isFinished := actualPod.Status.Phase == kapi.PodSucceeded || actualPod.Status.Phase == kapi.PodFailed
+		if isDeployerPod || isBuilderPod || isFinished {
+			continue
+		}
+		monopods = append(monopods, pod)
+	}
+
+	return monopods, nil
 }
 
 // GraphLoader is a stateful interface that provides methods for building the nodes of a graph
@@ -1128,6 +1182,30 @@ func (l *podLoader) Load() error {
 func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsurePodNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type horizontalPodAutoscalerLoader struct {
+	namespace string
+	lister    kclient.HorizontalPodAutoscalersNamespacer
+	items     []extensions.HorizontalPodAutoscaler
+}
+
+func (l *horizontalPodAutoscalerLoader) Load() error {
+	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *horizontalPodAutoscalerLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureHorizontalPodAutoscalerNode(g, &l.items[i])
 	}
 
 	return nil

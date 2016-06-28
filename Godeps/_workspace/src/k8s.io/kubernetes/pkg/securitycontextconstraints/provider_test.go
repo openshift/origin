@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
@@ -73,11 +73,11 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 
 	provider, err := NewSimpleProvider(scc)
 	if err != nil {
-		t.Fatal("unable to create provider %v", err)
+		t.Fatalf("unable to create provider %v", err)
 	}
 	sc, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
-		t.Fatal("unable to create psc %v", err)
+		t.Fatalf("unable to create psc %v", err)
 	}
 
 	// The generated security context should have filled in missing options, so they should differ
@@ -87,7 +87,7 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 
 	// Creating the provider or the security context should not have mutated the scc or pod
 	if !reflect.DeepEqual(createPod(), pod) {
-		diff := util.ObjectDiff(createPod(), pod)
+		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreatePodSecurityContext. diff:\n%s", diff)
 	}
 	if !reflect.DeepEqual(createSCC(), scc) {
@@ -141,11 +141,11 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 
 	provider, err := NewSimpleProvider(scc)
 	if err != nil {
-		t.Fatal("unable to create provider %v", err)
+		t.Fatalf("unable to create provider %v", err)
 	}
 	sc, err := provider.CreateContainerSecurityContext(pod, &pod.Spec.Containers[0])
 	if err != nil {
-		t.Fatal("unable to create container security context %v", err)
+		t.Fatalf("unable to create container security context %v", err)
 	}
 
 	// The generated security context should have filled in missing options, so they should differ
@@ -155,7 +155,7 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 
 	// Creating the provider or the security context should not have mutated the scc or pod
 	if !reflect.DeepEqual(createPod(), pod) {
-		diff := util.ObjectDiff(createPod(), pod)
+		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreateContainerSecurityContext. diff:\n%s", diff)
 	}
 	if !reflect.DeepEqual(createSCC(), scc) {
@@ -260,7 +260,7 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidatePodSecurityContext(v.pod, field.NewPath(""))
 		if len(errs) == 0 {
@@ -377,7 +377,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0], field.NewPath(""))
 		if len(errs) == 0 {
@@ -476,7 +476,7 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidatePodSecurityContext(v.pod, field.NewPath(""))
 		if len(errs) != 0 {
@@ -623,7 +623,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
-			t.Fatal("unable to create provider %v", err)
+			t.Fatalf("unable to create provider %v", err)
 		}
 		errs := provider.ValidateContainerSecurityContext(v.pod, &v.pod.Spec.Containers[0], field.NewPath(""))
 		if len(errs) != 0 {

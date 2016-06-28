@@ -16,6 +16,7 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -36,40 +37,38 @@ func (r *mockRetriever) Repository(ctx gocontext.Context, registry *url.URL, rep
 }
 
 type mockRepository struct {
-	repoErr, getErr, getByTagErr, tagsErr, err error
+	repoErr, getErr, getTagErr, tagErr, untagErr, allTagErr, err error
 
 	blobs *mockBlobStore
 
 	manifest *schema1.SignedManifest
-	tags     []string
+	tags     map[string]string
 }
 
 func (r *mockRepository) Name() string { return "test" }
+func (r *mockRepository) Named() reference.Named {
+	named, _ := reference.WithName("test")
+	return named
+}
 
 func (r *mockRepository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
 	return r, r.repoErr
 }
 func (r *mockRepository) Blobs(ctx context.Context) distribution.BlobStore { return r.blobs }
-func (r *mockRepository) Signatures() distribution.SignatureService        { return nil }
-func (r *mockRepository) Exists(dgst digest.Digest) (bool, error) {
+func (r *mockRepository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	return false, r.getErr
 }
-func (r *mockRepository) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
+func (r *mockRepository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	return r.manifest, r.getErr
 }
-func (r *mockRepository) Enumerate() ([]digest.Digest, error) {
-	return nil, r.getErr
-}
-func (r *mockRepository) Delete(dgst digest.Digest) error { return fmt.Errorf("not implemented") }
-func (r *mockRepository) Put(manifest *schema1.SignedManifest) error {
+func (r *mockRepository) Delete(ctx context.Context, dgst digest.Digest) error {
 	return fmt.Errorf("not implemented")
 }
-func (r *mockRepository) Tags() ([]string, error) { return r.tags, r.tagsErr }
-func (r *mockRepository) ExistsByTag(tag string) (bool, error) {
-	return false, r.tagsErr
+func (r *mockRepository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	return "", fmt.Errorf("not implemented")
 }
-func (r *mockRepository) GetByTag(tag string, options ...distribution.ManifestServiceOption) (*schema1.SignedManifest, error) {
-	return r.manifest, r.getByTagErr
+func (r *mockRepository) Tags(ctx context.Context) distribution.TagService {
+	return &mockTagService{repo: r}
 }
 
 type mockBlobStore struct {
@@ -88,6 +87,48 @@ func (r *mockBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, re
 
 func (r *mockBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
 	return nil, r.openErr
+}
+
+type mockTagService struct {
+	distribution.TagService
+
+	repo *mockRepository
+}
+
+func (r *mockTagService) Get(ctx context.Context, tag string) (distribution.Descriptor, error) {
+	v, ok := r.repo.tags[tag]
+	if !ok {
+		return distribution.Descriptor{}, r.repo.getTagErr
+	}
+	dgst, err := digest.ParseDigest(v)
+	if err != nil {
+		panic(err)
+	}
+	return distribution.Descriptor{Digest: dgst}, r.repo.getTagErr
+}
+
+func (r *mockTagService) Tag(ctx context.Context, tag string, desc distribution.Descriptor) error {
+	r.repo.tags[tag] = desc.Digest.String()
+	return r.repo.tagErr
+}
+
+func (r *mockTagService) Untag(ctx context.Context, tag string) error {
+	if _, ok := r.repo.tags[tag]; ok {
+		delete(r.repo.tags, tag)
+	}
+	return r.repo.untagErr
+}
+
+func (r *mockTagService) All(ctx context.Context) (res []string, err error) {
+	err = r.repo.allTagErr
+	for tag := range r.repo.tags {
+		res = append(res, tag)
+	}
+	return
+}
+
+func (r *mockTagService) Lookup(ctx context.Context, digest distribution.Descriptor) ([]string, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func TestSchema1ToImage(t *testing.T) {
@@ -270,21 +311,19 @@ func TestRetryFailure(t *testing.T) {
 	}
 
 	// do not retry on non standard errors
-	repo = &mockRepository{getByTagErr: fmt.Errorf("does not support v2 API")}
+	repo = &mockRepository{getErr: fmt.Errorf("does not support v2 API")}
 	r = NewRetryRepository(repo, 4, 0).(*retryRepository)
 	m, err := r.Manifests(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m, err := m.GetByTag("test"); m != nil || err != repo.getByTagErr || r.retries != 4 {
+	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 4 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
 	// retry four times
 	repo = &mockRepository{
-		getByTagErr: errcode.ErrorCodeUnauthorized,
-		getErr:      errcode.ErrorCodeUnauthorized,
-		tagsErr:     errcode.ErrorCodeUnauthorized,
+		getErr: errcode.ErrorCodeUnauthorized,
 		blobs: &mockBlobStore{
 			serveErr: errcode.ErrorCodeUnauthorized,
 			statErr:  errcode.ErrorCodeUnauthorized,
@@ -295,27 +334,12 @@ func TestRetryFailure(t *testing.T) {
 	if m, err = r.Manifests(nil); err != nil {
 		t.Fatal(err)
 	}
-	if m, err := m.GetByTag("test"); m != nil || err != repo.getByTagErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	r.retries = 2
+	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 0 {
+		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if m, err := m.Get(digest.Digest("foo")); m != nil || err != repo.getErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
-	}
-	r.retries = 2
-	if m, err := m.Exists("foo"); m || err != repo.getErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
-	}
-	r.retries = 2
-	if m, err := m.Enumerate(); m != nil || err != repo.getErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
-	}
-	r.retries = 2
-	if m, err := m.ExistsByTag("foo"); m || err != repo.getErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
-	}
-	r.retries = 2
-	if m, err := m.Tags(); m != nil || err != repo.tagsErr || r.retries != 0 {
+	if m, err := m.Exists(nil, "foo"); m || err != repo.getErr || r.retries != 0 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
@@ -324,15 +348,15 @@ func TestRetryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.Stat(nil, digest.Digest("x")); err != repo.getByTagErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	if _, err := b.Stat(nil, digest.Digest("x")); err != repo.blobs.statErr || r.retries != 0 {
+		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if err := b.ServeBlob(nil, nil, nil, digest.Digest("foo")); err != repo.getErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	if err := b.ServeBlob(nil, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr || r.retries != 0 {
+		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if _, err := b.Open(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 0 {
-		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	if _, err := b.Open(nil, digest.Digest("foo")); err != repo.blobs.openErr || r.retries != 0 {
+		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 }

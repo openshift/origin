@@ -51,24 +51,24 @@ base image changes will use the source specified on the build config.
 `
 
 	startBuildExample = `  # Starts build from build config "hello-world"
-  $ %[1]s start-build hello-world
+  %[1]s start-build hello-world
 
   # Starts build from a previous build "hello-world-1"
-  $ %[1]s start-build --from-build=hello-world-1
+  %[1]s start-build --from-build=hello-world-1
 
   # Use the contents of a directory as build input
-  $ %[1]s start-build hello-world --from-dir=src/
+  %[1]s start-build hello-world --from-dir=src/
 
   # Send the contents of a Git repository to the server from tag 'v2'
-  $ %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
+  %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
 
   # Start a new build for build config "hello-world" and watch the logs until the build
   # completes or fails.
-  $ %[1]s start-build hello-world --follow
+  %[1]s start-build hello-world --follow
 
   # Start a new build for build config "hello-world" and wait until the build completes. It
   # exits with a non-zero return code if the build fails.
-  $ %[1]s start-build hello-world --wait`
+  %[1]s start-build hello-world --wait`
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
@@ -184,7 +184,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 	)
 
 	if len(name) == 0 && len(args) > 0 && len(args[0]) > 0 {
-		mapper, _ := f.Object()
+		mapper, _ := f.Object(false)
 		resource, name, err = cmdutil.ResolveResource(buildapi.Resource("buildconfigs"), args[0], mapper)
 		if err != nil {
 			return err
@@ -243,7 +243,13 @@ func (o *StartBuildOptions) Run() error {
 	if len(o.ListWebhooks) > 0 {
 		return o.RunListBuildWebHooks()
 	}
+	buildRequestCauses := []buildapi.BuildTriggerCause{}
 	request := &buildapi.BuildRequest{
+		TriggeredBy: append(buildRequestCauses,
+			buildapi.BuildTriggerCause{
+				Message: "Manually triggered",
+			},
+		),
 		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
 	}
 	if len(o.EnvVar) > 0 {
@@ -444,7 +450,6 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			if len(options.Commit) > 0 {
 				commit = options.Commit
 			}
-			fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
 			info, gitErr := gitRefInfo(git, clean, commit)
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
@@ -458,6 +463,7 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			}
 
 			if asRepo {
+				fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
 				if gitErr != nil {
 					return nil, fmt.Errorf("the directory %q is not a valid Git repository: %v", clean, gitErr)
 				}

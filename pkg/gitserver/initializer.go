@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
@@ -34,6 +36,9 @@ func lazyInitRepositoryHandler(config *Config, handler http.Handler) http.Handle
 		if name == "." || name == ".." {
 			handler.ServeHTTP(w, r)
 			return
+		}
+		if !strings.HasSuffix(name, ".git") {
+			name += ".git"
 		}
 		path := filepath.Join(config.Home, name)
 		_, err := os.Stat(path)
@@ -70,6 +75,8 @@ func lazyInitRepositoryHandler(config *Config, handler http.Handler) http.Handle
 func RepositoryURL(config *Config, name string, r *http.Request) *url.URL {
 	var url url.URL
 	switch {
+	case config.InternalURL != nil:
+		url = *config.InternalURL
 	case config.URL != nil:
 		url = *config.URL
 	case r != nil:
@@ -89,47 +96,60 @@ func newRepository(config *Config, path string, hooks map[string]string, self *u
 	var out []byte
 	repo := git.NewRepositoryForBinary(config.GitBinary)
 
+	barePath := path
+	if !strings.HasSuffix(barePath, ".git") {
+		barePath += ".git"
+	}
+	aliasPath := strings.TrimSuffix(barePath, ".git")
+
 	if origin != nil {
-		if err := repo.CloneMirror(path, origin.String()); err != nil {
+		if err := repo.CloneMirror(barePath, origin.String()); err != nil {
 			return out, err
 		}
 	} else {
-		if err := repo.Init(path, true); err != nil {
+		if err := repo.Init(barePath, true); err != nil {
 			return out, err
 		}
 	}
 
 	if self != nil {
-		if err := repo.AddLocalConfig(path, "gitserver.self.url", self.String()); err != nil {
+		if err := repo.AddLocalConfig(barePath, "gitserver.self.url", self.String()); err != nil {
 			return out, err
 		}
 	}
 
 	// remove all sample hooks, ignore errors here
-	if files, err := ioutil.ReadDir(filepath.Join(path, "hooks")); err == nil {
+	if files, err := ioutil.ReadDir(filepath.Join(barePath, "hooks")); err == nil {
 		for _, file := range files {
-			os.Remove(filepath.Join(path, "hooks", file.Name()))
+			os.Remove(filepath.Join(barePath, "hooks", file.Name()))
 		}
 	}
 
 	for name, hook := range hooks {
-		dest := filepath.Join(path, "hooks", name)
+		dest := filepath.Join(barePath, "hooks", name)
 		if err := os.Remove(dest); err != nil && !os.IsNotExist(err) {
 			return out, err
 		}
+		glog.V(5).Infof("Creating hook symlink %s -> %s", dest, hook)
 		if err := os.Symlink(hook, dest); err != nil {
 			return out, err
 		}
 	}
 
 	if initHook, ok := hooks["init"]; ok {
+		glog.V(5).Infof("Init hook exists, invoking it")
 		cmd := exec.Command(initHook)
-		cmd.Dir = path
+		cmd.Dir = barePath
 		result, err := cmd.CombinedOutput()
+		glog.V(5).Infof("Init output:\n%s", result)
 		if err != nil {
 			return out, fmt.Errorf("init hook failed: %v\n%s", err, string(result))
 		}
 		out = result
+	}
+
+	if err := os.Symlink(barePath, aliasPath); err != nil {
+		return out, fmt.Errorf("cannot create alias path %s: %v", aliasPath, err)
 	}
 
 	return out, nil
@@ -183,6 +203,7 @@ func clone(config *Config) error {
 }
 
 func loadHooks(path string) (map[string]string, error) {
+	glog.V(5).Infof("Loading hooks from directory %s", path)
 	hooks := make(map[string]string)
 	if len(path) == 0 {
 		return hooks, nil
@@ -197,6 +218,7 @@ func loadHooks(path string) (map[string]string, error) {
 		}
 		hook := filepath.Join(path, file.Name())
 		name := filepath.Base(hook)
+		glog.V(5).Infof("Adding hook %s at %s", name, hook)
 		hooks[name] = hook
 	}
 	return hooks, nil

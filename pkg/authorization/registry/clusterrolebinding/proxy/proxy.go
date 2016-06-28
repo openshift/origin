@@ -18,14 +18,13 @@ type ClusterRoleBindingStorage struct {
 }
 
 func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry) *ClusterRoleBindingStorage {
-	simulatedPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
 	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterPolicyBindingRegistry)
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		simulatedPolicyRegistry,
-		simulatedPolicyBindingRegistry,
-		clusterPolicyRegistry,
-		clusterPolicyBindingRegistry,
+		nil,
+		nil,
+		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
 	)
 
 	return &ClusterRoleBindingStorage{

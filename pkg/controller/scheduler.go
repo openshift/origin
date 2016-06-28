@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -17,7 +17,7 @@ import (
 type Scheduler struct {
 	handle   func(key, value interface{})
 	position int
-	limiter  kutil.RateLimiter
+	limiter  flowcontrol.RateLimiter
 
 	mu      sync.Mutex
 	buckets []bucket
@@ -29,7 +29,7 @@ type bucket map[interface{}]interface{}
 // the rate at which buckets are processed, and a function to invoke when items are scanned in
 // a bucket.
 // TODO: remove DEBUG statements from this file once this logic has been adequately validated.
-func NewScheduler(bucketCount int, bucketLimiter kutil.RateLimiter, fn func(key, value interface{})) *Scheduler {
+func NewScheduler(bucketCount int, bucketLimiter flowcontrol.RateLimiter, fn func(key, value interface{})) *Scheduler {
 	// add one more bucket to serve as the "current" bucket
 	bucketCount++
 	buckets := make([]bucket, bucketCount)

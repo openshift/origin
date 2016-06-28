@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -82,7 +83,7 @@ func (f *fakeVolumeHost) GetWriter() io.Writer {
 	return f.writer
 }
 
-func (f *fakeVolumeHost) NewWrapperBuilder(volName string, spec Spec, pod *api.Pod, opts VolumeOptions) (Builder, error) {
+func (f *fakeVolumeHost) NewWrapperMounter(volName string, spec Spec, pod *api.Pod, opts VolumeOptions) (Mounter, error) {
 	// The name of wrapper volume is set to "wrapped_{wrapped_volume_name}"
 	wrapperVolumeName := "wrapped_" + volName
 	if spec.Volume != nil {
@@ -92,10 +93,10 @@ func (f *fakeVolumeHost) NewWrapperBuilder(volName string, spec Spec, pod *api.P
 	if err != nil {
 		return nil, err
 	}
-	return plug.NewBuilder(&spec, pod, opts)
+	return plug.NewMounter(&spec, pod, opts)
 }
 
-func (f *fakeVolumeHost) NewWrapperCleaner(volName string, spec Spec, podUID types.UID) (Cleaner, error) {
+func (f *fakeVolumeHost) NewWrapperUnmounter(volName string, spec Spec, podUID types.UID) (Unmounter, error) {
 	// The name of wrapper volume is set to "wrapped_{wrapped_volume_name}"
 	wrapperVolumeName := "wrapped_" + volName
 	if spec.Volume != nil {
@@ -105,7 +106,7 @@ func (f *fakeVolumeHost) NewWrapperCleaner(volName string, spec Spec, podUID typ
 	if err != nil {
 		return nil, err
 	}
-	return plug.NewCleaner(spec.Name(), podUID)
+	return plug.NewUnmounter(spec.Name(), podUID)
 }
 
 // Returns the hostname of the host kubelet is running on
@@ -137,6 +138,11 @@ type FakeVolumePlugin struct {
 	LastProvisionerOptions VolumeOptions
 	NewAttacherCallCount   int
 	NewDetacherCallCount   int
+
+	Mounters   []*FakeVolume
+	Unmounters []*FakeVolume
+	Attachers  []*FakeVolume
+	Detachers  []*FakeVolume
 }
 
 var _ VolumePlugin = &FakeVolumePlugin{}
@@ -144,6 +150,12 @@ var _ RecyclableVolumePlugin = &FakeVolumePlugin{}
 var _ DeletableVolumePlugin = &FakeVolumePlugin{}
 var _ ProvisionableVolumePlugin = &FakeVolumePlugin{}
 var _ AttachableVolumePlugin = &FakeVolumePlugin{}
+
+func (plugin *FakeVolumePlugin) getFakeVolume(list *[]*FakeVolume) *FakeVolume {
+	volume := &FakeVolume{}
+	*list = append(*list, volume)
+	return volume
+}
 
 func (plugin *FakeVolumePlugin) Init(host VolumeHost) error {
 	plugin.Host = host
@@ -159,22 +171,32 @@ func (plugin *FakeVolumePlugin) CanSupport(spec *Spec) bool {
 	return true
 }
 
-func (plugin *FakeVolumePlugin) NewBuilder(spec *Spec, pod *api.Pod, opts VolumeOptions) (Builder, error) {
-	return &FakeVolume{pod.UID, spec.Name(), plugin, MetricsNil{}}, nil
+func (plugin *FakeVolumePlugin) NewMounter(spec *Spec, pod *api.Pod, opts VolumeOptions) (Mounter, error) {
+	volume := plugin.getFakeVolume(&plugin.Mounters)
+	volume.PodUID = pod.UID
+	volume.VolName = spec.Name()
+	volume.Plugin = plugin
+	volume.MetricsNil = MetricsNil{}
+	return volume, nil
 }
 
-func (plugin *FakeVolumePlugin) NewCleaner(volName string, podUID types.UID) (Cleaner, error) {
-	return &FakeVolume{podUID, volName, plugin, MetricsNil{}}, nil
+func (plugin *FakeVolumePlugin) NewUnmounter(volName string, podUID types.UID) (Unmounter, error) {
+	volume := plugin.getFakeVolume(&plugin.Unmounters)
+	volume.PodUID = podUID
+	volume.VolName = volName
+	volume.Plugin = plugin
+	volume.MetricsNil = MetricsNil{}
+	return volume, nil
 }
 
 func (plugin *FakeVolumePlugin) NewAttacher(spec *Spec) (Attacher, error) {
 	plugin.NewAttacherCallCount = plugin.NewAttacherCallCount + 1
-	return &FakeVolume{}, nil
+	return plugin.getFakeVolume(&plugin.Attachers), nil
 }
 
 func (plugin *FakeVolumePlugin) NewDetacher(name string, podUID types.UID) (Detacher, error) {
 	plugin.NewDetacherCallCount = plugin.NewDetacherCallCount + 1
-	return &FakeVolume{}, nil
+	return plugin.getFakeVolume(&plugin.Detachers), nil
 }
 
 func (plugin *FakeVolumePlugin) NewRecycler(spec *Spec) (Recycler, error) {
@@ -199,6 +221,16 @@ type FakeVolume struct {
 	VolName string
 	Plugin  *FakeVolumePlugin
 	MetricsNil
+
+	SetUpCallCount              int
+	TearDownCallCount           int
+	AttachCallCount             int
+	DetachCallCount             int
+	WaitForAttachCallCount      int
+	WaitForDetachCallCount      int
+	MountDeviceCallCount        int
+	UnmountDeviceCallCount      int
+	GetDeviceMountPathCallCount int
 }
 
 func (_ *FakeVolume) GetAttributes() Attributes {
@@ -210,6 +242,7 @@ func (_ *FakeVolume) GetAttributes() Attributes {
 }
 
 func (fv *FakeVolume) SetUp(fsGroup *int64) error {
+	fv.SetUpCallCount++
 	return fv.SetUpAt(fv.GetPath(), fsGroup)
 }
 
@@ -222,6 +255,7 @@ func (fv *FakeVolume) GetPath() string {
 }
 
 func (fv *FakeVolume) TearDown() error {
+	fv.TearDownCallCount++
 	return fv.TearDownAt(fv.GetPath())
 }
 
@@ -229,11 +263,38 @@ func (fv *FakeVolume) TearDownAt(dir string) error {
 	return os.RemoveAll(dir)
 }
 
-func (fv *FakeVolume) Attach() error {
+func (fv *FakeVolume) Attach(spec *Spec, hostName string) error {
+	fv.AttachCallCount++
 	return nil
 }
 
-func (fv *FakeVolume) Detach() error {
+func (fv *FakeVolume) WaitForAttach(spec *Spec, spectimeout time.Duration) (string, error) {
+	fv.WaitForAttachCallCount++
+	return "", nil
+}
+
+func (fv *FakeVolume) GetDeviceMountPath(spec *Spec) string {
+	fv.GetDeviceMountPathCallCount++
+	return ""
+}
+
+func (fv *FakeVolume) MountDevice(devicePath string, deviceMountPath string, mounter mount.Interface) error {
+	fv.MountDeviceCallCount++
+	return nil
+}
+
+func (fv *FakeVolume) Detach(deviceMountPath string, hostName string) error {
+	fv.DetachCallCount++
+	return nil
+}
+
+func (fv *FakeVolume) WaitForDetach(devicePath string, timeout time.Duration) error {
+	fv.WaitForDetachCallCount++
+	return nil
+}
+
+func (fv *FakeVolume) UnmountDevice(globalMountPath string, mounter mount.Interface) error {
+	fv.UnmountDeviceCallCount++
 	return nil
 }
 

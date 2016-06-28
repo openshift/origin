@@ -32,7 +32,7 @@ const etcdLong = `Start an etcd server for testing.
 This command starts an etcd server based on the config for testing.  It is not 
 Intended for production use.  Running
 
-  $ %[1]s start %[2]s
+  %[1]s start %[2]s
 
 will start the server listening for incoming requests. The server
 will run in the foreground until you terminate the process.`

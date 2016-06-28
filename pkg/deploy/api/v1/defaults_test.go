@@ -9,7 +9,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/api/install"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	v1 "github.com/openshift/origin/pkg/api/v1"
@@ -143,7 +143,10 @@ func TestDefaults(t *testing.T) {
 								{
 									Name: "test",
 									TerminationMessagePath: "/dev/termination-log",
-									ImagePullPolicy:        kapiv1.PullAlways,
+									// The pull policy will be "PullAlways" only when the
+									// image tag is 'latest'. In other case it will be
+									// "PullIfNotPresent".
+									ImagePullPolicy: kapiv1.PullIfNotPresent,
 								},
 							},
 						},
@@ -160,7 +163,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(50),
+							UpdatePercent:       newInt32(50),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -178,7 +181,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(50),
+							UpdatePercent:       newInt32(50),
 							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
@@ -200,7 +203,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(-25),
+							UpdatePercent:       newInt32(-25),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -218,7 +221,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt(-25),
+							UpdatePercent:       newInt32(-25),
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
@@ -244,7 +247,7 @@ func TestDefaults(t *testing.T) {
 			t.FailNow()
 		}
 		if !reflect.DeepEqual(got.Spec, expected.Spec) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, util.ObjectDiff(expected, got), util.ObjectGoPrintSideBySide(expected, got))
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, diff.ObjectDiff(expected, got), diff.ObjectGoPrintSideBySide(expected, got))
 		}
 	}
 }
@@ -273,10 +276,173 @@ func newInt64(val int64) *int64 {
 	return &val
 }
 
-func newInt(val int) *int {
+func newInt32(val int32) *int32 {
 	return &val
 }
 
 func newIntOrString(ios intstr.IntOrString) *intstr.IntOrString {
 	return &ios
+}
+
+func TestDeepDefaults(t *testing.T) {
+	testCases := []struct {
+		External runtime.Object
+		Internal runtime.Object
+		Ok       func(runtime.Object) bool
+	}{
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type:          deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				if *obj.Spec.Strategy.RollingParams.IntervalSeconds != deployapi.DefaultRollingIntervalSeconds {
+					return false
+				}
+				if *obj.Spec.Strategy.RollingParams.UpdatePeriodSeconds != deployapi.DefaultRollingUpdatePeriodSeconds {
+					return false
+				}
+				if *obj.Spec.Strategy.RollingParams.TimeoutSeconds != deployapi.DefaultRollingTimeoutSeconds {
+					return false
+				}
+				return true
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type:           deployv1.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				return *obj.Spec.Strategy.RecreateParams.TimeoutSeconds == deployapi.DefaultRollingTimeoutSeconds
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Template: &kapiv1.PodTemplateSpec{
+						Spec: kapiv1.PodSpec{
+							Containers: []kapiv1.Container{
+								{Name: "first"},
+							},
+						},
+					},
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployv1.RecreateDeploymentStrategyParams{
+							Pre: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+							Mid: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+						},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				return obj.Spec.Strategy.RecreateParams.Pre.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Mid.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Post.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Pre.TagImages[0].ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Mid.TagImages[0].ContainerName == "first" &&
+					obj.Spec.Strategy.RecreateParams.Post.TagImages[0].ContainerName == "first"
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Template: &kapiv1.PodTemplateSpec{
+						Spec: kapiv1.PodSpec{
+							Containers: []kapiv1.Container{
+								{Name: "first"},
+							},
+						},
+					},
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							Pre: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+							Post: &deployv1.LifecycleHook{
+								TagImages:  []deployv1.TagImageHook{{}},
+								ExecNewPod: &deployv1.ExecNewPodHook{},
+							},
+						},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				return obj.Spec.Strategy.RollingParams.Pre.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RollingParams.Post.ExecNewPod.ContainerName == "first" &&
+					obj.Spec.Strategy.RollingParams.Pre.TagImages[0].ContainerName == "first" &&
+					obj.Spec.Strategy.RollingParams.Post.TagImages[0].ContainerName == "first"
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				return obj.Spec.Strategy.RecreateParams != nil
+			},
+		},
+		{
+			External: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type:              deployv1.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &deployv1.DeploymentTriggerImageChangeParams{},
+						},
+					},
+				},
+			},
+			Internal: &deployapi.DeploymentConfig{},
+			Ok: func(out runtime.Object) bool {
+				obj := out.(*deployapi.DeploymentConfig)
+				t.Logf("%#v", obj.Spec.Triggers[0].ImageChangeParams)
+				return obj.Spec.Triggers[0].ImageChangeParams.From.Kind == "ImageStreamTag"
+			},
+		},
+	}
+
+	for i, test := range testCases {
+		if err := kapi.Scheme.Convert(test.External, test.Internal); err != nil {
+			t.Fatal(err)
+		}
+		if !test.Ok(test.Internal) {
+			t.Errorf("%d: did not match: %#v", i, test.Internal)
+		}
+	}
 }

@@ -48,7 +48,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
 				project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out),
-				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
 				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out),
 			},
 		},
@@ -56,7 +56,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 			Message: "Install Commands:",
 			Commands: []*cobra.Command{
 				router.NewCmdRouter(f, fullName, "router", out),
-				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out),
+				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout),
 				registry.NewCmdRegistry(f, fullName, "registry", out),
 			},
 		},
@@ -65,7 +65,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 			Commands: []*cobra.Command{
 				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out),
 				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out),
-				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out),
+				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out, errout),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
 			},
 		},
@@ -77,6 +77,8 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 				// TODO: these probably belong in a sub command
 				admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out),
 				admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out),
+
+				cmd.NewCmdCompletion(fullName, f, out),
 			},
 		},
 		{

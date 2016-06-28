@@ -70,7 +70,7 @@ func TestDescribeObject(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{})
 
 	cmd := NewCmdDescribe(f, buf)
-	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.yaml")
+	cmd.Flags().Set("filename", "../../../examples/guestbook/legacy/redis-master-controller.yaml")
 	cmd.Run(cmd, []string{})
 
 	if d.Name != "redis-master" || d.Namespace != "test" {
@@ -98,5 +98,45 @@ func TestDescribeListObjects(t *testing.T) {
 	cmd.Run(cmd, []string{"pods"})
 	if buf.String() != fmt.Sprintf("%s\n\n%s\n\n", d.Output, d.Output) {
 		t.Errorf("unexpected output: %s", buf.String())
+	}
+}
+
+func TestDescribeObjectShowEvents(t *testing.T) {
+	pods, _, _ := testData()
+	f, tf, codec := NewAPIFactory()
+	d := &testDescriber{Output: "test output"}
+	tf.Describer = d
+	tf.Client = &fake.RESTClient{
+		Codec: codec,
+		Resp:  &http.Response{StatusCode: 200, Body: objBody(codec, pods)},
+	}
+
+	tf.Namespace = "test"
+	buf := bytes.NewBuffer([]byte{})
+	cmd := NewCmdDescribe(f, buf)
+	cmd.Flags().Set("show-events", "true")
+	cmd.Run(cmd, []string{"pods"})
+	if d.Settings.ShowEvents != true {
+		t.Errorf("ShowEvents = true expected, got ShowEvents = %v", d.Settings.ShowEvents)
+	}
+}
+
+func TestDescribeObjectSkipEvents(t *testing.T) {
+	pods, _, _ := testData()
+	f, tf, codec := NewAPIFactory()
+	d := &testDescriber{Output: "test output"}
+	tf.Describer = d
+	tf.Client = &fake.RESTClient{
+		Codec: codec,
+		Resp:  &http.Response{StatusCode: 200, Body: objBody(codec, pods)},
+	}
+
+	tf.Namespace = "test"
+	buf := bytes.NewBuffer([]byte{})
+	cmd := NewCmdDescribe(f, buf)
+	cmd.Flags().Set("show-events", "false")
+	cmd.Run(cmd, []string{"pods"})
+	if d.Settings.ShowEvents != false {
+		t.Errorf("ShowEvents = false expected, got ShowEvents = %v", d.Settings.ShowEvents)
 	}
 }

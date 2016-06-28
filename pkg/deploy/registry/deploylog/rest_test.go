@@ -27,16 +27,16 @@ import (
 
 var testSelector = map[string]string{"test": "rest"}
 
-func makeDeployment(version int) kapi.ReplicationController {
+func makeDeployment(version int64) kapi.ReplicationController {
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(api.SchemeGroupVersion))
 	deployment.Namespace = kapi.NamespaceDefault
 	deployment.Spec.Selector = testSelector
 	return *deployment
 }
 
-func makeDeploymentList(versions int) *kapi.ReplicationControllerList {
+func makeDeploymentList(versions int64) *kapi.ReplicationControllerList {
 	list := &kapi.ReplicationControllerList{}
-	for v := 1; v <= versions; v++ {
+	for v := int64(1); v <= versions; v++ {
 		list.Items = append(list.Items, makeDeployment(v))
 	}
 	return list
@@ -82,7 +82,7 @@ var (
 )
 
 // mockREST mocks a DeploymentLog REST
-func mockREST(version, desired int, status api.DeploymentStatus) *REST {
+func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 	connectionInfo := &kubeletclient.HTTPKubeletClient{Config: &kubeletclient.KubeletClientConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}}
 
 	// Fake deploymentConfig
@@ -95,9 +95,9 @@ func mockREST(version, desired int, status api.DeploymentStatus) *REST {
 	// Used for testing validation errors prior to getting replication controllers.
 	if desired > version {
 		return &REST{
-			ConfigGetter:   fakeDn,
-			ConnectionInfo: connectionInfo,
-			Timeout:        defaultTimeout,
+			dn:       fakeDn,
+			connInfo: connectionInfo,
+			timeout:  defaultTimeout,
 		}
 	}
 
@@ -147,11 +147,11 @@ func mockREST(version, desired int, status api.DeploymentStatus) *REST {
 	}
 
 	return &REST{
-		ConfigGetter:     fakeDn,
-		DeploymentGetter: fakeRn,
-		PodGetter:        fakePn,
-		ConnectionInfo:   connectionInfo,
-		Timeout:          defaultTimeout,
+		dn:       fakeDn,
+		rn:       fakeRn,
+		pn:       fakePn,
+		connInfo: connectionInfo,
+		timeout:  defaultTimeout,
 	}
 }
 
@@ -268,7 +268,9 @@ func TestRESTGet(t *testing.T) {
 			t.Errorf("%s: location streamer mismatch: expected\n%#v\ngot\n%#v\n", test.testName, test.expected, got)
 			e := test.expected.(*genericrest.LocationStreamer)
 			a := got.(*genericrest.LocationStreamer)
-			t.Errorf("%s: expected url:\n%v\ngot:\n%v\n", test.testName, e.Location, a.Location)
+			if e.Location.String() != a.Location.String() {
+				t.Errorf("%s: expected url:\n%v\ngot:\n%v\n", test.testName, e.Location, a.Location)
+			}
 		}
 	}
 }

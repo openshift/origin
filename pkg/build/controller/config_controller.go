@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/record"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -33,6 +34,9 @@ func IsFatal(err error) bool {
 
 type BuildConfigController struct {
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+
+	// recorder is used to record events.
+	Recorder record.EventRecorder
 }
 
 func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) error {
@@ -55,9 +59,15 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 	}
 
 	glog.V(4).Infof("Running build for BuildConfig %s/%s", bc.Namespace, bc.Name)
+
+	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	// instantiate new build
-	lastVersion := 0
+	lastVersion := int64(0)
 	request := &buildapi.BuildRequest{
+		TriggeredBy: append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: "Build configuration change",
+			}),
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      bc.Name,
 			Namespace: bc.Namespace,

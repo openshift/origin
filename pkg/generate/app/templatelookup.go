@@ -108,7 +108,7 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		var isSingular bool
 		obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper, kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(r.Namespace).RequireNamespace().
-			FilenameParam(false, term).
+			FilenameParam(false, false, term).
 			Do().
 			IntoSingular(&isSingular).
 			Object()

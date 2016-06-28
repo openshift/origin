@@ -77,10 +77,11 @@ func TestByPrioritiesMixedSCCs(t *testing.T) {
 }
 
 func testSCC(name string, priority int) *kapi.SecurityContextConstraints {
+	newPriority := int32(priority)
 	return &kapi.SecurityContextConstraints{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
-		Priority: &priority,
+		Priority: &newPriority,
 	}
 }

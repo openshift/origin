@@ -4,7 +4,7 @@ import "github.com/openshift/origin/tools/junitreport/pkg/api"
 
 // TestDataParser knows how to take raw test data and extract the useful information from it
 type TestDataParser interface {
-	// MarksBeginning determines if the line marks the begining of a test case
+	// MarksBeginning determines if the line marks the beginning of a test case
 	MarksBeginning(line string) bool
 
 	// ExtractName extracts the name of the test case from test output lines
@@ -16,7 +16,7 @@ type TestDataParser interface {
 	// ExtractDuration extracts the test duration from a test output line
 	ExtractDuration(line string) (duration string, succeeded bool)
 
-	// ExtractMessage extracts a message (e.g. for signalling why a failure or skip occured) from a test output line
+	// ExtractMessage extracts a message (e.g. for signalling why a failure or skip occurred) from a test output line
 	ExtractMessage(line string) (message string, succeeded bool)
 
 	// MarksCompletion determines if the line marks the completion of a test case
@@ -25,7 +25,7 @@ type TestDataParser interface {
 
 // TestSuiteDataParser knows how to take raw test suite data and extract the useful information from it
 type TestSuiteDataParser interface {
-	// MarksBeginning determines if the line marks the begining of a test suite
+	// MarksBeginning determines if the line marks the beginning of a test suite
 	MarksBeginning(line string) bool
 
 	// ExtractName extracts the name of the test suite from a test output line

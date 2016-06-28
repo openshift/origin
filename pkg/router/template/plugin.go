@@ -234,7 +234,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoin
 				ep := Endpoint{
 					ID:   fmt.Sprintf("%s:%d", a.IP, p.Port),
 					IP:   a.IP,
-					Port: strconv.Itoa(p.Port),
+					Port: strconv.Itoa(int(p.Port)),
 
 					PortName: p.Name,
 				}

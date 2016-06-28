@@ -45,7 +45,7 @@ func validImage() *api.Image {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	valid := validImage()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -59,7 +59,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(
 		validImage(),
 	)
@@ -68,7 +68,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(
 		validImage(),
 	)
@@ -77,7 +77,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).ClusterScope()
+	test := registrytest.New(t, storage.Store).ClusterScope()
 	image := validImage()
 	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
 	test.TestDelete(
@@ -88,7 +88,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validImage()
 	valid.Name = "foo"
@@ -111,8 +111,7 @@ func TestWatch(t *testing.T) {
 	)
 }
 
-const etcdManifest = `
-{
+const etcdManifest = `{
    "schemaVersion": 1, 
    "tag": "latest", 
    "name": "coreos/etcd", 
@@ -161,8 +160,7 @@ const etcdManifest = `
    ]
 }`
 
-const etcdManifestNoSignature = `
-{
+const etcdManifestNoSignature = `{
    "schemaVersion": 1, 
    "tag": "latest", 
    "name": "coreos/etcd", 
@@ -214,7 +212,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].Size != 15141568 {
+				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].LayerSize != 15141568 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
@@ -273,15 +271,15 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
 					return false
 				}
-				if image.DockerImageReference != "openshift/ruby-19-centos-2" {
-					t.Errorf("image reference changed: %s", image.DockerImageReference)
+				if image.DockerImageReference == "openshift/ruby-19-centos-2" {
+					t.Errorf("image reference not changed: %s", image.DockerImageReference)
 					return false
 				}
 				if image.DockerImageMetadata.Size != 0 {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 1 && image.DockerImageLayers[0].Size != 10 {
+				if len(image.DockerImageLayers) != 1 && image.DockerImageLayers[0].LayerSize != 10 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
@@ -290,7 +288,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 			existing: &api.Image{
 				ObjectMeta:           kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
-				DockerImageLayers:    []api.ImageLayer{{Name: "test", Size: 10}},
+				DockerImageLayers:    []api.ImageLayer{{Name: "test", LayerSize: 10}},
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 			},
 			image: &api.Image{
@@ -310,15 +308,15 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
 					return false
 				}
-				if image.DockerImageReference != "openshift/ruby-19-centos-2" {
-					t.Errorf("image reference changed: %s", image.DockerImageReference)
+				if image.DockerImageReference != "openshift/ruby-19-centos" {
+					t.Errorf("image reference not changed: %s", image.DockerImageReference)
 					return false
 				}
 				if image.DockerImageMetadata.Size != 28643712 {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].Size != 15141568 {
+				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].LayerSize != 15141568 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
@@ -347,28 +345,28 @@ func TestUpdateResetsMetadata(t *testing.T) {
 					t.Errorf("unexpected docker image: %#v", image.DockerImageMetadata)
 					return false
 				}
-				if image.DockerImageReference != "openshift/ruby-19-centos-2" {
-					t.Errorf("image reference changed: %s", image.DockerImageReference)
+				if image.DockerImageReference != "openshift/ruby-19-centos" {
+					t.Errorf("image reference not changed: %s", image.DockerImageReference)
 					return false
 				}
 				if image.DockerImageMetadata.Size != 28643712 {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
 				}
-				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].Size != 15141568 {
+				if len(image.DockerImageLayers) != 4 || image.DockerImageLayers[0].Name != "sha256:744b46d0ac8636c45870a03830d8d82c20b75fbfb9bc937d5e61005d23ad4cfe" || image.DockerImageLayers[0].LayerSize != 15141568 {
 					t.Errorf("unexpected layers: %#v", image.DockerImageLayers)
 					return false
 				}
 				return true
 			},
 			existing: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:54820434e2ccd1596892668504fef12ed980f0cc312f60eac93d6864445ba123", ResourceVersion: "1"},
+				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
 				DockerImageLayers:    []api.ImageLayer{},
 				DockerImageManifest:  etcdManifestNoSignature,
 			},
 			image: &api.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:54820434e2ccd1596892668504fef12ed980f0cc312f60eac93d6864445ba123", ResourceVersion: "1"},
+				ObjectMeta:           kapi.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageMetadata:  api.DockerImage{ID: "foo"},
 				DockerImageManifest:  etcdManifest,

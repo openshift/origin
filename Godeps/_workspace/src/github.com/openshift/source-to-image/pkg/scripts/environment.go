@@ -28,7 +28,7 @@ func GetEnvironment(config *api.Config) ([]Environment, error) {
 		if _, err := os.Stat(envPath); os.IsNotExist(err) {
 			return nil, errors.New("no environment file found in application sources")
 		}
-		glog.Infof("DEPRECATED: Use .s2i/environment instead of .sti/environment")
+		glog.Info("DEPRECATED: Use .s2i/environment instead of .sti/environment")
 	}
 
 	f, err := os.Open(envPath)
@@ -57,7 +57,7 @@ func GetEnvironment(config *api.Config) ([]Environment, error) {
 		result = append(result, e)
 	}
 
-	glog.Infof("Setting %d environment variables provided by environment file in sources", len(result))
+	glog.V(1).Infof("Setting %d environment variables provided by environment file in sources", len(result))
 	return result, scanner.Err()
 }
 

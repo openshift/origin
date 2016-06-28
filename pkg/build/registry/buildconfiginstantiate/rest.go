@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	kubeletremotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
@@ -48,7 +49,16 @@ func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.
 		return nil, err
 	}
 
-	return s.generator.Instantiate(ctx, obj.(*buildapi.BuildRequest))
+	request := obj.(*buildapi.BuildRequest)
+	if request.TriggeredBy == nil {
+		buildTriggerCauses := []buildapi.BuildTriggerCause{}
+		request.TriggeredBy = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: "Manually triggered",
+			},
+		)
+	}
+	return s.generator.Instantiate(ctx, request)
 }
 
 func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient unversioned.PodsNamespacer, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
@@ -209,7 +219,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
 	}
-	if err := exec.Stream(r, nil, nil, false); err != nil {
+	if err := exec.Stream(kubeletremotecommand.SupportedStreamingProtocols, r, nil, nil, false); err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 	return latest, nil

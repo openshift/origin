@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -30,14 +30,16 @@ import (
 	image "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/docker10"
 	"github.com/openshift/origin/pkg/image/api/dockerpre012"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 	route "github.com/openshift/origin/pkg/route/api"
 	template "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/origin/pkg/quota/api/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item runtime.Object, seed int64) runtime.Object {
@@ -92,6 +94,13 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.Subjects[i].APIVersion = ""
 				j.Subjects[i].ResourceVersion = ""
 				j.Subjects[i].FieldPath = ""
+			}
+		},
+		func(j *authorizationapi.PolicyRule, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// if no groups are found, then we assume "".  This matches defaulting
+			if len(j.APIGroups) == 0 {
+				j.APIGroups = []string{""}
 			}
 		},
 		func(j *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
@@ -197,6 +206,10 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.From.Kind = specs[c.Intn(len(specs))]
 			}
 		},
+		func(j *build.BuildConfigSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.RunPolicy = build.BuildRunPolicySerial
+		},
 		func(j *build.SourceBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.From.Kind = "ImageStreamTag"
@@ -246,6 +259,18 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+			if j.Spec.Template != nil && len(j.Spec.Template.Spec.Containers) == 1 {
+				containerName := j.Spec.Template.Spec.Containers[0].Name
+				if p := j.Spec.Strategy.RecreateParams; p != nil {
+					defaultHookContainerName(p.Pre, containerName)
+					defaultHookContainerName(p.Mid, containerName)
+					defaultHookContainerName(p.Post, containerName)
+				}
+				if p := j.Spec.Strategy.RollingParams; p != nil {
+					defaultHookContainerName(p.Pre, containerName)
+					defaultHookContainerName(p.Post, containerName)
+				}
+			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -260,9 +285,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 					s := int64(120)
 					params.TimeoutSeconds = &s
 				}
-				defaultLifecycleHook(params.Pre)
-				defaultLifecycleHook(params.Mid)
-				defaultLifecycleHook(params.Post)
 				j.RecreateParams = params
 			case deploy.DeploymentStrategyTypeRolling:
 				params := &deploy.RollingDeploymentStrategyParams{}
@@ -295,8 +317,6 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 						},
 					}
 				}
-				defaultLifecycleHook(params.Pre)
-				defaultLifecycleHook(params.Post)
 				if c.RandBool() {
 					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
 					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
@@ -406,13 +426,18 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 	return item
 }
 
-func defaultLifecycleHook(hook *deploy.LifecycleHook) {
+func defaultHookContainerName(hook *deploy.LifecycleHook, containerName string) {
 	if hook == nil {
 		return
 	}
 	for i := range hook.TagImages {
 		if len(hook.TagImages[i].ContainerName) == 0 {
-			hook.TagImages[i].ContainerName = "test"
+			hook.TagImages[i].ContainerName = containerName
+		}
+	}
+	if hook.ExecNewPod != nil {
+		if len(hook.ExecNewPod.ContainerName) == 0 {
+			hook.ExecNewPod.ContainerName = containerName
 		}
 	}
 }
@@ -452,7 +477,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 
 	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(originalItem, obj2), codec, string(data), util.ObjectGoPrintSideBySide(originalItem, obj2))
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, diff.ObjectDiff(originalItem, obj2), codec, string(data), diff.ObjectGoPrintSideBySide(originalItem, obj2))
 		return
 	}
 
@@ -462,7 +487,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		return
 	}
 	if !kapi.Semantic.DeepEqual(originalItem, obj3) {
-		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(originalItem, obj3), codec)
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectDiff(originalItem, obj3), codec)
 		return
 	}
 }
@@ -500,36 +525,47 @@ var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
-	for kind, reflectType := range kapi.Scheme.KnownTypes(osapi.SchemeGroupVersion) {
-		if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
-			continue
-		}
-		if nonInternalRoundTrippableTypes.Has(kind) {
-			continue
-		}
-		// Try a few times, since runTest uses random values.
-		for i := 0; i < fuzzIters; i++ {
-			item, err := kapi.Scheme.New(osapi.SchemeGroupVersion.WithKind(kind))
-			if err != nil {
-				t.Errorf("Couldn't make a %v? %v", kind, err)
-				continue
-			}
-			if _, err := meta.TypeAccessor(item); err != nil {
-				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
-			}
-			seed := rand.Int63()
+	internalVersionToExternalVersions := map[unversioned.GroupVersion][]unversioned.GroupVersion{
+		osapi.SchemeGroupVersion:    {v1.SchemeGroupVersion},
+		quotaapi.SchemeGroupVersion: {quotaapiv1.SchemeGroupVersion},
+	}
 
-			if versions, ok := skipStandardVersions[kind]; ok {
-				for _, v := range versions {
-					t.Logf("About to test %v with %q", kind, v)
-					fuzzInternalObject(t, v, item, seed)
-					roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
-				}
+	for internalVersion, externalVersions := range internalVersionToExternalVersions {
+		for kind, reflectType := range kapi.Scheme.KnownTypes(internalVersion) {
+			if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
 				continue
 			}
-			t.Logf(`About to test %v with "v1"`, kind)
-			fuzzInternalObject(t, v1.SchemeGroupVersion, item, seed)
-			roundTrip(t, kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), item)
+			if nonInternalRoundTrippableTypes.Has(kind) {
+				continue
+			}
+
+			for _, externalVersion := range externalVersions {
+				// Try a few times, since runTest uses random values.
+				for i := 0; i < fuzzIters; i++ {
+					item, err := kapi.Scheme.New(internalVersion.WithKind(kind))
+					if err != nil {
+						t.Errorf("Couldn't make a %v? %v", kind, err)
+						continue
+					}
+					if _, err := meta.TypeAccessor(item); err != nil {
+						t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
+					}
+					seed := rand.Int63()
+
+					if versions, ok := skipStandardVersions[kind]; ok {
+						for _, v := range versions {
+							t.Logf("About to test %v with %q", kind, v)
+							fuzzInternalObject(t, v, item, seed)
+							roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
+						}
+						continue
+					}
+					t.Logf(`About to test %v with "v1"`, kind)
+					fuzzInternalObject(t, externalVersion, item, seed)
+					roundTrip(t, kapi.Codecs.LegacyCodec(externalVersion), item)
+				}
+			}
 		}
+
 	}
 }

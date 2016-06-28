@@ -1,3 +1,17 @@
+// Copyright 2015 CoreOS, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package backend
 
 import (
@@ -9,7 +23,7 @@ import (
 )
 
 func TestBatchTxPut(t *testing.T) {
-	b := newBackend(tmpPath, time.Hour, 10000)
+	b, tmpPath := NewTmpBackend(time.Hour, 10000)
 	defer cleanup(b, tmpPath)
 
 	tx := b.batchTx
@@ -34,7 +48,7 @@ func TestBatchTxPut(t *testing.T) {
 }
 
 func TestBatchTxRange(t *testing.T) {
-	b := newBackend(tmpPath, time.Hour, 10000)
+	b, tmpPath := NewTmpBackend(time.Hour, 10000)
 	defer cleanup(b, tmpPath)
 
 	tx := b.batchTx
@@ -105,7 +119,7 @@ func TestBatchTxRange(t *testing.T) {
 }
 
 func TestBatchTxDelete(t *testing.T) {
-	b := newBackend(tmpPath, time.Hour, 10000)
+	b, tmpPath := NewTmpBackend(time.Hour, 10000)
 	defer cleanup(b, tmpPath)
 
 	tx := b.batchTx
@@ -128,7 +142,7 @@ func TestBatchTxDelete(t *testing.T) {
 }
 
 func TestBatchTxCommit(t *testing.T) {
-	b := newBackend(tmpPath, time.Hour, 10000)
+	b, tmpPath := NewTmpBackend(time.Hour, 10000)
 	defer cleanup(b, tmpPath)
 
 	tx := b.batchTx
@@ -155,8 +169,9 @@ func TestBatchTxCommit(t *testing.T) {
 }
 
 func TestBatchTxBatchLimitCommit(t *testing.T) {
-	// start backend with batch limit 1
-	b := newBackend(tmpPath, time.Hour, 1)
+	// start backend with batch limit 1 so one write can
+	// trigger a commit
+	b, tmpPath := NewTmpBackend(time.Hour, 1)
 	defer cleanup(b, tmpPath)
 
 	tx := b.batchTx

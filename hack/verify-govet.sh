@@ -5,14 +5,13 @@ set -o pipefail
 
 GO_VERSION=($(go version))
 
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.[4-5]') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.[6]') && -z "${FORCE_VERIFY-}" ]]; then
   echo "Unknown go version '${GO_VERSION}', skipping go vet."
   exit 0
 fi
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 
 cd "${OS_ROOT}"
 mkdir -p _output/govet
@@ -56,11 +55,12 @@ DIR_BLACKLIST='./hack
 ./pkg/user
 ./pkg/util
 ./test
+./third_party
 ./tools'
 
 for test_dir in $ALL_DIRS
 do
-  # use `grep` failure to determine that a directory is not in the blacklist 
+  # use `grep` failure to determine that a directory is not in the blacklist
   if ! echo "${DIR_BLACKLIST}" | grep -q "${test_dir}"; then
     go tool vet -shadow -shadowstrict $test_dir
     if [ "$?" -ne "0" ]

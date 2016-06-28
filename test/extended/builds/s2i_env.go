@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -20,9 +20,9 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 	)
 
 	var (
-		imageStreamFixture   = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")
-		stiEnvBuildFixture   = exutil.FixturePath("fixtures", "test-env-build.json")
-		podAndServiceFixture = exutil.FixturePath("fixtures", "test-build-podsvc.json")
+		imageStreamFixture   = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
+		stiEnvBuildFixture   = exutil.FixturePath("testdata", "test-env-build.json")
+		podAndServiceFixture = exutil.FixturePath("testdata", "test-build-podsvc.json")
 		oc                   = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)
 

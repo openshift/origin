@@ -2,23 +2,23 @@ package api
 
 import "testing"
 
-func TestInjectionListSet(t *testing.T) {
-	table := map[string][]InjectPath{
-		"/test:":             {{SourcePath: "/test", DestinationDir: "."}},
-		"/test:/test":        {{SourcePath: "/test", DestinationDir: "/test"}},
-		"/test/foo:/etc/ssl": {{SourcePath: "/test/foo", DestinationDir: "/etc/ssl"}},
-		":/foo":              {{SourcePath: ".", DestinationDir: "/foo"}},
-		"/foo":               {{SourcePath: "/foo", DestinationDir: "."}},
-		":":                  {{SourcePath: ".", DestinationDir: "."}},
-		"/t est/foo:":        {{SourcePath: "/t est/foo", DestinationDir: "."}},
-		`"/test":"/foo"`:     {{SourcePath: "/test", DestinationDir: "/foo"}},
-		`'/test':"/foo"`:     {{SourcePath: "/test", DestinationDir: "/foo"}},
+func TestVolumeListSet(t *testing.T) {
+	table := map[string][]VolumeSpec{
+		"/test:":             {{Source: "/test", Destination: "."}},
+		"/test:/test":        {{Source: "/test", Destination: "/test"}},
+		"/test/foo:/etc/ssl": {{Source: "/test/foo", Destination: "/etc/ssl"}},
+		":/foo":              {{Source: ".", Destination: "/foo"}},
+		"/foo":               {{Source: "/foo", Destination: "."}},
+		":":                  {{Source: ".", Destination: "."}},
+		"/t est/foo:":        {{Source: "/t est/foo", Destination: "."}},
+		`"/test":"/foo"`:     {{Source: "/test", Destination: "/foo"}},
+		`'/test':"/foo"`:     {{Source: "/test", Destination: "/foo"}},
 		`"/te"st":"/foo"`:    {},
 		"/test/foo:/ss;ss":   {},
 		"/test;foo:/ssss":    {},
 	}
 	for v, expected := range table {
-		got := InjectionList{}
+		got := VolumeList{}
 		err := got.Set(v)
 		if len(expected) == 0 {
 			if err == nil {
@@ -33,7 +33,7 @@ func TestInjectionListSet(t *testing.T) {
 		for _, exp := range expected {
 			found := false
 			for _, g := range got {
-				if g.SourcePath == exp.SourcePath && g.DestinationDir == exp.DestinationDir {
+				if g.Source == exp.Source && g.Destination == exp.Destination {
 					found = true
 				}
 			}

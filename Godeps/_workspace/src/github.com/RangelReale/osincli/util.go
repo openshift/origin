@@ -61,10 +61,6 @@ func downloadData(method string, u *url.URL, auth *BasicAuth, transport http.Rou
 	// must close body
 	defer presp.Body.Close()
 
-	if presp.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("Invalid status code (%d): %s", presp.StatusCode, presp.Status))
-	}
-
 	// decode JSON and detect OAuth error
 	jdec := json.NewDecoder(presp.Body)
 	if err = jdec.Decode(&output); err == nil {
@@ -73,5 +69,11 @@ func downloadData(method string, u *url.URL, auth *BasicAuth, transport http.Rou
 				fmt.Sprintf("%v", output["error_uri"]), fmt.Sprintf("%v", output["state"]))
 		}
 	}
+
+	// If no OAuth error was detected, make sure we don't return success in an error case
+	if err == nil && presp.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("Invalid status code (%d): %s", presp.StatusCode, presp.Status))
+	}
+
 	return err
 }

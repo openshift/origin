@@ -10,9 +10,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/units"
 
-	"github.com/docker/docker/pkg/parsers"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -27,7 +27,9 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -37,7 +39,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 	m := map[unversioned.GroupKind]kctl.Describer{
 		buildapi.Kind("Build"):                        &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                  &BuildConfigDescriber{c, host},
-		deployapi.Kind("DeploymentConfig"):            NewDeploymentConfigDescriber(c, kclient),
+		deployapi.Kind("DeploymentConfig"):            &DeploymentConfigDescriber{c, kclient, nil},
 		authorizationapi.Kind("Identity"):             &IdentityDescriber{c},
 		imageapi.Kind("Image"):                        &ImageDescriber{c},
 		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c},
@@ -54,14 +56,16 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		authorizationapi.Kind("ClusterPolicyBinding"): &ClusterPolicyBindingDescriber{c},
 		authorizationapi.Kind("ClusterRoleBinding"):   &ClusterRoleBindingDescriber{c},
 		authorizationapi.Kind("ClusterRole"):          &ClusterRoleDescriber{c},
+		oauthapi.Kind("OAuthAccessToken"):             &OAuthAccessTokenDescriber{c},
 		userapi.Kind("User"):                          &UserDescriber{c},
 		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
+		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
 	}
 	return m
 }
 
-// List of all resource types we can describe
+// DescribableResources lists all of the resource types we can describe
 func DescribableResources() []string {
 	// Include describable resources in kubernetes
 	keys := kctl.DescribableResources()
@@ -88,23 +92,8 @@ type BuildDescriber struct {
 	kubeClient kclient.Interface
 }
 
-// DescribeUser formats the description of a user
-func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u buildapi.SourceControlUser) {
-	if len(u.Name) > 0 && len(u.Email) > 0 {
-		formatString(out, label, fmt.Sprintf("%s <%s>", u.Name, u.Email))
-		return
-	}
-	if len(u.Name) > 0 {
-		formatString(out, label, u.Name)
-		return
-	}
-	if len(u.Email) > 0 {
-		formatString(out, label, u.Email)
-	}
-}
-
 // Describe returns the description of a build
-func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
+func (d *BuildDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.osClient.Builds(namespace)
 	build, err := c.Get(name)
 	if err != nil {
@@ -144,9 +133,9 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		}
 		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 
-		describeBuildSpec(build.Spec, out)
+		describeCommonSpec(build.Spec.CommonSpec, out)
+		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
-		fmt.Fprintln(out, "")
 		kctl.DescribeEvents(events, out)
 
 		return nil
@@ -184,9 +173,12 @@ func nameAndNamespace(ns, name string) string {
 	}
 	return name
 }
-func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
+
+func describeCommonSpec(p buildapi.CommonSpec, out *tabwriter.Writer) {
 	formatString(out, "\nStrategy", buildapi.StrategyType(p.Strategy))
+	noneType := true
 	if p.Source.Git != nil {
+		noneType = false
 		formatString(out, "URL", p.Source.Git.URI)
 		if len(p.Source.Git.Ref) > 0 {
 			formatString(out, "Ref", p.Source.Git.Ref)
@@ -197,25 +189,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		if p.Source.SourceSecret != nil {
 			formatString(out, "Source Secret", p.Source.SourceSecret.Name)
 		}
-		if p.Revision != nil && p.Revision.Git != nil {
-			rev := p.Revision.Git
-			formatString(out, "Commit", fmt.Sprintf("%s (%s)", rev.Commit[:7], rev.Message))
-
-			hasAuthor := len(rev.Author.Name) != 0
-			hasCommitter := len(rev.Committer.Name) != 0
-			if hasAuthor && hasCommitter {
-				if rev.Author.Name == rev.Committer.Name {
-					formatString(out, "Author/Committer", rev.Author.Name)
-				} else {
-					formatString(out, "Author/Committer", fmt.Sprintf("%s / %s", rev.Author.Name, rev.Committer.Name))
-				}
-
-			} else if hasAuthor {
-				formatString(out, "Author", rev.Author.Name)
-			} else if hasCommitter {
-				formatString(out, "Committer", rev.Committer.Name)
-			}
-		}
+		squashGitInfo(p.Revision, out)
 	}
 	if p.Source.Dockerfile != nil {
 		if len(strings.TrimSpace(*p.Source.Dockerfile)) == 0 {
@@ -234,6 +208,8 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		describeSourceStrategy(p.Strategy.SourceStrategy, out)
 	case p.Strategy.CustomStrategy != nil:
 		describeCustomStrategy(p.Strategy.CustomStrategy, out)
+	case p.Strategy.JenkinsPipelineStrategy != nil:
+		describeJenkinsPipelineStrategy(p.Strategy.JenkinsPipelineStrategy, out)
 	}
 
 	if p.Output.To != nil {
@@ -241,6 +217,7 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	}
 
 	if p.Source.Binary != nil {
+		noneType = false
 		if len(p.Source.Binary.AsFile) > 0 {
 			formatString(out, "Binary", fmt.Sprintf("provided as file %q on build", p.Source.Binary.AsFile))
 		} else {
@@ -256,16 +233,22 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		formatString(out, "Build Secrets", strings.Join(result, ","))
 	}
 	if len(p.Source.Images) == 1 && len(p.Source.Images[0].Paths) == 1 {
+		noneType = false
 		image := p.Source.Images[0]
 		path := image.Paths[0]
 		formatString(out, "Image Source", fmt.Sprintf("copies %s from %s to %s", path.SourcePath, nameAndNamespace(image.From.Namespace, image.From.Name), path.DestinationDir))
 	} else {
 		for _, image := range p.Source.Images {
+			noneType = false
 			formatString(out, "Image Source", fmt.Sprintf("%s", nameAndNamespace(image.From.Namespace, image.From.Name)))
 			for _, path := range image.Paths {
 				fmt.Fprintf(out, "\t- %s -> %s\n", path.SourcePath, path.DestinationDir)
 			}
 		}
+	}
+
+	if noneType {
+		formatString(out, "Empty Source", "no input source provided")
 	}
 
 	describePostCommitHook(p.PostCommit, out)
@@ -363,17 +346,28 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	}
 }
 
-// DescribeTriggers generates information about the triggers associated with a buildconfig
-func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
-	describeBuildTriggers(bc.Spec.Triggers, out)
-	webhooks := webhookURL(bc, d.Interface)
-	for whType, whURL := range webhooks {
-		t := strings.Title(whType)
-		formatString(out, "Webhook "+t, whURL)
+func describeJenkinsPipelineStrategy(s *buildapi.JenkinsPipelineBuildStrategy, out *tabwriter.Writer) {
+	if len(s.JenkinsfilePath) != 0 {
+		formatString(out, "Jenkinsfile path", s.JenkinsfilePath)
+	}
+	if len(s.Jenkinsfile) != 0 {
+		fmt.Fprintf(out, "Jenkinsfile contents:\n")
+		for _, s := range strings.Split(s.Jenkinsfile, "\n") {
+			fmt.Fprintf(out, "  %s\n", s)
+		}
+	}
+	if len(s.Jenkinsfile) == 0 && len(s.JenkinsfilePath) == 0 {
+		formatString(out, "Jenkinsfile", "from source repository root")
 	}
 }
 
-func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, w *tabwriter.Writer) {
+// DescribeTriggers generates information about the triggers associated with a
+// buildconfig
+func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
+	describeBuildTriggers(bc.Spec.Triggers, bc.Name, bc.Namespace, out, d)
+}
+
+func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespace string, w *tabwriter.Writer, d *BuildConfigDescriber) {
 	if len(triggers) == 0 {
 		formatString(w, "Triggered by", "<none>")
 		return
@@ -402,10 +396,21 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, w *tabwriter.
 
 	desc := strings.Join(labels, ", ")
 	formatString(w, "Triggered by", desc)
+
+	webHooks := webHooksDescribe(triggers, name, namespace, d.Interface)
+	for webHookType, webHookDesc := range webHooks {
+		fmt.Fprintf(w, "Webhook %s:\n", strings.Title(webHookType))
+		for _, trigger := range webHookDesc {
+			fmt.Fprintf(w, "\tURL:\t%s\n", trigger.URL)
+			if webHookType == string(buildapi.GenericWebHookBuildTriggerType) && trigger.AllowEnv != nil {
+				fmt.Fprintf(w, fmt.Sprintf("\t%s:\t%v\n", "AllowEnv", *trigger.AllowEnv))
+			}
+		}
+	}
 }
 
 // Describe returns the description of a buildConfig
-func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
+func (d *BuildConfigDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name)
 	if err != nil {
@@ -422,9 +427,10 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		if buildConfig.Status.LastVersion == 0 {
 			formatString(out, "Latest Version", "Never built")
 		} else {
-			formatString(out, "Latest Version", strconv.Itoa(buildConfig.Status.LastVersion))
+			formatString(out, "Latest Version", strconv.FormatInt(buildConfig.Status.LastVersion, 10))
 		}
-		describeBuildSpec(buildConfig.Spec.BuildSpec, out)
+		describeCommonSpec(buildConfig.Spec.CommonSpec, out)
+		formatString(out, "\nBuild Run Policy", string(buildConfig.Spec.RunPolicy))
 		d.DescribeTriggers(buildConfig, out)
 		if len(buildList.Items) == 0 {
 			return nil
@@ -449,13 +455,40 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	})
 }
 
+// OAuthAccessTokenDescriber generates information about an OAuth Acess Token (OAuth)
+type OAuthAccessTokenDescriber struct {
+	client.Interface
+}
+
+func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	c := d.OAuthAccessTokens()
+	oAuthAccessToken, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	var timeCreated time.Time = oAuthAccessToken.ObjectMeta.CreationTimestamp.Time
+	var timeExpired time.Time = timeCreated.Add(time.Duration(oAuthAccessToken.ExpiresIn) * time.Second)
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, oAuthAccessToken.ObjectMeta)
+		formatString(out, "Scopes", oAuthAccessToken.Scopes)
+		formatString(out, "Expires In", formatToHumanDuration(timeExpired.Sub(time.Now())))
+		formatString(out, "User Name", oAuthAccessToken.UserName)
+		formatString(out, "User UID", oAuthAccessToken.UserUID)
+		formatString(out, "Client Name", oAuthAccessToken.ClientName)
+
+		return nil
+	})
+}
+
 // ImageDescriber generates information about a Image
 type ImageDescriber struct {
 	client.Interface
 }
 
 // Describe returns the description of an image
-func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Images()
 	image, err := c.Get(name)
 	if err != nil {
@@ -480,14 +513,14 @@ func describeImage(image *imageapi.Image, imageName string) (string, error) {
 			formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
 		default:
 			info := []string{}
-			if image.DockerImageLayers[0].Size > 0 {
-				info = append(info, fmt.Sprintf("first layer %s", units.HumanSize(float64(image.DockerImageLayers[0].Size))))
+			if image.DockerImageLayers[0].LayerSize > 0 {
+				info = append(info, fmt.Sprintf("first layer %s", units.HumanSize(float64(image.DockerImageLayers[0].LayerSize))))
 			}
 			for i := l - 1; i > 0; i-- {
-				if image.DockerImageLayers[i].Size == 0 {
+				if image.DockerImageLayers[i].LayerSize == 0 {
 					continue
 				}
-				info = append(info, fmt.Sprintf("last binary layer %s", units.HumanSize(float64(image.DockerImageLayers[i].Size))))
+				info = append(info, fmt.Sprintf("last binary layer %s", units.HumanSize(float64(image.DockerImageLayers[i].LayerSize))))
 				break
 			}
 			if len(info) > 0 {
@@ -555,7 +588,7 @@ type ImageStreamTagDescriber struct {
 }
 
 // Describe returns the description of an imageStreamTag
-func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamTags(namespace)
 	repo, tag := parsers.ParseRepositoryTag(name)
 	if tag == "" {
@@ -576,7 +609,7 @@ type ImageStreamImageDescriber struct {
 }
 
 // Describe returns the description of an imageStreamImage
-func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamImages(namespace)
 	repo, id := parsers.ParseRepositoryTag(name)
 	imageStreamImage, err := c.Get(repo, id)
@@ -587,13 +620,13 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, er
 	return describeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
 }
 
-// ImageStreamDescriber generates information about a ImageStream
+// ImageStreamDescriber generates information about a ImageStream (Image).
 type ImageStreamDescriber struct {
 	client.Interface
 }
 
 // Describe returns the description of an imageStream
-func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) {
+func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreams(namespace)
 	imageStream, err := c.Get(name)
 	if err != nil {
@@ -615,7 +648,7 @@ type RouteDescriber struct {
 }
 
 // Describe returns the description of a route
-func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
+func (d *RouteDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Routes(namespace)
 	route, err := c.Get(name)
 	if err != nil {
@@ -714,7 +747,7 @@ type ProjectDescriber struct {
 }
 
 // Describe returns the description of a project
-func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
+func (d *ProjectDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	projectsClient := d.osClient.Projects()
 	project, err := projectsClient.Get(name)
 	if err != nil {
@@ -893,7 +926,7 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 }
 
 // Describe returns the description of a template
-func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
+func (d *TemplateDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Templates(namespace)
 	template, err := c.Get(name)
 	if err != nil {
@@ -926,7 +959,7 @@ type IdentityDescriber struct {
 }
 
 // Describe returns the description of an identity
-func (d *IdentityDescriber) Describe(namespace, name string) (string, error) {
+func (d *IdentityDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
 
@@ -974,7 +1007,7 @@ type UserIdentityMappingDescriber struct {
 }
 
 // Describe returns the description of a userIdentity
-func (d *UserIdentityMappingDescriber) Describe(namespace, name string) (string, error) {
+func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.UserIdentityMappings()
 
 	mapping, err := c.Get(name)
@@ -997,7 +1030,7 @@ type UserDescriber struct {
 }
 
 // Describe returns the description of a user
-func (d *UserDescriber) Describe(namespace, name string) (string, error) {
+func (d *UserDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
 
@@ -1046,7 +1079,7 @@ type GroupDescriber struct {
 }
 
 // Describe returns the description of a group
-func (d *GroupDescriber) Describe(namespace, name string) (string, error) {
+func (d *GroupDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	group, err := d.c.Get(name)
 	if err != nil {
 		return "", err
@@ -1079,7 +1112,7 @@ type PolicyDescriber struct {
 
 // Describe returns the description of a policy
 // TODO make something a lot prettier
-func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
+func (d *PolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Policies(namespace)
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1097,9 +1130,9 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 		// using .List() here because I always want the sorted order that it provides
 		for _, key := range sets.StringKeySet(policy.Roles).List() {
 			role := policy.Roles[key]
-			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
+			fmt.Fprint(out, key+"\t"+PolicyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
-				describePolicyRule(out, rule, "\t")
+				DescribePolicyRule(out, rule, "\t")
 			}
 		}
 
@@ -1107,9 +1140,9 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const policyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
+const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
 
-func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
+func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
 	if rule.AttributeRestrictions != nil {
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
@@ -1137,7 +1170,7 @@ type RoleDescriber struct {
 }
 
 // Describe returns the description of a role
-func (d *RoleDescriber) Describe(namespace, name string) (string, error) {
+func (d *RoleDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Roles(namespace)
 	role, err := c.Get(name)
 	if err != nil {
@@ -1151,9 +1184,9 @@ func DescribeRole(role *authorizationapi.Role) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, role.ObjectMeta)
 
-		fmt.Fprint(out, policyRuleHeadings+"\n")
+		fmt.Fprint(out, PolicyRuleHeadings+"\n")
 		for _, rule := range role.Rules {
-			describePolicyRule(out, rule, "")
+			DescribePolicyRule(out, rule, "")
 
 		}
 
@@ -1167,7 +1200,7 @@ type PolicyBindingDescriber struct {
 }
 
 // Describe returns the description of a policyBinding
-func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *PolicyBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.PolicyBindings(namespace)
 	policyBinding, err := c.Get(name)
 	if err != nil {
@@ -1207,7 +1240,7 @@ type RoleBindingDescriber struct {
 }
 
 // Describe returns the description of a roleBinding
-func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *RoleBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.RoleBindings(namespace)
 	roleBinding, err := c.Get(name)
 	if err != nil {
@@ -1244,9 +1277,9 @@ func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *author
 			formatString(out, "Policy Rules", fmt.Sprintf("error: %v", err))
 
 		case role != nil:
-			fmt.Fprint(out, policyRuleHeadings+"\n")
+			fmt.Fprint(out, PolicyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
-				describePolicyRule(out, rule, "")
+				DescribePolicyRule(out, rule, "")
 			}
 
 		default:
@@ -1264,7 +1297,7 @@ type ClusterPolicyDescriber struct {
 
 // Describe returns the description of a policy
 // TODO make something a lot prettier
-func (d *ClusterPolicyDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterPolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterPolicies()
 	policy, err := c.Get(name)
 	if err != nil {
@@ -1279,7 +1312,7 @@ type ClusterRoleDescriber struct {
 }
 
 // Describe returns the description of a role
-func (d *ClusterRoleDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterRoleDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterRoles()
 	role, err := c.Get(name)
 	if err != nil {
@@ -1295,7 +1328,7 @@ type ClusterPolicyBindingDescriber struct {
 }
 
 // Describe returns the description of a policyBinding
-func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterPolicyBindings()
 	policyBinding, err := c.Get(name)
 	if err != nil {
@@ -1311,7 +1344,7 @@ type ClusterRoleBindingDescriber struct {
 }
 
 // Describe returns the description of a roleBinding
-func (d *ClusterRoleBindingDescriber) Describe(namespace, name string) (string, error) {
+func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ClusterRoleBindings()
 	roleBinding, err := c.Get(name)
 	if err != nil {
@@ -1320,4 +1353,101 @@ func (d *ClusterRoleBindingDescriber) Describe(namespace, name string) (string, 
 
 	role, err := d.ClusterRoles().Get(roleBinding.RoleRef.Name)
 	return DescribeRoleBinding(authorizationapi.ToRoleBinding(roleBinding), authorizationapi.ToRole(role), err)
+}
+
+func describeBuildTriggerCauses(causes []buildapi.BuildTriggerCause, out *tabwriter.Writer) {
+	if causes == nil {
+		formatString(out, "\nBuild trigger cause", "<unknown>")
+	}
+
+	for _, cause := range causes {
+		formatString(out, "\nBuild trigger cause", cause.Message)
+
+		switch {
+		case cause.GitHubWebHook != nil:
+			squashGitInfo(cause.GitHubWebHook.Revision, out)
+			formatString(out, "Secret", cause.GitHubWebHook.Secret)
+
+		case cause.GenericWebHook != nil:
+			squashGitInfo(cause.GenericWebHook.Revision, out)
+			formatString(out, "Secret", cause.GenericWebHook.Secret)
+
+		case cause.ImageChangeBuild != nil:
+			formatString(out, "Image ID", cause.ImageChangeBuild.ImageID)
+			formatString(out, "Image Name/Kind", fmt.Sprintf("%s / %s", cause.ImageChangeBuild.FromRef.Name, cause.ImageChangeBuild.FromRef.Kind))
+		}
+	}
+	fmt.Fprintf(out, "\n")
+}
+
+func squashGitInfo(sourceRevision *buildapi.SourceRevision, out *tabwriter.Writer) {
+	if sourceRevision != nil && sourceRevision.Git != nil {
+		rev := sourceRevision.Git
+		var commit string
+		if len(rev.Commit) > 7 {
+			commit = rev.Commit[:7]
+		} else {
+			commit = rev.Commit
+		}
+		formatString(out, "Commit", fmt.Sprintf("%s (%s)", commit, rev.Message))
+		hasAuthor := len(rev.Author.Name) != 0
+		hasCommitter := len(rev.Committer.Name) != 0
+		if hasAuthor && hasCommitter {
+			if rev.Author.Name == rev.Committer.Name {
+				formatString(out, "Author/Committer", rev.Author.Name)
+			} else {
+				formatString(out, "Author/Committer", fmt.Sprintf("%s / %s", rev.Author.Name, rev.Committer.Name))
+			}
+		} else if hasAuthor {
+			formatString(out, "Author", rev.Author.Name)
+		} else if hasCommitter {
+			formatString(out, "Committer", rev.Committer.Name)
+		}
+	}
+}
+
+type ClusterQuotaDescriber struct {
+	client.Interface
+}
+
+func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	quota, err := d.ClusterResourceQuotas().Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, quota.ObjectMeta)
+		fmt.Fprintf(out, "Selector:\t%s\n", selector)
+		if len(quota.Spec.Quota.Scopes) > 0 {
+			scopes := []string{}
+			for _, scope := range quota.Spec.Quota.Scopes {
+				scopes = append(scopes, string(scope))
+			}
+			sort.Strings(scopes)
+			fmt.Fprintf(out, "Scopes:\t%s\n", strings.Join(scopes, ", "))
+		}
+		fmt.Fprintf(out, "Resource\tUsed\tHard\n")
+		fmt.Fprintf(out, "--------\t----\t----\n")
+
+		resources := []kapi.ResourceName{}
+		for resource := range quota.Status.Total.Hard {
+			resources = append(resources, resource)
+		}
+		sort.Sort(kctl.SortableResourceNames(resources))
+
+		msg := "%v\t%v\t%v\n"
+		for i := range resources {
+			resource := resources[i]
+			hardQuantity := quota.Status.Total.Hard[resource]
+			usedQuantity := quota.Status.Total.Used[resource]
+			fmt.Fprintf(out, msg, resource, usedQuantity.String(), hardQuantity.String())
+		}
+		return nil
+	})
 }

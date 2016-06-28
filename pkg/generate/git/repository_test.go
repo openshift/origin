@@ -1,8 +1,8 @@
 package git
 
 import (
-	"io"
 	"testing"
+	"time"
 )
 
 func TestGetRootDir(t *testing.T) {
@@ -102,9 +102,40 @@ func TestCheckout(t *testing.T) {
 }
 
 func makeExecFunc(output string, err error) execGitFunc {
-	return func(w io.Writer, dir string, args ...string) (out string, errout string, resultErr error) {
+	return func(dir string, args ...string) (out string, errout string, resultErr error) {
 		out = output
 		resultErr = err
 		return
 	}
+}
+
+// TestTimedCommandTimeout tests that the `oc new-app` machinery that invokes `git ls-remote`
+// on uncooperative servers correctly times out
+func TestTimedCommandTimeout(t *testing.T) {
+	timeout := 1 * time.Millisecond
+
+	outputChannel := make(chan timedCommandOutput)
+	go func() {
+		stdout, stderr, err := timedCommand(timeout, "yes", "/usr/bin", nil, []string{}...)
+		outputChannel <- timedCommandOutput{
+			stdout: stdout,
+			stderr: stderr,
+			err:    err,
+		}
+	}()
+
+	select {
+	case output := <-outputChannel:
+		if _, ok := output.err.(*TimeoutError); !ok {
+			t.Fatalf("expected command to fail due to timeout, got: %v", output.err)
+		}
+	case <-time.After(1000 * timeout):
+		t.Fatalf("expected command to have timed out, but it didn't")
+	}
+}
+
+type timedCommandOutput struct {
+	stdout string
+	stderr string
+	err    error
 }

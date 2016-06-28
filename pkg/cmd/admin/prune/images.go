@@ -41,10 +41,10 @@ images.`
 
 	imagesExample = `  # See, what the prune command would delete if only images more than an hour old and obsoleted
   # by 3 newer revisions under the same tag were considered.
-  $ %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
+  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm`
+  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm`
 )
 
 // PruneImagesOptions holds all the required options for prune images

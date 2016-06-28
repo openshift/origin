@@ -15,6 +15,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
 	"github.com/golang/glog"
 )
 
@@ -33,8 +34,22 @@ const (
 	containerImageEntrypointAnnotationFormatKey = "openshift.io/container.%s.image.entrypoint"
 )
 
-// TODO remove (base, tag, id)
-func parseRepositoryTag(repos string) (string, string, string) {
+// DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
+type DefaultRegistry interface {
+	DefaultRegistry() (string, bool)
+}
+
+// DefaultRegistryFunc implements DefaultRegistry for a simple function.
+type DefaultRegistryFunc func() (string, bool)
+
+// DefaultRegistry implements the DefaultRegistry interface for a function.
+func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
+	return fn()
+}
+
+// parseRepositoryTag splits a string into its name component and either tag or id if present.
+// TODO remove
+func parseRepositoryTag(repos string) (base string, tag string, id string) {
 	n := strings.Index(repos, "@")
 	if n >= 0 {
 		parts := strings.Split(repos, "@")
@@ -48,6 +63,49 @@ func parseRepositoryTag(repos string) (string, string, string) {
 		return repos[:n], tag, ""
 	}
 	return repos, "", ""
+}
+
+// ParseImageStreamImageName splits a string into its name component and ID component, and returns an error
+// if the string is not in the right form.
+func ParseImageStreamImageName(input string) (name string, id string, err error) {
+	segments := strings.SplitN(input, "@", 3)
+	switch len(segments) {
+	case 2:
+		name = segments[0]
+		id = segments[1]
+		if len(name) == 0 || len(id) == 0 {
+			err = fmt.Errorf("image stream image name %q must have a name and ID", input)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one @ in the isimage name %q", input)
+	}
+	return
+}
+
+// ParseImageStreamTagName splits a string into its name component and tag component, and returns an error
+// if the string is not in the right form.
+func ParseImageStreamTagName(istag string) (name string, tag string, err error) {
+	if strings.Contains(istag, "@") {
+		err = fmt.Errorf("%q is an image stream image, not an image stream tag", istag)
+		return
+	}
+	segments := strings.SplitN(istag, ":", 3)
+	switch len(segments) {
+	case 2:
+		name = segments[0]
+		tag = segments[1]
+		if len(name) == 0 || len(tag) == 0 {
+			err = fmt.Errorf("image stream tag name %q must have a name and a tag", istag)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one : delimiter in the istag %q", istag)
+	}
+	return
+}
+
+// MakeImageStreamImageName creates a name for image stream image object from an image stream name and an id.
+func MakeImageStreamImageName(name, id string) string {
+	return fmt.Sprintf("%s@%s", name, id)
 }
 
 func isRegistryName(str string) bool {
@@ -285,6 +343,17 @@ func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
 	return name, tag, len(parts) == 2
 }
 
+// SplitImageStreamImage turns the name of an ImageStreamImage into Name and ID.
+// It returns false if the ID was not properly specified in the name.
+func SplitImageStreamImage(nameAndID string) (name string, id string, ok bool) {
+	parts := strings.SplitN(nameAndID, "@", 2)
+	name = parts[0]
+	if len(parts) > 1 {
+		id = parts[1]
+	}
+	return name, id, len(parts) == 2
+}
+
 // JoinImageStreamTag turns a name and tag into the name of an ImageStreamTag
 func JoinImageStreamTag(name, tag string) string {
 	if len(tag) == 0 {
@@ -296,9 +365,10 @@ func JoinImageStreamTag(name, tag string) string {
 // NormalizeImageStreamTag normalizes an image stream tag by defaulting to 'latest'
 // if no tag has been specified.
 func NormalizeImageStreamTag(name string) string {
-	if !strings.Contains(name, ":") {
+	stripped, tag, ok := SplitImageStreamTag(name)
+	if !ok {
 		// Default to latest
-		return JoinImageStreamTag(name, DefaultImageTag)
+		return JoinImageStreamTag(stripped, tag)
 	}
 	return name
 }
@@ -313,14 +383,54 @@ func ManifestMatchesImage(image *Image, newManifest []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	sm := schema1.SignedManifest{Raw: newManifest}
-	raw, err := sm.Payload()
+	var canonical []byte
+
+	switch image.DockerImageManifestMediaType {
+	case schema2.MediaTypeManifest:
+		var m schema2.DeserializedManifest
+		if err := json.Unmarshal(newManifest, &m); err != nil {
+			return false, err
+		}
+		_, canonical, err = m.Payload()
+		if err != nil {
+			return false, err
+		}
+	case schema1.MediaTypeManifest, "":
+		var m schema1.SignedManifest
+		if err := json.Unmarshal(newManifest, &m); err != nil {
+			return false, err
+		}
+		canonical = m.Canonical
+	default:
+		return false, fmt.Errorf("unsupported manifest mediatype: %s", image.DockerImageManifestMediaType)
+	}
+	if _, err := v.Write(canonical); err != nil {
+		return false, err
+	}
+	return v.Verified(), nil
+}
+
+// ImageConfigMatchesImage returns true if the provided image config matches a digest
+// stored in the manifest of the image.
+func ImageConfigMatchesImage(image *Image, imageConfig []byte) (bool, error) {
+	if image.DockerImageManifestMediaType != schema2.MediaTypeManifest {
+		return false, nil
+	}
+
+	var m schema2.DeserializedManifest
+	if err := json.Unmarshal([]byte(image.DockerImageManifest), &m); err != nil {
+		return false, err
+	}
+
+	v, err := digest.NewDigestVerifier(m.Config.Digest)
 	if err != nil {
 		return false, err
 	}
-	if _, err := v.Write(raw); err != nil {
+
+	if _, err := v.Write(imageConfig); err != nil {
 		return false, err
 	}
+
 	return v.Verified(), nil
 }
 
@@ -360,17 +470,18 @@ func ImageWithMetadata(image *Image) error {
 
 		image.DockerImageLayers = make([]ImageLayer, len(manifest.FSLayers))
 		for i, layer := range manifest.FSLayers {
+			image.DockerImageLayers[i].MediaType = schema1.MediaTypeManifestLayer
 			image.DockerImageLayers[i].Name = layer.DockerBlobSum
 		}
 		if len(manifest.History) == len(image.DockerImageLayers) {
-			image.DockerImageLayers[0].Size = v1Metadata.Size
+			image.DockerImageLayers[0].LayerSize = v1Metadata.Size
 			var size = DockerV1CompatibilityImageSize{}
 			for i, obj := range manifest.History[1:] {
 				size.Size = 0
 				if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
 					continue
 				}
-				image.DockerImageLayers[i+1].Size = size.Size
+				image.DockerImageLayers[i+1].LayerSize = size.Size
 			}
 		} else {
 			glog.V(4).Infof("Imported image has mismatched layer count and history count, not updating image metadata: %s", image.Name)
@@ -393,15 +504,48 @@ func ImageWithMetadata(image *Image) error {
 		if len(image.DockerImageLayers) > 0 {
 			size := int64(0)
 			for _, layer := range image.DockerImageLayers {
-				size += layer.Size
+				size += layer.LayerSize
 			}
 			image.DockerImageMetadata.Size = size
 		} else {
 			image.DockerImageMetadata.Size = v1Metadata.Size
 		}
 	case 2:
-		// TODO: need to prepare for this
-		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
+		config := DockerImageConfig{}
+		if err := json.Unmarshal([]byte(image.DockerImageConfig), &config); err != nil {
+			return err
+		}
+
+		image.DockerImageLayers = make([]ImageLayer, len(manifest.Layers))
+		for i, layer := range manifest.Layers {
+			image.DockerImageLayers[i].Name = layer.Digest
+			image.DockerImageLayers[i].LayerSize = layer.Size
+			image.DockerImageLayers[i].MediaType = layer.MediaType
+		}
+		// reverse order of the layers for v1 (lowest = 0, highest = i)
+		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
+			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
+		}
+
+		image.DockerImageMetadata.ID = manifest.Config.Digest
+		image.DockerImageMetadata.Parent = config.Parent
+		image.DockerImageMetadata.Comment = config.Comment
+		image.DockerImageMetadata.Created = config.Created
+		image.DockerImageMetadata.Container = config.Container
+		image.DockerImageMetadata.ContainerConfig = config.ContainerConfig
+		image.DockerImageMetadata.DockerVersion = config.DockerVersion
+		image.DockerImageMetadata.Author = config.Author
+		image.DockerImageMetadata.Config = config.Config
+		image.DockerImageMetadata.Architecture = config.Architecture
+		image.DockerImageMetadata.Size = int64(len(image.DockerImageConfig))
+
+		if len(image.DockerImageLayers) > 0 {
+			for _, layer := range image.DockerImageLayers {
+				image.DockerImageMetadata.Size += layer.LayerSize
+			}
+		} else {
+			image.DockerImageMetadata.Size += config.Size
+		}
 	default:
 		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
 	}
@@ -559,7 +703,7 @@ func tagsChanged(new, old []TagEvent) (changed bool, deleted bool) {
 	case len(old) == 0:
 		return true, false
 	default:
-		return new[0] == old[0], false
+		return new[0] != old[0], false
 	}
 }
 
@@ -842,4 +986,8 @@ func SetContainerImageEntrypointAnnotation(annotations map[string]string, contai
 	}
 	s, _ := json.Marshal(cmd)
 	annotations[key] = string(s)
+}
+
+func LabelForStream(stream *ImageStream) string {
+	return fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 }

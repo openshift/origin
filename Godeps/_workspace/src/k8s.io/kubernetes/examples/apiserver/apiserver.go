@@ -18,45 +18,54 @@ package apiserver
 
 import (
 	"fmt"
+	"net"
 
-	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/testdata/apis/testgroup/v1"
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup.k8s.io/v1"
 	testgroupetcd "k8s.io/kubernetes/examples/apiserver/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/apimachinery"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/genericapiserver"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 
 	// Install the testgroup API
-	_ "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/testdata/apis/testgroup/install"
+	_ "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup.k8s.io/install"
 )
 
-func newStorageDestinations(groupName string, groupMeta *apimachinery.GroupMeta) (*genericapiserver.StorageDestinations, error) {
-	storageDestinations := genericapiserver.NewStorageDestinations()
-	var storageConfig etcdstorage.EtcdStorageConfig
-	storageConfig.Config = etcdstorage.EtcdConfig{
+const (
+	// Ports on which to run the server.
+	// Explicitly setting these to a different value than the default values, to prevent this from clashing with a local cluster.
+	InsecurePort = 8081
+	SecurePort   = 6444
+)
+
+func newStorageFactory() genericapiserver.StorageFactory {
+	config := storagebackend.Config{
 		Prefix:     genericapiserver.DefaultEtcdPathPrefix,
 		ServerList: []string{"http://127.0.0.1:4001"},
 	}
-	storageConfig.Codec = groupMeta.Codec
-	storageInterface, err := storageConfig.NewStorage()
-	if err != nil {
-		return nil, err
-	}
-	storageDestinations.AddAPIGroup(groupName, storageInterface)
-	return &storageDestinations, nil
+	storageFactory := genericapiserver.NewDefaultStorageFactory(config, "application/json", api.Codecs, genericapiserver.NewDefaultResourceEncodingConfig(), genericapiserver.NewResourceConfig())
+
+	return storageFactory
 }
 
-func Run() error {
-	config := genericapiserver.Config{
-		EnableIndex:          true,
-		EnableSwaggerSupport: true,
-		APIPrefix:            "/api",
-		APIGroupPrefix:       "/apis",
-		Serializer:           api.Codecs,
-	}
-	s, err := genericapiserver.New(&config)
+func NewServerRunOptions() *genericapiserver.ServerRunOptions {
+	serverOptions := genericapiserver.NewServerRunOptions()
+	serverOptions.InsecurePort = InsecurePort
+	serverOptions.SecurePort = SecurePort
+	return serverOptions
+}
+
+func Run(serverOptions *genericapiserver.ServerRunOptions) error {
+	// Set ServiceClusterIPRange
+	_, serviceClusterIPRange, _ := net.ParseCIDR("10.0.0.0/24")
+	serverOptions.ServiceClusterIPRange = *serviceClusterIPRange
+	serverOptions.StorageConfig.ServerList = []string{"http://127.0.0.1:4001"}
+	genericapiserver.ValidateRunOptions(serverOptions)
+	config := genericapiserver.NewConfig(serverOptions)
+	config.Serializer = api.Codecs
+	s, err := genericapiserver.New(config)
 	if err != nil {
 		return fmt.Errorf("Error in bringing up the server: %v", err)
 	}
@@ -67,12 +76,14 @@ func Run() error {
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	storageDestinations, err := newStorageDestinations(groupName, groupMeta)
+	storageFactory := newStorageFactory()
+	storage, err := storageFactory.New(unversioned.GroupResource{Group: groupName, Resource: "testtype"})
 	if err != nil {
-		return fmt.Errorf("Unable to init etcd: %v", err)
+		return fmt.Errorf("Unable to get storage: %v", err)
 	}
+
 	restStorageMap := map[string]rest.Storage{
-		"testtypes": testgroupetcd.NewREST(storageDestinations.Get(groupName, "testtype"), s.StorageDecorator()),
+		"testtypes": testgroupetcd.NewREST(storage, s.StorageDecorator()),
 	}
 	apiGroupInfo := genericapiserver.APIGroupInfo{
 		GroupMeta: *groupMeta,
@@ -85,6 +96,6 @@ func Run() error {
 	if err := s.InstallAPIGroups([]genericapiserver.APIGroupInfo{apiGroupInfo}); err != nil {
 		return fmt.Errorf("Error in installing API: %v", err)
 	}
-	s.Run(genericapiserver.NewServerRunOptions())
+	s.Run(serverOptions)
 	return nil
 }

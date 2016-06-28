@@ -5,9 +5,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -15,95 +17,82 @@ import (
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
 type REST struct {
-	generator GeneratorClient
+	generator RollbackGenerator
+	dn        client.DeploymentConfigsNamespacer
+	rn        kclient.ReplicationControllersNamespacer
 	codec     runtime.Codec
 }
 
-// GeneratorClient defines a local interface to a rollback generator for testability.
-type GeneratorClient interface {
-	GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
-	GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error)
-	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-}
-
-// Client provides an implementation of Generator client
-type Client struct {
-	GRFn func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
-	RCFn func(ctx kapi.Context, name string) (*kapi.ReplicationController, error)
-	DCFn func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-}
-
-// GetDeployment returns the deploymentConfig with the provided context and name
-func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-	return c.DCFn(ctx, name)
-}
-
-// GetDeployment returns the deployment with the provided context and name
-func (c Client) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
-	return c.RCFn(ctx, name)
-}
-
-// GenerateRollback generates a new deploymentConfig by merging a pair of deploymentConfigs
-func (c Client) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-	return c.GRFn(from, to, spec)
-}
-
 // NewREST safely creates a new REST.
-func NewREST(generator GeneratorClient, codec runtime.Codec) *REST {
+func NewREST(oc client.Interface, kc kclient.Interface, codec runtime.Codec) *REST {
 	return &REST{
-		generator: generator,
+		generator: NewRollbackGenerator(),
+		dn:        oc,
+		rn:        kc,
 		codec:     codec,
 	}
 }
 
 // New creates an empty DeploymentConfigRollback resource
-func (s *REST) New() runtime.Object {
+func (r *REST) New() runtime.Object {
 	return &deployapi.DeploymentConfigRollback{}
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+	namespace, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		return nil, kerrors.NewBadRequest("namespace parameter required.")
+	}
 	rollback, ok := obj.(*deployapi.DeploymentConfigRollback)
 	if !ok {
 		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))
 	}
 
 	if errs := validation.ValidateDeploymentConfigRollback(rollback); len(errs) > 0 {
-		return nil, kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), "", errs)
+		return nil, kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), rollback.Name, errs)
 	}
 
-	// Roll back "from" the current deployment "to" a target deployment
-
-	// Find the target ("to") deployment and decode the DeploymentConfig
-	targetDeployment, err := s.generator.GetDeployment(ctx, rollback.Spec.From.Name)
+	from, err := r.dn.DeploymentConfigs(namespace).Get(rollback.Name)
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			return nil, newInvalidDeploymentError(rollback, "Deployment not found")
-		}
-		return nil, newInvalidDeploymentError(rollback, fmt.Sprintf("%v", err))
+		return nil, newInvalidError(rollback, fmt.Sprintf("cannot get deployment config %q: %v", rollback.Name, err))
 	}
 
-	to, err := deployutil.DecodeDeploymentConfig(targetDeployment, s.codec)
+	switch from.Status.LatestVersion {
+	case 0:
+		return nil, newInvalidError(rollback, "cannot rollback an undeployed config")
+	case 1:
+		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", deployutil.LabelForDeploymentConfig(from)))
+	}
+
+	revision := from.Status.LatestVersion - 1
+	if rollback.Spec.Revision > 0 {
+		revision = rollback.Spec.Revision
+	}
+
+	// Find the target deployment and decode its config.
+	name := deployutil.DeploymentNameForConfigVersion(from.Name, revision)
+	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name)
 	if err != nil {
-		return nil, newInvalidDeploymentError(rollback,
-			fmt.Sprintf("couldn't decode DeploymentConfig from Deployment: %v", err))
+		return nil, newInvalidError(rollback, err.Error())
 	}
 
-	// Find the current ("from") version of the target deploymentConfig
-	from, err := s.generator.GetDeploymentConfig(ctx, to.Name)
+	to, err := deployutil.DecodeDeploymentConfig(targetDeployment, r.codec)
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			return nil, newInvalidDeploymentError(rollback,
-				fmt.Sprintf("couldn't find a current DeploymentConfig %s/%s", targetDeployment.Namespace, to.Name))
-		}
-		return nil, newInvalidDeploymentError(rollback,
-			fmt.Sprintf("error finding current DeploymentConfig %s/%s: %v", targetDeployment.Namespace, to.Name, err))
+		return nil, newInvalidError(rollback, fmt.Sprintf("couldn't decode deployment config from deployment: %v", err))
 	}
 
-	return s.generator.GenerateRollback(from, to, &rollback.Spec)
+	if from.Annotations == nil && len(rollback.UpdatedAnnotations) > 0 {
+		from.Annotations = make(map[string]string)
+	}
+	for key, value := range rollback.UpdatedAnnotations {
+		from.Annotations[key] = value
+	}
+
+	return r.generator.GenerateRollback(from, to, &rollback.Spec)
 }
 
-func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
-	err := field.Invalid(field.NewPath("spec").Child("from").Child("name"), rollback.Spec.From.Name, reason)
-	return kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), "", field.ErrorList{err})
+func newInvalidError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
+	err := field.Invalid(field.NewPath("name"), rollback.Name, reason)
+	return kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), rollback.Name, field.ErrorList{err})
 }

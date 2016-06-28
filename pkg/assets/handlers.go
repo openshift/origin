@@ -5,13 +5,13 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
+	"text/template"
 
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -154,6 +154,22 @@ type WebConsoleVersion struct {
 	OpenShiftVersion  string
 }
 
+var extensionPropertiesTemplate = template.Must(template.New("webConsoleExtensionProperties").Parse(`
+window.OPENSHIFT_EXTENSION_PROPERTIES = {
+{{ range $i, $property := .ExtensionProperties }}{{ if $i }},{{ end }}
+  "{{ $property.Key | js }}": "{{ $property.Value | js }}"{{ end }}
+};
+`))
+
+type WebConsoleExtensionProperty struct {
+	Key   string
+	Value string
+}
+
+type WebConsoleExtensionProperties struct {
+	ExtensionProperties []WebConsoleExtensionProperty
+}
+
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
   apis: {
@@ -163,23 +179,11 @@ window.OPENSHIFT_CONFIG = {
   api: {
     openshift: {
       hostPort: "{{ .MasterAddr | js}}",
-      prefixes: {
-        "v1": "{{ .MasterPrefix | js}}"
-      },
-      resources: {
-{{range $i,$e := .MasterResources}}{{if $i}},
-{{end}}        "{{$e | js}}": true{{end}}
-      }
+      prefix: "{{ .MasterPrefix | js}}"
     },
     k8s: {
       hostPort: "{{ .KubernetesAddr | js}}",
-      prefixes: {
-      	"v1": "{{ .KubernetesPrefix | js}}"
-      },
-      resources: {
-{{range $i,$e := .KubernetesResources}}{{if $i}},
-{{end}}        "{{$e | js}}": true{{end}}
-      }
+      prefix: "{{ .KubernetesPrefix | js}}"
     }
   },
   auth: {
@@ -238,12 +242,18 @@ type WebConsoleConfig struct {
 	LimitRequestOverrides *api.ClusterResourceOverrideConfig
 }
 
-func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion) (http.Handler, error) {
+func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion, extensionProps WebConsoleExtensionProperties) (http.Handler, error) {
 	var buffer bytes.Buffer
 	if err := configTemplate.Execute(&buffer, config); err != nil {
 		return nil, err
 	}
 	if err := versionTemplate.Execute(&buffer, version); err != nil {
+		return nil, err
+	}
+
+	// We include the extension properties in config.js and not extensions.js because we
+	// want them treated with the same caching behavior as the rest of the values in config.js
+	if err := extensionPropertiesTemplate.Execute(&buffer, extensionProps); err != nil {
 		return nil, err
 	}
 	content := buffer.Bytes()

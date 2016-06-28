@@ -2,6 +2,7 @@ package client
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -18,6 +19,7 @@ type GroupInterface interface {
 	Create(group *userapi.Group) (*userapi.Group, error)
 	Update(group *userapi.Group) (*userapi.Group, error)
 	Delete(name string) error
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
 // groups implements GroupInterface interface
@@ -67,4 +69,13 @@ func (c *groups) Update(group *userapi.Group) (result *userapi.Group, err error)
 // Delete takes the name of the groups, and returns an error if one occurs during deletion of the groups
 func (c *groups) Delete(name string) error {
 	return c.r.Delete().Resource("groups").Name(name).Do().Error()
+}
+
+// Watch returns a watch.Interface that watches the requested groups.
+func (c *groups) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.r.Get().
+		Prefix("watch").
+		Resource("groups").
+		VersionedParams(&opts, kapi.ParameterCodec).
+		Watch()
 }

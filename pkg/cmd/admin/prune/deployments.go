@@ -29,10 +29,10 @@ A --confirm flag is needed for changes to be effective.
 `
 
 	deploymentsExample = `  # Dry run deleting all but the last complete deployment for every deployment config
-  $ %[1]s %[2]s --keep-complete=1
+  %[1]s %[2]s --keep-complete=1
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ %[1]s %[2]s --keep-complete=1 --confirm`
+  %[1]s %[2]s --keep-complete=1 --confirm`
 )
 
 type pruneDeploymentConfig struct {

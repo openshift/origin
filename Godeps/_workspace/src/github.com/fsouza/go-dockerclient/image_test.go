@@ -685,6 +685,7 @@ func TestBuildImageParameters(t *testing.T) {
 		CPUPeriod:           100000,
 		CPUSetCPUs:          "0-3",
 		Ulimits:             []ULimit{{Name: "nofile", Soft: 100, Hard: 200}},
+		BuildArgs:           []BuildArg{{Name: "SOME_VAR", Value: "some_value"}},
 		InputStream:         &buf,
 		OutputStream:        &buf,
 	}
@@ -706,7 +707,8 @@ func TestBuildImageParameters(t *testing.T) {
 		"cpuquota":   {"7500"},
 		"cpuperiod":  {"100000"},
 		"cpusetcpus": {"0-3"},
-		"ulimits":    {"[{\"Name\":\"nofile\",\"Soft\":100,\"Hard\":200}]"},
+		"ulimits":    {`[{"Name":"nofile","Soft":100,"Hard":200}]`},
+		"buildargs":  {`{"SOME_VAR":"some_value"}`},
 	}
 	got := map[string][]string(req.URL.Query())
 	if !reflect.DeepEqual(got, expected) {

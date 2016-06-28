@@ -35,7 +35,8 @@ func NewCommandCreateBootstrapProjectTemplate(f *clientcmd.Factory, commandName 
 				cmdutil.CheckErr(err)
 			}
 
-			err = f.Factory.PrintObject(cmd, template, out)
+			mapper, _ := f.Object(false)
+			err = f.Factory.PrintObject(cmd, mapper, template, out)
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}

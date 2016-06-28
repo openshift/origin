@@ -24,6 +24,10 @@ type AuthorizeRequest struct {
 type AuthorizeData struct {
 	Code  string
 	State string
+
+	// Resource Owner Password Credentials
+	Username string
+	Password string
 }
 
 // Creates a new authorize request

@@ -23,6 +23,8 @@ const (
 	// NOTE: The value for this label may not contain the entire Build name because it will be
 	// truncated to maximum label length.
 	BuildLabel = "openshift.io/build.name"
+	// BuildRunPolicyLabel represents the start policy used to to start the build.
+	BuildRunPolicyLabel = "openshift.io/build.start-policy"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
 	DefaultDockerLabelNamespace = "io.openshift."
 	// OriginVersion is an environment variable key that indicates the version of origin that
@@ -61,15 +63,26 @@ type Build struct {
 
 // BuildSpec encapsulates all the inputs necessary to represent a build.
 type BuildSpec struct {
+	CommonSpec
+
+	// TriggeredBy describes which triggers started the most recent update to the
+	// build configuration and contains information about those triggers.
+	TriggeredBy []BuildTriggerCause
+}
+
+// CommonSpec encapsulates all common fields between Build and BuildConfig.
+type CommonSpec struct {
+
 	// ServiceAccount is the name of the ServiceAccount to use to run the pod
 	// created by this build.
-	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	// The pod will be allowed to use secrets referenced by the ServiceAccount.
 	ServiceAccount string
 
 	// Source describes the SCM in use.
 	Source BuildSource
 
-	// Revision is the information from the source for a specific repo snapshot.
+	// Revision is the information from the source for a specific repo
+	// snapshot.
 	// This is optional.
 	Revision *SourceRevision
 
@@ -79,17 +92,72 @@ type BuildSpec struct {
 	// Output describes the Docker image the Strategy should produce.
 	Output BuildOutput
 
-	// Compute resource requirements to execute the build
+	// Resources computes resource requirements to execute the build.
 	Resources kapi.ResourceRequirements
 
 	// PostCommit is a build hook executed after the build output image is
 	// committed, before it is pushed to a registry.
 	PostCommit BuildPostCommitSpec
 
-	// Optional duration in seconds, counted from the time when a build pod gets
-	// scheduled in the system, that the build may be active on a node before the
-	// system actively tries to terminate the build; value must be positive integer
+	// CompletionDeadlineSeconds is an optional duration in seconds, counted from
+	// the time when a build pod gets scheduled in the system, that the build may
+	// be active on a node before the system actively tries to terminate the
+	// build; value must be positive integer.
 	CompletionDeadlineSeconds *int64
+}
+
+// BuildTriggerCause holds information about a triggered build. It is used for
+// displaying build trigger data for each build and build configuration in oc
+// describe. It is also used to describe which triggers led to the most recent
+// update in the build configuration.
+type BuildTriggerCause struct {
+	// Message is used to store a human readable message for why the build was
+	// triggered. E.g.: "Manually triggered by user", "Configuration change",etc.
+	Message string
+
+	// genericWebHook represents data for a generic webhook that fired a
+	// specific build.
+	GenericWebHook *GenericWebHookCause
+
+	// GitHubWebHook represents data for a GitHub webhook that fired a specific
+	// build.
+	GitHubWebHook *GitHubWebHookCause
+
+	// ImageChangeBuild stores information about an imagechange event that
+	// triggered a new build.
+	ImageChangeBuild *ImageChangeCause
+}
+
+// GenericWebHookCause holds information about a generic WebHook that
+// triggered a build.
+type GenericWebHookCause struct {
+	// Revision is an optional field that stores the git source revision
+	// information of the generic webhook trigger when it is available.
+	Revision *SourceRevision
+
+	// Secret is the obfuscated webhook secret that triggered a build.
+	Secret string
+}
+
+// GitHubWebHookCause has information about a GitHub webhook that triggered a
+// build.
+type GitHubWebHookCause struct {
+	// Revision is the git source revision information of the trigger.
+	Revision *SourceRevision
+
+	// Secret is the obfuscated webhook secret that triggered a build.
+	Secret string
+}
+
+// ImageChangeCause contains information about the image that triggered a
+// build.
+type ImageChangeCause struct {
+	// ImageID is the ID of the image that triggered a a new build.
+	ImageID string
+
+	// FromRef contains detailed information about an image that triggered a
+	// build
+	FromRef *kapi.ObjectReference
 }
 
 // BuildStatus contains the status of a build
@@ -347,6 +415,10 @@ type BuildStrategy struct {
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy
+
+	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+	// This strategy is experimental.
+	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy
 }
 
 // BuildStrategyType describes a particular way of performing a build.
@@ -437,6 +509,18 @@ type SourceBuildStrategy struct {
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
+}
+
+// JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
+// This strategy is experimental.
+type JenkinsPipelineBuildStrategy struct {
+	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
+	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
+	// both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.
+	JenkinsfilePath string
+
+	// Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	Jenkinsfile string
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
@@ -557,24 +641,53 @@ type BuildConfig struct {
 
 // BuildConfigSpec describes when and how builds are created
 type BuildConfigSpec struct {
-	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
-	// are defined, a new build can only occur as a result of an explicit client build creation.
+	// Triggers determine how new Builds can be launched from a BuildConfig. If
+	// no triggers are defined, a new build can only occur as a result of an
+	// explicit client build creation.
 	Triggers []BuildTriggerPolicy
 
-	// BuildSpec is the desired build specification
-	BuildSpec
+	// RunPolicy describes how the new build created from this build
+	// configuration will be scheduled for execution.
+	// This is optional, if not specified we default to "Serial".
+	RunPolicy BuildRunPolicy
+
+	// CommonSpec is the desired build specification
+	CommonSpec
 }
+
+// BuildRunPolicy defines the behaviour of how the new builds are executed
+// from the existing build configuration.
+type BuildRunPolicy string
+
+const (
+	// BuildRunPolicyParallel schedules new builds immediately after they are
+	// created. Builds will be executed in parallel.
+	BuildRunPolicyParallel BuildRunPolicy = "Parallel"
+
+	// BuildRunPolicySerial schedules new builds to execute in a sequence as
+	// they are created. Every build gets queued up and will execute when the
+	// previous build completes. This is the default policy.
+	BuildRunPolicySerial BuildRunPolicy = "Serial"
+
+	// BuildRunPolicySerialLatestOnly schedules only the latest build to execute,
+	// cancelling all the previously queued build.
+	BuildRunPolicySerialLatestOnly BuildRunPolicy = "SerialLatestOnly"
+)
 
 // BuildConfigStatus contains current state of the build config object.
 type BuildConfigStatus struct {
 	// LastVersion is used to inform about number of last triggered build.
-	LastVersion int
+	LastVersion int64
 }
 
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
 type WebHookTrigger struct {
 	// Secret used to validate requests.
 	Secret string
+
+	// AllowEnv determines whether the webhook can set environment variables; can only
+	// be set to true for GenericWebHook
+	AllowEnv bool
 }
 
 // ImageChangeTrigger allows builds to be triggered when an ImageStream changes
@@ -659,6 +772,9 @@ type BuildConfigList struct {
 type GenericWebHookEvent struct {
 	// Git is the git information, if any.
 	Git *GitInfo
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
 }
 
 // GitInfo is the aggregated git information for a generic webhook post
@@ -703,12 +819,16 @@ type BuildRequest struct {
 	Binary *BinaryBuildSource
 
 	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
-	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
-	// not be generated.
-	LastVersion *int
+	// to generate the build. If the BuildConfig in the generator doesn't match,
+	// a build will not be generated.
+	LastVersion *int64
 
-	// Env contains additional environment variables you want to pass into a builder container
+	// Env contains additional environment variables you want to pass into a builder container.
 	Env []kapi.EnvVar
+
+	// TriggeredBy describes which triggers started the most recent update to the
+	// buildconfig and contains information about those triggers.
+	TriggeredBy []BuildTriggerCause
 }
 
 type BinaryBuildRequestOptions struct {
@@ -755,7 +875,7 @@ type BuildLogOptions struct {
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceSeconds *int64
 	// An RFC3339 timestamp from which to show logs. If this value
-	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceTime *unversioned.Time

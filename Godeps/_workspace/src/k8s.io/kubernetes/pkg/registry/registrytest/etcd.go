@@ -22,11 +22,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest/resttest"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
@@ -38,17 +39,17 @@ import (
 func NewEtcdStorage(t *testing.T, group string) (storage.Interface, *etcdtesting.EtcdTestServer) {
 	// Use the unsecured etcd for these tests, since they spawn lots of connections and can hit the 1 minute unit test timeout
 	server := etcdtesting.NewUnsecuredEtcdTestClientServer(t)
-	storage := etcdstorage.NewEtcdStorage(server.Client, testapi.Groups[group].Codec(), etcdtest.PathPrefix(), false)
+	storage := etcdstorage.NewEtcdStorage(server.Client, testapi.Groups[group].StorageCodec(), etcdtest.PathPrefix(), false, etcdtest.DeserializationCacheSize)
 	return storage, server
 }
 
 type Tester struct {
 	tester  *resttest.Tester
-	storage *etcdgeneric.Etcd
+	storage *registry.Store
 }
 type UpdateFunc func(runtime.Object) runtime.Object
 
-func New(t *testing.T, storage *etcdgeneric.Etcd) *Tester {
+func New(t *testing.T, storage *registry.Store) *Tester {
 	return &Tester{
 		tester:  resttest.New(t, storage),
 		storage: storage,
@@ -82,7 +83,7 @@ func (t *Tester) ReturnDeletedObject() *Tester {
 func (t *Tester) TestCreate(valid runtime.Object, invalid ...runtime.Object) {
 	t.tester.TestCreate(
 		valid,
-		t.setObject,
+		t.createObject,
 		t.getObject,
 		invalid...,
 	)
@@ -95,7 +96,7 @@ func (t *Tester) TestUpdate(valid runtime.Object, validUpdateFunc UpdateFunc, in
 	}
 	t.tester.TestUpdate(
 		valid,
-		t.setObject,
+		t.createObject,
 		t.getObject,
 		resttest.UpdateFunc(validUpdateFunc),
 		invalidFuncs...,
@@ -105,7 +106,7 @@ func (t *Tester) TestUpdate(valid runtime.Object, validUpdateFunc UpdateFunc, in
 func (t *Tester) TestDelete(valid runtime.Object) {
 	t.tester.TestDelete(
 		valid,
-		t.setObject,
+		t.createObject,
 		t.getObject,
 		errors.IsNotFound,
 	)
@@ -114,7 +115,7 @@ func (t *Tester) TestDelete(valid runtime.Object) {
 func (t *Tester) TestDeleteGraceful(valid runtime.Object, expectedGrace int64) {
 	t.tester.TestDeleteGraceful(
 		valid,
-		t.setObject,
+		t.createObject,
 		t.getObject,
 		expectedGrace,
 	)
@@ -169,28 +170,28 @@ func getCodec(obj runtime.Object) (runtime.Codec, error) {
 // Helper functions
 
 func (t *Tester) getObject(ctx api.Context, obj runtime.Object) (runtime.Object, error) {
-	meta, err := api.ObjectMetaFor(obj)
+	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := t.storage.Get(ctx, meta.Name)
+	result, err := t.storage.Get(ctx, accessor.GetName())
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (t *Tester) setObject(ctx api.Context, obj runtime.Object) error {
-	meta, err := api.ObjectMetaFor(obj)
+func (t *Tester) createObject(ctx api.Context, obj runtime.Object) error {
+	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return err
 	}
-	key, err := t.storage.KeyFunc(ctx, meta.Name)
+	key, err := t.storage.KeyFunc(ctx, accessor.GetName())
 	if err != nil {
 		return err
 	}
-	return t.storage.Storage.Set(ctx, key, obj, nil, 0)
+	return t.storage.Storage.Create(ctx, key, obj, nil, 0)
 }
 
 func (t *Tester) setObjectsForList(objects []runtime.Object) []runtime.Object {
@@ -208,13 +209,13 @@ func (t *Tester) emitObject(obj runtime.Object, action string) error {
 
 	switch action {
 	case etcdstorage.EtcdCreate:
-		err = t.setObject(ctx, obj)
+		err = t.createObject(ctx, obj)
 	case etcdstorage.EtcdDelete:
-		meta, err := api.ObjectMetaFor(obj)
+		accessor, err := meta.Accessor(obj)
 		if err != nil {
 			return err
 		}
-		_, err = t.storage.Delete(ctx, meta.Name, nil)
+		_, err = t.storage.Delete(ctx, accessor.GetName(), nil)
 	default:
 		err = fmt.Errorf("unexpected action: %v", action)
 	}

@@ -65,9 +65,8 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 		if updatedConfig == nil {
 			t.Fatalf("expected updated config")
 		}
-
-		if e, a := 2, updatedConfig.Status.LatestVersion; e != a {
-			t.Fatalf("expected updated config version %d, got %d", e, a)
+		if exp, got := updatedConfig.Status.LatestVersion, int64(2); exp != got {
+			t.Fatalf("expected deployment config version: %d, got: %d", exp, got)
 		}
 	}
 }
@@ -208,12 +207,12 @@ func TestCmdDeploy_retryRejectNonFailed(t *testing.T) {
 // and none of the completed/faild ones.
 func TestCmdDeploy_cancelOk(t *testing.T) {
 	type existing struct {
-		version      int
+		version      int64
 		status       deployapi.DeploymentStatus
 		shouldCancel bool
 	}
 	type scenario struct {
-		version  int
+		version  int64
 		existing []existing
 	}
 
@@ -263,8 +262,8 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		expectedCancellations := []int{}
-		actualCancellations := []int{}
+		expectedCancellations := []int64{}
+		actualCancellations := []int64{}
 		for _, e := range scenario.existing {
 			if e.shouldCancel {
 				expectedCancellations = append(expectedCancellations, e.version)
@@ -274,13 +273,19 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			actualCancellations = append(actualCancellations, deployutil.DeploymentVersionFor(&d))
 		}
 
-		sort.Ints(actualCancellations)
-		sort.Ints(expectedCancellations)
+		sort.Sort(Int64Slice(actualCancellations))
+		sort.Sort(Int64Slice(expectedCancellations))
 		if !reflect.DeepEqual(actualCancellations, expectedCancellations) {
 			t.Fatalf("expected cancellations: %v, actual: %v", expectedCancellations, actualCancellations)
 		}
 	}
 }
+
+type Int64Slice []int64
+
+func (p Int64Slice) Len() int           { return len(p) }
+func (p Int64Slice) Less(i, j int) bool { return p[i] < p[j] }
+func (p Int64Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func TestDeploy_reenableTriggers(t *testing.T) {
 	mktrigger := func() deployapi.DeploymentTriggerPolicy {

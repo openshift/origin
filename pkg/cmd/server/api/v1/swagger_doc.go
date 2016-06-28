@@ -53,6 +53,7 @@ var map_AssetConfig = map[string]string{
 	"loggingPublicURL":     "LoggingPublicURL is the public endpoint for logging (optional)",
 	"metricsPublicURL":     "MetricsPublicURL is the public endpoint for metrics (optional)",
 	"extensionScripts":     "ExtensionScripts are file paths on the asset server files to load as scripts when the Web Console loads",
+	"extensionProperties":  "ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under the global variable OPENSHIFT_EXTENSION_PROPERTIES",
 	"extensionStylesheets": "ExtensionStylesheets are file paths on the asset server files to load as stylesheets when the Web Console loads",
 	"extensions":           "Extensions are files to serve from the asset server filesystem under a subcontext",
 	"extensionDevelopment": "ExtensionDevelopment when true tells the asset server to reload extension scripts and stylesheets for every request rather than only at startup. It lets you develop extensions without having to restart the server for every change.",
@@ -114,6 +115,15 @@ func (CertInfo) SwaggerDoc() map[string]string {
 	return map_CertInfo
 }
 
+var map_ControllerConfig = map[string]string{
+	"":                   "ControllerConfig holds configuration values for controllers",
+	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+}
+
+func (ControllerConfig) SwaggerDoc() map[string]string {
+	return map_ControllerConfig
+}
+
 var map_DNSConfig = map[string]string{
 	"":                      "DNSConfig holds the necessary configuration options for DNS",
 	"bindAddress":           "BindAddress is the ip:port to serve DNS on",
@@ -123,6 +133,15 @@ var map_DNSConfig = map[string]string{
 
 func (DNSConfig) SwaggerDoc() map[string]string {
 	return map_DNSConfig
+}
+
+var map_DefaultAdmissionConfig = map[string]string{
+	"":        "DefaultAdmissionConfig can be used to enable or disable various admission plugins. When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it, this will cause an \"off by default\" admission plugin to be enabled",
+	"Disable": "Disable turns off an admission plugin that is enabled by default.",
+}
+
+func (DefaultAdmissionConfig) SwaggerDoc() map[string]string {
+	return map_DefaultAdmissionConfig
 }
 
 var map_DenyAllPasswordIdentityProvider = map[string]string{
@@ -212,8 +231,9 @@ func (GoogleIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_GrantConfig = map[string]string{
-	"":       "GrantConfig holds the necessary configuration options for grant handlers",
-	"method": "Method: allow, deny, prompt",
+	"":                     "GrantConfig holds the necessary configuration options for grant handlers",
+	"method":               "Method: allow, deny, prompt",
+	"serviceAccountMethod": "ServiceAccountMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt",
 }
 
 func (GrantConfig) SwaggerDoc() map[string]string {
@@ -272,6 +292,19 @@ var map_ImagePolicyConfig = map[string]string{
 
 func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 	return map_ImagePolicyConfig
+}
+
+var map_JenkinsPipelineConfig = map[string]string{
+	"":                  "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
+	"enabled":           "If the enabled flag is set, a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
+	"templateNamespace": "TemplateNamespace contains the namespace name where the Jenkins template is stored",
+	"templateName":      "TemplateName is the name of the default Jenkins template",
+	"serviceName":       "ServiceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
+	"parameters":        "Parameters specifies a set of optional parameters to the Jenkins template.",
+}
+
+func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
+	return map_JenkinsPipelineConfig
 }
 
 var map_KeystonePasswordIdentityProvider = map[string]string{
@@ -400,6 +433,7 @@ var map_MasterConfig = map[string]string{
 	"pauseControllers":       "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them.",
 	"controllerLeaseTTL":     "ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1.",
 	"admissionConfig":        "AdmissionConfig contains admission control plugin configuration.",
+	"controllerConfig":       "ControllerConfig holds configuration values for controllers",
 	"disabledFeatures":       "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
 	"etcdStorageConfig":      "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
 	"etcdClientInfo":         "EtcdClientInfo contains information about how to connect to etcd",
@@ -418,6 +452,7 @@ var map_MasterConfig = map[string]string{
 	"routingConfig":          "RoutingConfig holds information about routing and route generation",
 	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
 	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
 	"auditConfig":            "AuditConfig holds information related to auditing capabilities.",
 }
 
@@ -496,7 +531,7 @@ func (NodeConfig) SwaggerDoc() map[string]string {
 
 var map_NodeNetworkConfig = map[string]string{
 	"":                  "NodeNetworkConfig provides network options for the node",
-	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin",
+	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.",
 	"mtu":               "Maximum transmission unit for the network packets",
 }
 
@@ -688,6 +723,15 @@ var map_ServiceAccountConfig = map[string]string{
 
 func (ServiceAccountConfig) SwaggerDoc() map[string]string {
 	return map_ServiceAccountConfig
+}
+
+var map_ServiceServingCert = map[string]string{
+	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+	"signer": "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
+}
+
+func (ServiceServingCert) SwaggerDoc() map[string]string {
+	return map_ServiceServingCert
 }
 
 var map_ServingInfo = map[string]string{

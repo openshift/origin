@@ -19,13 +19,12 @@ type ClusterRoleStorage struct {
 
 func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterBindingRegistry clusterpolicybindingregistry.Registry) *ClusterRoleStorage {
 	simulatedPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
-	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry)
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		simulatedPolicyRegistry,
-		simulatedPolicyBindingRegistry,
-		clusterPolicyRegistry,
-		clusterBindingRegistry,
+		nil,
+		nil,
+		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
 	)
 
 	return &ClusterRoleStorage{

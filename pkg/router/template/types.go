@@ -19,6 +19,10 @@ type ServiceUnit struct {
 
 // ServiceAliasConfig is a route for a service.  Uniquely identified by host + path.
 type ServiceAliasConfig struct {
+	// Name is the user-specified name of the route.
+	Name string
+	// Namespace is the namespace of the route.
+	Namespace string
 	// Host is a required host name ie. www.example.com
 	Host string
 	// Path is an optional path ie. www.example.com/myservice where "myservice" is the path

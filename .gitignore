@@ -1,5 +1,4 @@
 /_output
-/_tools
 /openshift.local.*
 /third-party
 /.project
@@ -11,6 +10,7 @@
 /examples/sample-app/openshift.local.*
 /examples/sample-app/logs/openshift.log
 /dind-*.rc
+/os-version-defs
 *.swp
 .vimrc
 .vagrant-openshift.json*

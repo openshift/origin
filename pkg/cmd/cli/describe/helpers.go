@@ -118,6 +118,12 @@ var timeNowFn = func() time.Time {
 	return time.Now()
 }
 
+// Receives a time.Duration and returns Docker go-utils'
+// human-readable output
+func formatToHumanDuration(dur time.Duration) string {
+	return units.HumanDuration(dur)
+}
+
 func formatRelativeTime(t time.Time) string {
 	return units.HumanDuration(timeNowFn().Sub(t))
 }
@@ -129,6 +135,7 @@ func FormatRelativeTime(t time.Time) string {
 
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatString(out, "Name", m.Name)
+	formatString(out, "Namespace", m.Namespace)
 	if !m.CreationTimestamp.IsZero() {
 		formatTime(out, "Created", m.CreationTimestamp.Time)
 	}
@@ -136,36 +143,63 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatAnnotations(out, m, "")
 }
 
-// webhookURL assembles map with of webhook type as key and webhook url and value
-func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[string]string {
-	result := map[string]string{}
-	for _, trigger := range c.Spec.Triggers {
-		whTrigger := ""
+// DescribeWebhook holds the URL information about a webhook and for generic
+// webhooks it tells us if we allow env variables.
+type DescribeWebhook struct {
+	URL      string
+	AllowEnv *bool
+}
+
+// webhookDescribe returns a map of webhook trigger types and its corresponding
+// information.
+func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, cli client.BuildConfigsNamespacer) map[string][]DescribeWebhook {
+	result := map[string][]DescribeWebhook{}
+
+	for _, trigger := range triggers {
+		var webHookTrigger string
+		var allowEnv *bool
+
 		switch trigger.Type {
 		case buildapi.GitHubWebHookBuildTriggerType:
-			whTrigger = trigger.GitHubWebHook.Secret
+			webHookTrigger = trigger.GitHubWebHook.Secret
+
 		case buildapi.GenericWebHookBuildTriggerType:
-			whTrigger = trigger.GenericWebHook.Secret
-		}
-		if len(whTrigger) == 0 {
+			webHookTrigger = trigger.GenericWebHook.Secret
+			allowEnv = &trigger.GenericWebHook.AllowEnv
+
+		default:
 			continue
 		}
-		out := ""
-		url, err := cli.BuildConfigs(c.Namespace).WebHookURL(c.Name, &trigger)
-		if err != nil {
-			out = fmt.Sprintf("<error: %s>", err.Error())
-		} else {
-			out = url.String()
+		webHookDesc := result[string(trigger.Type)]
+
+		if len(webHookTrigger) == 0 {
+			continue
 		}
-		result[string(trigger.Type)] = out
+
+		var urlStr string
+		url, err := cli.BuildConfigs(namespace).WebHookURL(name, &trigger)
+		if err != nil {
+			urlStr = fmt.Sprintf("<error: %s>", err.Error())
+		} else {
+			urlStr = url.String()
+		}
+
+		webHookDesc = append(webHookDesc,
+			DescribeWebhook{
+				URL:      urlStr,
+				AllowEnv: allowEnv,
+			})
+		result[string(trigger.Type)] = webHookDesc
 	}
+
 	return result
 }
 
 var reLongImageID = regexp.MustCompile(`[a-f0-9]{60,}$`)
 
-// shortenImagePullSpec returns a version of the pull spec intended for display, which may
-// result in the image not being usable via cut-and-paste for users.
+// shortenImagePullSpec returns a version of the pull spec intended for
+// display, which may result in the image not being usable via cut-and-paste
+// for users.
 func shortenImagePullSpec(spec string) string {
 	if reLongImageID.MatchString(spec) {
 		return spec[:len(spec)-50] + "..."
@@ -215,7 +249,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			}
 			scheduled, insecure = tagRef.ImportPolicy.Scheduled, tagRef.ImportPolicy.Insecure
 			hasScheduled = hasScheduled || scheduled
-			hasInsecure = hasScheduled || insecure
+			hasInsecure = hasInsecure || insecure
 		} else {
 			specTag = "<pushed>"
 		}
@@ -291,6 +325,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			fmt.Fprintf(out, "%s\t%s\t\t<not available>\t<not available>\n", tag, specTag)
 		}
 	}
+
 	if hasInsecure || hasScheduled {
 		fmt.Fprintln(out)
 		if hasScheduled {

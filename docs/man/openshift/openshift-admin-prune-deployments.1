@@ -1,0 +1,133 @@
+.TH "OPENSHIFT ADMIN PRUNE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift admin prune deployments \- Remove old completed and failed deployments
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift admin prune deployments\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Prune old completed and failed deployments
+
+.PP
+By default, the prune operation performs a dry run making no changes to the deployments.
+A \-\-confirm flag is needed for changes to be effective.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-confirm\fP=false
+    Specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.
+
+.PP
+\fB\-\-keep\-complete\fP=5
+    Per DeploymentConfig, specify the number of deployments whose status is complete that will be preserved whose replica size is 0.
+
+.PP
+\fB\-\-keep\-failed\fP=1
+    Per DeploymentConfig, specify the number of deployments whose status is failed that will be preserved whose replica size is 0.
+
+.PP
+\fB\-\-keep\-younger\-than\fP=0
+    Specify the minimum age of a deployment for it to be considered a candidate for pruning.
+
+.PP
+\fB\-\-orphans\fP=false
+    Prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Dry run deleting all but the last complete deployment for every deployment config
+  openshift admin prune deployments \-\-keep\-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  openshift admin prune deployments \-\-keep\-complete=1 \-\-confirm
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-admin\-prune(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

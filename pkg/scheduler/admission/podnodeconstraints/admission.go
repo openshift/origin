@@ -5,10 +5,13 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/golang/glog"
+
 	admission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -19,6 +22,7 @@ import (
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 )
 
 func init() {
@@ -26,6 +30,10 @@ func init() {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
+		}
+		if pluginConfig == nil {
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", "PodNodeConstraints")
+			return nil, nil
 		}
 		return NewPodNodeConstraints(pluginConfig), nil
 	})
@@ -57,14 +65,18 @@ type podNodeConstraints struct {
 // TODO: Include a function that will extract the PodSpec from the resource for
 // each type added here.
 var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
-	kapi.Resource("pods"):                   kapi.Kind("Pod"),
-	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
-	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
-	batch.Resource("jobs"):                  batch.Kind("Job"),
-	extensions.Resource("deployments"):      extensions.Kind("Deployment"),
-	extensions.Resource("replicasets"):      extensions.Kind("ReplicaSet"),
-	extensions.Resource("jobs"):             extensions.Kind("Job"),
-	deployapi.Resource("deploymentconfigs"): deployapi.Kind("DeploymentConfig"),
+	kapi.Resource("pods"):                                       kapi.Kind("Pod"),
+	kapi.Resource("podtemplates"):                               kapi.Kind("PodTemplate"),
+	kapi.Resource("replicationcontrollers"):                     kapi.Kind("ReplicationController"),
+	batch.Resource("jobs"):                                      batch.Kind("Job"),
+	extensions.Resource("deployments"):                          extensions.Kind("Deployment"),
+	extensions.Resource("replicasets"):                          extensions.Kind("ReplicaSet"),
+	extensions.Resource("jobs"):                                 extensions.Kind("Job"),
+	apps.Resource("petsets"):                                    apps.Kind("PetSet"),
+	deployapi.Resource("deploymentconfigs"):                     deployapi.Kind("DeploymentConfig"),
+	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
+	securityapi.Resource("podsecuritypolicyselfsubjectreviews"): securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
+	securityapi.Resource("podsecuritypolicyreviews"):            securityapi.Kind("PodSecurityPolicyReview"),
 }
 
 // resourcesToIgnore is a list of resource kinds that contain a PodSpec that
@@ -112,7 +124,7 @@ func (o *podNodeConstraints) Admit(attr admission.Attributes) error {
 		attr.GetSubresource() != "":
 		return nil
 	}
-	shouldCheck, err := shouldCheckResource(attr.GetResource(), attr.GetKind())
+	shouldCheck, err := shouldCheckResource(attr.GetResource().GroupResource(), attr.GetKind().GroupKind())
 	if err != nil {
 		return err
 	}
@@ -120,7 +132,7 @@ func (o *podNodeConstraints) Admit(attr admission.Attributes) error {
 		return nil
 	}
 	// Only check Create operation on pods
-	if attr.GetResource() == kapi.Resource("pods") && attr.GetOperation() != admission.Create {
+	if attr.GetResource().GroupResource() == kapi.Resource("pods") && attr.GetOperation() != admission.Create {
 		return nil
 	}
 	ps, err := o.getPodSpec(attr)
@@ -143,10 +155,16 @@ func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec
 		return r.Spec.Template.Spec, nil
 	case *extensions.ReplicaSet:
 		return r.Spec.Template.Spec, nil
-	case *extensions.Job:
+	case *batch.Job:
 		return r.Spec.Template.Spec, nil
 	case *deployapi.DeploymentConfig:
 		return r.Spec.Template.Spec, nil
+	case *securityapi.PodSecurityPolicySubjectReview:
+		return r.Spec.PodSpec, nil
+	case *securityapi.PodSecurityPolicySelfSubjectReview:
+		return r.Spec.PodSpec, nil
+	case *securityapi.PodSecurityPolicyReview:
+		return r.Spec.PodSpec, nil
 	}
 	return kapi.PodSpec{}, kapierrors.NewInternalError(fmt.Errorf("No PodSpec available for supplied admission attribute"))
 }
@@ -199,7 +217,7 @@ func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (boo
 		Resource: "pods/binding",
 		APIGroup: kapi.GroupName,
 	}
-	if attr.GetResource() == kapi.Resource("pods") {
+	if attr.GetResource().GroupResource() == kapi.Resource("pods") {
 		authzAttr.ResourceName = attr.GetName()
 	}
 	allow, _, err := o.authorizer.Authorize(ctx, authzAttr)

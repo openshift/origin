@@ -3,6 +3,7 @@ package testclient
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -52,4 +53,8 @@ func (c *FakeGroups) Update(inObj *userapi.Group) (*userapi.Group, error) {
 func (c *FakeGroups) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("groups", name), &userapi.Group{})
 	return err
+}
+
+func (c *FakeGroups) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("groups", opts))
 }

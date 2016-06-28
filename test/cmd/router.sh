@@ -5,10 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -68,4 +66,18 @@ os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
 # only when using hostnetwork should we force the probes to use localhost
 os::cmd::expect_success_and_not_text "oadm router -o yaml --credentials=${KUBECONFIG} --host-network=false" 'host: localhost'
 echo "router: ok"
+
+# test ipfailover
+os::cmd::expect_failure_and_text 'oadm ipfailover --dry-run' 'you must specify at least one virtual IP address'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run' 'Creating IP failover'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run' 'Success \(DRY RUN\)'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run -o yaml' 'name: ipfailover'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run -o name' 'deploymentconfig/ipfailover'
+os::cmd::expect_success_and_text 'oadm ipfailover --credentials=${KUBECONFIG} --virtual-ips="1.2.3.4" --dry-run -o yaml' '1.2.3.4'
+# TODO add tests for normal ipfailover creation
+# os::cmd::expect_success_and_text 'oadm ipfailover' 'deploymentconfig "ipfailover" created'
+# os::cmd::expect_failure_and_text 'oadm ipfailover' 'Error from server: deploymentconfig "ipfailover" already exists'
+# os::cmd::expect_success_and_text 'oadm ipfailover -o name --dry-run | xargs oc delete' 'deleted'
+echo "ipfailover: ok"
+
 os::test::junit::declare_suite_end

@@ -21,11 +21,12 @@ var _ = g.Describe("[images][mongodb] openshift mongodb image", func() {
 	g.Describe("creating from a template", func() {
 		g.It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
 
+			exutil.CheckOpenShiftNamespaceImageStreams(oc)
 			g.By("creating a new app")
 			o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 
 			g.By("waiting for the deployment to complete")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "mongodb")
+			err := exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "mongodb", oc)
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting the mongodb pod is running")

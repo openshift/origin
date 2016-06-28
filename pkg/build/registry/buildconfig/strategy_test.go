@@ -19,6 +19,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
 			Triggers: []buildapi.BuildTriggerPolicy{
 				{
 					GitHubWebHook: &buildapi.WebHookTrigger{Secret: "12345"},
@@ -28,7 +29,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 					Type: "unknown",
 				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
@@ -46,6 +47,44 @@ func TestBuildConfigStrategy(t *testing.T) {
 				},
 			},
 		},
+		Status: buildapi.BuildConfigStatus{
+			LastVersion: 10,
+		},
+	}
+	newBC := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					GitHubWebHook: &buildapi.WebHookTrigger{Secret: "12345"},
+					Type:          buildapi.GitHubWebHookBuildTriggerType,
+				},
+				{
+					Type: "unknown",
+				},
+			},
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		Status: buildapi.BuildConfigStatus{
+			LastVersion: 9,
+		},
 	}
 	Strategy.PrepareForCreate(buildConfig)
 	errs := Strategy.Validate(ctx, buildConfig)
@@ -53,11 +92,26 @@ func TestBuildConfigStrategy(t *testing.T) {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
 
-	buildConfig.ResourceVersion = "foo"
-	errs = Strategy.ValidateUpdate(ctx, buildConfig, buildConfig)
+	// lastversion cannot go backwards
+	newBC.Status.LastVersion = 9
+	Strategy.PrepareForUpdate(newBC, buildConfig)
+	if newBC.Status.LastVersion != buildConfig.Status.LastVersion {
+		t.Errorf("Expected version=%d, got %d", buildConfig.Status.LastVersion, newBC.Status.LastVersion)
+	}
+
+	// lastversion can go forwards
+	newBC.Status.LastVersion = 11
+	Strategy.PrepareForUpdate(newBC, buildConfig)
+	if newBC.Status.LastVersion != 11 {
+		t.Errorf("Expected version=%d, got %d", 11, newBC.Status.LastVersion)
+	}
+
+	Strategy.PrepareForCreate(buildConfig)
+	errs = Strategy.Validate(ctx, buildConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
+
 	invalidBuildConfig := &buildapi.BuildConfig{}
 	errs = Strategy.Validate(ctx, invalidBuildConfig)
 	if len(errs) == 0 {

@@ -8,10 +8,10 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -51,12 +51,168 @@ func TestTLSEventListeners(t *testing.T) {
 }
 
 func testEventListeners(testName string, t *testing.T, buildServer func(http.Handler) *httptest.Server, buildClient func(string) (*Client, error)) {
-	response := `{"status":"create","id":"dfdf82bd3881","from":"base:latest","time":1374067924}
+	response := `{"action":"pull","type":"image","actor":{"id":"busybox:latest","attributes":{}},"time":1442421700,"timeNano":1442421700598988358}
+{"action":"create","type":"container","actor":{"id":"5745704abe9caa5","attributes":{"image":"busybox"}},"time":1442421716,"timeNano":1442421716853979870}
+{"action":"attach","type":"container","actor":{"id":"5745704abe9caa5","attributes":{"image":"busybox"}},"time":1442421716,"timeNano":1442421716894759198}
+{"action":"start","type":"container","actor":{"id":"5745704abe9caa5","attributes":{"image":"busybox"}},"time":1442421716,"timeNano":1442421716983607193}
+{"status":"create","id":"dfdf82bd3881","from":"base:latest","time":1374067924}
 {"status":"start","id":"dfdf82bd3881","from":"base:latest","time":1374067924}
 {"status":"stop","id":"dfdf82bd3881","from":"base:latest","time":1374067966}
 {"status":"destroy","id":"dfdf82bd3881","from":"base:latest","time":1374067970}
-`
+{"Action":"create","Actor":{"Attributes":{"HAProxyMode":"http","HealthCheck":"HttpGet","HealthCheckArgs":"http://127.0.0.1:39051/status/check","ServicePort_8080":"17801","image":"datanerd.us/siteeng/sample-app-go:latest","name":"sample-app-client-go-69818c1223ddb5"},"ID":"a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16"},"Type":"container","from":"datanerd.us/siteeng/sample-app-go:latest","id":"a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16","status":"create","time":1459133932,"timeNano":1459133932961735842}`
 
+	wantResponse := []*APIEvents{
+		{
+			Action: "pull",
+			Type:   "image",
+			Actor: APIActor{
+				ID:         "busybox:latest",
+				Attributes: map[string]string{},
+			},
+
+			Status: "pull",
+			ID:     "busybox:latest",
+
+			Time:     1442421700,
+			TimeNano: 1442421700598988358,
+		},
+		{
+			Action: "create",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "5745704abe9caa5",
+				Attributes: map[string]string{
+					"image": "busybox",
+				},
+			},
+
+			Status: "create",
+			ID:     "5745704abe9caa5",
+			From:   "busybox",
+
+			Time:     1442421716,
+			TimeNano: 1442421716853979870,
+		},
+		{
+			Action: "attach",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "5745704abe9caa5",
+				Attributes: map[string]string{
+					"image": "busybox",
+				},
+			},
+
+			Status: "attach",
+			ID:     "5745704abe9caa5",
+			From:   "busybox",
+
+			Time:     1442421716,
+			TimeNano: 1442421716894759198,
+		},
+		{
+			Action: "start",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "5745704abe9caa5",
+				Attributes: map[string]string{
+					"image": "busybox",
+				},
+			},
+
+			Status: "start",
+			ID:     "5745704abe9caa5",
+			From:   "busybox",
+
+			Time:     1442421716,
+			TimeNano: 1442421716983607193,
+		},
+
+		{
+			Action: "create",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "dfdf82bd3881",
+				Attributes: map[string]string{
+					"image": "base:latest",
+				},
+			},
+
+			Status: "create",
+			ID:     "dfdf82bd3881",
+			From:   "base:latest",
+
+			Time: 1374067924,
+		},
+		{
+			Action: "start",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "dfdf82bd3881",
+				Attributes: map[string]string{
+					"image": "base:latest",
+				},
+			},
+
+			Status: "start",
+			ID:     "dfdf82bd3881",
+			From:   "base:latest",
+
+			Time: 1374067924,
+		},
+		{
+			Action: "stop",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "dfdf82bd3881",
+				Attributes: map[string]string{
+					"image": "base:latest",
+				},
+			},
+
+			Status: "stop",
+			ID:     "dfdf82bd3881",
+			From:   "base:latest",
+
+			Time: 1374067966,
+		},
+		{
+			Action: "destroy",
+			Type:   "container",
+			Actor: APIActor{
+				ID: "dfdf82bd3881",
+				Attributes: map[string]string{
+					"image": "base:latest",
+				},
+			},
+
+			Status: "destroy",
+			ID:     "dfdf82bd3881",
+			From:   "base:latest",
+
+			Time: 1374067970,
+		},
+		{
+			Action:   "create",
+			Type:     "container",
+			Status:   "create",
+			From:     "datanerd.us/siteeng/sample-app-go:latest",
+			ID:       "a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16",
+			Time:     1459133932,
+			TimeNano: 1459133932961735842,
+			Actor: APIActor{
+				ID: "a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16",
+				Attributes: map[string]string{
+					"HAProxyMode":      "http",
+					"HealthCheck":      "HttpGet",
+					"HealthCheckArgs":  "http://127.0.0.1:39051/status/check",
+					"ServicePort_8080": "17801",
+					"image":            "datanerd.us/siteeng/sample-app-go:latest",
+					"name":             "sample-app-client-go-69818c1223ddb5",
+				},
+			},
+		},
+	}
 	server := buildServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rsc := bufio.NewScanner(strings.NewReader(response))
 		for rsc.Scan() {
@@ -87,46 +243,16 @@ func testEventListeners(testName string, t *testing.T, buildServer func(http.Han
 	}
 
 	timeout := time.After(1 * time.Second)
-	var count int
 
-	for {
+	for i := 0; i < 9; i++ {
 		select {
 		case msg := <-listener:
-			t.Logf("Received: %v", *msg)
-			count++
-			err = checkEvent(count, msg)
-			if err != nil {
-				t.Fatalf("Check event failed: %s", err)
-			}
-			if count == 4 {
-				return
+			t.Logf("%d: Received: %v", i, msg)
+			if !reflect.DeepEqual(msg, wantResponse[i]) {
+				t.Fatalf("%d: wanted: %#v\n got: %#v", i, wantResponse[i], msg)
 			}
 		case <-timeout:
 			t.Fatalf("%s timed out waiting on events", testName)
 		}
 	}
-}
-
-func checkEvent(index int, event *APIEvents) error {
-	if event.ID != "dfdf82bd3881" {
-		return fmt.Errorf("event ID did not match. Expected dfdf82bd3881 got %s", event.ID)
-	}
-	if event.From != "base:latest" {
-		return fmt.Errorf("event from did not match. Expected base:latest got %s", event.From)
-	}
-	var status string
-	switch index {
-	case 1:
-		status = "create"
-	case 2:
-		status = "start"
-	case 3:
-		status = "stop"
-	case 4:
-		status = "destroy"
-	}
-	if event.Status != status {
-		return fmt.Errorf("event status did not match. Expected %s got %s", status, event.Status)
-	}
-	return nil
 }

@@ -63,23 +63,23 @@ func TestOAuthStorage(t *testing.T) {
 
 	optsGetter := restoptions.NewConfigGetter(*masterOptions)
 
-	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(optsGetter)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-
 	clientStorage, err := clientetcd.NewREST(optsGetter)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
+
+	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, clientRegistry)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(optsGetter, clientRegistry)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 
 	user := &testUser{UserName: "test", UserUID: "1"}
 	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, user)
@@ -130,7 +130,10 @@ func TestOAuthStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if storedClient.GetSecret() != "secret" {
+	if !storedClient.ValidateSecret("secret") {
+		t.Fatalf("unexpected stored client: %#v", storedClient)
+	}
+	if storedClient.ValidateSecret("secret2") {
 		t.Fatalf("unexpected stored client: %#v", storedClient)
 	}
 
@@ -151,7 +154,7 @@ func TestOAuthStorage(t *testing.T) {
 	config := &oauth2.Config{
 		ClientID:     "test",
 		ClientSecret: "",
-		Scopes:       []string{"a_scope"},
+		Scopes:       []string{"user:info"},
 		RedirectURL:  assertServer.URL + "/assert",
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  server.URL + "/authorize",

@@ -42,7 +42,8 @@ func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Authorizatio
 	// Extract user from context
 	user := ""
 	groups := sets.NewString()
-	if userInfo, ok := kapi.UserFrom(ctx); ok {
+	userInfo, ok := kapi.UserFrom(ctx)
+	if ok {
 		user = userInfo.GetName()
 		groups.Insert(userInfo.GetGroups()...)
 	}
@@ -54,17 +55,11 @@ func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Authorizatio
 	}
 
 	if len(namespace) > 0 {
-		result, err = r.client.LocalSubjectAccessReviews(namespace).Create(&authzapi.LocalSubjectAccessReview{
-			User:   user,
-			Groups: groups,
-			Action: getAction(namespace, a),
-		})
+		result, err = r.client.LocalSubjectAccessReviews(namespace).Create(
+			authzapi.AddUserToLSAR(userInfo, &authzapi.LocalSubjectAccessReview{Action: getAction(namespace, a)}))
 	} else {
-		result, err = r.client.SubjectAccessReviews().Create(&authzapi.SubjectAccessReview{
-			User:   user,
-			Groups: groups,
-			Action: getAction(namespace, a),
-		})
+		result, err = r.client.SubjectAccessReviews().Create(
+			authzapi.AddUserToSAR(userInfo, &authzapi.SubjectAccessReview{Action: getAction(namespace, a)}))
 	}
 
 	if err != nil {

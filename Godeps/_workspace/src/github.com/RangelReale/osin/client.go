@@ -5,8 +5,8 @@ type Client interface {
 	// Client id
 	GetId() string
 
-	// Client secret
-	GetSecret() string
+	// check a client secret
+	ValidateSecret(secret string) bool
 
 	// Base client uri
 	GetRedirectUri() string
@@ -31,17 +31,14 @@ func (d *DefaultClient) GetSecret() string {
 	return d.Secret
 }
 
+func (d *DefaultClient) ValidateSecret(secret string) bool {
+	return d.Secret == secret
+}
+
 func (d *DefaultClient) GetRedirectUri() string {
 	return d.RedirectUri
 }
 
 func (d *DefaultClient) GetUserData() interface{} {
 	return d.UserData
-}
-
-func (d *DefaultClient) CopyFrom(client Client) {
-	d.Id = client.GetId()
-	d.Secret = client.GetSecret()
-	d.RedirectUri = client.GetRedirectUri()
-	d.UserData = client.GetUserData()
 }

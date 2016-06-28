@@ -20,7 +20,7 @@ RUN INSTALL_PKGS="haproxy iptables lsof" && \
     chmod -R 777 /var && \
     yum clean all
 
-ADD conf/ /var/lib/haproxy/conf/
+COPY conf/ /var/lib/haproxy/conf/
 # add the dummy cert to the app cert directory as well to avoid errors with default config
-ADD conf/ /var/lib/containers/router/certs/
+COPY conf/ /var/lib/containers/router/certs/
 EXPOSE 80

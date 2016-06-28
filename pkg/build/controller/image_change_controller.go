@@ -61,6 +61,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			from           *kapi.ObjectReference
 			shouldBuild    = false
 			triggeredImage = ""
+			latest         *imageapi.TagEvent
 		)
 		// For every ImageChange trigger find the latest tagged image from the image repository and
 		// invoke a build using that image id. A new build is triggered only if the latest tagged image id or pull spec
@@ -98,7 +99,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 
 			// This split is safe because ImageStreamTag names always have the form
 			// name:tag.
-			latest := imageapi.LatestTaggedImage(repo, tag)
+			latest = imageapi.LatestTaggedImage(repo, tag)
 			if latest == nil {
 				glog.V(4).Infof("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag)
 				continue
@@ -120,12 +121,22 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 
 		if shouldBuild {
 			glog.V(4).Infof("Running build for BuildConfig %s/%s", config.Namespace, config.Name)
+			buildCauses := []buildapi.BuildTriggerCause{}
 			// instantiate new build
 			request := &buildapi.BuildRequest{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      config.Name,
 					Namespace: config.Namespace,
 				},
+				TriggeredBy: append(buildCauses,
+					buildapi.BuildTriggerCause{
+						Message: "Image change",
+						ImageChangeBuild: &buildapi.ImageChangeCause{
+							ImageID: latest.DockerImageReference,
+							FromRef: from,
+						},
+					},
+				),
 				TriggeredByImage: &kapi.ObjectReference{
 					Kind: "DockerImage",
 					Name: triggeredImage,

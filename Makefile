@@ -56,8 +56,22 @@ verify: build
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
-	VERIFY=true hack/update-generated-swagger-descriptions.sh
+	hack/verify-bootstrap-bindata.sh
+	hack/verify-generated-swagger-descriptions.sh
 .PHONY: verify
+
+# Update all generated artifacts.
+#
+# Example:
+#   make update
+update: build
+	hack/update-generated-completions.sh
+	hack/update-generated-conversions.sh
+	hack/update-generated-deep-copies.sh
+	hack/update-generated-docs.sh
+	hack/update-generated-swagger-descriptions.sh
+	hack/update-generated-swagger-spec.sh
+.PHONY: update
 
 # Run unit tests.
 #
@@ -159,6 +173,23 @@ release-binaries: clean
 	hack/build-release.sh
 	hack/extract-release.sh
 .PHONY: release-binaries
+
+# Release the integrated components for OpenShift, logging and metrics.
+#
+# Example:
+#   make release-components
+release-components: clean
+	hack/release-components.sh
+.PHONY: release-components
+
+# Perform an official release. Requires HEAD of the repository to have a matching
+# tag. Will push images that are tagged tagged with the latest release commit.
+#
+# Example:
+#   make perform-official-release
+perform-official-release: | release-binaries release-components
+	OS_PUSH_ALWAYS="1" OS_PUSH_TAG="HEAD" OS_PUSH_LOCAL="1" hack/push-release.sh
+.PHONY: perform-official-release
 
 # Build the cross compiled release binaries
 #

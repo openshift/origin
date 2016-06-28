@@ -56,7 +56,7 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 		RoleClient: d.ClusterRolesClient.ClusterRoles(),
 	}
 
-	changedClusterRoles, err := reconcileOptions.ChangedClusterRoles()
+	changedClusterRoles, _, err := reconcileOptions.ChangedClusterRoles()
 	if err != nil {
 		r.Error("CRD1000", err, fmt.Sprintf("Error inspecting ClusterRoles: %v", err))
 		return r

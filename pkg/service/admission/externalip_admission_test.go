@@ -161,7 +161,7 @@ func TestAdmission(t *testing.T) {
 		svc.Spec.ExternalIPs = test.externalIPs
 		handler := NewExternalIPRanger(test.rejects, test.admits)
 
-		err := handler.Admit(admission.NewAttributesRecord(svc, kapi.Kind("Service"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services"), "", test.op, nil))
+		err := handler.Admit(admission.NewAttributesRecord(svc, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, nil))
 		if test.admit && err != nil {
 			t.Errorf("%s: expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {

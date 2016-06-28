@@ -12,8 +12,8 @@ import (
 )
 
 type ClusterPolicyBindingRegistry struct {
-	// ClusterPolicyBindings is a of namespace->name->ClusterPolicyBinding
-	ClusterPolicyBindings map[string]map[string]authorizationapi.ClusterPolicyBinding
+	// clusterPolicyBindings is a of namespace->name->ClusterPolicyBinding
+	clusterPolicyBindings map[string]map[string]authorizationapi.ClusterPolicyBinding
 	Err                   error
 }
 
@@ -27,6 +27,13 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 	return &ClusterPolicyBindingRegistry{bindingMap, err}
 }
 
+func (r *ClusterPolicyBindingRegistry) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	return r.ListClusterPolicyBindings(kapi.NewContext(), &options)
+}
+func (r *ClusterPolicyBindingRegistry) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.GetClusterPolicyBinding(kapi.NewContext(), name)
+}
+
 // ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.
 func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	if r.Err != nil {
@@ -37,14 +44,14 @@ func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Contex
 	list := make([]authorizationapi.ClusterPolicyBinding, 0)
 
 	if namespace == kapi.NamespaceAll {
-		for _, curr := range r.ClusterPolicyBindings {
+		for _, curr := range r.clusterPolicyBindings {
 			for _, binding := range curr {
 				list = append(list, binding)
 			}
 		}
 
 	} else {
-		if namespacedBindings, ok := r.ClusterPolicyBindings[namespace]; ok {
+		if namespacedBindings, ok := r.clusterPolicyBindings[namespace]; ok {
 			for _, curr := range namespacedBindings {
 				list = append(list, curr)
 			}
@@ -68,7 +75,7 @@ func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx kapi.Context,
 		return nil, errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 
-	if namespacedBindings, ok := r.ClusterPolicyBindings[namespace]; ok {
+	if namespacedBindings, ok := r.clusterPolicyBindings[namespace]; ok {
 		if binding, ok := namespacedBindings[id]; ok {
 			return &binding, nil
 		}
@@ -91,7 +98,7 @@ func (r *ClusterPolicyBindingRegistry) CreateClusterPolicyBinding(ctx kapi.Conte
 		return kapierrors.NewAlreadyExists(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
-	addClusterPolicyBinding(r.ClusterPolicyBindings, *policyBinding)
+	addClusterPolicyBinding(r.clusterPolicyBindings, *policyBinding)
 
 	return nil
 }
@@ -110,7 +117,7 @@ func (r *ClusterPolicyBindingRegistry) UpdateClusterPolicyBinding(ctx kapi.Conte
 		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
-	addClusterPolicyBinding(r.ClusterPolicyBindings, *policyBinding)
+	addClusterPolicyBinding(r.clusterPolicyBindings, *policyBinding)
 
 	return nil
 }
@@ -126,7 +133,7 @@ func (r *ClusterPolicyBindingRegistry) DeleteClusterPolicyBinding(ctx kapi.Conte
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 
-	namespacedBindings, ok := r.ClusterPolicyBindings[namespace]
+	namespacedBindings, ok := r.clusterPolicyBindings[namespace]
 	if ok {
 		delete(namespacedBindings, id)
 	}

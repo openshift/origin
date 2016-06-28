@@ -803,10 +803,10 @@ type Region struct {
 // clear && go test -v -test.run TestRegion_Issue113 ...swagger
 func TestRegion_Issue113(t *testing.T) {
 	testJsonFromStruct(t, []Region{}, `{
-  "integer": {
-   "id": "integer",
+  "||swagger.Region": {
+   "id": "||swagger.Region",
    "properties": {}
-  },
+  },		
   "swagger.Region": {
    "id": "swagger.Region",
    "required": [
@@ -818,7 +818,7 @@ func TestRegion_Issue113(t *testing.T) {
     "id": {
      "type": "array",
      "items": {
-      "$ref": "integer"
+      "type": "integer"
      }
     },
     "name": {
@@ -828,10 +828,6 @@ func TestRegion_Issue113(t *testing.T) {
      "type": "string"
     }
    }
-  },
-  "||swagger.Region": {
-   "id": "||swagger.Region",
-   "properties": {}
   }
  }`)
 }

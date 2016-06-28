@@ -63,14 +63,14 @@ This utility helps troubleshoot and diagnose known problems. It runs
 diagnostics using a client and/or the state of a running master /
 node host.
 
-    $ %[1]s
+    %[1]s
 
 If run without flags, it will check for standard config files for
 client, master, and node, and if found, use them for diagnostics.
 You may also specify config files explicitly with flags, in which case
 you will receive an error if they are not found. For example:
 
-    $ %[1]s --master-config=/etc/origin/master/master-config.yaml
+    %[1]s --master-config=/etc/origin/master/master-config.yaml
 
 * If master/node config files are not found and the --host flag is not
   present, host diagnostics are skipped.

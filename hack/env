@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# This script generates release zips into _output/releases. It requires the openshift/origin-release
+# image to be built prior to executing this command via hack/build-base-images.sh.
+
+# NOTE:   only committed code is built.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::install_errexit
+
+# Go to the top of the tree.
+cd "${OS_ROOT}"
+
+os::build::environment::run "$@"

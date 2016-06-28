@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: complete-dc-hooks
+spec:
+  replicas: 2
+  selector:
+    name: complete-dc-hooks
+  strategy:
+    type: Recreate
+    recreateParams:
+      timeoutSeconds: 60
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - "/bin/true"
+      mid:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - "/bin/true"
+      post:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - "/bin/true"
+  template:
+    metadata:
+      labels:
+        name: complete-dc-hooks
+    spec:
+      containers:
+      - image: "docker.io/busybox"
+        name: myapp
+        command:
+        - "/bin/sleep"
+        - "60"
+  triggers:
+  - type: ConfigChange
