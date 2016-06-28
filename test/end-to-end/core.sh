@@ -220,15 +220,6 @@ echo "[INFO] Run pod diagnostics"
 # Requires a node to run the origin-deployer pod; expects registry deployed, deployer image pulled
 os::cmd::expect_success_and_text 'oadm diagnostics DiagnosticPod --images='"'""${USE_IMAGES}""'" 'Running diagnostic: PodCheckDns'
 
-# This needed because docker 1.10+ utilizes cross-repo mount feature. Docker client keeps track of source
-# repositories for all the blobs. If it uploads a blob to a repository of registry having an entry in this
-# mapping, it will request a mount from this repository. The authorization check is done for both destination
-# and mounted repository. Without the next statement, the auth check for mounted repository
-# (cache/ruby-22-centos7) will fail.
-# TODO: remove this once the registry can access global blob store without a layer link authorization check
-oc policy -n cache add-role-to-user system:image-puller system:serviceaccount:test:builder
-
-
 echo "[INFO] Applying STI application config"
 os::cmd::expect_success "oc create -f ${STI_CONFIG_FILE}"
 
