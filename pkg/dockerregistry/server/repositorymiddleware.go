@@ -193,6 +193,7 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 
 // Blobs returns a blob store which can delegate to remote repositories.
 func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
+	context.GetLogger(r.ctx).Infof("(*repository).Blobs: starting")
 	repo := repository(*r)
 	repo.ctx = ctx
 
@@ -215,19 +216,38 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		}
 	}
 
+	bs = &errorBlobStore{
+		store: bs,
+
+		repo: &repo,
+	}
+
 	return bs
 }
 
 // Tags returns a reference to this repository tag service.
 func (r *repository) Tags(ctx context.Context) distribution.TagService {
-	return &tagService{
+	var ts distribution.TagService
+
+	ts = &tagService{
 		TagService: r.Repository.Tags(ctx),
 		repo:       r,
 	}
+
+	ts = &errorTagService{
+		tags: ts,
+		repo: r,
+	}
+
+	return ts
 }
 
 // Exists returns true if the manifest specified by dgst exists.
 func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return false, err
+	}
+
 	image, err := r.getImage(dgst)
 	if err != nil {
 		return false, err
@@ -237,8 +257,12 @@ func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, erro
 
 // Get retrieves the manifest with digest `dgst`.
 func (r *repository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return nil, err
+	}
+
 	if _, err := r.getImageStreamImage(dgst); err != nil {
-		context.GetLogger(r.ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
+		context.GetLogger(r.ctx).Errorf("error retrieving ImageStreamImage %s@%s: %v", r.Name(), dgst.String(), err)
 		return nil, err
 	}
 
@@ -256,6 +280,10 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest, options ...dis
 
 // Put creates or updates the named manifest.
 func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return "", err
+	}
+
 	var canonical []byte
 
 	// Resolve the payload in the manifest.
@@ -451,11 +479,19 @@ func (r *repository) deserializedManifestFillImageMetadata(manifest *schema2.Des
 // in OpenShift are deleted via 'oadm prune images'. This function deletes
 // the content related to the manifest in the registry's storage (signatures).
 func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return err
+	}
+
 	ms, err := r.Repository.Manifests(r.ctx)
 	if err != nil {
 		return err
 	}
 	return ms.Delete(ctx, dgst)
+}
+
+func (r *repository) Name() string {
+	return r.namespace + "/" + r.name
 }
 
 // importContext loads secrets for this image stream and returns a context for getting distribution
@@ -598,4 +634,27 @@ func (r *repository) deserializedManifestFromImage(image *imageapi.Image) (*sche
 		return nil, err
 	}
 	return &manifest, nil
+}
+
+func (r *repository) checkPendingErrors(ctx context.Context) error {
+	context.GetLogger(r.ctx).Infof("(*repository).checkPendingErrors: starting")
+	defer context.GetLogger(r.ctx).Infof("(*repository).checkPendingErrors: terminating")
+	if !AuthPerformed(ctx) {
+		return fmt.Errorf("%s missing from context", authPerformedKey)
+	}
+
+	deferredErrors, haveDeferredErrors := DeferredErrorsFrom(ctx)
+	if !haveDeferredErrors {
+		context.GetLogger(r.ctx).Infof("(*repository).checkPendingErrors: no error deffered")
+		return nil
+	}
+	context.GetLogger(r.ctx).Infof("(*repository).checkPendingErrors: checking deferredErrors with %q", r.Name())
+
+	repoErr, haveRepoErr := deferredErrors[r.Name()]
+	if !haveRepoErr {
+		return nil
+	}
+
+	context.GetLogger(r.ctx).Debugf("deferred error for %s: %v", r.Name(), repoErr)
+	return repoErr
 }

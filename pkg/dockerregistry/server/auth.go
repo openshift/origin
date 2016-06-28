@@ -21,6 +21,30 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// crossRepoMountAuthError stores information about a failed authorization
+// check on a read on source repository of cross-repo mount during a blob
+// upload to a target repository.
+type crossRepoMountAuthError struct {
+	// target repository of cross repo-mount
+	targetRepoName string
+	// source repository of cross repo mount
+	sourceRepoName string
+	// original auth error
+	err error
+}
+
+func (e crossRepoMountAuthError) Error() string {
+	if e.targetRepoName != "" {
+		return fmt.Sprintf("unauthorized to read from source repository %q during cross-repo mount to %q: %v",
+			e.sourceRepoName, e.targetRepoName, e.err)
+	}
+	return fmt.Sprintf("unauthorized to read from source repository %q during cross-repo mount: %v",
+		e.sourceRepoName, e.targetRepoName, e.err)
+}
+
+// deferredErrors maps repository names to an auth error that needs to be handled in middleware code.
+type deferredErrors map[string]error
+
 // DefaultRegistryClient is exposed for testing the registry with fake client.
 var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
@@ -59,6 +83,27 @@ func WithUserClient(parent context.Context, userClient client.Interface) context
 func UserClientFrom(ctx context.Context) (client.Interface, bool) {
 	userClient, ok := ctx.Value(userClientKey).(client.Interface)
 	return userClient, ok
+}
+
+const authPerformedKey = "openshift.auth.performed"
+
+func WithAuthPerformed(parent context.Context) context.Context {
+	return context.WithValue(parent, authPerformedKey, true)
+}
+
+func AuthPerformed(ctx context.Context) bool {
+	authPerformed, ok := ctx.Value(authPerformedKey).(bool)
+	return ok && authPerformed
+}
+
+const deferredErrorsKey = "openshift.auth.deferredErrors"
+
+func WithDeferredErrors(parent context.Context, errs deferredErrors) context.Context {
+	return context.WithValue(parent, deferredErrorsKey, errs)
+}
+func DeferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
+	errs, ok := ctx.Value(deferredErrorsKey).(deferredErrors)
+	return errs, ok
 }
 
 type AccessController struct {
@@ -160,6 +205,11 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 
+	// pushChecks remembers which ns/name pairs had push access checks done
+	pushChecks := map[string]struct{}{}
+	// possibleCrossMountErrors holds errors which may be related to cross mount errors
+	possibleCrossMountErrors := deferredErrors{}
+
 	verifiedPrune := false
 
 	// Validate all requested accessRecords
@@ -178,6 +228,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			switch access.Action {
 			case "push":
 				verb = "update"
+				pushChecks[access.Resource.Name] = struct{}{}
 			case "pull":
 				verb = "get"
 			case "*":
@@ -197,7 +248,14 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				verifiedPrune = true
 			default:
 				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
-					return nil, ac.wrapErr(err)
+					if verb == "get" {
+						possibleCrossMountErrors[access.Resource.Name] = &crossRepoMountAuthError{
+							sourceRepoName: access.Resource.Name,
+							err:            err,
+						}
+					} else {
+						return nil, ac.wrapErr(err)
+					}
 				}
 			}
 
@@ -218,6 +276,35 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			return nil, ac.wrapErr(ErrUnsupportedResource)
 		}
 	}
+
+	// deal with any possible cross-mount errors
+	for namespaceAndName, err := range possibleCrossMountErrors {
+		// If we have no push requests, this can't be a cross-mount request, so error
+		if len(pushChecks) == 0 {
+			return nil, err
+		}
+		// If we also requested a push to this ns/name, this isn't a cross-mount request, so error
+		if _, exists := pushChecks[namespaceAndName]; exists {
+			return nil, err
+		}
+		if len(pushChecks) > 1 {
+			context.GetLogger(ctx).Warn("cannot determine cross-repo mount target from multiple push checks")
+			continue
+		}
+		for target := range pushChecks {
+			crmErr := err.(*crossRepoMountAuthError)
+			crmErr.targetRepoName = target
+		}
+	}
+
+	// Conditionally add auth errors we want to handle later to the context
+	if len(possibleCrossMountErrors) != 0 {
+		context.GetLogger(ctx).Debugf("Origin auth: deferring errors: %#v", possibleCrossMountErrors)
+		ctx = WithDeferredErrors(ctx, possibleCrossMountErrors)
+	}
+
+	// Always add a marker to the context so we know auth was run
+	ctx = WithAuthPerformed(ctx)
 
 	return WithUserClient(ctx, osClient), nil
 }
@@ -272,6 +359,9 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) erro
 	return nil
 }
 
+// verifyImageStreamAccess returns nil if the given client is granted access to an image stream identified by
+// <namespace>/<imageRepo>. Otherwise the access is denied. The user embedded in given client must be able to
+// <verb> (get/update) imagestreams/layers resource in the <namespace> to have the access granted.
 func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{
@@ -299,6 +389,9 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 	return nil
 }
 
+// verifyPruneAccess returns nil if the given client is granted access to images resource. Otherwise the
+// access is denied. The user embedded in given client must be able to delete images resource in a cluster to
+// have the access granted.
 func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{

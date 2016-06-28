@@ -91,6 +91,8 @@ func TestAccessController(t *testing.T) {
 
 	tests := map[string]struct {
 		access             []auth.Access
+		uri                string
+		method             string
 		basicToken         string
 		openshiftResponses []response
 		expectedError      error
@@ -263,6 +265,92 @@ func TestAccessController(t *testing.T) {
 				"POST /oapi/v1/subjectaccessreviews",
 			},
 		},
+		"cross-repo mount": {
+			access: []auth.Access{
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "crossrepo/source",
+					},
+					Action: "pull",
+				},
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "foo/destination",
+					},
+					Action: "push",
+				},
+			},
+			uri:        "/v2/crossrepo/destination/blobs/uploads/?from=crossrepo/source&mount=sha256:da71393503ec9136cf62056c233f5d25b878e372c840170d91d65f8cdf94def2",
+			method:     "POST",
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "crossrepo", Allowed: true, Reason: "authorized!"})},
+			},
+			expectedError:     nil,
+			expectedChallenge: false,
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
+		},
+		"cross-repo mount missing from attribute": {
+			access: []auth.Access{
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "crossrepo/source",
+					},
+					Action: "pull",
+				},
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "foo/destination",
+					},
+					Action: "push",
+				},
+			},
+			uri:        "/v2/foo/destination/blobs/uploads/?mount=sha256:da71393503ec9136cf62056c233f5d25b878e372c840170d91d65f8cdf94def2",
+			method:     "POST",
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "crossrepo", Allowed: false, Reason: "no!"})},
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "foo", Allowed: true, Reason: "authorized!"})},
+			},
+			expectedError:     ErrOpenShiftAccessDenied,
+			expectedChallenge: true,
+			expectedActions:   []string{"POST /oapi/v1/namespaces/crossrepo/localsubjectaccessreviews"},
+		},
+		"cross-repo mount with unexpected method": {
+			access: []auth.Access{
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "crossrepo/source",
+					},
+					Action: "pull",
+				},
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "foo/destination",
+					},
+					Action: "push",
+				},
+			},
+			uri:        "/v2/crossrepo/destination/blobs/uploads/?from=crossrepo/source&mount=sha256:da71393503ec9136cf62056c233f5d25b878e372c840170d91d65f8cdf94def2",
+			method:     "PUT",
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "crossrepo", Allowed: true, Reason: "authorized!"})},
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "foo", Allowed: false, Reason: "authorized!"})},
+			},
+			expectedError:     ErrOpenShiftAccessDenied,
+			expectedChallenge: true,
+			expectedActions: []string{
+				"POST /oapi/v1/namespaces/crossrepo/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews",
+			},
+		},
 	}
 
 	for k, test := range tests {
@@ -274,7 +362,11 @@ func TestAccessController(t *testing.T) {
 		if len(test.basicToken) > 0 {
 			req.Header.Set("Authorization", fmt.Sprintf("Basic %s", test.basicToken))
 		}
-		ctx := context.WithValue(context.Background(), "http.request", req)
+		ctx := context.WithValues(context.Background(), map[string]interface{}{
+			"http.request":        req,
+			"http.request.uri":    test.uri,
+			"http.request.method": test.method,
+		})
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
 		DefaultRegistryClient = NewRegistryClient(&clientcmd.Config{
