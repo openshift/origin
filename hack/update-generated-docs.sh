@@ -37,14 +37,16 @@ fi
 
 OUTPUT_DIR_REL=${1:-""}
 OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/generated"
-MAN_OC_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/oc"
-MAN_OPENSHIFT_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/openshift"
-MAN_OADM_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/oadm"
+MAN_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/man1"
+# MAN_OC_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/oc"
+# MAN_OPENSHIFT_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/openshift"
+# MAN_OADM_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/oadm"
 mkdir -p "${OUTPUT_DIR}" || echo $? > /dev/null
-mkdir -p "${MAN_OC_OUTPUT_DIR}" || echo $? > /dev/null
-mkdir -p "${MAN_OPENSHIFT_OUTPUT_DIR}" || echo $? > /dev/null
-mkdir -p "${MAN_OADM_OUTPUT_DIR}" || echo $? > /dev/null
+mkdir -p "${MAN_OUTPUT_DIR}" || echo $? > /dev/null
+# mkdir -p "${MAN_OC_OUTPUT_DIR}" || echo $? > /dev/null
+# mkdir -p "${MAN_OPENSHIFT_OUTPUT_DIR}" || echo $? > /dev/null
+# mkdir -p "${MAN_OADM_OUTPUT_DIR}" || echo $? > /dev/null
 os::build::gen-docs "${gendocs}" "${OUTPUT_DIR}"
-os::build::gen-man "${genman}" "${MAN_OC_OUTPUT_DIR}" "oc"
-os::build::gen-man "${genman}" "${MAN_OPENSHIFT_OUTPUT_DIR}" "openshift"
-os::build::gen-man "${genman}" "${MAN_OADM_OUTPUT_DIR}" "oadm"
+os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "oc"
+os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "openshift"
+os::build::gen-man "${genman}" "${MAN_OUTPUT_DIR}" "oadm"
