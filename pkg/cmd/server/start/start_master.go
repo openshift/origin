@@ -380,6 +380,10 @@ func (m *Master) Start() error {
 		return err
 	}
 
+	// any controller that uses a core informer must be initialized *before* the API server starts core informers
+	// the API server adds its controllers at the correct time, but if the controllers are running, they need to be
+	// kicked separately
+
 	switch {
 	case m.api:
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
@@ -413,6 +417,7 @@ func (m *Master) Start() error {
 			}
 
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
+			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 		}()
 	} else {
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
@@ -502,6 +507,8 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		oc.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
 	}
 
+	// start up the informers that we're trying to use in the API server
+	oc.Informers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {

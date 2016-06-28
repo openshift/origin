@@ -64,8 +64,9 @@ var AdmissionPlugins = []string{
 	"BuildOverrides",
 	"AlwaysPullImages",
 	"LimitPodHardAntiAffinityTopology",
-	"ResourceQuota",
 	"SCCExecRestrictions",
+	"ResourceQuota",
+	"ClusterResourceQuota",
 }
 
 // MasterConfig defines the required values to start a Kubernetes master
