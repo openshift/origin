@@ -562,7 +562,7 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.Objec
 			if buildFrom == nil || buildFrom.Kind != "ImageStreamTag" {
 				invalidKindErr := field.Invalid(
 					fldPath.Child("imageChange"),
-					fmt.Sprintf("build from: %v", buildFrom),
+					fmt.Sprintf("build from: %v", *buildFrom),
 					"a default ImageChange trigger can only be used when the build strategy includes an ImageStreamTag reference.")
 				allErrs = append(allErrs, invalidKindErr)
 				break
