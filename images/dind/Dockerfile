@@ -51,4 +51,10 @@ RUN systemctl enable docker
 
 VOLUME /var/lib/docker
 
-CMD ["/usr/sbin/init"]
+## Hardlink init to another name to avoid having oci-systemd-hooks
+## detect containers using this image as requiring read-only cgroup
+## mounts.  dind containers should be run with --privileged to ensure
+## cgroups mounted with read-write permissions.
+RUN ln /usr/sbin/init /usr/sbin/dind_init
+
+CMD ["/usr/sbin/dind_init"]
