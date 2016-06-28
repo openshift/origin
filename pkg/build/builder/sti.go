@@ -350,8 +350,8 @@ func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
 // the strategy's environment. There is no preference given to either lowercase
 // or uppercase form of the variable.
 func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
-	var httpProxy string
-	var httpsProxy string
+	httpProxy := ""
+	httpsProxy := ""
 
 	for _, env := range build.Spec.Strategy.SourceStrategy.Env {
 		switch env.Name {
