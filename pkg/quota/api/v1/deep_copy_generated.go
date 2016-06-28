@@ -13,6 +13,8 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
+		DeepCopy_v1_AppliedClusterResourceQuota,
+		DeepCopy_v1_AppliedClusterResourceQuotaList,
 		DeepCopy_v1_ClusterResourceQuota,
 		DeepCopy_v1_ClusterResourceQuotaList,
 		DeepCopy_v1_ClusterResourceQuotaSpec,
@@ -22,6 +24,43 @@ func init() {
 		// if one of the deep copy functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+func DeepCopy_v1_AppliedClusterResourceQuota(in AppliedClusterResourceQuota, out *AppliedClusterResourceQuota, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := api_v1.DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_v1_ClusterResourceQuotaSpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	if err := DeepCopy_v1_ClusterResourceQuotaStatus(in.Status, &out.Status, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeepCopy_v1_AppliedClusterResourceQuotaList(in AppliedClusterResourceQuotaList, out *AppliedClusterResourceQuotaList, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := in.Items, &out.Items
+		*out = make([]AppliedClusterResourceQuota, len(in))
+		for i := range in {
+			if err := DeepCopy_v1_AppliedClusterResourceQuota(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
 }
 
 func DeepCopy_v1_ClusterResourceQuota(in ClusterResourceQuota, out *ClusterResourceQuota, c *conversion.Cloner) error {

@@ -139,6 +139,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(projectGroup).Resources("projectrequests", "projects").RuleOrDie(),
 
+				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("appliedclusterresourcequotas").RuleOrDie(),
+
 				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("clusterresourcequotas").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes", "routes/status").RuleOrDie(),
@@ -239,6 +241,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule("get", "patch", "update", "delete").Groups(projectGroup).Resources("projects").RuleOrDie(),
 
+				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("appliedclusterresourcequotas").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(routeGroup).Resources("routes").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes/status").RuleOrDie(),
 				// an admin can run routers that write back conditions to the route
@@ -286,6 +290,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule("get").Groups(projectGroup).Resources("projects").RuleOrDie(),
 
+				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("appliedclusterresourcequotas").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(routeGroup).Resources("routes").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes/status").RuleOrDie(),
 
@@ -327,6 +333,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
 
 				authorizationapi.NewRule("get").Groups(projectGroup).Resources("projects").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("appliedclusterresourcequotas").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes/status").RuleOrDie(),

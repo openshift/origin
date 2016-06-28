@@ -17,13 +17,16 @@ import (
 	"github.com/openshift/origin/pkg/api/validation"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // KnownUpdateValidationExceptions is the list of types that are known to not have an update validation function registered
 // If you add something to this list, explain why it doesn't need update validation.
 var KnownUpdateValidationExceptions = []reflect.Type{
-	reflect.TypeOf(&extapi.Scale{}), // scale operation uses the ValidateScale() function for both create and update
+	reflect.TypeOf(&extapi.Scale{}),                         // scale operation uses the ValidateScale() function for both create and update
+	reflect.TypeOf(&quotaapi.AppliedClusterResourceQuota{}), // this only retrieved, never created.  its a virtual projection of ClusterResourceQuota
 }
 
 // TestValidationRegistration makes sure that any RESTStorage that allows create or update has the correct validation register.
@@ -71,10 +74,12 @@ func TestValidationRegistration(t *testing.T) {
 func fakeMasterConfig() *MasterConfig {
 	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, genericapiserver.DefaultDeserializationCacheSize)
 
+	informerFactory := shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	return &MasterConfig{
-		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
-		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
-		EtcdHelper:          etcdHelper,
-		Informers:           shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second),
+		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
+		RESTOptionsGetter:             restoptions.NewSimpleGetter(etcdHelper),
+		EtcdHelper:                    etcdHelper,
+		Informers:                     informerFactory,
+		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas()),
 	}
 }

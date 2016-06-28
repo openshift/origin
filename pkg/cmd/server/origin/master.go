@@ -91,6 +91,7 @@ import (
 	"github.com/openshift/origin/pkg/build/registry/buildclone"
 	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
 
+	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
 	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
 
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -611,6 +612,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterRoles":          clusterRoleStorage,
 
 		"clusterResourceQuotas": restInPeace(clusterresourcequotaregistry.NewStorage(c.RESTOptionsGetter)),
+		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
+			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.Namespaces().Lister()),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {

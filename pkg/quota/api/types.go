@@ -54,6 +54,31 @@ type ClusterResourceQuotaList struct {
 	Items []ClusterResourceQuota
 }
 
+// AppliedClusterResourceQuota mirrors ClusterResourceQuota at a namespace scope, for projection
+// into a namespace.  It allows a project-admin to know which ClusterResourceQuotas are applied to
+// his project and their associated usage.
+type AppliedClusterResourceQuota struct {
+	unversioned.TypeMeta
+	// Standard object's metadata.
+	kapi.ObjectMeta
+
+	// Spec defines the desired quota
+	Spec ClusterResourceQuotaSpec
+
+	// Status defines the actual enforced quota and its current usage
+	Status ClusterResourceQuotaStatus
+}
+
+// AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas
+type AppliedClusterResourceQuotaList struct {
+	unversioned.TypeMeta
+	// Standard object's metadata.
+	unversioned.ListMeta
+
+	// Items is a list of AppliedClusterResourceQuota
+	Items []AppliedClusterResourceQuota
+}
+
 // ResourceQuotasStatusByNamespace provides type correct methods
 type ResourceQuotasStatusByNamespace struct {
 	orderedMap orderedMap
