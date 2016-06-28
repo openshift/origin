@@ -18,12 +18,15 @@ import (
 // repository name and digest.
 type linkPathFunc func(name string, dgst digest.Digest) (string, error)
 
+// RepositoryMiddlewareWrapper wraps given repository object with a middleware wrapper.
+type RepositoryMiddlewareWrapper func(ctx context.Context, repo distribution.Repository, name reference.Named) (distribution.Repository, error)
+
 // linkedBlobStore provides a full BlobService that namespaces the blobs to a
 // given repository. Effectively, it manages the links in a given repository
 // that grant access to the global blob store.
 type linkedBlobStore struct {
 	*blobStore
-	registry               *registry
+	registry               distribution.Namespace
 	blobServer             distribution.BlobServer
 	blobAccessController   distribution.BlobDescriptorService
 	repository             distribution.Repository
@@ -108,6 +111,7 @@ type createOptions struct {
 		ShouldMount bool
 		From        reference.Canonical
 	}
+	ApplyRepositoryMiddleware RepositoryMiddlewareWrapper
 }
 
 type optionFunc func(interface{}) error
@@ -132,6 +136,21 @@ func WithMountFrom(ref reference.Canonical) distribution.BlobCreateOption {
 	})
 }
 
+// WithRepositoryMiddlewareWrapper returns an option for Create method making it apply a middleware wrapper
+// for target repository.
+func WithRepositoryMiddlewareWrapper(f RepositoryMiddlewareWrapper) distribution.BlobCreateOption {
+	return optionFunc(func(v interface{}) error {
+		opts, ok := v.(*createOptions)
+		if !ok {
+			return fmt.Errorf("unexpected options type: %T", v)
+		}
+
+		opts.ApplyRepositoryMiddleware = f
+
+		return nil
+	})
+}
+
 // Writer begins a blob write session, returning a handle.
 func (lbs *linkedBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
 	context.GetLogger(ctx).Debug("(*linkedBlobStore).Writer")
@@ -146,7 +165,7 @@ func (lbs *linkedBlobStore) Create(ctx context.Context, options ...distribution.
 	}
 
 	if opts.Mount.ShouldMount {
-		desc, err := lbs.mount(ctx, opts.Mount.From, opts.Mount.From.Digest())
+		desc, err := lbs.mount(ctx, opts.ApplyRepositoryMiddleware, opts.Mount.From, opts.Mount.From.Digest())
 		if err == nil {
 			// Mount successful, no need to initiate an upload session
 			return nil, distribution.ErrBlobMounted{From: opts.Mount.From, Descriptor: desc}
@@ -289,11 +308,19 @@ func (lbs *linkedBlobStore) Enumerate(ctx context.Context, ingestor func(digest.
 	return nil
 }
 
-func (lbs *linkedBlobStore) mount(ctx context.Context, sourceRepo reference.Named, dgst digest.Digest) (distribution.Descriptor, error) {
+func (lbs *linkedBlobStore) mount(ctx context.Context, repositoryMiddlewareWrapper RepositoryMiddlewareWrapper, sourceRepo reference.Named, dgst digest.Digest) (distribution.Descriptor, error) {
 	repo, err := lbs.registry.Repository(ctx, sourceRepo)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
+
+	if repositoryMiddlewareWrapper != nil {
+		repo, err = repositoryMiddlewareWrapper(ctx, repo, sourceRepo)
+		if err != nil {
+			return distribution.Descriptor{}, err
+		}
+	}
+
 	stat, err := repo.Blobs(ctx).Stat(ctx, dgst)
 	if err != nil {
 		return distribution.Descriptor{}, err
