@@ -382,6 +382,8 @@ func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
 	return config, nil
 }
 
+// copyArtifactSourceList copies the artifacts set in the build config to the
+// VolumeList struct in the s2iapi.Config
 func copyArtifactSourceList(artifactsMapping []api.ImageSourcePath) (volumeList []s2iapi.VolumeSpec) {
 	for _, mappedPath := range artifactsMapping {
 		volumeList = append(volumeList, s2iapi.VolumeSpec{
@@ -389,5 +391,5 @@ func copyArtifactSourceList(artifactsMapping []api.ImageSourcePath) (volumeList 
 			Destination: mappedPath.DestinationDir,
 		})
 	}
-	return volumeList
+	return
 }
