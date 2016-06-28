@@ -4,13 +4,17 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	"github.com/openshift/origin/pkg/sdn/plugin/api"
@@ -23,6 +27,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/containernetworking/cni/pkg/ip"
 	"github.com/containernetworking/cni/pkg/ipam"
@@ -49,6 +54,7 @@ const (
 )
 
 type PodConfig struct {
+	masterKubeConfig string
 	clusterNetwork   string
 	nodeNetwork      string
 	mtu              uint32
@@ -56,12 +62,14 @@ type PodConfig struct {
 	ingressBandwidth string
 	egressBandwidth  string
 	wantMacvlan      bool
+	podStatusPath    string
 }
 
 type podInfo struct {
-	Vnid        uint32
-	Privileged  bool
-	Annotations map[string]string
+	podStatusPath string
+	Vnid          uint32
+	Privileged    bool
+	Annotations   map[string]string
 }
 
 func gatherCniArgs(cniArgs string) (map[string]string, error) {
@@ -76,16 +84,25 @@ func gatherCniArgs(cniArgs string) (map[string]string, error) {
 	return mapArgs, nil
 }
 
-func readPodInfo(originClient *oclient.Client, kubeClient *kclient.Client, cniArgs string, pluginName string) (*podInfo, error) {
+func getPodNamespaceAndName(cniArgs string) (string, string, error) {
 	mapArgs, err := gatherCniArgs(cniArgs)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	namespace, namespaceOk := mapArgs["K8S_POD_NAMESPACE"]
 	name, nameOk := mapArgs["K8S_POD_NAME"]
 	if !namespaceOk || !nameOk {
-		return nil, fmt.Errorf("missing pod namespace or name")
+		return "", "", fmt.Errorf("missing pod namespace or name")
+	}
+
+	return namespace, name, nil
+}
+
+func readPodInfo(originClient *oclient.Client, kubeClient *kclient.Client, cniArgs string, pluginName string) (*podInfo, error) {
+	namespace, name, err := getPodNamespaceAndName(cniArgs)
+	if err != nil {
+		return nil, err
 	}
 
 	info := &podInfo{}
@@ -103,6 +120,7 @@ func readPodInfo(originClient *oclient.Client, kubeClient *kclient.Client, cniAr
 	if err != nil {
 		return nil, fmt.Errorf("failed to read pod %s/%s: %v", namespace, name, err)
 	}
+	info.podStatusPath = path.Join(sdnplugin.PodStatusPath(pod))
 
 	for _, container := range pod.Spec.Containers {
 		if container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
@@ -149,20 +167,30 @@ func loadNetConf(bytes []byte) (*api.CNINetConfig, error) {
 	return n, nil
 }
 
+func getClients(masterKubeConfig string) (*oclient.Client, *kclient.Client, error) {
+	// Create OpenShift and Kubernetes clients to read the ClusterNetwork and PodSpec
+	overrides := &configapi.ClientConnectionOverrides{}
+	configapi.SetProtobufClientDefaults(overrides)
+
+	originClient, _, err := configapi.GetOpenShiftClient(masterKubeConfig, overrides)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	kubeClient, _, err := configapi.GetKubeClient(masterKubeConfig, overrides)
+	if err != nil {
+		return nil, nil, err
+	}
+	return originClient, kubeClient, nil
+}
+
 func getPodConfig(args *skel.CmdArgs) (*PodConfig, error) {
 	n, err := loadNetConf(args.StdinData)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create OpenShift and Kubernetes clients to read the ClusterNetwork and PodSpec
-	overrides := &configapi.ClientConnectionOverrides{}
-	configapi.SetProtobufClientDefaults(overrides)
-	originClient, _, err := configapi.GetOpenShiftClient(n.MasterKubeConfig, overrides)
-	if err != nil {
-		return nil, err
-	}
-	kubeClient, _, err := configapi.GetKubeClient(n.MasterKubeConfig, overrides)
+	originClient, kubeClient, err := getClients(n.MasterKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -198,6 +226,7 @@ func getPodConfig(args *skel.CmdArgs) (*PodConfig, error) {
 	}
 
 	return &PodConfig{
+		masterKubeConfig: n.MasterKubeConfig,
 		clusterNetwork:   cn.Network,
 		nodeNetwork:      hostSubnet.Subnet,
 		mtu:              n.MTU,
@@ -205,6 +234,7 @@ func getPodConfig(args *skel.CmdArgs) (*PodConfig, error) {
 		ingressBandwidth: ingress,
 		egressBandwidth:  egress,
 		wantMacvlan:      macvlan,
+		podStatusPath:    podInfo.podStatusPath,
 	}, nil
 }
 
@@ -364,6 +394,68 @@ func getScriptError(output []byte) string {
 	return string(output)
 }
 
+func updatePodIP(masterKubeConfig string, cniArgs string, podIP string) error {
+	_, kubeClient, err := getClients(masterKubeConfig)
+	if err != nil {
+		return err
+	}
+
+	namespace, name, err := getPodNamespaceAndName(cniArgs)
+	if err != nil {
+		return err
+	}
+
+	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+		pod, err := kubeClient.Pods(namespace).Get(name)
+		if err == nil {
+			// Push updated PodIP to the apiserver
+			pod.Status.PodIP = podIP
+			_, err = kubeClient.Pods(namespace).UpdateStatus(pod)
+		}
+		return err
+	})
+	if resultErr != nil {
+		return fmt.Errorf("failed to update pod %s/%s IP: %v", namespace, name, err)
+	}
+
+	return nil
+}
+
+func waitForPodStatus(path string) error {
+	/* Wait about 22 seconds max */
+	backoff := utilwait.Backoff{
+		Steps:    8,
+		Duration: 10 * time.Millisecond,
+		Factor:   3.0,
+		Jitter:   0.1,
+	}
+
+	// Wait for the node process to write out the pod file
+	var contents []byte
+	var err error
+	err = utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+		contents, err = ioutil.ReadFile(path)
+		switch {
+		case err == nil:
+			return true, nil
+		case os.IsNotExist(err):
+			// Just wait longer
+			return false, nil
+		default:
+			return false, err
+		}
+	})
+	if err != nil {
+		return err
+	}
+	os.Remove(path)
+
+	if string(contents) != "ok" {
+		return errors.New(string(contents))
+	}
+	return nil
+}
+
 func cmdAdd(args *skel.CmdArgs) error {
 	mapArgs, err := gatherCniArgs(args.Args)
 	if err != nil {
@@ -448,6 +540,14 @@ func cmdAdd(args *skel.CmdArgs) error {
 	if isScriptError(err) {
 		return fmt.Errorf("error running network setup script:\nhostVethName %s, contVethMac %s, podIP %s, podConfig %#v\n %s", hostVeth.Attrs().Name, contVethMac, podIP, podConfig, out)
 	} else if err != nil {
+		return err
+	}
+
+	// Push PodIP to apiserver; node process needs it for HostPort handling
+	updatePodIP(podConfig.masterKubeConfig, args.Args, podIP)
+
+	// Wait for node process to set up any pod hostports
+	if err := waitForPodStatus(podConfig.podStatusPath); err != nil {
 		return err
 	}
 
