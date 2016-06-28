@@ -28,7 +28,16 @@ func addKnownTypes(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ClusterResourceQuota{},
 		&ClusterResourceQuotaList{},
+		&AppliedClusterResourceQuota{},
+		&AppliedClusterResourceQuotaList{},
 	)
+}
+
+func (obj *AppliedClusterResourceQuotaList) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
+func (obj *AppliedClusterResourceQuota) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
 }
 
 func (obj *ClusterResourceQuotaList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
