@@ -23,13 +23,13 @@ var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
-		deploymentFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment-test.yaml")
-		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "deployment-simple.yaml")
-		customDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "custom-deployment.yaml")
-		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
-		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
-		failedHookFixture       = exutil.FixturePath("..", "extended", "testdata", "failing-pre-hook.yaml")
-		brokenDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "test-deployment-broken.yaml")
+		deploymentFixture       = exutil.FixturePath("testdata", "test-deployment-test.yaml")
+		simpleDeploymentFixture = exutil.FixturePath("testdata", "deployment-simple.yaml")
+		customDeploymentFixture = exutil.FixturePath("testdata", "custom-deployment.yaml")
+		generationFixture       = exutil.FixturePath("testdata", "test-deployment.yaml")
+		pausedDeploymentFixture = exutil.FixturePath("testdata", "paused-deployment.yaml")
+		failedHookFixture       = exutil.FixturePath("testdata", "failing-pre-hook.yaml")
+		brokenDeploymentFixture = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
