@@ -1,0 +1,151 @@
+.TH "OC IMPORT" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oc import app.json \- Import an app.json definition into OpenShift (experimental)
+
+
+.SH SYNOPSIS
+.PP
+\fBoc import app.json\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Import app.json files as OpenShift objects
+
+.PP
+app.json defines the pattern of a simple, stateless web application that can be horizontally scaled.
+This command will transform a provided app.json object into its OpenShift equivalent.
+During transformation fields in the app.json syntax that are not relevant when running on top of
+a containerized platform will be ignored and a warning printed.
+
+.PP
+The command will create objects unless you pass the \-o yaml or \-\-as\-template flags to generate a
+configuration file for later use.
+
+.PP
+Experimental: This command is under active development and may change without notice.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-as\-template\fP=""
+    If set, generate a template with the provided name
+
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, show the result of the operation without performing it.
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to app.json file to use
+
+.PP
+\fB\-\-generator\fP="app\-json/v1"
+    The name of the generator strategy to use \- specify this value to for backwards compatibility.
+
+.PP
+\fB\-\-image\fP=""
+    An optional image to use as your base Docker build (must have ONBUILD directives)
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output results as yaml or json instead of executing, or use name for succint output (resource/name).
+
+.PP
+\fB\-\-output\-version\fP=""
+    The preferred API versions of the output objects
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Import a directory containing an app.json file
+  $ oc import app.json \-f .
+
+  # Turn an app.json file into a template
+  $ oc import app.json \-f ./app.json \-o yaml \-\-as\-template
+
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBoc\-import(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

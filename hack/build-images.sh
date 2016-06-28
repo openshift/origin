@@ -30,7 +30,7 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
 
   echo "Building images from source ${OS_RELEASE_COMMIT}:"
 	echo
-  os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
+  OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
 	os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
   echo
 else

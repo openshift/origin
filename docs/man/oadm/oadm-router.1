@@ -1,0 +1,260 @@
+.TH "OADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oadm router \- Install a router
+
+
+.SH SYNOPSIS
+.PP
+\fBoadm router\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Install or configure a router
+
+.PP
+This command helps to setup a router to take edge traffic and balance it to
+your application. With no arguments, the command will check for an existing router
+service called 'router' and create one if it does not exist. If you want to test whether
+a router has already been created add the \-\-dry\-run flag and the command will exit with
+1 if the registry does not exist.
+
+.PP
+If a router does not exist with the given name, this command will
+create a deployment configuration and service that will run the router. If you are
+running your router in production, you should pass \-\-replicas=2 or higher to ensure
+you have failover protection.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-create\fP=false
+    deprecated; this is now the default behavior
+
+.PP
+\fB\-\-credentials\fP=""
+    Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.
+
+.PP
+\fB\-\-default\-cert\fP=""
+    Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.
+
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, show the result of the operation without performing it.
+
+.PP
+\fB\-\-expose\-metrics\fP=false
+    This is a hint to run an extra container in the pod to expose metrics \- the image will either be set depending on the router implementation or provided with \-\-metrics\-image.
+
+.PP
+\fB\-\-external\-host\fP=""
+    If the underlying router implementation connects with an external host, this is the external host's hostname.
+
+.PP
+\fB\-\-external\-host\-http\-vserver\fP=""
+    If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTP connections.
+
+.PP
+\fB\-\-external\-host\-https\-vserver\fP=""
+    If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.
+
+.PP
+\fB\-\-external\-host\-insecure\fP=false
+    If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.
+
+.PP
+\fB\-\-external\-host\-partition\-path\fP=""
+    If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.
+
+.PP
+\fB\-\-external\-host\-password\fP=""
+    If the underlying router implementation connects with an external host, this is the password for authenticating with the external host.
+
+.PP
+\fB\-\-external\-host\-private\-key\fP=""
+    If the underlying router implementation requires an SSH private key, this is the path to the private key file.
+
+.PP
+\fB\-\-external\-host\-username\fP=""
+    If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.
+
+.PP
+\fB\-\-force\-subdomain\fP=""
+    A router path format to force on all routes used by this router (will ignore the route host value)
+
+.PP
+\fB\-\-host\-network\fP=true
+    If true (the default), then use host networking rather than using a separate container network stack.
+
+.PP
+\fB\-\-host\-ports\fP=true
+    If true (the default), when not using host networking host ports will be exposed.
+
+.PP
+\fB\-\-images\fP="openshift/origin\-${component}:${version}"
+    The image to base this router on \- ${component} will be replaced with \-\-type
+
+.PP
+\fB\-\-labels\fP="router=<name>"
+    A set of labels to uniquely identify the router and its components.
+
+.PP
+\fB\-\-latest\-images\fP=false
+    If true, attempt to use the latest images for the router instead of the latest release.
+
+.PP
+\fB\-\-metrics\-image\fP=""
+    If \-\-expose\-metrics is specified this is the image to use to run a sidecar container in the pod exposing metrics. If not set and \-\-expose\-metrics is true the image will depend on router implementation.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output results as yaml or json instead of executing, or use name for succint output (resource/name).
+
+.PP
+\fB\-\-output\-version\fP=""
+    The preferred API versions of the output objects
+
+.PP
+\fB\-\-ports\fP="80:80,443:443"
+    A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).
+
+.PP
+\fB\-\-replicas\fP=1
+    The replication factor of the router; commonly 2 when high availability is desired.
+
+.PP
+\fB\-\-secrets\-as\-env\fP=false
+    Use environment variables for master secrets.
+
+.PP
+\fB\-\-selector\fP=""
+    Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.
+
+.PP
+\fB\-\-service\-account\fP="router"
+    Name of the service account to use to run the router pod.
+
+.PP
+\fB\-\-stats\-password\fP=""
+    If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.
+
+.PP
+\fB\-\-stats\-port\fP=1936
+    If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.
+
+.PP
+\fB\-\-stats\-user\fP="admin"
+    If the underlying router implementation can provide statistics this is the requested username for auth.
+
+.PP
+\fB\-\-subdomain\fP=""
+    The template for the route subdomain exposed by this router, used for routes that are not externally specified. E.g. '${name}\-${namespace}.apps.mycompany.com'
+
+.PP
+\fB\-\-type\fP="haproxy\-router"
+    The type of router to use \- if you specify \-\-images this flag may be ignored.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Check the default router ("router")
+  oadm router \-\-dry\-run
+
+  # See what the router would look like if created
+  oadm router \-o yaml
+
+  # Create a router with two replicas if it does not exist
+  oadm router router\-west \-\-replicas=2
+
+  # Use a different router image
+  oadm router region\-west \-\-images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to \_not\_ expose statistics.
+  oadm router router\-west \-\-stats\-port=0
+  
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBoadm(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

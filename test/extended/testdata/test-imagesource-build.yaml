@@ -89,7 +89,7 @@ items:
           deploymentconfig: imagesourceapp
       spec:
         containers:
-        - image: imagesourceapp
+        - image:
           imagePullPolicy: Always
           readinessProbe:
             httpGet:
@@ -114,7 +114,7 @@ items:
           kind: ImageStreamTag
           name: imagesourceapp:latest
       type: ImageChange
-
+    - type: ConfigChange
 
 - apiVersion: v1
   kind: DeploymentConfig
@@ -134,7 +134,7 @@ items:
           deploymentconfig: imagedockerapp
       spec:
         containers:
-        - image: imagedockerapp
+        - image:
           imagePullPolicy: Always
           readinessProbe:
             httpGet:
@@ -159,4 +159,4 @@ items:
           kind: ImageStreamTag
           name: imagedockerapp:latest
       type: ImageChange
-      
+    - type: ConfigChange

@@ -1,0 +1,168 @@
+.TH "OPENSHIFT CLI ADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli adm create\-node\-config \- Create a configuration bundle for a node
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli adm create\-node\-config\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Create a configuration bundle for a node
+
+
+.SH OPTIONS
+.PP
+\fB\-\-allow\-disabled\-docker\fP=false
+    Allow the node to start without docker being available.
+
+.PP
+\fB\-\-certificate\-authority\fP=[openshift.local.config/master/ca.crt]
+    Files containing signing authorities to use to verify the API server's serving certificate.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    The client cert file for the node to contact the API.
+
+.PP
+\fB\-\-client\-key\fP=""
+    The client key file for the node to contact the API.
+
+.PP
+\fB\-\-dns\-domain\fP="cluster.local"
+    DNS domain for the cluster.
+
+.PP
+\fB\-\-dns\-ip\fP=""
+    DNS server IP for the cluster.
+
+.PP
+\fB\-\-hostnames\fP=[]
+    Every hostname or IP you want server certs to be valid for. Comma delimited list
+
+.PP
+\fB\-\-images\fP="openshift/origin\-${component}:${version}"
+    When fetching the network container image, use this format. The latest release will be used by default.
+
+.PP
+\fB\-\-latest\-images\fP=false
+    If true, attempt to use the latest images for the cluster instead of the latest release.
+
+.PP
+\fB\-\-listen\fP="
+\[la]https://0.0.0.0:10250"\[ra]
+    The address to listen for connections on (scheme://host:port).
+
+.PP
+\fB\-\-master\fP="
+\[la]https://localhost:8443"\[ra]
+    The API server's URL.
+
+.PP
+\fB\-\-network\-plugin\fP=""
+    Name of the network plugin to hook to for pod networking. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
+
+.PP
+\fB\-\-node\fP=""
+    The name of the node as it appears in etcd.
+
+.PP
+\fB\-\-node\-client\-certificate\-authority\fP="openshift.local.config/master/ca.crt"
+    The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.
+
+.PP
+\fB\-\-node\-dir\fP=""
+    The client data directory.
+
+.PP
+\fB\-\-server\-certificate\fP=""
+    The server cert file for the node to serve secure traffic.
+
+.PP
+\fB\-\-server\-key\fP=""
+    The server key file for the node to serve secure traffic.
+
+.PP
+\fB\-\-signer\-cert\fP="openshift.local.config/master/ca.crt"
+    The certificate file.
+
+.PP
+\fB\-\-signer\-key\fP="openshift.local.config/master/ca.key"
+    The key file.
+
+.PP
+\fB\-\-signer\-serial\fP="openshift.local.config/master/ca.serial.txt"
+    The serial file that keeps track of how many certs have been signed.
+
+.PP
+\fB\-\-volume\-dir\fP="openshift.local.volumes"
+    The volume storage directory.  This path is not relativized.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-adm(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"io"
+	"sync"
 	"testing"
 
 	"github.com/docker/distribution"
@@ -9,6 +10,8 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/proxy/scheduler"
 	"github.com/docker/distribution/registry/storage"
 	"github.com/docker/distribution/registry/storage/cache/memory"
@@ -37,53 +40,66 @@ func (te manifestStoreTestEnv) RemoteStats() *map[string]int {
 	return &rs
 }
 
-func (sm statsManifest) Delete(dgst digest.Digest) error {
+func (sm statsManifest) Delete(ctx context.Context, dgst digest.Digest) error {
 	sm.stats["delete"]++
-	return sm.manifests.Delete(dgst)
+	return sm.manifests.Delete(ctx, dgst)
 }
 
-func (sm statsManifest) Exists(dgst digest.Digest) (bool, error) {
+func (sm statsManifest) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	sm.stats["exists"]++
-	return sm.manifests.Exists(dgst)
+	return sm.manifests.Exists(ctx, dgst)
 }
 
-func (sm statsManifest) ExistsByTag(tag string) (bool, error) {
-	sm.stats["existbytag"]++
-	return sm.manifests.ExistsByTag(tag)
-}
-
-func (sm statsManifest) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
+func (sm statsManifest) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	sm.stats["get"]++
-	return sm.manifests.Get(dgst)
+	return sm.manifests.Get(ctx, dgst)
 }
 
-func (sm statsManifest) GetByTag(tag string, options ...distribution.ManifestServiceOption) (*schema1.SignedManifest, error) {
-	sm.stats["getbytag"]++
-	return sm.manifests.GetByTag(tag, options...)
-}
-
-func (sm statsManifest) Enumerate() ([]digest.Digest, error) {
-	sm.stats["enumerate"]++
-	return sm.manifests.Enumerate()
-}
-
-func (sm statsManifest) Put(manifest *schema1.SignedManifest) error {
+func (sm statsManifest) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
 	sm.stats["put"]++
-	return sm.manifests.Put(manifest)
+	return sm.manifests.Put(ctx, manifest)
 }
 
-func (sm statsManifest) Tags() ([]string, error) {
-	sm.stats["tags"]++
-	return sm.manifests.Tags()
+/*func (sm statsManifest) Enumerate(ctx context.Context, manifests []distribution.Manifest, last distribution.Manifest) (n int, err error) {
+	sm.stats["enumerate"]++
+	return sm.manifests.Enumerate(ctx, manifests, last)
+}
+*/
+
+type mockChallenger struct {
+	sync.Mutex
+	count int
+}
+
+// Called for remote operations only
+func (m *mockChallenger) tryEstablishChallenges(context.Context) error {
+	m.Lock()
+	defer m.Unlock()
+
+	m.count++
+	return nil
+}
+
+func (m *mockChallenger) credentialStore() auth.CredentialStore {
+	return nil
+}
+
+func (m *mockChallenger) challengeManager() auth.ChallengeManager {
+	return nil
 }
 
 func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestEnv {
+	nameRef, err := reference.ParseNamed(name)
+	if err != nil {
+		t.Fatalf("unable to parse reference: %s", err)
+	}
+
 	ctx := context.Background()
 	truthRegistry, err := storage.NewRegistry(ctx, inmemory.New(), storage.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()))
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
-	truthRepo, err := truthRegistry.Repository(ctx, name)
+	truthRepo, err := truthRegistry.Repository(ctx, nameRef)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
 	}
@@ -105,7 +121,7 @@ func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestE
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
-	localRepo, err := localRegistry.Repository(ctx, name)
+	localRepo, err := localRegistry.Repository(ctx, nameRef)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
 	}
@@ -127,6 +143,8 @@ func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestE
 			localManifests:  localManifests,
 			remoteManifests: truthManifests,
 			scheduler:       s,
+			repositoryName:  nameRef,
+			authChallenger:  &mockChallenger{},
 		},
 	}
 }
@@ -174,15 +192,12 @@ func populateRepo(t *testing.T, ctx context.Context, repository distribution.Rep
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	ms.Put(sm)
+	dgst, err := ms.Put(ctx, sm)
 	if err != nil {
 		t.Fatalf("unexpected errors putting manifest: %v", err)
 	}
-	pl, err := sm.Payload()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return digest.FromBytes(pl)
+
+	return dgst, nil
 }
 
 // TestProxyManifests contains basic acceptance tests
@@ -194,24 +209,30 @@ func TestProxyManifests(t *testing.T) {
 	localStats := env.LocalStats()
 	remoteStats := env.RemoteStats()
 
+	ctx := context.Background()
 	// Stat - must check local and remote
-	exists, err := env.manifests.ExistsByTag("latest")
+	exists, err := env.manifests.Exists(ctx, env.manifestDigest)
 	if err != nil {
-		t.Fatalf("Error checking existance")
+		t.Fatalf("Error checking existence")
 	}
 	if !exists {
 		t.Errorf("Unexpected non-existant manifest")
 	}
 
-	if (*localStats)["existbytag"] != 1 && (*remoteStats)["existbytag"] != 1 {
-		t.Errorf("Unexpected exists count")
+	if (*localStats)["exists"] != 1 && (*remoteStats)["exists"] != 1 {
+		t.Errorf("Unexpected exists count : \n%v \n%v", localStats, remoteStats)
+	}
+
+	if env.manifests.authChallenger.(*mockChallenger).count != 1 {
+		t.Fatalf("Expected 1 auth challenge, got %#v", env.manifests.authChallenger)
 	}
 
 	// Get - should succeed and pull manifest into local
-	_, err = env.manifests.Get(env.manifestDigest)
+	_, err = env.manifests.Get(ctx, env.manifestDigest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if (*localStats)["get"] != 1 && (*remoteStats)["get"] != 1 {
 		t.Errorf("Unexpected get count")
 	}
@@ -220,8 +241,12 @@ func TestProxyManifests(t *testing.T) {
 		t.Errorf("Expected local put")
 	}
 
+	if env.manifests.authChallenger.(*mockChallenger).count != 2 {
+		t.Fatalf("Expected 2 auth challenges, got %#v", env.manifests.authChallenger)
+	}
+
 	// Stat - should only go to local
-	exists, err = env.manifests.ExistsByTag("latest")
+	exists, err = env.manifests.Exists(ctx, env.manifestDigest)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,19 +254,22 @@ func TestProxyManifests(t *testing.T) {
 		t.Errorf("Unexpected non-existant manifest")
 	}
 
-	if (*localStats)["existbytag"] != 2 && (*remoteStats)["existbytag"] != 1 {
+	if (*localStats)["exists"] != 2 && (*remoteStats)["exists"] != 1 {
 		t.Errorf("Unexpected exists count")
-
 	}
 
-	// Get - should get from remote, to test freshness
-	_, err = env.manifests.Get(env.manifestDigest)
+	if env.manifests.authChallenger.(*mockChallenger).count != 2 {
+		t.Fatalf("Expected 2 auth challenges, got %#v", env.manifests.authChallenger)
+	}
+
+	// Get proxied - won't require another authchallenge
+	_, err = env.manifests.Get(ctx, env.manifestDigest)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if (*remoteStats)["get"] != 2 && (*remoteStats)["existsbytag"] != 1 && (*localStats)["put"] != 1 {
-		t.Errorf("Unexpected get count")
+	if env.manifests.authChallenger.(*mockChallenger).count != 2 {
+		t.Fatalf("Expected 2 auth challenges, got %#v", env.manifests.authChallenger)
 	}
 
 }

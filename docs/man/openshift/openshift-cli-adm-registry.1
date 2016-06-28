@@ -1,0 +1,218 @@
+.TH "OPENSHIFT CLI ADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli adm registry \- Install the integrated Docker registry
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli adm registry\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Install or configure an integrated Docker registry
+
+.PP
+This command sets up a Docker registry integrated with your cluster to provide notifications when
+images are pushed. With no arguments, the command will check for the existing registry service
+called 'docker\-registry' and try to create it. If you want to test whether the registry has
+been created add the \-\-dry\-run flag and the command will exit with 1 if the registry does not
+exist.
+
+.PP
+To run a highly available registry, you should be using a remote storage mechanism like an
+object store (several are supported by the Docker registry). The default Docker registry image
+is configured to accept configuration as environment variables \- refer to the configuration file in
+that image for more on setting up alternative storage. Once you've made those changes, you can
+pass \-\-replicas=2 or higher to ensure you have failover protection. The default registry setup
+uses a local volume and the data will be lost if you delete the running pod.
+
+.PP
+If multiple ports are specified using the option \-\-ports, the first specified port will be
+chosen for use as the REGISTRY\_HTTP\_ADDR and will be passed to Docker registry.
+
+.PP
+NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new
+  installation. Some configuration beyond this command is still required to make
+  your registry persist data.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-create\fP=false
+    deprecated; this is now the default behavior
+
+.PP
+\fB\-\-credentials\fP=""
+    Path to a .kubeconfig file that will contain the credentials the registry should use to contact the master.
+
+.PP
+\fB\-\-daemonset\fP=false
+    Use a daemonset instead of a deployment config.
+
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, show the result of the operation without performing it.
+
+.PP
+\fB\-\-enforce\-quota\fP=false
+    If set, the registry will refuse to write blobs if they exceed quota limits
+
+.PP
+\fB\-\-images\fP="openshift/origin\-${component}:${version}"
+    The image to base this registry on \- ${component} will be replaced with \-\-type
+
+.PP
+\fB\-\-labels\fP="docker\-registry=default"
+    A set of labels to uniquely identify the registry and its components.
+
+.PP
+\fB\-\-latest\-images\fP=false
+    If true, attempt to use the latest image for the registry instead of the latest release.
+
+.PP
+\fB\-\-mount\-host\fP=""
+    If set, the registry volume will be created as a host\-mount at this path.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output results as yaml or json instead of executing, or use name for succint output (resource/name).
+
+.PP
+\fB\-\-output\-version\fP=""
+    The preferred API versions of the output objects
+
+.PP
+\fB\-\-ports\fP="5000"
+    A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for 5000.
+
+.PP
+\fB\-\-replicas\fP=1
+    The replication factor of the registry; commonly 2 when high availability is desired.
+
+.PP
+\fB\-\-selector\fP=""
+    Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.
+
+.PP
+\fB\-\-service\-account\fP="registry"
+    Name of the service account to use to run the registry pod.
+
+.PP
+\fB\-\-tls\-certificate\fP=""
+    An optional path to a PEM encoded certificate (which may contain the private key) for serving over TLS
+
+.PP
+\fB\-\-tls\-key\fP=""
+    An optional path to a PEM encoded private key for serving over TLS
+
+.PP
+\fB\-\-type\fP="docker\-registry"
+    The registry image to use \- if you specify \-\-images this flag may be ignored.
+
+.PP
+\fB\-\-volume\fP="/registry"
+    The volume path to use for registry storage; defaults to /registry which is the default for origin\-docker\-registry.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Check if default Docker registry ("docker\-registry") has been created
+  openshift cli adm registry \-\-dry\-run
+
+  # See what the registry will look like if created
+  openshift cli adm registry \-o yaml
+
+  # Create a registry with two replicas if it does not exist
+  openshift cli adm registry \-\-replicas=2
+
+  # Use a different registry image
+  openshift cli adm registry \-\-images=myrepo/docker\-registry:mytag
+
+  # Enforce quota and limits on images
+  openshift cli adm registry \-\-enforce\-quota
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-adm(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

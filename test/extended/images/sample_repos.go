@@ -44,6 +44,14 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				err := oc.Run("new-app").Args("-f", c.templateURL).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				// sometimes the deployment controller takes a while to start the DB deployment which
+				// results in the app coming up before the DB is available, which makes the app tests fail
+				// because they require the DB is available when the app started, not when the http request
+				// is made (they init the DB when they start, not on each request).  So here we force
+				// an immediate deployment of the DB.  It may error because there is already a deployment
+				// in progress, so do not check for an error.
+				oc.Run("deploy").Args(c.dbDeploymentConfigName, "--latest").Execute()
+
 				// all the templates automatically start a build.
 				buildName := c.buildConfigName + "-1"
 

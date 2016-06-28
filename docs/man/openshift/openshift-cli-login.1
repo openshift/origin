@@ -1,0 +1,131 @@
+.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli login \- Log in to a server
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli login\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Log in to your server and save login for subsequent use
+
+.PP
+First\-time users of the client should run this command to connect to a server,
+establish an authenticated session, and save connection to the configuration file. The
+default configuration will be saved to your home directory under
+".kube/config".
+
+.PP
+The information required to login \-\- like username and password, a session token, or
+the server details \-\- can be provided through flags. If not provided, the command will
+prompt for user input as needed.
+
+
+.SH OPTIONS
+.PP
+\fB\-p\fP, \fB\-\-password\fP=""
+    Password, will prompt if not provided
+
+.PP
+\fB\-u\fP, \fB\-\-username\fP=""
+    Username, will prompt if not provided
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Log in interactively
+  openshift cli login
+
+  # Log in to the given server with the given certificate authority file
+  openshift cli login localhost:8443 \-\-certificate\-authority=/path/to/cert.crt
+
+  # Log in to the given server with the given credentials (will not prompt interactively)
+  openshift cli login localhost:8443 \-\-username=myuser \-\-password=mypass
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

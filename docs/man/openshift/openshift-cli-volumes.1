@@ -1,0 +1,214 @@
+.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli volumes \- DEPRECATED: set volume
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli volumes\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+DEPRECATED: This command has been moved to "openshift cli set volume"
+
+
+.SH OPTIONS
+.PP
+\fB\-\-add\fP=false
+    Add volume and/or volume mounts for containers
+
+.PP
+\fB\-\-all\fP=false
+    select all resources in the namespace of the specified resource types
+
+.PP
+\fB\-\-claim\-mode\fP="ReadWriteOnce"
+    Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)
+
+.PP
+\fB\-\-claim\-name\fP=""
+    Persistent volume claim name. Must be provided for persistentVolumeClaim volume type
+
+.PP
+\fB\-\-claim\-size\fP=""
+    If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi
+
+.PP
+\fB\-\-configmap\-name\fP=""
+    Name of the persisted config map. Must be provided for configmap volume type
+
+.PP
+\fB\-\-confirm\fP=false
+    Confirm that you really want to remove multiple volumes
+
+.PP
+\fB\-c\fP, \fB\-\-containers\fP="*"
+    The names of containers in the selected pod templates to change \- may use wildcards
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to file to use to edit the resource.
+
+.PP
+\fB\-\-list\fP=false
+    List volumes and volume mounts for containers
+
+.PP
+\fB\-m\fP, \fB\-\-mount\-path\fP=""
+    Mount path inside the container. Optional param for \-\-add or \-\-remove
+
+.PP
+\fB\-\-name\fP=""
+    Name of the volume. If empty, auto generated for add operation
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Display the changed objects instead of updating them. One of: json|yaml
+
+.PP
+\fB\-\-output\-version\fP=""
+    Output the changed objects with the given version (default api\-version).
+
+.PP
+\fB\-\-overwrite\fP=false
+    If true, replace existing volume source and/or volume mount for the given resource
+
+.PP
+\fB\-\-path\fP=""
+    Host path. Must be provided for hostPath volume type
+
+.PP
+\fB\-\-remove\fP=false
+    Remove volume and/or volume mounts for containers
+
+.PP
+\fB\-\-secret\-name\fP=""
+    Name of the persisted secret. Must be provided for secret volume type
+
+.PP
+\fB\-l\fP, \fB\-\-selector\fP=""
+    Selector (label query) to filter on
+
+.PP
+\fB\-\-source\fP=""
+    Details of volume source as json string. This can be used if the required volume type is not supported by \-\-type option. (e.g.: '{"gitRepo": {"repository": <git-url>, "revision": <commit-hash>}}')
+
+.PP
+\fB\-t\fP, \fB\-\-type\fP=""
+    Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # List volumes defined on all deployment configs in the current project
+  openshift cli volume dc \-\-all
+
+  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+  # /var/lib/registry
+  openshift cli volume dc/registry \-\-add \-\-mount\-path=/var/lib/registry
+
+  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+  openshift cli volume dc/registry \-\-add \-\-name=v1 \-t pvc \-\-claim\-name=pvc1 \-\-overwrite
+
+  # Remove volume 'v1' from deployment config 'registry'
+  openshift cli volume dc/registry \-\-remove \-\-name=v1
+
+  # Create a new persistent volume claim that overwrites an existing volume 'v1'
+  openshift cli volume dc/registry \-\-add \-\-name=v1 \-t pvc \-\-claim\-size=1G \-\-overwrite
+
+  # Change the mount point for volume 'v1' to /data
+  openshift cli volume dc/registry \-\-add \-\-name=v1 \-m /data \-\-overwrite
+
+  # Modify the deployment config by removing volume mount "v1" from container "c1"
+  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+  openshift cli volume dc/registry \-\-remove \-\-name=v1 \-\-containers=c1
+
+  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+  # Ceph, Gluster, NFS, ISCSI, ...)
+  openshift cli volume dc/registry \-\-add \-m /repo \-\-source=<json\-string>
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

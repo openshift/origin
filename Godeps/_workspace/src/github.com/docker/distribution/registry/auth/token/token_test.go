@@ -94,10 +94,11 @@ func makeTrustedKeyMap(rootKeys []libtrust.PrivateKey) map[string]libtrust.Publi
 func makeTestToken(issuer, audience string, access []*ResourceActions, rootKey libtrust.PrivateKey, depth int) (*Token, error) {
 	signingKey, err := makeSigningKeyWithChain(rootKey, depth)
 	if err != nil {
-		return nil, fmt.Errorf("unable to amke signing key with chain: %s", err)
+		return nil, fmt.Errorf("unable to make signing key with chain: %s", err)
 	}
 
-	rawJWK, err := signingKey.PublicKey().MarshalJSON()
+	var rawJWK json.RawMessage
+	rawJWK, err = signingKey.PublicKey().MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("unable to marshal signing key to JSON: %s", err)
 	}
@@ -105,7 +106,7 @@ func makeTestToken(issuer, audience string, access []*ResourceActions, rootKey l
 	joseHeader := &Header{
 		Type:       "JWT",
 		SigningAlg: "ES256",
-		RawJWK:     json.RawMessage(rawJWK),
+		RawJWK:     &rawJWK,
 	}
 
 	now := time.Now()
@@ -375,7 +376,7 @@ func TestAccessController(t *testing.T) {
 		t.Fatalf("accessController returned unexpected error: %s", err)
 	}
 
-	userInfo, ok := authCtx.Value("auth.user").(auth.UserInfo)
+	userInfo, ok := authCtx.Value(auth.UserKey).(auth.UserInfo)
 	if !ok {
 		t.Fatal("token accessController did not set auth.user context")
 	}

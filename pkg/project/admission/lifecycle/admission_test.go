@@ -21,7 +21,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	"github.com/openshift/origin/pkg/controller"
+	"github.com/openshift/origin/pkg/controller/shared"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
@@ -170,7 +170,7 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
 		EtcdHelper:          etcdHelper,
-		Informers:           controller.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), controller.DefaultListerWatcherOverrides{}, 1*time.Second),
+		Informers:           shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second),
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}

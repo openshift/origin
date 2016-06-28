@@ -138,7 +138,7 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 		// Post commit hook is not set, return early.
 		return nil
 	}
-	glog.V(0).Infof("Running post commit hook with image %s ...", image)
+	glog.V(0).Infof("Running post commit hook ...")
 	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
 
 	if script != "" {

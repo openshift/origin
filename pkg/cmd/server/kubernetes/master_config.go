@@ -44,7 +44,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
-	"github.com/openshift/origin/pkg/controller"
+	"github.com/openshift/origin/pkg/controller/shared"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
@@ -77,10 +77,10 @@ type MasterConfig struct {
 	ControllerManager *cmapp.CMServer
 	CloudProvider     cloudprovider.Interface
 
-	Informers controller.InformerFactory
+	Informers shared.InformerFactory
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers controller.InformerFactory, pluginInitializer oadmission.PluginInitializer) (*MasterConfig, error) {
+func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers shared.InformerFactory, pluginInitializer oadmission.PluginInitializer) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}

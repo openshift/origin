@@ -32,6 +32,9 @@ func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.
 	flags.StringVar(&options.Name, prefix+"name", DefaultSignerName(), "The name of the signer.")
 	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
+	// set dynamic value annotation - allows man pages  to be generated and verified
+	flags.SetAnnotation(prefix+"name", "manpage-def-value", []string{"openshift-signer@<current_timestamp>"})
+
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"cert")
 	cobra.MarkFlagFilename(flags, prefix+"key")

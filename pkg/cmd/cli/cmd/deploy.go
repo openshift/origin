@@ -233,7 +233,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer)
 		}
 	}
 
-	deployutil.Instantiate(config)
+	config.Status.LatestVersion++
 	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err != nil {
 		return err

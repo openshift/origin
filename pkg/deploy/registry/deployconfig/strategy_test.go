@@ -50,7 +50,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	}
 }
 
-// TestPrepareForUpdate exercises updates made by both old and new clients.
+// TestPrepareForUpdate exercises various client updates.
 func TestPrepareForUpdate(t *testing.T) {
 	tests := []struct {
 		name string
@@ -60,16 +60,10 @@ func TestPrepareForUpdate(t *testing.T) {
 		expected runtime.Object
 	}{
 		{
-			name:     "old client update",
+			name:     "latestVersion bump",
 			prev:     prevDeployment(),
-			after:    afterDeploymentByOldClient(),
-			expected: expectedAfterByOldClient(),
-		},
-		{
-			name:     "new client update",
-			prev:     prevDeployment(),
-			after:    afterDeploymentByNewClient(),
-			expected: expectedAfterByNewClient(),
+			after:    afterDeploymentVersionBump(),
+			expected: expectedAfterVersionBump(),
 		},
 		{
 			name:     "spec change",
@@ -110,31 +104,16 @@ func expectedAfterDeployment() *deployapi.DeploymentConfig {
 	return dc
 }
 
-// afterDeploymentByOldClient is a deployment updated by an old oc client.
-func afterDeploymentByOldClient() *deployapi.DeploymentConfig {
+// afterDeploymentVersionBump is a deployment config updated to a newer version.
+func afterDeploymentVersionBump() *deployapi.DeploymentConfig {
 	dc := prevDeployment()
 	dc.Status.LatestVersion++
 	return dc
 }
 
-// expectedAfterByOldClient is the object we expect from the update hook after an old client update.
-func expectedAfterByOldClient() *deployapi.DeploymentConfig {
-	dc := afterDeploymentByOldClient()
-	dc.Generation++
-	return dc
-}
-
-// afterDeploymentByNewClient is a deployment updated by an new oc client.
-func afterDeploymentByNewClient() *deployapi.DeploymentConfig {
-	dc := prevDeployment()
-	dc.Annotations[deployapi.DeploymentInstantiatedAnnotation] = deployapi.DeploymentInstantiatedAnnotationValue
-	return dc
-}
-
-// expectedAfterByNewClient is the object we expect from the update hook after a new client update.
-func expectedAfterByNewClient() *deployapi.DeploymentConfig {
-	dc := prevDeployment()
-	dc.Status.LatestVersion++
+// expectedAfterVersionBump is the object we expect after a version bump.
+func expectedAfterVersionBump() *deployapi.DeploymentConfig {
+	dc := afterDeploymentVersionBump()
 	dc.Generation++
 	return dc
 }

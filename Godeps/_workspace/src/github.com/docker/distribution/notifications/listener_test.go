@@ -10,6 +10,7 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage"
 	"github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
@@ -27,7 +28,8 @@ func TestListener(t *testing.T) {
 		ops: make(map[string]int),
 	}
 
-	repository, err := registry.Repository(ctx, "foo/bar")
+	repoRef, _ := reference.ParseNamed("foo/bar")
+	repository, err := registry.Repository(ctx, repoRef)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
 	}
@@ -37,12 +39,12 @@ func TestListener(t *testing.T) {
 	checkExerciseRepository(t, repository)
 
 	expectedOps := map[string]int{
-		"manifest:push": 1,
-		"manifest:pull": 2,
-		// "manifest:delete": 0, // deletes not supported for now
-		"layer:push": 2,
-		"layer:pull": 2,
-		// "layer:delete":    0, // deletes not supported for now
+		"manifest:push":   1,
+		"manifest:pull":   1,
+		"manifest:delete": 1,
+		"layer:push":      2,
+		"layer:pull":      2,
+		"layer:delete":    2,
 	}
 
 	if !reflect.DeepEqual(tl.ops, expectedOps) {
@@ -55,33 +57,38 @@ type testListener struct {
 	ops map[string]int
 }
 
-func (tl *testListener) ManifestPushed(repo string, sm *schema1.SignedManifest) error {
+func (tl *testListener) ManifestPushed(repo reference.Named, m distribution.Manifest, options ...distribution.ManifestServiceOption) error {
 	tl.ops["manifest:push"]++
 
 	return nil
 }
 
-func (tl *testListener) ManifestPulled(repo string, sm *schema1.SignedManifest) error {
+func (tl *testListener) ManifestPulled(repo reference.Named, m distribution.Manifest, options ...distribution.ManifestServiceOption) error {
 	tl.ops["manifest:pull"]++
 	return nil
 }
 
-func (tl *testListener) ManifestDeleted(repo string, sm *schema1.SignedManifest) error {
+func (tl *testListener) ManifestDeleted(repo reference.Named, d digest.Digest) error {
 	tl.ops["manifest:delete"]++
 	return nil
 }
 
-func (tl *testListener) BlobPushed(repo string, desc distribution.Descriptor) error {
+func (tl *testListener) BlobPushed(repo reference.Named, desc distribution.Descriptor) error {
 	tl.ops["layer:push"]++
 	return nil
 }
 
-func (tl *testListener) BlobPulled(repo string, desc distribution.Descriptor) error {
+func (tl *testListener) BlobPulled(repo reference.Named, desc distribution.Descriptor) error {
 	tl.ops["layer:pull"]++
 	return nil
 }
 
-func (tl *testListener) BlobDeleted(repo string, desc distribution.Descriptor) error {
+func (tl *testListener) BlobMounted(repo reference.Named, desc distribution.Descriptor, fromRepo reference.Named) error {
+	tl.ops["layer:mount"]++
+	return nil
+}
+
+func (tl *testListener) BlobDeleted(repo reference.Named, d digest.Digest) error {
 	tl.ops["layer:delete"]++
 	return nil
 }
@@ -93,16 +100,20 @@ func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 	// takes the registry through a common set of operations. This could be
 	// used to make cross-cutting updates by changing internals that affect
 	// update counts. Basically, it would make writing tests a lot easier.
+
 	ctx := context.Background()
 	tag := "thetag"
+	// todo: change this to use Builder
+
 	m := schema1.Manifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 1,
 		},
-		Name: repository.Name(),
+		Name: repository.Named().Name(),
 		Tag:  tag,
 	}
 
+	var blobDigests []digest.Digest
 	blobs := repository.Blobs(ctx)
 	for i := 0; i < 2; i++ {
 		rs, ds, err := testutil.CreateRandomTarFile()
@@ -110,6 +121,7 @@ func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 			t.Fatalf("error creating test layer: %v", err)
 		}
 		dgst := digest.Digest(ds)
+		blobDigests = append(blobDigests, dgst)
 
 		wr, err := blobs.Create(ctx)
 		if err != nil {
@@ -158,35 +170,31 @@ func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 		t.Fatal(err.Error())
 	}
 
-	if err = manifests.Put(sm); err != nil {
+	var digestPut digest.Digest
+	if digestPut, err = manifests.Put(ctx, sm); err != nil {
 		t.Fatalf("unexpected error putting the manifest: %v", err)
 	}
 
-	p, err := sm.Payload()
-	if err != nil {
-		t.Fatalf("unexpected error getting manifest payload: %v", err)
+	dgst := digest.FromBytes(sm.Canonical)
+	if dgst != digestPut {
+		t.Fatalf("mismatching digest from payload and put")
 	}
 
-	dgst, err := digest.FromBytes(p)
-	if err != nil {
-		t.Fatalf("unexpected error digesting manifest payload: %v", err)
-	}
-
-	fetchedByManifest, err := manifests.Get(dgst)
+	_, err = manifests.Get(ctx, dgst)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
 
-	if fetchedByManifest.Tag != sm.Tag {
-		t.Fatalf("retrieved unexpected manifest: %v", err)
-	}
-
-	fetched, err := manifests.GetByTag(tag)
+	err = manifests.Delete(ctx, dgst)
 	if err != nil {
-		t.Fatalf("unexpected error fetching manifest: %v", err)
+		t.Fatalf("unexpected error deleting blob: %v", err)
 	}
 
-	if fetched.Tag != fetchedByManifest.Tag {
-		t.Fatalf("retrieved unexpected manifest: %v", err)
+	for _, d := range blobDigests {
+		err = blobs.Delete(ctx, d)
+		if err != nil {
+			t.Fatalf("unexpected error deleting blob: %v", err)
+		}
+
 	}
 }

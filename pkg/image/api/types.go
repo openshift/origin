@@ -68,6 +68,12 @@ type Image struct {
 	DockerImageLayers []ImageLayer
 	// Signatures holds all signatures of the image.
 	Signatures []ImageSignature
+	// DockerImageSignatures provides the signatures as opaque blobs. This is a part of manifest schema v1.
+	DockerImageSignatures [][]byte
+	// DockerImageManifestMediaType specifies the mediaType of manifest. This is a part of manifest schema v2.
+	DockerImageManifestMediaType string
+	// DockerImageConfig is a JSON blob that the runtime uses to set up the container. This is a part of manifest schema v2.
+	DockerImageConfig string
 }
 
 // ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.
@@ -76,6 +82,8 @@ type ImageLayer struct {
 	Name string
 	// LayerSize of the layer as defined by the underlying store.
 	LayerSize int64
+	// MediaType of the referenced object.
+	MediaType string
 }
 
 const (

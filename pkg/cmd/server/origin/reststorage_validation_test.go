@@ -16,7 +16,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/controller"
+	"github.com/openshift/origin/pkg/controller/shared"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -75,6 +75,6 @@ func fakeMasterConfig() *MasterConfig {
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
 		EtcdHelper:          etcdHelper,
-		Informers:           controller.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), controller.DefaultListerWatcherOverrides{}, 1*time.Second),
+		Informers:           shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second),
 	}
 }

@@ -86,6 +86,9 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
 
+	// set dynamic value annotation - allows man pages  to be generated and verified
+	flags.SetAnnotation(prefix+"hostname", "manpage-def-value", []string{"<hostname>"})
+
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"volume-dir")
 }

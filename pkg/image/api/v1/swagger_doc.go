@@ -19,14 +19,17 @@ func (DockerImageReference) SwaggerDoc() map[string]string {
 }
 
 var map_Image = map[string]string{
-	"":                           "Image is an immutable representation of a Docker image and metadata at a point in time.",
-	"metadata":                   "Standard object's metadata.",
-	"dockerImageReference":       "DockerImageReference is the string that can be used to pull this image.",
-	"dockerImageMetadata":        "DockerImageMetadata contains metadata about this image",
-	"dockerImageMetadataVersion": "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\"",
-	"dockerImageManifest":        "DockerImageManifest is the raw JSON of the manifest",
-	"dockerImageLayers":          "DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.",
-	"signatures":                 "Signatures holds all signatures of the image.",
+	"":                             "Image is an immutable representation of a Docker image and metadata at a point in time.",
+	"metadata":                     "Standard object's metadata.",
+	"dockerImageReference":         "DockerImageReference is the string that can be used to pull this image.",
+	"dockerImageMetadata":          "DockerImageMetadata contains metadata about this image",
+	"dockerImageMetadataVersion":   "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\"",
+	"dockerImageManifest":          "DockerImageManifest is the raw JSON of the manifest",
+	"dockerImageLayers":            "DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.",
+	"signatures":                   "Signatures holds all signatures of the image.",
+	"dockerImageSignatures":        "DockerImageSignatures provides the signatures as opaque blobs. This is a part of manifest schema v1.",
+	"dockerImageManifestMediaType": "DockerImageManifestMediaType specifies the mediaType of manifest. This is a part of manifest schema v2.",
+	"dockerImageConfig":            "DockerImageConfig is a JSON blob that the runtime uses to set up the container. This is a part of manifest schema v2.",
 }
 
 func (Image) SwaggerDoc() map[string]string {
@@ -57,9 +60,10 @@ func (ImageImportStatus) SwaggerDoc() map[string]string {
 }
 
 var map_ImageLayer = map[string]string{
-	"":     "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
-	"name": "Name of the layer as defined by the underlying store.",
-	"size": "Size of the layer in bytes as defined by the underlying store.",
+	"":          "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
+	"name":      "Name of the layer as defined by the underlying store.",
+	"size":      "Size of the layer in bytes as defined by the underlying store.",
+	"mediaType": "MediaType of the referenced object.",
 }
 
 func (ImageLayer) SwaggerDoc() map[string]string {
