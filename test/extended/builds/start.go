@@ -36,7 +36,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("verifying the build %q status", out))
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), out, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}
