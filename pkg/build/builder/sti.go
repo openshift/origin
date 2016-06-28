@@ -94,10 +94,11 @@ func (s *S2IBuilder) Build() error {
 	}
 	var runtimeImageName string
 	var push bool
+
 	runtimeImage := s.build.Spec.Strategy.SourceStrategy.RuntimeImage
 	runtimeArtifacts := copyArtifactSourceList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
 
-	if runtimeImage != nil && len(runtimeImage.Name) > 0 {
+	if runtimeImage != nil && runtimeImage.Name != "" {
 		runtimeImageName = runtimeImage.Name
 	}
 
