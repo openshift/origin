@@ -102,9 +102,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 	}
 
 	return &controller.RetryController{
-		Queue: deploymentQueue,
+		Queue: controller.NewQueueWrapper(deploymentQueue),
 		RetryManager: controller.NewQueueRetryManager(
-			deploymentQueue,
+			controller.NewQueueWrapper(deploymentQueue),
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				if _, isFatal := err.(fatalError); isFatal {

@@ -38,7 +38,7 @@ func (f *AllocationFactory) Create() controller.RunnableController {
 		}
 		q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 		cache.NewReflector(lw, &kapi.Namespace{}, q, 10*time.Minute).Run()
-		f.Queue = q
+		f.Queue = controller.NewQueueWrapper(q)
 	}
 
 	c := &Allocation{

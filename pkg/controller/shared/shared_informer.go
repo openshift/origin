@@ -20,6 +20,7 @@ type InformerFactory interface {
 	StartCore(stopCh <-chan struct{})
 
 	Pods() PodInformer
+	Namespaces() NamespaceInformer
 	ReplicationControllers() ReplicationControllerInformer
 
 	ClusterPolicies() ClusterPolicyInformer
@@ -29,6 +30,8 @@ type InformerFactory interface {
 
 	DeploymentConfigs() DeploymentConfigInformer
 	ImageStreams() ImageStreamInformer
+
+	ClusterResourceQuotas() ClusterResourceQuotaInformer
 }
 
 // ListerWatcherOverrides allows a caller to specify special behavior for particular ListerWatchers
@@ -88,6 +91,10 @@ func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerIn
 	return &replicationControllerInformer{sharedInformerFactory: f}
 }
 
+func (f *sharedInformerFactory) Namespaces() NamespaceInformer {
+	return &namespaceInformer{sharedInformerFactory: f}
+}
+
 func (f *sharedInformerFactory) ClusterPolicies() ClusterPolicyInformer {
 	return &clusterPolicyInformer{sharedInformerFactory: f}
 }
@@ -110,4 +117,8 @@ func (f *sharedInformerFactory) DeploymentConfigs() DeploymentConfigInformer {
 
 func (f *sharedInformerFactory) ImageStreams() ImageStreamInformer {
 	return &imageStreamInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) ClusterResourceQuotas() ClusterResourceQuotaInformer {
+	return &clusterResourceQuotaInformer{sharedInformerFactory: f}
 }
