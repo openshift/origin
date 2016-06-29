@@ -494,7 +494,7 @@ type SourceBuildStrategy struct {
 	// runtimePullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker runtime images from private
 	// Docker registries.
-	RuntimePullSecret *kapi.LocalObjectReference `json:"RuntimePullSecret,omitempty"`
+	RuntimePullSecret *kapi.LocalObjectReference `json:"runtimePullSecret,omitempty"`
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
