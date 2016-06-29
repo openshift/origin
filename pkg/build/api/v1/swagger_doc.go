@@ -422,7 +422,7 @@ var map_SourceBuildStrategy = map[string]string{
 	"forcePull":         "forcePull describes if the builder should pull the images from registry prior to building.",
 	"runtimeImage":      "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed.",
 	"runtimeArtifacts":  "runtimeArtifacts holds the mapping between the artifacts paths in the builder image and the paths in the runtime image where they should be copied.",
-	"RuntimePullSecret": "runtimePullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker runtime images from private Docker registries.",
+	"runtimePullSecret": "runtimePullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker runtime images from private Docker registries.",
 }
 
 func (SourceBuildStrategy) SwaggerDoc() map[string]string {
