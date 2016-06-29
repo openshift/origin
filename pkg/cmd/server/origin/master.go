@@ -33,7 +33,6 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -316,7 +315,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]stri
 	currentAPIVersions := []string{}
 
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
-		if err := c.api_v1(storage).InstallREST(container); err != nil {
+		if err := c.apiLegacyV1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
 		}
 		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1))
@@ -727,27 +726,8 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	}
 }
 
-// api_v1beta3 returns the resources and codec for API version v1beta3.
-func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range all {
-		if excludedV1Beta3Types.Has(k) {
-			continue
-		}
-		storage[strings.ToLower(k)] = v
-	}
-	version := c.defaultAPIGroupVersion()
-	version.Root = LegacyOpenShiftAPIPrefix
-	version.Storage = storage
-	version.GroupVersion = v1beta3.SchemeGroupVersion
-	version.Serializer = kapi.Codecs
-	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
-	return version
-}
-
-// api_v1 returns the resources and codec for API version v1.
-func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
+// apiLegacyV1 returns the resources and codec for API version v1.
+func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
 	storage := make(map[string]rest.Storage)
 	for k, v := range all {
 		if excludedV1Types.Has(k) {
