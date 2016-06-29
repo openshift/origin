@@ -89,6 +89,8 @@ func TestTriggers_manual(t *testing.T) {
 	}
 }
 
+// TestTriggers_imageChange ensures that a deployment config with an ImageChange trigger
+// will start a new deployment when an image change happens.
 func TestTriggers_imageChange(t *testing.T) {
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
@@ -112,6 +114,7 @@ func TestTriggers_imageChange(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkImageChangeTrigger()}
 
 	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(kapi.ListOptions{})
 	if err != nil {
@@ -191,6 +194,8 @@ waitForNewConfig:
 	}
 }
 
+// TestTriggers_imageChange_nonAutomatic ensures that a deployment config with a non-automatic
+// trigger will have its image updated without starting a new deployment.
 func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
@@ -334,6 +339,8 @@ out:
 	}
 }
 
+// TestTriggers_configChange ensures that a change in the template of a deployment config with
+// a config change trigger will start a new deployment.
 func TestTriggers_configChange(t *testing.T) {
 	const namespace = "test-triggers-configchange"
 
@@ -351,7 +358,7 @@ func TestTriggers_configChange(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace
-	config.Spec.Triggers[0] = deploytest.OkConfigChangeTrigger()
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkConfigChangeTrigger()}
 
 	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(kapi.ListOptions{})
 	if err != nil {
