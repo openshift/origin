@@ -5,9 +5,11 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 var validEntrypoints = []*regexp.Regexp{
 	regexp.MustCompile(`^run(\.sh)?$`),

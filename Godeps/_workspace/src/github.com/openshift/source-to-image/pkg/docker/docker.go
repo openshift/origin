@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -52,6 +53,25 @@ const (
 	DefaultDockerTimeout = 20 * time.Second
 )
 
+// containerNamePrefix prefixes the name of containers launched by S2I. We
+// cannot reuse the prefix "k8s" because we don't want the containers to be
+// managed by a kubelet.
+const containerNamePrefix = "s2i"
+
+// containerName creates names for Docker containers launched by S2I. It is
+// meant to resemble Kubernetes' pkg/kubelet/dockertools.BuildDockerName.
+func containerName(image string) string {
+	uid := fmt.Sprintf("%08x", rand.Uint32())
+	// Replace invalid characters for container name with underscores.
+	image = strings.Map(func(r rune) rune {
+		if ('0' <= r && r <= '9') || ('A' <= r && r <= 'Z') || ('a' <= r && r <= 'z') {
+			return r
+		}
+		return '_'
+	}, image)
+	return fmt.Sprintf("%s_%s_%s", containerNamePrefix, image, uid)
+}
+
 // Docker is the interface between STI and the Docker client
 // It contains higher level operations called from the STI
 // build or usage commands
@@ -72,7 +92,7 @@ type Docker interface {
 	BuildImage(opts BuildImageOptions) error
 	GetImageUser(name string) (string, error)
 	GetLabels(name string) (map[string]string, error)
-	UploadToContainer(srcPath, destPath, name string) error
+	UploadToContainer(srcPath, destPath, container string) error
 	Ping() error
 }
 
@@ -171,7 +191,7 @@ func (rco RunContainerOptions) asDockerCreateContainerOptions() docker.CreateCon
 	config := rco.asDockerConfig()
 	hostConfig := rco.asDockerHostConfig()
 	return docker.CreateContainerOptions{
-		Name:       "",
+		Name:       containerName(rco.Image),
 		Config:     &config,
 		HostConfig: &hostConfig,
 	}
@@ -260,7 +280,7 @@ func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
 // out the WORKDIR of the image that the container was created from and use that
 // as a destination. If the WORKDIR is not set, then we copy files into "/"
 // folder (docker upload default).
-func (d *stiDocker) UploadToContainer(src, dest, name string) error {
+func (d *stiDocker) UploadToContainer(src, dest, container string) error {
 	path := filepath.Dir(dest)
 	f, err := os.Open(src)
 	if err != nil {
@@ -288,7 +308,7 @@ func (d *stiDocker) UploadToContainer(src, dest, name string) error {
 	}
 	glog.V(3).Infof("Uploading %q to %q ...", src, path)
 	opts := docker.UploadToContainerOptions{Path: path, InputStream: r}
-	return d.client.UploadToContainer(name, opts)
+	return d.client.UploadToContainer(container, opts)
 }
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
@@ -370,7 +390,7 @@ func (d *stiDocker) CheckAndPullImage(name string) (*docker.Image, error) {
 		return d.PullImage(name)
 	}
 
-	glog.V(1).Infof("Using locally available image %q", displayName)
+	glog.V(3).Infof("Using locally available image %q", displayName)
 	return image, nil
 }
 

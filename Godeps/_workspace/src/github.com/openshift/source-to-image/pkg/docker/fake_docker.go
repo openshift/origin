@@ -98,7 +98,7 @@ func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 	return f.RunContainerError
 }
 
-func (f *FakeDocker) UploadToContainer(srcPath, destPath, name string) error {
+func (f *FakeDocker) UploadToContainer(srcPath, destPath, container string) error {
 	return nil
 }
 

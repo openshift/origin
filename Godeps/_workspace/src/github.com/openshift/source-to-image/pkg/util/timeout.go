@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// TimeoutError is error returned after timeout occured.
+// TimeoutError is error returned after timeout occurred.
 type TimeoutError struct {
 	after   time.Duration
 	message string

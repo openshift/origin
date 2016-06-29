@@ -1,9 +1,11 @@
 package empty
 
 import (
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 // Noop is for build configs with an empty Source definition, where
 // the assemble script is responsible for retrieving source

@@ -8,10 +8,12 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/golang/glog"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/errors"
 )
+
+var glog = utilglog.StderrLog
 
 // FileSystem allows STI to work with the file system and
 // perform tasks such as creating and deleting directories

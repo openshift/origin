@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
@@ -161,7 +160,7 @@ func (builder *OnBuild) CreateDockerfile(config *api.Config) error {
 	// If there is an assemble script present, run it as part of the build process
 	// as the last thing.
 	if builder.hasAssembleScript(config) {
-		buffer.WriteString(fmt.Sprintf("RUN sh assemble\n"))
+		buffer.WriteString("RUN sh assemble\n")
 	}
 	// FIXME: This assumes that the WORKDIR is set to the application source root
 	//        directory.
@@ -184,7 +183,7 @@ func (builder *OnBuild) copySTIScripts(config *api.Config) {
 
 // hasAssembleScript checks if the the assemble script is available
 func (builder *OnBuild) hasAssembleScript(config *api.Config) bool {
-	assemblePath := filepath.Join(config.WorkingDir, "upload", "src", "assemble")
+	assemblePath := filepath.Join(config.WorkingDir, "upload", "src", api.Assemble)
 	_, err := builder.fs.Stat(assemblePath)
 	return err == nil
 }
