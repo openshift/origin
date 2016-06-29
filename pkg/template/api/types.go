@@ -6,6 +6,8 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
+// +genclient=true
+
 // Template contains the inputs needed to produce a Config.
 type Template struct {
 	unversioned.TypeMeta

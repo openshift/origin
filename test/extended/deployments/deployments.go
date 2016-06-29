@@ -29,6 +29,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
 		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
 		failedHookFixture       = exutil.FixturePath("..", "extended", "testdata", "failing-pre-hook.yaml")
+		brokenDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "test-deployment-broken.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -387,6 +388,41 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			version = strings.Trim(version, "\"")
 			o.Expect(version).To(o.ContainSubstring("3"))
+		})
+	})
+
+	g.Describe("reaper", func() {
+		g.It("should delete all failed deployer pods and hook pods", func() {
+			resource, name, err := createFixture(oc, brokenDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deployment to complete")
+			err = waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)
+			o.Expect(err).To(o.HaveOccurred())
+
+			g.By("fetching the deployer pod")
+			out, err := oc.Run("get").Args("pod", fmt.Sprintf("%s-1-deploy", name)).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Error"))
+
+			g.By("fetching the pre-hook pod")
+			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-hook-pre", name)).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Error"))
+
+			g.By("deleting the deployment config")
+			out, err = oc.Run("delete").Args(resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("fetching the deployer pod")
+			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-deploy", name)).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("not found"))
+
+			g.By("fetching the pre-hook pod")
+			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-hook-pre", name)).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("not found"))
 		})
 	})
 })

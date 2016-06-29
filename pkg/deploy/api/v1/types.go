@@ -234,6 +234,8 @@ const (
 	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
 )
 
+// +genclient=true
+
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in

@@ -61,6 +61,8 @@ type OAuthAuthorizeToken struct {
 	UserUID string
 }
 
+// +genclient=true
+
 type OAuthClient struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta

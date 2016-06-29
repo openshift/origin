@@ -9,6 +9,8 @@ const (
 	ClusterNetworkDefault = "default"
 )
 
+// +genclient=true
+
 type ClusterNetwork struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta
