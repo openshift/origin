@@ -118,7 +118,7 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpdater, build *buildapi.Build) error {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
-		return NewNoBuildConfigLabelError(build)
+		return nil
 	}
 	nextBuild, hasRunningBuilds, err := GetNextConfigBuild(lister, build.Namespace, bcName)
 	if err != nil {

@@ -215,19 +215,37 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		}
 	}
 
+	bs = &errorBlobStore{
+		store: bs,
+		repo:  &repo,
+	}
+
 	return bs
 }
 
 // Tags returns a reference to this repository tag service.
 func (r *repository) Tags(ctx context.Context) distribution.TagService {
-	return &tagService{
+	var ts distribution.TagService
+
+	ts = &tagService{
 		TagService: r.Repository.Tags(ctx),
 		repo:       r,
 	}
+
+	ts = &errorTagService{
+		tags: ts,
+		repo: r,
+	}
+
+	return ts
 }
 
 // Exists returns true if the manifest specified by dgst exists.
 func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return false, err
+	}
+
 	image, err := r.getImage(dgst)
 	if err != nil {
 		return false, err
@@ -237,6 +255,10 @@ func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, erro
 
 // Get retrieves the manifest with digest `dgst`.
 func (r *repository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return nil, err
+	}
+
 	if _, err := r.getImageStreamImage(dgst); err != nil {
 		context.GetLogger(r.ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
 		return nil, err
@@ -256,6 +278,10 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest, options ...dis
 
 // Put creates or updates the named manifest.
 func (r *repository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return "", err
+	}
+
 	var canonical []byte
 
 	// Resolve the payload in the manifest.
@@ -451,6 +477,10 @@ func (r *repository) deserializedManifestFillImageMetadata(manifest *schema2.Des
 // in OpenShift are deleted via 'oadm prune images'. This function deletes
 // the content related to the manifest in the registry's storage (signatures).
 func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
+	if err := r.checkPendingErrors(ctx); err != nil {
+		return err
+	}
+
 	ms, err := r.Repository.Manifests(r.ctx)
 	if err != nil {
 		return err
@@ -598,4 +628,27 @@ func (r *repository) deserializedManifestFromImage(image *imageapi.Image) (*sche
 		return nil, err
 	}
 	return &manifest, nil
+}
+
+func (r *repository) checkPendingErrors(ctx context.Context) error {
+	return checkPendingErrors(context.GetLogger(r.ctx), ctx, r.namespace, r.name)
+}
+
+func checkPendingErrors(logger context.Logger, ctx context.Context, namespace, name string) error {
+	if !AuthPerformed(ctx) {
+		return fmt.Errorf("openshift.auth.completed missing from context")
+	}
+
+	deferredErrors, haveDeferredErrors := DeferredErrorsFrom(ctx)
+	if !haveDeferredErrors {
+		return nil
+	}
+
+	repoErr, haveRepoErr := deferredErrors.Get(namespace, name)
+	if !haveRepoErr {
+		return nil
+	}
+
+	logger.Debugf("Origin auth: found deferred error for %s/%s: %v", namespace, name, repoErr)
+	return repoErr
 }

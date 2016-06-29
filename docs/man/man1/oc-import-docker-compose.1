@@ -1,0 +1,147 @@
+.TH "OC IMPORT" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+oc import docker\-compose \- Import a docker\-compose.yml project into OpenShift (experimental)
+
+
+.SH SYNOPSIS
+.PP
+\fBoc import docker\-compose\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Import a Docker Compose file as OpenShift objects
+
+.PP
+Docker Compose files offer a container centric build and deploy pattern for simple applications.
+This command will transform a provided docker\-compose.yml application into its OpenShift equivalent.
+During transformation fields in the compose syntax that are not relevant when running on top of
+a containerized platform will be ignored and a warning printed.
+
+.PP
+The command will create objects unless you pass the \-o yaml or \-\-as\-template flags to generate a
+configuration file for later use.
+
+.PP
+Experimental: This command is under active development and may change without notice.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-as\-template\fP=""
+    If set, generate a template with the provided name
+
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, show the result of the operation without performing it.
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to docker\-compose.yml file to use
+
+.PP
+\fB\-\-generator\fP="docker\-compose/v1"
+    The name of the API generator to use.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output results as yaml or json instead of executing, or use name for succint output (resource/name).
+
+.PP
+\fB\-\-output\-version\fP=""
+    The preferred API versions of the output objects
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Import a docker\-compose.yml file into OpenShift
+  oc import docker\-compose \-f ./docker\-compose.yml
+
+	# Turn a docker\-compose.yml file into a template
+  oc import docker\-compose \-f ./docker\-compose.yml \-o yaml \-\-as\-template
+
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBoc\-import(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

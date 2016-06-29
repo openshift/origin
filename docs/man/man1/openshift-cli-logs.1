@@ -1,0 +1,174 @@
+.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli logs \- Print the logs for a resource.
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli logs\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Print the logs for a resource.
+
+.PP
+Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
+When a pod is specified and has more than one container, the container name should be
+specified via \-c. When a build config or deployment config is specified, you can view
+the logs for a particular version of it via \-\-version.
+
+.PP
+If your pod is failing to start, you may need to use the \-\-previous option to see the
+logs of the last attempt.
+
+
+.SH OPTIONS
+.PP
+\fB\-c\fP, \fB\-\-container\fP=""
+    Print the logs of this container
+
+.PP
+\fB\-f\fP, \fB\-\-follow\fP=false
+    Specify if the logs should be streamed.
+
+.PP
+\fB\-\-include\-extended\-apis\fP=true
+    If true, include definitions of new APIs via calls to the API server. [default true]
+
+.PP
+\fB\-\-interactive\fP=false
+    If true, prompt the user for input when required.
+
+.PP
+\fB\-\-limit\-bytes\fP=0
+    Maximum bytes of logs to return. Defaults to no limit.
+
+.PP
+\fB\-p\fP, \fB\-\-previous\fP=false
+    If true, print the logs for the previous instance of the container in a pod if it exists.
+
+.PP
+\fB\-\-since\fP=0
+    Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of since\-time / since may be used.
+
+.PP
+\fB\-\-since\-time\fP=""
+    Only return logs after a specific date (RFC3339). Defaults to all logs. Only one of since\-time / since may be used.
+
+.PP
+\fB\-\-tail\fP=\-1
+    Lines of recent log file to display. Defaults to \-1, showing all log lines.
+
+.PP
+\fB\-\-timestamps\fP=false
+    Include timestamps on each line in the log output
+
+.PP
+\fB\-\-version\fP=0
+    View the logs of a particular build or deployment by version if greater than zero
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Start streaming the logs of the most recent build of the openldap build config.
+  openshift cli logs \-f bc/openldap
+
+  # Start streaming the logs of the latest deployment of the mysql deployment config.
+  openshift cli logs \-f dc/mysql
+
+  # Get the logs of the first deployment for the mysql deployment config. Note that logs
+  # from older deployments may not exist either because the deployment was successful
+  # or due to deployment pruning or manual deletion of the deployment.
+  openshift cli logs \-\-version=1 dc/mysql
+
+  # Return a snapshot of ruby\-container logs from pod backend.
+  openshift cli logs backend \-c ruby\-container
+
+  # Start streaming of ruby\-container logs from pod backend.
+  openshift cli logs \-f pod/backend \-c ruby\-container
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

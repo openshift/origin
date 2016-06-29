@@ -865,6 +865,7 @@ function os::build::gen-man() {
   local cmd="$1"
   local dest="$2"
   local cmdName="$3"
+  local filestore=".files_generated_$3"
   local skipprefix="${4:-}"
 
   # We do this in a tmpdir in case the dest has other non-autogenned files
@@ -874,7 +875,7 @@ function os::build::gen-man() {
   # generate the new files
   ${cmd} "${tmpdir}" "${cmdName}"
   # create the list of generated files
-  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
+  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/${filestore}"
 
   # remove all old generated file from the destination
   while read file; do
@@ -889,7 +890,7 @@ function os::build::gen-man() {
     else
       rm "${dest}/${file}" || true
     fi
-  done <"${dest}/.files_generated"
+  done <"${dest}/${filestore}"
 
   # put the new generated file into the destination
   find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null

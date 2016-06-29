@@ -1,0 +1,62 @@
+.TH "OPENSHIFT START MASTER" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift start master api \- Launch master API
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift start master api\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start the master API
+
+.PP
+This command starts the master API.  Running
+
+.PP
+openshift start master api
+
+.PP
+will start the server listening for incoming API requests. The server
+will run in the foreground until you terminate the process.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-config\fP=""
+    Location of the master configuration file to run from. Required
+
+.PP
+\fB\-\-listen\fP="
+\[la]https://127.0.0.1:8444"\[ra]
+    The address to listen for connections on (scheme://host:port).
+
+.PP
+\fB\-\-master\fP="
+\[la]https://127.0.0.1:8443"\[ra]
+    The address the master should register for itself. Defaults to the master address from the config.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-start\-master(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

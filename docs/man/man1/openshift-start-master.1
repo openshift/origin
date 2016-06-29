@@ -1,0 +1,145 @@
+.TH "OPENSHIFT START" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift start master \- Launch a master
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift start master\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start a master server
+
+.PP
+This command helps you launch a master server.  Running
+
+.PP
+openshift start master
+
+.PP
+will start a master listening on all interfaces, launch an etcd server to store
+persistent data, and launch the Kubernetes system components. The server will run in the
+foreground until you terminate the process.
+
+.PP
+Note: starting the master without passing the \-\-master address will attempt to find the IP
+address that will be visible inside running Docker containers. This is not always successful,
+so if you have problems tell the master what public address it should use via \-\-master=<ip>.
+
+.PP
+You may also pass \-\-etcd=<address> to connect to an external etcd server.
+
+.PP
+You may also pass \-\-kubeconfig=<path> to connect to an external Kubernetes cluster.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-certificate\-authority\fP=[]
+    Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.
+
+.PP
+\fB\-\-config\fP=""
+    Location of the master configuration file to run from. When running from a configuration file, all other command\-line arguments are ignored.
+
+.PP
+\fB\-\-cors\-allowed\-origins\fP=[]
+    List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.
+
+.PP
+\fB\-\-create\-certs\fP=true
+    Indicates whether missing certs should be created
+
+.PP
+\fB\-\-dns\fP="tcp://0.0.0.0:8053"
+    The address to listen for DNS requests on.
+
+.PP
+\fB\-\-etcd\fP="
+\[la]https://0.0.0.0:4001"\[ra]
+    The address of the etcd server (host, host:port, or URL). If specified, no built\-in etcd will be started.
+
+.PP
+\fB\-\-etcd\-dir\fP="openshift.local.etcd"
+    The etcd data directory.
+
+.PP
+\fB\-\-host\-subnet\-length\fP=9
+    The length of subnet each host is given from the network\-cidr.
+
+.PP
+\fB\-\-images\fP="openshift/origin\-${component}:${version}"
+    When fetching images used by the cluster for important components, use this format on both master and nodes. The latest release will be used by default.
+
+.PP
+\fB\-\-kubeconfig\fP=""
+    Path to the kubeconfig file to use for requests to the Kubernetes API.
+
+.PP
+\fB\-\-kubernetes\fP="
+\[la]https://localhost:8443"\[ra]
+    removed in favor of \-\-kubeconfig
+
+.PP
+\fB\-\-latest\-images\fP=false
+    If true, attempt to use the latest images for the cluster instead of the latest release.
+
+.PP
+\fB\-\-listen\fP="
+\[la]https://0.0.0.0:8443"\[ra]
+    The address to listen for connections on (scheme://host:port).
+
+.PP
+\fB\-\-master\fP="
+\[la]https://localhost:8443"\[ra]
+    The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the \-\-listen scheme and port. When unset, attempt to use the first public IPv4 non\-loopback address registered on this host.
+
+.PP
+\fB\-\-network\-cidr\fP="10.128.0.0/14"
+    The CIDR string representing the network that all containers should belong to.
+
+.PP
+\fB\-\-network\-plugin\fP=""
+    The name of the networking plugin to be used for networking.
+
+.PP
+\fB\-\-pause\fP=false
+    If true, wait for a signal before starting the controllers.
+
+.PP
+\fB\-\-portal\-net\fP="172.30.0.0/16"
+    The CIDR string representing the network that portal/service IPs will be assigned from. This must not overlap with any IP ranges assigned to nodes for pods.
+
+.PP
+\fB\-\-public\-master\fP="
+\[la]https://localhost:8443"\[ra]
+    The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as \-\-master.
+
+.PP
+\fB\-\-write\-config\fP=""
+    Directory to write an initial config into.  After writing, exit without starting the server.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-start(1)\fP, \fBopenshift\-start\-master\-api(1)\fP, \fBopenshift\-start\-master\-controllers(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

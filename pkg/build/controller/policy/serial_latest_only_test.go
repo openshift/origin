@@ -87,58 +87,34 @@ func TestSerialLatestOnlyIsRunnableBuildsWithErrors(t *testing.T) {
 	builds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
-		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 
 	// The build-1 will lack required labels
 	builds[0].ObjectMeta.Labels = map[string]string{}
 
-	// The build-2 will lack the build config label
-	builds[1].ObjectMeta.Labels = map[string]string{
-		buildapi.BuildRunPolicyLabel: "SerialLatestOnly",
-	}
-
-	// The build-3 will lack the build number annotation
-	builds[2].ObjectMeta.Annotations = map[string]string{}
+	// The build-2 will lack the build number annotation
+	builds[1].ObjectMeta.Annotations = map[string]string{}
 
 	client := newTestClient(builds)
 	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
 
-	if _, err := policy.IsRunnable(&builds[0]); err != nil {
-		if _, ok := err.(NoBuildConfigLabelError); !ok {
-			t.Errorf("expected NoBuildConfigLabelError, got %T", err)
-		}
-	} else {
-		t.Errorf("expected error for build-1")
-	}
-	if _, err := policy.IsRunnable(&builds[1]); err != nil {
-		if _, ok := err.(NoBuildConfigLabelError); !ok {
-			t.Errorf("expected NoBuildConfigLabelError, got %T", err)
-		}
-	} else {
-		t.Errorf("expected error for build-2")
-	}
-	// No type-check as this error is returned as kerrors.aggregate
-	if _, err := policy.IsRunnable(&builds[2]); err == nil {
-		t.Errorf("expected error for build-3")
+	ok, err := policy.IsRunnable(&builds[0])
+	if !ok || err != nil {
+		t.Errorf("expected build to be runnable, got %v, error: %v", ok, err)
 	}
 
-	if err := policy.OnComplete(&builds[0]); err != nil {
-		if _, ok := err.(NoBuildConfigLabelError); !ok {
-			t.Errorf("expected NoBuildConfigLabelError, got %T", err)
-		}
-	} else {
-		t.Errorf("expected error for build-1")
-	}
-	if err := policy.OnComplete(&builds[1]); err != nil {
-		if _, ok := err.(NoBuildConfigLabelError); !ok {
-			t.Errorf("expected NoBuildConfigLabelError, got %T", err)
-		}
-	} else {
+	// No type-check as this error is returned as kerrors.aggregate
+	if _, err := policy.IsRunnable(&builds[1]); err == nil {
 		t.Errorf("expected error for build-2")
 	}
+
+	err = policy.OnComplete(&builds[0])
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
 	// No type-check as this error is returned as kerrors.aggregate
-	if err := policy.OnComplete(&builds[2]); err == nil {
-		t.Errorf("expected error for build-3")
+	if err := policy.OnComplete(&builds[1]); err == nil {
+		t.Errorf("expected error for build-2")
 	}
 }
