@@ -152,7 +152,7 @@ os::provision::set-os-env() {
 "/root/${file_target}"
 
   # Make symlinks to the bash completions for the openshift commands
-  ln -s ${origin_root}/contrib/completions/bash/* /etc/bash_completion.d/
+  ln -sf ${origin_root}/contrib/completions/bash/* /etc/bash_completion.d/
 }
 
 os::provision::get-admin-config() {
