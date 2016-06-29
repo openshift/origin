@@ -3,15 +3,12 @@ package create
 import (
 	"fmt"
 	"io"
-	"strconv"
 
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/intstr"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -107,7 +104,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	if err != nil {
 		return err
 	}
-	route, err := unsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
+	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
 	if err != nil {
 		return err
 	}
@@ -208,7 +205,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	if err != nil {
 		return err
 	}
-	route, err := unsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
+	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
 	if err != nil {
 		return err
 	}
@@ -304,7 +301,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
-	route, err := unsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
+	route, err := cmdutil.UnsecuredRoute(kc, ns, routeName, serviceName, kcmdutil.GetFlagString(cmd, "port"))
 	if err != nil {
 		return err
 	}
@@ -355,62 +352,6 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	return nil
 }
 
-// unsecuredRoute will return a route with enough info so that it can direct traffic to
-// the service provided by --service. Callers of this helper are responsible for providing
-// tls configuration, path, and the hostname of the route.
-func unsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portString string) (*api.Route, error) {
-	if len(routeName) == 0 {
-		routeName = serviceName
-	}
-
-	svc, err := kc.Services(namespace).Get(serviceName)
-	if err != nil {
-		if len(portString) == 0 {
-			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")
-		}
-		return &api.Route{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: routeName,
-			},
-			Spec: api.RouteSpec{
-				To: api.RouteTargetReference{
-					Name: serviceName,
-				},
-				Port: resolveRoutePort(portString),
-			},
-		}, nil
-	}
-
-	ok, port := supportsTCP(svc)
-	if !ok {
-		return nil, fmt.Errorf("service %q doesn't support TCP", svc.Name)
-	}
-
-	route := &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:   routeName,
-			Labels: svc.Labels,
-		},
-		Spec: api.RouteSpec{
-			To: api.RouteTargetReference{
-				Name: serviceName,
-			},
-		},
-	}
-
-	// If the service has multiple ports and the user didn't specify --port,
-	// then default the route port to a service port name.
-	if len(port.Name) > 0 && len(portString) == 0 {
-		route.Spec.Port = resolveRoutePort(port.Name)
-	}
-	// --port uber alles
-	if len(portString) > 0 {
-		route.Spec.Port = resolveRoutePort(portString)
-	}
-
-	return route, nil
-}
-
 func resolveServiceName(f *clientcmd.Factory, resource string) (string, error) {
 	if len(resource) == 0 {
 		return "", fmt.Errorf("you need to provide a service name via --service")
@@ -435,29 +376,4 @@ func resolveRouteName(args []string) (string, error) {
 		return "", fmt.Errorf("multiple names provided. Please specify at most one")
 	}
 	return "", nil
-}
-
-func resolveRoutePort(portString string) *api.RoutePort {
-	if len(portString) == 0 {
-		return nil
-	}
-	var routePort intstr.IntOrString
-	integer, err := strconv.Atoi(portString)
-	if err != nil {
-		routePort = intstr.FromString(portString)
-	} else {
-		routePort = intstr.FromInt(integer)
-	}
-	return &api.RoutePort{
-		TargetPort: routePort,
-	}
-}
-
-func supportsTCP(svc *kapi.Service) (bool, kapi.ServicePort) {
-	for _, port := range svc.Spec.Ports {
-		if port.Protocol == kapi.ProtocolTCP {
-			return true, port
-		}
-	}
-	return false, kapi.ServicePort{}
 }
