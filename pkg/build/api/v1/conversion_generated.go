@@ -1785,6 +1785,16 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 	} else {
 		out.RuntimeArtifacts = nil
 	}
+	if in.RuntimePullSecret != nil {
+		in, out := &in.RuntimePullSecret, &out.RuntimePullSecret
+		*out = new(api_v1.LocalObjectReference)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.RuntimePullSecret = nil
+	}
 	return nil
 }
 
@@ -1835,6 +1845,16 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 		}
 	} else {
 		out.RuntimeArtifacts = nil
+	}
+	if in.RuntimePullSecret != nil {
+		in, out := &in.RuntimePullSecret, &out.RuntimePullSecret
+		*out = new(api.LocalObjectReference)
+		// TODO: Inefficient conversion - can we improve it?
+		if err := s.Convert(*in, *out, 0); err != nil {
+			return err
+		}
+	} else {
+		out.RuntimePullSecret = nil
 	}
 	return nil
 }

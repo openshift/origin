@@ -928,6 +928,15 @@ func DeepCopy_api_SourceBuildStrategy(in SourceBuildStrategy, out *SourceBuildSt
 	} else {
 		out.RuntimeArtifacts = nil
 	}
+	if in.RuntimePullSecret != nil {
+		in, out := in.RuntimePullSecret, &out.RuntimePullSecret
+		*out = new(api.LocalObjectReference)
+		if err := api.DeepCopy_api_LocalObjectReference(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.RuntimePullSecret = nil
+	}
 	return nil
 }
 
