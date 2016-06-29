@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/v1"
@@ -24,7 +24,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	i := &newer.Image{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 
-		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", Size: 10}},
+		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", LayerSize: 10}},
 		DockerImageMetadata:  *d,
 		DockerImageReference: "foo/bar/baz",
 	}
@@ -44,7 +44,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	}
 	image.DockerImageMetadataVersion = ""
 	if !reflect.DeepEqual(i, image) {
-		t.Errorf("unable to round trip object: %s", util.ObjectDiff(i, image))
+		t.Errorf("unable to round trip object: %s", diff.ObjectDiff(i, image))
 	}
 }
 
@@ -59,4 +59,26 @@ func TestFieldSelectors(t *testing.T) {
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"name", "spec.dockerImageRepository", "status.dockerImageRepository",
 	)
+}
+
+func TestImageImportSpecDefaulting(t *testing.T) {
+	i := &newer.ImageStreamImport{
+		Spec: newer.ImageStreamImportSpec{
+			Images: []newer.ImageImportSpec{
+				{From: kapi.ObjectReference{Name: "something:other"}},
+			},
+		},
+	}
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	isi := obj.(*newer.ImageStreamImport)
+	if isi.Spec.Images[0].To == nil || isi.Spec.Images[0].To.Name != "other" {
+		t.Errorf("unexpected round trip: %#v", isi)
+	}
 }

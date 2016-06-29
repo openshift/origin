@@ -45,6 +45,12 @@ const (
 
 	InfraGCControllerServiceAccountName = "gc-controller"
 	GCControllerRoleName                = "system:gc-controller"
+
+	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
+	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
+
+	ServiceServingCertServiceAccountName = "service-serving-cert-controller"
+	ServiceServingCertControllerRoleName = "system:service-serving-cert-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -113,7 +119,7 @@ func init() {
 				// Create permission on virtual build type resources allows builds of those types to be updated
 				{
 					Verbs:     sets.NewString("create"),
-					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom"),
+					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline"),
 				},
 				// BuildController.ImageStreamClient (ControllerClient)
 				{
@@ -565,4 +571,72 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraServiceLoadBalancerControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ServiceLoadBalancerControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// ServiceController.cache.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("services"),
+				},
+				// ServiceController.processDelta needs to fetch the latest service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("services"),
+				},
+				// ServiceController.persistUpdate changes the status of the service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("services/status"),
+				},
+				// ServiceController.nodeLister.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
+				// ServiceController.eventRecorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		ServiceServingCertServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ServiceServingCertControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch", "update"),
+					Resources: sets.NewString("services"),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "create"),
+					Resources: sets.NewString("secrets"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
 }

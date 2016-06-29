@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"time"
 
 	newetcdclient "github.com/coreos/etcd/client"
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -15,15 +16,20 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -34,9 +40,9 @@ import (
 	"github.com/openshift/origin/pkg/auth/group"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
-	policycache "github.com/openshift/origin/pkg/authorization/cache"
-	policyclient "github.com/openshift/origin/pkg/authorization/client"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -54,10 +60,14 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/controller/shared"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/quota"
+	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -69,10 +79,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
-const (
-	unauthenticatedUsername = "system:anonymous"
-)
-
 // MasterConfig defines the required parameters for starting the OpenShift master
 type MasterConfig struct {
 	Options configapi.MasterConfig
@@ -80,11 +86,11 @@ type MasterConfig struct {
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
 
+	RuleResolver                  rulevalidation.AuthorizationRuleResolver
 	Authenticator                 authenticator.Request
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
-	PolicyCache               policycache.ReadOnlyCache
 	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 	ProjectCache              *projectcache.ProjectCache
@@ -130,6 +136,10 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
+
+	// Informers is a shared factory for getting SharedInformers. It is important to get your informers, indexers, and listers
+	// from here so that we only end up with a single cache of objects
+	Informers shared.InformerFactory
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -169,14 +179,16 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
+	customListerWatchers := shared.DefaultListerWatcherOverrides{}
+	if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
+		return nil, err
+	}
+	informerFactory := shared.NewInformerFactory(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient, customListerWatchers, 10*time.Minute)
+
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
-	policyCache, policyClient, err := newReadOnlyCacheAndClient(restOptsGetter)
-	if err != nil {
-		return nil, err
-	}
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	groupStorage, err := groupstorage.NewREST(restOptsGetter)
@@ -189,21 +201,39 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"ProjectRequestLimit", "OriginNamespaceLifecycle", "PodNodeConstraints", "BuildByStrategy", "OriginResourceQuota"}
+	admissionControlPluginNames := []string{
+		"ProjectRequestLimit",
+		"OriginNamespaceLifecycle",
+		"PodNodeConstraints",
+		"JenkinsBootstrapper",
+		"BuildByStrategy",
+		imageadmission.PluginName,
+		quotaadmission.PluginName,
+	}
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
 		admissionControlPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
 
-	authorizer := newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage)
+	quotaRegistry := quota.NewOriginQuotaRegistry(privilegedLoopbackOpenShiftClient)
+	ruleResolver := rulevalidation.NewDefaultRuleResolver(
+		informerFactory.Policies().Lister(),
+		informerFactory.PolicyBindings().Lister(),
+		informerFactory.ClusterPolicies().Lister().ClusterPolicies(),
+		informerFactory.ClusterPolicyBindings().Lister().ClusterPolicyBindings(),
+	)
+	authorizer := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
-		OpenshiftClient: privilegedLoopbackOpenShiftClient,
-		ProjectCache:    projectCache,
-		Authorizer:      authorizer,
+		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
+		ProjectCache:          projectCache,
+		OriginQuotaRegistry:   quotaRegistry,
+		Authorizer:            authorizer,
+		JenkinsPipelineConfig: options.JenkinsPipelineConfig,
+		RESTClientConfig:      *privilegedLoopbackClientConfig,
 	}
 
 	plugins := []admission.Interface{}
-	clientsetClient := internalclientset.FromUnversionedClient(privilegedLoopbackKubeClient)
+	clientsetClient := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
 	for _, pluginName := range admissionControlPluginNames {
 		configFile, err := pluginconfig.GetPluginConfig(options.AdmissionConfig.PluginConfig[pluginName])
 		if err != nil {
@@ -239,13 +269,13 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		RESTOptionsGetter: restOptsGetter,
 
+		RuleResolver:                  ruleResolver,
 		Authenticator:                 authenticator,
 		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
-		PolicyCache:               policyCache,
 		GroupCache:                groupCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, policyClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
 		ProjectCache:              projectCache,
 
 		RequestContextMapper: requestContextMapper,
@@ -269,6 +299,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
+		Informers:                          informerFactory,
 	}
 
 	return config, nil
@@ -304,11 +335,11 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 		if err != nil {
 			return nil, err
 		}
-		tokenGetter = sacontroller.NewGetterFromClient(internalclientset.FromUnversionedClient(kubeClient))
+		tokenGetter = sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient))
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false)
+		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, genericapiserver.DefaultDeserializationCacheSize)
 		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
@@ -345,6 +376,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 
 		authenticators = append(authenticators,
 			// if you have a bearer token, you're a human (usually)
+			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
 			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
@@ -361,6 +393,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	ret := &unionrequest.Authenticator{
 		FailOnError: true,
 		Handlers: []authenticator.Request{
+			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
 			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
 			anonymous.NewAuthenticator(),
 		},
@@ -369,53 +402,123 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	return ret, nil
 }
 
-func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclient.Client, policyClient policyclient.ReadOnlyPolicyClient) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclient.Client, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		projectauth.NewAuthorizerReviewer(authorizer),
 		kubeClient.Namespaces(),
-		policyClient,
+		informerFactory.ClusterPolicies().Lister(),
+		informerFactory.ClusterPolicyBindings().Lister(),
+		informerFactory.Policies().Lister(),
+		informerFactory.PolicyBindings().Lister(),
 	)
 }
 
-// newReadOnlyCacheAndClient returns a ReadOnlyCache for administrative interactions with the cache holding policies and bindings on a project
-// and cluster level as well as a ReadOnlyPolicyClient for use in the project authorization cache and authorizer to query for the same data
-func newReadOnlyCacheAndClient(optsGetter restoptions.Getter) (policycache.ReadOnlyCache, policyclient.ReadOnlyPolicyClient, error) {
-	policyStorage, err := policyetcd.NewStorage(optsGetter)
+func addAuthorizationListerWatchers(customListerWatchers shared.DefaultListerWatcherOverrides, optsGetter restoptions.Getter) error {
+	lw, err := newClusterPolicyLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	policyRegistry := policyregistry.NewRegistry(policyStorage)
-
-	policyBindingStorage, err := policybindingetcd.NewStorage(optsGetter)
+	customListerWatchers[authorizationapi.Resource("clusterpolicies")] = lw
+	lw, err = newClusterPolicyBindingLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
-
-	clusterPolicyStorage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	customListerWatchers[authorizationapi.Resource("clusterpolicybindings")] = lw
+	lw, err = newPolicyLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-
-	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	customListerWatchers[authorizationapi.Resource("policies")] = lw
+	lw, err = newPolicyBindingLW(optsGetter)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
+	customListerWatchers[authorizationapi.Resource("policybindings")] = lw
 
-	cache, client := policycache.NewReadOnlyCacheAndClient(policyBindingRegistry, policyRegistry, clusterPolicyBindingRegistry, clusterPolicyRegistry)
-	return cache, client, nil
+	return nil
 }
 
-func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(
-		rulevalidation.PolicyGetter(policyClient),
-		rulevalidation.BindingLister(policyClient),
-		rulevalidation.ClusterPolicyGetter(policyClient),
-		rulevalidation.ClusterBindingLister(policyClient),
-	), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
-	return authorizer
+func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := clusterpolicyregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListClusterPolicies(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchClusterPolicies(ctx, &options)
+		},
+	}, nil
+}
+
+func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := clusterpolicybindingregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListClusterPolicyBindings(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchClusterPolicyBindings(ctx, &options)
+		},
+	}, nil
+}
+
+func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := policyetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := policyregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListPolicies(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchPolicies(ctx, &options)
+		},
+	}, nil
+}
+
+func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+
+	storage, err := policybindingetcd.NewStorage(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	registry := policybindingregistry.NewRegistry(storage)
+
+	return &cache.ListWatch{
+		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			return registry.ListPolicyBindings(ctx, &options)
+		},
+		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			return registry.WatchPolicyBindings(ctx, &options)
+		},
+	}, nil
+}
+
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, projectRequestDenyMessage string) authorizer.Authorizer {
+	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
+	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, messageMaker)
+	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, informerFactory.ClusterPolicies().Lister().ClusterPolicies(), messageMaker)
+	return scopeLimitedAuthorizer
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
@@ -433,7 +536,8 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 }
 
 func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, groupMapper identitymapper.UserToGroupMapper) (authenticator.Token, error) {
-	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter)
+	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client
+	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -546,9 +650,9 @@ func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient
 	return osClient, kClient
 }
 
-// DeployerPodControllerClients returns the deployer pod controller client objects
-func (c *MasterConfig) DeployerPodControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+// DeployerPodControllerClients returns the deployer pod controller client object
+func (c *MasterConfig) DeployerPodControllerClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeploymentConfigClients returns deploymentConfig and deployment client objects
@@ -561,8 +665,8 @@ func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *k
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
-// DeploymentConfigChangeControllerClients returns the deploymentConfig config change controller client objects
-func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
+// DeploymentTriggerControllerClients returns the deploymentConfig trigger controller client objects
+func (c *MasterConfig) DeploymentTriggerControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
@@ -604,7 +708,7 @@ func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 // ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
 // evaluation
 func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *internalclientset.Clientset) {
-	return c.PrivilegedLoopbackOpenShiftClient, internalclientset.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
+	return c.PrivilegedLoopbackOpenShiftClient, clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
@@ -621,7 +725,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, genericapiserver.DefaultDeserializationCacheSize), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the

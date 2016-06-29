@@ -16,26 +16,34 @@ fi
 export SHELLOPTS
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 
 NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
 
 # These strings filter the available tests.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services}"
+#
+# The EmptyDir test is a canary; it will fail if mount propagation is
+# not properly configured on the host.
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services|EmptyDir volumes should support \(root,0644,tmpfs\)}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 
 DEFAULT_SKIP_LIST=(
-  # Skip tests that require secrets.  Secrets are not supported by
-  # dind without docker >= 1.10.
-  "Networking should function for intra-pod"
+  # TODO(marun) This should work with docker >= 1.10
   "openshift router"
+
+  # Panicing, needs investigation
+  "Networking IPerf"
 
   # DNS inside container fails in CI but works locally
   "should provide Internet connection for containers"
+
+  # Skip tests that require GCE or AWS. (They'll skip themselves if we run them, but
+  # only after several seconds of setup.)
+  "should be able to up and down services"
+  "should work after restarting kube-proxy"
+  "should work after restarting apiserver"
+  "should be able to change the type and ports of a service"
 )
 
 CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
@@ -58,18 +66,30 @@ function copy-container-files() {
 
 function save-container-logs() {
   local base_dest_dir=$1
+  local output_to_stdout=${2:-}
 
   os::log::info "Saving container logs"
+
+  local container_log_file="/tmp/systemd.log.gz"
 
   for container_name in "${CONTAINER_NAMES[@]}"; do
     local dest_dir="${base_dest_dir}/${container_name}"
     if [[ ! -d "${dest_dir}" ]]; then
       mkdir -p "${dest_dir}"
     fi
-    container_log_file=/tmp/systemd.log.gz
     sudo docker exec -t "${container_name}" bash -c "journalctl -xe | \
 gzip > ${container_log_file}"
     sudo docker cp "${container_name}:${container_log_file}" "${dest_dir}"
+    # Output container logs to stdout to ensure that jenkins has
+    # detail to classify the failure cause.
+    if [[ -n "${output_to_stdout}" ]]; then
+      local msg="System logs for container ${container_name}"
+      os::log::info "< ${msg} >"
+      os::log::info "***************************************************"
+      gunzip --stdout "${dest_dir}/$(basename "${container_log_file}")"
+      os::log::info "***************************************************"
+      os::log::info "</ ${msg} >"
+    fi
   done
 }
 
@@ -120,6 +140,12 @@ function deploy-cluster() {
   return "${exit_status}"
 }
 
+function get-kubeconfig-from-root() {
+  local config_root=$1
+
+  echo "${config_root}/openshift.local.config/master/admin.kubeconfig"
+}
+
 # Any non-zero exit code from any test run invoked by this script
 # should increment TEST_FAILURE so the total count of failed test runs
 # can be returned as the exit code.
@@ -134,27 +160,31 @@ function test-osdn-plugin() {
   local log_dir="${LOG_DIR}/${name}"
   mkdir -p "${log_dir}"
 
-  local failed=
+  local deployment_failed=
+  local tests_failed=
 
   if deploy-cluster "${name}" "${plugin}" "${isolation}" "${log_dir}"; then
     os::log::info "Running networking e2e tests against the ${name} plugin"
     export TEST_REPORT_FILE_NAME="${name}-junit"
 
+    local kubeconfig="$(get-kubeconfig-from-root "${OPENSHIFT_CONFIG_ROOT}")"
     if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
-         run-extended-tests "${OPENSHIFT_CONFIG_ROOT}" "${log_dir}/test.log"; then
-      failed=1
+         run-extended-tests "${kubeconfig}" "${log_dir}/test.log"; then
+      tests_failed=1
       os::log::error "e2e tests failed for plugin: ${plugin}"
     fi
   else
-    failed=1
+    deployment_failed=1
     os::log::error "Failed to deploy cluster for plugin: {$name}"
   fi
 
-  if [[ -n "${failed}" ]]; then
+  # Record the failure before further errors can occur.
+  if [[ -n "${deployment_failed}" || -n "${tests_failed}" ]]; then
     TEST_FAILURES=$((TEST_FAILURES + 1))
   fi
 
-  save-container-logs "${log_dir}"
+  # Output container logs to stdout if deployment fails
+  save-container-logs "${log_dir}" "${deployment_failed}"
 
   os::log::info "Shutting down docker-in-docker cluster for the ${name} plugin"
   ${CLUSTER_CMD} stop
@@ -166,7 +196,7 @@ function test-osdn-plugin() {
 function join { local IFS="$1"; shift; echo "$*"; }
 
 function run-extended-tests() {
-  local config_root=$1
+  local kubeconfig=$1
   local log_path=${2:-}
 
   local focus_regex="${NETWORKING_E2E_FOCUS}"
@@ -176,7 +206,7 @@ function run-extended-tests() {
       skip_regex=$(join '|' "${DEFAULT_SKIP_LIST[@]}")
   fi
 
-  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
+  export KUBECONFIG="${kubeconfig}"
   export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
   local test_args="--test.v '--ginkgo.skip=${skip_regex}' \
@@ -236,9 +266,13 @@ TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 
 os::log::info "Starting 'networking' extended tests"
 if [[ -n "${CONFIG_ROOT}" ]]; then
-  os::log::info "CONFIG_ROOT=${CONFIG_ROOT}"
+  KUBECONFIG="$(get-kubeconfig-from-root "${CONFIG_ROOT}")"
+  os::log::info "KUBECONFIG=${KUBECONFIG}"
+  run-extended-tests "${KUBECONFIG}"
+elif [[ -n "${OPENSHIFT_TEST_KUBECONFIG:-}" ]]; then
+  os::log::info "KUBECONFIG=${OPENSHIFT_TEST_KUBECONFIG}"
   # Run tests against an existing cluster
-  run-extended-tests "${CONFIG_ROOT}"
+  run-extended-tests "${OPENSHIFT_TEST_KUBECONFIG}"
 else
   # For each plugin, run tests against a test-managed cluster
 

@@ -256,6 +256,10 @@ func (c *Fake) PolicyBindings(namespace string) client.PolicyBindingInterface {
 	return &FakePolicyBindings{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) SelfSubjectRulesReviews(namespace string) client.SelfSubjectRulesReviewInterface {
+	return &FakeSelfSubjectRulesReviews{Fake: c, Namespace: namespace}
+}
+
 // LocalResourceAccessReviews provides a fake REST client for ResourceAccessReviews
 func (c *Fake) LocalResourceAccessReviews(namespace string) client.LocalResourceAccessReviewInterface {
 	return &FakeLocalResourceAccessReviews{Fake: c}
@@ -276,9 +280,20 @@ func (c *Fake) ImpersonateLocalSubjectAccessReviews(namespace, token string) cli
 	return &FakeLocalSubjectAccessReviews{Fake: c, Namespace: namespace}
 }
 
-// OAuthAccessTokens provides a fake REST client for OAuthAccessTokens
+func (c *Fake) OAuthClients() client.OAuthClientInterface {
+	return &FakeOAuthClient{Fake: c}
+}
+
+func (c *Fake) OAuthClientAuthorizations() client.OAuthClientAuthorizationInterface {
+	return &FakeOAuthClientAuthorization{Fake: c}
+}
+
 func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 	return &FakeOAuthAccessTokens{Fake: c}
+}
+
+func (c *Fake) OAuthAuthorizeTokens() client.OAuthAuthorizeTokenInterface {
+	return &FakeOAuthAuthorizeTokens{Fake: c}
 }
 
 // LocalSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
@@ -309,4 +324,8 @@ func (c *Fake) ClusterRoles() client.ClusterRoleInterface {
 // ClusterRoleBindings provides a fake REST client for ClusterRoleBindings
 func (c *Fake) ClusterRoleBindings() client.ClusterRoleBindingInterface {
 	return &FakeClusterRoleBindings{Fake: c}
+}
+
+func (c *Fake) ClusterResourceQuotas() client.ClusterResourceQuotaInterface {
+	return &FakeClusterResourceQuotas{Fake: c}
 }

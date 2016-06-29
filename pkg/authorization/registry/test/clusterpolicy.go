@@ -15,7 +15,7 @@ var resourceVersion = 1
 
 type ClusterPolicyRegistry struct {
 	// ClusterPolicies is a of namespace->name->ClusterPolicy
-	ClusterPolicies map[string]map[string]authorizationapi.ClusterPolicy
+	clusterPolicies map[string]map[string]authorizationapi.ClusterPolicy
 	Err             error
 }
 
@@ -29,6 +29,13 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 	return &ClusterPolicyRegistry{policyMap, err}
 }
 
+func (r *ClusterPolicyRegistry) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+	return r.ListClusterPolicies(kapi.NewContext(), &options)
+}
+func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+	return r.GetClusterPolicy(kapi.NewContext(), name)
+}
+
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
 func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	if r.Err != nil {
@@ -39,14 +46,14 @@ func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *k
 	list := make([]authorizationapi.ClusterPolicy, 0)
 
 	if namespace == kapi.NamespaceAll {
-		for _, curr := range r.ClusterPolicies {
+		for _, curr := range r.clusterPolicies {
 			for _, policy := range curr {
 				list = append(list, policy)
 			}
 		}
 
 	} else {
-		if namespacedClusterPolicies, ok := r.ClusterPolicies[namespace]; ok {
+		if namespacedClusterPolicies, ok := r.clusterPolicies[namespace]; ok {
 			for _, curr := range namespacedClusterPolicies {
 				list = append(list, curr)
 			}
@@ -70,7 +77,7 @@ func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx kapi.Context, id string) (*
 		return nil, errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 
-	if namespacedClusterPolicies, ok := r.ClusterPolicies[namespace]; ok {
+	if namespacedClusterPolicies, ok := r.clusterPolicies[namespace]; ok {
 		if policy, ok := namespacedClusterPolicies[id]; ok {
 			return &policy, nil
 		}
@@ -93,7 +100,7 @@ func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx kapi.Context, policy *au
 		return kapierrors.NewAlreadyExists(authorizationapi.Resource("ClusterPolicy"), policy.Name)
 	}
 
-	addClusterPolicy(r.ClusterPolicies, *policy)
+	addClusterPolicy(r.clusterPolicies, *policy)
 
 	return nil
 }
@@ -112,7 +119,7 @@ func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx kapi.Context, policy *au
 		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicy"), policy.Name)
 	}
 
-	addClusterPolicy(r.ClusterPolicies, *policy)
+	addClusterPolicy(r.clusterPolicies, *policy)
 
 	return nil
 }
@@ -128,7 +135,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string)
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
 
-	namespacedClusterPolicies, ok := r.ClusterPolicies[namespace]
+	namespacedClusterPolicies, ok := r.clusterPolicies[namespace]
 	if ok {
 		delete(namespacedClusterPolicies, id)
 	}

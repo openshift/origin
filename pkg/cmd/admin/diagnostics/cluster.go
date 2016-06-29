@@ -20,7 +20,7 @@ import (
 var (
 	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClusterDiagnostics = sets.NewString(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName, clustdiags.ClusterRolesName, clustdiags.ClusterRoleBindingsName, clustdiags.MasterNodeName)
+	availableClusterDiagnostics = sets.NewString(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName, clustdiags.ClusterRolesName, clustdiags.ClusterRoleBindingsName, clustdiags.MasterNodeName, clustdiags.MetricsApiProxyName, clustdiags.ServiceExternalIPsName)
 )
 
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
@@ -44,23 +44,28 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
+		var d types.Diagnostic
 		switch diagnosticName {
 		case clustdiags.NodeDefinitionsName:
-			diagnostics = append(diagnostics, &clustdiags.NodeDefinitions{KubeClient: kclusterClient, OsClient: clusterClient})
+			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient, OsClient: clusterClient}
 		case clustdiags.MasterNodeName:
-			diagnostics = append(diagnostics, &clustdiags.MasterNode{KubeClient: kclusterClient, OsClient: clusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation})
+			d = &clustdiags.MasterNode{KubeClient: kclusterClient, OsClient: clusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation}
 		case clustdiags.ClusterRegistryName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient, PreventModification: o.PreventModification})
+			d = &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient, PreventModification: o.PreventModification}
 		case clustdiags.ClusterRouterName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{KubeClient: kclusterClient, OsClient: clusterClient})
+			d = &clustdiags.ClusterRouter{KubeClient: kclusterClient, OsClient: clusterClient}
 		case clustdiags.ClusterRolesName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRoles{ClusterRolesClient: clusterClient, SARClient: clusterClient})
+			d = &clustdiags.ClusterRoles{ClusterRolesClient: clusterClient, SARClient: clusterClient}
 		case clustdiags.ClusterRoleBindingsName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: clusterClient, SARClient: clusterClient})
-
+			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: clusterClient, SARClient: clusterClient}
+		case clustdiags.MetricsApiProxyName:
+			d = &clustdiags.MetricsApiProxy{KubeClient: kclusterClient}
+		case clustdiags.ServiceExternalIPsName:
+			d = &clustdiags.ServiceExternalIPs{MasterConfigFile: o.MasterConfigLocation, KclusterClient: kclusterClient}
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
+		diagnostics = append(diagnostics, d)
 	}
 	return diagnostics, true, nil
 }

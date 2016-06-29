@@ -16,7 +16,6 @@ rfc2307:
         baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
         scope: sub
         derefAliases: never
-        filter: (objectclass=inetOrgPerson)
         pageSize: 1
     userUIDAttribute: dn
     userNameAttributes: [ mail ]

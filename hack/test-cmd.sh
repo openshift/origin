@@ -10,13 +10,8 @@ set -o pipefail
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd "${OS_ROOT}"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 os::util::environment::setup_time_vars
 
 function cleanup()
@@ -26,13 +21,18 @@ function cleanup()
     set +e
     kill_all_processes
 
+    # pull information out of the server log so that we can get failure management in jenkins to highlight it and 
+    # really have it smack people in their logs.  This is a severe correctness problem
+    grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
+
     echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
     set_curl_args 0 1
     curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
     echo
 
     # we keep a JSON dump of etcd data so we do not need to keep the binary store
-    sudo rm -rf "${ETCD_DATA_DIR}"
+    local sudo="${USE_SUDO:+sudo}"
+    ${sudo} rm -rf "${ETCD_DATA_DIR}"
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
@@ -181,8 +181,12 @@ openshift start \
   --images="${USE_IMAGES}"
 
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
-os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
+openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
+openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
+openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
+openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
+openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
@@ -239,7 +243,7 @@ os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" '
 os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/master-config.yaml" 'disabledFeatures: null'
 
 # test client not configured
-os::cmd::expect_failure_and_text "oc get services" 'No configuration file found, please login'
+os::cmd::expect_failure_and_text "oc get services" 'Missing or incomplete configuration info.  Please login'
 unused_port="33333"
 # setting env bypasses the not configured message
 os::cmd::expect_failure_and_text "KUBERNETES_MASTER=http://${API_HOST}:${unused_port} oc get services" 'did you specify the right host or port'
@@ -309,6 +313,27 @@ os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.ku
 
 # test config files from env vars
 os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
+
+# test completion command help
+os::cmd::expect_success_and_text "oc completion -h" "prints shell code"
+os::cmd::expect_success_and_text "openshift completion -h" "prints shell code"
+os::cmd::expect_success_and_text "oadm completion -h" "prints shell code"
+# test completion command output
+os::cmd::expect_failure_and_text "oc completion" "Shell not specified."
+os::cmd::expect_success "oc completion bash"
+os::cmd::expect_success "oc completion zsh"
+os::cmd::expect_failure_and_text "oc completion test_shell" 'Unsupported shell type "test_shell"'
+# test completion command for openshift
+os::cmd::expect_failure_and_text "openshift completion" "Shell not specified."
+os::cmd::expect_success "openshift completion bash"
+os::cmd::expect_success "openshift completion zsh"
+os::cmd::expect_failure_and_text "openshift completion test_shell" 'Unsupported shell type "test_shell"'
+# test completion command for oadm
+os::cmd::expect_failure_and_text "oadm completion" "Shell not specified."
+os::cmd::expect_success "oadm completion bash"
+os::cmd::expect_success "oadm completion zsh"
+os::cmd::expect_failure_and_text "oadm completion test_shell" 'Unsupported shell type "test_shell"'
+echo "oc completion: ok"
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube

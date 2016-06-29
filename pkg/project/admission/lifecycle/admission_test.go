@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -11,13 +12,16 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/controller/shared"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
@@ -36,7 +40,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 	handler := &lifecycle{}
 	unknown := &UnknownObject{}
 
-	err := handler.Admit(admission.NewAttributesRecord(unknown, kapi.Kind("kind"), "namespace", "name", kapi.Resource("resource"), "subresource", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(unknown, kapi.Kind("kind").WithVersion("version"), "namespace", "name", kapi.Resource("resource").WithVersion("version"), "subresource", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Admission control should not error if it finds an object it knows nothing about %v", err)
 	}
@@ -57,19 +61,21 @@ func TestAdmissionExists(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
@@ -77,7 +83,7 @@ func TestAdmissionExists(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), "namespace", "name", kapi.Resource("builds"), "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build").WithVersion("version"), "namespace", "name", kapi.Resource("builds").WithVersion("version"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected an error because namespace does not exist")
 	}
@@ -105,19 +111,21 @@ func TestAdmissionLifecycle(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
@@ -125,7 +133,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "CREATE", nil))
+	err := handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build").WithVersion("version"), build.Namespace, "name", kapi.Resource("builds").WithVersion("version"), "", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -135,19 +143,19 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 
 	// verify create operations in the namespace cause an error
-	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "CREATE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build").WithVersion("version"), build.Namespace, "name", kapi.Resource("builds").WithVersion("version"), "", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "UPDATE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(build, kapi.Kind("Build").WithVersion("version"), build.Namespace, "name", kapi.Resource("builds").WithVersion("version"), "", "UPDATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind("Build"), build.Namespace, "name", kapi.Resource("builds"), "", "DELETE", nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind("Build").WithVersion("version"), build.Namespace, "name", kapi.Resource("builds").WithVersion("version"), "", "DELETE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -156,12 +164,13 @@ func TestAdmissionLifecycle(t *testing.T) {
 
 // TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false)
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false, genericapiserver.DefaultDeserializationCacheSize)
 
 	config := &origin.MasterConfig{
 		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
 		EtcdHelper:          etcdHelper,
+		Informers:           shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second),
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}
@@ -204,7 +213,7 @@ func TestSAR(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		err := handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind(v.kind), "foo", "name", kapi.Resource(v.resource), "", "CREATE", nil))
+		err := handler.Admit(admission.NewAttributesRecord(nil, kapi.Kind(v.kind).WithVersion("version"), "foo", "name", kapi.Resource(v.resource).WithVersion("version"), "", "CREATE", nil))
 		if err != nil {
 			t.Errorf("Unexpected error for %s returned from admission handler: %v", k, err)
 		}

@@ -49,7 +49,9 @@ func createFloatingIP(t *testing.T, client *gophercloud.ServiceClient) (*floatin
 	return fip, err
 }
 
-func associateFloatingIP(t *testing.T, client *gophercloud.ServiceClient, serverId string, fip *floatingip.FloatingIP) {
+func associateFloatingIPDeprecated(t *testing.T, client *gophercloud.ServiceClient, serverId string, fip *floatingip.FloatingIP) {
+	// This form works, but is considered deprecated.
+	// See associateFloatingIP or associateFloatingIPFixed
 	err := floatingip.Associate(client, serverId, fip.IP).ExtractErr()
 	th.AssertNoErr(t, err)
 	t.Logf("Associated floating IP %v from instance %v", fip.IP, serverId)
@@ -60,6 +62,63 @@ func associateFloatingIP(t *testing.T, client *gophercloud.ServiceClient, server
 	}()
 	floatingIp, err := floatingip.Get(client, fip.ID).Extract()
 	th.AssertNoErr(t, err)
+	t.Logf("Floating IP %v is associated with Fixed IP %v", fip.IP, floatingIp.FixedIP)
+}
+
+func associateFloatingIP(t *testing.T, client *gophercloud.ServiceClient, serverId string, fip *floatingip.FloatingIP) {
+	associateOpts := floatingip.AssociateOpts{
+		ServerID:   serverId,
+		FloatingIP: fip.IP,
+	}
+
+	err := floatingip.AssociateInstance(client, associateOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+	t.Logf("Associated floating IP %v from instance %v", fip.IP, serverId)
+	defer func() {
+		err = floatingip.DisassociateInstance(client, associateOpts).ExtractErr()
+		th.AssertNoErr(t, err)
+		t.Logf("Disassociated floating IP %v from instance %v", fip.IP, serverId)
+	}()
+	floatingIp, err := floatingip.Get(client, fip.ID).Extract()
+	th.AssertNoErr(t, err)
+	t.Logf("Floating IP %v is associated with Fixed IP %v", fip.IP, floatingIp.FixedIP)
+}
+
+func associateFloatingIPFixed(t *testing.T, client *gophercloud.ServiceClient, serverId string, fip *floatingip.FloatingIP) {
+
+	network := os.Getenv("OS_NETWORK_NAME")
+	server, err := servers.Get(client, serverId).Extract()
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	var fixedIP string
+	for _, networkAddresses := range server.Addresses[network].([]interface{}) {
+		address := networkAddresses.(map[string]interface{})
+		if address["OS-EXT-IPS:type"] == "fixed" {
+			if address["version"].(float64) == 4 {
+				fixedIP = address["addr"].(string)
+			}
+		}
+	}
+
+	associateOpts := floatingip.AssociateOpts{
+		ServerID:   serverId,
+		FloatingIP: fip.IP,
+		FixedIP:    fixedIP,
+	}
+
+	err = floatingip.AssociateInstance(client, associateOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+	t.Logf("Associated floating IP %v from instance %v with Fixed IP %v", fip.IP, serverId, fixedIP)
+	defer func() {
+		err = floatingip.DisassociateInstance(client, associateOpts).ExtractErr()
+		th.AssertNoErr(t, err)
+		t.Logf("Disassociated floating IP %v from instance %v with Fixed IP %v", fip.IP, serverId, fixedIP)
+	}()
+	floatingIp, err := floatingip.Get(client, fip.ID).Extract()
+	th.AssertNoErr(t, err)
+	th.AssertEquals(t, floatingIp.FixedIP, fixedIP)
 	t.Logf("Floating IP %v is associated with Fixed IP %v", fip.IP, floatingIp.FixedIP)
 }
 
@@ -102,6 +161,8 @@ func TestFloatingIP(t *testing.T) {
 		t.Logf("Floating IP deleted.")
 	}()
 
+	associateFloatingIPDeprecated(t, client, server.ID, fip)
 	associateFloatingIP(t, client, server.ID, fip)
+	associateFloatingIPFixed(t, client, server.ID, fip)
 
 }

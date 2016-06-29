@@ -41,8 +41,12 @@ func (n UniqueName) UniqueName() string {
 	return string(n)
 }
 
+func (n UniqueName) String() string {
+	return string(n)
+}
+
 type uniqueNamer interface {
-	UniqueName() string
+	UniqueName() UniqueName
 }
 
 type NodeFinder interface {
@@ -122,7 +126,7 @@ var DefaultNamer Namer = namer{}
 func (namer) ResourceName(obj interface{}) string {
 	switch t := obj.(type) {
 	case uniqueNamer:
-		return t.UniqueName()
+		return t.UniqueName().String()
 	default:
 		return reflect.TypeOf(obj).String()
 	}
@@ -434,6 +438,17 @@ func RemoveInboundEdges(nodes []graph.Node) EdgeFunc {
 	}
 }
 
+func RemoveOutboundEdges(nodes []graph.Node) EdgeFunc {
+	return func(g Interface, from, to graph.Node, edgeKinds sets.String) bool {
+		for _, node := range nodes {
+			if node == from {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 // EdgeSubgraph returns the directed subgraph with only the edges that match the
 // provided function.
 func (g Graph) EdgeSubgraph(edgeFn EdgeFunc) Graph {
@@ -562,7 +577,7 @@ func (g typedGraph) Name(node graph.Node) string {
 	case fmt.Stringer:
 		return t.String()
 	case uniqueNamer:
-		return t.UniqueName()
+		return t.UniqueName().String()
 	default:
 		return fmt.Sprintf("<unknown:%d>", node.ID())
 	}

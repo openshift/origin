@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
+	"time"
 
 	log "github.com/golang/glog"
 
@@ -14,67 +14,42 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/watch"
-
-	"github.com/openshift/openshift-sdn/pkg/netutils"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-type Registry struct {
-	oClient          *osclient.Client
-	kClient          *kclient.Client
-	podsByIP         map[string]*kapi.Pod
-	podTrackingLock  sync.Mutex
-	serviceNetwork   *net.IPNet
-	clusterNetwork   *net.IPNet
-	hostSubnetLength int
-
-	// These are only set if SetBaseEndpointsHandler() has been called
-	baseEndpointsHandler pconfig.EndpointsConfigHandler
+type NetworkInfo struct {
+	ClusterNetwork   *net.IPNet
+	ServiceNetwork   *net.IPNet
+	HostSubnetLength int
+	PluginName       string
 }
 
-type EventType string
+type Registry struct {
+	oClient *osclient.Client
+	kClient *kclient.Client
+
+	// Cache cluster network information
+	NetworkInfo *NetworkInfo
+}
+
+type ResourceName string
 
 const (
-	Added   EventType = "ADDED"
-	Deleted EventType = "DELETED"
+	Nodes         ResourceName = "Nodes"
+	Namespaces    ResourceName = "Namespaces"
+	NetNamespaces ResourceName = "NetNamespaces"
+	Services      ResourceName = "Services"
+	HostSubnets   ResourceName = "HostSubnets"
+	Pods          ResourceName = "Pods"
 )
-
-type HostSubnetEvent struct {
-	Type       EventType
-	HostSubnet *osapi.HostSubnet
-}
-
-type NodeEvent struct {
-	Type EventType
-	Node *kapi.Node
-}
-
-type NetNamespaceEvent struct {
-	Type         EventType
-	NetNamespace *osapi.NetNamespace
-}
-
-type NamespaceEvent struct {
-	Type      EventType
-	Namespace *kapi.Namespace
-}
-
-type ServiceEvent struct {
-	Type    EventType
-	Service *kapi.Service
-}
 
 func NewRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
 	return &Registry{
-		oClient:  osClient,
-		kClient:  kClient,
-		podsByIP: make(map[string]*kapi.Pod),
+		oClient: osClient,
+		kClient: kClient,
 	}
 }
 
@@ -105,54 +80,17 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*os
 	return registry.oClient.HostSubnets().Create(hs)
 }
 
-func (registry *Registry) WatchSubnets(receiver chan<- *HostSubnetEvent) error {
-	eventQueue := registry.runEventQueue("HostSubnets")
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		hs := obj.(*osapi.HostSubnet)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &HostSubnetEvent{Type: Added, HostSubnet: hs}
-		case watch.Deleted:
-			receiver <- &HostSubnetEvent{Type: Deleted, HostSubnet: hs}
-		}
-	}
+func (registry *Registry) UpdateSubnet(hs *osapi.HostSubnet) (*osapi.HostSubnet, error) {
+	return registry.oClient.HostSubnets().Update(hs)
 }
 
-func (registry *Registry) PopulatePodsByIP() error {
+func (registry *Registry) GetAllPods() ([]kapi.Pod, error) {
 	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, pod := range podList.Items {
-		registry.trackPod(&pod)
-	}
-	return nil
-}
-
-func (registry *Registry) WatchPods() error {
-	eventQueue := registry.runEventQueue("Pods")
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		pod := obj.(*kapi.Pod)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			registry.trackPod(pod)
-		case watch.Deleted:
-			registry.unTrackPod(pod)
-		}
-	}
+	return podList.Items, nil
 }
 
 func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]kapi.Pod, error) {
@@ -195,149 +133,79 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 	return nil, nil
 }
 
-func (registry *Registry) WatchNodes(receiver chan<- *NodeEvent) error {
-	eventQueue := registry.runEventQueue("Nodes")
-	nodeAddressMap := map[types.UID]string{}
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		node := obj.(*kapi.Node)
-
-		nodeIP := ""
-		if len(node.Status.Addresses) > 0 {
-			nodeIP = node.Status.Addresses[0].Address
-		} else {
-			nodeIP, err = netutils.GetNodeIP(node.ObjectMeta.Name)
-			if err != nil {
-				return err
-			}
-		}
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
-			if ok && (oldNodeIP == nodeIP) {
-				continue
-			}
-			receiver <- &NodeEvent{Type: Added, Node: node}
-			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
-		case watch.Deleted:
-			receiver <- &NodeEvent{Type: Deleted, Node: node}
-			delete(nodeAddressMap, node.ObjectMeta.UID)
-		}
-	}
-}
-
-func (registry *Registry) UpdateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
+func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
+	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
 	if err != nil {
 		return err
 	}
-	cn.Network = clusterNetwork.String()
-	cn.HostSubnetLength = subnetLength
-	cn.ServiceNetwork = serviceNetwork.String()
-	_, err = registry.oClient.ClusterNetwork().Update(cn)
+	cn.Network = ni.ClusterNetwork.String()
+	cn.HostSubnetLength = ni.HostSubnetLength
+	cn.ServiceNetwork = ni.ServiceNetwork.String()
+	cn.PluginName = ni.PluginName
+	updatedNetwork, err := registry.oClient.ClusterNetwork().Update(cn)
+	if err != nil {
+		return err
+	}
+	log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
 	return err
 }
 
-func (registry *Registry) CreateClusterNetwork(clusterNetwork *net.IPNet, subnetLength int, serviceNetwork *net.IPNet) error {
+func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	cn := &osapi.ClusterNetwork{
 		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
-		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
-		Network:          clusterNetwork.String(),
-		HostSubnetLength: subnetLength,
-		ServiceNetwork:   serviceNetwork.String(),
+		ObjectMeta:       kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
+		Network:          ni.ClusterNetwork.String(),
+		HostSubnetLength: ni.HostSubnetLength,
+		ServiceNetwork:   ni.ServiceNetwork.String(),
+		PluginName:       ni.PluginName,
 	}
-	_, err := registry.oClient.ClusterNetwork().Create(cn)
+	updatedNetwork, err := registry.oClient.ClusterNetwork().Create(cn)
+	if err != nil {
+		return err
+	}
+	log.Infof("Created ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
 	return err
 }
 
-func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string) (*net.IPNet, int, *net.IPNet, error) {
+func ValidateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(network)
 	if err != nil {
-		return nil, -1, nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
+		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
 	}
 
 	_, sn, err := net.ParseCIDR(serviceNetwork)
 	if err != nil {
-		return nil, -1, nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
+		return nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
 	}
 
 	if hostSubnetLength <= 0 || hostSubnetLength > 32 {
-		return nil, -1, nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
+		return nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
 	}
-	return cn, hostSubnetLength, sn, nil
+
+	return &NetworkInfo{
+		ClusterNetwork:   cn,
+		ServiceNetwork:   sn,
+		HostSubnetLength: hostSubnetLength,
+		PluginName:       pluginName,
+	}, nil
 }
 
-func (registry *Registry) cacheClusterNetwork() error {
-	// don't hit up the master if we have the values already
-	if registry.clusterNetwork != nil && registry.serviceNetwork != nil {
-		return nil
+func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
+	// Check if we got cached network info
+	if registry.NetworkInfo != nil {
+		return registry.NetworkInfo, nil
 	}
 
-	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
 	if err != nil {
-		return err
-	}
-
-	registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork)
-
-	return err
-}
-
-func (registry *Registry) GetNetworkInfo() (*net.IPNet, int, *net.IPNet, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
-		return nil, -1, nil, err
-	}
-	return registry.clusterNetwork, registry.hostSubnetLength, registry.serviceNetwork, nil
-}
-
-func (registry *Registry) GetClusterNetwork() (*net.IPNet, error) {
-	if err := registry.cacheClusterNetwork(); err != nil {
 		return nil, err
 	}
-	return registry.clusterNetwork, nil
-}
 
-func (registry *Registry) WatchNamespaces(receiver chan<- *NamespaceEvent) error {
-	eventQueue := registry.runEventQueue("Namespaces")
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		ns := obj.(*kapi.Namespace)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &NamespaceEvent{Type: Added, Namespace: ns}
-		case watch.Deleted:
-			receiver <- &NamespaceEvent{Type: Deleted, Namespace: ns}
-		}
+	registry.NetworkInfo, err = ValidateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func (registry *Registry) WatchNetNamespaces(receiver chan<- *NetNamespaceEvent) error {
-	eventQueue := registry.runEventQueue("NetNamespaces")
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		netns := obj.(*osapi.NetNamespace)
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &NetNamespaceEvent{Type: Added, NetNamespace: netns}
-		case watch.Deleted:
-			receiver <- &NetNamespaceEvent{Type: Deleted, NetNamespace: netns}
-		}
-	}
+	return registry.NetworkInfo, nil
 }
 
 func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {
@@ -391,153 +259,42 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, error) 
 	return servList, nil
 }
 
-func (registry *Registry) WatchServices(receiver chan<- *ServiceEvent) error {
-	eventQueue := registry.runEventQueue("Services")
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			return err
-		}
-		serv := obj.(*kapi.Service)
-
-		// Ignore headless services
-		if !kapi.IsServiceIPSet(serv) {
-			continue
-		}
-
-		switch eventType {
-		case watch.Added, watch.Modified:
-			receiver <- &ServiceEvent{Type: Added, Service: serv}
-		case watch.Deleted:
-			receiver <- &ServiceEvent{Type: Deleted, Service: serv}
-		}
-	}
-}
-
 // Run event queue for the given resource
-func (registry *Registry) runEventQueue(resourceName string) *oscache.EventQueue {
+func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.EventQueue {
 	var client cache.Getter
 	var expectedType interface{}
 
-	switch strings.ToLower(resourceName) {
-	case "hostsubnets":
+	switch resourceName {
+	case HostSubnets:
 		expectedType = &osapi.HostSubnet{}
 		client = registry.oClient
-	case "netnamespaces":
+	case NetNamespaces:
 		expectedType = &osapi.NetNamespace{}
 		client = registry.oClient
-	case "nodes":
+	case Nodes:
 		expectedType = &kapi.Node{}
 		client = registry.kClient
-	case "namespaces":
+	case Namespaces:
 		expectedType = &kapi.Namespace{}
 		client = registry.kClient
-	case "services":
+	case Services:
 		expectedType = &kapi.Service{}
 		client = registry.kClient
-	case "pods":
+	case Pods:
 		expectedType = &kapi.Pod{}
 		client = registry.kClient
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
 
-	lw := cache.NewListWatchFromClient(client, strings.ToLower(resourceName), kapi.NamespaceAll, fields.Everything())
+	lw := cache.NewListWatchFromClient(client, strings.ToLower(string(resourceName)), kapi.NamespaceAll, fields.Everything())
 	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(lw, expectedType, eventQueue, 0).Run()
+	// Repopulate event queue every 30 mins
+	// Existing items in the event queue will have watch.Modified event type
+	cache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
 	return eventQueue
 }
 
-// FilteringEndpointsConfigHandler implementation
-func (registry *Registry) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler) {
-	registry.baseEndpointsHandler = base
-}
-
-func (registry *Registry) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
-	clusterNetwork, _, serviceNetwork, err := registry.GetNetworkInfo()
-	if err != nil {
-		log.Warningf("Error fetching cluster network: %v", err)
-		return
-	}
-
-	filteredEndpoints := make([]kapi.Endpoints, 0, len(allEndpoints))
-EndpointLoop:
-	for _, ep := range allEndpoints {
-		ns := ep.ObjectMeta.Namespace
-		for _, ss := range ep.Subsets {
-			for _, addr := range ss.Addresses {
-				IP := net.ParseIP(addr.IP)
-				if serviceNetwork.Contains(IP) {
-					log.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
-					continue EndpointLoop
-				}
-				if clusterNetwork.Contains(IP) {
-					podInfo, ok := registry.getTrackedPod(addr.IP)
-					if !ok {
-						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
-						continue EndpointLoop
-					}
-					if podInfo.ObjectMeta.Namespace != ns {
-						log.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podInfo.ObjectMeta.Namespace)
-						continue EndpointLoop
-					}
-				}
-			}
-		}
-		filteredEndpoints = append(filteredEndpoints, ep)
-	}
-
-	registry.baseEndpointsHandler.OnEndpointsUpdate(filteredEndpoints)
-}
-
-func (registry *Registry) getTrackedPod(ip string) (*kapi.Pod, bool) {
-	registry.podTrackingLock.Lock()
-	defer registry.podTrackingLock.Unlock()
-
-	pod, ok := registry.podsByIP[ip]
-	return pod, ok
-}
-
-func (registry *Registry) trackPod(pod *kapi.Pod) {
-	if pod.Status.PodIP == "" {
-		return
-	}
-
-	registry.podTrackingLock.Lock()
-	defer registry.podTrackingLock.Unlock()
-	podInfo, ok := registry.podsByIP[pod.Status.PodIP]
-
-	if pod.Status.Phase == kapi.PodPending || pod.Status.Phase == kapi.PodRunning {
-		// When a pod hits one of the states where the IP is in use then
-		// we need to add it to our IP -> namespace tracker.  There _should_ be no
-		// other entries for the IP if we caught all of the right messages, so warn
-		// if we see one, but clobber it anyway since the IPAM
-		// should ensure that each IP is uniquely assigned to a pod (when running)
-		if ok && podInfo.UID != pod.UID {
-			log.Warningf("IP '%s' was marked as used by namespace '%s' (pod '%s')... updating to namespace '%s' (pod '%s')",
-				pod.Status.PodIP, podInfo.Namespace, podInfo.UID, pod.ObjectMeta.Namespace, pod.UID)
-		}
-
-		registry.podsByIP[pod.Status.PodIP] = pod
-	} else if ok && podInfo.UID == pod.UID {
-		// If the UIDs match, then this pod is moving to a state that indicates it is not running
-		// so we need to remove it from the cache
-		delete(registry.podsByIP, pod.Status.PodIP)
-	}
-
-	return
-}
-
-func (registry *Registry) unTrackPod(pod *kapi.Pod) {
-	registry.podTrackingLock.Lock()
-	defer registry.podTrackingLock.Unlock()
-
-	// Only delete if the pod ID is the one we are tracking (in case there is a failed or complete
-	// pod lying around that gets deleted while there is a running pod with the same IP)
-	if podInfo, ok := registry.podsByIP[pod.Status.PodIP]; ok && podInfo.UID == pod.UID {
-		delete(registry.podsByIP, pod.Status.PodIP)
-	}
-
-	return
+func clusterNetworkToString(n *osapi.ClusterNetwork) string {
+	return fmt.Sprintf("%s (network: %q, hostSubnetBits: %d, serviceNetwork: %q, pluginName: %q)", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 }

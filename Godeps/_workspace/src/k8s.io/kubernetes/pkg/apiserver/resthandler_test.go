@@ -31,17 +31,19 @@ import (
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 )
 
 type testPatchType struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	testPatchSubType `json:",inline"`
+	TestPatchSubType `json:",inline"`
 }
 
-type testPatchSubType struct {
+// We explicitly make it public as private types doesn't
+// work correctly with json inlined types.
+type TestPatchSubType struct {
 	StringField string `json:"theField"`
 }
 
@@ -253,7 +255,7 @@ func (tc *patchTestCase) Run(t *testing.T) {
 		reallyExpectedPod := expectedObj.(*api.Pod)
 
 		if !reflect.DeepEqual(*reallyExpectedPod, *resultPod) {
-			t.Errorf("%s mismatch: %v\n", tc.name, util.ObjectGoPrintDiff(reallyExpectedPod, resultPod))
+			t.Errorf("%s mismatch: %v\n", tc.name, diff.ObjectGoPrintDiff(reallyExpectedPod, resultPod))
 			return
 		}
 	}
@@ -315,7 +317,7 @@ func TestPatchResourceWithConflict(t *testing.T) {
 		changedPod:  &api.Pod{},
 		updatePod:   &api.Pod{},
 
-		expectedError: `pods "foo" cannot be updated: existing 2, new 1`,
+		expectedError: `Operation cannot be fulfilled on pods "foo": existing 2, new 1`,
 	}
 
 	tc.startingPod.Name = name

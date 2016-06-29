@@ -139,3 +139,14 @@ func TestRequirePassword(t *testing.T) {
 
 	tokenPostErr(t, options, ErrPasswordRequired)
 }
+
+func tokenGet(t *testing.T, tokenId string) GetResult {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleTokenGet(t, tokenId)
+	return Get(client.ServiceClient(), tokenId)
+}
+
+func TestGetWithToken(t *testing.T) {
+	GetIsSuccessful(t, tokenGet(t, "db22caf43c934e6c829087c41ff8d8d6"))
+}

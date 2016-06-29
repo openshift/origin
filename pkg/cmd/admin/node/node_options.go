@@ -28,6 +28,7 @@ type NodeOptions struct {
 	DefaultNamespace string
 	Kclient          *client.Client
 	Writer           io.Writer
+	ErrWriter        io.Writer
 
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
@@ -44,7 +45,7 @@ type NodeOptions struct {
 	PodSelector string
 }
 
-func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
+func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
 	defaultNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -57,11 +58,12 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 
 	n.DefaultNamespace = defaultNamespace
 	n.Kclient = kc
 	n.Writer = out
+	n.ErrWriter = errout
 	n.Mapper = mapper
 	n.Typer = typer
 	n.RESTClientFactory = f.Factory.ClientForMapping

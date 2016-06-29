@@ -194,9 +194,18 @@ func TestWriteHeaderAndEntity_Issue235(t *testing.T) {
 	}
 }
 
-func TestWriteEntityNotAcceptable(t *testing.T) {
+func TestWriteEntityNoAcceptMatchWithProduces(t *testing.T) {
 	httpWriter := httptest.NewRecorder()
 	resp := Response{httpWriter, "application/bogus", []string{"application/json"}, 0, 0, true, nil}
+	resp.WriteEntity("done")
+	if httpWriter.Code != http.StatusOK {
+		t.Errorf("got %d want %d", httpWriter.Code, http.StatusOK)
+	}
+}
+
+func TestWriteEntityNoAcceptMatchNoProduces(t *testing.T) {
+	httpWriter := httptest.NewRecorder()
+	resp := Response{httpWriter, "application/bogus", []string{}, 0, 0, true, nil}
 	resp.WriteEntity("done")
 	if httpWriter.Code != http.StatusNotAcceptable {
 		t.Errorf("got %d want %d", httpWriter.Code, http.StatusNotAcceptable)

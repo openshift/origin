@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -16,6 +17,16 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	utilsets "k8s.io/kubernetes/pkg/util/sets"
+)
+
+const (
+	SingleTenantPluginName string = "redhat/openshift-ovs-subnet"
+	MultiTenantPluginName  string = "redhat/openshift-ovs-multitenant"
+
+	IngressBandwidthAnnotation string = "kubernetes.io/ingress-bandwidth"
+	EgressBandwidthAnnotation  string = "kubernetes.io/egress-bandwidth"
+	AssignMacVlanAnnotation    string = "pod.network.openshift.io/assign-macvlan"
 )
 
 type ovsPlugin struct {
@@ -24,27 +35,30 @@ type ovsPlugin struct {
 	multitenant bool
 }
 
-func SingleTenantPluginName() string {
-	return "redhat/openshift-ovs-subnet"
+func IsOpenShiftNetworkPlugin(pluginName string) bool {
+	switch strings.ToLower(pluginName) {
+	case SingleTenantPluginName, MultiTenantPluginName:
+		return true
+	}
+	return false
 }
 
-func MultiTenantPluginName() string {
-	return "redhat/openshift-ovs-multitenant"
+func IsOpenShiftMultitenantNetworkPlugin(pluginName string) bool {
+	if strings.ToLower(pluginName) == MultiTenantPluginName {
+		return true
+	}
+	return false
 }
 
-func CreatePlugin(registry *osdn.Registry, multitenant bool, hostname string, selfIP string) (api.OsdnPlugin, api.FilteringEndpointsConfigHandler, error) {
-	plugin := &ovsPlugin{multitenant: multitenant}
+func CreatePlugin(registry *osdn.Registry, pluginName string, hostname string, selfIP string, iptablesSyncPeriod time.Duration) (api.OsdnPlugin, error) {
+	plugin := &ovsPlugin{multitenant: IsOpenShiftMultitenantNetworkPlugin(pluginName)}
 
-	err := plugin.BaseInit(registry, plugin, multitenant, hostname, selfIP)
+	err := plugin.BaseInit(registry, plugin, pluginName, hostname, selfIP, iptablesSyncPeriod)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if multitenant {
-		return plugin, registry, err
-	} else {
-		return plugin, nil, err
-	}
+	return plugin, err
 }
 
 func (plugin *ovsPlugin) PluginStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
@@ -109,17 +123,21 @@ func (plugin *ovsPlugin) Init(host knetwork.Host) error {
 
 func (plugin *ovsPlugin) Name() string {
 	if plugin.multitenant {
-		return MultiTenantPluginName()
+		return MultiTenantPluginName
 	} else {
-		return SingleTenantPluginName()
+		return SingleTenantPluginName
 	}
+}
+
+func (plugin *ovsPlugin) Capabilities() utilsets.Int {
+	return utilsets.NewInt(knetwork.NET_PLUGIN_CAPABILITY_SHAPING)
 }
 
 func (plugin *ovsPlugin) getVNID(namespace string) (string, error) {
 	if plugin.multitenant {
-		vnid, found := plugin.VNIDMap[namespace]
-		if !found {
-			return "", fmt.Errorf("Error fetching VNID for namespace: %s", namespace)
+		vnid, err := plugin.WaitAndGetVNID(namespace)
+		if err != nil {
+			return "", err
 		}
 		return strconv.FormatUint(uint64(vnid), 10), nil
 	}
@@ -146,14 +164,14 @@ func parseAndValidateBandwidth(value string) (int64, error) {
 }
 
 func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error) {
-	str, found := pod.Annotations["kubernetes.io/ingress-bandwidth"]
+	str, found := pod.Annotations[IngressBandwidthAnnotation]
 	if found {
 		ingress, err = parseAndValidateBandwidth(str)
 		if err != nil {
 			return -1, -1, err
 		}
 	}
-	str, found = pod.Annotations["kubernetes.io/egress-bandwidth"]
+	str, found = pod.Annotations[EgressBandwidthAnnotation]
 	if found {
 		egress, err = parseAndValidateBandwidth(str)
 		if err != nil {
@@ -164,7 +182,7 @@ func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error)
 }
 
 func wantsMacvlan(pod *kapi.Pod) (bool, error) {
-	val, found := pod.Annotations["pod.network.openshift.io/assign-macvlan"]
+	val, found := pod.Annotations[AssignMacVlanAnnotation]
 	if !found || val != "true" {
 		return false, nil
 	}
@@ -173,7 +191,7 @@ func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("Pod has 'pod.network.openshift.io/assign-macvlan' annotation but is not privileged")
+	return false, fmt.Errorf("Pod has %q annotation but is not privileged", AssignMacVlanAnnotation)
 }
 
 func isScriptError(err error) bool {
@@ -182,17 +200,24 @@ func isScriptError(err error) bool {
 }
 
 // Get the last command (which is prefixed with "+" because of "set -x") and its output
+// (Unless the script ended with "echo ...; exit", in which case we just return the
+// echoed text.)
 func getScriptError(output []byte) string {
 	lines := strings.Split(string(output), "\n")
-	for n := len(lines) - 1; n >= 0; n-- {
-		if strings.HasPrefix(lines[n], "+") {
+	last := len(lines)
+	for n := last - 1; n >= 0; n-- {
+		if strings.HasPrefix(lines[n], "+ exit") {
+			last = n
+		} else if strings.HasPrefix(lines[n], "+ echo") {
+			return strings.Join(lines[n+1:last], "\n")
+		} else if strings.HasPrefix(lines[n], "+") {
 			return strings.Join(lines[n:], "\n")
 		}
 	}
 	return string(output)
 }
 
-func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
+func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
 		return err
@@ -227,7 +252,7 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 		return err
 	}
 
-	out, err := exec.Command(plugin.getExecutable(), setUpCmd, string(id), vnidstr, ingressStr, egressStr, fmt.Sprintf("%t", macvlan)).CombinedOutput()
+	out, err := exec.Command(plugin.getExecutable(), setUpCmd, id.ID, vnidstr, ingressStr, egressStr, fmt.Sprintf("%t", macvlan)).CombinedOutput()
 	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
@@ -237,9 +262,9 @@ func (plugin *ovsPlugin) SetUpPod(namespace string, name string, id kubeletTypes
 	}
 }
 
-func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
+func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTypes.ContainerID) error {
 	// The script's teardown functionality doesn't need the VNID
-	out, err := exec.Command(plugin.getExecutable(), tearDownCmd, string(id), "-1", "-1", "-1").CombinedOutput()
+	out, err := exec.Command(plugin.getExecutable(), tearDownCmd, id.ID, "-1", "-1", "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
 
 	if isScriptError(err) {
@@ -249,7 +274,11 @@ func (plugin *ovsPlugin) TearDownPod(namespace string, name string, id kubeletTy
 	}
 }
 
-func (plugin *ovsPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
+func (plugin *ovsPlugin) Status() error {
+	return nil
+}
+
+func (plugin *ovsPlugin) GetPodNetworkStatus(namespace string, name string, podInfraContainerID kubeletTypes.ContainerID) (*knetwork.PodNetworkStatus, error) {
 	return nil, nil
 }
 

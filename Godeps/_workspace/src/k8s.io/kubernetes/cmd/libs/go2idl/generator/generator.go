@@ -33,7 +33,7 @@ type Package interface {
 	Path() string
 
 	// Filter should return true if this package cares about this type.
-	// Otherwise, this type will be ommitted from the type ordering for
+	// Otherwise, this type will be omitted from the type ordering for
 	// this package.
 	Filter(*Context, *types.Type) bool
 
@@ -177,14 +177,14 @@ func NewContext(b *parser.Builder, nameSystems namer.NameSystems, canonicalOrder
 		Namers:   namer.NameSystems{},
 		Universe: u,
 		FileTypes: map[string]FileType{
-			GolangFileType: golangFileType{},
+			GolangFileType: NewGolangFile(),
 		},
 	}
 
 	for name, systemNamer := range nameSystems {
 		c.Namers[name] = systemNamer
 		if name == canonicalOrderName {
-			orderer := namer.Orderer{systemNamer}
+			orderer := namer.Orderer{Namer: systemNamer}
 			c.Order = orderer.OrderUniverse(u)
 		}
 	}

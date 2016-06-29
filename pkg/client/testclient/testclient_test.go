@@ -14,7 +14,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	o := testclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
-	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.yaml", o, kapi.Codecs.UniversalDecoder()); err != nil {
+	if err := testclient.AddObjectsFromPath("../../../test/integration/testdata/test-deployment-config.yaml", o, kapi.Codecs.UniversalDecoder()); err != nil {
 		t.Fatal(err)
 	}
 	oc, _ := NewFixtureClients(o)

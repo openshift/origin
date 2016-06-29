@@ -1,23 +1,22 @@
 package image
 
 import (
-	"fmt"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 	for _, tc := range []struct {
-		name           string
-		iss            []imageapi.ImageStream
-		ist            imageapi.ImageStreamTag
-		expectedImages int64
+		name            string
+		iss             []imageapi.ImageStream
+		ist             imageapi.ImageStreamTag
+		expectedISCount int64
 	}{
 		{
 			name: "empty image stream",
@@ -40,11 +39,11 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + miscImageDigest,
+						Name:      "is@" + imagetest.MiscImageDigest,
 					},
 				},
 			},
-			expectedImages: 1,
+			expectedISCount: 0,
 		},
 
 		{
@@ -59,11 +58,11 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + miscImageDigest,
+						Name:      "is@" + imagetest.MiscImageDigest,
 					},
 				},
 			},
-			expectedImages: 1,
+			expectedISCount: 1,
 		},
 
 		{
@@ -82,7 +81,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			expectedImages: 1,
+			expectedISCount: 1,
 		},
 
 		{
@@ -94,14 +93,14 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 				},
 				Image: imageapi.Image{
 					ObjectMeta: kapi.ObjectMeta{
-						Name:        miscImageDigest,
+						Name:        imagetest.MiscImageDigest,
 						Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 					},
-					DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s@%s", "shared", "is", miscImageDigest),
-					DockerImageManifest:  miscImageDigest,
+					DockerImageReference: imagetest.MakeDockerImageReference("shared", "is", imagetest.MiscImageDigest),
+					DockerImageManifest:  imagetest.MiscImageDigest,
 				},
 			},
-			expectedImages: 0,
+			expectedISCount: 1,
 		},
 
 		{
@@ -116,14 +115,14 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 				},
 				Image: imageapi.Image{
 					ObjectMeta: kapi.ObjectMeta{
-						Name:        miscImageDigest,
+						Name:        imagetest.MiscImageDigest,
 						Annotations: map[string]string{imageapi.ManagedByOpenShiftAnnotation: "true"},
 					},
-					DockerImageReference: fmt.Sprintf("registry.example.org/%s/%s@%s", "test", "dest", miscImageDigest),
-					DockerImageManifest:  miscImage,
+					DockerImageReference: imagetest.MakeDockerImageReference("test", "dest", imagetest.MiscImageDigest),
+					DockerImageManifest:  imagetest.MiscImage,
 				},
 			},
-			expectedImages: 0,
+			expectedISCount: 1,
 		},
 
 		{
@@ -139,8 +138,8 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 							"latest": {
 								Items: []imageapi.TagEvent{
 									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/havingtag@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
+										DockerImageReference: imagetest.MakeDockerImageReference("test", "havingtag", imagetest.BaseImageWith1LayerDigest),
+										Image:                imagetest.BaseImageWith1LayerDigest,
 									},
 								},
 							},
@@ -158,54 +157,26 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamImage",
 						Namespace: "shared",
-						Name:      "is@" + childImageWith2LayersDigest,
+						Name:      "is@" + imagetest.ChildImageWith2LayersDigest,
 					},
 				},
 			},
-			expectedImages: 1,
+			expectedISCount: 0,
 		},
 
 		{
-			name: "add a new tag with with 2 image streams",
+			name: "add a new tag with 2 image streams",
 			iss: []imageapi.ImageStream{
 				{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "test",
-						Name:      "destis",
-					},
-					Status: imageapi.ImageStreamStatus{
-						Tags: map[string]imageapi.TagEventList{
-							"latest": {
-								Items: []imageapi.TagEvent{
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
-									},
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
-									},
-								},
-							},
-						},
+						Name:      "is",
 					},
 				},
 				{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "other",
 						Name:      "is2",
-					},
-					Status: imageapi.ImageStreamStatus{
-						Tags: map[string]imageapi.TagEventList{
-							"latest": {
-								Items: []imageapi.TagEvent{
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", baseImageWith2LayersDigest),
-										Image:                baseImageWith2LayersDigest,
-									},
-								},
-							},
-						},
 					},
 				},
 			},
@@ -223,117 +194,24 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 					},
 				},
 			},
-			expectedImages: 1,
-		},
-
-		{
-			name: "tag an image already present using image stream image",
-			iss: []imageapi.ImageStream{
-				{
-					ObjectMeta: kapi.ObjectMeta{
-						Namespace: "test",
-						Name:      "destis",
-					},
-					Status: imageapi.ImageStreamStatus{
-						Tags: map[string]imageapi.TagEventList{
-							"latest": {
-								Items: []imageapi.TagEvent{
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
-									},
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			ist: imageapi.ImageStreamTag{
-				ObjectMeta: kapi.ObjectMeta{
-					Namespace: "test",
-					Name:      "destis:latest",
-				},
-				Tag: &imageapi.TagReference{
-					Name: "latest",
-					From: &kapi.ObjectReference{
-						Kind:      "ImageStreamImage",
-						Namespace: "shared",
-						Name:      "is@" + baseImageWith1LayerDigest,
-					},
-				},
-			},
-			expectedImages: 0,
-		},
-
-		{
-			name: "tag an image already present using image stream tag",
-			iss: []imageapi.ImageStream{
-				{
-					ObjectMeta: kapi.ObjectMeta{
-						Namespace: "test",
-						Name:      "destis",
-					},
-					Status: imageapi.ImageStreamStatus{
-						Tags: map[string]imageapi.TagEventList{
-							"latest": {
-								Items: []imageapi.TagEvent{
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/destis@%s", baseImageWith1LayerDigest),
-										Image:                baseImageWith1LayerDigest,
-									},
-									{
-										DockerImageReference: fmt.Sprintf("172.30.12.34:5000/test/is2@%s", miscImageDigest),
-										Image:                miscImageDigest,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			ist: imageapi.ImageStreamTag{
-				ObjectMeta: kapi.ObjectMeta{
-					Namespace: "test",
-					Name:      "another:latest",
-				},
-				Tag: &imageapi.TagReference{
-					Name: "latest",
-					// shared is has name of baseImageWith1Layer at the first place in event list
-					From: &kapi.ObjectReference{
-						Kind:      "ImageStreamTag",
-						Namespace: "shared",
-						Name:      "is:latest",
-					},
-				},
-			},
-			expectedImages: 0,
+			expectedISCount: 1,
 		},
 	} {
 
 		fakeClient := &testclient.Fake{}
-		fakeClient.AddReactor("get", "images", getFakeImageGetHandler(t, "ns"))
-		fakeClient.AddReactor("get", "imagestreams", getFakeImageStreamGetHandler(t, tc.iss...))
-		fakeClient.AddReactor("list", "imagestreams", getFakeImageStreamListHandler(t, tc.iss...))
-		fakeClient.AddReactor("get", "imagestreamimages", getFakeImageStreamImageGetHandler(t, tc.iss...))
+		fakeClient.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.iss...))
 
-		evaluator := NewImageStreamTagEvaluator(fakeClient)
+		evaluator := NewImageStreamTagEvaluator(fakeClient, fakeClient)
 
 		usage := evaluator.Usage(&tc.ist)
 
-		expectedUsage := kapi.ResourceList{
-			imageapi.ResourceImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
-		}
-
+		expectedUsage := imagetest.ExpectedResourceListFor(tc.expectedISCount)
+		expectedResources := kquota.ResourceNames(expectedUsage)
 		if len(usage) != len(expectedUsage) {
 			t.Errorf("[%s]: got unexpected number of computed resources: %d != %d", tc.name, len(usage), len(expectedResources))
 		}
 
 		masked := kquota.Mask(usage, expectedResources)
-
 		if len(masked) != len(expectedUsage) {
 			for k := range usage {
 				if _, exists := masked[k]; !exists {

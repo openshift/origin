@@ -5,9 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -53,6 +52,11 @@ os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'gith
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-webhook' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-webhook' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+# set webhook plus envvars
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-webhook-allow-env' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'webhook'
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove --from-webhook-allow-env' 'updated'
 os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook'
 # set from-image
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-image=ruby-22-centos7:other' 'updated'

@@ -5,11 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -80,7 +77,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/resource-builder"
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
-os::cmd::expect_success 'oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension'
+os::cmd::expect_success 'oc create -f test/testdata/resource-builder/directory -f test/testdata/resource-builder/json-no-extension -f test/testdata/resource-builder/yml-no-extension'
 # Explicitly specified extensionless files
 os::cmd::expect_success 'oc get secret json-no-extension yml-no-extension'
 # Scanned files with extensions inside directories
@@ -111,20 +108,20 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/services"
 os::cmd::expect_success 'oc get services'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
 os::cmd::expect_success 'oc delete services frontend'
 echo "services: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/list-version-conversion"
-os::cmd::expect_success 'oc create   -f test/fixtures/mixed-api-versions.yaml'
-os::cmd::expect_success 'oc get      -f test/fixtures/mixed-api-versions.yaml -o yaml'
-os::cmd::expect_success 'oc label    -f test/fixtures/mixed-api-versions.yaml mylabel=a'
-os::cmd::expect_success 'oc annotate -f test/fixtures/mixed-api-versions.yaml myannotation=b'
+os::cmd::expect_success 'oc create   -f test/testdata/mixed-api-versions.yaml'
+os::cmd::expect_success 'oc get      -f test/testdata/mixed-api-versions.yaml -o yaml'
+os::cmd::expect_success 'oc label    -f test/testdata/mixed-api-versions.yaml mylabel=a'
+os::cmd::expect_success 'oc annotate -f test/testdata/mixed-api-versions.yaml myannotation=b'
 # Make sure all six resources, with different API versions, got labeled and annotated
-os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a a a$'
-os::cmd::expect_success_and_text 'oc get -f test/fixtures/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b b$'
-os::cmd::expect_success 'oc delete   -f test/fixtures/mixed-api-versions.yaml'
+os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a a a$'
+os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b b$'
+os::cmd::expect_success 'oc delete   -f test/testdata/mixed-api-versions.yaml'
 echo "list version conversion: ok"
 os::test::junit::declare_suite_end
 
@@ -139,11 +136,19 @@ os::cmd::expect_success 'oc get nodes'
 echo "nodes: ok"
 os::test::junit::declare_suite_end
 
+
+os::test::junit::declare_suite_start "cmd/basicresources/create"
+os::cmd::expect_success 'oc create dc my-nginx --image=nginx'
+os::cmd::expect_success 'oc delete dc my-nginx'
+echo "create subcommands: ok"
+os::test::junit::declare_suite_end
+
+
 os::test::junit::declare_suite_start "cmd/basicresources/routes"
 os::cmd::expect_success 'oc get routes'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-route.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-route.json'
 os::cmd::expect_success 'oc delete routes testroute'
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
 os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
 os::cmd::expect_success 'oc delete routes frontend'
 os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
@@ -179,7 +184,7 @@ os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-u
 os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=http://127.0.0.1:port/path" "scheme: HTTP"
 os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "host: 127.0.0.1"
 os::cmd::expect_success_and_text "oc set probe ${arg} -o yaml --liveness --get-url=https://127.0.0.1:port/path" "port: port"
-os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set probe dc/test-deployment-config --liveness" "Required value: must specify a handler type"
 os::cmd::expect_success_and_text "oc set probe dc test-deployment-config --liveness --open-tcp=8080" "updated"
 os::cmd::expect_success_and_text "oc set probe dc/test-deployment-config --liveness --open-tcp=8080" "was not changed"
@@ -207,9 +212,12 @@ echo "set probe: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/setenv"
-os::cmd::expect_success "oc create -f test/integration/fixtures/test-deployment-config.yaml"
-os::cmd::expect_success "oc create -f test/integration/fixtures/test-buildcli.json"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar" "updated"
+os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
+os::cmd::expect_success "oc create -f test/integration/testdata/test-buildcli.json"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=1st" "updated"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=2nd" "updated"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config FOO=bar --overwrite" "updated"
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config FOO=zee --overwrite=false" "already has a value"
 os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "FOO=bar"
 os::cmd::expect_success_and_text "oc set env bc --all FOO=bar" "updated"
 os::cmd::expect_success_and_text "oc set env bc --all --list" "FOO=bar"
@@ -221,26 +229,31 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/expose"
 # Expose service as a route
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-service.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
 os::cmd::expect_failure 'oc expose service frontend --create-external-load-balancer'
 os::cmd::expect_failure 'oc expose service frontend --port=40 --type=NodePort'
 os::cmd::expect_success 'oc expose service frontend --path=/test'
 os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.path}}'" "/test"
 os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.to.name}}'" "frontend"           # routes to correct service
-os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.port.targetPort}}'" "<no value>" # no target port for services with unnamed ports
+os::cmd::expect_success_and_text "oc get route frontend --output-version=v1 --template='{{.spec.port.targetPort}}'" ""
 os::cmd::expect_success 'oc delete svc,route -l name=frontend'
 # Test that external services are exposable
-os::cmd::expect_success 'oc create -f test/fixtures/external-service.yaml'
+os::cmd::expect_success 'oc create -f test/testdata/external-service.yaml'
 os::cmd::expect_success 'oc expose svc/external'
 os::cmd::expect_success_and_text 'oc get route external' 'external=service'
 os::cmd::expect_success 'oc delete route external'
 os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route
-os::cmd::expect_success 'oc create -f test/fixtures/multiport-service.yaml'
+os::cmd::expect_success 'oc create -f test/testdata/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
 echo "expose: ok"
 os::test::junit::declare_suite_end
+
+# Test OAuth access token describer
+os::cmd::expect_success 'oc create -f test/testdata/oauthaccesstoken.yaml'
+os::cmd::expect_success_and_text "oc describe oauthaccesstoken DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod" "DYGZDLucARCPIfUeKPhsgPfn0WBLR_9KdeREH0c9iod"
+echo "OAuth descriptor: ok"
 
 os::cmd::expect_success 'oc delete all --all'
 
@@ -289,6 +302,17 @@ os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
 os::cmd::expect_failure_and_text "oc new-project --token="$( oc sa get-token builder )" will-fail" 'Error from server: You may not request a new project via this API'
+
+# test oc projects
+os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
+os::cmd::expect_success_and_text 'oc projects' 'You have access'
+# log in as a test user and expect no projects
+os::cmd::expect_success 'oc login -u test -p test'
+os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
+# add a project and expect text for a single project
+os::cmd::expect_success_and_text 'oc new-project test4; sleep 2; oc projects' 'You have one project on this server: "test4".'
+os::cmd::expect_success_and_text 'oc new-project test5; sleep 2; oc projects' 'You have access'
+echo 'projects command ok'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly

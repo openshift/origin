@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -22,7 +22,7 @@ type ImportControllerFactory struct {
 	Client               client.Interface
 	ResyncInterval       time.Duration
 	MinimumCheckInterval time.Duration
-	ImportRateLimiter    util.RateLimiter
+	ImportRateLimiter    flowcontrol.RateLimiter
 	ScheduleEnabled      bool
 }
 
@@ -50,7 +50,7 @@ func (f *ImportControllerFactory) Create() (controller.RunnableController, contr
 	seconds := f.MinimumCheckInterval / time.Second
 	bucketQPS := 1.0 / float32(seconds) * float32(buckets)
 
-	limiter := util.NewTokenBucketRateLimiter(bucketQPS, 1)
+	limiter := flowcontrol.NewTokenBucketRateLimiter(bucketQPS, 1)
 	b := newScheduled(f.ScheduleEnabled, f.Client, buckets, limiter, f.ImportRateLimiter)
 
 	// instantiate an importer for changes that happen to the image stream
@@ -63,7 +63,7 @@ func (f *ImportControllerFactory) Create() (controller.RunnableController, contr
 				utilruntime.HandleError(err)
 				return retries.Count < 5
 			},
-			util.NewTokenBucketRateLimiter(1, 10),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: b.Handle,
 	}
@@ -81,12 +81,12 @@ type uniqueItem struct {
 type scheduled struct {
 	enabled     bool
 	scheduler   *controller.Scheduler
-	rateLimiter util.RateLimiter
+	rateLimiter flowcontrol.RateLimiter
 	controller  *ImportController
 }
 
 // newScheduled initializes a scheduled import object and sets its scheduler. Limiter is optional.
-func newScheduled(enabled bool, client client.ImageStreamsNamespacer, buckets int, bucketLimiter, importLimiter util.RateLimiter) *scheduled {
+func newScheduled(enabled bool, client client.ImageStreamsNamespacer, buckets int, bucketLimiter, importLimiter flowcontrol.RateLimiter) *scheduled {
 	b := &scheduled{
 		enabled:     enabled,
 		rateLimiter: importLimiter,

@@ -21,17 +21,26 @@ var _ copyStrategy = copyStrategies{}
 // the next strategy will be attempted. Otherwise the error is returned.
 func (ss copyStrategies) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
 	var err error
+	foundStrategy := false
+
 	for _, s := range ss {
 		errBuf := &bytes.Buffer{}
 		err = s.Copy(source, destination, out, errBuf)
 		if _, isSetupError := err.(strategySetupError); isSetupError {
 			glog.V(4).Infof("Error output:\n%s", errBuf.String())
-			fmt.Fprintf(errOut, "WARNING: cannot use %s: %v", s.String(), err.Error())
+			fmt.Fprintf(errOut, "WARNING: cannot use %s: %v\n", s.String(), err.Error())
 			continue
 		}
+
 		io.Copy(errOut, errBuf)
+		foundStrategy = true
 		break
 	}
+
+	if !foundStrategy {
+		err = strategySetupError("No available strategies to copy.")
+	}
+
 	return err
 }
 

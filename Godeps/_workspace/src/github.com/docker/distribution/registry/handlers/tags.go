@@ -34,17 +34,13 @@ type tagsAPIResponse struct {
 // GetTags returns a json list of tags for a specific image name.
 func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	manifests, err := th.Repository.Manifests(th)
-	if err != nil {
-		th.Errors = append(th.Errors, err)
-		return
-	}
 
-	tags, err := manifests.Tags()
+	tagService := th.Repository.Tags(th)
+	tags, err := tagService.All(th)
 	if err != nil {
 		switch err := err.(type) {
 		case distribution.ErrRepositoryUnknown:
-			th.Errors = append(th.Errors, v2.ErrorCodeNameUnknown.WithDetail(map[string]string{"name": th.Repository.Name()}))
+			th.Errors = append(th.Errors, v2.ErrorCodeNameUnknown.WithDetail(map[string]string{"name": th.Repository.Named().Name()}))
 		default:
 			th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
 		}
@@ -55,7 +51,7 @@ func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(tagsAPIResponse{
-		Name: th.Repository.Name(),
+		Name: th.Repository.Named().Name(),
 		Tags: tags,
 	}); err != nil {
 		th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))

@@ -1,8 +1,6 @@
 package client
 
 import (
-	"fmt"
-
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -35,7 +33,7 @@ func newImageStreamTags(c *Client, namespace string) *imageStreamTags {
 // Get finds the specified image by name of an image stream and tag.
 func (c *imageStreamTags) Get(name, tag string) (result *api.ImageStreamTag, err error) {
 	result = &api.ImageStreamTag{}
-	err = c.r.Get().Namespace(c.ns).Resource("imageStreamTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageStreamTags").Name(api.JoinImageStreamTag(name, tag)).Do().Into(result)
 	return
 }
 
@@ -48,5 +46,5 @@ func (c *imageStreamTags) Update(tag *api.ImageStreamTag) (result *api.ImageStre
 
 // Delete deletes the specified tag from the image stream.
 func (c *imageStreamTags) Delete(name, tag string) error {
-	return c.r.Delete().Namespace(c.ns).Resource("imageStreamTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Error()
+	return c.r.Delete().Namespace(c.ns).Resource("imageStreamTags").Name(api.JoinImageStreamTag(name, tag)).Do().Error()
 }

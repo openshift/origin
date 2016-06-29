@@ -180,13 +180,13 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 			validationResults.Append(ValidateKeystoneIdentityProvider(provider, identityProvider, providerPath))
 
 		case (*api.GitHubIdentityProvider):
-			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger, fldPath)...)
+			validationResults.AddErrors(ValidateGitHubIdentityProvider(provider, identityProvider.UseAsChallenger, fldPath)...)
 
 		case (*api.GitLabIdentityProvider):
-			validationResults.AddErrors(ValidateGitLabIdentityProvider(provider, identityProvider.UseAsChallenger, fldPath)...)
+			validationResults.AddErrors(ValidateGitLabIdentityProvider(provider, fldPath)...)
 
 		case (*api.GoogleIdentityProvider):
-			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger, fldPath)...)
+			validationResults.AddErrors(ValidateGoogleIdentityProvider(provider, identityProvider.UseAsChallenger, fldPath)...)
 
 		case (*api.OpenIDIdentityProvider):
 			validationResults.AddErrors(ValidateOpenIDIdentityProvider(provider, identityProvider, fldPath)...)
@@ -288,7 +288,7 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 	return validationResults
 }
 
-func ValidateOAuthIdentityProvider(clientID string, clientSecret api.StringSource, challenge bool, fieldPath *field.Path) field.ErrorList {
+func ValidateOAuthIdentityProvider(clientID string, clientSecret api.StringSource, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(clientID) == 0 {
@@ -304,17 +304,38 @@ func ValidateOAuthIdentityProvider(clientID string, clientSecret api.StringSourc
 			allErrs = append(allErrs, field.Required(fieldPath.Child("provider", "clientSecret"), ""))
 		}
 	}
+
+	return allErrs
+}
+
+func ValidateGitHubIdentityProvider(provider *api.GitHubIdentityProvider, challenge bool, fieldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, fieldPath)...)
+
 	if challenge {
-		allErrs = append(allErrs, field.Invalid(fieldPath.Child("challenge"), challenge, "OAuth/OpenID providers cannot be used for challenges"))
+		allErrs = append(allErrs, field.Invalid(fieldPath.Child("challenge"), challenge, "A GitHub identity provider cannot be used for challenges"))
 	}
 
 	return allErrs
 }
 
-func ValidateGitLabIdentityProvider(provider *api.GitLabIdentityProvider, challenge bool, fieldPath *field.Path) field.ErrorList {
+func ValidateGoogleIdentityProvider(provider *api.GoogleIdentityProvider, challenge bool, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, challenge, fieldPath)...)
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, fieldPath)...)
+
+	if challenge {
+		allErrs = append(allErrs, field.Invalid(fieldPath.Child("challenge"), challenge, "A Google identity provider cannot be used for challenges"))
+	}
+
+	return allErrs
+}
+
+func ValidateGitLabIdentityProvider(provider *api.GitLabIdentityProvider, fieldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, fieldPath)...)
 
 	_, urlErrs := ValidateSecureURL(provider.URL, fieldPath.Child("provider", "url"))
 	allErrs = append(allErrs, urlErrs...)
@@ -329,7 +350,7 @@ func ValidateGitLabIdentityProvider(provider *api.GitLabIdentityProvider, challe
 func ValidateOpenIDIdentityProvider(provider *api.OpenIDIdentityProvider, identityProvider api.IdentityProvider, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger, fieldPath)...)
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, fieldPath)...)
 
 	// Communication with the Authorization Endpoint MUST utilize TLS
 	// http://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
@@ -366,7 +387,10 @@ func validateGrantConfig(config api.GrantConfig, fldPath *field.Path) field.Erro
 	allErrs := field.ErrorList{}
 
 	if !api.ValidGrantHandlerTypes.Has(string(config.Method)) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("method"), config.Method, fmt.Sprintf("must be one of: %v", api.ValidGrantHandlerTypes.List())))
+		allErrs = append(allErrs, field.NotSupported(fldPath.Child("method"), config.Method, api.ValidGrantHandlerTypes.List()))
+	}
+	if !api.ValidServiceAccountGrantHandlerTypes.Has(string(config.ServiceAccountMethod)) {
+		allErrs = append(allErrs, field.NotSupported(fldPath.Child("serviceAccountMethod"), config.ServiceAccountMethod, api.ValidServiceAccountGrantHandlerTypes.List()))
 	}
 
 	return allErrs

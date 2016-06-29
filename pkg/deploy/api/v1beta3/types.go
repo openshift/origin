@@ -175,7 +175,7 @@ type RollingDeploymentStrategyParams struct {
 	// interval. If nil, one replica will be scaled up and down each interval.
 	// If negative, the scale order will be down/up instead of up/down.
 	// DEPRECATED: Use MaxUnavailable/MaxSurge instead.
-	UpdatePercent *int `json:"updatePercent,omitempty"`
+	UpdatePercent *int32 `json:"updatePercent,omitempty"`
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook `json:"pre,omitempty"`
@@ -197,6 +197,8 @@ const (
 	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
 	// to implement the deployment behavior.
 	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
+	// DeploymentPodTypeLabel is a label with which contains a type of deployment pod.
+	DeploymentPodTypeLabel = "openshift.io/deployer-pod.type"
 	// DeployerPodForDeploymentLabel is a label which groups pods related to a
 	// deployment. The value is a deployment name. The deployer pod and hook pods
 	// created by the internal strategies will have this label. Custom
@@ -227,6 +229,9 @@ const (
 	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
 	// The annotation value does not matter and its mere presence indicates cancellation
 	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
+	// DeploymentInstantiatedAnnotation indicates that the deployment has been instantiated.
+	// The annotation value does not matter and its mere presence indicates instantiation.
+	DeploymentInstantiatedAnnotation = "openshift.io/deployment.instantiated"
 )
 
 // These constants represent the various reasons for cancelling a deployment
@@ -272,12 +277,16 @@ type DeploymentConfigSpec struct {
 	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty"`
 
 	// Replicas is the number of desired replicas.
-	Replicas int `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
 	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
 	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
 	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
 	Test bool `json:"test"`
+
+	// Paused indicates that the deployment config is paused resulting in no new deployments on template
+	// changes or changes in the template caused by other triggers.
+	Paused bool `json:"paused,omitempty"`
 
 	// Selector is a label query over pods that should match the Replicas count.
 	Selector map[string]string `json:"selector,omitempty"`
@@ -288,9 +297,20 @@ type DeploymentConfigSpec struct {
 }
 
 type DeploymentConfigStatus struct {
-	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
-	// is out of sync.
-	LatestVersion int `json:"latestVersion,omitempty"`
+	// LatestVersion is used to determine whether the current deployment associated with a deployment
+	// config is out of sync.
+	LatestVersion int64 `json:"latestVersion,omitempty"`
+	// ObservedGeneration is the most recent generation observed by the deployment config controller.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+	// Replicas is the total number of pods targeted by this deployment config.
+	Replicas int32 `json:"replicas,omitempty"`
+	// UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config
+	// that have the desired template spec.
+	UpdatedReplicas int32 `json:"updatedReplicas,omitempty"`
+	// AvailableReplicas is the total number of available pods targeted by this deployment config.
+	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
+	// UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.
+	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 	// The reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty"`
@@ -317,7 +337,10 @@ const (
 
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParams struct {
-	// Automatic means that the detection of a new tag value should result in a new deployment.
+	// Automatic means that the detection of a new tag value should result in an image update
+	// inside the pod template. Deployment configs that haven't been deployed yet will always
+	// have their images updated. Deployment configs that have been deployed at least once, will
+	// have their images updated only if this is set to true.
 	Automatic bool `json:"automatic,omitempty"`
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
 	ContainerNames []string `json:"containerNames,omitempty"`
@@ -334,7 +357,7 @@ type DeploymentDetails struct {
 	// The user specified change message, if this deployment was triggered manually by the user
 	Message string `json:"message,omitempty"`
 	// Extended data associated with all the causes for creating a new deployment
-	Causes []*DeploymentCause `json:"causes,omitempty"`
+	Causes []DeploymentCause `json:"causes"`
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.
@@ -363,6 +386,10 @@ type DeploymentConfigList struct {
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
 	unversioned.TypeMeta `json:",inline"`
+	// Name of the deployment config that will be rolled back.
+	Name string `json:"name"`
+	// UpdatedAnnotations is a set of new annotations that will be added in the deployment config.
+	UpdatedAnnotations map[string]string `json:"updatedAnnotations,omitempty"`
 	// Spec defines the options to rollback generation.
 	Spec DeploymentConfigRollbackSpec `json:"spec"`
 }
@@ -371,6 +398,8 @@ type DeploymentConfigRollback struct {
 type DeploymentConfigRollbackSpec struct {
 	// From points to a ReplicationController which is a deployment.
 	From kapi.ObjectReference `json:"from"`
+	// Revision to rollback to. If set to 0, rollback to the last revision.
+	Revision int64 `json:"revision,omitempty"`
 	// IncludeTriggers specifies whether to include config Triggers.
 	IncludeTriggers bool `json:"includeTriggers"`
 	// IncludeTemplate specifies whether to include the PodTemplateSpec.
@@ -403,7 +432,7 @@ type DeploymentLogOptions struct {
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceSeconds *int64 `json:"sinceSeconds,omitempty"`
 	// An RFC3339 timestamp from which to show logs. If this value
-	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceTime *unversioned.Time `json:"sinceTime,omitempty"`

@@ -8,6 +8,9 @@
 global
   # maxconn 4096
   daemon
+{{ with (env "ROUTER_SYSLOG_ADDRESS" "") }}
+  log {{.}} local1 {{env "ROUTER_LOG_LEVEL" "warning"}}
+{{ end}}
   ca-base /etc/ssl
   crt-base /etc/ssl
   stats socket /var/lib/haproxy/run/haproxy.sock mode 600 level admin
@@ -32,6 +35,11 @@ global
 defaults
   # maxconn 4096
   # Add x-forwarded-for header.
+{{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
+  option httplog
+  log global
+{{ end }}
+  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
   timeout connect 5s
   timeout client 30s
   timeout server 30s
@@ -62,6 +70,9 @@ frontend public
   mode http
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
+
+  # Remove port from Host header
+  http-request replace-header Host (.*):.* \1
 
   # check if we need to redirect/force using https.
   acl secure_redirect base,map_beg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
@@ -111,12 +122,15 @@ frontend public_ssl
 # traffic
 ##########################################################################
 backend be_sni
-  server fe_sni 127.0.0.1:10444 weight 1 send-proxy
+  server fe_sni 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} weight 1 send-proxy
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:10444 ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
   mode http
+
+  # Remove port from Host header
+  http-request replace-header Host (.*):.* \1
 
   # check re-encrypt backends first - from most specific to general path.
   acl reencrypt base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
@@ -145,12 +159,15 @@ frontend fe_sni
 ##########################################################################
 # backend for when sni does not exist, or ssl term needs to happen on the edge
 backend be_no_sni
-  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
+  server fe_no_sni 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} weight 1 send-proxy
 
 frontend fe_no_sni
   # terminate ssl on edge
-  bind 127.0.0.1:10443 ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
   mode http
+
+  # Remove port from Host header
+  http-request replace-header Host (.*):.* \1
 
   # check re-encrypt backends first - path or host based.
   acl reencrypt base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
@@ -220,7 +237,10 @@ backend be_edge_http_{{$cfgIdx}}
 
             {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$cfgIdx}}
-  balance source
+{{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
+  option tcplog
+{{ end }}
+  balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source" }}
   hash-type consistent
   timeout check 5000ms
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}

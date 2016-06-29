@@ -18,16 +18,16 @@
 # this is the version we obsolete up to. The packaging changed for Origin
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refector_version 3.0.2.900
-%global golang_version 1.4.2
+%global golang_version 1.6.2
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 45459446465292391670ce8846b0af39306f5737
+%global commit df95f2ec3cd80861b7522fe1c1c623fc1caacd14
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.2.1.2-7-g4545944 -X github.com/openshift/origin/pkg/version.commitFromGit 4545944 -X k8s.io/kubernetes/pkg/version.gitCommit 4545944 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-36-g4a3f9c5
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=1 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v1.3.0-alpha.1-1274-gdf95f2e -X github.com/openshift/origin/pkg/version.commitFromGit=df95f2e -X k8s.io/kubernetes/pkg/version.gitCommit=df95f2e -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -47,7 +47,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.2.1.3
+Version:        3.3.0.0
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -131,8 +131,6 @@ Requires:       git
 %if 0%{?make_redistributable}
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
-BuildRequires:  golang-pkg-darwin-amd64 = %{golang_version}
-BuildRequires:  golang-pkg-windows-386 = %{golang_version}
 Obsoletes:      openshift-clients-redistributable < %{package_refector_version}
 
 %description clients-redistributable
@@ -150,13 +148,6 @@ Requires:       %{name} = %{version}-%{release}
 Summary:        %{product_name} Pod
 
 %description pod
-%{summary}
-
-%package recycle
-Summary:        %{product_name} Recycler
-Requires:       %{name} = %{version}-%{release}
-
-%description recycle
 %{summary}
 
 %package sdn-ovs
@@ -197,7 +188,7 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry recycle
+for cmd in oc openshift dockerregistry
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
@@ -205,8 +196,8 @@ go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test
 
 %if 0%{?make_redistributable}
 # Build clients for other platforms
-GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
-GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
+GOOS=windows GOARCH=386 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
+GOOS=darwin GOARCH=amd64 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
 %endif
 
 #Build our pod
@@ -219,7 +210,7 @@ popd
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry recycle
+for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
@@ -254,6 +245,7 @@ for cmd in \
     openshift-deploy \
     openshift-docker-build \
     openshift-f5-router \
+    openshift-recycle \
     openshift-router \
     openshift-sti-build \
     origin
@@ -319,6 +311,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-docker-build
 %{_bindir}/openshift-f5-router
+%{_bindir}/openshift-recycle
 %{_bindir}/openshift-router
 %{_bindir}/openshift-sti-build
 %{_bindir}/origin
@@ -326,7 +319,7 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_sysconfdir}/bash_completion.d/atomic-enterprise
 %{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
-%defattr(0700,-,-)
+%defattr(-,root,root,0700)
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
@@ -352,7 +345,7 @@ fi
 %files master
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
-%defattr(0700,-,-)
+%defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.key
@@ -407,7 +400,7 @@ fi
 %files node
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
-%defattr(0700,-,-)
+%defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
 %ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
@@ -481,11 +474,1049 @@ fi
 %files pod
 %{_bindir}/pod
 
-%files recycle
-%{_bindir}/recycle
-
-
 %changelog
+* Tue Jun 28 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.0
+- Godeps did not properly remove old registry godeps (ccoleman@redhat.com)
+- track generated manpages (jvallejo@redhat.com)
+- add manpage generation utils (jvallejo@redhat.com)
+- UPSTREAM: 6744: add upstream genutils helpers (jvallejo@redhat.com)
+- Fix sti build e2e test (miminar@redhat.com)
+- ignore build version on bc update if version is older than existing value
+  (bparees@redhat.com)
+- force a db deployment in extended template tests (bparees@redhat.com)
+- use an image with a valid docker1.9 manifest (bparees@redhat.com)
+- Use docker/distribution v2.4.0+ (agladkov@redhat.com)
+- Fixes oc set env --overwrite=false with multiple resources
+  (ffranz@redhat.com)
+- Changing logging statments to Clayton's spec (jupierce@redhat.com)
+- oc: cleanup expose; make --port configurable for routes (mkargaki@redhat.com)
+- add configchange trigger so deploy happens on imagechange
+  (bparees@redhat.com)
+- restructure run policy test and add logging (bparees@redhat.com)
+- controller: move shared informers in separate package (mkargaki@redhat.com)
+- deploy: fix initial image change deployments (mkargaki@redhat.com)
+- oc: restore legacy behavior for deploy --latest (mkargaki@redhat.com)
+- use valid commit for binary build test (bparees@redhat.com)
+- Revert "use cache for referential integrity and escalation checks"
+  (deads@redhat.com)
+- tweak sample pipeline template and add to oc cluster up (bparees@redhat.com)
+- cache: add an image stream lister and a reference index (mkargaki@redhat.com)
+- deploy: add shared caches in the trigger controller (mkargaki@redhat.com)
+- move _tools to _output/tools (sjenning@redhat.com)
+- godep scripts (sjenning@redhat.com)
+- Add a simple script for starting a local docker registry
+  (ccoleman@redhat.com)
+- UPSTREAM: 25913: daemonset handle DeletedFinalStateUnknown (deads@redhat.com)
+- use cache for referential integrity and escalation checks (deads@redhat.com)
+- add cluster quota APIs (deads@redhat.com)
+- oc set env must respect --overwrite=false (ffranz@redhat.com)
+- display cache mutation errors in stdout (deads@redhat.com)
+- dc controller was mutating cache objects (deads@redhat.com)
+- increase watch timeout for build controller test (bparees@redhat.com)
+- use shared informer for authorization (deads@redhat.com)
+- UPSTREAM: 27784: add optional mutation checks for shared informer cache
+  (deads@redhat.com)
+- UPSTREAM: 27786: add lastsyncresourceversion to sharedinformer
+  (deads@redhat.com)
+- deploy: enhance status for deploymentconfigs (mkargaki@redhat.com)
+- deploy: generated code for deploymentconfig status enhancements
+  (mkargaki@redhat.com)
+- extended: test deploymentconfig rollback (mkargaki@redhat.com)
+- oc: make rollback use both paths for rolling back (mkargaki@redhat.com)
+- deploy: add new endpoint for rolling back deploymentconfigs
+  (mkargaki@redhat.com)
+- deploy: generated code for rollback (mkargaki@redhat.com)
+- Add missed fast path conversions (will go upstream eventually)
+  (ccoleman@redhat.com)
+- Don't state crashlooping container when pod only has one container
+  (mkhan@redhat.com)
+- hide authorization resource groups to prevent further usage
+  (deads@redhat.com)
+- handle cyclic dependencies in build-chain (gmontero@redhat.com)
+- highlight current project with asterisk (jvallejo@redhat.com)
+- Fixes examples of oc proxy (ffranz@redhat.com)
+- Delete obsolete Dockerfile (jawnsy@redhat.com)
+- Expose a way for clients to discover OpenShift API resources
+  (ccoleman@redhat.com)
+- update cluster-reader tests to use discovery (deads@redhat.com)
+- UPSTREAM: 26355: refactor quota evaluation to cleanly abstract the quota
+  access (deads@redhat.com)
+- Use include flags with build (agladkov@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- bump(github.com/docker/distribution):
+  596ca8b86acd3feebedae6bc08abf2a48d403a14 (agladkov@redhat.com)
+- refactor openshift for quota changes (deads@redhat.com)
+- UPSTREAM: 25091: reduce conflict retries (deads@redhat.com)
+- UPSTREAM: 25414: Improve quota integration test to not use events
+  (deads@redhat.com)
+- deploy: reread hook logs on Retry (mkargaki@redhat.com)
+- Unmarshal ports given in integer format (surajssd009005@gmail.com)
+- Changing secrets.go to avoid unreliable docker build output capture. Also
+  changing test cases so that BuildConfig resources are local to the tree and
+  do not need to be current in origin/master HEAD. (jupierce@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  69a0d96663b775c5e8fa942401c7bb9ca495e8f0 (bparees@redhat.com)
+- add oc completion cmd wrapper (jvallejo@redhat.com)
+- Modify oadm print statements to use stderr (mkhan@redhat.com)
+- bump(coreos/etcd): fix etcd hash in Godeps.json (agoldste@redhat.com)
+- add /version/openshift (deads@redhat.com)
+- deploy: use shared caches in the dc controller (mkargaki@redhat.com)
+- deploy: caches obsolete dc update in the deployerpod controller
+  (mkargaki@redhat.com)
+- cache: add a deploymentconfig lister (mkargaki@redhat.com)
+- Revert "fixup coreos dep bump" (ccoleman@redhat.com)
+- Made output of error more specific to bad parameter in a template file
+  Updated tests for my change (rymurphy@redhat.com)
+- Bump origin-web-console (cf5a74d) (jforrest@redhat.com)
+- Bump origin-web-console (cf5a74d) (jforrest@redhat.com)
+- bump(coreos/etcd):8b320e7c550067b1dfb37bd1682e8067023e0751 fixup coreos dep
+  bump (sjenning@redhat.com)
+- bump(github.com/AaronO/go-git-http/auth) but not really because mfojtik was
+  just too tired to type those last 2 character (eparis@redhat.com)
+- Clean up unused token secret (jliggitt@redhat.com)
+- Update MySQL replication tests to reflect new template
+  (nagy.martin@gmail.com)
+- Add missing fuzzers for AnonymousConfig test (mfojtik@redhat.com)
+- revise pipeline instructions for current sample state (bparees@redhat.com)
+- Clean up unused token secret (jliggitt@redhat.com)
+- Add a make perform-official-release target (ccoleman@redhat.com)
+- Don't enforce quota in registry by default (miminar@redhat.com)
+- oc describe for JenkinsBuildStrategy (gmontero@redhat.com)
+- DSL openShift -> openshift in Jenkinsfile (gmontero@redhat.com)
+- add mutation cache (deads@redhat.com)
+- UPSTREAM: 25091: partial - reduce conflict retries (deads@redhat.com)
+- convert dockercfg secret generator to a work queue (deads@redhat.com)
+- return status error from build admission (deads@redhat.com)
+- Fix docker tag command in hack/build-images.sh (mkumatag@in.ibm.com)
+- Deleteing buildconfig with wildcard results in wrong output not related to
+  action taken (skramaja@redhat.com)
+- GIF version of asciicast (ccoleman@redhat.com)
+- Ignore attempt to empty route spec.host field (jliggitt@redhat.com)
+- Add screen cap of oc cluster up to README (ccoleman@redhat.com)
+- Add error detection and UT to image progress (cewong@redhat.com)
+- UPSTREAM: 27644: Use preferred group version when discovery fails due to 403
+  (mkhan@redhat.com)
+- Disable ResourceQuota while it is being investigated (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Limit affinity but handle error (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Remove string trimming (ccoleman@redhat.com)
+- Reenable upstream e2e, disable PodAffinity (ccoleman@redhat.com)
+- When updating policies and roles, only update last modified on change
+  (ccoleman@redhat.com)
+- DiscoveryRESTMapper was not caching the calculated mapper
+  (ccoleman@redhat.com)
+- UPSTREAM: 27243: Don't alter error type from server (ccoleman@redhat.com)
+- UPSTREAM: 27242: Make discovery client parameterizable to legacy prefix
+  (ccoleman@redhat.com)
+- Fixes router printer line breaks (ffranz@redhat.com)
+- Update test data to not reference v1beta3 (jforrest@redhat.com)
+- cluster up: prevent start without a writeable KUBECONFIG (cewong@redhat.com)
+- udpate jenkinsfile to use new DSL (gmontero@redhat.com)
+- Added newline print to warning when individual rsync strategies fail Changed
+  the return error to say that all strategies have failed, as opposed to just
+  the final strategy error. (rymurphy@redhat.com)
+- UPSTREAM: 23801: update Godeps completion support (jvallejo@redhat.com)
+- Don't enforce quota in registry by default (miminar@redhat.com)
+- deploy: deep-copy rcs before mutating them (mkargaki@redhat.com)
+- UPSTREAM: <drop>: Disable timeouts on kubelet pull and logs
+  (ccoleman@redhat.com)
+- Add immutable updates on access and authorize tokens (ccoleman@redhat.com)
+- Build LastVersion should be int64 (ccoleman@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  c3721f675f5474b717e6eb6aff9b837e095b6840 (rpenta@redhat.com)
+- Auto generated conversions and swagger spec/descriptions for ClusterNetwork
+  resource and node networkPluginName changes (rpenta@redhat.com)
+- Make node to auto detect openshift network plugin from master
+  (rpenta@redhat.com)
+- Use ClusterNetworkDefault for referring to 'default' cluster network
+  (rpenta@redhat.com)
+- Added pluginName field to ClusterNetwork resource (rpenta@redhat.com)
+- Fixes deprecated oc exec examples (ffranz@redhat.com)
+- add clusterquota types (deads@redhat.com)
+- React to int -> intXX changes in the code (ccoleman@redhat.com)
+- start using shared informer (deads@redhat.com)
+- UPSTREAM: 26276: make quota validation re-useable (deads@redhat.com)
+- add cluster rules to namespace powers (deads@redhat.com)
+- import docker-compose env var substitution (surajssd009005@gmail.com)
+- oc: don't print anything specific on create yet (mkargaki@redhat.com)
+- UPSTREAM: 26161: kubectl: move printObjectSpecificMessage in factory
+  (mkargaki@redhat.com)
+- deploy: use new sorting logic for deployment logs (mkargaki@redhat.com)
+- UPSTREAM: 26771: kubectl: fix sort logic for logs (mkargaki@redhat.com)
+- UPSTREAM: 27048: kubectl: return more meaningful timeout errors
+  (mkargaki@redhat.com)
+- UPSTREAM: 27048: kubectl: ignore only update conflicts in the scaler
+  (mkargaki@redhat.com)
+- Convert all int types to int32 or int64 (ccoleman@redhat.com)
+- Add fast path conversions for Origin resources (ccoleman@redhat.com)
+- Generated files (mfojtik@redhat.com)
+- Interesting changes (mfojtik@redhat.com)
+- defaulting changes (mfojtik@redhat.com)
+- boring changes (mfojtik@redhat.com)
+- UPSTREAM: 27412: Allow specifying base location for test etcd data
+  (jliggitt@redhat.com)
+- UPSTREAM: 26078: Fix panic when the namespace flag is not present
+  (mfojtik@redhat.com)
+- UPSTREAM: openshift/openshift-sdn: 321: Fix integers and add missing methods
+  to OVS plugin (mfojtik@redhat.com)
+- UPSTREAM: coreos/etcd: 5617: fileutil: avoid double preallocation
+  (jliggitt@redhat.com)
+- UPSTREAM: coreos/etcd: 5572: fall back to truncate() if fallocate is
+  interrupted (mfojtik@redhat.com)
+- UPSTREAM: skynetservices/skydns: <carry>: Allow listen only ipv4
+  (ccoleman@redhat.com)
+- UPSTREAM: skynetservices/skydns: <carry>: Disable systemd activation for DNS
+  (ccoleman@redhat.com)
+- UPSTREAM: google/cadvisor: <carry>: Disable container_hints flag that is set
+  twice (mfojtik@redhat.com)
+- UPSTREAM: emicklei/go-restful: <carry>: Add "Info" to go-restful ApiDecl
+  (ccoleman@redhat.com)
+- bump(denverdino/aliyungo): 554da7ebe31b6172a8f15a0b1cf8c628145bed6a
+  (mfojtik@redhat.com)
+- bump(github.com/docker/engine-api): 3d72d392d07bece8d7d7b2a3b6b2e57c2df376a2
+  (mfojtik@redhat.com)
+- bump(github.com/google/cadvisor): 750f18e5eac3f6193b354fc14c03d92d4318a0ec
+  (mfojtik@redhat.com)
+- bump(github.com/spf13/cobra): 4c05eb1145f16d0e6bb4a3e1b6d769f4713cb41f
+  (mfojtik@redhat.com)
+- bump(github.com/onsi/ginkgo): 2c2e9bb47b4e44067024f29339588cac8b34dd12
+  (mfojtik@redhat.com)
+- bump(github.com/coreos): 8b320e7c550067b1dfb37bd1682e8067023e0751
+  (mfojtik@redhat.com)
+- bump(github.com/emicklei/go-restful):
+  496d495156da218b9912f03dfa7df7f80fbd8cc3 (mfojtik@redhat.com)
+- bump(github.com/fsouza/go-dockerclient):
+  bf97c77db7c945cbcdbf09d56c6f87a66f54537b (mfojtik@redhat.com)
+- bump(github.com/onsi/gomega): 7ce781ea776b2fd506491011353bded2e40c8467
+  (mfojtik@redhat.com)
+- bump(github.com/skynetservices/skydns):
+  1be70b5b8aa07acccd972146d84011b670af88b4 (mfojtik@redhat.com)
+- bump(gopkg.in/yaml.v2) a83829b6f1293c91addabc89d0571c246397bbf4
+  (mfojtik@redhat.com)
+- bump(k8s.io/kubernetes): 686fe3889ed652b3907579c9e46f247484f52e8d
+  (mfojtik@redhat.com)
+- Refactored binary build shell invocation (skuznets@redhat.com)
+- Refactored stacktrace implementation for bash scripts (skuznets@redhat.com)
+- Failure in extended deployment test (ccoleman@redhat.com)
+- Fixes examples of port-forward (ffranz@redhat.com)
+- Added quote func to make all DOT ID valids (mkhan@redhat.com)
+- Lock release build to specific versions (ccoleman@redhat.com)
+- Bump origin-web-console (7840198) (jforrest@redhat.com)
+- atomic-registry via systemd (aweiteka@redhat.com)
+- Typo fix - oc dockerbuild example (mkumatag@in.ibm.com)
+- cluster up: optionally install metrics components (cewong@redhat.com)
+- refactor to Complete-Validate-Run (pweil@redhat.com)
+- Bug 1343681 - Fix tagsChanged logic (maszulik@redhat.com)
+- tolerate multiple bcs pointing to same istag for oc status
+  (gmontero@redhat.com)
+- use defined constant (pweil@redhat.com)
+- deploy: switch config change to a generic trigger controller
+  (mkargaki@redhat.com)
+- deploy: move config change controller to new location (mkargaki@redhat.com)
+- deploy: stop instantiating from the image change controller
+  (mkargaki@redhat.com)
+- Changed glog V(1) and V(2) to V(0) (jupierce@redhat.com)
+- Add make to all release images and add a Golang 1.7 image
+  (ccoleman@redhat.com)
+- Refactored os::text library to use `[[' tests instead of `[' tests
+  (skuznets@redhat.com)
+- Implemented `os::text::clear_string' to remove a string from TTY output
+  (skuznets@redhat.com)
+- Escaped special characters in regex (skuznets@redhat.com)
+- Refactored `source' statements that drifted since the original PR
+  (skuznets@redhat.com)
+- Added `findutils' dependency for DIND image (skuznets@redhat.com)
+- Renamed $ORIGIN_ROOT to $OS_ROOT for consistency (skuznets@redhat.com)
+- Revert "Revert "Implemented a single-directive library import for Origin Bash
+  scripts"" (skuznets@redhat.com)
+- Update pipeline templates (spadgett@redhat.com)
+- update "oc projects" to display all projects (jvallejo@redhat.com)
+- Cleanup some dead test code (ccoleman@redhat.com)
+- Increase the lease renewal fraction to 1/3 interval (ccoleman@redhat.com)
+- Return the error from losing a lease to log output (ccoleman@redhat.com)
+- Prevent route theft by removing the ability to update spec.host
+  (ccoleman@redhat.com)
+- allow map keys to be templatized (deads@redhat.com)
+- deploy: remove deployer pods on cancellation (mkargaki@redhat.com)
+- bypass k8s container image validation when ict's defined (allow for empty
+  string) (gmontero@redhat.com)
+- Update CONTRIBUTING and HACKING docs (mkargaki@redhat.com)
+- Bug 1327108 - Updated error information when trying to import ImageStream
+  pointing to a different one (maszulik@redhat.com)
+- Revert "remove lastModified from policy and policybinding"
+  (deads2k@users.noreply.github.com)
+- Check logs after we verify the deployment passed (ccoleman@redhat.com)
+- When tagging an image across image streams, rewrite the tag ref
+  (ccoleman@redhat.com)
+- Bug in oc describe imagestream (ccoleman@redhat.com)
+- ImageStreamMappings should default DockerImageReference (ccoleman@redhat.com)
+- Allow mutation of image dockerImageReference (ccoleman@redhat.com)
+- Add 'oc create imagestream' (ccoleman@redhat.com)
+- Allow --reference to be passed to oc tag (ccoleman@redhat.com)
+- remove lastModified from policy and policybinding (deads@redhat.com)
+- setup_tmpdir_vars(): TPMDIR -> TMPDIR (miciah.masters@gmail.com)
+- respect scopes for rules review (deads@redhat.com)
+- Updated Dockerfiles (ccoleman@redhat.com)
+- Move directories appropriately (ccoleman@redhat.com)
+- Change code to use /testdata/ instead of /fixtures directories
+  (ccoleman@redhat.com)
+- dind: enable intra pod test (marun@redhat.com)
+- dind: Fix EmptyDir support (marun@redhat.com)
+- dind: rm docker volumes natively (added in 1.9) (marun@redhat.com)
+- bump(github.com/evanphx/json-patch):465937c80b3c07a7c7ad20cc934898646a91c1de
+  (jimmidyson@gmail.com)
+- remove multiple template example, it's a lie (bparees@redhat.com)
+- Move fixtures to testdata directories (ccoleman@redhat.com)
+- New release images locked to Go versions (ccoleman@redhat.com)
+- Be more selective about what we generate for build names
+  (ccoleman@redhat.com)
+- Add instructions for downloading oc and using hosted template
+  (sspeiche@redhat.com)
+- don't specify sync project (bparees@redhat.com)
+- cluster up: print last 10 lines of logs on errors after container started
+  (cewong@redhat.com)
+- Command to set deployment hooks on deployment configs (cewong@redhat.com)
+- integration: bump timeout for non-automatic test (mkargaki@redhat.com)
+- builders: simplified image progress reporting (cewong@redhat.com)
+- Update bindata (mkargaki@redhat.com)
+- Retry service account update on conflict (jliggitt@redhat.com)
+- fix django typo (bparees@users.noreply.github.com)
+- Add liveness probe for the ipfailover dc. (smitram@gmail.com)
+- Allow import all tags when .spec.tags are specified as well
+  (maszulik@redhat.com)
+- allocate route host on update if host is empty in spec (pweil@redhat.com)
+- add service dependency and infrastructure annotations (bparees@redhat.com)
+- Added Signatures field to Image object (miminar@redhat.com)
+- fix some ineffassign issues (v.behar@free.fr)
+- Trap sigterm and cleanup - remove any assigned VIPs. (smitram@gmail.com)
+- Add a GCS test to verify it is compiled in (ccoleman@redhat.com)
+- mark docker compose as experimental (bparees@redhat.com)
+- Build dockerregistry with tag `include_gcs` (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Distribution dependencies
+  (ccoleman@redhat.com)
+- debug / workarounds for image extended tests wrt current ICT based deploy
+  behavior (gmontero@redhat.com)
+- Update go version in contributing doc (jliggitt@redhat.com)
+- Fix job e2e test (maszulik@redhat.com)
+- make project watch work for namespace deletion (deads@redhat.com)
+- set build-hook command (cewong@redhat.com)
+- Guard against deleting entire filesystem in hack/test-go.sh
+  (skuznets@redhat.com)
+- Detect data races in `go test` log output (skuznets@redhat.com)
+- Bug 1343426: list deployments correctly in oc deploy (mkargaki@redhat.com)
+- auto-create a jenkins service account (bparees@redhat.com)
+- Refactor image-import command into managable methods (maszulik@redhat.com)
+- Increase the tests coverage for import-image command (maszulik@redhat.com)
+- extended: refactor deployment tests (mkargaki@redhat.com)
+- deploy: add pausing for deploymentconfigs (mkargaki@redhat.com)
+- deploy: generated code for pause (mkargaki@redhat.com)
+- bypass oc.Run() --follow --wait output flakes (gmontero@redhat.com)
+- stop mutating cache (deads@redhat.com)
+- add openshift ex config patch to modify master-config.yaml (deads@redhat.com)
+- Improve escalation error message (jliggitt@redhat.com)
+- prevent the build controller from escalating users (deads@redhat.com)
+- Remove template fields with default values (rhcarvalho@gmail.com)
+- fix scope character validation (jliggitt@redhat.com)
+- UPSTREAM: 26554: kubectl: make --container-port actually work for expose
+  (mkargaki@redhat.com)
+- deploy: ignore set lastTriggeredImage on create (mkargaki@redhat.com)
+- Fixes --show-labels when printing OpenShift resources (ffranz@redhat.com)
+- UPSTREAM: 26793: expose printer utils (ffranz@redhat.com)
+- Add the both ROUTER_SERVICE*SNI_PORT (cw-aleks@users.noreply.github.com)
+- SCC check API: add addmission in podnodeconstraints (salvatore-
+  dario.minonne@amadeus.com)
+- Extended tests: added quota and limit range related tests
+  (miminar@redhat.com)
+- Cache limit range objects in registry (miminar@redhat.com)
+- Allow to toggle quota enforcement in the registry (miminar@redhat.com)
+- Limit imagestreamimages and imagestreamtags (miminar@redhat.com)
+- Limit ImageStreams per project using quota (miminar@redhat.com)
+- Use helpers to parse and make imagestream tag names (miminar@redhat.com)
+- Image size admission with limitrange (pweil@redhat.com)
+- Removed image quota evaluators (miminar@redhat.com)
+- Serve DNS from the nodes (ccoleman@redhat.com)
+- UPSTREAM: 24118: Proxy can be initialized directly (ccoleman@redhat.com)
+- UPSTREAM: 24119: Use default in AddFlags (ccoleman@redhat.com)
+- fix contextdir path (bparees@redhat.com)
+- Improve validation message on build spec update (cewong@redhat.com)
+- add service serving cert signer to token controller initialization
+  (deads@redhat.com)
+- UPSTREAM: <carry>: add service serving cert signer to token controller
+  (deads@redhat.com)
+- address typecast panic (gmontero@redhat.com)
+- deflake second level timing issue in TestDescribeBuildDuration
+  (gmontero@redhat.com)
+- add validation to prevent filters on dn lookups (deads@redhat.com)
+- BasicAuthIdentityProvider: Do not follow redirection (sgallagh@redhat.com)
+- router: Add name and namespace templates params (miciah.masters@gmail.com)
+- api: fix serialization test for deploymentconfigs (mkargaki@redhat.com)
+- SCC check: API and validation (salvatore-dario.minonne@amadeus.com)
+- builder: increase git check timeout exponentially (cewong@redhat.com)
+- Add a test to validate ipfailover starts (ccoleman@redhat.com)
+- oc set probe/triggers: set output version (cewong@redhat.com)
+- Default container name on execPod lifecycle hooks (ccoleman@redhat.com)
+- Add temporary HTTP failures to image retry (ccoleman@redhat.com)
+- Import app.json to OpenShift applications (ccoleman@redhat.com)
+- UPSTREAM: 25487: pod constraints func for quota validates resources
+  (decarr@redhat.com)
+- UPSTREAM: 24514: Quota ignores pod compute resources on updates
+  (decarr@redhat.com)
+- UPSTREAM: 25161: Sort resources in quota errors to avoid duplicate events
+  (decarr@redhat.com)
+- gitserver: allow anonymous access when using uid/pwd auth (cewong@redhat.com)
+- Skip registry client v1 and v2 tests until we push with 1.10
+  (ccoleman@redhat.com)
+- deploy: restore ict behavior for deploymentconfig with no cc triggers
+  (mkargaki@redhat.com)
+- unbreak e2e after DNS and oc cluster up (deads@redhat.com)
+- Update jenkins-master-template.json context (xiuwang)
+- bump(github.com/openshift/source-to-image):
+  2abf650e2e65008e5837266991ff4f2aed14bf39 (cewong@redhat.com)
+- let builders create new imagestreams for pushes (deads@redhat.com)
+- Allow size of image to be zero when schema1 from Hub (ccoleman@redhat.com)
+- IPFailover was broken for alpha.1 (ccoleman@redhat.com)
+- Add watch caching to origin types (jliggitt@redhat.com)
+- test-integration etcd verbosity controlled by OSTEST_VERBOSE_ETCD
+  (deads@redhat.com)
+- fix oc describe panic (ipalade@redhat.com)
+- Integration test for automatic=false ICTs (mkargaki@redhat.com)
+- Bug 1340735: update dc image at most once on automatic=false
+  (mkargaki@redhat.com)
+- If --public-hostname is an IP, use it for server IP in cluster up
+  (ccoleman@redhat.com)
+- dockerbuild pulls all images rather than :latest (ccoleman@redhat.com)
+- Bug 1340344 - Add additional interfaces implementation for handling watches,
+  rsh, etc. (maszulik@redhat.com)
+- Add test for suppression of router reload (marun@redhat.com)
+- Printing duplicate messages during startbuild (ccoleman@redhat.com)
+- Enable integration test debug with delve (marun@redhat.com)
+- Optionally skip building integration test binary (marun@redhat.com)
+- Fix verbose output for hack/test-integration.sh (marun@redhat.com)
+- Avoid router reload during sync (marun@redhat.com)
+- add impersonate-group (deads@redhat.com)
+- Increased timeout in TestTimedCommand integration test (skuznets@redhat.com)
+- add ROUTER_SLOWLORIS_TIMEOUT enviroment variable to default router image
+  (jtanenba@redhat.com)
+- Fix misspells reported by goreportcard.com (v.behar@free.fr)
+- make the jenkins service last so that you can retry on failures
+  (deads@redhat.com)
+- cleanup bootstrap policy to allow future changes (deads@redhat.com)
+- hack/util: wait for registry readiness (miminar@redhat.com)
+- Updated auto generated docs for pod-network CLI cmd (rpenta@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  b74a40614df17a99b8f77ac0dbd9aaa3ffae3218 (rpenta@redhat.com)
+- Pass iptablesSyncPeriod config to SDN node plugin (rpenta@redhat.com)
+- Change default value of iptablesSyncPeriod from 5s to 30s (rpenta@redhat.com)
+- Add goreportcard badge in README (mkargaki@redhat.com)
+- add cli describer for oauthtokens (jvallejo@redhat.com)
+- Document things, remove /usr/bin/docker mount from contrib systemd unit
+  (sdodson@redhat.com)
+- Fix git clone tests (jliggitt@redhat.com)
+- chroot docker to the rootfs (sdodson@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  6373e0ab0016dd013573f55eaa037c667f8e4a92 (vsemushi@redhat.com)
+- UPSTREAM: 25907: Fix detection of docker cgroup on RHEL (agoldste@redhat.com)
+- Updated allowed levels of `glog` info levels in CLI doc (skuznets@redhat.com)
+- Tolerate partial successes on reconciling cluter role bindings
+  (skuznets@redhat.com)
+- add build trigger information and separate buildconfig data
+  (ipalade@redhat.com)
+- Warn if a docker compose service has no ports (ccoleman@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  65db940221d282c2f7f1d21998bbd4af2f8a1c16 (gmontero@redhat.com)
+- git server readme: fix references to gitserver (cewong@redhat.com)
+- More pretty readme (ccoleman@redhat.com)
+- gitserver: allow specifying build strategy (cewong@redhat.com)
+- remove resource groups and divide by API group (deads@redhat.com)
+- Truncate labels of builds generated from a BuildConfig (cewong@redhat.com)
+- Refactored builder remote URI check to used timed ListRemote
+  (skuznets@redhat.com)
+- Added a timeout to `git ls-remote` invocation in `oc new-app`
+  (skuznets@redhat.com)
+- Refactored command functions not to accept a Writer (skuznets@redhat.com)
+- make the pipeline readme pretty (bparees@redhat.com)
+- Update egress-router package dependencies (danw@redhat.com)
+- make the empty API groups to "" for policy rules standard (deads@redhat.com)
+- Separated export from declaration for environment variables
+  (skuznets@redhat.com)
+- Added make update to simplify updating all generated artifacts.
+  (maszulik@redhat.com)
+- bump(github.com/Microsoft/go-winio):4f1a71750d95a5a8a46c40a67ffbed8129c2f138
+  (sdodson@redhat.com)
+- Service account token controller startup change (jliggitt@redhat.com)
+- Disable sticky sessions for tcp routes based on env value. Updated to use env
+  variable value directly as per @smarterclayton comments. (smitram@gmail.com)
+- Update the jsonpath template link in oc get -h (ripcurld.github@gmail.com)
+- UPSTREAM: 23858: Convert service account token controller to use a work queue
+  (jliggitt@redhat.com)
+- [RPMS] bump BuildRequires: golang to 1.6.2 (#19) (sdodson@redhat.com)
+- cluster up: fix insecure registry argument message (cewong@redhat.com)
+- add jenkins pipeline example files (bparees@redhat.com)
+- UPSTREAM: 24537: Add locks in HPA test (deads@redhat.com)
+- make admission plugins enablable or disabable based on config
+  (deads@redhat.com)
+- UPSTREAM: 25898: make admission plugins configurable based on external
+  criteria (deads@redhat.com)
+- respect scopes during authz delegation (deads@redhat.com)
+- discovery rest mapper (deads@redhat.com)
+- Update glogging to always set level, and to respect glog.level
+  (ccoleman@redhat.com)
+- Mount only host dir to copy files from (cewong@redhat.com)
+- Enhance jenkins-persistent-template and jenkins-ephemeral-template
+  (tnozicka@gmail.com)
+- add scope options to oc policy can-i (deads@redhat.com)
+- allow SAR to specify scopes (deads@redhat.com)
+- cluster up: test bootstrap asset locations (cewong@redhat.com)
+- Fix govet errors in oc cluster up for 1.6 (cewong@redhat.com)
+- oc: inform about switch to the same project (mkargaki@redhat.com)
+- Bug 1338679: emit events on failure to create a deployer pod
+  (mkargaki@redhat.com)
+- Drop Go 1.4 conditions, switch to 1.6 by default (ccoleman@redhat.com)
+- Docker image cannot have - or _ in succession (ccoleman@redhat.com)
+- Allow a user to specify --as-user or --as-root=false (ccoleman@redhat.com)
+- Update extensionProperties to single array of structs (jforrest@redhat.com)
+- eliminate need for SA token as client secret annotation (deads@redhat.com)
+- Longer timeout on test fixture DC (ccoleman@redhat.com)
+- Switch gitserver to use origin-base (cewong@redhat.com)
+- Bump origin-web-console (5cfe43625c3885835f2b23b674e527ceabf17502)
+  (jliggitt@redhat.com)
+- policy unsafe proxy requests separately (jliggitt@redhat.com)
+- Limit queryparam auth to websockets (jliggitt@redhat.com)
+- cluster up: allow specifying a full image template (cewong@redhat.com)
+- retry SA annotation updates in the test in case of conflicts or other
+  weirdness (deads@redhat.com)
+- bump(github.com/AaronO/go-git-http) 34209cf6cd947cfa52063bcb0f6d43cfa50c5566
+  (cewong@redhat.com)
+- deployapi: fix automatic description (mkargaki@redhat.com)
+- Fix tests for the trigger controllers (mkargaki@redhat.com)
+- Resolve image for all initial deployments (mkargaki@redhat.com)
+- Deploymentconfig controller should update dc status on successful exit
+  (mkargaki@redhat.com)
+- Stop using the deploymentconfig generator (mkargaki@redhat.com)
+- fix flaky configapi fuzzing for SA grant method (deads@redhat.com)
+- Support arbitrary key:value properties for console extensions
+  (jforrest@redhat.com)
+- default to letting oauth clients request all scopes from users
+  (deads@redhat.com)
+- allow configuration of the SA oauth client grant flows (deads@redhat.com)
+- cluster up: use alternate port for DNS when 53 is not available
+  (cewong@redhat.com)
+- use service account credentials as oauth token (deads@redhat.com)
+- add AdditionalSecrets to oauthclients (deads@redhat.com)
+- UPSTREAM: RangelReale/osin: <carry>: only request secret validation
+  (deads@redhat.com)
+- Update atomic registry quickstart artifacts (aweiteka@redhat.com)
+- Restrict the scratch name to lowercase in the dockerbuilder
+  (ccoleman@redhat.com)
+- run registry as daemonset (pweil@redhat.com)
+- cluster up: ensure you can login as administrator (cewong@redhat.com)
+- F5: Cleanup mockF5.close() calls in tests (miciah.masters@gmail.com)
+- add user:list-projects scope (deads@redhat.com)
+- refactor whatcanido to can-i --list (deads@redhat.com)
+- oc: separate test for the deploymentconfig describer (mkargaki@redhat.com)
+- oc: enhance the deploymentconfig describer (mkargaki@redhat.com)
+- print proper image name during root user warning (bparees@redhat.com)
+- README for 'oc cluster up/down' (cewong@redhat.com)
+- allow who-can to reference resource names (deads@redhat.com)
+- extend timeout for SSCS tests running in parallel (deads@redhat.com)
+- Allow update on hostsubnets (rpenta@redhat.com)
+- Cleanup all asset related files in origin (jforrest@redhat.com)
+- make scopes forbidden message friendlier to read (deads@redhat.com)
+- Client command to start OpenShift with reasonable defaults
+  (cewong@redhat.com)
+- Include option in console vendoring script to generate the branch and commit
+  automatically (jforrest@redhat.com)
+- Bump origin-web-console (140a1f1) (jforrest@redhat.com)
+- UPSTREAM: 25690: Fixes panic on round tripper when TLS under a proxy
+  (ffranz@redhat.com)
+- o Add locking around ops that change state. Its better to go   lockless
+  eventually and use a "shadow" (cloned) copy of the   config when we do a
+  reload. o Fixes as per @smarterclayton review comments. (smitram@gmail.com)
+- create client code for oauth types and tests (deads@redhat.com)
+- add scope restrictions to oauth clients (deads@redhat.com)
+- container image field values irrelevant with ict's in automatic mode, don't
+  have setting that confuses users; add updated quickstarts
+  (gmontero@redhat.com)
+- localsubjectaccessreview test-cmd demonstration with scoped token
+  (deads@redhat.com)
+-   o Add basic validation for route TLS configuration - checks that     input
+  is "syntactically" valid.   o Checkpoint initial code.   o Add support for
+  validating route tls config.   o Add option for validating route tls config.
+  o Validation fixes.   o Check private key + cert mismatches.   o Add tests.
+  o Record route rejection.   o Hook into add route processing + store invalid
+  service alias configs     in another place - easy to check prior errors on
+  readmission.   o Remove entry from invalid service alias configs upon route
+  removal.   o Add generated completions.   o Bug fixes.   o Recording
+  rejecting routes is not working completely.   o Fix status update problem -
+  we should set the status to admitted     only if we had no errors handling a
+  route.   o Rework to use a new controller - extended_validator as per
+  @smarterclayton comments.   o Cleanup validation as per @liggitt comments.
+  o Update bash completions.   o Fixup older validation unit tests.   o Changes
+  as per @liggitt review comments + cleanup tests.   o Fix failing test.
+  (smitram@gmail.com)
+- Cleanup output to builds, force validation, better errors
+  (ccoleman@redhat.com)
+- Convert builder glog use to straight output (ccoleman@redhat.com)
+- Add a simple glog replacement stub (ccoleman@redhat.com)
+- Print hooks for custom deployments and multiline commands
+  (ccoleman@redhat.com)
+- Recreate deployment should always run the acceptor (ccoleman@redhat.com)
+- Updated generated deepcopy/conversion (ccoleman@redhat.com)
+- Enable custom deployments to have rolling/recreate as well
+  (ccoleman@redhat.com)
+- Add incremental conditional completion to deployments (ccoleman@redhat.com)
+- UPSTREAM: 25617: Rolling updater should indicate progress
+  (ccoleman@redhat.com)
+- If desired conditions match, don't go into a wait loop (ccoleman@redhat.com)
+- Add an annotation that skips creating deployer pods (ccoleman@redhat.com)
+- Update deployment logs and surge on recreate (ccoleman@redhat.com)
+- return status errors from build clone API (deads@redhat.com)
+- Fix go vet errors (rhcarvalho@gmail.com)
+- Ignore errors on debug when a template is returned (ccoleman@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  64f909fd86e302e5e22a7dd2854278a97ed44cf4 (rhcarvalho@gmail.com)
+- Deployment config pipeline must mark the pods it covers (ffranz@redhat.com)
+- Revert "Revert "oc status must show monopods"" (ffranz@redhat.com)
+- clarify 'oc delete' help info (somalley@redhat.com)
+- Add script for vendoring the console repo into bindata.go files
+  (jforrest@redhat.com)
+- UPSTREAM: 25077: PLEG: reinspect pods that failed prior inspections
+  (agoldste@redhat.com)
+- Support schema2 of compose, set env vars properly (ccoleman@redhat.com)
+- UPSTREAM: 25537: e2e make ForEach fail if filter is empty, fix no-op tests
+  (decarr@redhat.com)
+- add bash script demonstrating scoped tokens (deads@redhat.com)
+- platformmanagement_public_704: Added basic auditing capabilities
+  (maszulik@redhat.com)
+- Remove dind hack from kubelet (marun@redhat.com)
+- more spots to dump on error deployment logs in extended tests
+  (gmontero@redhat.com)
+- Truncate build pod label to allowed size (cewong@redhat.com)
+- disable gitauth tests (gmontero@redhat.com)
+- change BC ICT to automatic=true (more deterministic) (gmontero@redhat.com)
+- Add NetworkManager dnsmasq configuration dispatcher (sdodson@redhat.com)
+- Remove prompts from commented examples (rhcarvalho@gmail.com)
+- db-templates: mongodb ephemeral dc should automatically resolve
+  (mkargaki@redhat.com)
+- UPSTREAM: 25501: SplitHostPort is needed since Request.RemoteAddr has the
+  host:port format (maszulik@redhat.com)
+- workaround to infinite wait on service in k8s utils; better deployment
+  failure test diag (gmontero@redhat.com)
+- provide a way to request escalating scopes (deads@redhat.com)
+- prevent escalating resource access by default (deads@redhat.com)
+- Fixing test flake for docker builds (bleanhar@redhat.com)
+- Delete registry interfaces for clusternetwork/hostsubnet/netnamespace
+  resources (rpenta@redhat.com)
+- Refactored Bash scripts to use new preable for imports (skuznets@redhat.com)
+- Declared all Bash library functions read-only. (skuznets@redhat.com)
+- Implemented a single-directive library import for Origin Bash scripts
+  (skuznets@redhat.com)
+- Updated the function declaration syle in existing Bash libararies.
+  (skuznets@redhat.com)
+- migrate use of s.DefaultConvert to autoConvert (gmontero@redhat.com)
+- UPSTREAM: 25472: tolerate nil error in HandleError (deads@redhat.com)
+- Check for pod creation in scc exec admission (jliggitt@redhat.com)
+- enforce scc during pod updates (deads@redhat.com)
+- update jenkins example readme to leverage -z option on oc policy
+  (gmontero@redhat.com)
+- fix nil ImageChange conversion (gmontero@redhat.com)
+- Interrupting a dockerbuild command should clean up leftovers
+  (ccoleman@redhat.com)
+- When building oc from build-*-images, use found path (ccoleman@redhat.com)
+- Bug 1329138: stop emitting events on update conflicts (mkargaki@redhat.com)
+- add istag to oc debug (deads@redhat.com)
+- add scoped impersonation (deads@redhat.com)
+- add service serving cert controller (deads@redhat.com)
+- Show/Edit runPolicy (jhadvig@redhat.com)
+- add descriptions for scopes (deads@redhat.com)
+- add scope validation to tokens (deads@redhat.com)
+- Pre-skip some GCE/AWS-only extended networking tests (danw@redhat.com)
+- Reorganize extended network tests to save a bit of time (danw@redhat.com)
+- bump(k8s.io/kubernetes): c2cc7fd2eafe14472098737b2c255ce4ca06d987
+  (mfojtik@redhat.com)
+- Add a Docker compose import and command (ccoleman@redhat.com)
+- Ignore govet errors on ./third_party (ccoleman@redhat.com)
+- UPSTREAM: 25018: Don't convert objects in the destination version
+  (ccoleman@redhat.com)
+- UPSTREAM: 24390: []byte conversion is not correct (ccoleman@redhat.com)
+- bump(third_party/github.com/docker/libcompose):3ca15215f36154fbf64f15bfa305bf
+  b0cebb6ca7 (ccoleman@redhat.com)
+- bump(github.com/flynn/go-shlex):3f9db97f856818214da2e1057f8ad84803971cff
+  (ccoleman@redhat.com)
+- Add defensive if statements to valuesIn and valuesNotIn filters
+  (admin@benjaminapetersen.me)
+- UPSTREAM: 25369: Return 'too old' errors from watch cache via watch stream
+  (jliggitt@redhat.com)
+- add scope authorizer (deads@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  0fbae3c75c6802a5f5d7fe48d562856443457f6a (dcbw@redhat.com)
+- Update for split-out openshift-sdn proxy plugin (dcbw@redhat.com)
+- oc: update rollback example (mkargaki@redhat.com)
+- Remove gaps from build chart for deleted builds (spadgett@redhat.com)
+- Fix jshint warnings (spadgett@redhat.com)
+- Changes to markup and the logo so that it isn't clipped at certain dimensions
+  - Fixes bug 1328016 - CSS changes to enable logos of varing dimensions within
+  the following sizes - Logo max width 230px / height 36px
+  (sgoodwin@redhat.com)
+- UPSTREAM: 23574: add user.Info.GetExtra (deads@redhat.com)
+- Test path-based routing via HTTPS and WebSockets (elyscape@gmail.com)
+- cluster quota options (deads@redhat.com)
+- Include ext-searchbox.js for Ace editor search (spadgett@redhat.com)
+- deployapi: add separate call for updating DC status (mkargaki@redhat.com)
+- deployapi: add generation numbers (mkargaki@redhat.com)
+- Bug 1333300 - add/update resource labels and annotations (jhadvig@redhat.com)
+- Bug 1333669 - error msg when unknown apiVersion or kind (jhadvig@redhat.com)
+- Calculate effective limit min in UI for request/limit ratio
+  (spadgett@redhat.com)
+- Bug 1333651 - set object group and version (jhadvig@redhat.com)
+- haproxy Cookie id leaks information about software (pcameron@redhat.com)
+- Project should not fetch client immediately (ccoleman@redhat.com)
+- put new quota size in extended test (gmontero@redhat.com)
+- Remove deployments resource from roles (jliggitt@redhat.com)
+- dockerbuild: stop container before committing it (cewong@redhat.com)
+- refactor webhook code (bparees@redhat.com)
+- Add reconcile protection for roles (jliggitt@redhat.com)
+- more catching of build errors, dump of logs, etc.; add registry pod disk
+  usage analysis (gmontero@redhat.com)
+- Remove sudo call from hack/test-cmd.sh (jliggitt@redhat.com)
+- Omit needless reconciles (jliggitt@redhat.com)
+- allow project request limits on system users and service accounts
+  (deads@redhat.com)
+- Allow pulling base image by default in dockerbuild (mfojtik@redhat.com)
+- Store author when using MAINTAINER instruction (mfojtik@redhat.com)
+- Show newlines and links in template descriptions (spadgett@redhat.com)
+- Display FROM instruction (mfojtik@redhat.com)
+- Disable UI scaling for in progress deployment (spadgett@redhat.com)
+- Bug fix to remove empty <tbody> results in Firefox border rendering bug
+  (rhamilto@redhat.com)
+- refactor webhooks to account for multiple sources (ipalade@redhat.com)
+- point users to the jenkins tutorial from the template (bparees@redhat.com)
+- add oc create dc (deads@redhat.com)
+- put the git ls-remote "--head" argument in the right order (before the url)
+  (bparees@redhat.com)
+- Exclude type fields from conversion (ccoleman@redhat.com)
+- Regenerate image api deep copies (ccoleman@redhat.com)
+- Don't use external types in our serialized structs (ccoleman@redhat.com)
+- Regenerated copies and conversions (ccoleman@redhat.com)
+- Switch to upstream generators (ccoleman@redhat.com)
+- UPSTREAM: 25033: Make conversion gen downstream consumable
+  (ccoleman@redhat.com)
+- Add support for resource owner password grant (jliggitt@redhat.com)
+- Fix timing issue scaling deployments (spadgett@redhat.com)
+- UPSTREAM: 24924: fix PrepareForUpdate bug for HPA (jliggitt@redhat.com)
+- UPSTREAM: 24924: fix PrepareForUpdate bug for PV and PVC
+  (jliggitt@redhat.com)
+- Use copy-to-clipboard for next steps webhook URL (spadgett@redhat.com)
+- BZ 1332876 - Break long Git source URL (jhadvig@redhat.com)
+- stop resending modifies with same project resourceversion for watch
+  (deads@redhat.com)
+- Allow network test runner to use kubeconfig (marun@redhat.com)
+- Replace mongostat with mongo in mongodb example template (mfojtik@redhat.com)
+- Fix a problem with ignored Dockerfiles in db conformance
+  (ccoleman@redhat.com)
+- Add tests and properly handle directory merging (ccoleman@redhat.com)
+- Return error from exec (ccoleman@redhat.com)
+- update to match s2i type renames (bparees@redhat.com)
+- bump(github.com/RangelReale/osincli):
+  05659f31e8b694f522f44226839a66bd8b7c08cct (jliggitt@redhat.com)
+- support project watch resourceversion=0 (deads@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  c99ef8b29e94bdaf62d5d5aefa74d12af6d37e3c (bparees@redhat.com)
+- Increase initialDelay for Jenkins livenessprobe (mfojtik@redhat.com)
+- add configmap to oc set volume (deads@redhat.com)
+- Add extended network tests for default namespace non-isolation
+  (danw@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  528d0e97ac38354621520890878d7ea34451384b (bparees@redhat.com)
+- Update data.js to support fieldSelector & labelSelector
+  (admin@benjaminapetersen.me)
+- BZ 1332787 Cannot create resources defined in List through From File option
+  on create page (jhadvig@redhat.com)
+- Skip pulp test in integration (ccoleman@redhat.com)
+- Add output logging to docker build and correctly pull (ccoleman@redhat.com)
+- Enable recursion by default for start commands (ccoleman@redhat.com)
+- DNS resolution must return etcd name errors (ccoleman@redhat.com)
+- Add DNS to the conformance suite (ccoleman@redhat.com)
+- Add expanded DNS e2e tests for Origin (ccoleman@redhat.com)
+- UPSTREAM: 24128: Allow cluster DNS verification to be overriden
+  (ccoleman@redhat.com)
+- Additional web console updates for JenkinsPipeline strategy
+  (spadgett@redhat.com)
+- Reverting mountPath validation for add to allow overwriting volume without
+  specifying mountPath (ewolinet@redhat.com)
+- Remove moment timezone (jliggitt@redhat.com)
+- Add the ability to configure an HAPROXY router to send log messages to a
+  syslog address (jtanenba@redhat.com)
+- [RPMS] Improve default permissions (sdodson@redhat.com)
+- show pod IP during debug (deads@redhat.com)
+- Add the service load balancer controller to Origin (ccoleman@redhat.com)
+- Add create helpers for users, identities, and mappings from the CLI
+  (jliggitt@redhat.com)
+- Update editor mode before checking error annotations (spadgett@redhat.com)
+- default the volume type (deads@redhat.com)
+- Accessibility: make enter key work when confirming project name
+  (spadgett@redhat.com)
+- let registry-admin delete his project (deads@redhat.com)
+- Upload component during the create flow (jhadvig@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  c709df994a5bbecfa80fae62c20131cd25337b79 (rpenta@redhat.com)
+- Improve oc cancel-build command (mfojtik@redhat.com)
+- dind: stop attempting to cache images during build (marun@redhat.com)
+- added oc status check for hpa missing cpu request (skuznets@redhat.com)
+- Fix for issue 8578 involving non-breaking strings. (sgoodwin@redhat.com)
+- Update yaml.js to latest, official version (spadgett@redhat.com)
+- add what-can-i-do endpoint (deads@redhat.com)
+- Allow to specify the run policy for builds (mfojtik@redhat.com)
+- oc: remove dead factory code (mkargaki@redhat.com)
+- oc: dont warn for missing istag in case of in-flight build
+  (mkargaki@redhat.com)
+- Fix openshift-start empty hostname error message (ripcurld.github@gmail.com)
+- oc: support multiple resources in rsh (mkargaki@redhat.com)
+- UPSTREAM: 23590: kubectl: more sophisticated pod selection for logs and
+  attach (mkargaki@redhat.com)
+- UPSTREAM: <drop>: watch-based wait utility (mkargaki@redhat.com)
+- Fix broken tests, cleanup config (ccoleman@redhat.com)
+- UPSTREAM: <carry>: force import ordering for stable codegen
+  (deads@redhat.com)
+- Instantiate Jenkins when pipeline strategy is created (jimmidyson@gmail.com)
+- Add JenkinsPipeline build strategy (jimmidyson@gmail.com)
+- Review 1 (ccoleman@redhat.com)
+- Change hack to use direct docker build (ccoleman@redhat.com)
+- Flexible dockerfile builder that uses client calls (ccoleman@redhat.com)
+- Increase default web console line limit to 5000 (spadgett@redhat.com)
+- Allow parameters on generic webhook build trigger call (gmontero@redhat.com)
+- prevent s2i from running onbuild images (bparees@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  849ad2f6204f7bc0c3522fc59ec4d3c6d653db7c (bparees@redhat.com)
+- Enable the gcs, oss, and inmemory storage drivers in registry
+  (ccoleman@redhat.com)
+- Fix bootstrap package name spelling (cewong@redhat.com)
+- make project cache watchable (deads@redhat.com)
+- setup default impersonation rules (deads@redhat.com)
+- blacklist the ThirdPartyResource kind from other resources page
+  (jforrest@redhat.com)
+- Do not stop tests (agladkov@redhat.com)
+- Generate bindata for bootstrap streams, templates and quickstarts
+  (cewong@redhat.com)
+- Template parameters broken in new-app (ccoleman@redhat.com)
+- integration tests: wait for admission control cache to allow pod creation
+  (cewong@redhat.com)
+- [RPMS] Get rid of openshift-recycle subpackage (#18) (sdodson@redhat.com)
+- [RPMS] Add openshift-recycle (#17) (sdodson@redhat.com)
+- bump(k8s.io/kubernetes): 61d1935e4fbaf5b9dd43ebd491dd33fa0aeb48a0
+  (deads@redhat.com)
+- UPSTREAM: 24839: Validate deletion timestamp doesn't change on update
+  (jliggitt@redhat.com)
+- add acting-as request handling (deads@redhat.com)
+- Handle null items array from bad api responses (jforrest@redhat.com)
+- UPSTREAM: 23549: add act-as powers (deads@redhat.com)
+- Use git shallow clone when not using ref (mfojtik@redhat.com)
+- Correctly use netcat (ccoleman@redhat.com)
+- Add lsof (ccoleman@redhat.com)
+- Label and streamline the remaining images (ccoleman@redhat.com)
+- Simplify the router and ipfailover images (ccoleman@redhat.com)
+- Move recycler into origin binary (ccoleman@redhat.com)
+- UPSTREAM: 24052: Rate limiting requeue (deads@redhat.com)
+- UPSTREAM: 23444: add a delayed queueing option to the workqueue
+  (deads@redhat.com)
+- add default resource requests to router creation (jtanenba@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  caa5fed4d6c38041ec1396661b66faff4eff358d (bparees@redhat.com)
+- Increase deployment test fixture timeout (ironcladlou@gmail.com)
+- remove admission plugins from chain when they have an nil config
+  (deads@redhat.com)
+- UPSTREAM: 24421: remove admission plugins from chain (deads@redhat.com)
+- Refactors to generation in preparation for compose (ccoleman@redhat.com)
+- Add openshift.io/deployer-pod.type label (agladkov@redhat.com)
+- fix godeps (bparees@redhat.com)
+- remove describe user function (ipalade@redhat.com)
+- Update integration tests to confirm project name when deleting
+  (spadgett@redhat.com)
+- remove old double escape validation (pweil@redhat.com)
+- Make --insecure flag take precedence over insecure annotation
+  (maszulik@redhat.com)
+- introduce --watch capability for oc rsync (bparees@redhat.com)
+- bump(github.com/fsnotify/fsnotify): 3c39c22b2c7b0516d5f2553f1608e5d13cb19053
+  (bparees@redhat.com)
+- Read insecure annotation on an image stream when import-image is invoked.
+  (maszulik@redhat.com)
+- Remove port from request's Host header (elyscape@gmail.com)
+- Fix failing application generator test (spadgett@redhat.com)
+- warn if image is not a builder, even if it came from source detection
+  (bparees@redhat.com)
+- Bindata for the console 1.3 changes to date and fixes to spec tests
+  (jforrest@redhat.com)
+- Make bulk output more centralized (ccoleman@redhat.com)
+- Refer SDN plugin names by constants (rpenta@redhat.com)
+- fix bad tabbing in template (bparees@redhat.com)
+- Fixes to bower after rebase (jforrest@redhat.com)
+- Project list add user to role message shouldnt hardcode admin role
+  (jforrest@redhat.com)
+- Don't validate limit against request limit range default
+  (spadgett@redhat.com)
+- Trigger login flow if api discovery failed because of possible cert errors
+  (jforrest@redhat.com)
+- Changing notifications to alerts (rhamilto@redhat.com)
+- Lock matchHeight and temporarily add resolution to fix jenkins issue
+  (jforrest@redhat.com)
+- Tolarate no input buildConfig in console (jhadvig@redhat.com)
+- Web console support for JenkinsPipeline builds (spadgett@redhat.com)
+- Enabling WebHooks from console will add Generic webhook (jhadvig@redhat.com)
+- Add an 'Other resources' page to view, raw edit, and delete other stuff in
+  your project (jforrest@redhat.com)
+- Changing copy to clipboard button to an input + button (rhamilto@redhat.com)
+- Confirm project delete by typing project name (spadgett@redhat.com)
+- Update humanizeKind filter to use lowercase by default (spadgett@redhat.com)
+- Edit routes in web console (spadgett@redhat.com)
+- API discovery in the console (jforrest@redhat.com)
+- Reintroduce :empty selector to hide online extensions but adds as a util
+  class in _util.scss (admin@benjaminapetersen.me)
+- Handle multiline command arguments in web console (spadgett@redhat.com)
+- Update nav-mobile-dropdown to use new extension-point, eliminate hawtio-
+  extension (admin@benjaminapetersen.me)
+- Metrics updates (spadgett@redhat.com)
+- Fix usage rate calculation for network metrics in pod page
+  (ffranz@redhat.com)
+- Fix httpGet path in pod template (spadgett@redhat.com)
+- Warn users when navigating away with the terminal window open
+  (spadgett@redhat.com)
+- Add network metrics to pod page on console (ffranz@redhat.com)
+- Fix UI e2e test failure (spadgett@redhat.com)
+- Add _spacers.less to generate pad/mar utility classes
+  (admin@benjaminapetersen.me)
+- Add container entrypoint to debug dialog (spadgett@redhat.com)
+- Web console: debug terminal for crashing pods (spadgett@redhat.com)
+- Exclude google-code-prettify (spadgett@redhat.com)
+- Left align tabs when they wrap to second line (spadgett@redhat.com)
+- DataService._urlForResource should return a string (spadgett@redhat.com)
+- Fix jshint warnings (spadgett@redhat.com)
+- Update grunt-contrib-jshintrc to 1.0.0 (spadgett@redhat.com)
+- Fix failing web console unit tests (spadgett@redhat.com)
+- Web console support for health checks (spadgett@redhat.com)
+- Update online extensions, avoid rendering emtpy DOM nodes
+  (admin@benjaminapetersen.me)
+- Use hawtioPluginLoader to load javaLinkExtension (admin@benjaminapetersen.me)
+- Support autoscaling in the web console (spadgett@redhat.com)
+- Update extension points from hawtio manager to angular-extension-registry
+  (admin@benjaminapetersen.me)
+- Don't enable editor save button until after a change (spadgett@redhat.com)
+- Improving pod-template visualization (rhamilto@redhat.com)
+- Use @dl-horizontal-breakpoint (spadgett@redhat.com)
+- Update Patternfly utilization chart class name (spadgett@redhat.com)
+- Updating PatternFly and Angular-PatternFly to v3.3.0 (rhamilto@redhat.com)
+- Remove angular-patternfly utilization card dependency (spadgett@redhat.com)
+- tests: Bind DNS only to API_HOST address (sgallagh@redhat.com)
+- Add mount debug information for cpu quota test flake (mrunalp@gmail.com)
+- Handle client-side errors on debug pod creation (ffranz@redhat.com)
+- make new project wait for rolebinding cache before returning
+  (deads@redhat.com)
+- cite potential builds for oc status missing input streams
+  (gmontero@redhat.com)
+- allow for no build config source input (defer assemble script or custom
+  builder) (gmontero@redhat.com)
+- add oc create policybinding (deads@redhat.com)
+- wait for authorization cache to update before pruning (deads@redhat.com)
+- UPSTREAM: <carry>: add scc to pod describer (screeley@redhat.com)
+- add option to reverse buildchains (deads@redhat.com)
+- switch new project example repo to one that doesn't need a db
+  (bparees@redhat.com)
+- fully qualify admission attribute records (deads@redhat.com)
+- UPSTREAM: 24601: fully qualify admission resources and kinds
+  (deads@redhat.com)
+- Update generated public functions (ccoleman@redhat.com)
+- Make hand written conversions public (ccoleman@redhat.com)
+- do not force drop KILL cap on anyuid SCC (pweil@redhat.com)
+- UPSTREAM: 24382: RateLimitedQueue TestTryOrdering could fail under load
+  (ccoleman@redhat.com)
+- generated files (deads@redhat.com)
+- important: etcd initialization change (deads@redhat.com)
+- important: previously bugged: authorization adapter (deads@redhat.com)
+- fix rebase of limitranger for clusterresourceoverride (lmeyer@redhat.com)
+- important: resource enablement (deads@redhat.com)
+- disabled kubectl features: third-party resources and recursive directories
+  (deads@redhat.com)
+- rebase interesting enough to keep diff-able (deads@redhat.com)
+- <drop>: disable etcd3 unit tests (deads@redhat.com)
+- boring changes (deads@redhat.com)
+- UPSTREAM: <drop>: keep old deep copy generator for now (deads@redhat.com)
+- UPSTREAM: 24208: Honor starting resourceVersion in watch cache
+  (agoldste@redhat.com)
+- UPSTREAM: 24153: make optional generic etcd fields optional
+  (deads@redhat.com)
+- UPSTREAM: 23894: Should not fail containers on OOM score adjust
+  (ccoleman@redhat.com)
+- UPSTREAM: 24048: Use correct defaults when binding apiserver flags
+  (jliggitt@redhat.com)
+- UPSTREAM: 24008: Make watch cache behave like uncached watch
+  (jliggitt@redhat.com)
+- UPSTREAM: openshift/openshift-sdn: <drop>: sig changes (deads@redhat.com)
+- bump(hashicorp/golang-lru): a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
+  (deads@redhat.com)
+- bump(davecgh/go-spew): 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  (deads@redhat.com)
+- bump(rackspace/gophercloud): 8992d7483a06748dea706e4716d042a4a9e73918
+  (deads@redhat.com)
+- bump(coreos/etcd): 5e6eb7e19d6385adfabb1f1caea03e732f9348ad
+  (deads@redhat.com)
+- bump(k8s.io/kubernetes): 61d1935e4fbaf5b9dd43ebd491dd33fa0aeb48a0
+  (deads@redhat.com)
+- pass args to bump describer (deads@redhat.com)
+- UPSTREAM: revert: 1f9b8e5: 24008: Make watch cache behave like uncached watch
+  (deads@redhat.com)
+- UPSTREAM: revert: c3d1d37: 24048: Use correct defaults when binding apiserver
+  flags (deads@redhat.com)
+- UPSTREAM: revert: 9ec799d: 23894: Should not fail containers on OOM score
+  adjust (deads@redhat.com)
+- UPSTREAM: revert: 66d1fdd: 24208: Honor starting resourceVersion in watch
+  cache (deads@redhat.com)
+- diagnostics: update cmd tests (lmeyer@redhat.com)
+- Debug command should default to pods (ccoleman@redhat.com)
+- Support --logspec (glog -vmodule) for finegrained logging
+  (ccoleman@redhat.com)
+- diagnostics: introduce cluster ServiceExternalIPs (lmeyer@redhat.com)
+- diagnostics: introduce cluster MetricsApiProxy (lmeyer@redhat.com)
+- Output logs on network e2e deployment failure (marun@redhat.com)
+- Import from repository doesn't panic (miminar@redhat.com)
+- Default role reconciliation to additive-only (jliggitt@redhat.com)
+- made commitchecker error statements more verbose (skuznets@redhat.com)
+- Remove deprecated --nodes flag (jliggitt@redhat.com)
+- Improve logging of missing authorization codes (jliggitt@redhat.com)
+- git server: automatically launch builds on push (cewong@redhat.com)
+- fix typo in error message (pweil@redhat.com)
+- update registry config with deprecated storage.cache.layerinfo, now
+  blobdescriptor (aweiteka@redhat.com)
+- implemented glog wrapper for use in delegated commands (skuznets@redhat.com)
+- UPSTREAM: golang/glog: <carry>: add 'InfoDepth' to 'V' guard
+  (skuznets@redhat.com)
+- update failure conditions for oc process (skuznets@redhat.com)
+- remove unused constant that has been migrated to bootstrappolicy
+  (pweil@redhat.com)
+- dind: output rc reminder if bin path is not set (marun@redhat.com)
+- dind: clean up disabling of sdn node (marun@redhat.com)
+- dind: ensure quoting of substitutions (marun@redhat.com)
+- dind: use os::build funcs to find binary path (marun@redhat.com)
+- dind: ensure all conditionals use [[ (marun@redhat.com)
+- least change to stop starting reflector in clusterresourceoverride
+  (deads@redhat.com)
+- UPSTREAM: 24403: kubectl: use platform-agnostic helper in edit
+  (mkargaki@redhat.com)
+- Allow new-app params to be templatized (ccoleman@redhat.com)
+- Change the context being used when Stat-ing remote registry
+  (maszulik@redhat.com)
+- Revert SDN bridge-nf-call-iptables=0 hack (dcbw@redhat.com)
+- Update README.md (brian.christner@gmail.com)
+- add labels and annotations from buildrequest to resulting build
+  (bparees@redhat.com)
+- Don't close the "lost" channel more than once (ccoleman@redhat.com)
+- Expose Watch in the Users client API (v.behar@free.fr)
+- Expose Watch in the Groups client API (v.behar@free.fr)
+- oc: fix help message for deploy (mkargaki@redhat.com)
+- Disable serial image pulls by default (avagarwa@redhat.com)
+- docs: add irc badge (jsvgoncalves@gmail.com)
+- improve systemd unit ordering (jdetiber@redhat.com)
+- F5: handle HTML responses gracefully (miciah.masters@gmail.com)
+- correct precision in the no config file message (jay@apache.org)
+
 * Mon Jun 20 2016 Scott Dodson <sdodson@redhat.com> 3.2.1.3
 - add mutation cache (deads@redhat.com)
 - convert dockercfg secret generator to a work queue (deads@redhat.com)

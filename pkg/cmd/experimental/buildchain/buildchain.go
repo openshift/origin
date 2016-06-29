@@ -29,13 +29,13 @@ Tag and namespace are optional and if they are not specified, 'latest' and the
 default namespace will be used respectively.`
 
 	buildChainExample = `  # Build the dependency tree for the 'latest' tag in <image-stream>
-  $ %[1]s <image-stream>
+  %[1]s <image-stream>
 
   # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
-  $ %[1]s <image-stream>:v2 -o dot | dot -T svg -o deps.svg
+  %[1]s <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
   # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
-  $ %[1]s <image-stream> -n test --all`
+  %[1]s <image-stream> -n test --all`
 )
 
 // BuildChainRecommendedCommandName is the recommended command name
@@ -49,6 +49,7 @@ type BuildChainOptions struct {
 	namespaces       sets.String
 	allNamespaces    bool
 	triggerOnly      bool
+	reverse          bool
 
 	output string
 
@@ -77,6 +78,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "Build dependency tree for the specified image stream tag across all namespaces")
 	cmd.Flags().BoolVar(&options.triggerOnly, "trigger-only", true, "If true, only include dependencies based on build triggers. If false, include all dependencies.")
+	cmd.Flags().BoolVar(&options.reverse, "reverse", false, "If true, show the istags dependencies instead of its dependants.")
 	cmd.Flags().StringVarP(&options.output, "output", "o", "", "Output format of dependency tree")
 	return cmd
 }
@@ -95,7 +97,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	o.c, o.t = oc, oc
 
 	resource := unversioned.GroupResource{}
-	mapper, _ := f.Object()
+	mapper, _ := f.Object(false)
 	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
 		return err
@@ -160,7 +162,7 @@ func (o *BuildChainOptions) Validate() error {
 func (o *BuildChainOptions) RunBuildChain() error {
 	ist := imagegraph.MakeImageStreamTagObjectMeta2(o.defaultNamespace, o.name)
 
-	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly)
+	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly, o.reverse)
 	if err != nil {
 		if _, isNotFoundErr := err.(describe.NotFoundErr); isNotFoundErr {
 			name, tag, _ := imageapi.SplitImageStreamTag(o.name)

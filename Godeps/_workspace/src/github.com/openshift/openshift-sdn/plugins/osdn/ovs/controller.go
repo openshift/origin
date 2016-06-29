@@ -2,12 +2,13 @@ package ovs
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"net"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
@@ -325,15 +326,7 @@ func (plugin *ovsPlugin) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesN
 	return true, nil
 }
 
-func (plugin *ovsPlugin) GetName() string {
-	if plugin.multitenant {
-		return MultiTenantPluginName()
-	} else {
-		return SingleTenantPluginName()
-	}
-}
-
-func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) {
+func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 	glog.Infof("AddHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
 	otx := ovs.NewTransaction(BR)
 
@@ -343,11 +336,12 @@ func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 
 	err := otx.EndTransaction()
 	if err != nil {
-		glog.Errorf("Error adding OVS flows: %v", err)
+		return fmt.Errorf("Error adding OVS flows for subnet: %v, %v", subnet, err)
 	}
+	return nil
 }
 
-func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
+func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 	glog.Infof("DeleteHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
 
 	otx := ovs.NewTransaction(BR)
@@ -355,42 +349,45 @@ func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
 	otx.DeleteFlows("table=8, nw_dst=%s", subnet.Subnet)
 	err := otx.EndTransaction()
 	if err != nil {
-		glog.Errorf("Error deleting OVS flows: %v", err)
+		return fmt.Errorf("Error deleting OVS flows for subnet: %v, %v", subnet, err)
 	}
+	return nil
 }
 
-func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) {
+func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) error {
 	if !plugin.multitenant {
-		return
+		return nil
 	}
 
 	glog.V(5).Infof("AddServiceRules for %v", service)
 
 	otx := ovs.NewTransaction(BR)
 	for _, port := range service.Spec.Ports {
-		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, port.Port))
+		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, int(port.Port)))
 		err := otx.EndTransaction()
 		if err != nil {
-			glog.Errorf("Error adding OVS flow: %v", err)
+			return fmt.Errorf("Error adding OVS flows for service: %v, netid: %d, %v", service, netID, err)
 		}
 	}
+	return nil
 }
 
-func (plugin *ovsPlugin) DeleteServiceRules(service *kapi.Service) {
+func (plugin *ovsPlugin) DeleteServiceRules(service *kapi.Service) error {
 	if !plugin.multitenant {
-		return
+		return nil
 	}
 
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 
 	otx := ovs.NewTransaction(BR)
 	for _, port := range service.Spec.Ports {
-		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, port.Port))
+		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port)))
 		err := otx.EndTransaction()
 		if err != nil {
-			glog.Errorf("Error deleting OVS flow: %v", err)
+			return fmt.Errorf("Error deleting OVS flows for service: %v, %v", service, err)
 		}
 	}
+	return nil
 }
 
 func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string {

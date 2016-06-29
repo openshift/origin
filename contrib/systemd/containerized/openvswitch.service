@@ -1,6 +1,7 @@
 [Unit]
 After=docker.service
 Requires=docker.service
+PartOf=docker.service
 
 [Service]
 ExecStartPre=-/usr/bin/docker rm -f openvswitch

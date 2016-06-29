@@ -72,6 +72,8 @@ import (
 )
 
 type execNetworkPlugin struct {
+	network.NoopNetworkPlugin
+
 	execName string
 	execPath string
 	host     network.Host
@@ -120,9 +122,6 @@ func (plugin *execNetworkPlugin) getExecutable() string {
 	return path.Join(plugin.execPath, execName)
 }
 
-func (plugin *execNetworkPlugin) Event(name string, details map[string]interface{}) {
-}
-
 func (plugin *execNetworkPlugin) Name() string {
 	return plugin.execName
 }
@@ -135,20 +134,20 @@ func (plugin *execNetworkPlugin) validate() error {
 	return nil
 }
 
-func (plugin *execNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.DockerID) error {
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, string(id)).CombinedOutput()
+func (plugin *execNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID) error {
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, id.ID).CombinedOutput()
 	glog.V(5).Infof("SetUpPod 'exec' network plugin output: %s, %v", string(out), err)
 	return err
 }
 
-func (plugin *execNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.DockerID) error {
-	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, string(id)).CombinedOutput()
+func (plugin *execNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.ContainerID) error {
+	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, id.ID).CombinedOutput()
 	glog.V(5).Infof("TearDownPod 'exec' network plugin output: %s, %v", string(out), err)
 	return err
 }
 
-func (plugin *execNetworkPlugin) Status(namespace string, name string, id kubecontainer.DockerID) (*network.PodNetworkStatus, error) {
-	out, err := utilexec.New().Command(plugin.getExecutable(), statusCmd, namespace, name, string(id)).CombinedOutput()
+func (plugin *execNetworkPlugin) GetPodNetworkStatus(namespace string, name string, id kubecontainer.ContainerID) (*network.PodNetworkStatus, error) {
+	out, err := utilexec.New().Command(plugin.getExecutable(), statusCmd, namespace, name, id.ID).CombinedOutput()
 	glog.V(5).Infof("Status 'exec' network plugin output: %s, %v", string(out), err)
 	if err != nil {
 		return nil, err

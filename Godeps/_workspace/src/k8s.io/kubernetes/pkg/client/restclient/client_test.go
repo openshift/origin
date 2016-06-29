@@ -29,7 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 )
 
@@ -42,13 +42,12 @@ func TestDoRequestSuccess(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	// TODO: Uncomment when fix #19254
-	// defer testServer.Close()
+	defer testServer.Close()
 	c, err := RESTClientFor(&Config{
 		Host: testServer.URL,
 		ContentConfig: ContentConfig{
-			GroupVersion: testapi.Default.GroupVersion(),
-			Codec:        testapi.Default.Codec(),
+			GroupVersion:         testapi.Default.GroupVersion(),
+			NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		},
 		Username: "user",
 		Password: "pass",
@@ -88,13 +87,12 @@ func TestDoRequestFailed(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	// TODO: Uncomment when fix #19254
-	// defer testServer.Close()
+	defer testServer.Close()
 	c, err := RESTClientFor(&Config{
 		Host: testServer.URL,
 		ContentConfig: ContentConfig{
-			GroupVersion: testapi.Default.GroupVersion(),
-			Codec:        testapi.Default.Codec(),
+			GroupVersion:         testapi.Default.GroupVersion(),
+			NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		},
 	})
 	if err != nil {
@@ -114,7 +112,7 @@ func TestDoRequestFailed(t *testing.T) {
 	expected.APIVersion = "v1"
 	expected.Kind = "Status"
 	if !reflect.DeepEqual(&expected, &actual) {
-		t.Errorf("Unexpected mis-match: %s", util.ObjectDiff(status, &actual))
+		t.Errorf("Unexpected mis-match: %s", diff.ObjectDiff(status, &actual))
 	}
 }
 
@@ -127,13 +125,12 @@ func TestDoRequestCreated(t *testing.T) {
 		T:            t,
 	}
 	testServer := httptest.NewServer(&fakeHandler)
-	// TODO: Uncomment when fix #19254
-	// defer testServer.Close()
+	defer testServer.Close()
 	c, err := RESTClientFor(&Config{
 		Host: testServer.URL,
 		ContentConfig: ContentConfig{
-			GroupVersion: testapi.Default.GroupVersion(),
-			Codec:        testapi.Default.Codec(),
+			GroupVersion:         testapi.Default.GroupVersion(),
+			NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		},
 		Username: "user",
 		Password: "pass",

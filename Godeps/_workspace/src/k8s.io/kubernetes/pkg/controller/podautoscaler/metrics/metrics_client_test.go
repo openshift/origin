@@ -32,7 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
-	heapster "k8s.io/heapster/api/v1/types"
+	heapster "k8s.io/heapster/metrics/api/v1/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -105,7 +105,7 @@ func (tc *testCase) prepareTestClient(t *testing.T) *fake.Clientset {
 				if latestTimestamp.Before(timestamp) {
 					latestTimestamp = timestamp
 				}
-				heapsterMetricPoint := heapster.MetricPoint{timestamp, reportedMetricPoint.level, nil}
+				heapsterMetricPoint := heapster.MetricPoint{Timestamp: timestamp, Value: reportedMetricPoint.level, FloatValue: nil}
 				heapsterMetricPoints = append(heapsterMetricPoints, heapsterMetricPoint)
 			}
 			metric := heapster.MetricResult{

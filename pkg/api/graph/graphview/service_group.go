@@ -97,6 +97,11 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		service.ReplicationControllers = append(service.ReplicationControllers, rcView)
 	}
 
+	for _, fulfillingPod := range service.FulfillingPods {
+		_, podCovers := NewPod(g, fulfillingPod)
+		covered.Insert(podCovers.List()...)
+	}
+
 	return service, covered
 }
 

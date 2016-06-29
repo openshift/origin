@@ -1,4 +1,4 @@
-#!/bin/bash
+  #!/bin/bash
 #
 # This abstracts starting up an extended server.
 
@@ -21,10 +21,8 @@ function os::test::extended::focus {
 #   and then tests are executed.  Tests that depend on fine grained setup should
 #   be done in other contexts.
 function os::test::extended::setup {
-  source "${OS_ROOT}/hack/util.sh"
-  source "${OS_ROOT}/hack/common.sh"
-  source "${OS_ROOT}/hack/lib/log.sh"
-  os::log::install_errexit
+  source "${OS_ROOT}/hack/lib/init.sh"
+  os::log::stacktrace::install
 
   # build binaries
   if [[ -z $(os::build::find-binary ginkgo) ]]; then
@@ -71,6 +69,7 @@ function os::test::extended::setup {
 
     os::util::environment::setup_all_server_vars "test-extended/core"
     os::util::environment::use_sudo
+    os::util::environment::setup_images_vars
     reset_tmp_dir
 
     # If the current system has the XFS volume dir mount point we configure
@@ -93,11 +92,18 @@ function os::test::extended::setup {
           sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
     fi
     configure_os_server
+    #turn on audit logging for extended tests ... mimic what is done in util.sh configure_os_server, but don't
+    # put change there - only want this for extended tests
+    echo "[INFO] Turn on audit logging"
+    cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml
+    openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml --patch="{\"auditConfig\": {\"enabled\": true}}"  > ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
     # Similar to above check, if the XFS volume dir mount point exists enable
     # local storage quota in node-config.yaml so these tests can pass:
     if [ -d "/mnt/openshift-xfs-vol-dir" ]; then
-      sed -i 's/perFSGroup: null/perFSGroup: 256Mi/' $NODE_CONFIG_DIR/node-config.yaml
+	# The ec2 images have have 1Gi of space defined; want to give /registry a good chunk of that
+	# to store the images created when the extended tests run
+      sed -i 's/perFSGroup: null/perFSGroup: 896Mi/' $NODE_CONFIG_DIR/node-config.yaml
     fi
     echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
 
@@ -134,7 +140,6 @@ readonly EXCLUDED_TESTS=(
   Monitoring              # Not installed, should be
   "Cluster level logging" # Not installed yet
   Kibana                  # Not installed
-  DNS                     # Can't depend on kube-dns
   Ubernetes               # Can't set zone labels today
   kube-ui                 # Not installed by default
   "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
@@ -150,6 +155,7 @@ readonly EXCLUDED_TESTS=(
   "RollingUpdateDeployment should delete old pods and create new ones"
   "RecreateDeployment should delete old pods and create new ones"
 
+  "\[Feature:PodAffinity\]" # feature is disabled
   Ingress                 # Not enabled yet
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
   "Cinder"                # requires an OpenStack cluster
@@ -177,6 +183,7 @@ readonly EXCLUDED_TESTS=(
   "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
   "\[Feature:Example\]"      # may need to pre-pull images
   "should serve a basic image on each replica with a public image" # is failing to create pods, the test is broken
+  "ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE

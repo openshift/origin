@@ -10,9 +10,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/api/v1"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
 	// install all APIs
@@ -56,7 +58,7 @@ func TestBootstrapClusterRoles(t *testing.T) {
 }
 
 func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
-	filename := filepath.Join("../../../../test/fixtures/bootstrappolicy", fixtureFilename)
+	filename := filepath.Join("../../../../test/testdata/bootstrappolicy", fixtureFilename)
 	expectedYAML, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)
@@ -86,8 +88,56 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 				t.Logf("Could not update data in %s: %v", filename, err)
 			}
 		} else {
-			t.Logf("Diff between bootstrap data and fixture data in %s:\n-------------\n%s", filename, util.StringDiff(string(yamlData), string(expectedYAML)))
+			t.Logf("Diff between bootstrap data and fixture data in %s:\n-------------\n%s", filename, diff.StringDiff(string(yamlData), string(expectedYAML)))
 			t.Logf("If the change is expected, re-run with %s=true to update the fixtures", updateEnvVar)
 		}
+	}
+}
+
+// Some roles should always cover others
+func TestCovers(t *testing.T) {
+	allRoles := bootstrappolicy.GetBootstrapClusterRoles()
+	var admin *authorizationapi.ClusterRole
+	var editor *authorizationapi.ClusterRole
+	var viewer *authorizationapi.ClusterRole
+	var registryAdmin *authorizationapi.ClusterRole
+	var registryEditor *authorizationapi.ClusterRole
+	var registryViewer *authorizationapi.ClusterRole
+
+	for i := range allRoles {
+		role := allRoles[i]
+		switch role.Name {
+		case bootstrappolicy.AdminRoleName:
+			admin = &role
+		case bootstrappolicy.EditRoleName:
+			editor = &role
+		case bootstrappolicy.ViewRoleName:
+			viewer = &role
+		case bootstrappolicy.RegistryAdminRoleName:
+			registryAdmin = &role
+		case bootstrappolicy.RegistryEditorRoleName:
+			registryEditor = &role
+		case bootstrappolicy.RegistryViewerRoleName:
+			registryViewer = &role
+		}
+	}
+
+	if covers, miss := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(admin.Rules, viewer.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(admin.Rules, registryAdmin.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryEditor.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryViewer.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
 	}
 }

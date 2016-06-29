@@ -72,6 +72,9 @@ const (
 	DeclarationOf Kind = "DeclarationOf"
 	Unknown       Kind = ""
 	Unsupported   Kind = "Unsupported"
+
+	// Protobuf is protobuf type.
+	Protobuf Kind = "Protobuf"
 )
 
 // Package holds package-level information.
@@ -85,6 +88,9 @@ type Package struct {
 	// Short name of this package; the name that appears in the
 	// 'package x' line.
 	Name string
+
+	// Comments from doc.go file.
+	DocComments []string
 
 	// Types within this package, indexed by their name (*not* including
 	// package name).
@@ -414,3 +420,12 @@ var (
 		Name:    "",
 	}
 )
+
+func IsInteger(t *Type) bool {
+	switch t {
+	case Int, Int64, Int32, Int16, Uint, Uint64, Uint32, Uint16, Byte:
+		return true
+	default:
+		return false
+	}
+}

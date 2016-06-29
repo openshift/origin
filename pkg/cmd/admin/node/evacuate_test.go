@@ -1,9 +1,10 @@
 package node
 
 import (
-	"github.com/spf13/cobra"
 	"strconv"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestEvacuateFlags(t *testing.T) {
@@ -27,7 +28,7 @@ func TestEvacuateFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCommandManageNode(nil, ManageNodeCommandName, ManageNodeCommandName, nil)
+	cmd := NewCommandManageNode(nil, ManageNodeCommandName, ManageNodeCommandName, nil, nil)
 	for _, v := range tests {
 		testFlag(cmd, v.flagName, v.defaultVal, t)
 	}

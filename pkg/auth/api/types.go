@@ -14,7 +14,9 @@ const (
 	// If present, this extra value is used as the preferred username
 	IdentityPreferredUsernameKey = "preferred_username"
 
-	ImpersonateUserHeader = "Impersonate-User"
+	ImpersonateUserHeader      = "Impersonate-User"
+	ImpersonateGroupHeader     = "Impersonate-Group"
+	ImpersonateUserScopeHeader = "Impersonate-User-Scope"
 )
 
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
@@ -39,7 +41,7 @@ type UserIdentityMapper interface {
 
 type Client interface {
 	GetId() string
-	GetSecret() string
+	ValidateSecret(secret string) bool
 	GetRedirectUri() string
 	GetUserData() interface{}
 }

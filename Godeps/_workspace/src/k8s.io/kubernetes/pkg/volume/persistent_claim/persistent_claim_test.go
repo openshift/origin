@@ -66,13 +66,13 @@ func TestCanSupport(t *testing.T) {
 	}
 }
 
-func TestNewBuilder(t *testing.T) {
+func TestNewMounter(t *testing.T) {
 	tests := []struct {
 		pv              *api.PersistentVolume
 		claim           *api.PersistentVolumeClaim
 		plugin          volume.VolumePlugin
 		podVolume       api.VolumeSource
-		testFunc        func(builder volume.Builder, plugin volume.VolumePlugin) error
+		testFunc        func(mounter volume.Mounter, plugin volume.VolumePlugin, pod *api.Pod) error
 		expectedFailure bool
 	}{
 		{
@@ -108,9 +108,9 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			plugin: gce_pd.ProbeVolumePlugins()[0],
-			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
-				if !strings.Contains(builder.GetPath(), utilstrings.EscapeQualifiedNameForDisk(plugin.Name())) {
-					return fmt.Errorf("builder path expected to contain plugin name.  Got: %s", builder.GetPath())
+			testFunc: func(mounter volume.Mounter, plugin volume.VolumePlugin, pod *api.Pod) error {
+				if !strings.Contains(mounter.GetPath(), utilstrings.EscapeQualifiedNameForDisk(plugin.Name())) {
+					return fmt.Errorf("mounter path expected to contain plugin name.  Got: %s", mounter.GetPath())
 				}
 				return nil
 			},
@@ -146,9 +146,9 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			plugin: host_path.ProbeVolumePlugins(volume.VolumeConfig{})[0],
-			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
-				if builder.GetPath() != "/somepath" {
-					return fmt.Errorf("Expected HostPath.Path /somepath, got: %s", builder.GetPath())
+			testFunc: func(mounter volume.Mounter, plugin volume.VolumePlugin, pod *api.Pod) error {
+				if mounter.GetPath() != "/somepath" {
+					return fmt.Errorf("Expected HostPath.Path /somepath, got: %s", mounter.GetPath())
 				}
 				return nil
 			},
@@ -184,9 +184,9 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			plugin: gce_pd.ProbeVolumePlugins()[0],
-			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
-				if builder != nil {
-					return fmt.Errorf("Unexpected non-nil builder: %+v", builder)
+			testFunc: func(mounter volume.Mounter, plugin volume.VolumePlugin, pod *api.Pod) error {
+				if mounter != nil {
+					return fmt.Errorf("Unexpected non-nil mounter: %+v", mounter)
 				}
 				return nil
 			},
@@ -227,13 +227,63 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			plugin: gce_pd.ProbeVolumePlugins()[0],
-			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
-				if builder != nil {
-					return fmt.Errorf("Unexpected non-nil builder: %+v", builder)
+			testFunc: func(mounter volume.Mounter, plugin volume.VolumePlugin, pod *api.Pod) error {
+				if mounter != nil {
+					return fmt.Errorf("Unexpected non-nil mounter: %+v", mounter)
 				}
 				return nil
 			},
 			expectedFailure: true, // mismatched pv.Spec.ClaimRef and pvc
+		},
+		{ // Test GID annotation
+			pv: &api.PersistentVolume{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pv",
+					Annotations: map[string]string{
+						volumeGidAnnotationKey: "12345",
+					},
+				},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},
+					},
+					ClaimRef: &api.ObjectReference{
+						Name: "claim",
+						UID:  types.UID("abc123"),
+					},
+				},
+			},
+			claim: &api.PersistentVolumeClaim{
+				ObjectMeta: api.ObjectMeta{
+					Name: "claim",
+					UID:  types.UID("abc123"),
+				},
+				Spec: api.PersistentVolumeClaimSpec{
+					VolumeName: "pv",
+				},
+				Status: api.PersistentVolumeClaimStatus{
+					Phase: api.ClaimBound,
+				},
+			},
+			podVolume: api.VolumeSource{
+				PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
+					ReadOnly:  false,
+					ClaimName: "claim",
+				},
+			},
+			plugin: gce_pd.ProbeVolumePlugins()[0],
+			testFunc: func(mounter volume.Mounter, plugin volume.VolumePlugin, pod *api.Pod) error {
+				if pod.Spec.SecurityContext == nil {
+					return fmt.Errorf("Pod SecurityContext was not set")
+				}
+
+				if pod.Spec.SecurityContext.SupplementalGroups[0] != 12345 {
+					return fmt.Errorf("Pod's SupplementalGroups list does not contain expect group")
+				}
+
+				return nil
+			},
+			expectedFailure: false,
 		},
 	}
 
@@ -251,24 +301,24 @@ func TestNewBuilder(t *testing.T) {
 		}
 		spec := &volume.Spec{Volume: &api.Volume{VolumeSource: item.podVolume}}
 		pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
-		builder, err := plug.NewBuilder(spec, pod, volume.VolumeOptions{})
+		mounter, err := plug.NewMounter(spec, pod, volume.VolumeOptions{})
 
 		if !item.expectedFailure {
 			if err != nil {
-				t.Errorf("Failed to make a new Builder: %v", err)
+				t.Errorf("Failed to make a new Mounter: %v", err)
 			}
-			if builder == nil {
-				t.Errorf("Got a nil Builder: %v", builder)
+			if mounter == nil {
+				t.Errorf("Got a nil Mounter: %v", mounter)
 			}
 		}
 
-		if err := item.testFunc(builder, item.plugin); err != nil {
+		if err := item.testFunc(mounter, item.plugin, pod); err != nil {
 			t.Errorf("Unexpected error %+v", err)
 		}
 	}
 }
 
-func TestNewBuilderClaimNotBound(t *testing.T) {
+func TestNewMounterClaimNotBound(t *testing.T) {
 	pv := &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
 			Name: "pvC",
@@ -304,9 +354,9 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 	}
 	spec := &volume.Spec{Volume: &api.Volume{VolumeSource: podVolume}}
 	pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
-	builder, err := plug.NewBuilder(spec, pod, volume.VolumeOptions{})
-	if builder != nil {
-		t.Errorf("Expected a nil builder if the claim wasn't bound")
+	mounter, err := plug.NewMounter(spec, pod, volume.VolumeOptions{})
+	if mounter != nil {
+		t.Errorf("Expected a nil mounter if the claim wasn't bound")
 	}
 }
 

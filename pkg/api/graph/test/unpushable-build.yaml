@@ -36,6 +36,41 @@ items:
   status:
     lastVersion: 0
 - apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: ruby
+    name: ruby-hello-world-2
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ruby-hello-world:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-22-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: LyddbeCAaw1a0x08xz9n
+      type: GitHub
+    - generic:
+        secret: ZnYJJeEvo1ri0Gk0f6YY
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
   kind: Build
   metadata:
     creationTimestamp: null

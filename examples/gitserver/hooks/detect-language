@@ -20,13 +20,13 @@ function key {
 
 prefix=${PREFIX:-openshift/}
 
-if has Gemfile; then
+if has Gemfile Rakefile config.ru; then
   echo "${prefix}ruby"
   exit 0
 fi
 
-if has requirements.txt; then
-  echo "${prefix}python"
+if has pom.xml; then
+  echo "${prefix}wildfly"
   exit 0
 fi
 
@@ -35,13 +35,18 @@ if has package.json app.json; then
   exit 0
 fi
 
-if has '*.go'; then
-  echo "${prefix}golang"
+if has index.php composer.json; then
+  echo "${prefix}php"
   exit 0
 fi
 
-if has index.php; then
-  echo "${prefix}php"
+if has requirements.txt setup.py; then
+  echo "${prefix}python"
+  exit 0
+fi
+
+if has index.pl cpanfile; then
+  echo "${prefix}perl"
   exit 0
 fi
 

@@ -217,7 +217,6 @@ func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func startProxy(dir string, sourceURL *url.URL, username, password string) (*url.URL, error) {
-
 	// Setup the targetURL of the proxy to be the host of the original URL
 	targetURL := &url.URL{
 		Scheme: sourceURL.Scheme,

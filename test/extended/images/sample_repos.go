@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/kubernetes/test/e2e"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -13,13 +11,14 @@ import (
 )
 
 type SampleRepoConfig struct {
-	repoName             string
-	templateURL          string
-	buildConfigName      string
-	serviceName          string
-	deploymentConfigName string
-	expectedString       string
-	appPath              string
+	repoName               string
+	templateURL            string
+	buildConfigName        string
+	serviceName            string
+	deploymentConfigName   string
+	expectedString         string
+	appPath                string
+	dbDeploymentConfigName string
 }
 
 // NewSampleRepoTest creates a function for a new ginkgo test case that will instantiate a template
@@ -40,9 +39,18 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 			g.It(fmt.Sprintf("should build a "+c.repoName+" image and run it in a pod"), func() {
 				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
+				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app with the " + c.repoName + " example template"))
 				err := oc.Run("new-app").Args("-f", c.templateURL).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// sometimes the deployment controller takes a while to start the DB deployment which
+				// results in the app coming up before the DB is available, which makes the app tests fail
+				// because they require the DB is available when the app started, not when the http request
+				// is made (they init the DB when they start, not on each request).  So here we force
+				// an immediate deployment of the DB.  It may error because there is already a deployment
+				// in progress, so do not check for an error.
+				oc.Run("deploy").Args(c.dbDeploymentConfigName, "--latest").Execute()
 
 				// all the templates automatically start a build.
 				buildName := c.buildConfigName + "-1"
@@ -50,13 +58,19 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				g.By("expecting the build is in the Complete phase")
 				err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 				if err != nil {
-					logs, _ := oc.Run("build-logs").Args(buildName).Output()
-					e2e.Failf("build failed: %s", logs)
+					exutil.DumpBuildLogs(c.buildConfigName, oc)
 				}
-
-				g.By("expecting the deployment to be complete")
-				err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName)
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("expecting the app deployment to be complete")
+				err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				if len(c.dbDeploymentConfigName) > 0 {
+					g.By("expecting the db deployment to be complete")
+					err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.dbDeploymentConfigName, oc)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
 
 				g.By("expecting the service is available")
 				serviceIP, err := oc.Run("get").Args("service", c.serviceName).Template("{{ .spec.clusterIP }}").Output()
@@ -67,6 +81,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				err = oc.KubeFramework().WaitForAnEndpoint(c.serviceName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				g.By("verifying string from app request")
 				response, err := exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(30*time.Second))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(response).Should(o.ContainSubstring(c.expectedString))
@@ -86,6 +101,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"rails-postgresql-example",
 			"Listing articles",
 			"/articles",
+			"postgresql",
 		},
 	))
 
@@ -98,6 +114,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"django-psql-example",
 			"Page views: 1",
 			"",
+			"postgresql",
 		},
 	))
 
@@ -110,6 +127,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"nodejs-mongodb-example",
 			"<span class=\"code\" id=\"count-value\">1</span>",
 			"",
+			"mongodb",
 		},
 	))
 
@@ -122,6 +140,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"cakephp-mysql-example",
 			"<span class=\"code\" id=\"count-value\">1</span>",
 			"",
+			"mysql",
 		},
 	))
 
@@ -134,6 +153,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"dancer-mysql-example",
 			"<span class=\"code\" id=\"count-value\">1</span>",
 			"",
+			"database",
 		},
 	))
 
@@ -147,6 +167,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"django-example",
 			"Welcome",
 			"",
+			"",
 		},
 	))
 
@@ -158,6 +179,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"nodejs-example",
 			"nodejs-example",
 			"Welcome",
+			"",
 			"",
 		},
 	))
@@ -171,6 +193,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"cakephp-example",
 			"Welcome",
 			"",
+			"",
 		},
 	))
 
@@ -182,6 +205,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"dancer-example",
 			"dancer-example",
 			"Welcome",
+			"",
 			"",
 		},
 	))

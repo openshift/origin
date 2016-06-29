@@ -151,12 +151,14 @@ func (t *testPrinter) HandledResources() []string {
 
 type testDescriber struct {
 	Name, Namespace string
+	Settings        kubectl.DescriberSettings
 	Output          string
 	Err             error
 }
 
-func (t *testDescriber) Describe(namespace, name string) (output string, err error) {
+func (t *testDescriber) Describe(namespace, name string, describerSettings kubectl.DescriberSettings) (output string, err error) {
 	t.Namespace, t.Name = namespace, name
+	t.Settings = describerSettings
 	return t.Output, t.Err
 }
 
@@ -180,7 +182,7 @@ func NewTestFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 		Typer:     scheme,
 	}
 	return &cmdutil.Factory{
-		Object: func() (meta.RESTMapper, runtime.ObjectTyper) {
+		Object: func(discovery bool) (meta.RESTMapper, runtime.ObjectTyper) {
 			priorityRESTMapper := meta.PriorityRESTMapper{
 				Delegate: t.Mapper,
 				ResourcePriority: []unversioned.GroupVersionResource{
@@ -221,9 +223,12 @@ func NewTestFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 
 func NewMixedFactory(apiClient resource.RESTClient) (*cmdutil.Factory, *testFactory, runtime.Codec) {
 	f, t, c := NewTestFactory()
-	f.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
+	var multiRESTMapper meta.MultiRESTMapper
+	multiRESTMapper = append(multiRESTMapper, t.Mapper)
+	multiRESTMapper = append(multiRESTMapper, testapi.Default.RESTMapper())
+	f.Object = func(discovery bool) (meta.RESTMapper, runtime.ObjectTyper) {
 		priorityRESTMapper := meta.PriorityRESTMapper{
-			Delegate: meta.MultiRESTMapper{t.Mapper, testapi.Default.RESTMapper()},
+			Delegate: multiRESTMapper,
 			ResourcePriority: []unversioned.GroupVersionResource{
 				{Group: meta.AnyGroup, Version: "v1", Resource: meta.AnyResource},
 			},
@@ -248,7 +253,7 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 	}
 
 	f := &cmdutil.Factory{
-		Object: func() (meta.RESTMapper, runtime.ObjectTyper) {
+		Object: func(discovery bool) (meta.RESTMapper, runtime.ObjectTyper) {
 			return testapi.Default.RESTMapper(), api.Scheme
 		},
 		Client: func() (*client.Client, error) {
@@ -308,11 +313,11 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 		},
 	}
 	rf := cmdutil.NewFactory(nil)
-	f.PodSelectorForObject = rf.PodSelectorForObject
 	f.MapBasedSelectorForObject = rf.MapBasedSelectorForObject
 	f.PortsForObject = rf.PortsForObject
 	f.LabelsForObject = rf.LabelsForObject
 	f.CanBeExposed = rf.CanBeExposed
+	f.PrintObjectSpecificMessage = rf.PrintObjectSpecificMessage
 	return f, t, testapi.Default.Codec()
 }
 
@@ -344,7 +349,7 @@ func stringBody(body string) io.ReadCloser {
 //	}
 //}
 
-func ExamplePrintReplicationControllerWithNamespace() {
+func Example_printReplicationControllerWithNamespace() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, true, false, false, false, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -380,7 +385,8 @@ func ExamplePrintReplicationControllerWithNamespace() {
 			Replicas: 1,
 		},
 	}
-	err := f.PrintObject(cmd, ctrl, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, ctrl, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -389,7 +395,7 @@ func ExamplePrintReplicationControllerWithNamespace() {
 	// beep        foo       1         1         10y
 }
 
-func ExamplePrintMultiContainersReplicationControllerWithWide() {
+func Example_printMultiContainersReplicationControllerWithWide() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, false, true, false, false, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -428,7 +434,8 @@ func ExamplePrintMultiContainersReplicationControllerWithWide() {
 			Replicas: 1,
 		},
 	}
-	err := f.PrintObject(cmd, ctrl, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, ctrl, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -437,7 +444,7 @@ func ExamplePrintMultiContainersReplicationControllerWithWide() {
 	// foo       1         1         10y       foo,foo2       someimage,someimage2   foo=bar
 }
 
-func ExamplePrintReplicationController() {
+func Example_printReplicationController() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, false, false, false, false, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -476,7 +483,8 @@ func ExamplePrintReplicationController() {
 			Replicas: 1,
 		},
 	}
-	err := f.PrintObject(cmd, ctrl, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, ctrl, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -485,7 +493,7 @@ func ExamplePrintReplicationController() {
 	// foo       1         1         10y
 }
 
-func ExamplePrintPodWithWideFormat() {
+func Example_printPodWithWideFormat() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, false, true, false, false, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -511,7 +519,8 @@ func ExamplePrintPodWithWideFormat() {
 			},
 		},
 	}
-	err := f.PrintObject(cmd, pod, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, pod, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -520,7 +529,7 @@ func ExamplePrintPodWithWideFormat() {
 	// test1     1/2       podPhase   6          10y       kubernetes-minion-abcd
 }
 
-func ExamplePrintPodWithShowLabels() {
+func Example_printPodWithShowLabels() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, false, false, false, true, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -550,7 +559,8 @@ func ExamplePrintPodWithShowLabels() {
 			},
 		},
 	}
-	err := f.PrintObject(cmd, pod, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, pod, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -566,7 +576,7 @@ func newAllPhasePodList() *api.PodList {
 			{
 				ObjectMeta: api.ObjectMeta{
 					Name:              "test1",
-					CreationTimestamp: unversioned.Time{time.Now().AddDate(-10, 0, 0)},
+					CreationTimestamp: unversioned.Time{Time: time.Now().AddDate(-10, 0, 0)},
 				},
 				Spec: api.PodSpec{
 					Containers: make([]api.Container, 2),
@@ -583,7 +593,7 @@ func newAllPhasePodList() *api.PodList {
 			{
 				ObjectMeta: api.ObjectMeta{
 					Name:              "test2",
-					CreationTimestamp: unversioned.Time{time.Now().AddDate(-10, 0, 0)},
+					CreationTimestamp: unversioned.Time{Time: time.Now().AddDate(-10, 0, 0)},
 				},
 				Spec: api.PodSpec{
 					Containers: make([]api.Container, 2),
@@ -600,7 +610,7 @@ func newAllPhasePodList() *api.PodList {
 			{
 				ObjectMeta: api.ObjectMeta{
 					Name:              "test3",
-					CreationTimestamp: unversioned.Time{time.Now().AddDate(-10, 0, 0)},
+					CreationTimestamp: unversioned.Time{Time: time.Now().AddDate(-10, 0, 0)},
 				},
 				Spec: api.PodSpec{
 					Containers: make([]api.Container, 2),
@@ -617,7 +627,7 @@ func newAllPhasePodList() *api.PodList {
 			{
 				ObjectMeta: api.ObjectMeta{
 					Name:              "test4",
-					CreationTimestamp: unversioned.Time{time.Now().AddDate(-10, 0, 0)},
+					CreationTimestamp: unversioned.Time{Time: time.Now().AddDate(-10, 0, 0)},
 				},
 				Spec: api.PodSpec{
 					Containers: make([]api.Container, 2),
@@ -634,7 +644,7 @@ func newAllPhasePodList() *api.PodList {
 			{
 				ObjectMeta: api.ObjectMeta{
 					Name:              "test5",
-					CreationTimestamp: unversioned.Time{time.Now().AddDate(-10, 0, 0)},
+					CreationTimestamp: unversioned.Time{Time: time.Now().AddDate(-10, 0, 0)},
 				},
 				Spec: api.PodSpec{
 					Containers: make([]api.Container, 2),
@@ -651,7 +661,7 @@ func newAllPhasePodList() *api.PodList {
 	}
 }
 
-func ExamplePrintPodHideTerminated() {
+func Example_printPodHideTerminated() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, false, false, false, false, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -660,7 +670,8 @@ func ExamplePrintPodHideTerminated() {
 	}
 	cmd := NewCmdRun(f, os.Stdin, os.Stdout, os.Stderr)
 	podList := newAllPhasePodList()
-	err := f.PrintObject(cmd, podList, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, podList, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -671,7 +682,7 @@ func ExamplePrintPodHideTerminated() {
 	// test5     1/2       Unknown   6          10y
 }
 
-func ExamplePrintPodShowAll() {
+func Example_printPodShowAll() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, false, false, true, false, false, []string{})
 	tf.Client = &fake.RESTClient{
@@ -680,7 +691,8 @@ func ExamplePrintPodShowAll() {
 	}
 	cmd := NewCmdRun(f, os.Stdin, os.Stdout, os.Stderr)
 	podList := newAllPhasePodList()
-	err := f.PrintObject(cmd, podList, os.Stdout)
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, podList, os.Stdout)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
@@ -693,7 +705,7 @@ func ExamplePrintPodShowAll() {
 	// test5     1/2       Unknown     6          10y
 }
 
-func ExamplePrintServiceWithNamespacesAndLabels() {
+func Example_printServiceWithNamespacesAndLabels() {
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = kubectl.NewHumanReadablePrinter(false, true, false, false, false, false, []string{"l1"})
 	tf.Client = &fake.RESTClient{
@@ -748,14 +760,16 @@ func ExamplePrintServiceWithNamespacesAndLabels() {
 	}
 	ld := util.NewLineDelimiter(os.Stdout, "|")
 	defer ld.Flush()
-	err := f.PrintObject(cmd, svc, ld)
+
+	mapper, _ := f.Object(false)
+	err := f.PrintObject(cmd, mapper, svc, ld)
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
 	// Output:
 	// |NAMESPACE   NAME      CLUSTER-IP   EXTERNAL-IP   PORT(S)           AGE       L1|
-	// |ns1         svc1      10.1.1.1     unknown       53/UDP,53/TCP     10y       value|
-	// |ns2         svc2      10.1.1.2     unknown       80/TCP,8080/TCP   10y       dolla-bill-yall|
+	// |ns1         svc1      10.1.1.1     <unknown>     53/UDP,53/TCP     10y       value|
+	// |ns2         svc2      10.1.1.2     <unknown>     80/TCP,8080/TCP   10y       dolla-bill-yall|
 	// ||
 }
 

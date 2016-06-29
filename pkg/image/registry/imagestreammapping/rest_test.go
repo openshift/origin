@@ -23,6 +23,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/admission/testutil"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
@@ -33,7 +34,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
 
 type fakeSubjectAccessReviewRegistry struct {
 }
@@ -53,7 +54,7 @@ func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), testDefaultRegistry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +62,7 @@ func setup(t *testing.T) (etcd.KeysAPI, *etcdtesting.EtcdTestServer, *REST) {
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
-	storage := NewREST(imageRegistry, imageStreamRegistry)
+	storage := NewREST(imageRegistry, imageStreamRegistry, testDefaultRegistry)
 
 	return etcdClient, server, storage
 }
@@ -454,6 +455,7 @@ func TestTrackingTags(t *testing.T) {
 // using failing registry update calls will return an error.
 func TestCreateRetryUnrecoverable(t *testing.T) {
 	rest := &REST{
+		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx kapi.Context, image *api.Image) error {
 				return nil
@@ -487,6 +489,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 	firstUpdate := true
 	rest := &REST{
+		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx kapi.Context, image *api.Image) error {
 				return nil
@@ -529,6 +532,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 	firstGet := true
 	firstUpdate := true
 	rest := &REST{
+		strategy: NewStrategy(testDefaultRegistry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx kapi.Context, image *api.Image) error {
 				return nil

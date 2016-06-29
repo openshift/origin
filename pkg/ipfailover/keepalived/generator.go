@@ -35,7 +35,7 @@ func getClientConfig(path string) (*restclient.Config, error) {
 		return nil, fmt.Errorf("Credentials %q error: %v", path, err)
 	}
 
-	if err := restclient.LoadTLSFiles(config); err != nil {
+	if err = restclient.LoadTLSFiles(config); err != nil {
 		return nil, fmt.Errorf("Unable to load certificate info using credentials from %q: %v", path, err)
 	}
 
@@ -45,7 +45,7 @@ func getClientConfig(path string) (*restclient.Config, error) {
 //  Generate the IP failover monitor (keepalived) container environment entries.
 func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions, kconfig *restclient.Config) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
-	replicas := strconv.Itoa(options.Replicas)
+	replicas := strconv.FormatInt(int64(options.Replicas), 10)
 	insecureStr := strconv.FormatBool(kconfig.Insecure)
 	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
 
@@ -77,8 +77,8 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 	//  Container port to expose the service interconnects between keepaliveds.
 	ports := make([]kapi.ContainerPort, 1)
 	ports[0] = kapi.ContainerPort{
-		ContainerPort: options.ServicePort,
-		HostPort:      options.ServicePort,
+		ContainerPort: int32(options.ServicePort),
+		HostPort:      int32(options.ServicePort),
 	}
 
 	mounts := make([]kapi.VolumeMount, 1)
@@ -86,6 +86,16 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		Name:      libModulesVolumeName,
 		ReadOnly:  true,
 		MountPath: libModulesPath,
+	}
+
+	livenessProbe := &kapi.Probe{
+		InitialDelaySeconds: 10,
+
+		Handler: kapi.Handler{
+			Exec: &kapi.ExecAction{
+				Command: []string{"pgrep", "keepalived"},
+			},
+		},
 	}
 
 	privileged := true
@@ -99,6 +109,7 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		ImagePullPolicy: kapi.PullIfNotPresent,
 		VolumeMounts:    mounts,
 		Env:             env.List(),
+		LivenessProbe:   livenessProbe,
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 	newer "github.com/openshift/origin/pkg/template/api"
 )
 
-func convert_api_Template_To_v1_Template(in *newer.Template, out *Template, s conversion.Scope) error {
+func Convert_api_Template_To_v1_Template(in *newer.Template, out *Template, s conversion.Scope) error {
 	//FIXME: DefaultConvert should not overwrite the Labels field on the
 	//       the base object. This is likely a bug in the DefaultConvert
 	//       code. For now, it is called before converting the labels.
@@ -28,13 +28,13 @@ func convert_api_Template_To_v1_Template(in *newer.Template, out *Template, s co
 			if err != nil {
 				return err
 			}
-			out.Objects[i] = runtime.RawExtension{RawJSON: bytes}
+			out.Objects[i] = runtime.RawExtension{Raw: bytes}
 		}
 	}
 	return nil
 }
 
-func convert_v1_Template_To_api_Template(in *Template, out *newer.Template, s conversion.Scope) error {
+func Convert_v1_Template_To_api_Template(in *Template, out *newer.Template, s conversion.Scope) error {
 	if err := s.Convert(&in.Labels, &out.ObjectLabels, 0); err != nil {
 		return err
 	}
@@ -43,8 +43,8 @@ func convert_v1_Template_To_api_Template(in *Template, out *newer.Template, s co
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
-		convert_api_Template_To_v1_Template,
-		convert_v1_Template_To_api_Template,
+		Convert_api_Template_To_v1_Template,
+		Convert_v1_Template_To_api_Template,
 	)
 	if err != nil {
 		panic(err)

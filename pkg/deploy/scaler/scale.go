@@ -69,7 +69,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 		fmt.Fprintln(os.Stderr, "Replica size for a test deployment applies only when the deployment is running.")
 	}
 	scale := deployapi.ScaleFromConfig(dc)
-	scale.Spec.Replicas = int(newSize)
+	scale.Spec.Replicas = int32(newSize)
 	if _, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale); err != nil {
 		return kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: dc.ResourceVersion, ActualError: err}
 	}
@@ -84,7 +84,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 // unversioned.ControllerHasDesiredReplicas. This  is necessary because when
 // scaling an RC via a DC, the RC spec replica count is not immediately
 // updated to match the owning DC.
-func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.ReplicationController, specifiedReplicas int) wait.ConditionFunc {
+func controllerHasSpecifiedReplicas(c kclient.Interface, controller *kapi.ReplicationController, specifiedReplicas int32) wait.ConditionFunc {
 	// If we're given a controller where the status lags the spec, it either means that the controller is stale,
 	// or that the rc manager hasn't noticed the update yet. Polling status.Replicas is not safe in the latter case.
 	desiredGeneration := controller.Generation

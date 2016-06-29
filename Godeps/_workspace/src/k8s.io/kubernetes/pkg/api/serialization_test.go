@@ -17,12 +17,17 @@ limitations under the License.
 package api_test
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"math/rand"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	proto "github.com/golang/protobuf/proto"
 	flag "github.com/spf13/pflag"
 	"github.com/ugorji/go/codec"
 
@@ -33,8 +38,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/runtime/serializer/streaming"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 var fuzzIters = flag.Int("fuzz-iters", 20, "How many fuzzing iterations to do.")
@@ -58,9 +66,16 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 	return item
 }
 
-func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
-	//t.Logf("codec: %#v", codec)
+func dataAsString(data []byte) string {
+	dataString := string(data)
+	if !strings.HasPrefix(dataString, "{") {
+		dataString = "\n" + hex.Dump(data)
+		proto.NewBuffer(make([]byte, 0, 1024)).DebugPrint("decoded object", data)
+	}
+	return dataString
+}
 
+func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 	printer := spew.ConfigState{DisableMethods: true}
 
 	name := reflect.TypeOf(item).Elem().Name()
@@ -72,11 +87,11 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 
 	obj2, err := runtime.Decode(codec, data)
 	if err != nil {
-		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), printer.Sprintf("%#v", item))
-		return
+		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, dataAsString(data), printer.Sprintf("%#v", item))
+		panic("failed")
 	}
 	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("\n1: %v: diff: %v\nCodec: %v\nSource:\n\n%#v\n\nEncoded:\n\n%s\n\nFinal:\n\n%#v", name, util.ObjectGoPrintDiff(item, obj2), codec, printer.Sprintf("%#v", item), string(data), printer.Sprintf("%#v", obj2))
+		t.Errorf("\n1: %v: diff: %v\nCodec: %v\nSource:\n\n%#v\n\nEncoded:\n\n%s\n\nFinal:\n\n%#v", name, diff.ObjectGoPrintDiff(item, obj2), codec, printer.Sprintf("%#v", item), dataAsString(data), printer.Sprintf("%#v", obj2))
 		return
 	}
 
@@ -86,7 +101,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		return
 	}
 	if !api.Semantic.DeepEqual(item, obj3) {
-		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(item, obj3), codec)
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectDiff(item, obj3), codec)
 		return
 	}
 }
@@ -118,9 +133,6 @@ func roundTripSame(t *testing.T, group testapi.TestGroup, item runtime.Object, e
 
 // For debugging problems
 func TestSpecificKind(t *testing.T) {
-	// api.Scheme.Log(t)
-	// defer api.Scheme.Log(nil)
-
 	kind := "DaemonSet"
 	for i := 0; i < *fuzzIters; i++ {
 		doRoundTripTest(testapi.Groups["extensions"], kind, t)
@@ -131,9 +143,6 @@ func TestSpecificKind(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	// api.Scheme.Log(t)
-	// defer api.Scheme.Log(nil)
-
 	kind := "List"
 	item, err := api.Scheme.New(api.SchemeGroupVersion.WithKind(kind))
 	if err != nil {
@@ -143,15 +152,19 @@ func TestList(t *testing.T) {
 	roundTripSame(t, testapi.Default, item)
 }
 
-var nonRoundTrippableTypes = sets.NewString("ExportOptions")
+var nonRoundTrippableTypes = sets.NewString(
+	"ExportOptions",
+	// WatchEvent does not include kind and version and can only be deserialized
+	// implicitly (if the caller expects the specific object). The watch call defines
+	// the schema by content type, rather than via kind/version included in each
+	// object.
+	"WatchEvent",
+)
 
 var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "ExportOptions")
 var nonRoundTrippableTypesByVersion = map[string][]string{}
 
 func TestRoundTripTypes(t *testing.T) {
-	// api.Scheme.Log(t)
-	// defer api.Scheme.Log(nil)
-
 	for groupKey, group := range testapi.Groups {
 		for kind := range group.InternalTypes() {
 			t.Logf("working on %v in %v", kind, groupKey)
@@ -210,7 +223,7 @@ func TestEncode_Ptr(t *testing.T) {
 		t.Fatalf("Got wrong type")
 	}
 	if !api.Semantic.DeepEqual(obj2, pod) {
-		t.Errorf("\nExpected:\n\n %#v,\n\nGot:\n\n %#vDiff: %v\n\n", pod, obj2, util.ObjectDiff(obj2, pod))
+		t.Errorf("\nExpected:\n\n %#v,\n\nGot:\n\n %#vDiff: %v\n\n", pod, obj2, diff.ObjectDiff(obj2, pod))
 
 	}
 }
@@ -261,13 +274,95 @@ func TestUnversionedTypes(t *testing.T) {
 	}
 }
 
+func TestObjectWatchFraming(t *testing.T) {
+	f := apitesting.FuzzerFor(nil, api.SchemeGroupVersion, rand.NewSource(benchmarkSeed))
+	secret := &api.Secret{}
+	f.Fuzz(secret)
+	secret.Data["binary"] = []byte{0x00, 0x10, 0x30, 0x55, 0xff, 0x00}
+	secret.Data["utf8"] = []byte("a string with \u0345 characters")
+	secret.Data["long"] = bytes.Repeat([]byte{0x01, 0x02, 0x03, 0x00}, 1000)
+	converted, _ := api.Scheme.ConvertToVersion(secret, "v1")
+	v1secret := converted.(*v1.Secret)
+	for _, streamingMediaType := range api.Codecs.SupportedStreamingMediaTypes() {
+		s, _ := api.Codecs.StreamingSerializerForMediaType(streamingMediaType, nil)
+		framer := s.Framer
+		embedded := s.Embedded.Serializer
+		if embedded == nil {
+			t.Errorf("no embedded serializer for %s", streamingMediaType)
+			continue
+		}
+		innerDecode := api.Codecs.DecoderToVersion(embedded, api.SchemeGroupVersion)
+
+		// write a single object through the framer and back out
+		obj := &bytes.Buffer{}
+		if err := s.EncodeToStream(v1secret, obj); err != nil {
+			t.Fatal(err)
+		}
+		out := &bytes.Buffer{}
+		w := framer.NewFrameWriter(out)
+		if n, err := w.Write(obj.Bytes()); err != nil || n != len(obj.Bytes()) {
+			t.Fatal(err)
+		}
+		sr := streaming.NewDecoder(framer.NewFrameReader(ioutil.NopCloser(out)), s)
+		resultSecret := &v1.Secret{}
+		res, _, err := sr.Decode(nil, resultSecret)
+		if err != nil {
+			t.Fatalf("%v:\n%s", err, hex.Dump(obj.Bytes()))
+		}
+		resultSecret.Kind = "Secret"
+		resultSecret.APIVersion = "v1"
+		if !api.Semantic.DeepEqual(v1secret, res) {
+			t.Fatalf("objects did not match: %s", diff.ObjectGoPrintDiff(v1secret, res))
+		}
+
+		// write a watch event through and back out
+		obj = &bytes.Buffer{}
+		if err := embedded.EncodeToStream(v1secret, obj); err != nil {
+			t.Fatal(err)
+		}
+		event := &versioned.Event{Type: string(watch.Added)}
+		event.Object.Raw = obj.Bytes()
+		obj = &bytes.Buffer{}
+		if err := s.EncodeToStream(event, obj); err != nil {
+			t.Fatal(err)
+		}
+		out = &bytes.Buffer{}
+		w = framer.NewFrameWriter(out)
+		if n, err := w.Write(obj.Bytes()); err != nil || n != len(obj.Bytes()) {
+			t.Fatal(err)
+		}
+		sr = streaming.NewDecoder(framer.NewFrameReader(ioutil.NopCloser(out)), s)
+		outEvent := &versioned.Event{}
+		res, _, err = sr.Decode(nil, outEvent)
+		if err != nil || outEvent.Type != string(watch.Added) {
+			t.Fatalf("%v: %#v", err, outEvent)
+		}
+		if outEvent.Object.Object == nil && outEvent.Object.Raw != nil {
+			outEvent.Object.Object, err = runtime.Decode(innerDecode, outEvent.Object.Raw)
+			if err != nil {
+				t.Fatalf("%v:\n%s", err, hex.Dump(outEvent.Object.Raw))
+			}
+		}
+
+		if !api.Semantic.DeepEqual(secret, outEvent.Object.Object) {
+			t.Fatalf("%s: did not match after frame decoding: %s", streamingMediaType, diff.ObjectGoPrintDiff(secret, outEvent.Object.Object))
+		}
+	}
+}
+
 const benchmarkSeed = 100
 
 func benchmarkItems() []v1.Pod {
 	apiObjectFuzzer := apitesting.FuzzerFor(nil, api.SchemeGroupVersion, rand.NewSource(benchmarkSeed))
 	items := make([]v1.Pod, 2)
 	for i := range items {
-		apiObjectFuzzer.Fuzz(&items[i])
+		var pod api.Pod
+		apiObjectFuzzer.Fuzz(&pod)
+		out, err := api.Scheme.ConvertToVersion(&pod, "v1")
+		if err != nil {
+			panic(err)
+		}
+		items[i] = *out.(*v1.Pod)
 	}
 	return items
 }
@@ -280,6 +375,26 @@ func BenchmarkEncodeCodec(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if _, err := runtime.Encode(testapi.Default.Codec(), &items[i%width]); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.StopTimer()
+}
+
+// BenchmarkEncodeCodecFromInternal measures the cost of performing a codec encode,
+// including conversions.
+func BenchmarkEncodeCodecFromInternal(b *testing.B) {
+	items := benchmarkItems()
+	width := len(items)
+	encodable := make([]api.Pod, width)
+	for i := range items {
+		if err := api.Scheme.Convert(&items[i], &encodable[i]); err != nil {
+			b.Fatal(err)
+		}
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := runtime.Encode(testapi.Default.Codec(), &encodable[i%width]); err != nil {
 			b.Fatal(err)
 		}
 	}

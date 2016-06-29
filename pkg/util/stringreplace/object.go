@@ -43,9 +43,12 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 
 	case reflect.Map:
 		vt := v.Type().Elem()
-		for _, k := range v.MapKeys() {
-			val := visitUnsettableValues(vt, v.MapIndex(k), visitor)
-			v.SetMapIndex(k, val)
+		for _, oldKey := range v.MapKeys() {
+			newKey := visitUnsettableValues(oldKey.Type(), oldKey, visitor)
+			oldValue := v.MapIndex(oldKey)
+			newValue := visitUnsettableValues(vt, oldValue, visitor)
+			v.SetMapIndex(oldKey, reflect.Value{})
+			v.SetMapIndex(newKey, newValue)
 		}
 
 	case reflect.String:

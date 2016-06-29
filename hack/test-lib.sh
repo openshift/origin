@@ -25,10 +25,8 @@ trap exit_trap EXIT
 
 start_time=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 os::util::environment::setup_tmpdir_vars "test-lib"
 
 cd "${OS_ROOT}"

@@ -14,5 +14,5 @@ type OsdnPlugin interface {
 
 type FilteringEndpointsConfigHandler interface {
 	pconfig.EndpointsConfigHandler
-	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
+	Start(baseHandler pconfig.EndpointsConfigHandler) error
 }

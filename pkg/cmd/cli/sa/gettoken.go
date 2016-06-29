@@ -35,7 +35,7 @@ itself were making the actions.
 	getServiceAccountTokenUsage = `%s SA-NAME`
 
 	getServiceAccountTokenExamples = `  # Get the service account token from service account 'default'
-  $ %[1]s 'default'
+  %[1]s 'default'
 `
 )
 

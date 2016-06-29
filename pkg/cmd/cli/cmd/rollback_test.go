@@ -13,15 +13,15 @@ import (
 
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 	type existingDeployment struct {
-		version int
+		version int64
 		status  deployapi.DeploymentStatus
 	}
 	tests := []struct {
 		name            string
-		configVersion   int
-		desiredVersion  int
+		configVersion   int64
+		desiredVersion  int64
 		existing        []existingDeployment
-		expectedVersion int
+		expectedVersion int64
 		errorExpected   bool
 	}{
 		{

@@ -25,7 +25,7 @@ type testDataParser struct {
 	testResultPattern *regexp.Regexp
 }
 
-// MarksBeginning determines if the line marks the begining of a test case
+// MarksBeginning determines if the line marks the beginning of a test case
 func (p *testDataParser) MarksBeginning(line string) bool {
 	return p.testStartPattern.MatchString(line)
 }

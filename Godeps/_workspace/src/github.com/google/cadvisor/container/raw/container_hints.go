@@ -20,12 +20,11 @@ package raw
 
 import (
 	"encoding/json"
-	"flag"
 	"io/ioutil"
 	"os"
 )
 
-var argContainerHints = flag.String("container_hints", "/etc/cadvisor/container_hints.json", "location of the container hints file")
+// var argContainerHints = flag.String("container_hints", "/etc/cadvisor/container_hints.json", "location of the container hints file")
 
 type containerHints struct {
 	AllHosts []containerHint `json:"all_hosts,omitempty"`

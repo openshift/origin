@@ -491,7 +491,7 @@ func (repo *v2repository) getTags(c *connection) (map[string]string, error) {
 				return repo.getTags(c)
 			}
 			delete(c.cached, repo.name)
-			// docker will not return a NotFound on any repository URL - for backwards compatibilty, return NotFound on the
+			// docker will not return a NotFound on any repository URL - for backwards compatibility, return NotFound on the
 			// repo
 			return nil, errRepositoryNotFound{repo.name}
 		}
@@ -549,7 +549,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 				return repo.getTaggedImage(c, tag, userTag)
 			}
 			delete(c.cached, repo.name)
-			// docker will not return a NotFound on any repository URL - for backwards compatibilty, return NotFound on the
+			// docker will not return a NotFound on any repository URL - for backwards compatibility, return NotFound on the
 			// repo
 			body, _ := ioutil.ReadAll(resp.Body)
 			glog.V(4).Infof("passed valid auth token, but unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)

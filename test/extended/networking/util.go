@@ -5,10 +5,13 @@ import (
 	"os"
 	"time"
 
+	testexutil "github.com/openshift/origin/test/extended/util"
+	testutil "github.com/openshift/origin/test/util"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -105,7 +108,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 			Ports: []api.ServicePort{
 				{
 					Protocol: api.ProtocolTCP,
-					Port:     servicePort,
+					Port:     int32(servicePort),
 				},
 			},
 			Selector: map[string]string{
@@ -156,14 +159,36 @@ func pluginIsolatesNamespaces() bool {
 	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
 }
 
-func skipIfSingleTenant() {
-	if !pluginIsolatesNamespaces() {
-		e2e.Skipf("Not a multi-tenant plugin.")
-	}
+func makeNamespaceGlobal(ns *api.Namespace) {
+	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
+	expectNoError(err)
+	netns, err := client.NetNamespaces().Get(ns.Name)
+	expectNoError(err)
+	netns.NetID = 0
+	_, err = client.NetNamespaces().Update(netns)
+	expectNoError(err)
 }
 
-func skipIfMultiTenant() {
-	if pluginIsolatesNamespaces() {
-		e2e.Skipf("Not a single-tenant plugin.")
-	}
+func InSingleTenantContext(body func()) {
+	Context("when using a single-tenant plugin", func() {
+		BeforeEach(func() {
+			if pluginIsolatesNamespaces() {
+				e2e.Skipf("Not a single-tenant plugin.")
+			}
+		})
+
+		body()
+	})
+}
+
+func InMultiTenantContext(body func()) {
+	Context("when using a multi-tenant plugin", func() {
+		BeforeEach(func() {
+			if !pluginIsolatesNamespaces() {
+				e2e.Skipf("Not a multi-tenant plugin.")
+			}
+		})
+
+		body()
+	})
 }

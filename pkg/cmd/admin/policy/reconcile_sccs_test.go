@@ -450,13 +450,13 @@ func TestComputeUnioningUsersAndGroups(t *testing.T) {
 }
 
 func TestComputeUnioningPriorities(t *testing.T) {
-	priorityOne := 1
-	priorityTwo := 2
+	priorityOne := int32(1)
+	priorityTwo := int32(2)
 
 	tests := map[string]struct {
 		expected         kapi.SecurityContextConstraints
 		actual           kapi.SecurityContextConstraints
-		expectedPriority *int
+		expectedPriority *int32
 		needsUpdate      bool
 		union            bool
 	}{
@@ -562,7 +562,7 @@ func TestComputeUnioningPriorities(t *testing.T) {
 	}
 }
 
-func goodSCCWithPriority(priority int) kapi.SecurityContextConstraints {
+func goodSCCWithPriority(priority int32) kapi.SecurityContextConstraints {
 	scc := goodSCC()
 	scc.Priority = &priority
 	return scc

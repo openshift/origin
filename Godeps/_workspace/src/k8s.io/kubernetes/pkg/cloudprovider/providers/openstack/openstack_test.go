@@ -25,7 +25,40 @@ import (
 	"k8s.io/kubernetes/pkg/util/rand"
 
 	"github.com/rackspace/gophercloud"
+	"k8s.io/kubernetes/pkg/api"
 )
+
+const volumeAvailableStatus = "available"
+const volumeInUseStatus = "in-use"
+const volumeCreateTimeoutSeconds = 30
+
+func WaitForVolumeStatus(t *testing.T, os *OpenStack, volumeName string, status string, timeoutSeconds int) {
+	timeout := timeoutSeconds
+	start := time.Now().Second()
+	for {
+		time.Sleep(1 * time.Second)
+
+		if timeout >= 0 && time.Now().Second()-start >= timeout {
+			t.Logf("Volume (%s) status did not change to %s after %v seconds\n",
+				volumeName,
+				status,
+				timeout)
+			return
+		}
+
+		getVol, err := os.getVolume(volumeName)
+		if err != nil {
+			t.Fatalf("Cannot get existing Cinder volume (%s): %v", volumeName, err)
+		}
+		if getVol.Status == status {
+			t.Logf("Volume (%s) status changed to %s after %v seconds\n",
+				volumeName,
+				status,
+				timeout)
+			return
+		}
+	}
+}
 
 func TestReadConfig(t *testing.T) {
 	_, err := readConfig(nil)
@@ -146,6 +179,18 @@ func TestInstances(t *testing.T) {
 	}
 	t.Logf("Found servers (%d): %s\n", len(srvs), srvs)
 
+	srvExternalId, err := i.ExternalID(srvs[0])
+	if err != nil {
+		t.Fatalf("Instances.ExternalId(%s) failed: %s", srvs[0], err)
+	}
+	t.Logf("Found server (%s), with external id: %s\n", srvs[0], srvExternalId)
+
+	srvInstanceId, err := i.InstanceID(srvs[0])
+	if err != nil {
+		t.Fatalf("Instance.InstanceId(%s) failed: %s", srvs[0], err)
+	}
+	t.Logf("Found server (%s), with instance id: %s\n", srvs[0], srvInstanceId)
+
 	addrs, err := i.NodeAddresses(srvs[0])
 	if err != nil {
 		t.Fatalf("Instances.NodeAddresses(%s) failed: %s", srvs[0], err)
@@ -169,7 +214,7 @@ func TestLoadBalancer(t *testing.T) {
 		t.Fatalf("LoadBalancer() returned false - perhaps your stack doesn't support Neutron?")
 	}
 
-	_, exists, err := lb.GetLoadBalancer("noexist", "region")
+	_, exists, err := lb.GetLoadBalancer(&api.Service{ObjectMeta: api.ObjectMeta{Name: "noexist"}})
 	if err != nil {
 		t.Fatalf("GetLoadBalancer(\"noexist\") returned error: %s", err)
 	}
@@ -219,10 +264,30 @@ func TestVolumes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot create a new Cinder volume: %v", err)
 	}
+	t.Logf("Volume (%s) created\n", vol)
+
+	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus, volumeCreateTimeoutSeconds)
+
+	diskId, err := os.AttachDisk(os.localInstanceID, vol)
+	if err != nil {
+		t.Fatalf("Cannot AttachDisk Cinder volume %s: %v", vol, err)
+	}
+	t.Logf("Volume (%s) attached, disk ID: %s\n", vol, diskId)
+
+	WaitForVolumeStatus(t, os, vol, volumeInUseStatus, volumeCreateTimeoutSeconds)
+
+	err = os.DetachDisk(os.localInstanceID, vol)
+	if err != nil {
+		t.Fatalf("Cannot DetachDisk Cinder volume %s: %v", vol, err)
+	}
+	t.Logf("Volume (%s) detached\n", vol)
+
+	WaitForVolumeStatus(t, os, vol, volumeAvailableStatus, volumeCreateTimeoutSeconds)
 
 	err = os.DeleteVolume(vol)
 	if err != nil {
 		t.Fatalf("Cannot delete Cinder volume %s: %v", vol, err)
 	}
+	t.Logf("Volume (%s) deleted\n", vol)
 
 }

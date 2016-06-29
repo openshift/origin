@@ -18,6 +18,7 @@ package pleg
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang/glog"
@@ -25,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/atomic"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -161,7 +161,6 @@ func generateEvent(podID types.UID, cid string, oldState, newState plegContainer
 	default:
 		panic(fmt.Sprintf("unrecognized container state: %v", newState))
 	}
-	return nil
 }
 
 func (g *GenericPLEG) getRelistTime() time.Time {

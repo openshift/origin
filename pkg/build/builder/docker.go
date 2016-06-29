@@ -12,7 +12,6 @@ import (
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
@@ -49,7 +48,7 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 		build:        build,
 		gitClient:    gitClient,
 		tar:          tar.New(),
-		urlTimeout:   urlCheckTimeout,
+		urlTimeout:   initialURLCheckTimeout,
 		client:       buildsClient,
 		cgLimits:     cgLimits,
 	}
@@ -57,6 +56,9 @@ func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterf
 
 // Build executes a Docker build
 func (d *DockerBuilder) Build() error {
+	if d.build.Spec.Source.Git == nil && d.build.Spec.Source.Binary == nil && d.build.Spec.Source.Dockerfile == nil && d.build.Spec.Source.Images == nil {
+		return fmt.Errorf("must provide a value for at least one of source, binary, images, or dockerfile")
+	}
 	var push bool
 	pushTag := d.build.Status.OutputDockerImageReference
 
@@ -102,10 +104,9 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	if err := removeImage(d.dockerClient, buildTag); err != nil {
-		glog.Warningf("Failed to remove temporary build tag %v: %v", buildTag, err)
+		glog.V(0).Infof("warning: Failed to remove temporary build tag %v: %v", buildTag, err)
 	}
 
-	defer glog.Flush()
 	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
@@ -115,11 +116,11 @@ func (d *DockerBuilder) Build() error {
 		if authPresent {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		glog.Infof("Pushing image %s ...", pushTag)
+		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		if err := pushImage(d.dockerClient, pushTag, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
-		glog.Infof("Push successful")
+		glog.V(0).Infof("Push successful")
 	}
 	return nil
 }
@@ -134,10 +135,10 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 			return err
 		}
 		srcDir := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
-		glog.Infof("Copying files from the build secret %q to %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
+		glog.V(3).Infof("Copying files from the build secret %q to %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
 		out, err := exec.Command("cp", "-vrf", srcDir+"/.", dstDir+"/").Output()
 		if err != nil {
-			glog.Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
+			glog.V(4).Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
 			return err
 		}
 		// See what is copied where when debugging.
@@ -231,14 +232,14 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 // consume.
 func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 	labels := map[string]string{}
-	// TODO: allow source info to be overriden by build
+	// TODO: allow source info to be overridden by build
 	sourceInfo := &git.SourceInfo{}
 	if d.build.Spec.Source.Git != nil {
 		var errors []error
 		sourceInfo, errors = d.gitClient.GetInfo(dir)
 		if len(errors) > 0 {
 			for _, e := range errors {
-				glog.Warningf("Error getting git info: %v", e.Error())
+				glog.V(0).Infof("warning: Unable to retrieve Git info: %v", e.Error())
 			}
 		}
 	}
@@ -259,12 +260,12 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 	if len(os.Getenv(dockercfg.PullAuthType)) == 0 {
 		return nil, nil
 	}
-	glog.V(2).Infof("Checking for Docker config file for %s in path %s", dockercfg.PullAuthType, os.Getenv(dockercfg.PullAuthType))
+	glog.V(0).Infof("Checking for Docker config file for %s in path %s", dockercfg.PullAuthType, os.Getenv(dockercfg.PullAuthType))
 	dockercfgPath := dockercfg.GetDockercfgFile(os.Getenv(dockercfg.PullAuthType))
 	if len(dockercfgPath) == 0 {
 		return nil, fmt.Errorf("no docker config file found in '%s'", os.Getenv(dockercfg.PullAuthType))
 	}
-	glog.V(2).Infof("Using Docker config file %s", dockercfgPath)
+	glog.V(0).Infof("Using Docker config file %s", dockercfgPath)
 	r, err := os.Open(dockercfgPath)
 	if err != nil {
 		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)

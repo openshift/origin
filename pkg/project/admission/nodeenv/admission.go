@@ -32,7 +32,7 @@ var _ = oadmission.Validator(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
-	resource := a.GetResource()
+	resource := a.GetResource().GroupResource()
 	if resource != kapi.Resource("pods") {
 		return nil
 	}

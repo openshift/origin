@@ -1,6 +1,6 @@
 package types
 
-// SystemdUnit represents the information we gather about a single sytemd unit of interest.
+// SystemdUnit represents the information we gather about a single systemd unit of interest.
 type SystemdUnit struct {
 	// The systemd unit name, e.g. "openshift-master"
 	Name string

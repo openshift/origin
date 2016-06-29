@@ -1,0 +1,7 @@
+# Uncomment to enable debug messages
+#G_MESSAGES_DEBUG=cockpit-ws,cockpit-wrapper,cockpit-bridge
+KUBERNETES_SERVICE_HOST=localhost
+KUBERNETES_SERVICE_PORT=8443
+REGISTRY_ONLY=true
+OPENSHIFT_OAUTH_CLIENT_ID=cockpit-oauth-client
+KUBERNETES_INSECURE=true

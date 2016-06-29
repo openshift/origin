@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -26,7 +28,7 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -39,34 +41,172 @@ var TestContext e2e.TestContextType
 
 const pvPrefix = "pv-"
 
+//CheckOpenShiftNamespaceImageStreams is a temporary workaround for the intermittent
+// issue seen in extended tests where *something* is deleteing the pre-loaded, languange
+// imagestreams from the OpenShift namespace
+func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
+	missing := false
+	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
+	for _, lang := range langs {
+		_, err := oc.REST().ImageStreams("openshift").Get(lang)
+		if err != nil {
+			missing = true
+			break
+		}
+	}
+
+	if missing {
+		fmt.Fprint(g.GinkgoWriter, "\n\n openshift namespace image streams corrupted \n\n")
+		DumpImageStreams(oc)
+		out, err := oc.Run("get").Args("is", "-n", "openshift", "--config", KubeConfigPath()).Output()
+		err = fmt.Errorf("something has tampered with the image streams in the openshift namespace; look at audits in master log; \n%s\n", out)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	} else {
+		fmt.Fprint(g.GinkgoWriter, "\n\n openshift namespace image streams OK \n\n")
+	}
+
+}
+
+//DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
+// as part of debugging when the language imagestreams in the openshift namespace seem to disappear
+func DumpImageStreams(oc *CLI) {
+	out, err := oc.Run("get").Args("is", "-n", "openshift", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in openshift namespace: \n%s\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in openshift namespace: %+v\n", err)
+	}
+	out, err = oc.Run("get").Args("is").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in dynamic test namespace: \n%s\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in dynamic test namespace: %+v\n", err)
+	}
+	ids, err := ListImages()
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n  got error on docker images %+v\n", err)
+	} else {
+		for _, id := range ids {
+			fmt.Fprintf(g.GinkgoWriter, " found local image %s\n", id)
+		}
+	}
+}
+
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
 	bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bc).Output()
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %v\n\n", err)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %+v\n\n", err)
+
+		// there have been some issues with oc new-app where build don't appear to even be started;
+		// temporarily trying a start-build to see what is up
+		/*err = oc.Run("start-build").Args(bc).Execute()
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "\n GGM start-build error for %s is %+v", bc, err)
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n GGM start build after new-app hiccup for %s worked\n", bc)
+		}*/
 	}
 
-	ExamineDiskUsage()
+	// if we suspect that we are filling up the registry file syste, call ExamineDiskUsage / ExaminePodDiskUsage
+	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
+	//ExamineDiskUsage()
+	//ExaminePodDiskUsage(oc)
 }
 
-// ExamineDiskUsage will dump some df/du output; leveraging this as part of diagnosing
+// DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
+func DumpDeploymentLogs(dc string, oc *CLI) {
+	out, err := oc.Run("get").Args("pods", "-o", "json").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n Pod JSON dump: \n%s\n\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on Pod JSON dump: %+v\n\n", err)
+	}
+	// pod logs were proving redundant .. leaving code that dumps them commented out for now in case we want to pull back in
+	if err == nil {
+		b := []byte(out)
+		var list kapi.PodList
+		err = json.Unmarshal(b, &list)
+		if err == nil {
+			for _, pod := range list.Items {
+				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s to see if it is affiliated with %s \n\n", pod.ObjectMeta.Name, dc)
+				if strings.Contains(pod.ObjectMeta.Name, dc) {
+					podName := pod.ObjectMeta.Name
+
+					fmt.Fprintf(g.GinkgoWriter, "\n\n dumping logs for pod %s \n\n", podName)
+					depOuput, err := oc.Run("logs").Args("-f", "pod/"+podName).Output()
+					if err == nil {
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOuput)
+					} else {
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on dep logs for %s:  %v\n\n", podName, err)
+					}
+				}
+			}
+		} else {
+			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
+		}
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	}
+	// temporary debug around deployments not even getting started with oc new-app
+	/*out, err = oc.Run("deploy").Args(dc, "--latest").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n debug oc test deploy for %s is OK\n", dc)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n debug oc test deploy for %s got error %+v\n\n", dc, err)
+	}*/
+	// temporary debug dump the local images for the neutered, deploy doesn't even start scenario
+
+}
+
+// ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {
-	out, err := exec.Command("/bin/df", "-k").Output()
+	out, err := exec.Command("/bin/df", "-m").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n df -k output: %s\n\n", string(out))
+		fmt.Fprintf(g.GinkgoWriter, "\n\n df -m output: %s\n\n", string(out))
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
 	}
-	if _, err := os.Stat("/registry"); err == nil {
-		out, err = exec.Command("/bin/du", "-a", "/registry").Output()
+}
+
+// ExaminePodDiskUsage will dump df/du output on registry pod; leveraging this as part of diagnosing
+// the registry's disk filling up during external tests on jenkins
+func ExaminePodDiskUsage(oc *CLI) {
+	out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
+	var podName string
+	if err == nil {
+		b := []byte(out)
+		var list kapi.PodList
+		err = json.Unmarshal(b, &list)
 		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n du -a /registry output: %s\n\n", string(out))
+			for _, pod := range list.Items {
+				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
+				if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
+					podName = pod.ObjectMeta.Name
+					break
+				}
+			}
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
+			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
 		}
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	}
+
+	out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n df from registry pod: \n%s\n\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod df: %v\n", err)
+	}
+	out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n du from registry pod: \n%s\n\n", out)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod du: %v\n", err)
 	}
 }
 
@@ -222,7 +362,7 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 // When isOK returns true, WaitForADeployment returns nil, when isFailed returns
 // true, WaitForADeployment returns an error including the deployment status.
 // WaitForADeployment waits for at most a certain timeout (non-configurable).
-func WaitForADeployment(client kclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool) error {
+func WaitForADeployment(client kclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool, oc *CLI) error {
 	timeout := 15 * time.Minute
 
 	// closing done signals that any pending operation should be aborted.
@@ -253,12 +393,26 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 		if err != nil {
 			return err, false
 		}
+		// multiple deployments are conceivable; so we look to see how the latest depoy does
+		var lastRC *kapi.ReplicationController
 		for _, rc := range list.Items {
-			err, matched := okOrFailed(&rc)
+			if lastRC == nil {
+				lastRC = &rc
+				continue
+			}
+			// assuming won't have to deal with more than 9 deployments
+			if lastRC.GetName() <= rc.GetName() {
+				lastRC = &rc
+			}
+		}
+
+		if lastRC != nil {
+			err, matched := okOrFailed(lastRC)
 			if matched {
 				return err, false
 			}
 		}
+
 		w, err := client.Watch(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: list.ResourceVersion})
 		if err != nil {
 			return err, false
@@ -272,9 +426,16 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 					return nil, true
 				}
 				if rc, ok := val.Object.(*kapi.ReplicationController); ok {
-					err, matched := okOrFailed(rc)
-					if matched {
-						return err, false
+					if lastRC == nil {
+						lastRC = rc
+					}
+					// multiple deployments are conceivable; so we look to see how the latest depoy does
+					if lastRC.GetName() <= rc.GetName() {
+						lastRC = rc
+						err, matched := okOrFailed(rc)
+						if matched {
+							return err, false
+						}
 					}
 				}
 			case <-done:
@@ -300,15 +461,20 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 
 	select {
 	case err := <-errCh:
+		if err != nil {
+			DumpDeploymentLogs(name, oc)
+		}
 		return err
 	case <-time.After(timeout):
+		DumpDeploymentLogs(name, oc)
+		// end for timing issues where we miss watch updates
 		return fmt.Errorf("timed out waiting for deployment %q after %v", name, timeout)
 	}
 }
 
 // WaitForADeploymentToComplete waits for a deployment to complete.
-func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string) error {
-	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn)
+func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string, oc *CLI) error {
+	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn, oc)
 }
 
 func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {
@@ -386,74 +552,6 @@ func WaitForResourceQuotaSync(
 	return nil, wait.ErrWaitTimeout
 }
 
-func isLimitSynced(received, expected kapi.ResourceList) bool {
-	resourceNames := quota.ResourceNames(expected)
-	masked := quota.Mask(received, resourceNames)
-	if len(masked) != len(expected) {
-		return false
-	}
-	if le, _ := quota.LessThanOrEqual(masked, expected); !le {
-		return false
-	}
-	if le, _ := quota.LessThanOrEqual(expected, masked); !le {
-		return false
-	}
-	return true
-}
-
-// WaitForResourceQuotaSync watches given resource quota until its hard limit is updated to match the desired
-// spec or timeout occurs.
-func WaitForResourceQuotaLimitSync(
-	client kclient.ResourceQuotaInterface,
-	name string,
-	hardLimit kapi.ResourceList,
-	timeout time.Duration,
-) error {
-
-	startTime := time.Now()
-	endTime := startTime.Add(timeout)
-
-	expectedResourceNames := quota.ResourceNames(hardLimit)
-
-	list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
-	if err != nil {
-		return err
-	}
-
-	for i := range list.Items {
-		used := quota.Mask(list.Items[i].Status.Hard, expectedResourceNames)
-		if isLimitSynced(used, hardLimit) {
-			return nil
-		}
-	}
-
-	rv := list.ResourceVersion
-	w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
-	if err != nil {
-		return err
-	}
-	defer w.Stop()
-
-	for time.Now().Before(endTime) {
-		select {
-		case val, ok := <-w.ResultChan():
-			if !ok {
-				// reget and re-watch
-				continue
-			}
-			if rq, ok := val.Object.(*kapi.ResourceQuota); ok {
-				used := quota.Mask(rq.Status.Hard, expectedResourceNames)
-				if isLimitSynced(used, hardLimit) {
-					return nil
-				}
-			}
-		case <-time.After(endTime.Sub(time.Now())):
-			return wait.ErrWaitTimeout
-		}
-	}
-	return wait.ErrWaitTimeout
-}
-
 // CheckDeploymentCompletedFn returns true if the deployment completed
 var CheckDeploymentCompletedFn = func(d *kapi.ReplicationController) bool {
 	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusComplete)
@@ -476,6 +574,23 @@ func GetPodNamesByFilter(c kclient.PodInterface, label labels.Selector, predicat
 		}
 	}
 	return podNames, nil
+}
+
+func WaitForAJob(c kclient.JobInterface, name string, timeout time.Duration) error {
+	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
+		j, e := c.Get(name)
+		if e != nil {
+			return true, e
+		}
+		// TODO soltysh: replace this with a function once such exist, currently
+		// it's private in the controller
+		for _, c := range j.Status.Conditions {
+			if (c.Type == batch.JobComplete || c.Type == batch.JobFailed) && c.Status == kapi.ConditionTrue {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 }
 
 // WaitForPods waits until given number of pods that match the label selector and

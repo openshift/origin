@@ -23,10 +23,10 @@ Create a new group.
 This command will create a new group with an optional list of users.`
 
 	newExample = `  # Add a group with no users
-  $ %[1]s my-group
+  %[1]s my-group
 
   # Add a group with two users
-  $ %[1]s my-group user1 user2`
+  %[1]s my-group user1 user2`
 )
 
 type NewGroupOptions struct {

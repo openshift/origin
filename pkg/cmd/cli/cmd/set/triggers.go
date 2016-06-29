@@ -13,6 +13,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -43,26 +44,26 @@ Build configs support triggering off of image changes, config changes, and webho
 and generic). The config change trigger for a build config will only trigger the first build.`
 
 	triggersExample = `  # Print the triggers on the registry
-  $ %[1]s triggers dc/registry
+  %[1]s triggers dc/registry
 
   # Set all triggers to manual
-  $ %[1]s triggers dc/registry --manual
+  %[1]s triggers dc/registry --manual
 
   # Enable all automatic triggers
-  $ %[1]s triggers dc/registry --auto
+  %[1]s triggers dc/registry --auto
 
   # Reset the GitHub webhook on a build to a new, generated secret
-  $ %[1]s triggers bc/webapp --from-github
-  $ %[1]s triggers bc/webapp --from-webhook
+  %[1]s triggers bc/webapp --from-github
+  %[1]s triggers bc/webapp --from-webhook
 
   # Remove all triggers
-  $ %[1]s triggers bc/webapp --remove-all
+  %[1]s triggers bc/webapp --remove-all
 
   # Stop triggering on config change
-  $ %[1]s triggers dc/registry --from-config --remove
+  %[1]s triggers dc/registry --from-config --remove
 
   # Add an image trigger to a build config
-  $ %[1]s triggers bc/webapp --from-image=namespace1/image:latest`
+  %[1]s triggers bc/webapp --from-image=namespace1/image:latest`
 )
 
 type TriggersOptions struct {
@@ -78,8 +79,9 @@ type TriggersOptions struct {
 
 	Encoder runtime.Encoder
 
-	ShortOutput bool
-	Mapper      meta.RESTMapper
+	ShortOutput   bool
+	Mapper        meta.RESTMapper
+	OutputVersion unversioned.GroupVersion
 
 	PrintTable  bool
 	PrintObject func(runtime.Object) error
@@ -90,11 +92,12 @@ type TriggersOptions struct {
 	Manual    bool
 	Reset     bool
 
-	ContainerNames string
-	FromConfig     bool
-	FromGitHub     *bool
-	FromWebHook    *bool
-	FromImage      string
+	ContainerNames      string
+	FromConfig          bool
+	FromGitHub          *bool
+	FromWebHook         *bool
+	FromWebHookAllowEnv *bool
+	FromImage           string
 	// FromImageNamespace is the namespace for the FromImage
 	FromImageNamespace string
 }
@@ -138,6 +141,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	cmd.Flags().StringVar(&options.FromImage, "from-image", options.FromImage, "An image stream tag to trigger off of")
 	options.FromGitHub = cmd.Flags().Bool("from-github", false, "A GitHub webhook - a secret value will be generated automatically")
 	options.FromWebHook = cmd.Flags().Bool("from-webhook", false, "A generic webhook - a secret value will be generated automatically")
+	options.FromWebHookAllowEnv = cmd.Flags().Bool("from-webhook-allow-env", false, "A generic webhook which can provide environment variables - a secret value will be generated automatically")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -150,11 +154,24 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		return err
 	}
 
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+	if err != nil {
+		return err
+	}
+
 	if !cmd.Flags().Lookup("from-github").Changed {
 		o.FromGitHub = nil
 	}
 	if !cmd.Flags().Lookup("from-webhook").Changed {
 		o.FromWebHook = nil
+	}
+	if !cmd.Flags().Lookup("from-webhook-allow-env").Changed {
+		o.FromWebHookAllowEnv = nil
 	}
 
 	if len(o.FromImage) > 0 {
@@ -181,18 +198,18 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Auto = true
 	}
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, o.Filenames...).
+		FilenameParam(explicit, false, o.Filenames...).
 		SelectorParam(o.Selector).
 		ResourceTypeOrNameArgs(o.All, args...).
 		Flatten()
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, obj, o.Out) }
+		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -211,6 +228,9 @@ func (o *TriggersOptions) count() int {
 		count++
 	}
 	if o.FromWebHook != nil {
+		count++
+	}
+	if o.FromWebHookAllowEnv != nil {
 		count++
 	}
 	if len(o.FromImage) > 0 {
@@ -263,24 +283,8 @@ func (o *TriggersOptions) Run() error {
 	if singular && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
-	if len(patches) == 0 {
-		return nil
-	}
-
 	if o.PrintObject != nil {
-		var infos []*resource.Info
-		for _, patch := range patches {
-			info := patch.Info
-			if patch.Err != nil {
-				fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
-				continue
-			}
-			infos = append(infos, info)
-		}
-		if len(infos) == 0 {
-			return cmdutil.ErrExit
-		}
-		object, err := resource.AsVersionedObject(infos, !singular, "", nil)
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}
@@ -383,6 +387,10 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 		if o.FromWebHook != nil && *o.FromWebHook {
 			triggers.WebHooks = nil
 		}
+		if o.FromWebHookAllowEnv != nil && *o.FromWebHookAllowEnv {
+			triggers.WebHooks = nil
+			triggers.WebHooksAllowEnv = false
+		}
 		if o.FromGitHub != nil && *o.FromGitHub {
 			triggers.GitHubWebHooks = nil
 		}
@@ -428,6 +436,10 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 	if o.FromWebHook != nil && *o.FromWebHook {
 		triggers.WebHooks = []string{app.GenerateSecret(20)}
 	}
+	if o.FromWebHookAllowEnv != nil && *o.FromWebHookAllowEnv {
+		triggers.WebHooks = []string{app.GenerateSecret(20)}
+		triggers.WebHooksAllowEnv = true
+	}
 	if o.FromGitHub != nil && *o.FromGitHub {
 		triggers.GitHubWebHooks = []string{app.GenerateSecret(20)}
 	}
@@ -448,10 +460,11 @@ type ImageChangeTrigger struct {
 
 // TriggerDefinition is the abstract representation of triggers for builds and deploymnet configs.
 type TriggerDefinition struct {
-	ConfigChange   bool
-	ImageChange    []ImageChangeTrigger
-	WebHooks       []string
-	GitHubWebHooks []string
+	ConfigChange     bool
+	ImageChange      []ImageChangeTrigger
+	WebHooks         []string
+	WebHooksAllowEnv bool
+	GitHubWebHooks   []string
 }
 
 // defaultNamespace returns an empty string if the provided namespace matches the default namespace, or
@@ -492,6 +505,7 @@ func NewBuildConfigTriggers(config *buildapi.BuildConfig) *TriggerDefinition {
 			t.ConfigChange = true
 		case buildapi.GenericWebHookBuildTriggerType:
 			t.WebHooks = append(t.WebHooks, trigger.GenericWebHook.Secret)
+			t.WebHooksAllowEnv = trigger.GenericWebHook.AllowEnv
 		case buildapi.GitHubWebHookBuildTriggerType:
 			t.GitHubWebHooks = append(t.GitHubWebHooks, trigger.GitHubWebHook.Secret)
 		case buildapi.ImageChangeBuildTriggerType:
@@ -575,7 +589,8 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
 				Type: buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{
-					Secret: trigger,
+					Secret:   trigger,
+					AllowEnv: t.WebHooksAllowEnv,
 				},
 			})
 		}

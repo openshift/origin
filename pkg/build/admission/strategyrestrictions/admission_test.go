@@ -139,6 +139,26 @@ func TestBuildAdmission(t *testing.T) {
 			reviewResponse: reviewResponse(false, "cannot create build of type docker build"),
 			expectAccept:   true,
 		},
+		{
+			name:             "allowed jenkins pipeline build",
+			object:           testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			kind:             buildapi.Kind("Build"),
+			resource:         buildsResource,
+			reviewResponse:   reviewResponse(true, ""),
+			expectedResource: authorizationapi.JenkinsPipelineBuildResource,
+			expectAccept:     true,
+		},
+		{
+			name:             "allowed jenkins pipeline build clone",
+			object:           testBuildRequest("buildname"),
+			responseObject:   testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			kind:             buildapi.Kind("Build"),
+			resource:         buildsResource,
+			subResource:      "clone",
+			reviewResponse:   reviewResponse(true, ""),
+			expectedResource: authorizationapi.JenkinsPipelineBuildResource,
+			expectAccept:     true,
+		},
 	}
 
 	ops := []admission.Operation{admission.Create, admission.Update}
@@ -147,7 +167,7 @@ func TestBuildAdmission(t *testing.T) {
 			client := fakeClient(test.expectedResource, test.reviewResponse, test.responseObject)
 			c := NewBuildByStrategy()
 			c.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(client)
-			attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, test.subResource, op, fakeUser())
+			attrs := admission.NewAttributesRecord(test.object, test.kind.WithVersion("version"), "default", "name", test.resource.WithVersion("version"), test.subResource, op, fakeUser())
 			err := c.Admit(attrs)
 			if err != nil && test.expectAccept {
 				t.Errorf("%s: unexpected error: %v", test.name, err)
@@ -204,7 +224,9 @@ func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
-			Strategy: strategy,
+			CommonSpec: buildapi.CommonSpec{
+				Strategy: strategy,
+			},
 		},
 	}
 }
@@ -215,7 +237,7 @@ func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 			Name: "test-buildconfig",
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Strategy: strategy,
 			},
 		},

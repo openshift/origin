@@ -43,7 +43,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 		idxPath := itemPath.Index(i)
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			decodedObj, err := runtime.Decode(runtime.UnstructuredJSONScheme, obj.RawJSON)
+			decodedObj, err := runtime.Decode(runtime.UnstructuredJSONScheme, obj.Raw)
 			if err != nil {
 				templateErrors = append(templateErrors, field.Invalid(idxPath.Child("objects"), obj, fmt.Sprintf("unable to handle object: %v", err)))
 				continue
@@ -61,7 +61,8 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 		//a different namespace.
 		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
-			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"), err, "label could not be applied"))
+			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
+				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
 		}
 		template.Objects[i] = newItem
 	}
@@ -71,7 +72,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 
 func stripNamespace(obj runtime.Object) {
 	// Remove namespace from the item
-	if itemMeta, err := meta.Accessor(obj); err == nil {
+	if itemMeta, err := meta.Accessor(obj); err == nil && len(itemMeta.GetNamespace()) > 0 {
 		itemMeta.SetNamespace("")
 		return
 	}
@@ -163,7 +164,8 @@ func (p *Processor) GenerateParameterValues(t *api.Template) *field.Error {
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
 			if !ok {
-				return field.NotFound(templatePath, param)
+				err := fmt.Errorf("Unknown generator name '%v' for parameter %s", param.Generate, param.Name)
+				return field.Invalid(templatePath, param.Generate, err.Error())
 			}
 			if generator == nil {
 				err := fmt.Errorf("template.parameters[%v]: Invalid '%v' generator for parameter %s", i, param.Generate, param.Name)

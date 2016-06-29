@@ -64,13 +64,13 @@ func (c *subjectAccessReviews) Create(sar *authorizationapi.SubjectAccessReview)
 	// if the namespace values don't match then we definitely hit an old server.  If we got a forbidden, then we might have hit an old server
 	// and should try the old endpoint
 	if (sar.Action.Namespace != result.Namespace) || kapierrors.IsForbidden(err) {
-		req, err := overrideAuth(c.token, c.r.Post().Namespace(sar.Action.Namespace).Resource("subjectAccessReviews"))
-		if err != nil {
-			return &authorizationapi.SubjectAccessReviewResponse{}, err
+		deprecatedReq, deprecatedAttemptErr := overrideAuth(c.token, c.r.Post().Namespace(sar.Action.Namespace).Resource("subjectAccessReviews"))
+		if deprecatedAttemptErr != nil {
+			return &authorizationapi.SubjectAccessReviewResponse{}, deprecatedAttemptErr
 		}
 
 		deprecatedResponse := &authorizationapi.SubjectAccessReviewResponse{}
-		deprecatedAttemptErr := req.Body(sar).Do().Into(deprecatedResponse)
+		deprecatedAttemptErr = deprecatedReq.Body(sar).Do().Into(deprecatedResponse)
 
 		// if we definitely hit an old server, then return the error and result you get from the older server.
 		if sar.Action.Namespace != result.Namespace {

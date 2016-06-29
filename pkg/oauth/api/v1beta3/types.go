@@ -68,11 +68,39 @@ type OAuthClient struct {
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty"`
 
+	// AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation
+	// and for service account token validation
+	AdditionalSecrets []string `json:"additionalSecrets,omitempty"`
+
 	// RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects
 	RespondWithChallenges bool `json:"respondWithChallenges,omitempty"`
 
 	// RedirectURIs is the valid redirection URIs associated with a client
 	RedirectURIs []string `json:"redirectURIs,omitempty"`
+
+	// ScopeRestrictions describes which scopes this client can request.  Each requested scope
+	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
+	// If no restriction matches, then the scope is denied.
+	ScopeRestrictions []ScopeRestriction `json:"scopeRestrictions,omitempty"`
+}
+
+// ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.
+type ScopeRestriction struct {
+	// ExactValues means the scope has to match a particular set of strings exactly
+	ExactValues []string `json:"literals,omitempty"`
+
+	// ClusterRole describes a set of restrictions for cluster role scoping.
+	ClusterRole *ClusterRoleScopeRestriction `json:"clusterRole,omitempty"`
+}
+
+// ClusterRoleScopeRestriction describes restrictions on cluster role scopes
+type ClusterRoleScopeRestriction struct {
+	// RoleNames is the list of cluster roles that can referenced.  * means anything
+	RoleNames []string `json:"roleNames"`
+	// Namespaces is the list of namespaces that can be referenced.  * means any of them (including *)
+	Namespaces []string `json:"namespaces"`
+	// AllowEscalation indicates whether you can request roles and their escalating resources
+	AllowEscalation bool `json:"allowEscalation"`
 }
 
 type OAuthClientAuthorization struct {

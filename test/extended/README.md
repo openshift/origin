@@ -120,7 +120,7 @@ var _ = g.Describe("[<test bucket>] <Testing scenario>", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("test-name", exutil.KubeConfigPath())
-		testFixture = filepath.Join("fixtures", "test.json")
+		testFixture = filepath.Join("testdata", "test.json")
 	)
 })
 ```
@@ -131,7 +131,7 @@ The test suite should be organized into lower-level Ginkgo describe(s) container
 var _ = g.Describe("[default] STI build", func() {
 	defer GinkgoRecover()
 	var (
-		stiBuildFixture = filepath.Join("fixtures", "test-build.json")
+		stiBuildFixture = filepath.Join("testdata", "test-build.json")
 		oc              = exutil.NewCLI("build-sti", kubeConfigPath())
 	)
 

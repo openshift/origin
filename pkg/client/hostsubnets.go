@@ -17,6 +17,7 @@ type HostSubnetInterface interface {
 	List(opts kapi.ListOptions) (*sdnapi.HostSubnetList, error)
 	Get(name string) (*sdnapi.HostSubnet, error)
 	Create(sub *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error)
+	Update(sub *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error)
 	Delete(name string) error
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
@@ -55,6 +56,13 @@ func (c *hostSubnet) Get(hostName string) (result *sdnapi.HostSubnet, err error)
 func (c *hostSubnet) Create(hostSubnet *sdnapi.HostSubnet) (result *sdnapi.HostSubnet, err error) {
 	result = &sdnapi.HostSubnet{}
 	err = c.r.Post().Resource("hostSubnets").Body(hostSubnet).Do().Into(result)
+	return
+}
+
+// Update updates existing host subnet. Returns the server's representation of the host subnet and error if one occurs.
+func (c *hostSubnet) Update(hostSubnet *sdnapi.HostSubnet) (result *sdnapi.HostSubnet, err error) {
+	result = &sdnapi.HostSubnet{}
+	err = c.r.Put().Resource("hostSubnets").Name(hostSubnet.Name).Body(hostSubnet).Do().Into(result)
 	return
 }
 

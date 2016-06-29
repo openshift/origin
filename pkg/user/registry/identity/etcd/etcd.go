@@ -5,7 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -16,7 +16,7 @@ import (
 
 // REST implements a RESTStorage for identites against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	registry.Store
 }
 
 const EtcdPrefix = "/useridentities"
@@ -24,7 +24,7 @@ const EtcdPrefix = "/useridentities"
 // NewREST returns a RESTStorage object that will work against identites
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
-	store := &etcdgeneric.Etcd{
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Identity{} },
 		NewListFunc: func() runtime.Object { return &api.IdentityList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {

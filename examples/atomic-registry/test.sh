@@ -16,7 +16,7 @@ TEST_IMAGE=atomic-registry-quickstart
 # we're going to use this for testing
 # node ports aren't working with boxes default hostname localdomain.localhost
 LOCALHOST=${1:-`hostname`}
-CMD="docker exec -it origin"
+CMD="docker exec -i origin"
 
 USER=mary
 PROJ=mary-project

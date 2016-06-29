@@ -65,7 +65,7 @@ func NewMemberLookupMemberNotFoundSuppressor(err io.Writer) Handler {
 	return &memberLookupMemberNotFoundSuppressor{err: err}
 }
 
-// memberLookupMemberNotFoundSuppressor supresses member lookup errors caused by a search returning no valid entries,
+// memberLookupMemberNotFoundSuppressor suppresses member lookup errors caused by a search returning no valid entries,
 // which can happen in two ways:
 //   - if the search is not by DN, an empty result list is returned
 //   - if the search is by DN, an error is returned from the LDAP server: no such object

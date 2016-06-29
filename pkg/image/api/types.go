@@ -31,9 +31,27 @@ const (
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
 
-	// ResourceImages represents a number of images in a project.
-	ResourceImages kapi.ResourceName = "openshift.io/images"
+	// ResourceImageStreams represents a number of image streams in a project.
+	ResourceImageStreams kapi.ResourceName = "openshift.io/imagestreams"
+
+	// ResourceImageStreamImages represents a number of unique references to images in all image stream
+	// statuses of a project.
+	ResourceImageStreamImages kapi.ResourceName = "openshift.io/images"
+
+	// ResourceImageStreamTags represents a number of unique references to images in all image stream specs
+	// of a project.
+	ResourceImageStreamTags kapi.ResourceName = "openshift.io/image-tags"
+
+	// Limit that applies to images. Used with a max["storage"] LimitRangeItem to set
+	// the maximum size of an image.
+	LimitTypeImage kapi.LimitType = "openshift.io/Image"
+
+	// Limit that applies to image streams. Used with a max[resource] LimitRangeItem to set the maximum number
+	// of resource. Where the resource is one of "openshift.io/images" and "openshift.io/image-tags".
+	LimitTypeImageStream kapi.LimitType = "openshift.io/ImageStream"
 )
+
+// +genclient=true
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
@@ -50,14 +68,117 @@ type Image struct {
 	DockerImageManifest string
 	// DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.
 	DockerImageLayers []ImageLayer
+	// Signatures holds all signatures of the image.
+	Signatures []ImageSignature
+	// DockerImageSignatures provides the signatures as opaque blobs. This is a part of manifest schema v1.
+	DockerImageSignatures [][]byte
+	// DockerImageManifestMediaType specifies the mediaType of manifest. This is a part of manifest schema v2.
+	DockerImageManifestMediaType string
+	// DockerImageConfig is a JSON blob that the runtime uses to set up the container. This is a part of manifest schema v2.
+	DockerImageConfig string
 }
 
 // ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.
 type ImageLayer struct {
 	// Name of the layer as defined by the underlying store.
 	Name string
-	// Size of the layer as defined by the underlying store.
-	Size int64
+	// LayerSize of the layer as defined by the underlying store.
+	LayerSize int64
+	// MediaType of the referenced object.
+	MediaType string
+}
+
+const (
+	// The supported type of image signature.
+	ImageSignatureTypeAtomicImageV1 string = "AtomicImageV1"
+)
+
+// ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims
+// as long as the signature is trusted. Based on this information it is possible to restrict runnable images
+// to those matching cluster-wide policy.
+// There are two mandatory fields provided by client: Type and Content. They should be parsed by clients doing
+// image verification. The others are parsed from signature's content by the server. They serve just an
+// informative purpose.
+type ImageSignature struct {
+	// Required: Describes a type of stored blob.
+	Type string
+	// Required: An opaque binary string which is an image's signature.
+	Content []byte
+	// Conditions represent the latest available observations of a signature's current state.
+	Conditions []SignatureCondition
+
+	// Following metadata fields will be set by server if the signature content is successfully parsed and
+	// the information available.
+
+	// A human readable string representing image's identity. It could be a product name and version, or an
+	// image pull spec (e.g. "registry.access.redhat.com/rhel7/rhel:7.2").
+	ImageIdentity string
+	// Contains claims from the signature.
+	SignedClaims map[string]string
+	// If specified, it is the time of signature's creation.
+	Created *unversioned.Time
+	// If specified, it holds information about an issuer of signing certificate or key (a person or entity
+	// who signed the signing certificate or key).
+	IssuedBy *SignatureIssuer
+	// If specified, it holds information about a subject of signing certificate or key (a person or entity
+	// who signed the image).
+	IssuedTo *SignatureSubject
+}
+
+// These are valid conditions of an image signature.
+const (
+	// SignatureTrusted means the signing key or certificate was valid and the signature matched the image at
+	// the probe time.
+	SignatureTrusted = "Trusted"
+	// SignatureForImage means the signature matches image object containing it.
+	SignatureForImage = "ForImage"
+	// SignatureExpired means the signature or its signing key or certificate had been expired at the probe
+	// time.
+	SignatureExpired = "Expired"
+	// SignatureRevoked means the signature or its signing key or certificate has been revoked.
+	SignatureRevoked = "Revoked"
+)
+
+/// SignatureConditionType is a type of image signature condition.
+type SignatureConditionType string
+
+// SignatureCondition describes an image signature condition of particular kind at particular probe time.
+type SignatureCondition struct {
+	// Type of job condition, Complete or Failed.
+	Type SignatureConditionType
+	// Status of the condition, one of True, False, Unknown.
+	Status kapi.ConditionStatus
+	// Last time the condition was checked.
+	LastProbeTime unversioned.Time
+	// Last time the condition transit from one status to another.
+	LastTransitionTime unversioned.Time
+	// (brief) reason for the condition's last transition.
+	Reason string
+	// Human readable message indicating details about last transition.
+	Message string
+}
+
+// SignatureGenericEntity holds a generic information about a person or entity who is an issuer or a subject
+// of signing certificate or key.
+type SignatureGenericEntity struct {
+	// Organization name.
+	Organization string
+	// Common name (e.g. openshift-signing-service).
+	CommonName string
+}
+
+// SignatureIssuer holds information about an issuer of signing certificate or key.
+type SignatureIssuer struct {
+	SignatureGenericEntity
+}
+
+// SignatureSubject holds information about a person or entity who created the signature.
+type SignatureSubject struct {
+	SignatureGenericEntity
+	// If present, it is a human readable key id of public key belonging to the subject used to verify image
+	// signature. It should contain at least 64 lowest bits of public key's fingerprint (e.g.
+	// 0x685ebe62bf278440).
+	PublicKeyID string
 }
 
 // ImageStreamList is a list of ImageStream objects.
@@ -198,7 +319,7 @@ type ImageStreamTag struct {
 	kapi.ObjectMeta
 
 	// Tag is the spec tag associated with this image stream tag, and it may be null
-	// if only pushes have occured to this image stream.
+	// if only pushes have occurred to this image stream.
 	Tag *TagReference
 
 	// Generation is the current generation of the tagged image - if tag is provided

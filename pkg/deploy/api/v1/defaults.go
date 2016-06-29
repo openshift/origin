@@ -7,7 +7,8 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-func defaultTagImagesHookContainerName(hook *LifecycleHook, containerName string) {
+// Keep this in sync with pkg/api/serialization_test.go#defaultHookContainerName
+func defaultHookContainerName(hook *LifecycleHook, containerName string) {
 	if hook == nil {
 		return
 	}
@@ -16,89 +17,108 @@ func defaultTagImagesHookContainerName(hook *LifecycleHook, containerName string
 			hook.TagImages[i].ContainerName = containerName
 		}
 	}
+	if hook.ExecNewPod != nil {
+		if len(hook.ExecNewPod.ContainerName) == 0 {
+			hook.ExecNewPod.ContainerName = containerName
+		}
+	}
+}
+
+func SetDefaults_DeploymentConfigSpec(obj *DeploymentConfigSpec) {
+	if obj.Triggers == nil {
+		obj.Triggers = []DeploymentTriggerPolicy{
+			{Type: DeploymentTriggerOnConfigChange},
+		}
+	}
+	if len(obj.Selector) == 0 && obj.Template != nil {
+		obj.Selector = obj.Template.Labels
+	}
+
+	// if you only specify a single container, default the TagImages hook to the container name
+	if obj.Template != nil && len(obj.Template.Spec.Containers) == 1 {
+		containerName := obj.Template.Spec.Containers[0].Name
+		if p := obj.Strategy.RecreateParams; p != nil {
+			defaultHookContainerName(p.Pre, containerName)
+			defaultHookContainerName(p.Mid, containerName)
+			defaultHookContainerName(p.Post, containerName)
+		}
+		if p := obj.Strategy.RollingParams; p != nil {
+			defaultHookContainerName(p.Pre, containerName)
+			defaultHookContainerName(p.Post, containerName)
+		}
+	}
+}
+
+func SetDefaults_DeploymentStrategy(obj *DeploymentStrategy) {
+	if len(obj.Type) == 0 {
+		obj.Type = DeploymentStrategyTypeRolling
+	}
+
+	if obj.Type == DeploymentStrategyTypeRolling && obj.RollingParams == nil {
+		obj.RollingParams = &RollingDeploymentStrategyParams{
+			IntervalSeconds:     mkintp(deployapi.DefaultRollingIntervalSeconds),
+			UpdatePeriodSeconds: mkintp(deployapi.DefaultRollingUpdatePeriodSeconds),
+			TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
+		}
+	}
+	if obj.Type == DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
+		obj.RecreateParams = &RecreateDeploymentStrategyParams{}
+	}
+}
+
+func SetDefaults_RecreateDeploymentStrategyParams(obj *RecreateDeploymentStrategyParams) {
+	if obj.TimeoutSeconds == nil {
+		obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
+	}
+}
+func SetDefaults_RollingDeploymentStrategyParams(obj *RollingDeploymentStrategyParams) {
+	if obj.IntervalSeconds == nil {
+		obj.IntervalSeconds = mkintp(deployapi.DefaultRollingIntervalSeconds)
+	}
+
+	if obj.UpdatePeriodSeconds == nil {
+		obj.UpdatePeriodSeconds = mkintp(deployapi.DefaultRollingUpdatePeriodSeconds)
+	}
+
+	if obj.TimeoutSeconds == nil {
+		obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
+	}
+
+	if obj.UpdatePercent == nil {
+		// Apply defaults.
+		if obj.MaxUnavailable == nil {
+			maxUnavailable := intstr.FromString("25%")
+			obj.MaxUnavailable = &maxUnavailable
+		}
+		if obj.MaxSurge == nil {
+			maxSurge := intstr.FromString("25%")
+			obj.MaxSurge = &maxSurge
+		}
+	}
+}
+
+func SetDefaults_DeploymentConfig(obj *DeploymentConfig) {
+	for _, t := range obj.Spec.Triggers {
+		if t.ImageChangeParams != nil {
+			t.ImageChangeParams.From.Kind = "ImageStreamTag"
+			if len(t.ImageChangeParams.From.Name) > 0 && len(t.ImageChangeParams.From.Namespace) == 0 {
+				t.ImageChangeParams.From.Namespace = obj.Namespace
+			}
+		}
+	}
+}
+
+func mkintp(i int64) *int64 {
+	return &i
 }
 
 func addDefaultingFuncs(scheme *runtime.Scheme) {
-	mkintp := func(i int64) *int64 {
-		return &i
-	}
-
 	err := scheme.AddDefaultingFuncs(
-		func(obj *DeploymentConfigSpec) {
-			if obj.Triggers == nil {
-				obj.Triggers = []DeploymentTriggerPolicy{
-					{Type: DeploymentTriggerOnConfigChange},
-				}
-			}
-			if len(obj.Selector) == 0 && obj.Template != nil {
-				obj.Selector = obj.Template.Labels
-			}
-
-			// if you only specify a single container, default the TagImages hook to the container name
-			if obj.Template != nil && len(obj.Template.Spec.Containers) == 1 {
-				containerName := obj.Template.Spec.Containers[0].Name
-				if p := obj.Strategy.RecreateParams; p != nil {
-					defaultTagImagesHookContainerName(p.Pre, containerName)
-					defaultTagImagesHookContainerName(p.Mid, containerName)
-					defaultTagImagesHookContainerName(p.Post, containerName)
-				}
-				if p := obj.Strategy.RollingParams; p != nil {
-					defaultTagImagesHookContainerName(p.Pre, containerName)
-					defaultTagImagesHookContainerName(p.Post, containerName)
-				}
-			}
-		},
-		func(obj *DeploymentStrategy) {
-			if len(obj.Type) == 0 {
-				obj.Type = DeploymentStrategyTypeRolling
-			}
-
-			if obj.Type == DeploymentStrategyTypeRolling && obj.RollingParams == nil {
-				obj.RollingParams = &RollingDeploymentStrategyParams{
-					IntervalSeconds:     mkintp(deployapi.DefaultRollingIntervalSeconds),
-					UpdatePeriodSeconds: mkintp(deployapi.DefaultRollingUpdatePeriodSeconds),
-					TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
-				}
-			}
-			if obj.Type == DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
-				obj.RecreateParams = &RecreateDeploymentStrategyParams{}
-			}
-		},
-		func(obj *RecreateDeploymentStrategyParams) {
-			if obj.TimeoutSeconds == nil {
-				obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
-			}
-		},
-		func(obj *RollingDeploymentStrategyParams) {
-			if obj.IntervalSeconds == nil {
-				obj.IntervalSeconds = mkintp(deployapi.DefaultRollingIntervalSeconds)
-			}
-
-			if obj.UpdatePeriodSeconds == nil {
-				obj.UpdatePeriodSeconds = mkintp(deployapi.DefaultRollingUpdatePeriodSeconds)
-			}
-
-			if obj.TimeoutSeconds == nil {
-				obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
-			}
-
-			if obj.UpdatePercent == nil {
-				// Apply defaults.
-				if obj.MaxUnavailable == nil {
-					maxUnavailable := intstr.FromString("25%")
-					obj.MaxUnavailable = &maxUnavailable
-				}
-				if obj.MaxSurge == nil {
-					maxSurge := intstr.FromString("25%")
-					obj.MaxSurge = &maxSurge
-				}
-			}
-		},
-		func(obj *DeploymentTriggerImageChangeParams) {
-			if len(obj.From.Kind) == 0 {
-				obj.From.Kind = "ImageStreamTag"
-			}
-		},
+		SetDefaults_DeploymentConfigSpec,
+		SetDefaults_DeploymentStrategy,
+		SetDefaults_RecreateDeploymentStrategyParams,
+		SetDefaults_RollingDeploymentStrategyParams,
+		SetDefaults_DeploymentConfig,
 	)
 	if err != nil {
 		panic(err)

@@ -8,8 +8,117 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
+
+func TestParseImageStreamImageName(t *testing.T) {
+	tests := map[string]struct {
+		input        string
+		expectedRepo string
+		expectedId   string
+		expectError  bool
+	}{
+		"empty string": {
+			input:       "",
+			expectError: true,
+		},
+		"one part": {
+			input:       "a",
+			expectError: true,
+		},
+		"more than 2 parts": {
+			input:       "a@b@c",
+			expectError: true,
+		},
+		"empty name part": {
+			input:       "@id",
+			expectError: true,
+		},
+		"empty id part": {
+			input:       "name@",
+			expectError: true,
+		},
+		"valid input": {
+			input:        "repo@id",
+			expectedRepo: "repo",
+			expectedId:   "id",
+			expectError:  false,
+		},
+	}
+
+	for name, test := range tests {
+		repo, id, err := ParseImageStreamImageName(test.input)
+		didError := err != nil
+		if e, a := test.expectError, didError; e != a {
+			t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)
+			continue
+		}
+		if test.expectError {
+			continue
+		}
+		if e, a := test.expectedRepo, repo; e != a {
+			t.Errorf("%s: repo: expected %q, got %q", name, e, a)
+			continue
+		}
+		if e, a := test.expectedId, id; e != a {
+			t.Errorf("%s: id: expected %q, got %q", name, e, a)
+			continue
+		}
+	}
+}
+
+func TestParseImageStreamTagName(t *testing.T) {
+	tests := map[string]struct {
+		id           string
+		expectedName string
+		expectedTag  string
+		expectError  bool
+	}{
+		"empty id": {
+			id:          "",
+			expectError: true,
+		},
+		"missing semicolon": {
+			id:          "hello",
+			expectError: true,
+		},
+		"too many semicolons": {
+			id:          "a:b:c",
+			expectError: true,
+		},
+		"empty name": {
+			id:          ":tag",
+			expectError: true,
+		},
+		"empty tag": {
+			id:          "name",
+			expectError: true,
+		},
+		"happy path": {
+			id:           "name:tag",
+			expectError:  false,
+			expectedName: "name",
+			expectedTag:  "tag",
+		},
+	}
+
+	for description, testCase := range tests {
+		name, tag, err := ParseImageStreamTagName(testCase.id)
+		gotError := err != nil
+		if e, a := testCase.expectError, gotError; e != a {
+			t.Fatalf("%s: expected err: %t, got: %t: %s", description, e, a, err)
+		}
+		if err != nil {
+			continue
+		}
+		if e, a := testCase.expectedName, name; e != a {
+			t.Errorf("%s: name: expected %q, got %q", description, e, a)
+		}
+		if e, a := testCase.expectedTag, tag; e != a {
+			t.Errorf("%s: tag: expected %q, got %q", description, e, a)
+		}
+	}
+}
 
 func TestParseDockerImageReference(t *testing.T) {
 	testCases := []struct {
@@ -562,11 +671,11 @@ func TestImageWithMetadata(t *testing.T) {
 				},
 				DockerImageManifest: validImageWithManifestData().DockerImageManifest,
 				DockerImageLayers: []ImageLayer{
-					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Size: 0},
-					{Name: "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd", Size: 188097705},
-					{Name: "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171", Size: 194533},
-					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", Size: 1895},
-					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Size: 0},
+					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 0},
+					{Name: "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 188097705},
+					{Name: "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 194533},
+					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 1895},
+					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 0},
 				},
 				DockerImageMetadata: DockerImage{
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
@@ -645,7 +754,7 @@ func TestImageWithMetadata(t *testing.T) {
 			continue
 		}
 		if e, a := test.expectedImage, imageWithMetadata; !kapi.Semantic.DeepEqual(e, a) {
-			t.Errorf("%s: image: %s", name, util.ObjectDiff(e, a))
+			t.Errorf("%s: image: %s", name, diff.ObjectDiff(e, a))
 		}
 	}
 }
@@ -1300,5 +1409,46 @@ func TestPrioritizeTags(t *testing.T) {
 	PrioritizeTags(tags)
 	if !reflect.DeepEqual(tags, []string{"latest", "v6", "5", "5.6", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"}) {
 		t.Errorf("unexpected order: %v", tags)
+	}
+}
+
+func TestTagsChanged(t *testing.T) {
+	tests := map[string]struct {
+		new     []TagEvent
+		old     []TagEvent
+		changed bool
+		deleted bool
+	}{
+		"both empty": {
+			new:     []TagEvent{},
+			old:     []TagEvent{},
+			changed: false,
+			deleted: false,
+		},
+		"new image": {
+			new:     []TagEvent{{Image: "newimage"}},
+			old:     []TagEvent{},
+			changed: true,
+			deleted: false,
+		},
+		"image deleted": {
+			new:     []TagEvent{},
+			old:     []TagEvent{{Image: "oldimage"}},
+			changed: true,
+			deleted: true,
+		},
+		"image changed": {
+			new:     []TagEvent{{Image: "newimage"}},
+			old:     []TagEvent{{Image: "oldImage"}},
+			changed: true,
+			deleted: false,
+		},
+	}
+	for name, test := range tests {
+		changed, deleted := tagsChanged(test.new, test.old)
+		if changed != test.changed || deleted != test.deleted {
+			t.Errorf("%s: unexpected tagsChanged, expected (%v, %v) got (%v, %v)",
+				name, test.changed, test.deleted, changed, deleted)
+		}
 	}
 }

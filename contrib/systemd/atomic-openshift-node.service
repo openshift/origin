@@ -1,7 +1,7 @@
 [Unit]
 Description=Atomic OpenShift Node
 After=docker.service
-After=atomic-openshift-master.service
+After=openvswitch.service
 Wants=docker.service
 Documentation=https://github.com/openshift/origin
 

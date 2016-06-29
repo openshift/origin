@@ -30,11 +30,10 @@ func NewReplenishmentControllerFactory(osClient osclient.Interface) kresourcequo
 	}
 }
 
-func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (*framework.Controller, error) {
-	var result *framework.Controller
+func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (framework.ControllerInterface, error) {
 	switch options.GroupKind {
 	case imageapi.Kind("ImageStream"):
-		_, result = framework.NewInformer(
+		_, result := framework.NewInformer(
 			&cache.ListWatch{
 				ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 					return r.osClient.ImageStreams(api.NamespaceAll).List(options)
@@ -50,10 +49,10 @@ func (r *replenishmentControllerFactory) NewController(options *kresourcequota.R
 				DeleteFunc: kresourcequota.ObjectReplenishmentDeleteFunc(options),
 			},
 		)
+		return result, nil
 	default:
 		return nil, fmt.Errorf("no replenishment controller available for %s", options.GroupKind)
 	}
-	return result, nil
 }
 
 // ImageStreamReplenishmentUpdateFunc will replenish if the old image stream was quota tracked but the new is not

@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 )
 
-// DiscoveryClient implements the functions that dicovery server-supported API groups,
+// DiscoveryClient implements the functions that discovery server-supported API groups,
 // versions and resources.
 type DiscoveryClient struct {
 	*discovery.DiscoveryClient
@@ -41,9 +41,8 @@ func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (r
 		// ignore 403 or 404 error to be compatible with an v1.0 server.
 		if groupVersion == "v1" && (errors.IsNotFound(err) || errors.IsForbidden(err)) {
 			return parentList, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
 	parentList.APIResources = append(parentList.APIResources, originResources.APIResources...)

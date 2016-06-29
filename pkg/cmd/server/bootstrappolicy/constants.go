@@ -16,9 +16,10 @@ const (
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
 
-	MasterUsername   = "system:" + MasterUnqualifiedUsername
-	RouterUsername   = "system:" + RouterUnqualifiedUsername
-	RegistryUsername = "system:" + RegistryUnqualifiedUsername
+	MasterUsername      = "system:" + MasterUnqualifiedUsername
+	RouterUsername      = "system:" + RouterUnqualifiedUsername
+	RegistryUsername    = "system:" + RegistryUnqualifiedUsername
+	SystemAdminUsername = "system:admin"
 
 	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use
 	// Should not be changed without considering impact to pods that may be verifying this identity by default
@@ -51,6 +52,7 @@ const (
 // Roles
 const (
 	ClusterAdminRoleName    = "cluster-admin"
+	SudoerRoleName          = "sudoer"
 	ClusterReaderRoleName   = "cluster-reader"
 	AdminRoleName           = "admin"
 	EditRoleName            = "edit"
@@ -63,9 +65,10 @@ const (
 	RegistryViewerRoleName = "registry-viewer"
 	RegistryEditorRoleName = "registry-editor"
 
-	BuildStrategyDockerRoleName = "system:build-strategy-docker"
-	BuildStrategyCustomRoleName = "system:build-strategy-custom"
-	BuildStrategySourceRoleName = "system:build-strategy-source"
+	BuildStrategyDockerRoleName          = "system:build-strategy-docker"
+	BuildStrategyCustomRoleName          = "system:build-strategy-custom"
+	BuildStrategySourceRoleName          = "system:build-strategy-source"
+	BuildStrategyJenkinsPipelineRoleName = "system:build-strategy-jenkinspipeline"
 
 	ImageAuditorRoleName      = "system:image-auditor"
 	ImagePullerRoleName       = "system:image-puller"
@@ -118,9 +121,10 @@ const (
 	RegistryViewerRoleBindingName    = RegistryViewerRoleName + "s"
 	RegistryEditorRoleBindingName    = RegistryEditorRoleName + "s"
 
-	BuildStrategyDockerRoleBindingName = BuildStrategyDockerRoleName + "-binding"
-	BuildStrategyCustomRoleBindingName = BuildStrategyCustomRoleName + "-binding"
-	BuildStrategySourceRoleBindingName = BuildStrategySourceRoleName + "-binding"
+	BuildStrategyDockerRoleBindingName          = BuildStrategyDockerRoleName + "-binding"
+	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
+	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
+	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 )

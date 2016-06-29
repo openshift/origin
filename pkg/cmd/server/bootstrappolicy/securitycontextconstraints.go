@@ -51,7 +51,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 	var (
 		// this is set to 10 to allow wiggle room for admins to set other priorities without
 		// having to adjust anyUID.
-		securityContextConstraintsAnyUIDPriority = 10
+		securityContextConstraintsAnyUIDPriority = int32(10)
 	)
 
 	constraints := []kapi.SecurityContextConstraints{
@@ -229,7 +229,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			// prefer the anyuid SCC over ones that force a uid
 			Priority: &securityContextConstraintsAnyUIDPriority,
 			// drops unsafe caps
-			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT"},
+			RequiredDropCapabilities: []kapi.Capability{"MKNOD", "SYS_CHROOT"},
 		},
 		// SecurityContextConstraintsHostNetwork allows host network and host ports
 		{

@@ -10,23 +10,25 @@
 #
 FROM openshift/origin-base
 
-RUN mkdir -p /var/lib/origin
-
-ADD bin/openshift /usr/bin/openshift
+COPY bin/openshift /usr/bin/openshift
 RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/oadm && \
-    ln -s /usr/bin/openshift /usr/bin/osc && \
-    ln -s /usr/bin/openshift /usr/bin/osadm && \
+    ln -s /usr/bin/openshift /usr/bin/origin && \
     ln -s /usr/bin/openshift /usr/bin/kubectl && \
     ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
+    ln -s /usr/bin/openshift /usr/bin/openshift-recycle && \
+    ln -s /usr/bin/openshift /usr/bin/openshift-router && \
     ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-f5-router && \
     setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
-ENV HOME /root
-ENV OPENSHIFT_CONTAINERIZED true
-ENV KUBECONFIG /var/lib/origin/openshift.local.config/master/admin.kubeconfig
+LABEL io.k8s.display-name="OpenShift Origin Application Platform" \
+      io.k8s.description="OpenShift Origin is a platform for developing, building, and deploying containerized applications. See https://docs.openshift.org/latest for more on running OpenShift Origin."
+ENV HOME=/root \
+    OPENSHIFT_CONTAINERIZED=true \
+    KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
+VOLUME /var/lib/origin
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
 ENTRYPOINT ["/usr/bin/openshift"]

@@ -3,20 +3,16 @@ package deployments
 import (
 	"fmt"
 	"math/rand"
-	"sort"
 	"strings"
 	"time"
-
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/test/e2e"
+	"k8s.io/kubernetes/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -26,9 +22,14 @@ const deploymentRunTimeout = 5 * time.Minute
 var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
-		deploymentFixture       = exutil.FixturePath("..", "extended", "fixtures", "test-deployment-test.yaml")
-		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "fixtures", "deployment-simple.yaml")
 		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
+		deploymentFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment-test.yaml")
+		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "deployment-simple.yaml")
+		customDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "custom-deployment.yaml")
+		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
+		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
+		failedHookFixture       = exutil.FixturePath("..", "extended", "testdata", "failing-pre-hook.yaml")
+		brokenDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "test-deployment-broken.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -142,8 +143,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deployment-test-1 to 2"))
-			o.Expect(out).To(o.ContainSubstring("Pre hook finished"))
-			o.Expect(out).To(o.ContainSubstring("Deployment deployment-test-1 successfully made active"))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
+			o.Expect(out).To(o.ContainSubstring("--> Success"))
 
 			g.By("verifying the deployment is marked complete and scaled to zero")
 			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
@@ -176,253 +177,252 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 				out, err = oc.Run("logs").Args("-f", "dc/deployment-test").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
-				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
-				o.Expect(out).To(o.ContainSubstring("Pre hook finished"))
 
 				g.By("verifying the deployment is marked complete and scaled to zero")
 				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+				g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
+				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
+				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
+				o.Expect(out).To(o.ContainSubstring("--> Success"))
 			}
 		})
 	})
+
+	g.Describe("with enhanced status", func() {
+		g.It("should include various info in status [Conformance]", func() {
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that status.replicas is set")
+			replicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.replicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(replicas).To(o.ContainSubstring("2"))
+			g.By("verifying that status.updatedReplicas is set")
+			updatedReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.updatedReplicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(updatedReplicas).To(o.ContainSubstring("2"))
+			g.By("verifying that status.availableReplicas is set")
+			availableReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.availableReplicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(availableReplicas).To(o.ContainSubstring("2"))
+			g.By("verifying that status.unavailableReplicas is set")
+			unavailableReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.unavailableReplicas}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(unavailableReplicas).To(o.ContainSubstring("0"))
+		})
+	})
+
+	g.Describe("with custom deployments", func() {
+		g.It("should run the custom deployment steps [Conformance]", func() {
+			out, err := oc.Run("create").Args("-f", customDeploymentFixture).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+
+			out, err = oc.Run("logs").Args("-f", "dc/custom-deployment").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
+			o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
+			o.Expect(out).To(o.ContainSubstring("--> Scaling custom-deployment-1 to 2"))
+			o.Expect(out).To(o.ContainSubstring("--> Reached 50%"))
+			o.Expect(out).To(o.ContainSubstring("Halfway"))
+			o.Expect(out).To(o.ContainSubstring("Finished"))
+			o.Expect(out).To(o.ContainSubstring("--> Success"))
+		})
+	})
+
+	g.Describe("generation", func() {
+		g.It("should deploy based on a status version bump [Conformance]", func() {
+			resource, name, err := createFixture(oc, generationFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that both latestVersion and generation are updated")
+			version, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+			version = strings.Trim(version, "\"")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the latest version for %s: %s", resource, version))
+			o.Expect(version).To(o.ContainSubstring("1"))
+			generation, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
+			o.Expect(generation).To(o.ContainSubstring("1"))
+
+			g.By("verifying the deployment is marked complete")
+			err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
+				rc, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).Get(name + "-" + version)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return deployutil.IsTerminatedDeployment(rc), nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that scaling updates the generation")
+			_, err = oc.Run("scale").Args(resource, "--replicas=2").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
+			o.Expect(generation).To(o.ContainSubstring("2"))
+
+			g.By("deploying a second time [new client]")
+			_, err = oc.Run("deploy").Args("--latest", name).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that both latestVersion and generation are updated")
+			version, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+			version = strings.Trim(version, "\"")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the latest version for %s: %s", resource, version))
+			o.Expect(version).To(o.ContainSubstring("2"))
+			generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
+			o.Expect(generation).To(o.ContainSubstring("3"))
+
+			g.By("verifying that observedGeneration equals generation")
+			err = wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
+				dc, _, _, err := deploymentInfo(oc, name)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return deployutil.HasSynced(dc), nil
+			})
+		})
+	})
+
+	g.Describe("paused", func() {
+		g.It("should disable actions on deployments [Conformance]", func() {
+			resource, name, err := createFixture(oc, pausedDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, rcs, _, err := deploymentInfo(oc, name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if len(rcs) != 0 {
+				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
+			}
+
+			g.By("verifying that we cannot start a new deployment")
+			out, err := oc.Run("deploy").Args(resource, "--latest").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cannot deploy a paused deployment config"))
+
+			g.By("verifying that we cannot cancel a deployment")
+			out, err = oc.Run("deploy").Args(resource, "--cancel").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cannot cancel a paused deployment config"))
+
+			g.By("verifying that we cannot retry a deployment")
+			out, err = oc.Run("deploy").Args(resource, "--retry").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cannot retry a paused deployment config"))
+
+			g.By("verifying that we cannot rollback a deployment")
+			out, err = oc.Run("rollback").Args(resource, "--to-version", "1").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deployment config"))
+
+			dc, rcs, _, err := deploymentInfo(oc, name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if len(rcs) != 0 {
+				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
+			}
+
+			dc.Spec.Paused = false
+			_, err = oc.REST().DeploymentConfigs(dc.Namespace).Update(dc)
+			// TODO: Retry on update conflicts
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Describe("with failing hook", func() {
+		g.It("should get all logs from retried hooks [Conformance]", func() {
+			resource, name, err := createFixture(oc, failedHookFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentPreHookRetried)).NotTo(o.HaveOccurred())
+
+			out, err := oc.Run("logs").Args(resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Running hook pod ..."))
+			o.Expect(out).To(o.ContainSubstring("no such file or directory"))
+			o.Expect(out).To(o.ContainSubstring("--> pre: Retrying hook pod (retry #1)"))
+		})
+	})
+
+	g.Describe("rolled back", func() {
+		g.It("should rollback to an older deployment [Conformance]", func() {
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			_, err = oc.Run("deploy").Args(name, "--latest").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we are on the second version")
+			version, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			version = strings.Trim(version, "\"")
+			o.Expect(version).To(o.ContainSubstring("2"))
+
+			g.By("verifying that we can rollback")
+			_, err = oc.Run("rollback").Args(resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we are on the third version")
+			version, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			version = strings.Trim(version, "\"")
+			o.Expect(version).To(o.ContainSubstring("3"))
+		})
+	})
+
+	g.Describe("reaper", func() {
+		g.It("should delete all failed deployer pods and hook pods", func() {
+			resource, name, err := createFixture(oc, brokenDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deployment to complete")
+			err = waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)
+			o.Expect(err).To(o.HaveOccurred())
+
+			g.By("fetching the deployer pod")
+			out, err := oc.Run("get").Args("pod", fmt.Sprintf("%s-1-deploy", name)).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Error"))
+
+			g.By("fetching the pre-hook pod")
+			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-hook-pre", name)).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Error"))
+
+			g.By("deleting the deployment config")
+			out, err = oc.Run("delete").Args(resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("fetching the deployer pod")
+			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-deploy", name)).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("not found"))
+
+			g.By("fetching the pre-hook pod")
+			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-hook-pre", name)).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("not found"))
+		})
+	})
 })
-
-func deploymentStatuses(rcs []kapi.ReplicationController) []string {
-	statuses := []string{}
-	for _, rc := range rcs {
-		statuses = append(statuses, string(deployutil.DeploymentStatusFor(&rc)))
-	}
-	return statuses
-}
-
-func deploymentPods(pods []kapi.Pod) (map[string][]*kapi.Pod, error) {
-	deployers := make(map[string][]*kapi.Pod)
-	for i := range pods {
-		name, ok := pods[i].Labels[deployapi.DeployerPodForDeploymentLabel]
-		if !ok {
-			continue
-		}
-		deployers[name] = append(deployers[name], &pods[i])
-	}
-	return deployers, nil
-}
-
-var completedStatuses = sets.NewString(string(deployapi.DeploymentStatusComplete), string(deployapi.DeploymentStatusFailed))
-
-func checkDeployerPodInvariants(deploymentName string, pods []*kapi.Pod) (isRunning, isCompleted bool, err error) {
-	running := false
-	completed := false
-	succeeded := false
-	hasDeployer := false
-
-	// find deployment state
-	for _, pod := range pods {
-		switch {
-		case strings.HasSuffix(pod.Name, "-deploy"):
-			if hasDeployer {
-				return false, false, fmt.Errorf("multiple deployer pods for %q", deploymentName)
-			}
-			hasDeployer = true
-
-			switch pod.Status.Phase {
-			case kapi.PodSucceeded:
-				succeeded = true
-				completed = true
-			case kapi.PodFailed:
-				completed = true
-			default:
-				running = true
-			}
-		case strings.HasSuffix(pod.Name, "-pre"), strings.HasSuffix(pod.Name, "-mid"), strings.HasSuffix(pod.Name, "-post"):
-		default:
-			return false, false, fmt.Errorf("deployer pod %q not recognized as being a valid deployment pod", pod.Name)
-		}
-	}
-
-	// check hook pods
-	for _, pod := range pods {
-		switch {
-		case strings.HasSuffix(pod.Name, "-pre"), strings.HasSuffix(pod.Name, "-mid"), strings.HasSuffix(pod.Name, "-post"):
-			switch pod.Status.Phase {
-			case kapi.PodSucceeded:
-			case kapi.PodFailed:
-				if succeeded {
-					return false, false, fmt.Errorf("deployer hook pod %q failed but the deployment %q pod succeeded", pod.Name, deploymentName)
-				}
-			default:
-				if completed {
-					// TODO: we need to tighten guarantees around hook pods: https://github.com/openshift/origin/issues/8500
-					//for i := range pods {
-					//	e2e.Logf("deployment %q pod[%d]: %#v", deploymentName, i, pods[i])
-					//}
-					//return false, false, fmt.Errorf("deployer hook pod %q is still running but the deployment %q is complete", pod.Name, deploymentName)
-					//e2e.Logf("deployer hook pod %q is still running but the deployment %q is complete", pod.Name, deploymentName)
-				}
-			}
-		}
-	}
-	return running, completed, nil
-}
-
-func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) error {
-	deployers, err := deploymentPods(pods)
-	if err != nil {
-		return err
-	}
-	if len(deployers) > len(rcs) {
-		existing := sets.NewString()
-		for k := range deployers {
-			existing.Insert(k)
-		}
-		for _, rc := range rcs {
-			if existing.Has(rc.Name) {
-				existing.Delete(rc.Name)
-			} else {
-				e2e.Logf("ANOMALY: No deployer pod found for deployment %q", rc.Name)
-			}
-		}
-		for k := range existing {
-			// TODO: we are missing RCs? https://github.com/openshift/origin/pull/8483#issuecomment-209150611
-			e2e.Logf("ANOMALY: Deployer pod found for %q but no RC exists", k)
-			//return fmt.Errorf("more deployer pods found than deployments: %#v %#v", deployers, rcs)
-		}
-	}
-	running := sets.NewString()
-	completed := 0
-	for k, v := range deployers {
-		isRunning, isCompleted, err := checkDeployerPodInvariants(k, v)
-		if err != nil {
-			return err
-		}
-		if isCompleted {
-			completed++
-		}
-		if isRunning {
-			running.Insert(k)
-		}
-	}
-	if running.Len() > 1 {
-		return fmt.Errorf("found multiple running deployments: %v", running.List())
-	}
-	sawStatus := sets.NewString()
-	statuses := []string{}
-	for _, rc := range rcs {
-		status := deployutil.DeploymentStatusFor(&rc)
-		if sawStatus.Len() != 0 {
-			switch status {
-			case deployapi.DeploymentStatusComplete, deployapi.DeploymentStatusFailed:
-				if sawStatus.Difference(completedStatuses).Len() != 0 {
-					return fmt.Errorf("rc %s was %s, but earlier RCs were not completed: %v", rc.Name, status, statuses)
-				}
-			case deployapi.DeploymentStatusRunning, deployapi.DeploymentStatusPending:
-				if sawStatus.Has(string(status)) {
-					return fmt.Errorf("rc %s was %s, but so was an earlier RC: %v", rc.Name, status, statuses)
-				}
-				if sawStatus.Difference(completedStatuses).Len() != 0 {
-					return fmt.Errorf("rc %s was %s, but earlier RCs were not completed: %v", rc.Name, status, statuses)
-				}
-			case deployapi.DeploymentStatusNew:
-			default:
-				return fmt.Errorf("rc %s has unexpected status %s: %v", rc.Name, status, statuses)
-			}
-		}
-		sawStatus.Insert(string(status))
-		statuses = append(statuses, string(status))
-	}
-	return nil
-}
-
-func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController) (bool, error) {
-	if len(rcs) == 0 {
-		return false, nil
-	}
-	rc := rcs[len(rcs)-1]
-	version := deployutil.DeploymentVersionFor(&rc)
-	if version != dc.Status.LatestVersion {
-		return false, nil
-	}
-
-	status := rc.Annotations[deployapi.DeploymentStatusAnnotation]
-	if deployapi.DeploymentStatus(status) != deployapi.DeploymentStatusComplete {
-		return false, nil
-	}
-	expectedReplicas := dc.Spec.Replicas
-	if dc.Spec.Test {
-		expectedReplicas = 0
-	}
-	if rc.Spec.Replicas != expectedReplicas {
-		return false, fmt.Errorf("deployment is complete but doesn't have expected spec replicas: %d %d", rc.Spec.Replicas, expectedReplicas)
-	}
-	if rc.Status.Replicas != expectedReplicas {
-		e2e.Logf("POSSIBLE_ANOMALY: deployment is complete but doesn't have expected status replicas: %d %d", rc.Status.Replicas, expectedReplicas)
-		return false, nil
-	}
-	return true, nil
-}
-
-func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController) (bool, error) {
-	if len(rcs) == 0 {
-		return false, nil
-	}
-	rc := rcs[len(rcs)-1]
-	version := deployutil.DeploymentVersionFor(&rc)
-	if version != dc.Status.LatestVersion {
-		//e2e.Logf("deployment %s is not the latest version on DC: %d", rc.Name, version)
-		return false, nil
-	}
-
-	status := rc.Annotations[deployapi.DeploymentStatusAnnotation]
-	switch deployapi.DeploymentStatus(status) {
-	case deployapi.DeploymentStatusFailed:
-		if deployutil.IsDeploymentCancelled(&rc) {
-			return true, nil
-		}
-		reason := deployutil.DeploymentStatusReasonFor(&rc)
-		if reason == "deployer pod no longer exists" {
-			return true, nil
-		}
-		return false, fmt.Errorf("deployment failed: %v", deployutil.DeploymentStatusReasonFor(&rc))
-	case deployapi.DeploymentStatusRunning, deployapi.DeploymentStatusComplete:
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []kapi.ReplicationController, []kapi.Pod, error) {
-	dc, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// get pods before RCs, so we see more RCs than pods.
-	pods, err := oc.KubeREST().Pods(oc.Namespace()).List(kapi.ListOptions{})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	rcs, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).List(kapi.ListOptions{
-		LabelSelector: deployutil.ConfigSelector(name),
-	})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	sort.Sort(deployutil.ByLatestVersionAsc(rcs.Items))
-
-	return dc, rcs.Items, pods.Items, nil
-}
-
-type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController) (bool, error)
-
-func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
-	return wait.Poll(200*time.Millisecond, timeout, func() (bool, error) {
-		dc, rcs, pods, err := deploymentInfo(oc, name)
-		if err != nil {
-			return false, err
-		}
-		if err := checkDeploymentInvariants(dc, rcs, pods); err != nil {
-			return false, err
-		}
-		return fn(dc, rcs)
-	})
-}

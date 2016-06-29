@@ -81,7 +81,12 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 		return docker.AuthConfiguration{}, false
 	}
 	glog.V(3).Infof("Using %s user for Docker authentication for image %s", authConfs[0].Username, imageName)
-	return authConfs[0], true
+	return docker.AuthConfiguration{
+		Username:      authConfs[0].Username,
+		Password:      authConfs[0].Password,
+		Email:         authConfs[0].Email,
+		ServerAddress: authConfs[0].ServerAddress,
+	}, true
 }
 
 // GetDockercfgFile returns the path to the dockercfg file

@@ -18,9 +18,10 @@ var (
 	errResumableDigestNotAvailable = errors.New("resumable digest not available")
 )
 
-// layerWriter is used to control the various aspects of resumable
-// layer upload. It implements the LayerUpload interface.
+// blobWriter is used to control the various aspects of resumable
+// blob upload.
 type blobWriter struct {
+	ctx       context.Context
 	blobStore *linkedBlobStore
 
 	id        string
@@ -28,11 +29,12 @@ type blobWriter struct {
 	digester  digest.Digester
 	written   int64 // track the contiguous write
 
-	// implementes io.WriteSeeker, io.ReaderFrom and io.Closer to satisfy
-	// LayerUpload Interface
-	bufferedFileWriter
+	fileWriter storagedriver.FileWriter
+	driver     storagedriver.StorageDriver
+	path       string
 
 	resumableDigestEnabled bool
+	committed              bool
 }
 
 var _ distribution.BlobWriter = &blobWriter{}
@@ -51,9 +53,11 @@ func (bw *blobWriter) StartedAt() time.Time {
 func (bw *blobWriter) Commit(ctx context.Context, desc distribution.Descriptor) (distribution.Descriptor, error) {
 	context.GetLogger(ctx).Debug("(*blobWriter).Commit")
 
-	if err := bw.bufferedFileWriter.Close(); err != nil {
+	if err := bw.fileWriter.Commit(); err != nil {
 		return distribution.Descriptor{}, err
 	}
+
+	bw.Close()
 
 	canonical, err := bw.validateBlob(ctx, desc)
 	if err != nil {
@@ -77,6 +81,7 @@ func (bw *blobWriter) Commit(ctx context.Context, desc distribution.Descriptor) 
 		return distribution.Descriptor{}, err
 	}
 
+	bw.committed = true
 	return canonical, nil
 }
 
@@ -84,23 +89,34 @@ func (bw *blobWriter) Commit(ctx context.Context, desc distribution.Descriptor) 
 // the writer and canceling the operation.
 func (bw *blobWriter) Cancel(ctx context.Context) error {
 	context.GetLogger(ctx).Debug("(*blobWriter).Rollback")
+	if err := bw.fileWriter.Cancel(); err != nil {
+		return err
+	}
+
+	if err := bw.Close(); err != nil {
+		context.GetLogger(ctx).Errorf("error closing blobwriter: %s", err)
+	}
+
 	if err := bw.removeResources(ctx); err != nil {
 		return err
 	}
 
-	bw.Close()
 	return nil
+}
+
+func (bw *blobWriter) Size() int64 {
+	return bw.fileWriter.Size()
 }
 
 func (bw *blobWriter) Write(p []byte) (int, error) {
 	// Ensure that the current write offset matches how many bytes have been
 	// written to the digester. If not, we need to update the digest state to
 	// match the current write position.
-	if err := bw.resumeDigestAt(bw.blobStore.ctx, bw.offset); err != nil && err != errResumableDigestNotAvailable {
+	if err := bw.resumeDigest(bw.blobStore.ctx); err != nil && err != errResumableDigestNotAvailable {
 		return 0, err
 	}
 
-	n, err := io.MultiWriter(&bw.bufferedFileWriter, bw.digester.Hash()).Write(p)
+	n, err := io.MultiWriter(bw.fileWriter, bw.digester.Hash()).Write(p)
 	bw.written += int64(n)
 
 	return n, err
@@ -110,26 +126,26 @@ func (bw *blobWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	// Ensure that the current write offset matches how many bytes have been
 	// written to the digester. If not, we need to update the digest state to
 	// match the current write position.
-	if err := bw.resumeDigestAt(bw.blobStore.ctx, bw.offset); err != nil && err != errResumableDigestNotAvailable {
+	if err := bw.resumeDigest(bw.blobStore.ctx); err != nil && err != errResumableDigestNotAvailable {
 		return 0, err
 	}
 
-	nn, err := bw.bufferedFileWriter.ReadFrom(io.TeeReader(r, bw.digester.Hash()))
+	nn, err := io.Copy(io.MultiWriter(bw.fileWriter, bw.digester.Hash()), r)
 	bw.written += nn
 
 	return nn, err
 }
 
 func (bw *blobWriter) Close() error {
-	if bw.err != nil {
-		return bw.err
+	if bw.committed {
+		return errors.New("blobwriter close after commit")
 	}
 
 	if err := bw.storeHashState(bw.blobStore.ctx); err != nil {
 		return err
 	}
 
-	return bw.bufferedFileWriter.Close()
+	return bw.fileWriter.Close()
 }
 
 // validateBlob checks the data against the digest, returning an error if it
@@ -148,8 +164,10 @@ func (bw *blobWriter) validateBlob(ctx context.Context, desc distribution.Descri
 		}
 	}
 
+	var size int64
+
 	// Stat the on disk file
-	if fi, err := bw.bufferedFileWriter.driver.Stat(ctx, bw.path); err != nil {
+	if fi, err := bw.driver.Stat(ctx, bw.path); err != nil {
 		switch err := err.(type) {
 		case storagedriver.PathNotFoundError:
 			// NOTE(stevvooe): We really don't care if the file is
@@ -165,23 +183,23 @@ func (bw *blobWriter) validateBlob(ctx context.Context, desc distribution.Descri
 			return distribution.Descriptor{}, fmt.Errorf("unexpected directory at upload location %q", bw.path)
 		}
 
-		bw.size = fi.Size()
+		size = fi.Size()
 	}
 
 	if desc.Size > 0 {
-		if desc.Size != bw.size {
+		if desc.Size != size {
 			return distribution.Descriptor{}, distribution.ErrBlobInvalidLength
 		}
 	} else {
 		// if provided 0 or negative length, we can assume caller doesn't know or
 		// care about length.
-		desc.Size = bw.size
+		desc.Size = size
 	}
 
 	// TODO(stevvooe): This section is very meandering. Need to be broken down
 	// to be a lot more clear.
 
-	if err := bw.resumeDigestAt(ctx, bw.size); err == nil {
+	if err := bw.resumeDigest(ctx); err == nil {
 		canonical = bw.digester.Digest()
 
 		if canonical.Algorithm() == desc.Digest.Algorithm() {
@@ -206,7 +224,7 @@ func (bw *blobWriter) validateBlob(ctx context.Context, desc distribution.Descri
 		// the same, we don't need to read the data from the backend. This is
 		// because we've written the entire file in the lifecycle of the
 		// current instance.
-		if bw.written == bw.size && digest.Canonical == desc.Digest.Algorithm() {
+		if bw.written == size && digest.Canonical == desc.Digest.Algorithm() {
 			canonical = bw.digester.Digest()
 			verified = desc.Digest == canonical
 		}
@@ -223,7 +241,7 @@ func (bw *blobWriter) validateBlob(ctx context.Context, desc distribution.Descri
 			}
 
 			// Read the file from the backend driver and validate it.
-			fr, err := newFileReader(ctx, bw.bufferedFileWriter.driver, bw.path, desc.Size)
+			fr, err := newFileReader(ctx, bw.driver, bw.path, desc.Size)
 			if err != nil {
 				return distribution.Descriptor{}, err
 			}
@@ -302,7 +320,7 @@ func (bw *blobWriter) moveBlob(ctx context.Context, desc distribution.Descriptor
 			// get a hash, then the underlying file is deleted, we risk moving
 			// a zero-length blob into a nonzero-length blob location. To
 			// prevent this horrid thing, we employ the hack of only allowing
-			// to this happen for the zero tarsum.
+			// to this happen for the digest of an empty tar.
 			if desc.Digest == digest.DigestSha256EmptyTar {
 				return bw.blobStore.driver.PutContent(ctx, blobPath, []byte{})
 			}
@@ -326,7 +344,7 @@ func (bw *blobWriter) moveBlob(ctx context.Context, desc distribution.Descriptor
 // resources are already not present, no error will be returned.
 func (bw *blobWriter) removeResources(ctx context.Context) error {
 	dataPath, err := pathFor(uploadDataPathSpec{
-		name: bw.blobStore.repository.Name(),
+		name: bw.blobStore.repository.Named().Name(),
 		id:   bw.id,
 	})
 
@@ -357,7 +375,7 @@ func (bw *blobWriter) Reader() (io.ReadCloser, error) {
 	// todo(richardscothern): Change to exponential backoff, i=0.5, e=2, n=4
 	try := 1
 	for try <= 5 {
-		_, err := bw.bufferedFileWriter.driver.Stat(bw.ctx, bw.path)
+		_, err := bw.driver.Stat(bw.ctx, bw.path)
 		if err == nil {
 			break
 		}
@@ -371,7 +389,7 @@ func (bw *blobWriter) Reader() (io.ReadCloser, error) {
 		}
 	}
 
-	readCloser, err := bw.bufferedFileWriter.driver.ReadStream(bw.ctx, bw.path, 0)
+	readCloser, err := bw.driver.Reader(bw.ctx, bw.path, 0)
 	if err != nil {
 		return nil, err
 	}

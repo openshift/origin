@@ -8,12 +8,13 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
-	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/observe"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -21,15 +22,15 @@ import (
 
 // rest implements a RESTStorage for authorize tokens against etcd
 type REST struct {
-	// Cannot inline because we don't want the Update function
-	store *etcdgeneric.Etcd
+	*registry.Store
 }
 
 const EtcdPrefix = "/oauth/authorizetokens"
 
 // NewREST returns a RESTStorage object that will work against authorize tokens
-func NewREST(optsGetter restoptions.Getter, backends ...storage.Interface) (*REST, error) {
-	store := &etcdgeneric.Etcd{
+func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
+	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
+	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
@@ -51,7 +52,8 @@ func NewREST(optsGetter restoptions.Getter, backends ...storage.Interface) (*RES
 		},
 		QualifiedResource: api.Resource("oauthauthorizetokens"),
 
-		CreateStrategy: oauthauthorizetoken.Strategy,
+		CreateStrategy: strategy,
+		UpdateStrategy: strategy,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
@@ -75,28 +77,4 @@ func NewREST(optsGetter restoptions.Getter, backends ...storage.Interface) (*RES
 	}
 
 	return &REST{store}, nil
-}
-
-func (r *REST) New() runtime.Object {
-	return r.store.NewFunc()
-}
-
-func (r *REST) NewList() runtime.Object {
-	return r.store.NewListFunc()
-}
-
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	return r.store.Get(ctx, name)
-}
-
-func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	return r.store.List(ctx, options)
-}
-
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	return r.store.Create(ctx, obj)
-}
-
-func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	return r.store.Delete(ctx, name, options)
 }

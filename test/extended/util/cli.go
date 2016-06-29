@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/test/e2e"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/client"
@@ -297,6 +298,26 @@ func (c *CLI) Output() (string, error) {
 		// unreachable code
 		return "", nil
 	}
+}
+
+// Background executes the command in the background and returns the Cmd object
+// returns the Cmd which should be killed later via cmd.Process.Kill(), as well
+// as the stdout and stderr byte buffers assigned to the cmd.Stdout and cmd.Stderr
+// writers.
+func (c *CLI) Background() (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, error) {
+	if c.verbose {
+		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
+	}
+	cmd := exec.Command(c.execPath, c.finalArgs...)
+	cmd.Stdin = c.stdin
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = bufio.NewWriter(&stdout)
+	cmd.Stderr = bufio.NewWriter(&stderr)
+
+	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+
+	err := cmd.Start()
+	return cmd, &stdout, &stderr, err
 }
 
 // Stdout returns the current stdout writer

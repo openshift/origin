@@ -8,9 +8,8 @@ set -o pipefail
 
 STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 
 platforms=( "${OS_CROSS_COMPILE_PLATFORMS[@]}" )
 if [[ -n "${OS_ONLY_BUILD_PLATFORMS-}" ]]; then
@@ -32,11 +31,7 @@ os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 # images "FROM scratch".
 OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
 # Pass the necessary tags
-# IMPORTANT: For 3.2.x, use the vendor/src directory on the GOPATH, since 3.2.x is built with Go 1.4.2 which does not
-#   support the vendor/ directory.
-OS_EXTRA_GOPATH="${OS_ROOT}/Godeps/_workspace/src/github.com/docker/distribution/vendor" \
-  OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" \
-  os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
+OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
 
 # Make the primary client/server release.
 OS_RELEASE_ARCHIVE="openshift-origin"
