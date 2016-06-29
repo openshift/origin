@@ -23,7 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	. "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -63,13 +63,13 @@ func (r *Mock) GetPods(all bool) ([]*Pod, error) {
 	return args.Get(0).([]*Pod), args.Error(1)
 }
 
-func (r *Mock) SyncPod(pod *api.Pod, apiStatus api.PodStatus, status *PodStatus, secrets []api.Secret, backOff *util.Backoff) PodSyncResult {
+func (r *Mock) SyncPod(pod *api.Pod, apiStatus api.PodStatus, status *PodStatus, secrets []api.Secret, backOff *flowcontrol.Backoff) PodSyncResult {
 	args := r.Called(pod, apiStatus, status, secrets, backOff)
 	return args.Get(0).(PodSyncResult)
 }
 
-func (r *Mock) KillPod(pod *api.Pod, runningPod Pod) error {
-	args := r.Called(pod, runningPod)
+func (r *Mock) KillPod(pod *api.Pod, runningPod Pod, gracePeriodOverride *int64) error {
+	args := r.Called(pod, runningPod, gracePeriodOverride)
 	return args.Error(0)
 }
 
@@ -136,4 +136,9 @@ func (r *Mock) PortForward(pod *Pod, port uint16, stream io.ReadWriteCloser) err
 func (r *Mock) GarbageCollect(gcPolicy ContainerGCPolicy) error {
 	args := r.Called(gcPolicy)
 	return args.Error(0)
+}
+
+func (r *Mock) ImageStats() (*ImageStats, error) {
+	args := r.Called()
+	return args.Get(0).(*ImageStats), args.Error(1)
 }

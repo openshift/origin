@@ -36,16 +36,16 @@ for which the external record does not exist, to run the pruning process and com
 flag.
 `
 	pruneExamples = `  # Prune all orphaned groups
-  $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups except the ones from the blacklist file
-  $ %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist file
-  $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   # Prune all orphaned groups from a list of specific groups specified in a whitelist
-  $ %[1]s groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+  %[1]s groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
 `
 )
 

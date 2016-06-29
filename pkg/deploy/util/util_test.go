@@ -74,7 +74,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 	expectedAnnotations := map[string]string{
 		deployapi.DeploymentConfigAnnotation:  config.Name,
 		deployapi.DeploymentStatusAnnotation:  string(deployapi.DeploymentStatusNew),
-		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.Status.LatestVersion),
+		deployapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
 	}
 
 	for key, expected := range expectedAnnotations {
@@ -86,7 +86,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 	expectedAnnotations = map[string]string{
 		deployapi.DeploymentAnnotation:        deployment.Name,
 		deployapi.DeploymentConfigAnnotation:  config.Name,
-		deployapi.DeploymentVersionAnnotation: strconv.Itoa(config.Status.LatestVersion),
+		deployapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
 	}
 
 	for key, expected := range expectedAnnotations {
@@ -134,7 +134,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 }
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
-	mkdeployment := func(version int) kapi.ReplicationController {
+	mkdeployment := func(version int64) kapi.ReplicationController {
 		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 		return *deployment
 	}
@@ -145,13 +145,13 @@ func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 		mkdeployment(3),
 	}
 	sort.Sort(ByLatestVersionAsc(deployments))
-	for i := 0; i < 4; i++ {
+	for i := int64(0); i < 4; i++ {
 		if e, a := i+1, DeploymentVersionFor(&deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
 	}
 	sort.Sort(ByLatestVersionDesc(deployments))
-	for i := 0; i < 4; i++ {
+	for i := int64(0); i < 4; i++ {
 		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}

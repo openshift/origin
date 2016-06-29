@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo
 
-ORIGIN_ROOT=$(
+OS_ROOT=$(
   unset CDPATH
   origin_root=$(dirname "${BASH_SOURCE}")/../..
   cd "${origin_root}"
@@ -28,21 +28,21 @@ systemctl start docker
 setenforce 0 || true
 
 # Add a convenience symlink to the gopath repo
-ln -sf "${ORIGIN_ROOT}" /
+ln -sf "${OS_ROOT}" /
 
 function set_env {
   USER_DIR="${1}"
   # Prefer bashrc to bash_profile since bash_profile is only loaded on
   # login and bashrc is loaded by bash_profile anyway.
   TARGET="${USER_DIR}/.bashrc"
-  OUTPUT_PATH="${ORIGIN_ROOT}/_output/local"
-  if [[ $(grep ${OUTPUT_PATH} ${TARGET}) = "" ]]; then
+  OUTPUT_PATH="${OS_ROOT}/_output/local"
+  if [[ -z "$(grep ${OUTPUT_PATH} ${TARGET})" ]]; then
     echo "export GOPATH=${OUTPUT_PATH}/go" >> ${TARGET}
     # Binpath for origin binaries
     echo "export PATH=${OUTPUT_PATH}/bin/linux/amd64:\$PATH" >> ${TARGET}
     # Binpath for go-getted binaries
     echo "export PATH=${OUTPUT_PATH}/go/bin:\$PATH" >> ${TARGET}
-    echo "cd ${ORIGIN_ROOT}" >> ${TARGET}
+    echo "cd ${OS_ROOT}" >> ${TARGET}
   else
     echo "path variables for ${USER_DIR} already configured"
   fi

@@ -34,7 +34,15 @@ var (
 
 func init() {
 	admission.RegisterPlugin(api.PluginName, func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return newClusterResourceOverride(client, config)
+		pluginConfig, err := ReadConfig(config)
+		if err != nil {
+			return nil, err
+		}
+		if pluginConfig == nil {
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
+			return nil, nil
+		}
+		return newClusterResourceOverride(client, pluginConfig)
 	})
 }
 
@@ -49,32 +57,26 @@ type clusterResourceOverridePlugin struct {
 	ProjectCache *cache.ProjectCache
 	LimitRanger  admission.Interface
 }
+type limitRangerActions struct{}
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
 var _ = oadmission.Validator(&clusterResourceOverridePlugin{})
+var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
-func newClusterResourceOverride(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-	parsed, err := ReadConfig(config)
-	if err != nil {
-		glog.V(5).Infof("%s admission controller loaded with error: (%T) %[2]v", api.PluginName, err)
-		return nil, err
-	}
-	if errs := validation.Validate(parsed); len(errs) > 0 {
-		return nil, errs.ToAggregate()
-	}
-	glog.V(5).Infof("%s admission controller loaded with config: %v", api.PluginName, parsed)
+func newClusterResourceOverride(client clientset.Interface, config *api.ClusterResourceOverrideConfig) (admission.Interface, error) {
+	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, config)
 	var internal *internalConfig
-	if parsed != nil {
+	if config != nil {
 		internal = &internalConfig{
-			limitCPUToMemoryRatio:     inf.NewDec(parsed.LimitCPUToMemoryPercent, 2),
-			cpuRequestToLimitRatio:    inf.NewDec(parsed.CPURequestToLimitPercent, 2),
-			memoryRequestToLimitRatio: inf.NewDec(parsed.MemoryRequestToLimitPercent, 2),
+			limitCPUToMemoryRatio:     inf.NewDec(config.LimitCPUToMemoryPercent, 2),
+			cpuRequestToLimitRatio:    inf.NewDec(config.CPURequestToLimitPercent, 2),
+			memoryRequestToLimitRatio: inf.NewDec(config.MemoryRequestToLimitPercent, 2),
 		}
 	}
 
-	limitRanger, err := limitranger.NewLimitRanger(client, wrapLimit)
+	limitRanger, err := limitranger.NewLimitRanger(client, &limitRangerActions{})
 	if err != nil {
 		return nil, err
 	}
@@ -86,10 +88,14 @@ func newClusterResourceOverride(client clientset.Interface, config io.Reader) (a
 	}, nil
 }
 
-func wrapLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	limitranger.Limit(limitRange, resourceName, obj)
-	// always return success so that all defaults will be applied.
-	// validation will occur after the overrides.
+// these serve to satisfy the interface so that our kept LimitRanger limits nothing and only provides defaults.
+func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
+	return true
+}
+func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
+	return true
+}
+func (d *limitRangerActions) Limit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
 	return nil
 }
 
@@ -111,6 +117,10 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}
 	glog.V(5).Infof("%s config is: %v", api.PluginName, config)
+	if errs := validation.Validate(config); len(errs) > 0 {
+		return nil, errs.ToAggregate()
+	}
+
 	return config, nil
 }
 
@@ -124,7 +134,7 @@ func (a *clusterResourceOverridePlugin) Validate() error {
 // TODO this will need to update when we have pod requests/limits
 func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	glog.V(6).Infof("%s admission controller is invoked", api.PluginName)
-	if a.config == nil || attr.GetResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
+	if a.config == nil || attr.GetResource().GroupResource() != kapi.Resource("pods") || attr.GetSubresource() != "" {
 		return nil // not applicable
 	}
 	pod, ok := attr.GetObject().(*kapi.Pod)

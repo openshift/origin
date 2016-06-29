@@ -24,10 +24,9 @@ import (
 )
 
 func TestFakeHandlerPath(t *testing.T) {
-	handler := FakeHandler{}
+	handler := FakeHandler{StatusCode: http.StatusOK}
 	server := httptest.NewServer(&handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	method := "GET"
 	path := "/foo/bar"
 	body := "somebody"
@@ -47,10 +46,9 @@ func TestFakeHandlerPath(t *testing.T) {
 }
 
 func TestFakeHandlerPathNoBody(t *testing.T) {
-	handler := FakeHandler{}
+	handler := FakeHandler{StatusCode: http.StatusOK}
 	server := httptest.NewServer(&handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	method := "GET"
 	path := "/foo/bar"
 
@@ -79,10 +77,9 @@ func (f *fakeError) Errorf(format string, args ...interface{}) {
 func (f *fakeError) Logf(format string, args ...interface{}) {}
 
 func TestFakeHandlerWrongPath(t *testing.T) {
-	handler := FakeHandler{}
+	handler := FakeHandler{StatusCode: http.StatusOK}
 	server := httptest.NewServer(&handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	method := "GET"
 	path := "/foo/bar"
 	fakeT := fakeError{}
@@ -105,10 +102,9 @@ func TestFakeHandlerWrongPath(t *testing.T) {
 }
 
 func TestFakeHandlerWrongMethod(t *testing.T) {
-	handler := FakeHandler{}
+	handler := FakeHandler{StatusCode: http.StatusOK}
 	server := httptest.NewServer(&handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	method := "GET"
 	path := "/foo/bar"
 	fakeT := fakeError{}
@@ -131,10 +127,9 @@ func TestFakeHandlerWrongMethod(t *testing.T) {
 }
 
 func TestFakeHandlerWrongBody(t *testing.T) {
-	handler := FakeHandler{}
+	handler := FakeHandler{StatusCode: http.StatusOK}
 	server := httptest.NewServer(&handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	method := "GET"
 	path := "/foo/bar"
 	body := "somebody"
@@ -159,10 +154,9 @@ func TestFakeHandlerWrongBody(t *testing.T) {
 }
 
 func TestFakeHandlerNilBody(t *testing.T) {
-	handler := FakeHandler{}
+	handler := FakeHandler{StatusCode: http.StatusOK}
 	server := httptest.NewServer(&handler)
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	method := "GET"
 	path := "/foo/bar"
 	body := "somebody"

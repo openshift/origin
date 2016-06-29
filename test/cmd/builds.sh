@@ -5,10 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -27,7 +25,8 @@ os::test::junit::declare_suite_start "cmd/builds"
 
 os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
-os::cmd::expect_success 'cat "${OS_ROOT}/Dockerfile" | oc new-build -D - --name=test'
+
+os::cmd::expect_success 'cat "${OS_ROOT}/images/origin/Dockerfile" | oc new-build -D - --name=test'
 os::cmd::expect_success 'oc get bc/test'
 
 template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
@@ -112,8 +111,10 @@ echo "patchAnonFields: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/config"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub.+${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic.+${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic"
 os::cmd::expect_success 'oc start-build --list-webhooks='all' ruby-sample-build'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sample-build' 'generic'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
@@ -126,8 +127,36 @@ os::cmd::expect_success 'oc delete all -l build=docker'
 echo "buildConfig: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/builds/setbuildhook"
+# Validate the set build-hook command
+arg="-f test/testdata/test-bc.yaml"
+os::cmd::expect_failure_and_text "oc set build-hook" "error: one or more build configs"
+os::cmd::expect_failure_and_text "oc set build-hook ${arg}" "error: you must specify a type of hook"
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml -- echo 'hello world'" 'postCommit:'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml -- echo 'hello world'" 'args:'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml -- echo 'hello world'" '\- echo'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml -- echo 'hello world'" '\- hello world'
+os::cmd::expect_success_and_not_text "oc set build-hook ${arg} --post-commit -o yaml -- echo 'hello world'" 'command:'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit --command -o yaml -- echo 'hello world'" 'command:'
+os::cmd::expect_success_and_text "oc set build-hook ${arg} --post-commit -o yaml --script='echo \"hello world\"'" 'script: echo \"hello world\"'
+# Server object tests
+os::cmd::expect_success "oc create -f test/testdata/test-bc.yaml"
+os::cmd::expect_failure_and_text "oc set build-hook bc/test-buildconfig --post-commit" "you must specify either a script or command"
+os::cmd::expect_success_and_text "oc set build-hook test-buildconfig --post-commit -- echo 'hello world'" "updated"
+os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit -- echo 'hello world'" "was not changed"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit --command -- /bin/bash -c \"echo 'test'\"" "updated"
+os::cmd::expect_success_and_text "oc get bc/test-buildconfig -o yaml" "command:"
+os::cmd::expect_success_and_text "oc set build-hook --all --post-commit -- echo 'all bc'" "updated"
+os::cmd::expect_success_and_text "oc get bc -o yaml" "all bc"
+os::cmd::expect_success_and_text "oc set build-hook bc/test-buildconfig --post-commit --remove" "updated"
+os::cmd::expect_success_and_not_text "oc get bc/test-buildconfig -o yaml" "args:"
+os::cmd::expect_success "oc delete bc/test-buildconfig"
+echo "set build-hook: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/builds/start-build"
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-buildcli.json'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-buildcli.json'
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
 started=$(oc start-build ruby-sample-build-invalidtag)
@@ -138,14 +167,26 @@ echo "start-build: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/cancel-build"
-os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "Restarted build ${started}."
+os::cmd::expect_success_and_text "oc cancel-build ${started} --dump-logs --restart" "restarted build \"${started}\""
 os::cmd::expect_success 'oc delete all --all'
 os::cmd::expect_success 'oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -'
 os::cmd::try_until_success 'oc get build/ruby-sample-build-1'
 # Uses type/name resource syntax to cancel the build and check for proper message
-os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'Build ruby-sample-build-1 was cancelled.'
+os::cmd::expect_success_and_text 'oc cancel-build build/ruby-sample-build-1' 'build "ruby-sample-build-1" cancelled'
 # Make sure canceling already cancelled build returns proper message
-os::cmd::try_until_text 'oc cancel-build build/ruby-sample-build-1' 'A cancellation event was already triggered for the build ruby-sample-build-1.'
+os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
+# Cancel all builds from a build configuration
+os::cmd::expect_success "oc start-build bc/ruby-sample-build"
+os::cmd::expect_success "oc start-build bc/ruby-sample-build"
+lastbuild=$(oc start-build bc/ruby-sample-build)
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build \"${lastbuild}\" cancelled"
+os::cmd::expect_success_and_text "oc get builds ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
+for state in $builds; do
+  os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"
+done
+# Running this command again when all builds are cancelled should be no-op.
+os::cmd::expect_success 'oc cancel-build bc/ruby-sample-build'
 os::cmd::expect_success 'oc delete all --all'
 echo "cancel-build: ok"
 os::test::junit::declare_suite_end

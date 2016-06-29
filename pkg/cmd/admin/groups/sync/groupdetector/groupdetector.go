@@ -64,7 +64,7 @@ func (l *MemberBasedDetector) Exists(ldapGrouUID string) (bool, error) {
 // NewCompoundDetector returns an LDAPGroupDetector that subsumes some other LDAPGroupDetectors.
 // This detector checks all subordinate detectors in order to determine if a group exists. If any of
 // the subordinate detectors raise an error while being queried, the the search is abandoned and the
-// error returned. All detectors must successfully determine existance for the compound detector to
+// error returned. All detectors must successfully determine existence for the compound detector to
 // determine that the group exists.
 func NewCompoundDetector(locators ...interfaces.LDAPGroupDetector) interfaces.LDAPGroupDetector {
 	return &CompoundDetector{locators: locators}
@@ -73,7 +73,7 @@ func NewCompoundDetector(locators ...interfaces.LDAPGroupDetector) interfaces.LD
 // CompoundDetector is an LDAPGroupDetector that subsumes some other LDAPGroupDetectors.
 // This detector checks all subordinate detectors in order to determine if a group exists. If any of
 // the subordinate detectors raise an error while being queried, the the search is abandoned and the
-// error returned. All detectors must successfully determine existance for the compound detector to
+// error returned. All detectors must successfully determine existence for the compound detector to
 // determine that the group exists.
 type CompoundDetector struct {
 	locators []interfaces.LDAPGroupDetector

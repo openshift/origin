@@ -75,7 +75,7 @@ func makeImage(id int, size int64) container.Image {
 // Make a container with the specified ID. It will use the image with the same ID.
 func makeContainer(id int) *container.Container {
 	return &container.Container{
-		ID:    container.ContainerID{"test", fmt.Sprintf("container-%d", id)},
+		ID:    container.ContainerID{Type: "test", ID: fmt.Sprintf("container-%d", id)},
 		Image: imageName(id),
 	}
 }
@@ -323,7 +323,35 @@ func TestFreeSpaceImagesAlsoDoesLookupByRepoTags(t *testing.T) {
 		{
 			Containers: []*container.Container{
 				{
-					ID:    container.ContainerID{"test", "c5678"},
+					ID:    container.ContainerID{Type: "test", ID: "c5678"},
+					Image: "salad",
+				},
+			},
+		},
+	}
+
+	spaceFreed, err := manager.freeSpace(1024, time.Now())
+	assert := assert.New(t)
+	require.NoError(t, err)
+	assert.EqualValues(1024, spaceFreed)
+	assert.Len(fakeRuntime.ImageList, 1)
+}
+
+func TestFreeSpaceImagesAlsoDoesLookupByRepoDigests(t *testing.T) {
+	manager, fakeRuntime, _ := newRealImageManager(ImageGCPolicy{})
+	fakeRuntime.ImageList = []container.Image{
+		makeImage(0, 1024),
+		{
+			ID:          "5678",
+			RepoDigests: []string{"potato", "salad"},
+			Size:        2048,
+		},
+	}
+	fakeRuntime.AllPodList = []*container.Pod{
+		{
+			Containers: []*container.Container{
+				{
+					ID:    container.ContainerID{Type: "test", ID: "c5678"},
 					Image: "salad",
 				},
 			},
@@ -402,7 +430,7 @@ func TestGarbageCollectNotEnoughFreed(t *testing.T) {
 	assert.NotNil(t, manager.GarbageCollect())
 }
 
-func ETestGarbageCollectImageNotOldEnough(t *testing.T) {
+func TestGarbageCollectImageNotOldEnough(t *testing.T) {
 	policy := ImageGCPolicy{
 		HighThresholdPercent: 90,
 		LowThresholdPercent:  80,

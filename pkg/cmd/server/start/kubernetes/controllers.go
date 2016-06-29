@@ -11,6 +11,7 @@ import (
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/util"
+	kflag "k8s.io/kubernetes/pkg/util/flag"
 )
 
 const controllersLong = `
@@ -41,7 +42,7 @@ func NewControllersCommand(name, fullName string, out io.Writer) *cobra.Command 
 	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
-	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
+	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
 	flags.AddGoFlagSet(flag.CommandLine)
 	controllerOptions.AddFlags(flags)
 

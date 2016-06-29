@@ -10,8 +10,9 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
@@ -51,8 +52,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+	eventRecorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployments-controller"})
 
-	deployController := &DeploymentController{
+	c := &DeploymentController{
 		serviceAccount: factory.ServiceAccount,
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -90,13 +92,13 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 				return pods.Items, nil
 			},
 		},
-		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) *kapi.Container {
 			return factory.makeContainer(strategy)
 		},
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
-		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployment-controller"}),
+		recorder: eventRecorder,
 	}
 
 	return &controller.RetryController{
@@ -110,15 +112,21 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 					return false
 				}
 				if retries.Count > 1 {
+					_, isActionableErr := err.(actionableError)
+					deployment, noReasonToPanic := obj.(*kapi.ReplicationController)
+
+					if isActionableErr && noReasonToPanic {
+						c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedRetry", fmt.Sprintf("About to stop retrying %s: %v", deployment.Name, err))
+					}
 					return false
 				}
 				return true
 			},
-			kutil.NewTokenBucketRateLimiter(1, 10),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			deployment := obj.(*kapi.ReplicationController)
-			return deployController.Handle(deployment)
+			return c.Handle(deployment)
 		},
 	}
 }
@@ -128,36 +136,42 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 //   1. For the Recreate and Rolling strategies, strategy, use the factory's
 //      DeployerImage as the container image, and the factory's Environment
 //      as the container environment.
-//   2. For all Custom strategy, use the strategy's image for the container
-//      image, and use the combination of the factory's Environment and the
-//      strategy's environment as the container environment.
+//   2. For all Custom strategies, or if the CustomParams field is set, use
+//      the strategy's image for the container image, and use the combination
+//      of the factory's Environment and the strategy's environment as the
+//      container environment.
 //
-// An error is returned if the deployment strategy type is not supported.
-func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.DeploymentStrategy) *kapi.Container {
+	image := factory.DeployerImage
+	var environment []kapi.EnvVar
+	var command []string
+
+	set := sets.NewString()
+	// Use user-defined values from the strategy input.
+	if p := strategy.CustomParams; p != nil {
+		if len(p.Image) > 0 {
+			image = p.Image
+		}
+		if len(p.Command) > 0 {
+			command = p.Command
+		}
+		for _, env := range strategy.CustomParams.Environment {
+			set.Insert(env.Name)
+			environment = append(environment, env)
+		}
+	}
+
 	// Set default environment values
-	environment := []kapi.EnvVar{}
 	for _, env := range factory.Environment {
+		if set.Has(env.Name) {
+			continue
+		}
 		environment = append(environment, env)
 	}
 
-	// Every strategy type should be handled here.
-	switch strategy.Type {
-	case deployapi.DeploymentStrategyTypeRecreate, deployapi.DeploymentStrategyTypeRolling:
-		// Use the factory-configured image.
-		return &kapi.Container{
-			Image: factory.DeployerImage,
-			Env:   environment,
-		}, nil
-	case deployapi.DeploymentStrategyTypeCustom:
-		// Use user-defined values from the strategy input.
-		for _, env := range strategy.CustomParams.Environment {
-			environment = append(environment, env)
-		}
-		return &kapi.Container{
-			Image: strategy.CustomParams.Image,
-			Env:   environment,
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported deployment strategy type: %s", strategy.Type)
+	return &kapi.Container{
+		Image:   image,
+		Command: command,
+		Env:     environment,
 	}
 }

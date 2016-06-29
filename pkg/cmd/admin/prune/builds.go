@@ -28,10 +28,10 @@ By default, the prune operation performs a dry run making no changes to internal
 
 	buildsExample = `  # Dry run deleting older completed and failed builds and also including
   # all builds whose associated BuildConfig no longer exists
-  $ %[1]s %[2]s --orphans
+  %[1]s %[2]s --orphans
 
   # To actually perform the prune operation, the confirm flag must be appended
-  $ %[1]s %[2]s --orphans --confirm`
+  %[1]s %[2]s --orphans --confirm`
 )
 
 type pruneBuildsConfig struct {

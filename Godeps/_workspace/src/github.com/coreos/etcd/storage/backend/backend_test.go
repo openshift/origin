@@ -1,29 +1,31 @@
+// Copyright 2015 CoreOS, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package backend
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
-	"path"
 	"testing"
 	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/coreos/etcd/pkg/testutil"
 )
 
-var tmpPath string
-
-func init() {
-	dir, err := ioutil.TempDir(os.TempDir(), "etcd_backend_test")
-	if err != nil {
-		log.Fatal(err)
-	}
-	tmpPath = path.Join(dir, "database")
-}
-
 func TestBackendClose(t *testing.T) {
-	b := newBackend(tmpPath, time.Hour, 10000)
+	b, tmpPath := NewTmpBackend(time.Hour, 10000)
 	defer os.Remove(tmpPath)
 
 	// check close could work
@@ -37,13 +39,13 @@ func TestBackendClose(t *testing.T) {
 	}()
 	select {
 	case <-done:
-	case <-time.After(time.Second):
-		t.Errorf("failed to close database in 1s")
+	case <-time.After(10 * time.Second):
+		t.Errorf("failed to close database in 10s")
 	}
 }
 
 func TestBackendSnapshot(t *testing.T) {
-	b := New(tmpPath, time.Hour, 10000)
+	b, tmpPath := NewTmpBackend(time.Hour, 10000)
 	defer cleanup(b, tmpPath)
 
 	tx := b.BatchTx()
@@ -58,8 +60,9 @@ func TestBackendSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = b.Snapshot(f)
-	if err != nil {
+	snap := b.Snapshot()
+	defer snap.Close()
+	if _, err := snap.WriteTo(f); err != nil {
 		t.Fatal(err)
 	}
 	f.Close()
@@ -78,9 +81,12 @@ func TestBackendSnapshot(t *testing.T) {
 }
 
 func TestBackendBatchIntervalCommit(t *testing.T) {
-	// start backend with super short batch interval
-	b := newBackend(tmpPath, time.Nanosecond, 10000)
+	// start backend with super short batch interval so
+	// we do not need to wait long before commit to happen.
+	b, tmpPath := NewTmpBackend(time.Nanosecond, 10000)
 	defer cleanup(b, tmpPath)
+
+	pc := b.Commits()
 
 	tx := b.BatchTx()
 	tx.Lock()
@@ -88,9 +94,12 @@ func TestBackendBatchIntervalCommit(t *testing.T) {
 	tx.UnsafePut([]byte("test"), []byte("foo"), []byte("bar"))
 	tx.Unlock()
 
-	// give time for batch interval commit to happen
-	time.Sleep(time.Nanosecond)
-	testutil.WaitSchedule()
+	for i := 0; i < 10; i++ {
+		if b.Commits() >= pc+1 {
+			break
+		}
+		time.Sleep(time.Duration(i*100) * time.Millisecond)
+	}
 
 	// check whether put happens via db view
 	b.db.View(func(tx *bolt.Tx) error {
@@ -105,6 +114,47 @@ func TestBackendBatchIntervalCommit(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+func TestBackendDefrag(t *testing.T) {
+	b, tmpPath := NewDefaultTmpBackend()
+	defer cleanup(b, tmpPath)
+
+	tx := b.BatchTx()
+	tx.Lock()
+	tx.UnsafeCreateBucket([]byte("test"))
+	for i := 0; i < defragLimit+100; i++ {
+		tx.UnsafePut([]byte("test"), []byte(fmt.Sprintf("foo_%d", i)), []byte("bar"))
+	}
+	tx.Unlock()
+	b.ForceCommit()
+
+	// shrink and check hash
+	oh, err := b.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = b.Defrag()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nh, err := b.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if oh != nh {
+		t.Errorf("hash = %v, want %v", nh, oh)
+	}
+
+	// try put more keys after shrink.
+	tx = b.BatchTx()
+	tx.Lock()
+	tx.UnsafeCreateBucket([]byte("test"))
+	tx.UnsafePut([]byte("test"), []byte("more"), []byte("bar"))
+	tx.Unlock()
+	b.ForceCommit()
 }
 
 func cleanup(b Backend, path string) {

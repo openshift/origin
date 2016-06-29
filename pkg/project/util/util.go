@@ -86,3 +86,43 @@ func finalizeInternal(kubeClient clientset.Interface, namespace *kapi.Namespace,
 	}
 	return kubeClient.Core().Namespaces().Finalize(&namespaceFinalize)
 }
+
+// ConvertNamespace transforms a Namespace into a Project
+func ConvertNamespace(namespace *kapi.Namespace) *api.Project {
+	return &api.Project{
+		ObjectMeta: namespace.ObjectMeta,
+		Spec: api.ProjectSpec{
+			Finalizers: namespace.Spec.Finalizers,
+		},
+		Status: api.ProjectStatus{
+			Phase: namespace.Status.Phase,
+		},
+	}
+}
+
+// convertProject transforms a Project into a Namespace
+func ConvertProject(project *api.Project) *kapi.Namespace {
+	namespace := &kapi.Namespace{
+		ObjectMeta: project.ObjectMeta,
+		Spec: kapi.NamespaceSpec{
+			Finalizers: project.Spec.Finalizers,
+		},
+		Status: kapi.NamespaceStatus{
+			Phase: project.Status.Phase,
+		},
+	}
+	if namespace.Annotations == nil {
+		namespace.Annotations = map[string]string{}
+	}
+	namespace.Annotations[api.ProjectDisplayName] = project.Annotations[api.ProjectDisplayName]
+	return namespace
+}
+
+// ConvertNamespaceList transforms a NamespaceList into a ProjectList
+func ConvertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
+	projects := &api.ProjectList{}
+	for _, n := range namespaceList.Items {
+		projects.Items = append(projects.Items, *ConvertNamespace(&n))
+	}
+	return projects
+}

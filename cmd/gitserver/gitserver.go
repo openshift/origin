@@ -23,7 +23,7 @@ func main() {
 	}
 
 	basename := filepath.Base(os.Args[0])
-	command := gitserver.NewCommandGitServer(basename)
+	command := gitserver.CommandFor(basename)
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}

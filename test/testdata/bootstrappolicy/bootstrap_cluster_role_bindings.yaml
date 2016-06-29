@@ -1,0 +1,269 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  groupNames:
+  - system:masters
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:masters
+  roleRef:
+    name: system:master
+  subjects:
+  - kind: SystemGroup
+    name: system:masters
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:node-admins
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:node-admins
+  roleRef:
+    name: system:node-admin
+  subjects:
+  - kind: SystemUser
+    name: system:master
+  - kind: SystemGroup
+    name: system:node-admins
+  userNames:
+  - system:master
+- apiVersion: v1
+  groupNames:
+  - system:cluster-admins
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: cluster-admins
+  roleRef:
+    name: cluster-admin
+  subjects:
+  - kind: SystemGroup
+    name: system:cluster-admins
+  - kind: SystemUser
+    name: system:admin
+  userNames:
+  - system:admin
+- apiVersion: v1
+  groupNames:
+  - system:cluster-readers
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: cluster-readers
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: SystemGroup
+    name: system:cluster-readers
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: basic-users
+  roleRef:
+    name: basic-user
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated:oauth
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: self-provisioners
+  roleRef:
+    name: self-provisioner
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated:oauth
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  - system:unauthenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:oauth-token-deleters
+  roleRef:
+    name: system:oauth-token-deleter
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  - kind: SystemGroup
+    name: system:unauthenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  - system:unauthenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: cluster-status-binding
+  roleRef:
+    name: cluster-status
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  - kind: SystemGroup
+    name: system:unauthenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:routers
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:routers
+  roleRef:
+    name: system:router
+  subjects:
+  - kind: SystemGroup
+    name: system:routers
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:registries
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:registrys
+  roleRef:
+    name: system:registry
+  subjects:
+  - kind: SystemGroup
+    name: system:registries
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:nodes
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:nodes
+  roleRef:
+    name: system:node
+  subjects:
+  - kind: SystemGroup
+    name: system:nodes
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:nodes
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:node-proxiers
+  roleRef:
+    name: system:node-proxier
+  subjects:
+  - kind: SystemGroup
+    name: system:nodes
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:nodes
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:sdn-readers
+  roleRef:
+    name: system:sdn-reader
+  subjects:
+  - kind: SystemGroup
+    name: system:nodes
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  - system:unauthenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:webhooks
+  roleRef:
+    name: system:webhook
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  - kind: SystemGroup
+    name: system:unauthenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  - system:unauthenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:discovery-binding
+  roleRef:
+    name: system:discovery
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  - kind: SystemGroup
+    name: system:unauthenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-docker-binding
+  roleRef:
+    name: system:build-strategy-docker
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-custom-binding
+  roleRef:
+    name: system:build-strategy-custom
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-source-binding
+  roleRef:
+    name: system:build-strategy-source
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:authenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:build-strategy-jenkinspipeline-binding
+  roleRef:
+    name: system:build-strategy-jenkinspipeline
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  userNames: null
+kind: List
+metadata: {}

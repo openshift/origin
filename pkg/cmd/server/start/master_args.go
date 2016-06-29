@@ -88,10 +88,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.StringSliceVar(&args.APIServerCAFiles, prefix+"certificate-authority", args.APIServerCAFiles, "Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.")
 
-	nodes := []string{}
-	flags.StringSliceVar(&nodes, prefix+"nodes", nodes, "DEPRECATED: nodes now register themselves")
-	flags.MarkDeprecated(prefix+"nodes", "Nodes register themselves at startup, and are no longer statically registered")
-
 	flags.StringSliceVar(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", []string{}, "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
 
 	// autocompletion hints
@@ -105,7 +101,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		MasterAddr:       flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "tcp", DefaultPort: 53, AllowPrefix: true}.Default(),
+		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:8053", DefaultScheme: "tcp", DefaultPort: 8053, AllowPrefix: true}.Default(),
 
 		ConfigDir: &util.StringFlag{},
 
@@ -184,6 +180,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
 
+	serviceServingCertSigner := admin.DefaultServiceSignerCAInfo(args.ConfigDir.Value())
+
 	dnsServingInfo := servingInfoForAddr(&dnsBindAddr)
 
 	config := &configapi.MasterConfig{
@@ -213,6 +211,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		DNSConfig: &configapi.DNSConfig{
 			BindAddress: dnsServingInfo.BindAddress,
 			BindNetwork: dnsServingInfo.BindNetwork,
+
+			AllowRecursiveQueries: true,
 		},
 
 		MasterClients: configapi.MasterClients{
@@ -256,6 +256,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		VolumeConfig: configapi.MasterVolumeConfig{
 			DynamicProvisioningEnabled: true,
+		},
+
+		ControllerConfig: configapi.ControllerConfig{
+			ServiceServingCert: configapi.ServiceServingCert{
+				Signer: &serviceServingCertSigner,
+			},
 		},
 	}
 
@@ -542,7 +548,7 @@ func (args MasterArgs) GetDNSBindAddress() (flagtypes.Addr, error) {
 	if args.DNSBindAddr.Provided {
 		return args.DNSBindAddr, nil
 	}
-	dnsAddr := flagtypes.Addr{Value: args.ListenArg.ListenAddr.Host, DefaultPort: 53}.Default()
+	dnsAddr := flagtypes.Addr{Value: args.ListenArg.ListenAddr.Host, DefaultPort: args.DNSBindAddr.DefaultPort}.Default()
 	return dnsAddr, nil
 }
 

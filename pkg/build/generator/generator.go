@@ -18,6 +18,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -210,7 +211,7 @@ func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
 	*buildEnv = newEnv
 }
 
-// Instantiate returns new Build object based on a BuildRequest object
+// Instantiate returns a new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
@@ -219,43 +220,53 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	}
 
 	if buildutil.IsPaused(bc) {
-		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)}
+		return nil, errors.NewInternalError(&GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)})
 	}
 
 	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {
-		return nil, err
+		return nil, errors.NewBadRequest(err.Error())
 	}
 
 	if err := g.updateImageTriggers(ctx, bc, request.From, request.TriggeredByImage); err != nil {
-		return nil, err
+		return nil, errors.NewInternalError(err)
 	}
 
 	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision, request.Binary)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewInternalError(err)
 	}
+
+	// Add labels and annotations from the buildrequest.  Existing
+	// label/annotations will take precedence because we don't want system
+	// annotations/labels (eg buildname) to get stomped on.
+	newBuild.Annotations = policy.MergeMaps(request.Annotations, newBuild.Annotations)
+	newBuild.Labels = policy.MergeMaps(request.Labels, newBuild.Labels)
+	// Copy build trigger information to the build object.
+	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
 		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
 	}
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 
-	// need to update the BuildConfig because LastVersion and possibly LastTriggeredImageID changed
+	// need to update the BuildConfig because LastVersion and possibly
+	// LastTriggeredImageID changed
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
 		glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
 		return nil, err
 	}
 
-	// Ideally we would create the build *before* updating the BC to ensure that we don't set the LastTriggeredImageID
-	// on the BC and then fail to create the corresponding build, however doing things in that order allows for a race
-	// condition in which two builds get kicked off.  Doing it in this order ensures that we catch the race while
-	// updating the BC.
+	// Ideally we would create the build *before* updating the BC to ensure
+	// that we don't set the LastTriggeredImageID on the BC and then fail to
+	// create the corresponding build, however doing things in that order
+	// allows for a race condition in which two builds get kicked off.  Doing
+	// it in this order ensures that we catch the race while updating the BC.
 	return g.createBuild(ctx, newBuild)
 }
 
 // checkBuildConfigLastVersion will return an error if the BuildConfig's LastVersion doesn't match the passed in lastVersion
 // when lastVersion is not nil
-func (g *BuildGenerator) checkLastVersion(bc *buildapi.BuildConfig, lastVersion *int) error {
+func (g *BuildGenerator) checkLastVersion(bc *buildapi.BuildConfig, lastVersion *int64) error {
 	if lastVersion != nil && bc.Status.LastVersion != *lastVersion {
 		glog.V(2).Infof("Aborting version triggered build for BuildConfig %s/%s because the BuildConfig LastVersion (%d) does not match the requested LastVersion (%d)", bc.Namespace, bc.Name, bc.Status.LastVersion, *lastVersion)
 		return fmt.Errorf("the LastVersion(%v) on build config %s/%s does not match the build request LastVersion(%d)",
@@ -324,12 +335,19 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 		}
 
 		if buildutil.IsPaused(buildConfig) {
-			return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)}
+			return nil, errors.NewInternalError(&GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)})
 		}
 	}
 
 	newBuild := generateBuildFromBuild(build, buildConfig)
 	glog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
+
+	buildTriggerCauses := []buildapi.BuildTriggerCause{}
+	newBuild.Spec.TriggeredBy = append(buildTriggerCauses,
+		buildapi.BuildTriggerCause{
+			Message: "Manually triggered",
+		},
+	)
 
 	// need to update the BuildConfig because LastVersion changed
 	if buildConfig != nil {
@@ -375,14 +393,16 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
 		Spec: buildapi.BuildSpec{
-			ServiceAccount:            serviceAccount,
-			Source:                    bcCopy.Spec.Source,
-			Strategy:                  bcCopy.Spec.Strategy,
-			Output:                    bcCopy.Spec.Output,
-			Revision:                  revision,
-			Resources:                 bcCopy.Spec.Resources,
-			PostCommit:                bcCopy.Spec.PostCommit,
-			CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
+			CommonSpec: buildapi.CommonSpec{
+				ServiceAccount:            serviceAccount,
+				Source:                    bcCopy.Spec.Source,
+				Strategy:                  bcCopy.Spec.Strategy,
+				Output:                    bcCopy.Spec.Output,
+				Revision:                  revision,
+				Resources:                 bcCopy.Spec.Resources,
+				PostCommit:                bcCopy.Spec.PostCommit,
+				CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
+			},
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,
@@ -409,13 +429,14 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	if build.Annotations == nil {
 		build.Annotations = make(map[string]string)
 	}
-	build.Annotations[buildapi.BuildNumberAnnotation] = strconv.Itoa(bc.Status.LastVersion)
+	build.Annotations[buildapi.BuildNumberAnnotation] = strconv.FormatInt(bc.Status.LastVersion, 10)
 	build.Annotations[buildapi.BuildConfigAnnotation] = bcCopy.Name
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
 	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildConfigLabel] = buildapi.LabelValue(bcCopy.Name)
+	build.Labels[buildapi.BuildRunPolicyLabel] = string(bc.Spec.RunPolicy)
 
 	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace, serviceAccount)
 	if err != nil {
@@ -682,7 +703,7 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 	}
 	newBuild.Annotations[buildapi.BuildCloneAnnotation] = build.Name
 	if buildConfig != nil {
-		newBuild.Annotations[buildapi.BuildNumberAnnotation] = strconv.Itoa(buildConfig.Status.LastVersion)
+		newBuild.Annotations[buildapi.BuildNumberAnnotation] = strconv.FormatInt(buildConfig.Status.LastVersion, 10)
 	} else {
 		// builds without a buildconfig don't have build numbers.
 		delete(newBuild.Annotations, buildapi.BuildNumberAnnotation)

@@ -14,6 +14,7 @@
 function os::log::install_system_logger_cleanup() {
     trap "os::log::clean_up_logger; $(trap -p EXIT | awk -F"'" '{print $2}')" EXIT
 }
+readonly -f os::log::install_system_logger_cleanup
 
 # os::log::clean_up_logger should be trapped so that it can stop the logging utility once the script that
 # installed it is finished.
@@ -81,6 +82,7 @@ function os::log::clean_up_logger() {
 
     return "${return_code}"
 }
+readonly -f os::log::clean_up_logger
 
 # os::log::internal::prune_datafile removes the given columns from a datafile created by 'sadf -d'
 #
@@ -118,6 +120,7 @@ function os::log::internal::prune_datafile() {
     sed -i '1s/^/# /' "${datafile}.tmp"
     mv "${datafile}.tmp" "${datafile}"
 }
+readonly -f os::log::internal::prune_datafile
 
 # os::log::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used 
 # on the output of a 'sar -f' read of a sar binary file. Plots will be made of all columns and stacked on each other with one x axis.
@@ -183,7 +186,7 @@ function os::log::internal::plot() {
 
     echo "[INFO] Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
 }
-
+readonly -f os::log::internal::plot
 
 # os::log::start_system_logger installs the system logger and begins logging
 #
@@ -207,7 +210,7 @@ function os::log::start_system_logger() {
 
     os::log::install_system_logger_cleanup
 }
-
+readonly -f os::log::start_system_logger
 
 # os::log::internal::run_system_logger runs the system logger in the background.
 # 'sar' is configured to run once a second for 24 hours, so the cleanup trap should be installed to ensure that
@@ -230,3 +233,4 @@ function os::log::internal::run_system_logger() {
     readonly LOGGER_PID
     export LOGGER_PID
 }
+readonly -f os::log::internal::run_system_logger

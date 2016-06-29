@@ -8,6 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
@@ -80,7 +81,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
-	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForPodCreationServiceAccounts(kubeClient, testutil.Namespace()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	return openShiftClient, kubeClient
@@ -197,8 +198,8 @@ func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]s
 	return rs
 }
 
-func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) *extensions.Job {
-	job := &extensions.Job{}
+func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) *batch.Job {
+	job := &batch.Job{}
 	job.Name = "testjob"
 	job.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	job.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)

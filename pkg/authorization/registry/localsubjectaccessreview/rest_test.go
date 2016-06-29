@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -15,8 +16,11 @@ import (
 )
 
 type subjectAccessTest struct {
-	authorizer    *testAuthorizer
-	reviewRequest *authorizationapi.LocalSubjectAccessReview
+	authorizer     *testAuthorizer
+	reviewRequest  *authorizationapi.LocalSubjectAccessReview
+	requestingUser *user.DefaultInfo
+
+	expectedUserInfo *user.DefaultInfo
 }
 
 type testAuthorizer struct {
@@ -25,9 +29,12 @@ type testAuthorizer struct {
 	err     string
 
 	actualAttributes authorizer.DefaultAuthorizationAttributes
+	actualUserInfo   user.Info
 }
 
 func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+	a.actualUserInfo, _ = kapi.UserFrom(ctx)
+
 	// allow the initial check for "can I run this SAR at all"
 	if passedAttributes.GetResource() == "localsubjectaccessreviews" {
 		return true, "", nil
@@ -109,6 +116,11 @@ func TestEmptyReturn(t *testing.T) {
 			User:   "foo",
 			Groups: sets.NewString(),
 		},
+		expectedUserInfo: &user.DefaultInfo{
+			Name:   "foo",
+			Groups: []string{},
+			Extra:  map[string][]string{},
+		},
 	}
 
 	test.runTest(t)
@@ -127,6 +139,11 @@ func TestNoErrors(t *testing.T) {
 				Resource:  "deploymentConfigs",
 			},
 			Groups: sets.NewString("not-master"),
+		},
+		expectedUserInfo: &user.DefaultInfo{
+			Name:   "",
+			Groups: []string{"not-master"},
+			Extra:  map[string][]string{},
 		},
 	}
 
@@ -152,6 +169,92 @@ func TestErrors(t *testing.T) {
 	test.runTest(t)
 }
 
+func TestRegularWithScopes(t *testing.T) {
+	test := &subjectAccessTest{
+		authorizer: &testAuthorizer{
+			allowed: true,
+			reason:  "because good things",
+		},
+		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Namespace: "unittest",
+				Verb:      "delete",
+				Resource:  "deploymentConfigs",
+			},
+			Groups: sets.NewString("not-master"),
+			Scopes: []string{"scope-01"},
+		},
+		expectedUserInfo: &user.DefaultInfo{
+			Name:   "",
+			Groups: []string{"not-master"},
+			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-01"}},
+		},
+		requestingUser: &user.DefaultInfo{
+			Name:   "",
+			Groups: []string{"different"},
+			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+		},
+	}
+
+	test.runTest(t)
+}
+func TestSelfWithDefaultScopes(t *testing.T) {
+	test := &subjectAccessTest{
+		authorizer: &testAuthorizer{
+			allowed: true,
+			reason:  "because good things",
+		},
+		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Namespace: "unittest",
+				Verb:      "delete",
+				Resource:  "deploymentConfigs",
+			},
+		},
+		expectedUserInfo: &user.DefaultInfo{
+			Name:   "me",
+			Groups: []string{"group"},
+			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+		},
+		requestingUser: &user.DefaultInfo{
+			Name:   "me",
+			Groups: []string{"group"},
+			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+		},
+	}
+
+	test.runTest(t)
+}
+
+func TestSelfWithClearedScopes(t *testing.T) {
+	test := &subjectAccessTest{
+		authorizer: &testAuthorizer{
+			allowed: true,
+			reason:  "because good things",
+		},
+		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Namespace: "unittest",
+				Verb:      "delete",
+				Resource:  "deploymentConfigs",
+			},
+			Scopes: []string{},
+		},
+		expectedUserInfo: &user.DefaultInfo{
+			Name:   "me",
+			Groups: []string{"group"},
+			Extra:  map[string][]string{},
+		},
+		requestingUser: &user.DefaultInfo{
+			Name:   "me",
+			Groups: []string{"group"},
+			Extra:  map[string][]string{authorizationapi.ScopesKey: {"scope-02"}},
+		},
+	}
+
+	test.runTest(t)
+}
+
 func (r *subjectAccessTest) runTest(t *testing.T) {
 	storage := NewREST(subjectaccessreview.NewRegistry(subjectaccessreview.NewREST(r.authorizer)))
 
@@ -164,6 +267,10 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), r.reviewRequest.Action.Namespace)
+	if r.requestingUser != nil {
+		ctx = kapi.WithUser(ctx, r.requestingUser)
+	}
+
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)
@@ -182,7 +289,7 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	switch obj.(type) {
 	case *authorizationapi.SubjectAccessReviewResponse:
 		if !reflect.DeepEqual(expectedResponse, obj) {
-			t.Errorf("diff %v", util.ObjectGoPrintDiff(expectedResponse, obj))
+			t.Errorf("diff %v", diff.ObjectGoPrintDiff(expectedResponse, obj))
 		}
 	case nil:
 		if len(r.authorizer.err) == 0 {
@@ -194,6 +301,11 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedAttributes, r.authorizer.actualAttributes) {
-		t.Errorf("diff %v", util.ObjectGoPrintDiff(expectedAttributes, r.authorizer.actualAttributes))
+		t.Errorf("diff %v", diff.ObjectGoPrintDiff(expectedAttributes, r.authorizer.actualAttributes))
 	}
+
+	if !reflect.DeepEqual(r.expectedUserInfo, r.authorizer.actualUserInfo) {
+		t.Errorf("diff %v", diff.ObjectGoPrintDiff(r.expectedUserInfo, r.authorizer.actualUserInfo))
+	}
+
 }

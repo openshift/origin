@@ -20,6 +20,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	imageedges "github.com/openshift/origin/pkg/image/graph"
 )
 
 func TestServiceGroup(t *testing.T) {
@@ -131,6 +132,26 @@ func TestBareDCGroup(t *testing.T) {
 	}
 }
 
+func TestAllBCImageInputs(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/prereq-image-present.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+	imageedges.AddAllImageStreamImageRefEdges(g)
+
+	coveredNodes := IntSet{}
+
+	bareBCPipelines, coveredByBCs := AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByBCs.List()...)
+
+	if e, a := 4, len(bareBCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
 func TestBareBCGroup(t *testing.T) {
 	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-bc.yaml")
 	if err != nil {
@@ -210,7 +231,7 @@ func TestGraph(t *testing.T) {
 					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Strategy: buildapi.BuildStrategy{
 					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
@@ -225,7 +246,7 @@ func TestGraph(t *testing.T) {
 	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "other:base-image"},
 				},
@@ -235,7 +256,7 @@ func TestGraph(t *testing.T) {
 	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build2"},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{Kind: "DockerImage", Name: "mycustom/repo/image:tag2"},
 				},

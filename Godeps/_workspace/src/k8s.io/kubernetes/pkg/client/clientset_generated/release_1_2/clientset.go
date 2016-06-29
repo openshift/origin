@@ -18,10 +18,10 @@ package release_1_2
 
 import (
 	"github.com/golang/glog"
+	v1core "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_2/typed/core/v1"
+	v1beta1extensions "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_2/typed/extensions/v1beta1"
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	discovery "k8s.io/kubernetes/pkg/client/typed/discovery"
-	v1core "k8s.io/kubernetes/pkg/client/typed/generated/core/v1"
-	v1beta1extensions "k8s.io/kubernetes/pkg/client/typed/generated/extensions/v1beta1"
 )
 
 type Interface interface {

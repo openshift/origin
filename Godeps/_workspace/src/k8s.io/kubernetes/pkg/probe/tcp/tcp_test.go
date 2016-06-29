@@ -42,8 +42,7 @@ func TestTcpHealthChecker(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-	// TODO: Uncomment when fix #19254
-	// defer server.Close()
+	defer server.Close()
 	tHost, tPortStr, err := net.SplitHostPort(server.Listener.Addr().String())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -66,7 +65,12 @@ func TestTcpHealthChecker(t *testing.T) {
 		// A connection is made and probing would succeed
 		{tHost, tPort, probe.Success, nil, []string{""}},
 		// No connection can be made and probing would fail
-		{tHost, -1, probe.Failure, nil, []string{"unknown port", "Servname not supported for ai_socktype", "nodename nor servname provided, or not known"}},
+		{tHost, -1, probe.Failure, nil, []string{
+			"unknown port",
+			"Servname not supported for ai_socktype",
+			"nodename nor servname provided, or not known",
+			"dial tcp: invalid port",
+		}},
 	}
 
 	prober := New()

@@ -2,7 +2,6 @@ package git
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -64,10 +63,10 @@ type FileProtoDetails struct {
 	BadRef bool
 }
 
-var gitSshURLUser = regexp.MustCompile(`^([\w\-_\.]+)$`)
-var gitSshURLIPv4 = regexp.MustCompile(`^([\w\.\-_]+)$`)         // should cover textual hostnames and x.x.x.x
-var gitSshURLIPv6 = regexp.MustCompile(`^(\[[a-fA-F0-9\:]+\])$`) // should cover [hex:hex ... :hex]
-var gitSshURLPathRef = regexp.MustCompile(`^([\w\.\-_+\/\\]+)$`)
+var gitSSHURLUser = regexp.MustCompile(`^([\w\-_\.]+)$`)
+var gitSSHURLIPv4 = regexp.MustCompile(`^([\w\.\-_]+)$`)         // should cover textual hostnames and x.x.x.x
+var gitSSHURLIPv6 = regexp.MustCompile(`^(\[[a-fA-F0-9\:]+\])$`) // should cover [hex:hex ... :hex]
+var gitSSHURLPathRef = regexp.MustCompile(`^([\w\.\-_+\/\\]+)$`)
 
 var allowedSchemes = []string{"git", "http", "https", "file", "ssh"}
 
@@ -138,7 +137,7 @@ func (h *stiGit) MungeNoProtocolURL(source string, uri *url.URL) error {
 	details, mods := ParseFile(source)
 
 	if details.BadRef {
-		return errors.New(fmt.Sprintf("bad reference following # in %s", source))
+		return fmt.Errorf("bad reference following # in %s", source)
 	}
 	if !details.FileExists {
 		mods2, err := ParseSSH(source)
@@ -182,12 +181,12 @@ func ParseURL(source string) (*url.URL, error) {
 	// to work around the url.Parse bug, deal with the fact it seemed to split on just :
 	if strings.Index(source, "://") == -1 && uri.Scheme != "" {
 		uri.Scheme = ""
-		return nil, errors.New(fmt.Sprintf("url source %s mistakingly interpreted as protocol %s by golang", source, uri.Scheme))
+		return nil, fmt.Errorf("url source %s mistakingly interpreted as protocol %s by golang", source, uri.Scheme)
 	}
 
 	// now see if an invalid protocol is specified
 	if !stringInSlice(uri.Scheme, allowedSchemes) {
-		return nil, errors.New(fmt.Sprintf("unsupported protocol specfied:  %s", uri.Scheme))
+		return nil, fmt.Errorf("unsupported protocol specfied:  %s", uri.Scheme)
 	}
 
 	// have a valid protocol, return sucess
@@ -260,7 +259,7 @@ func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
 			return
 		}
 		// if ref/frag bad, return bad
-		if !gitSshURLPathRef.MatchString(ref) {
+		if !gitSSHURLPathRef.MatchString(ref) {
 			details = &FileProtoDetails{
 				UseCopy:        false,
 				FileExists:     true,
@@ -302,7 +301,7 @@ func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
 func ParseSSH(source string) (*URLMods, error) {
 	// if not ssh protcol, return bad
 	if strings.Index(source, "://") != -1 && !strings.HasPrefix(source, "ssh") {
-		return nil, errors.New(fmt.Sprintf("not ssh protocol: %s", source))
+		return nil, fmt.Errorf("not ssh protocol: %s", source)
 	}
 
 	lastColonIdx := strings.LastIndex(source, ":")
@@ -316,8 +315,8 @@ func ParseSSH(source string) (*URLMods, error) {
 			user, host = segments[0], segments[1]
 
 			// bad user, return
-			if !gitSshURLUser.MatchString(user) {
-				return nil, errors.New(fmt.Sprintf("invalid user name provided: %s from %s", user, source))
+			if !gitSSHURLUser.MatchString(user) {
+				return nil, fmt.Errorf("invalid user name provided: %s from %s", user, source)
 			}
 
 			// because of ipv6, need to redo last index of :
@@ -326,7 +325,7 @@ func ParseSSH(source string) (*URLMods, error) {
 				path = host[lastColonIdx+1:]
 				host = host[0:lastColonIdx]
 			} else {
-				return nil, errors.New(fmt.Sprintf("invalid git ssh clone spec, the @ precedes the last: %s", source))
+				return nil, fmt.Errorf("invalid git ssh clone spec, the @ precedes the last: %s", source)
 			}
 		} else {
 			host = source[0:lastColonIdx]
@@ -334,8 +333,8 @@ func ParseSSH(source string) (*URLMods, error) {
 		}
 
 		// bad host, either ipv6 or ipv4
-		if !gitSshURLIPv6.MatchString(host) && !gitSshURLIPv4.MatchString(host) {
-			return nil, errors.New(fmt.Sprintf("invalid host provided: %s from %s", host, source))
+		if !gitSSHURLIPv6.MatchString(host) && !gitSSHURLIPv4.MatchString(host) {
+			return nil, fmt.Errorf("invalid host provided: %s from %s", host, source)
 		}
 
 		segments := strings.SplitN(path, "#", 2)
@@ -343,14 +342,14 @@ func ParseSSH(source string) (*URLMods, error) {
 			path, ref = segments[0], segments[1]
 
 			// bad ref/frag
-			if !gitSshURLPathRef.MatchString(ref) {
-				return nil, errors.New(fmt.Sprintf("invalid reference provided: %s from %s", ref, source))
+			if !gitSSHURLPathRef.MatchString(ref) {
+				return nil, fmt.Errorf("invalid reference provided: %s from %s", ref, source)
 			}
 		}
 
 		// bad path
-		if !gitSshURLPathRef.MatchString(path) {
-			return nil, errors.New(fmt.Sprintf("invalid path provided: %s from ", path, source))
+		if !gitSSHURLPathRef.MatchString(path) {
+			return nil, fmt.Errorf("invalid path provided: %s from %s", path, source)
 		}
 
 		// return good
@@ -362,7 +361,7 @@ func ParseSSH(source string) (*URLMods, error) {
 			Ref:    ref,
 		}, nil
 	}
-	return nil, errors.New(fmt.Sprintf("unable to parse ssh git clone specification:  %s", source))
+	return nil, fmt.Errorf("unable to parse ssh git clone specification:  %s", source)
 }
 
 // isLocalGitRepository checks if the specified directory has .git subdirectory (it

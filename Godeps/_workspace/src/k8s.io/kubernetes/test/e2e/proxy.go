@@ -29,12 +29,13 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/net"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Proxy", func() {
+var _ = framework.KubeDescribe("Proxy", func() {
 	version := testapi.Default.GroupVersion().Version
 	Context("version "+version, func() { proxyContext(version) })
 })
@@ -45,10 +46,13 @@ const (
 	// Only print this many characters of the response (to keep the logs
 	// legible).
 	maxDisplayBodyLen = 100
+
+	// We have seen one of these calls take just over 15 seconds, so putting this at 30.
+	proxyHTTPCallTimeout = 30 * time.Second
 )
 
 func proxyContext(version string) {
-	f := NewDefaultFramework("proxy")
+	f := framework.NewDefaultFramework("proxy")
 	prefix := "/api/" + version
 
 	// Port here has to be kept in sync with default kubelet port.
@@ -96,13 +100,13 @@ func proxyContext(version string) {
 		defer func(name string) {
 			err := f.Client.Services(f.Namespace.Name).Delete(name)
 			if err != nil {
-				Logf("Failed deleting service %v: %v", name, err)
+				framework.Logf("Failed deleting service %v: %v", name, err)
 			}
 		}(service.Name)
 
 		// Make an RC with a single pod.
 		pods := []*api.Pod{}
-		cfg := RCConfig{
+		cfg := framework.RCConfig{
 			Client:       f.Client,
 			Image:        "gcr.io/google_containers/porter:cd5cb5791ebaa8641955f0e8c2a9bed669b1eaab",
 			Name:         service.Name,
@@ -138,8 +142,8 @@ func proxyContext(version string) {
 			Labels:      labels,
 			CreatedPods: &pods,
 		}
-		Expect(RunRC(cfg)).NotTo(HaveOccurred())
-		defer DeleteRC(f.Client, f.Namespace.Name, cfg.Name)
+		Expect(framework.RunRC(cfg)).NotTo(HaveOccurred())
+		defer framework.DeleteRC(f.Client, f.Namespace.Name, cfg.Name)
 
 		Expect(f.WaitForAnEndpoint(service.Name)).NotTo(HaveOccurred())
 
@@ -228,8 +232,8 @@ func proxyContext(version string) {
 					if e, a := val, string(body); e != a {
 						recordError(fmt.Sprintf("%v: path %v: wanted %v, got %v", i, path, e, a))
 					}
-					if d > 15*time.Second {
-						recordError(fmt.Sprintf("%v: path %v took %v > 15s", i, path, d))
+					if d > proxyHTTPCallTimeout {
+						recordError(fmt.Sprintf("%v: path %v took %v > %v", i, path, d, proxyHTTPCallTimeout))
 					}
 				}(i, path, val)
 				// default QPS is 5
@@ -244,7 +248,7 @@ func proxyContext(version string) {
 	})
 }
 
-func doProxy(f *Framework, path string) (body []byte, statusCode int, d time.Duration, err error) {
+func doProxy(f *framework.Framework, path string) (body []byte, statusCode int, d time.Duration, err error) {
 	// About all of the proxy accesses in this file:
 	// * AbsPath is used because it preserves the trailing '/'.
 	// * Do().Raw() is used (instead of DoRaw()) because it will turn an
@@ -255,9 +259,9 @@ func doProxy(f *Framework, path string) (body []byte, statusCode int, d time.Dur
 	body, err = f.Client.Get().AbsPath(path).Do().StatusCode(&statusCode).Raw()
 	d = time.Since(start)
 	if len(body) > 0 {
-		Logf("%v: %s (%v; %v)", path, truncate(body, maxDisplayBodyLen), statusCode, d)
+		framework.Logf("%v: %s (%v; %v)", path, truncate(body, maxDisplayBodyLen), statusCode, d)
 	} else {
-		Logf("%v: %s (%v; %v)", path, "no body", statusCode, d)
+		framework.Logf("%v: %s (%v; %v)", path, "no body", statusCode, d)
 	}
 	return
 }
@@ -273,14 +277,14 @@ func truncate(b []byte, maxLen int) []byte {
 
 func pickNode(c *client.Client) (string, error) {
 	// TODO: investigate why it doesn't work on master Node.
-	nodes := ListSchedulableNodesOrDie(c)
+	nodes := framework.ListSchedulableNodesOrDie(c)
 	if len(nodes.Items) == 0 {
 		return "", fmt.Errorf("no nodes exist, can't test node proxy")
 	}
 	return nodes.Items[0].Name, nil
 }
 
-func nodeProxyTest(f *Framework, prefix, nodeDest string) {
+func nodeProxyTest(f *framework.Framework, prefix, nodeDest string) {
 	node, err := pickNode(f.Client)
 	Expect(err).NotTo(HaveOccurred())
 	// TODO: Change it to test whether all requests succeeded when requests
@@ -289,17 +293,17 @@ func nodeProxyTest(f *Framework, prefix, nodeDest string) {
 	for i := 0; i < proxyAttempts; i++ {
 		_, status, d, err := doProxy(f, prefix+node+nodeDest)
 		if status == http.StatusServiceUnavailable {
-			Logf("Failed proxying node logs due to service unavailable: %v", err)
+			framework.Logf("Failed proxying node logs due to service unavailable: %v", err)
 			time.Sleep(time.Second)
 			serviceUnavailableErrors++
 		} else {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(Equal(http.StatusOK))
-			Expect(d).To(BeNumerically("<", 15*time.Second))
+			Expect(d).To(BeNumerically("<", proxyHTTPCallTimeout))
 		}
 	}
 	if serviceUnavailableErrors > 0 {
-		Logf("error: %d requests to proxy node logs failed", serviceUnavailableErrors)
+		framework.Logf("error: %d requests to proxy node logs failed", serviceUnavailableErrors)
 	}
 	maxFailures := int(math.Floor(0.1 * float64(proxyAttempts)))
 	Expect(serviceUnavailableErrors).To(BeNumerically("<", maxFailures))

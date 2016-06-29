@@ -9,8 +9,11 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
+	utilconfig "k8s.io/kubernetes/pkg/util/config"
+	"k8s.io/kubernetes/pkg/util/diff"
 )
 
 func TestKubeletDefaults(t *testing.T) {
@@ -23,8 +26,8 @@ func TestKubeletDefaults(t *testing.T) {
 		AuthPath:   util.NewStringFlag("/var/lib/kubelet/kubernetes_auth"),
 		KubeConfig: util.NewStringFlag("/var/lib/kubelet/kubeconfig"),
 
-		SystemReserved: util.ConfigurationMap{},
-		KubeReserved:   util.ConfigurationMap{},
+		SystemReserved: utilconfig.ConfigurationMap{},
+		KubeReserved:   utilconfig.ConfigurationMap{},
 		KubeletConfiguration: componentconfig.KubeletConfiguration{
 			Address:                     "0.0.0.0", // overridden
 			AllowPrivileged:             false,     // overridden
@@ -69,14 +72,16 @@ func TestKubeletDefaults(t *testing.T) {
 			NodeLabels:                  map[string]string{},
 			OOMScoreAdj:                 -999,
 			LockFilePath:                "",
-			PodInfraContainerImage:      kubetypes.PodInfraContainerImage, // overridden
+			PodInfraContainerImage:      kubeletoptions.GetDefaultPodInfraContainerImage(), // overridden
 			Port:                           10250, // overridden
 			ReadOnlyPort:                   10255, // disabled
 			RegisterNode:                   true,
 			RegisterSchedulable:            true,
 			RegistryBurst:                  10,
 			RegistryPullQPS:                5.0,
+			ResolverConfig:                 kubetypes.ResolvConfDefault,
 			KubeletCgroups:                 "",
+			RktAPIEndpoint:                 rkt.DefaultRktAPIServiceEndpoint,
 			RktPath:                        "",
 			RktStage1Image:                 "",
 			RootDirectory:                  "/var/lib/kubelet", // overridden
@@ -98,7 +103,7 @@ func TestKubeletDefaults(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", util.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesNodeConfig and update expectedDefaults")
 	}
 }
@@ -107,11 +112,12 @@ func TestProxyConfig(t *testing.T) {
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in buildKubeProxyConfig(), update this expected default to match the new upstream defaults
-	oomScoreAdj := -999
-	ipTablesMasqueratebit := 14
+	oomScoreAdj := int32(-999)
+	ipTablesMasqueratebit := int32(14)
 	expectedDefaultConfig := &proxyoptions.ProxyServerConfig{
 		KubeProxyConfiguration: componentconfig.KubeProxyConfiguration{
 			BindAddress:        "0.0.0.0",
+			ClusterCIDR:        "",
 			HealthzPort:        10249,         // disabled
 			HealthzBindAddress: "127.0.0.1",   // disabled
 			OOMScoreAdj:        &oomScoreAdj,  // disabled

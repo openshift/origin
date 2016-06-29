@@ -5,10 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -40,21 +38,21 @@ echo "templates: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/config"
-os::cmd::expect_success 'oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc create -f -'
+os::cmd::expect_success 'oc process -f test/templates/testdata/guestbook.json -l app=guestbook | oc create -f -'
 os::cmd::expect_success_and_text 'oc status' 'frontend-service'
 echo "template+config: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/templates/parameters"
 # Joined parameter values are honored
-os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser,ADMIN_PASSWORD=mypassword'    '"myuser"'
-os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser,ADMIN_PASSWORD=mypassword'    '"mypassword"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -v ADMIN_USERNAME=myuser,ADMIN_PASSWORD=mypassword'    '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -v ADMIN_USERNAME=myuser,ADMIN_PASSWORD=mypassword'    '"mypassword"'
 # Individually specified parameter values are honored
-os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"myuser"'
-os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"mypassword"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json -v ADMIN_USERNAME=myuser -v ADMIN_PASSWORD=mypassword' '"mypassword"'
 # Argument values are honored
-os::cmd::expect_success_and_text 'oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f test/templates/fixtures/guestbook.json'       '"myuser"'
-os::cmd::expect_success_and_text 'oc process -f test/templates/fixtures/guestbook.json ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword'       '"mypassword"'
+os::cmd::expect_success_and_text 'oc process ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword -f test/templates/testdata/guestbook.json'       '"myuser"'
+os::cmd::expect_success_and_text 'oc process -f test/templates/testdata/guestbook.json ADMIN_USERNAME=myuser ADMIN_PASSWORD=mypassword'       '"mypassword"'
 # Argument values with commas are honored
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
 os::cmd::expect_success_and_text 'oc process ruby-helloworld-sample MYSQL_USER=myself MYSQL_PASSWORD=my,1%pass'  '"myself"'
@@ -66,7 +64,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/templates/data-precision"
 # Run as cluster-admin to allow choosing any supplemental groups we want
 # Ensure large integers survive unstructured JSON creation
-os::cmd::expect_success 'oc create -f test/fixtures/template-type-precision.json'
+os::cmd::expect_success 'oc create -f test/testdata/template-type-precision.json'
 # ... and processing
 os::cmd::expect_success_and_text 'oc process template-type-precision' '1000030003'
 os::cmd::expect_success_and_text 'oc process template-type-precision' '2147483647'

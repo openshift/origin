@@ -33,11 +33,7 @@ import (
 	customreflect "k8s.io/kubernetes/third_party/golang/reflect"
 )
 
-// ExtractFunc extracts information from the provided TypeSpec and returns true if the type should be
-// removed from the destination file.
-type ExtractFunc func(*ast.TypeSpec) bool
-
-func RewriteGeneratedGogoProtobufFile(name string, packageName string, extractFn ExtractFunc, header []byte) error {
+func rewriteFile(name string, header []byte, rewriteFn func(*token.FileSet, *ast.File) error) error {
 	fset := token.NewFileSet()
 	src, err := ioutil.ReadFile(name)
 	if err != nil {
@@ -47,19 +43,10 @@ func RewriteGeneratedGogoProtobufFile(name string, packageName string, extractFn
 	if err != nil {
 		return err
 	}
-	cmap := ast.NewCommentMap(fset, file, file.Comments)
 
-	// remove types that are already declared
-	decls := []ast.Decl{}
-	for _, d := range file.Decls {
-		if !dropExistingTypeDeclarations(d, extractFn) {
-			decls = append(decls, d)
-		}
+	if err := rewriteFn(fset, file); err != nil {
+		return err
 	}
-	file.Decls = decls
-
-	// remove unmapped comments
-	file.Comments = cmap.Filter(file).Comments()
 
 	b := &bytes.Buffer{}
 	b.Write(header)
@@ -83,6 +70,35 @@ func RewriteGeneratedGogoProtobufFile(name string, packageName string, extractFn
 	return f.Close()
 }
 
+// ExtractFunc extracts information from the provided TypeSpec and returns true if the type should be
+// removed from the destination file.
+type ExtractFunc func(*ast.TypeSpec) bool
+
+func RewriteGeneratedGogoProtobufFile(name string, extractFn ExtractFunc, header []byte) error {
+	return rewriteFile(name, header, func(fset *token.FileSet, file *ast.File) error {
+		cmap := ast.NewCommentMap(fset, file, file.Comments)
+
+		// remove types that are already declared
+		decls := []ast.Decl{}
+		for _, d := range file.Decls {
+			if dropExistingTypeDeclarations(d, extractFn) {
+				continue
+			}
+			if dropEmptyImportDeclarations(d) {
+				continue
+			}
+			decls = append(decls, d)
+		}
+		file.Decls = decls
+
+		// remove unmapped comments
+		file.Comments = cmap.Filter(file).Comments()
+		return nil
+	})
+}
+
+// dropExistingTypeDeclarations removes any type declaration for which extractFn returns true. The function
+// returns true if the entire declaration should be dropped.
 func dropExistingTypeDeclarations(decl ast.Decl, extractFn ExtractFunc) bool {
 	switch t := decl.(type) {
 	case *ast.GenDecl:
@@ -107,53 +123,53 @@ func dropExistingTypeDeclarations(decl ast.Decl, extractFn ExtractFunc) bool {
 	return false
 }
 
+// dropEmptyImportDeclarations strips any generated but no-op imports from the generated code
+// to prevent generation from being able to define side-effects.  The function returns true
+// if the entire declaration should be dropped.
+func dropEmptyImportDeclarations(decl ast.Decl) bool {
+	switch t := decl.(type) {
+	case *ast.GenDecl:
+		if t.Tok != token.IMPORT {
+			return false
+		}
+		specs := []ast.Spec{}
+		for _, s := range t.Specs {
+			switch spec := s.(type) {
+			case *ast.ImportSpec:
+				if spec.Name != nil && spec.Name.Name == "_" {
+					continue
+				}
+				specs = append(specs, spec)
+			}
+		}
+		if len(specs) == 0 {
+			return true
+		}
+		t.Specs = specs
+	}
+	return false
+}
+
 func RewriteTypesWithProtobufStructTags(name string, structTags map[string]map[string]string) error {
-	fset := token.NewFileSet()
-	src, err := ioutil.ReadFile(name)
-	if err != nil {
-		return err
-	}
-	file, err := parser.ParseFile(fset, name, src, parser.DeclarationErrors|parser.ParseComments)
-	if err != nil {
-		return err
-	}
+	return rewriteFile(name, []byte{}, func(fset *token.FileSet, file *ast.File) error {
+		allErrs := []error{}
 
-	allErrs := []error{}
-
-	// set any new struct tags
-	for _, d := range file.Decls {
-		if errs := updateStructTags(d, structTags, []string{"protobuf"}); len(errs) > 0 {
-			allErrs = append(allErrs, errs...)
+		// set any new struct tags
+		for _, d := range file.Decls {
+			if errs := updateStructTags(d, structTags, []string{"protobuf"}); len(errs) > 0 {
+				allErrs = append(allErrs, errs...)
+			}
 		}
-	}
 
-	if len(allErrs) > 0 {
-		var s string
-		for _, err := range allErrs {
-			s += err.Error() + "\n"
+		if len(allErrs) > 0 {
+			var s string
+			for _, err := range allErrs {
+				s += err.Error() + "\n"
+			}
+			return errors.New(s)
 		}
-		return errors.New(s)
-	}
-
-	b := &bytes.Buffer{}
-	if err := printer.Fprint(b, fset, file); err != nil {
-		return err
-	}
-
-	body, err := format.Source(b.Bytes())
-	if err != nil {
-		return fmt.Errorf("%s\n---\nunable to format %q: %v", b, name, err)
-	}
-
-	f, err := os.OpenFile(name, os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if _, err := f.Write(body); err != nil {
-		return err
-	}
-	return f.Close()
+		return nil
+	})
 }
 
 func updateStructTags(decl ast.Decl, structTags map[string]map[string]string, toCopy []string) []error {

@@ -31,7 +31,7 @@ import (
 
 func newStorage(t *testing.T) (*REST, *StatusREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	restOptions := generic.RESTOptions{etcdStorage, generic.UndecoratedStorage, 1}
+	restOptions := generic.RESTOptions{Storage: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
 	serviceStorage, statusStorage := NewREST(restOptions)
 	return serviceStorage, statusStorage, server
 }
@@ -59,7 +59,7 @@ func validService() *api.Service {
 func TestCreate(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	validService := validService()
 	validService.ObjectMeta = api.ObjectMeta{}
 	test.TestCreate(
@@ -89,7 +89,7 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).AllowCreateOnUpdate()
+	test := registrytest.New(t, storage.Store).AllowCreateOnUpdate()
 	test.TestUpdate(
 		// valid
 		validService(),
@@ -114,28 +114,28 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).AllowCreateOnUpdate()
+	test := registrytest.New(t, storage.Store).AllowCreateOnUpdate()
 	test.TestDelete(validService())
 }
 
 func TestGet(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).AllowCreateOnUpdate()
+	test := registrytest.New(t, storage.Store).AllowCreateOnUpdate()
 	test.TestGet(validService())
 }
 
 func TestList(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd).AllowCreateOnUpdate()
+	test := registrytest.New(t, storage.Store).AllowCreateOnUpdate()
 	test.TestList(validService())
 }
 
 func TestWatch(t *testing.T) {
 	storage, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestWatch(
 		validService(),
 		// matching labels

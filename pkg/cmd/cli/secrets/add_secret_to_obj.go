@@ -28,13 +28,13 @@ Add secrets to a ServiceAccount
 After you have created a secret, you probably want to make use of that secret inside of a pod, for a build, or as an image pull secret.  In order to do that, you must add your secret to a service account.`
 
 	addSecretExample = `  // To use your secret inside of a pod or as a push, pull, or source secret for a build, you must add a 'mount' secret to your service account like this:
-  $ %[1]s serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
+  %[1]s serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
 
   // To use your secret as an image pull secret, you must add a 'pull' secret to your service account like this:
-  $ %[1]s serviceaccount/sa-name secrets/secret-name --for=pull
+  %[1]s serviceaccount/sa-name secrets/secret-name --for=pull
 
   // To use your secret for image pulls or inside a pod:
-  $ %[1]s serviceaccount/sa-name secrets/secret-name --for=pull,mount`
+  %[1]s serviceaccount/sa-name secrets/secret-name --for=pull,mount`
 )
 
 type AddSecretOptions struct {
@@ -119,7 +119,7 @@ func (o *AddSecretOptions) Complete(f *kcmdutil.Factory, args []string, typeFlag
 		return err
 	}
 
-	o.Mapper, o.Typer = f.Object()
+	o.Mapper, o.Typer = f.Object(false)
 	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 
 	return nil

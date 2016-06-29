@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 func localOrRemoteName(meta kapi.ObjectMeta, namespace string) string {
@@ -222,7 +221,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
 			}
 			if hasRootUser(match.Image) {
-				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", pipeline.Image.Reference.Name)
+				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", match.Name)
 			}
 		}
 	}
@@ -241,24 +240,6 @@ func hasEmptyDir(image *imageapi.DockerImage) bool {
 		return false
 	}
 	return len(image.Config.Volumes) > 0
-}
-
-func describeGeneratedTemplate(out io.Writer, ref app.ComponentReference, result *templateapi.Template, baseNamespace string) {
-	fmt.Fprintf(out, "--> Deploying template %s for %q\n", localOrRemoteName(ref.Input().ResolvedMatch.Template.ObjectMeta, baseNamespace), ref.Input())
-	if len(result.Parameters) > 0 {
-		fmt.Fprintf(out, "     With parameters:\n")
-		for _, p := range result.Parameters {
-			name := p.DisplayName
-			if len(name) == 0 {
-				name = p.Name
-			}
-			var generated string
-			if len(p.Generate) > 0 {
-				generated = " # generated"
-			}
-			fmt.Fprintf(out, "      %s=%s%s\n", name, p.Value, generated)
-		}
-	}
 }
 
 func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.Pod, secret *kapi.Secret, baseNamespace string) {

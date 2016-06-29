@@ -31,7 +31,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 	// Update the containers with new images based on defined triggers
 	configChanged := false
 	errs := field.ErrorList{}
-	causes := []*deployapi.DeploymentCause{}
+	causes := []deployapi.DeploymentCause{}
 	for i, trigger := range config.Spec.Triggers {
 		params := trigger.ImageChangeParams
 
@@ -85,16 +85,15 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 		// If any container was updated, create a cause for the change
 		if containerChanged {
 			configChanged = true
-			causes = append(causes,
-				&deployapi.DeploymentCause{
-					Type: deployapi.DeploymentTriggerOnImageChange,
-					ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
-						From: kapi.ObjectReference{
-							Name: imageapi.JoinImageStreamTag(imageStream.Name, tag),
-							Kind: "ImageStreamTag",
-						},
+			causes = append(causes, deployapi.DeploymentCause{
+				Type: deployapi.DeploymentTriggerOnImageChange,
+				ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
+					From: kapi.ObjectReference{
+						Name: imageapi.JoinImageStreamTag(imageStream.Name, tag),
+						Kind: "ImageStreamTag",
 					},
-				})
+				},
+			})
 		}
 	}
 

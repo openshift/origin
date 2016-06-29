@@ -86,10 +86,27 @@ func TestHTTPProbeChecker(t *testing.T) {
 			},
 		},
 		{
+			// Echo handler that returns the contents of Host in the body
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				w.Write([]byte(r.Host))
+			},
+			http.Header{
+				"Host": {"muffins.cupcakes.org"},
+			},
+			probe.Success,
+			[]string{
+				"muffins.cupcakes.org",
+			},
+		},
+		{
 			handleReq(FailureCode, "fail body"),
 			nil,
 			probe.Failure,
-			[]string{fmt.Sprintf("HTTP probe failed with statuscode: %d", FailureCode)},
+			[]string{
+				fmt.Sprintf("HTTP probe failed with statuscode: %d", FailureCode),
+				fmt.Sprintf("malformed HTTP status code \"%d\"", FailureCode),
+			},
 		},
 		{
 			func(w http.ResponseWriter, r *http.Request) {
@@ -104,34 +121,36 @@ func TestHTTPProbeChecker(t *testing.T) {
 		},
 	}
 	for _, test := range testCases {
-		// TODO: Close() this when fix #19254
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			test.handler(w, r)
-		}))
-		u, err := url.Parse(server.URL)
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		_, port, err := net.SplitHostPort(u.Host)
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		_, err = strconv.Atoi(port)
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		health, output, err := prober.Probe(u, test.reqHeaders, 1*time.Second)
-		if test.health == probe.Unknown && err == nil {
-			t.Errorf("Expected error")
-		}
-		if test.health != probe.Unknown && err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-		if health != test.health {
-			t.Errorf("Expected %v, got %v", test.health, health)
-		}
-		if !containsAny(output, test.accBodies) {
-			t.Errorf("Expected one of %#v, got %v", test.accBodies, output)
-		}
+		func() {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				test.handler(w, r)
+			}))
+			defer server.Close()
+			u, err := url.Parse(server.URL)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			_, port, err := net.SplitHostPort(u.Host)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			_, err = strconv.Atoi(port)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			health, output, err := prober.Probe(u, test.reqHeaders, 1*time.Second)
+			if test.health == probe.Unknown && err == nil {
+				t.Errorf("Expected error")
+			}
+			if test.health != probe.Unknown && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if health != test.health {
+				t.Errorf("Expected %v, got %v", test.health, health)
+			}
+			if !containsAny(output, test.accBodies) {
+				t.Errorf("Expected one of %#v, got %v", test.accBodies, output)
+			}
+		}()
 	}
 }

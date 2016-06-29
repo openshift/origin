@@ -27,6 +27,7 @@ import (
 	. "k8s.io/kubernetes/pkg/kubelet/container"
 	ctest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 )
 
 func TestPuller(t *testing.T) {
@@ -99,7 +100,7 @@ func TestPuller(t *testing.T) {
 			ImagePullPolicy: c.policy,
 		}
 
-		backOff := util.NewBackOff(time.Second, time.Minute)
+		backOff := flowcontrol.NewBackOff(time.Second, time.Minute)
 		fakeClock := util.NewFakeClock(time.Now())
 		backOff.Clock = fakeClock
 
@@ -107,7 +108,7 @@ func TestPuller(t *testing.T) {
 		fakeRecorder := &record.FakeRecorder{}
 		puller := NewImagePuller(fakeRecorder, fakeRuntime, backOff)
 
-		fakeRuntime.ImageList = []Image{{"present_image", nil, 0}}
+		fakeRuntime.ImageList = []Image{{"present_image", nil, nil, 1}}
 		fakeRuntime.Err = c.pullerErr
 		fakeRuntime.InspectErr = c.inspectErr
 

@@ -9,12 +9,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-os::log::install_errexit
-
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 os::util::environment::setup_time_vars
 
 cd "${OS_ROOT}"
@@ -53,7 +49,7 @@ oc login ${MASTER_ADDR} -u ldap -p password --certificate-authority=${MASTER_CON
 oc new-project openldap
 
 # create all the resources we need
-oc create -f test/extended/fixtures/ldap
+oc create -f test/extended/testdata/ldap
 
 is_event_template=(               \
 "{{with \$tags := .status.tags}}" \

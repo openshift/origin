@@ -15,11 +15,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
+	configcmd "github.com/openshift/origin/pkg/cmd/experimental/config"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
+	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -35,7 +37,7 @@ const (
 The %[3]s helps you build, deploy, and manage your applications on top of
 Docker containers. To start an all-in-one server with the default configuration, run:
 
-  $ %[1]s start &`
+  %[1]s start &`
 )
 
 // CommandFor returns the appropriate command for this base name,
@@ -58,6 +60,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
+	case "openshift-recycle":
+		cmd = recycle.NewCommandRecycle(basename, out)
 	case "openshift-sti-build":
 		cmd = builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":
@@ -111,6 +115,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
+	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(version.NewVersionCommand(name, true))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
@@ -123,6 +128,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		irouter.NewCommandTemplateRouter("router"),
 		irouter.NewCommandF5Router("f5-router"),
 		deployer.NewCommandDeployer("deploy"),
+		recycle.NewCommandRecycle("recycle", out),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
@@ -139,6 +145,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 func newExperimentalCommand(name, fullName string) *cobra.Command {
 	out := os.Stdout
+	errout := os.Stderr
 
 	experimental := &cobra.Command{
 		Use:   name,
@@ -154,8 +161,9 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	f := clientcmd.New(experimental.PersistentFlags())
 
 	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out))
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
+	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, out, errout))
 	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oadm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)
@@ -165,4 +173,45 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
 	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, out))
 	return experimental
+}
+
+const (
+	completion_long = `Output shell completion code for the given shell (bash or zsh).
+
+This command prints shell code which must be evaluation to provide interactive
+completion of kubectl commands.
+`
+	completion_example = `
+$ source <(kubectl completion bash)
+
+will load the kubectl completion code for bash. Note that this depends on the bash-completion
+framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
+
+$ brew install bash-completion
+$ source $(brew --prefix)/etc/bash_completion
+$ source <(kubectl completion bash)
+
+If you use zsh, the following will load kubectl zsh completion:
+
+$ source <(kubectl completion zsh)
+`
+)
+
+func newCompletionCommand(name, fullName string) *cobra.Command {
+	out := os.Stdout
+
+	completion := &cobra.Command{
+		Use:     "completion SHELL",
+		Short:   "Output shell completion code for the given shell (bash or zsh)",
+		Long:    completion_long,
+		Example: completion_example,
+		Run: func(cmd *cobra.Command, args []string) {
+
+		},
+	}
+
+	f := clientcmd.New(completion.PersistentFlags())
+
+	return cmd.NewCmdCompletion(fullName, f, out)
+
 }

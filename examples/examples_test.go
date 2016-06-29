@@ -104,14 +104,14 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"postgresql-ephemeral-template":  &templateapi.Template{},
 			"mongodb-ephemeral-template":     &templateapi.Template{},
 		},
-		"../test/extended/fixtures/ldap": {
+		"../test/extended/testdata/ldap": {
 			"ldapserver-buildconfig":         &buildapi.BuildConfig{},
 			"ldapserver-deploymentconfig":    &deployapi.DeploymentConfig{},
 			"ldapserver-imagestream":         &imageapi.ImageStream{},
 			"ldapserver-imagestream-testenv": &imageapi.ImageStream{},
 			"ldapserver-service":             &kapi.Service{},
 		},
-		"../test/integration/fixtures": {
+		"../test/integration/testdata": {
 			// TODO fix this test to  handle json and yaml
 			"project-request-template-with-quota": nil, // skip a yaml file
 			"test-deployment-config":              &deployapi.DeploymentConfig{},
@@ -123,7 +123,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-buildcli":                       &kapi.List{},
 			"test-buildcli-beta2":                 &kapi.List{},
 		},
-		"../test/templates/fixtures": {
+		"../test/templates/testdata": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
 			"guestbook_list":  &templateapi.Template{},
 			"guestbook":       &templateapi.Template{},

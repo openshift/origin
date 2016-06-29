@@ -78,6 +78,45 @@ func TestCheckAllowedUser(t *testing.T) {
 			onbuild:     []string{"USER 501", "VOLUME /data"},
 			expectErr:   false,
 		},
+		{
+			name:        "AllowedUIDs is set, numeric user with group",
+			allowedUIDs: rangeList("1-"),
+			user:        "5:5000",
+			expectErr:   false,
+		},
+		{
+			name:        "AllowedUIDs is set, numeric user with named group",
+			allowedUIDs: rangeList("1-"),
+			user:        "5:group",
+			expectErr:   false,
+		},
+		{
+			name:        "AllowedUIDs is set, named user with group",
+			allowedUIDs: rangeList("1-"),
+			user:        "root:wheel",
+			expectErr:   true,
+		},
+		{
+			name:        "AllowedUIDs is set, numeric user, onbuild user with group",
+			allowedUIDs: rangeList("1-"),
+			user:        "200",
+			onbuild:     []string{"RUN echo \"hello world\"", "USER 10:100"},
+			expectErr:   false,
+		},
+		{
+			name:        "AllowedUIDs is set, numeric user, onbuild named user with group",
+			allowedUIDs: rangeList("1-"),
+			user:        "200",
+			onbuild:     []string{"RUN echo \"hello world\"", "USER root:wheel"},
+			expectErr:   true,
+		},
+		{
+			name:        "AllowedUIDs is set, numeric user, onbuild user with named group",
+			allowedUIDs: rangeList("1-"),
+			user:        "200",
+			onbuild:     []string{"RUN echo \"hello world\"", "USER 10:wheel"},
+			expectErr:   false,
+		},
 	}
 
 	for _, tc := range tests {

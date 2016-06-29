@@ -193,19 +193,21 @@ func TestDockerfilePath(t *testing.T) {
 
 		build := &api.Build{
 			Spec: api.BuildSpec{
-				Source: api.BuildSource{
-					Git: &api.GitBuildSource{
-						URI: "http://github.com/openshift/origin.git",
+				CommonSpec: api.CommonSpec{
+					Source: api.BuildSource{
+						Git: &api.GitBuildSource{
+							URI: "http://github.com/openshift/origin.git",
+						},
+						ContextDir: test.contextDir,
 					},
-					ContextDir: test.contextDir,
-				},
-				Strategy: api.BuildStrategy{
-					DockerStrategy: test.dockerStrategy,
-				},
-				Output: api.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "test/test-result:latest",
+					Strategy: api.BuildStrategy{
+						DockerStrategy: test.dockerStrategy,
+					},
+					Output: api.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "test/test-result:latest",
+						},
 					},
 				},
 			},
@@ -249,6 +251,37 @@ func TestDockerfilePath(t *testing.T) {
 		if err = dockerBuilder.dockerBuild(buildDir, "", []api.SecretBuildSource{}); err != nil {
 			t.Errorf("failed to build: %v", err)
 			continue
+		}
+	}
+}
+
+func TestEmptySource(t *testing.T) {
+	build := &api.Build{
+		Spec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{},
+				Strategy: api.BuildStrategy{
+					DockerStrategy: &api.DockerBuildStrategy{},
+				},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "test/test-result:latest",
+					},
+				},
+			},
+		},
+	}
+
+	dockerBuilder := &DockerBuilder{
+		build: build,
+	}
+
+	if err := dockerBuilder.Build(); err == nil {
+		t.Error("Should have received error on docker build")
+	} else {
+		if !strings.Contains(err.Error(), "must provide a value for at least one of source, binary, images, or dockerfile") {
+			t.Errorf("Did not receive correct error: %v", err)
 		}
 	}
 }

@@ -98,7 +98,10 @@ func (a *constraint) Stop() {
 // any change that claims the pod is no longer privileged will be removed.  That should hold until
 // we get a true old/new set of objects in.
 func (c *constraint) Admit(a kadmission.Attributes) error {
-	if a.GetResource() != kapi.Resource("pods") {
+	if a.GetResource().GroupResource() != kapi.Resource("pods") {
+		return nil
+	}
+	if len(a.GetSubresource()) != 0 {
 		return nil
 	}
 	if len(a.GetSubresource()) != 0 {
@@ -136,7 +139,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
-		return kadmission.NewForbidden(a, fmt.Errorf("no providers available to validated pod request"))
+		return kadmission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
 	}
 
 	// all containers in a single pod must validate under a single provider or we will reject the request

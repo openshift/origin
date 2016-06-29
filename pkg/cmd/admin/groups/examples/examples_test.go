@@ -23,7 +23,9 @@ func TestLDAPSyncConfigFixtures(t *testing.T) {
 		fixtures = append(fixtures, schema+"/sync-config-dn-everywhere.yaml")
 		fixtures = append(fixtures, schema+"/sync-config-partially-user-defined.yaml")
 		fixtures = append(fixtures, schema+"/sync-config-user-defined.yaml")
+		fixtures = append(fixtures, schema+"/sync-config-paging.yaml")
 	}
+	fixtures = append(fixtures, "rfc2307/sync-config-tolerating.yaml")
 
 	for _, fixture := range fixtures {
 		var config api.LDAPSyncConfig

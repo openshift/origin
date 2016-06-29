@@ -27,8 +27,8 @@ var (
 		{
 			"5.5",
 			"https://raw.githubusercontent.com/openshift/mysql/master/5.5/examples/replica/mysql_replica.json",
-			// TODO: Investigate why this is broken.
-			true,
+			// NOTE: Set to true in case of flakes.
+			false,
 		},
 		{
 			"5.6",
@@ -68,7 +68,9 @@ func CreateMySQLReplicationHelpers(c kclient.PodInterface, masterDeployment, sla
 }
 
 func cleanup(oc *exutil.CLI) {
+	exutil.DumpImageStreams(oc)
 	oc.AsAdmin().Run("delete").Args("all", "--all", "-n", oc.Namespace()).Execute()
+	exutil.DumpImageStreams(oc)
 	oc.AsAdmin().Run("delete").Args("pvc", "--all", "-n", oc.Namespace()).Execute()
 	exutil.CleanupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace())
 }
@@ -78,17 +80,26 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 		defer cleanup(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
+		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace(), "1Gi", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = testutil.WaitForPolicyUpdate(oc.REST(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		exutil.CheckOpenShiftNamespaceImageStreams(oc)
 		err = oc.Run("new-app").Args("-f", tc.TemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", helperTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", helperName)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+		g.By("waiting for the deployment to complete")
+		err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), helperName, oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("waiting for an endpoint")
 		err = oc.KubeFramework().WaitForAnEndpoint(helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -97,16 +108,19 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 			tableCounter++
 			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
+			g.By("creating replication helpers")
 			master, slaves, helper := CreateMySQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", helperName), slaveCount)
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})).NotTo(o.HaveOccurred())
 			o.Expect(exutil.WaitUntilAllHelpersAreUp(oc, slaves)).NotTo(o.HaveOccurred())
 
 			// Test if we can query as root
+			g.By("wait for mysql-master endpoint")
 			oc.KubeFramework().WaitForAnEndpoint("mysql-master")
 			err := helper.TestRemoteLogin(oc, "mysql-master")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Create a new table with random name
+			g.By("create new table")
 			_, err = master.Query(oc, fmt.Sprintf("CREATE TABLE %s (col1 VARCHAR(20), col2 VARCHAR(20));", table))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -158,14 +172,17 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).To(o.Equal(1))
 
-		g.By("after slave is scaled to 0 and then back to 4 replicas")
-		err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=0").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
+		// NOTE: Commented out, current template does not support multiple replicas.
+		/*
+			g.By("after slave is scaled to 0 and then back to 4 replicas")
+			err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=0").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 4)
+		*/
 	}
 }
 

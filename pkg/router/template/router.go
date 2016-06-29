@@ -428,8 +428,10 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 	backendKey := r.routeKey(route)
 
 	config := ServiceAliasConfig{
-		Host: host,
-		Path: route.Spec.Path,
+		Name:      route.Name,
+		Namespace: route.Namespace,
+		Host:      host,
+		Path:      route.Spec.Path,
 	}
 
 	if route.Spec.Port != nil {

@@ -3,22 +3,23 @@ package set
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/intstr"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"net"
-	"strings"
 )
 
 const (
@@ -44,22 +45,22 @@ initial-delay-seconds values, otherwise as your application evolves you may sudd
 to fail.`
 
 	probeExample = `  # Clear both readiness and liveness probes off all containers
-  $ %[1]s probe dc/registry --remove --readiness --liveness
+  %[1]s probe dc/registry --remove --readiness --liveness
 
   # Set an exec action as a liveness probe to run 'echo ok'
-  $ %[1]s probe dc/registry --liveness -- echo ok
+  %[1]s probe dc/registry --liveness -- echo ok
 
   # Set a readiness probe to try to open a TCP socket on 3306
-  $ %[1]s probe rc/mysql --readiness --open-tcp=3306
+  %[1]s probe rc/mysql --readiness --open-tcp=3306
 
   # Set an HTTP readiness probe for port 8080 and path /healthz over HTTP on the pod IP
-  $ %[1]s probe dc/webapp --readiness --get-url=http://:8080/healthz
+  %[1]s probe dc/webapp --readiness --get-url=http://:8080/healthz
 
   # Set an HTTP readiness probe over HTTPS on 127.0.0.1 for a hostNetwork pod
-  $ %[1]s probe dc/router --readiness --get-url=https://127.0.0.1:1936/stats
+  %[1]s probe dc/router --readiness --get-url=https://127.0.0.1:1936/stats
 
   # Set only the initial-delay-seconds field on all deployments
-  $ %[1]s probe dc --all --readiness --initial-delay-seconds=30`
+  %[1]s probe dc --all --readiness --initial-delay-seconds=30`
 )
 
 type ProbeOptions struct {
@@ -76,8 +77,9 @@ type ProbeOptions struct {
 
 	Encoder runtime.Encoder
 
-	ShortOutput bool
-	Mapper      meta.RESTMapper
+	ShortOutput   bool
+	Mapper        meta.RESTMapper
+	OutputVersion unversioned.GroupVersion
 
 	PrintObject            func(runtime.Object) error
 	UpdatePodSpecForObject func(runtime.Object, func(spec *kapi.PodSpec) error) (bool, error)
@@ -170,18 +172,28 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
-	mapper, typer := f.Object()
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
+	if err != nil {
+		return err
+	}
+
+	mapper, typer := f.Object(false)
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, o.Filenames...).
+		FilenameParam(explicit, false, o.Filenames...).
 		SelectorParam(o.Selector).
 		ResourceTypeOrNameArgs(o.All, resources...).
 		Flatten()
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, obj, o.Out) }
+		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -304,16 +316,7 @@ func (o *ProbeOptions) Run() error {
 	}
 
 	if o.PrintObject != nil {
-		var infos []*resource.Info
-		for _, patch := range patches {
-			info := patch.Info
-			if patch.Err != nil {
-				fmt.Fprintf(o.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
-				continue
-			}
-			infos = append(infos, info)
-		}
-		object, err := resource.AsVersionedObject(infos, !singular, "", nil)
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}
@@ -384,19 +387,19 @@ func (o *ProbeOptions) updateProbe(probe *kapi.Probe) {
 		probe.Handler = kapi.Handler{TCPSocket: &kapi.TCPSocketAction{Port: intOrString(o.OpenTCPSocket)}}
 	}
 	if o.InitialDelaySeconds != nil {
-		probe.InitialDelaySeconds = *o.InitialDelaySeconds
+		probe.InitialDelaySeconds = int32(*o.InitialDelaySeconds)
 	}
 	if o.SuccessThreshold != nil {
-		probe.SuccessThreshold = *o.SuccessThreshold
+		probe.SuccessThreshold = int32(*o.SuccessThreshold)
 	}
 	if o.FailureThreshold != nil {
-		probe.FailureThreshold = *o.FailureThreshold
+		probe.FailureThreshold = int32(*o.FailureThreshold)
 	}
 	if o.TimeoutSeconds != nil {
-		probe.TimeoutSeconds = *o.TimeoutSeconds
+		probe.TimeoutSeconds = int32(*o.TimeoutSeconds)
 	}
 	if o.PeriodSeconds != nil {
-		probe.PeriodSeconds = *o.PeriodSeconds
+		probe.PeriodSeconds = int32(*o.PeriodSeconds)
 	}
 }
 

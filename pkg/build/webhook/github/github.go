@@ -1,7 +1,6 @@
 package github
 
 import (
-	"crypto/hmac"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,9 +8,15 @@ import (
 	"mime"
 	"net/http"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
+)
+
+var (
+	ErrNoGitHubEvent = errors.New("missing X-GitHub-Event or X-Gogs-Event")
 )
 
 // WebHook used for processing github webhook requests.
@@ -36,41 +41,39 @@ type pushEvent struct {
 }
 
 // Extract services webhooks from github.com
-func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildCfg)
-	if !ok {
-		err = webhook.ErrHookNotEnabled
-		return
+func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, envvars []kapi.EnvVar, proceed bool, err error) {
+	triggers, err := webhook.FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildCfg)
+	if err != nil {
+		return revision, envvars, proceed, err
 	}
 	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
-	if !hmac.Equal([]byte(trigger.GitHubWebHook.Secret), []byte(secret)) {
-		err = webhook.ErrSecretMismatch
-		return
+
+	if _, err = webhook.ValidateWebHookSecret(triggers, secret); err != nil {
+		return revision, envvars, proceed, err
 	}
+
 	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
-		return
+		return revision, envvars, proceed, err
 	}
 	method := getEvent(req.Header)
 	if method != "ping" && method != "push" {
-		err = fmt.Errorf("Unknown X-GitHub-Event or X-Gogs-Event %s", method)
-		return
+		return revision, envvars, proceed, fmt.Errorf("Unknown X-GitHub-Event or X-Gogs-Event %s", method)
 	}
 	if method == "ping" {
-		proceed = false
-		return
+		return revision, envvars, proceed, err
 	}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return
+		return revision, envvars, proceed, err
 	}
 	var event pushEvent
 	if err = json.Unmarshal(body, &event); err != nil {
-		return
+		return revision, envvars, proceed, err
 	}
-	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Spec.Source.Git.Ref)
-	if !proceed {
+	if !webhook.GitRefMatches(event.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
 		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference from '%s' does not match configuration", buildCfg.Namespace, buildCfg, event)
+		return revision, envvars, proceed, err
 	}
 
 	revision = &api.SourceRevision{
@@ -81,8 +84,7 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 			Message:   event.HeadCommit.Message,
 		},
 	}
-
-	return
+	return revision, envvars, true, err
 }
 
 func verifyRequest(req *http.Request) error {
@@ -98,7 +100,7 @@ func verifyRequest(req *http.Request) error {
 		return fmt.Errorf("unsupported Content-Type %s", contentType)
 	}
 	if len(getEvent(req.Header)) == 0 {
-		return errors.New("missing X-GitHub-Event or X-Gogs-Event")
+		return ErrNoGitHubEvent
 	}
 	return nil
 }
@@ -108,6 +110,5 @@ func getEvent(header http.Header) string {
 	if len(event) == 0 {
 		event = header.Get("X-Gogs-Event")
 	}
-
 	return event
 }

@@ -15,7 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-// CachedDiscoveryClient implements the functions that dicovery server-supported API groups,
+// CachedDiscoveryClient implements the functions that discovery server-supported API groups,
 // versions and resources.
 type CachedDiscoveryClient struct {
 	discovery.DiscoveryInterface

@@ -95,7 +95,7 @@ func (c *Fake) SearchWithPaging(searchRequest *ldap.SearchRequest, pagingSize ui
 	return c.SearchResponse, nil
 }
 
-// NewMatchingSearchErrorClient returns a new MatchingSeachError client sitting on top of the parent
+// NewMatchingSearchErrorClient returns a new MatchingSearchError client sitting on top of the parent
 // client. This client returns the given error when a search base DN matches the given base DN, and
 // defers to the parent otherwise.
 func NewMatchingSearchErrorClient(parent ldap.Client, baseDN string, returnErr error) ldap.Client {

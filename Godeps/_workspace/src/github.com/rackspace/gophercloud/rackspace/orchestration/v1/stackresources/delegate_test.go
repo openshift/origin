@@ -104,5 +104,5 @@ func TestGetResourceTemplate(t *testing.T) {
 	th.AssertNoErr(t, err)
 
 	expected := os.GetTemplateExpected
-	th.AssertDeepEquals(t, expected, actual)
+	th.AssertDeepEquals(t, expected, string(actual))
 }

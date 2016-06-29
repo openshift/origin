@@ -20,6 +20,18 @@ type PolicyInterface interface {
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
+type PoliciesListerNamespacer interface {
+	Policies(namespace string) PolicyLister
+}
+type SyncedPoliciesListerNamespacer interface {
+	PoliciesListerNamespacer
+	LastSyncResourceVersion() string
+}
+type PolicyLister interface {
+	List(options kapi.ListOptions) (*authorizationapi.PolicyList, error)
+	Get(name string) (*authorizationapi.Policy, error)
+}
+
 // policies implements PoliciesNamespacer interface
 type policies struct {
 	r  *Client

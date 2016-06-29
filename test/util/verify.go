@@ -60,7 +60,7 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 		for _, s := range eventEndpoint.Subsets {
 			for _, p := range s.Ports {
 				for _, a := range s.Addresses {
-					addr := net.JoinHostPort(a.IP, strconv.Itoa(p.Port))
+					addr := net.JoinHostPort(a.IP, strconv.Itoa(int(p.Port)))
 					fmt.Printf("Discovered new %s endpoint: %s\n", service.Name, addr)
 					return addr, nil
 				}

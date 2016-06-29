@@ -64,6 +64,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))...)
 	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
 }
@@ -190,28 +191,7 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 		result = append(result, err)
 	}
 
-	result = append(result, validateNoDoubleEscapes(tls)...)
 	return result
-}
-
-// validateNoDoubleEscapes ensures double escaped newlines are not in the certificates.  Double
-// escaped newlines may be a remnant of old code which used to replace them for the user unnecessarily.
-// TODO this is a temporary validation to reject any of our examples with double slashes.  Remove this quickly.
-func validateNoDoubleEscapes(tls *routeapi.TLSConfig) field.ErrorList {
-	allErrs := field.ErrorList{}
-	if strings.Contains(tls.CACertificate, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("caCertificate"), tls.CACertificate, `double escaped new lines (\\n) are invalid`))
-	}
-	if strings.Contains(tls.Certificate, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("certificate"), tls.Certificate, `double escaped new lines (\\n) are invalid`))
-	}
-	if strings.Contains(tls.Key, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("key"), tls.Key, `double escaped new lines (\\n) are invalid`))
-	}
-	if strings.Contains(tls.DestinationCACertificate, "\\n") {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("destinationCACertificate"), tls.DestinationCACertificate, `double escaped new lines (\\n) are invalid`))
-	}
-	return allErrs
 }
 
 // validateInsecureEdgeTerminationPolicy tests fields for different types of

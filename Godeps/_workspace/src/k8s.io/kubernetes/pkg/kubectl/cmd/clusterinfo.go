@@ -42,6 +42,7 @@ func NewCmdClusterInfo(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(err)
 		},
 	}
+	cmdutil.AddInclude3rdPartyFlags(cmd)
 	return cmd
 }
 
@@ -56,7 +57,7 @@ func RunClusterInfo(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command) error
 	}
 	printService(out, "Kubernetes master", client.Host)
 
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
 	cmdNamespace := cmdutil.GetFlagString(cmd, "namespace")
 	if cmdNamespace == "" {
 		cmdNamespace = api.NamespaceSystem
@@ -82,7 +83,7 @@ func RunClusterInfo(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command) error
 					ip = ingress.Hostname
 				}
 				for _, port := range service.Spec.Ports {
-					link += "http://" + ip + ":" + strconv.Itoa(port.Port) + " "
+					link += "http://" + ip + ":" + strconv.Itoa(int(port.Port)) + " "
 				}
 			} else {
 				if len(client.GroupVersion.Group) == 0 {

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: test-deployment-config
+spec:
+  replicas: 1
+  selector:
+    name: test-deployment
+  strategy:
+    type: Recreate
+    recreateParams:
+      timeoutSeconds: 20
+      post:
+        failurePolicy: Ignore
+        tagImages:
+        - containerName: ruby-helloworld
+          to:
+            kind: ImageStreamTag
+            name: origin-ruby-sample:deployed
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 3Gi
+      volumes:
+      - emptyDir: {}
+        name: vol1
+  triggers:
+  - type: ConfigChange
+status: {}

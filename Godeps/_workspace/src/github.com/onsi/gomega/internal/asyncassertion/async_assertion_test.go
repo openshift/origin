@@ -144,7 +144,7 @@ var _ = Describe("Async Assertion", func() {
 					e := recover()
 					RegisterFailHandler(Fail)
 					if e == nil {
-						Fail("expected a panic to have occured")
+						Fail("expected a panic to have occurred")
 					}
 				}()
 
@@ -278,7 +278,7 @@ var _ = Describe("Async Assertion", func() {
 					e := recover()
 					RegisterFailHandler(Fail)
 					if e == nil {
-						Fail("expected a panic to have occured")
+						Fail("expected a panic to have occurred")
 					}
 				}()
 

@@ -58,31 +58,31 @@ Volume types include:
 For descriptions on other volume types, see https://docs.openshift.com`
 
 	volumeExample = `  # List volumes defined on all deployment configs in the current project
-  $ %[1]s volume dc --all
+  %[1]s volume dc --all
 
   # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
   # /var/lib/registry
-  $ %[1]s volume dc/registry --add --mount-path=/var/lib/registry
+  %[1]s volume dc/registry --add --mount-path=/var/lib/registry
 
   # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
-  $ %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
   # Remove volume 'v1' from deployment config 'registry'
-  $ %[1]s volume dc/registry --remove --name=v1
+  %[1]s volume dc/registry --remove --name=v1
 
   # Create a new persistent volume claim that overwrites an existing volume 'v1'
-  $ %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
 
   # Change the mount point for volume 'v1' to /data
-  $ %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
+  %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
 
   # Modify the deployment config by removing volume mount "v1" from container "c1"
   # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  $ %[1]s volume dc/registry --remove --name=v1 --containers=c1
+  %[1]s volume dc/registry --remove --name=v1 --containers=c1
 
   # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
   # Ceph, Gluster, NFS, ISCSI, ...)
-  $ %[1]s volume dc/registry --add -m /repo --source=<json-string>`
+  %[1]s volume dc/registry --add -m /repo --source=<json-string>`
 
 	volumePrefix = "volume-"
 )
@@ -120,12 +120,13 @@ type VolumeOptions struct {
 }
 
 type AddVolumeOptions struct {
-	Type       string
-	MountPath  string
-	Overwrite  bool
-	Path       string
-	SecretName string
-	Source     string
+	Type          string
+	MountPath     string
+	Overwrite     bool
+	Path          string
+	ConfigMapName string
+	SecretName    string
+	Source        string
 
 	CreateClaim bool
 	ClaimName   string
@@ -174,10 +175,11 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVarP(&opts.Output, "output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml")
 	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
 
-	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, persistentVolumeClaim")
+	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
 	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove")
 	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source and/or volume mount for the given resource")
 	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
+	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
 	cmd.Flags().StringVar(&addOpts.SecretName, "secret-name", "", "Name of the persisted secret. Must be provided for secret volume type")
 	cmd.Flags().StringVar(&addOpts.ClaimName, "claim-name", "", "Persistent volume claim name. Must be provided for persistentVolumeClaim volume type")
 	cmd.Flags().StringVar(&addOpts.ClaimSize, "claim-size", "", "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
@@ -241,7 +243,18 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 			a.Type = "persistentvolumeclaim"
 			a.TypeChanged = true
 		}
-
+		if len(a.Type) == 0 && (len(a.SecretName) > 0) {
+			a.Type = "secret"
+			a.TypeChanged = true
+		}
+		if len(a.Type) == 0 && (len(a.ConfigMapName) > 0) {
+			a.Type = "configmap"
+			a.TypeChanged = true
+		}
+		if len(a.Type) == 0 && (len(a.Path) > 0) {
+			a.Type = "hostpath"
+			a.TypeChanged = true
+		}
 		if len(a.Type) == 0 {
 			a.Type = "emptydir"
 		}
@@ -262,6 +275,10 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 			case "secret":
 				if len(a.SecretName) == 0 {
 					return errors.New("must provide --secret-name for --type=secret")
+				}
+			case "configmap":
+				if len(a.ConfigMapName) == 0 {
+					return errors.New("must provide --configmap-name for --type=configmap")
 				}
 			case "persistentvolumeclaim", "pvc":
 				if len(a.ClaimName) == 0 && len(a.ClaimSize) == 0 {
@@ -290,8 +307,8 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 				return err
 			}
 		}
-	} else if len(a.Source) > 0 || len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ClaimName) > 0 || a.Overwrite {
-		return errors.New("--type|--path|--secret-name|--claim-name|--source|--overwrite are only valid for --add operation")
+	} else if len(a.Source) > 0 || len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ConfigMapName) > 0 || len(a.ClaimName) > 0 || a.Overwrite {
+		return errors.New("--type|--path|--configmap-name|--secret-name|--claim-name|--source|--overwrite are only valid for --add operation")
 	}
 	return nil
 }
@@ -315,7 +332,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
+	mapper, typer := f.Object(false)
 
 	v.DefaultNamespace = cmdNamespace
 	v.ExplicitNamespace = explicit
@@ -360,7 +377,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
-		FilenameParam(v.ExplicitNamespace, v.Filenames...).
+		FilenameParam(v.ExplicitNamespace, false, v.Filenames...).
 		SelectorParam(v.Selector).
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()
@@ -476,6 +493,12 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 	case "secret":
 		kv.Secret = &kapi.SecretVolumeSource{
 			SecretName: opts.SecretName,
+		}
+	case "configmap":
+		kv.ConfigMap = &kapi.ConfigMapVolumeSource{
+			LocalObjectReference: kapi.LocalObjectReference{
+				Name: opts.ConfigMapName,
+			},
 		}
 	case "persistentvolumeclaim", "pvc":
 		kv.PersistentVolumeClaim = &kapi.PersistentVolumeClaimVolumeSource{

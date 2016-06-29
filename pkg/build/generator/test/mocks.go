@@ -67,9 +67,12 @@ func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
+			Labels: map[string]string{
+				"testbclabel": "testbcvalue",
+			},
 		},
 		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
+			CommonSpec: buildapi.CommonSpec{
 				Source: source,
 				Revision: &buildapi.SourceRevision{
 					Git: &buildapi.GitSourceRevision{

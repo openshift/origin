@@ -57,7 +57,7 @@ func TestDelete(t *testing.T) {
 	th.AssertNoErr(t, err)
 }
 
-func TestAssociate(t *testing.T) {
+func TestAssociateDeprecated(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
 	HandleAssociateSuccessfully(t)
@@ -68,7 +68,36 @@ func TestAssociate(t *testing.T) {
 	th.AssertNoErr(t, err)
 }
 
-func TestDisassociate(t *testing.T) {
+func TestAssociate(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleAssociateSuccessfully(t)
+
+	associateOpts := AssociateOpts{
+		ServerID:   "4d8c3732-a248-40ed-bebc-539a6ffd25c0",
+		FloatingIP: "10.10.10.2",
+	}
+
+	err := AssociateInstance(client.ServiceClient(), associateOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+}
+
+func TestAssociateFixed(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleAssociateFixedSuccessfully(t)
+
+	associateOpts := AssociateOpts{
+		ServerID:   "4d8c3732-a248-40ed-bebc-539a6ffd25c0",
+		FloatingIP: "10.10.10.2",
+		FixedIP:    "166.78.185.201",
+	}
+
+	err := AssociateInstance(client.ServiceClient(), associateOpts).ExtractErr()
+	th.AssertNoErr(t, err)
+}
+
+func TestDisassociateDeprecated(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
 	HandleDisassociateSuccessfully(t)
@@ -76,5 +105,19 @@ func TestDisassociate(t *testing.T) {
 	fip := "10.10.10.2"
 
 	err := Disassociate(client.ServiceClient(), serverId, fip).ExtractErr()
+	th.AssertNoErr(t, err)
+}
+
+func TestDisassociateInstance(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleDisassociateSuccessfully(t)
+
+	associateOpts := AssociateOpts{
+		ServerID:   "4d8c3732-a248-40ed-bebc-539a6ffd25c0",
+		FloatingIP: "10.10.10.2",
+	}
+
+	err := DisassociateInstance(client.ServiceClient(), associateOpts).ExtractErr()
 	th.AssertNoErr(t, err)
 }

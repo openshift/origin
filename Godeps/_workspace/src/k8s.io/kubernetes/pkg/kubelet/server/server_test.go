@@ -41,6 +41,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	kubecontainertesting "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/types"
@@ -208,11 +209,11 @@ func newServerTest() *serverTestFramework {
 	}
 	server := NewServer(
 		fw.fakeKubelet,
-		stats.NewResourceAnalyzer(fw.fakeKubelet, time.Minute),
+		stats.NewResourceAnalyzer(fw.fakeKubelet, time.Minute, &kubecontainertesting.FakeRuntime{}),
 		fw.fakeAuth,
-		true)
+		true,
+		&kubecontainertesting.Mock{})
 	fw.serverUnderTest = &server
-	// TODO: Close() this when fix #19254
 	fw.testHTTPServer = httptest.NewServer(fw.serverUnderTest)
 	return fw
 }
@@ -242,6 +243,7 @@ func getPodName(name, namespace string) string {
 
 func TestContainerInfo(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	expectedInfo := &cadvisorapi.ContainerInfo{}
 	podID := "somepod"
 	expectedPodID := getPodName(podID, "")
@@ -270,6 +272,7 @@ func TestContainerInfo(t *testing.T) {
 
 func TestContainerInfoWithUidNamespace(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	expectedInfo := &cadvisorapi.ContainerInfo{}
 	podID := "somepod"
 	expectedNamespace := "custom"
@@ -300,6 +303,7 @@ func TestContainerInfoWithUidNamespace(t *testing.T) {
 
 func TestContainerNotFound(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	podID := "somepod"
 	expectedNamespace := "custom"
 	expectedContainerName := "slowstartcontainer"
@@ -319,6 +323,7 @@ func TestContainerNotFound(t *testing.T) {
 
 func TestRootInfo(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	expectedInfo := &cadvisorapi.ContainerInfo{
 		ContainerReference: cadvisorapi.ContainerReference{
 			Name: "/",
@@ -347,6 +352,7 @@ func TestRootInfo(t *testing.T) {
 
 func TestSubcontainerContainerInfo(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	const kubeletContainer = "/kubelet"
 	const kubeletSubContainer = "/kubelet/sub"
 	expectedInfo := map[string]*cadvisorapi.ContainerInfo{
@@ -392,6 +398,7 @@ func TestSubcontainerContainerInfo(t *testing.T) {
 
 func TestMachineInfo(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	expectedInfo := &cadvisorapi.MachineInfo{
 		NumCores:       4,
 		MemoryCapacity: 1024,
@@ -417,6 +424,7 @@ func TestMachineInfo(t *testing.T) {
 
 func TestServeLogs(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 
 	content := string(`<pre><a href="kubelet.log">kubelet.log</a><a href="google.log">google.log</a></pre>`)
 
@@ -445,6 +453,7 @@ func TestServeLogs(t *testing.T) {
 
 func TestServeRunInContainer(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -485,6 +494,7 @@ func TestServeRunInContainer(t *testing.T) {
 
 func TestServeRunInContainerWithUID(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -529,6 +539,7 @@ func TestServeRunInContainerWithUID(t *testing.T) {
 
 func TestHealthCheck(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	fw.fakeKubelet.hostnameFunc = func() string {
 		return "127.0.0.1"
 	}
@@ -561,6 +572,7 @@ type authTestCase struct {
 
 func TestAuthFilters(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 
 	testcases := []authTestCase{}
 
@@ -663,6 +675,7 @@ func TestAuthenticationFailure(t *testing.T) {
 	)
 
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	fw.fakeAuth.authenticateFunc = func(req *http.Request) (user.Info, bool, error) {
 		calledAuthenticate = true
 		return nil, false, nil
@@ -700,6 +713,7 @@ func TestAuthorizationSuccess(t *testing.T) {
 	)
 
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	fw.fakeAuth.authenticateFunc = func(req *http.Request) (user.Info, bool, error) {
 		calledAuthenticate = true
 		return expectedUser, true, nil
@@ -728,6 +742,7 @@ func TestAuthorizationSuccess(t *testing.T) {
 
 func TestSyncLoopCheck(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	fw.fakeKubelet.hostnameFunc = func() string {
 		return "127.0.0.1"
 	}
@@ -744,6 +759,7 @@ func TestSyncLoopCheck(t *testing.T) {
 
 func TestPLEGHealthCheck(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	fw.fakeKubelet.hostnameFunc = func() string {
 		return "127.0.0.1"
 	}
@@ -812,6 +828,7 @@ func setGetContainerLogsFunc(fw *serverTestFramework, t *testing.T, expectedPodN
 // TODO: I really want to be a table driven test
 func TestContainerLogs(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -837,6 +854,7 @@ func TestContainerLogs(t *testing.T) {
 
 func TestContainerLogsWithLimitBytes(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -863,6 +881,7 @@ func TestContainerLogsWithLimitBytes(t *testing.T) {
 
 func TestContainerLogsWithTail(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -889,6 +908,7 @@ func TestContainerLogsWithTail(t *testing.T) {
 
 func TestContainerLogsWithLegacyTail(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -915,6 +935,7 @@ func TestContainerLogsWithLegacyTail(t *testing.T) {
 
 func TestContainerLogsWithTailAll(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -940,6 +961,7 @@ func TestContainerLogsWithTailAll(t *testing.T) {
 
 func TestContainerLogsWithInvalidTail(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -959,6 +981,7 @@ func TestContainerLogsWithInvalidTail(t *testing.T) {
 
 func TestContainerLogsWithFollow(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 	output := "foo bar"
 	podNamespace := "other"
 	podName := "foo"
@@ -984,6 +1007,7 @@ func TestContainerLogsWithFollow(t *testing.T) {
 
 func TestServeExecInContainerIdleTimeout(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 
 	fw.fakeKubelet.streamingConnectionIdleTimeoutFunc = func() time.Duration {
 		return 100 * time.Millisecond
@@ -1019,7 +1043,7 @@ func TestServeExecInContainerIdleTimeout(t *testing.T) {
 	<-conn.CloseChan()
 }
 
-func TestServeExecInContainer(t *testing.T) {
+func testExecAttach(t *testing.T, verb string) {
 	tests := []struct {
 		stdin              bool
 		stdout             bool
@@ -1039,6 +1063,7 @@ func TestServeExecInContainer(t *testing.T) {
 
 	for i, test := range tests {
 		fw := newServerTest()
+		defer fw.testHTTPServer.Close()
 
 		fw.fakeKubelet.streamingConnectionIdleTimeoutFunc = func() time.Duration {
 			return 0
@@ -1053,12 +1078,15 @@ func TestServeExecInContainer(t *testing.T) {
 		expectedStdin := "stdin"
 		expectedStdout := "stdout"
 		expectedStderr := "stderr"
-		execFuncDone := make(chan struct{})
+		done := make(chan struct{})
 		clientStdoutReadDone := make(chan struct{})
 		clientStderrReadDone := make(chan struct{})
+		execInvoked := false
+		attachInvoked := false
 
-		fw.fakeKubelet.execFunc = func(podFullName string, uid types.UID, containerName string, cmd []string, in io.Reader, out, stderr io.WriteCloser, tty bool) error {
-			defer close(execFuncDone)
+		testStreamFunc := func(podFullName string, uid types.UID, containerName string, cmd []string, in io.Reader, out, stderr io.WriteCloser, tty bool, done chan struct{}) error {
+			defer close(done)
+
 			if podFullName != expectedPodName {
 				t.Fatalf("%d: podFullName: expected %s, got %s", i, expectedPodName, podFullName)
 			}
@@ -1068,66 +1096,79 @@ func TestServeExecInContainer(t *testing.T) {
 			if containerName != expectedContainerName {
 				t.Fatalf("%d: containerName: expected %s, got %s", i, expectedContainerName, containerName)
 			}
+
+			if test.stdin {
+				if in == nil {
+					t.Fatalf("%d: stdin: expected non-nil", i)
+				}
+				b := make([]byte, 10)
+				n, err := in.Read(b)
+				if err != nil {
+					t.Fatalf("%d: error reading from stdin: %v", i, err)
+				}
+				if e, a := expectedStdin, string(b[0:n]); e != a {
+					t.Fatalf("%d: stdin: expected to read %v, got %v", i, e, a)
+				}
+			} else if in != nil {
+				t.Fatalf("%d: stdin: expected nil: %#v", i, in)
+			}
+
+			if test.stdout {
+				if out == nil {
+					t.Fatalf("%d: stdout: expected non-nil", i)
+				}
+				_, err := out.Write([]byte(expectedStdout))
+				if err != nil {
+					t.Fatalf("%d:, error writing to stdout: %v", i, err)
+				}
+				out.Close()
+				<-clientStdoutReadDone
+			} else if out != nil {
+				t.Fatalf("%d: stdout: expected nil: %#v", i, out)
+			}
+
+			if tty {
+				if stderr != nil {
+					t.Fatalf("%d: tty set but received non-nil stderr: %v", i, stderr)
+				}
+			} else if test.stderr {
+				if stderr == nil {
+					t.Fatalf("%d: stderr: expected non-nil", i)
+				}
+				_, err := stderr.Write([]byte(expectedStderr))
+				if err != nil {
+					t.Fatalf("%d:, error writing to stderr: %v", i, err)
+				}
+				stderr.Close()
+				<-clientStderrReadDone
+			} else if stderr != nil {
+				t.Fatalf("%d: stderr: expected nil: %#v", i, stderr)
+			}
+
+			return nil
+		}
+
+		fw.fakeKubelet.execFunc = func(podFullName string, uid types.UID, containerName string, cmd []string, in io.Reader, out, stderr io.WriteCloser, tty bool) error {
+			execInvoked = true
 			if strings.Join(cmd, " ") != expectedCommand {
 				t.Fatalf("%d: cmd: expected: %s, got %v", i, expectedCommand, cmd)
 			}
+			return testStreamFunc(podFullName, uid, containerName, cmd, in, out, stderr, tty, done)
+		}
 
-			if test.stdin {
-				if in == nil {
-					t.Fatalf("%d: stdin: expected non-nil", i)
-				}
-				b := make([]byte, 10)
-				n, err := in.Read(b)
-				if err != nil {
-					t.Fatalf("%d: error reading from stdin: %v", i, err)
-				}
-				if e, a := expectedStdin, string(b[0:n]); e != a {
-					t.Fatalf("%d: stdin: expected to read %v, got %v", i, e, a)
-				}
-			} else if in != nil {
-				t.Fatalf("%d: stdin: expected nil: %#v", i, in)
-			}
-
-			if test.stdout {
-				if out == nil {
-					t.Fatalf("%d: stdout: expected non-nil", i)
-				}
-				_, err := out.Write([]byte(expectedStdout))
-				if err != nil {
-					t.Fatalf("%d:, error writing to stdout: %v", i, err)
-				}
-				out.Close()
-				<-clientStdoutReadDone
-			} else if out != nil {
-				t.Fatalf("%d: stdout: expected nil: %#v", i, out)
-			}
-
-			if tty {
-				if stderr != nil {
-					t.Fatalf("%d: tty set but received non-nil stderr: %v", i, stderr)
-				}
-			} else if test.stderr {
-				if stderr == nil {
-					t.Fatalf("%d: stderr: expected non-nil", i)
-				}
-				_, err := stderr.Write([]byte(expectedStderr))
-				if err != nil {
-					t.Fatalf("%d:, error writing to stderr: %v", i, err)
-				}
-				stderr.Close()
-				<-clientStderrReadDone
-			} else if stderr != nil {
-				t.Fatalf("%d: stderr: expected nil: %#v", i, stderr)
-			}
-
-			return nil
+		fw.fakeKubelet.attachFunc = func(podFullName string, uid types.UID, containerName string, in io.Reader, out, stderr io.WriteCloser, tty bool) error {
+			attachInvoked = true
+			return testStreamFunc(podFullName, uid, containerName, nil, in, out, stderr, tty, done)
 		}
 
 		var url string
 		if test.uid {
-			url = fw.testHTTPServer.URL + "/exec/" + podNamespace + "/" + podName + "/" + expectedUid + "/" + expectedContainerName + "?command=ls&command=-a"
+			url = fw.testHTTPServer.URL + "/" + verb + "/" + podNamespace + "/" + podName + "/" + expectedUid + "/" + expectedContainerName + "?ignore=1"
 		} else {
-			url = fw.testHTTPServer.URL + "/exec/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?command=ls&command=-a"
+			url = fw.testHTTPServer.URL + "/" + verb + "/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?ignore=1"
+		}
+		if verb == "exec" {
+			url += "&command=ls&command=-a"
 		}
 		if test.stdin {
 			url += "&" + api.ExecStdinParam + "=1"
@@ -1186,11 +1227,9 @@ func TestServeExecInContainer(t *testing.T) {
 
 		h := http.Header{}
 		h.Set(api.StreamType, api.StreamTypeError)
-		errorStream, err := conn.CreateStream(h)
-		if err != nil {
+		if _, err := conn.CreateStream(h); err != nil {
 			t.Fatalf("%d: error creating error stream: %v", i, err)
 		}
-		defer errorStream.Reset()
 
 		if test.stdin {
 			h.Set(api.StreamType, api.StreamTypeStdin)
@@ -1198,7 +1237,6 @@ func TestServeExecInContainer(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%d: error creating stdin stream: %v", i, err)
 			}
-			defer stream.Reset()
 			_, err = stream.Write([]byte(expectedStdin))
 			if err != nil {
 				t.Fatalf("%d: error writing to stdin stream: %v", i, err)
@@ -1212,7 +1250,6 @@ func TestServeExecInContainer(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%d: error creating stdout stream: %v", i, err)
 			}
-			defer stdoutStream.Reset()
 		}
 
 		var stderrStream httpstream.Stream
@@ -1222,7 +1259,6 @@ func TestServeExecInContainer(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%d: error creating stderr stream: %v", i, err)
 			}
-			defer stderrStream.Reset()
 		}
 
 		if test.stdout {
@@ -1249,243 +1285,38 @@ func TestServeExecInContainer(t *testing.T) {
 			}
 		}
 
-		<-execFuncDone
+		// wait for the server to finish before checking if the attach/exec funcs were invoked
+		<-done
+
+		if verb == "exec" {
+			if !execInvoked {
+				t.Errorf("%d: exec was not invoked", i)
+			}
+			if attachInvoked {
+				t.Errorf("%d: attach should not have been invoked", i)
+			}
+		} else {
+			if !attachInvoked {
+				t.Errorf("%d: attach was not invoked", i)
+			}
+			if execInvoked {
+				t.Errorf("%d: exec should not have been invoked", i)
+			}
+		}
 	}
 }
 
-// TODO: largely cloned from TestServeExecContainer, refactor and re-use code
+func TestServeExecInContainer(t *testing.T) {
+	testExecAttach(t, "exec")
+}
+
 func TestServeAttachContainer(t *testing.T) {
-	tests := []struct {
-		stdin              bool
-		stdout             bool
-		stderr             bool
-		tty                bool
-		responseStatusCode int
-		uid                bool
-	}{
-		{responseStatusCode: http.StatusBadRequest},
-		{stdin: true, responseStatusCode: http.StatusSwitchingProtocols},
-		{stdout: true, responseStatusCode: http.StatusSwitchingProtocols},
-		{stderr: true, responseStatusCode: http.StatusSwitchingProtocols},
-		{stdout: true, stderr: true, responseStatusCode: http.StatusSwitchingProtocols},
-		{stdout: true, stderr: true, tty: true, responseStatusCode: http.StatusSwitchingProtocols},
-		{stdin: true, stdout: true, stderr: true, responseStatusCode: http.StatusSwitchingProtocols},
-	}
-
-	for i, test := range tests {
-		fw := newServerTest()
-
-		fw.fakeKubelet.streamingConnectionIdleTimeoutFunc = func() time.Duration {
-			return 0
-		}
-
-		podNamespace := "other"
-		podName := "foo"
-		expectedPodName := getPodName(podName, podNamespace)
-		expectedUid := "9b01b80f-8fb4-11e4-95ab-4200af06647"
-		expectedContainerName := "baz"
-		expectedStdin := "stdin"
-		expectedStdout := "stdout"
-		expectedStderr := "stderr"
-		attachFuncDone := make(chan struct{})
-		clientStdoutReadDone := make(chan struct{})
-		clientStderrReadDone := make(chan struct{})
-
-		fw.fakeKubelet.attachFunc = func(podFullName string, uid types.UID, containerName string, in io.Reader, out, stderr io.WriteCloser, tty bool) error {
-			defer close(attachFuncDone)
-			if podFullName != expectedPodName {
-				t.Fatalf("%d: podFullName: expected %s, got %s", i, expectedPodName, podFullName)
-			}
-			if test.uid && string(uid) != expectedUid {
-				t.Fatalf("%d: uid: expected %v, got %v", i, expectedUid, uid)
-			}
-			if containerName != expectedContainerName {
-				t.Fatalf("%d: containerName: expected %s, got %s", i, expectedContainerName, containerName)
-			}
-
-			if test.stdin {
-				if in == nil {
-					t.Fatalf("%d: stdin: expected non-nil", i)
-				}
-				b := make([]byte, 10)
-				n, err := in.Read(b)
-				if err != nil {
-					t.Fatalf("%d: error reading from stdin: %v", i, err)
-				}
-				if e, a := expectedStdin, string(b[0:n]); e != a {
-					t.Fatalf("%d: stdin: expected to read %v, got %v", i, e, a)
-				}
-			} else if in != nil {
-				t.Fatalf("%d: stdin: expected nil: %#v", i, in)
-			}
-
-			if test.stdout {
-				if out == nil {
-					t.Fatalf("%d: stdout: expected non-nil", i)
-				}
-				_, err := out.Write([]byte(expectedStdout))
-				if err != nil {
-					t.Fatalf("%d:, error writing to stdout: %v", i, err)
-				}
-				out.Close()
-				<-clientStdoutReadDone
-			} else if out != nil {
-				t.Fatalf("%d: stdout: expected nil: %#v", i, out)
-			}
-
-			if tty {
-				if stderr != nil {
-					t.Fatalf("%d: tty set but received non-nil stderr: %v", i, stderr)
-				}
-			} else if test.stderr {
-				if stderr == nil {
-					t.Fatalf("%d: stderr: expected non-nil", i)
-				}
-				_, err := stderr.Write([]byte(expectedStderr))
-				if err != nil {
-					t.Fatalf("%d:, error writing to stderr: %v", i, err)
-				}
-				stderr.Close()
-				<-clientStderrReadDone
-			} else if stderr != nil {
-				t.Fatalf("%d: stderr: expected nil: %#v", i, stderr)
-			}
-
-			return nil
-		}
-
-		var url string
-		if test.uid {
-			url = fw.testHTTPServer.URL + "/attach/" + podNamespace + "/" + podName + "/" + expectedUid + "/" + expectedContainerName + "?"
-		} else {
-			url = fw.testHTTPServer.URL + "/attach/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?"
-		}
-		if test.stdin {
-			url += "&" + api.ExecStdinParam + "=1"
-		}
-		if test.stdout {
-			url += "&" + api.ExecStdoutParam + "=1"
-		}
-		if test.stderr && !test.tty {
-			url += "&" + api.ExecStderrParam + "=1"
-		}
-		if test.tty {
-			url += "&" + api.ExecTTYParam + "=1"
-		}
-
-		var (
-			resp                *http.Response
-			err                 error
-			upgradeRoundTripper httpstream.UpgradeRoundTripper
-			c                   *http.Client
-		)
-
-		if test.responseStatusCode != http.StatusSwitchingProtocols {
-			c = &http.Client{}
-		} else {
-			upgradeRoundTripper = spdy.NewRoundTripper(nil)
-			c = &http.Client{Transport: upgradeRoundTripper}
-		}
-
-		resp, err = c.Post(url, "", nil)
-		if err != nil {
-			t.Fatalf("%d: Got error POSTing: %v", i, err)
-		}
-		defer resp.Body.Close()
-
-		_, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Errorf("%d: Error reading response body: %v", i, err)
-		}
-
-		if e, a := test.responseStatusCode, resp.StatusCode; e != a {
-			t.Fatalf("%d: response status: expected %v, got %v", i, e, a)
-		}
-
-		if test.responseStatusCode != http.StatusSwitchingProtocols {
-			continue
-		}
-
-		conn, err := upgradeRoundTripper.NewConnection(resp)
-		if err != nil {
-			t.Fatalf("Unexpected error creating streaming connection: %s", err)
-		}
-		if conn == nil {
-			t.Fatalf("%d: unexpected nil conn", i)
-		}
-		defer conn.Close()
-
-		h := http.Header{}
-		h.Set(api.StreamType, api.StreamTypeError)
-		errorStream, err := conn.CreateStream(h)
-		if err != nil {
-			t.Fatalf("%d: error creating error stream: %v", i, err)
-		}
-		defer errorStream.Reset()
-
-		if test.stdin {
-			h.Set(api.StreamType, api.StreamTypeStdin)
-			stream, err := conn.CreateStream(h)
-			if err != nil {
-				t.Fatalf("%d: error creating stdin stream: %v", i, err)
-			}
-			defer stream.Reset()
-			_, err = stream.Write([]byte(expectedStdin))
-			if err != nil {
-				t.Fatalf("%d: error writing to stdin stream: %v", i, err)
-			}
-		}
-
-		var stdoutStream httpstream.Stream
-		if test.stdout {
-			h.Set(api.StreamType, api.StreamTypeStdout)
-			stdoutStream, err = conn.CreateStream(h)
-			if err != nil {
-				t.Fatalf("%d: error creating stdout stream: %v", i, err)
-			}
-			defer stdoutStream.Reset()
-		}
-
-		var stderrStream httpstream.Stream
-		if test.stderr && !test.tty {
-			h.Set(api.StreamType, api.StreamTypeStderr)
-			stderrStream, err = conn.CreateStream(h)
-			if err != nil {
-				t.Fatalf("%d: error creating stderr stream: %v", i, err)
-			}
-			defer stderrStream.Reset()
-		}
-
-		if test.stdout {
-			output := make([]byte, 10)
-			n, err := stdoutStream.Read(output)
-			close(clientStdoutReadDone)
-			if err != nil {
-				t.Fatalf("%d: error reading from stdout stream: %v", i, err)
-			}
-			if e, a := expectedStdout, string(output[0:n]); e != a {
-				t.Fatalf("%d: stdout: expected '%v', got '%v'", i, e, a)
-			}
-		}
-
-		if test.stderr && !test.tty {
-			output := make([]byte, 10)
-			n, err := stderrStream.Read(output)
-			close(clientStderrReadDone)
-			if err != nil {
-				t.Fatalf("%d: error reading from stderr stream: %v", i, err)
-			}
-			if e, a := expectedStderr, string(output[0:n]); e != a {
-				t.Fatalf("%d: stderr: expected '%v', got '%v'", i, e, a)
-			}
-		}
-
-		<-attachFuncDone
-	}
+	testExecAttach(t, "attach")
 }
 
 func TestServePortForwardIdleTimeout(t *testing.T) {
 	fw := newServerTest()
+	defer fw.testHTTPServer.Close()
 
 	fw.fakeKubelet.streamingConnectionIdleTimeoutFunc = func() time.Duration {
 		return 100 * time.Millisecond
@@ -1544,6 +1375,7 @@ func TestServePortForward(t *testing.T) {
 
 	for i, test := range tests {
 		fw := newServerTest()
+		defer fw.testHTTPServer.Close()
 
 		fw.fakeKubelet.streamingConnectionIdleTimeoutFunc = func() time.Duration {
 			return 0

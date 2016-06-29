@@ -25,7 +25,7 @@ func (d NodeConfigCheck) Description() string {
 }
 func (d NodeConfigCheck) CanRun() (bool, error) {
 	if len(d.NodeConfigFile) == 0 {
-		return false, errors.New("must have node config file")
+		return false, errors.New("No node config file was detected")
 	}
 
 	return true, nil

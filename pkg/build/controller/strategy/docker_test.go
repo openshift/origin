@@ -123,40 +123,42 @@ func mockDockerBuild() *buildapi.Build {
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Revision: &buildapi.SourceRevision{
-				Git: &buildapi.GitSourceRevision{},
-			},
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
-					Ref: "master",
+			CommonSpec: buildapi.CommonSpec{
+				Revision: &buildapi.SourceRevision{
+					Git: &buildapi.GitSourceRevision{},
 				},
-				ContextDir:   "my/test/dir",
-				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
-					Env: []kapi.EnvVar{
-						{Name: "ILLEGAL", Value: "foo"},
-						{Name: "BUILD_LOGLEVEL", Value: "bar"},
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+						Ref: "master",
+					},
+					ContextDir:   "my/test/dir",
+					SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						PullSecret: &kapi.LocalObjectReference{Name: "bar"},
+						Env: []kapi.EnvVar{
+							{Name: "ILLEGAL", Value: "foo"},
+							{Name: "BUILD_LOGLEVEL", Value: "bar"},
+						},
 					},
 				},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "docker-registry/repository/dockerBuild",
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "docker-registry/repository/dockerBuild",
+					},
+					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
 				},
-				PushSecret: &kapi.LocalObjectReference{Name: "foo"},
-			},
-			Resources: kapi.ResourceRequirements{
-				Limits: kapi.ResourceList{
-					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				Resources: kapi.ResourceRequirements{
+					Limits: kapi.ResourceList{
+						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+					},
 				},
+				CompletionDeadlineSeconds: &timeout,
 			},
-			CompletionDeadlineSeconds: &timeout,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,

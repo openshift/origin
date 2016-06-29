@@ -23,7 +23,7 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 	return []kubectl.GeneratorParam{
 		{"labels", false},
 		{"default-name", true},
-		{"target-port", false},
+		{"port", false},
 		{"name", false},
 		{"hostname", false},
 		{"path", false},
@@ -76,7 +76,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		},
 	}
 
-	portString := params["target-port"]
+	portString := params["port"]
 	if len(portString) > 0 {
 		var targetPort intstr.IntOrString
 		if port, err := strconv.Atoi(portString); err == nil {

@@ -5,10 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -22,12 +20,16 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/volumes"
 # This test validates the 'volume' command
 
-os::cmd::expect_success 'oc create -f test/integration/fixtures/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 
 os::cmd::expect_success_and_text 'oc volume dc/test-deployment-config --list' 'vol1'
 os::cmd::expect_success 'oc volume dc/test-deployment-config --add --name=vol0 -m /opt5'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt'
 os::cmd::expect_failure_and_text "oc set volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='\$ecret' -m /data" 'overwrite to replace'
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol10 --secret-name='my-secret' -m /data-2"
+os::cmd::expect_success "oc set volume dc/test-deployment-config --add --name=vol11 --configmap-name='my-configmap' -m /data-21"
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.containers[0].volumeMounts}' '/data-21'
+os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[4].configMap}' 'my-configmap'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --add --name=vol1 --type=emptyDir -m /data --overwrite'
 os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add -m /opt' "'/opt' already exists"
 os::cmd::expect_success_and_text "oc set volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite" 'does not have any containers'
@@ -54,4 +56,3 @@ os::cmd::expect_success 'oc set volumes dc/test-deployment-config --list'
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "volumes: ok"
 os::test::junit::declare_suite_end
-

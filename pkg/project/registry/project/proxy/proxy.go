@@ -12,12 +12,15 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	nsregistry "k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
 type REST struct {
@@ -29,15 +32,21 @@ type REST struct {
 	createStrategy rest.RESTCreateStrategy
 	// Allows extended behavior during updates, required
 	updateStrategy rest.RESTUpdateStrategy
+
+	authCache    *projectauth.AuthorizationCache
+	projectCache *projectcache.ProjectCache
 }
 
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister) *REST {
+func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
 	return &REST{
 		client:         client,
 		lister:         lister,
 		createStrategy: projectregistry.Strategy,
 		updateStrategy: projectregistry.Strategy,
+
+		authCache:    authCache,
+		projectCache: projectCache,
 	}
 }
 
@@ -49,46 +58,6 @@ func (s *REST) New() runtime.Object {
 // NewList returns a new ProjectList
 func (*REST) NewList() runtime.Object {
 	return &api.ProjectList{}
-}
-
-// convertNamespace transforms a Namespace into a Project
-func convertNamespace(namespace *kapi.Namespace) *api.Project {
-	return &api.Project{
-		ObjectMeta: namespace.ObjectMeta,
-		Spec: api.ProjectSpec{
-			Finalizers: namespace.Spec.Finalizers,
-		},
-		Status: api.ProjectStatus{
-			Phase: namespace.Status.Phase,
-		},
-	}
-}
-
-// convertProject transforms a Project into a Namespace
-func convertProject(project *api.Project) *kapi.Namespace {
-	namespace := &kapi.Namespace{
-		ObjectMeta: project.ObjectMeta,
-		Spec: kapi.NamespaceSpec{
-			Finalizers: project.Spec.Finalizers,
-		},
-		Status: kapi.NamespaceStatus{
-			Phase: project.Status.Phase,
-		},
-	}
-	if namespace.Annotations == nil {
-		namespace.Annotations = map[string]string{}
-	}
-	namespace.Annotations[projectapi.ProjectDisplayName] = project.Annotations[projectapi.ProjectDisplayName]
-	return namespace
-}
-
-// convertNamespaceList transforms a NamespaceList into a ProjectList
-func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
-	projects := &api.ProjectList{}
-	for _, n := range namespaceList.Items {
-		projects.Items = append(projects.Items, *convertNamespace(&n))
-	}
-	return projects
 }
 
 var _ = rest.Lister(&REST{})
@@ -108,7 +77,25 @@ func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespaceList(list.(*kapi.NamespaceList)), nil
+	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
+}
+
+func (s *REST) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("Context is nil")
+	}
+	userInfo, exists := kapi.UserFrom(ctx)
+	if !exists {
+		return nil, fmt.Errorf("no user")
+	}
+
+	includeAllExistingProjects := (options != nil) && options.ResourceVersion == "0"
+
+	watcher := projectauth.NewUserProjectWatcher(userInfo.GetName(), userInfo.GetGroups(), s.projectCache, s.authCache, includeAllExistingProjects)
+	s.authCache.AddWatcher(watcher)
+
+	go watcher.Watch()
+	return watcher, nil
 }
 
 var _ = rest.Getter(&REST{})
@@ -119,7 +106,7 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespace(namespace), nil
+	return projectutil.ConvertNamespace(namespace), nil
 }
 
 var _ = rest.Creater(&REST{})
@@ -135,11 +122,11 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
 		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
-	namespace, err := s.client.Create(convertProject(project))
+	namespace, err := s.client.Create(projectutil.ConvertProject(project))
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespace(namespace), nil
+	return projectutil.ConvertNamespace(namespace), nil
 }
 
 var _ = rest.Updater(&REST{})
@@ -159,12 +146,12 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
 
-	namespace, err := s.client.Update(convertProject(project))
+	namespace, err := s.client.Update(projectutil.ConvertProject(project))
 	if err != nil {
 		return nil, false, err
 	}
 
-	return convertNamespace(namespace), false, nil
+	return projectutil.ConvertNamespace(namespace), false, nil
 }
 
 var _ = rest.Deleter(&REST{})

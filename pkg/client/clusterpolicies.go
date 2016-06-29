@@ -20,6 +20,18 @@ type ClusterPolicyInterface interface {
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
+type ClusterPoliciesListerInterface interface {
+	ClusterPolicies() ClusterPolicyLister
+}
+type ClusterPolicyLister interface {
+	List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
+	Get(name string) (*authorizationapi.ClusterPolicy, error)
+}
+type SyncedClusterPoliciesListerInterface interface {
+	ClusterPoliciesListerInterface
+	LastSyncResourceVersion() string
+}
+
 type clusterPolicies struct {
 	r *Client
 }

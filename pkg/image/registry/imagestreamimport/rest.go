@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -177,6 +177,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	if spec := isi.Spec.Repository; spec != nil {
 		for i, status := range isi.Status.Repository.Images {
+			if checkImportFailure(status, stream, status.Tag, nextGeneration, now) {
+				continue
+			}
+
 			image := status.Image
 			ref, err := api.ParseDockerImageReference(image.DockerImageReference)
 			if err != nil {
@@ -195,10 +199,6 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			}
 			// we've imported a set of tags, ensure spec tag will point to this for later imports
 			from.ID, from.Tag = "", tag
-
-			if checkImportFailure(status, stream, tag, nextGeneration, now) {
-				continue
-			}
 
 			if updated, ok := r.importSuccessful(ctx, image, stream, tag, from.Exact(), nextGeneration, now, spec.ImportPolicy, importedImages, updatedImages); ok {
 				isi.Status.Repository.Images[i].Image = updated
@@ -247,7 +247,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			obj, err = original.(*api.ImageStream), nil
 		} else {
 			if glog.V(4) {
-				glog.V(4).Infof("updated stream %s", util.ObjectDiff(original, stream))
+				glog.V(4).Infof("updated stream %s", diff.ObjectDiff(original, stream))
 			}
 			stream.Annotations[api.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 			obj, _, err = r.internalStreams.Update(ctx, stream)
@@ -278,6 +278,17 @@ func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, t
 
 		LastTransitionTime: now,
 	}
+
+	if tag == "" {
+		if len(status.Tag) > 0 {
+			tag = status.Tag
+		} else if status.Image != nil {
+			if ref, err := api.ParseDockerImageReference(status.Image.DockerImageReference); err == nil {
+				tag = ref.Tag
+			}
+		}
+	}
+
 	if !api.HasTagCondition(stream, tag, condition) {
 		api.SetTagConditions(stream, tag, condition)
 		if tagRef, ok := stream.Spec.Tags[tag]; ok {

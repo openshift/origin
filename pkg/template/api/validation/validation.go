@@ -9,6 +9,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/template/api"
+	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 )
 
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
@@ -47,6 +48,6 @@ func validateTemplateBody(template *api.Template) (allErrs field.ErrorList) {
 	for i := range template.Parameters {
 		allErrs = append(allErrs, ValidateParameter(&template.Parameters[i], field.NewPath("parameters").Index(i))...)
 	}
-	allErrs = append(allErrs, validation.ValidateLabels(template.ObjectLabels, field.NewPath("labels"))...)
+	allErrs = append(allErrs, unversionedvalidation.ValidateLabels(template.ObjectLabels, field.NewPath("labels"))...)
 	return
 }

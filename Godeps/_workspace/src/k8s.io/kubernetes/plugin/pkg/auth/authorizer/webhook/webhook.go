@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/runtime"
+	runtimeserializer "k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/runtime/serializer/json"
 	"k8s.io/kubernetes/pkg/runtime/serializer/versioning"
 
@@ -85,8 +86,13 @@ func New(kubeConfigFile string) (*WebhookAuthorizer, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	serializer := json.NewSerializer(json.DefaultMetaFactory, api.Scheme, runtime.ObjectTyperToTyper(api.Scheme), false)
-	clientConfig.ContentConfig.Codec = versioning.NewCodecForScheme(api.Scheme, serializer, encodeVersions, decodeVersions)
+	codec := versioning.NewCodecForScheme(api.Scheme, serializer, serializer, encodeVersions, decodeVersions)
+	clientConfig.ContentConfig.NegotiatedSerializer = runtimeserializer.NegotiatedSerializerWrapper(
+		runtime.SerializerInfo{Serializer: codec},
+		runtime.StreamSerializerInfo{},
+	)
 
 	restClient, err := restclient.UnversionedRESTClientFor(clientConfig)
 	if err != nil {
@@ -151,10 +157,13 @@ func (w *WebhookAuthorizer) Authorize(attr authorizer.Attributes) (err error) {
 	}
 	if attr.IsResourceRequest() {
 		r.Spec.ResourceAttributes = &v1beta1.ResourceAttributes{
-			Namespace: attr.GetNamespace(),
-			Verb:      attr.GetVerb(),
-			Group:     attr.GetAPIGroup(),
-			Resource:  attr.GetResource(),
+			Namespace:   attr.GetNamespace(),
+			Verb:        attr.GetVerb(),
+			Group:       attr.GetAPIGroup(),
+			Version:     attr.GetAPIVersion(),
+			Resource:    attr.GetResource(),
+			Subresource: attr.GetSubresource(),
+			Name:        attr.GetName(),
 		}
 	} else {
 		r.Spec.NonResourceAttributes = &v1beta1.NonResourceAttributes{

@@ -34,7 +34,7 @@ type genClientset struct {
 	groupVersions      []unversioned.GroupVersion
 	typedClientPath    string
 	outputPackage      string
-	imports            *generator.ImportTracker
+	imports            namer.ImportTracker
 	clientsetGenerated bool
 }
 
@@ -59,9 +59,11 @@ func (g *genClientset) Imports(c *generator.Context) (imports []string) {
 		group := normalization.Group(gv.Group)
 		version := normalization.Version(gv.Version)
 		typedClientPath := filepath.Join(g.typedClientPath, group, version)
+		group = normalization.BeforeFirstDot(group)
 		imports = append(imports, fmt.Sprintf("%s%s \"%s\"", version, group, typedClientPath))
-		imports = append(imports, "github.com/golang/glog")
 	}
+	imports = append(imports, "github.com/golang/glog")
+	imports = append(imports, "k8s.io/kubernetes/pkg/util/flowcontrol")
 	return
 }
 
@@ -79,7 +81,7 @@ func (g *genClientset) GenerateType(c *generator.Context, t *types.Type, w io.Wr
 
 	allGroups := []arg{}
 	for _, gv := range g.groupVersions {
-		group := normalization.Group(gv.Group)
+		group := normalization.BeforeFirstDot(normalization.Group(gv.Group))
 		version := normalization.Version(gv.Version)
 		allGroups = append(allGroups, arg{namer.IC(group), version + group})
 	}
@@ -129,6 +131,9 @@ type Clientset struct {
 var clientsetInterfaceImplTemplate = `
 // $.Group$ retrieves the $.Group$Client
 func (c *Clientset) $.Group$() $.PackageName$.$.Group$Interface {
+	if c == nil {
+		return nil
+	}
 	return c.$.Group$Client
 }
 `
@@ -142,14 +147,18 @@ func (c *Clientset) Discovery() $.DiscoveryInterface|raw$ {
 var newClientsetForConfigTemplate = `
 // NewForConfig creates a new Clientset for the given config.
 func NewForConfig(c *$.Config|raw$) (*Clientset, error) {
+	configShallowCopy := *c
+	if configShallowCopy.RateLimiter == nil && configShallowCopy.QPS > 0 {
+		configShallowCopy.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(configShallowCopy.QPS, configShallowCopy.Burst)
+	}
 	var clientset Clientset
 	var err error
-$range .allGroups$    clientset.$.Group$Client, err =$.PackageName$.NewForConfig(c)
+$range .allGroups$    clientset.$.Group$Client, err =$.PackageName$.NewForConfig(&configShallowCopy)
 	if err!=nil {
 		return &clientset, err
 	}
 $end$
-	clientset.DiscoveryClient, err = $.NewDiscoveryClientForConfig|raw$(c)
+	clientset.DiscoveryClient, err = $.NewDiscoveryClientForConfig|raw$(&configShallowCopy)
 	if err!=nil {
 		glog.Errorf("failed to create the DiscoveryClient: %v", err)
 	}

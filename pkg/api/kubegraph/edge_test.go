@@ -7,10 +7,15 @@ import (
 	"github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	_ "github.com/openshift/origin/pkg/deploy/api/install"
+	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 )
 
 type objectifier interface {
@@ -120,6 +125,66 @@ func TestSecretEdges(t *testing.T) {
 	} else {
 		if !g.EdgeKinds(edge).Has(MountedSecretEdgeKind) {
 			t.Errorf("expected %v, got %v", MountedSecretEdgeKind, edge)
+		}
+	}
+}
+
+func TestHPARCEdges(t *testing.T) {
+	hpa := &extensions.HorizontalPodAutoscaler{}
+	hpa.Namespace = "test-ns"
+	hpa.Name = "test-hpa"
+	hpa.Spec = extensions.HorizontalPodAutoscalerSpec{
+		ScaleRef: extensions.SubresourceReference{
+			Name: "test-rc",
+			Kind: "ReplicationController",
+		},
+	}
+
+	rc := &kapi.ReplicationController{}
+	rc.Name = "test-rc"
+	rc.Namespace = "test-ns"
+
+	g := osgraph.New()
+	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
+	rcNode := kubegraph.EnsureReplicationControllerNode(g, rc)
+
+	AddHPAScaleRefEdges(g)
+
+	if edge := g.Edge(hpaNode, rcNode); edge == nil {
+		t.Fatalf("edge between HPA and RC missing")
+	} else {
+		if !g.EdgeKinds(edge).Has(ScalingEdgeKind) {
+			t.Errorf("expected edge to have kind %v, got %v", ScalingEdgeKind, edge)
+		}
+	}
+}
+
+func TestHPADCEdges(t *testing.T) {
+	hpa := &extensions.HorizontalPodAutoscaler{}
+	hpa.Namespace = "test-ns"
+	hpa.Name = "test-hpa"
+	hpa.Spec = extensions.HorizontalPodAutoscalerSpec{
+		ScaleRef: extensions.SubresourceReference{
+			Name: "test-dc",
+			Kind: "DeploymentConfig",
+		},
+	}
+
+	dc := &deployapi.DeploymentConfig{}
+	dc.Name = "test-dc"
+	dc.Namespace = "test-ns"
+
+	g := osgraph.New()
+	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
+	dcNode := deploygraph.EnsureDeploymentConfigNode(g, dc)
+
+	AddHPAScaleRefEdges(g)
+
+	if edge := g.Edge(hpaNode, dcNode); edge == nil {
+		t.Fatalf("edge between HPA and DC missing")
+	} else {
+		if !g.EdgeKinds(edge).Has(ScalingEdgeKind) {
+			t.Errorf("expected edge to have kind %v, got %v", ScalingEdgeKind, edge)
 		}
 	}
 }

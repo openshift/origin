@@ -6,12 +6,10 @@ import (
 	"io"
 	"reflect"
 
-	newetcdclient "github.com/coreos/etcd/client"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -25,8 +23,6 @@ import (
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
@@ -36,6 +32,7 @@ import (
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -122,7 +119,7 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	})
 
 	r := resource.NewBuilder(mapper, typer, clientMapper, kapi.Codecs.UniversalDecoder()).
-		FilenameParam(false, policyFile).
+		FilenameParam(false, false, policyFile).
 		Flatten().
 		Do()
 
@@ -155,10 +152,10 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		policyRegistry,
-		policyBindingRegistry,
-		clusterPolicyRegistry,
-		clusterPolicyBindingRegistry,
+		policyListerNamespacer{registry: policyRegistry},
+		policyBindingListerNamespacer{registry: policyBindingRegistry},
+		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
 	)
 
 	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver)
@@ -243,7 +240,44 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	})
 }
 
-// newStorage returns an EtcdHelper for the provided storage version.
-func newStorage(client newetcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: version}), prefix, false), nil
+type policyListerNamespacer struct {
+	registry policyregistry.Registry
+}
+
+func (s policyListerNamespacer) Policies(namespace string) client.PolicyLister {
+	return policyLister{registry: s.registry, namespace: namespace}
+}
+
+type policyLister struct {
+	registry  policyregistry.Registry
+	namespace string
+}
+
+func (s policyLister) List(options kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+	return s.registry.ListPolicies(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
+}
+
+func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(kapi.WithNamespace(kapi.NewContext(), s.namespace), name)
+}
+
+type policyBindingListerNamespacer struct {
+	registry policybindingregistry.Registry
+}
+
+func (s policyBindingListerNamespacer) PolicyBindings(namespace string) client.PolicyBindingLister {
+	return policyBindingLister{registry: s.registry, namespace: namespace}
+}
+
+type policyBindingLister struct {
+	registry  policybindingregistry.Registry
+	namespace string
+}
+
+func (s policyBindingLister) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+	return s.registry.ListPolicyBindings(kapi.WithNamespace(kapi.NewContext(), s.namespace), &options)
+}
+
+func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
+	return s.registry.GetPolicyBinding(kapi.WithNamespace(kapi.NewContext(), s.namespace), name)
 }

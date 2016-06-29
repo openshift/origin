@@ -24,8 +24,13 @@ func init() {
 		AllowPrivileged: true,
 	})
 	flag.Set("v", "5")
-	capnslog.SetGlobalLogLevel(capnslog.DEBUG)
-	capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
+	if len(os.Getenv("OS_TEST_VERBOSE_ETCD")) > 0 {
+		capnslog.SetGlobalLogLevel(capnslog.DEBUG)
+		capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
+	} else {
+		capnslog.SetGlobalLogLevel(capnslog.INFO)
+		capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))
+	}
 }
 
 // url is the url for the launched etcd server

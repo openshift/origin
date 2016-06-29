@@ -2,8 +2,9 @@ package factory
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"time"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -13,13 +14,14 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller"
+	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -61,6 +63,7 @@ type BuildControllerFactory struct {
 	OSClient            osclient.Interface
 	KubeClient          kclient.Interface
 	BuildUpdater        buildclient.BuildUpdater
+	BuildLister         buildclient.BuildLister
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -79,8 +82,10 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
 		BuildUpdater:      factory.BuildUpdater,
+		BuildLister:       factory.BuildLister,
 		ImageStreamClient: client,
 		PodManager:        client,
+		RunPolicies:       policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater),
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
 			SourceBuildStrategy: factory.SourceBuildStrategy,
@@ -95,7 +100,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
 			err := buildController.HandleBuild(build)
@@ -134,7 +139,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			controller.RetryNever,
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
 			for _, delta := range deltas {
@@ -201,7 +206,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("BuildPod", nil),
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return buildPodController.HandlePod(pod)
@@ -250,7 +255,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			controller.RetryNever,
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
 			for _, delta := range deltas {
@@ -295,7 +300,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 				_, isFatal := err.(buildcontroller.ImageChangeControllerFatalError)
 				return isFatal
 			}),
-			kutil.NewTokenBucketRateLimiter(1, 10),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			imageRepo := obj.(*imageapi.ImageStream)
@@ -306,6 +311,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 
 type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
+	KubeClient              kclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -316,8 +322,12 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		Recorder:                eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-config-controller"}),
 	}
 
 	return &controller.RetryController{
@@ -326,7 +336,7 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("BuildConfig", buildcontroller.IsFatal),
-			kutil.NewTokenBucketRateLimiter(1, 10)),
+			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			bc := obj.(*buildapi.BuildConfig)
 			return bcController.HandleBuildConfig(bc)
@@ -368,6 +378,8 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 		pod, err = f.SourceBuildStrategy.CreateBuildPod(build)
 	case build.Spec.Strategy.CustomStrategy != nil:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
+	case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s", build.Namespace, build.Name)
 	}

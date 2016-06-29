@@ -42,11 +42,9 @@ trap exit_trap EXIT
 
 start_time=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
+source "${OS_ROOT}/hack/lib/init.sh"
 cd "${OS_ROOT}"
-os::log::install_errexit
+os::log::stacktrace::install
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "test-go"
 
@@ -132,7 +130,6 @@ function list_test_packages_under() {
         \(                                    \
               -path 'Godeps'                  \
               -o -path '*_output'             \
-              -o -path '*_tools'              \
               -o -path '*.git'                \
               -o -path '*openshift.local.*'   \
               -o -path '*Godeps/*'            \
@@ -180,12 +177,15 @@ else
     if [[ -n "${test_kube}" ]]; then
         # we need to find all of the kubernetes test suites, excluding those we directly whitelisted before, the end-to-end suite, and
         # the go2idl tests which we currently do not support
+        # etcd3 isn't supported yet and that test flakes upstream
         optional_kubernetes_packages="$(find "${kubernetes_path}" -not \(                             \
           \(                                                                                          \
             -path "${kubernetes_path}/pkg/api"                                                        \
             -o -path "${kubernetes_path}/pkg/api/v1"                                                  \
             -o -path "${kubernetes_path}/test/e2e"                                                    \
             -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
+            -o -path "${kubernetes_path}/pkg/storage/etcd3"                                           \
+            -o -path "${kubernetes_path}/third_party/golang/go/build"                                 \
           \) -prune                                                                                   \
         \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n")"
 
@@ -253,6 +253,17 @@ if [[ -n "${junit_report}" ]]; then
         cat "${test_error_file}"
     fi
 
+    if grep -q 'WARNING: DATA RACE' "${test_output_file}"; then
+        locations=( $( sed -n '/WARNING: DATA RACE/=' "${test_output_file}") )
+        if [[ "${#locations[@]}" -gt 1 ]]; then
+            echo "[WARNING] \`go test\` detected data races."
+            echo "[WARNING] Details can be found in the full output file at lines ${locations[*]}."
+        else
+            echo "[WARNING] \`go test\` detected a data race."
+            echo "[WARNING] Details can be found in the full output file at line ${locations[*]}."
+        fi
+    fi
+
     echo "[INFO] Full output from \`go test\` logged at ${test_output_file}"
     echo "[INFO] jUnit XML report placed at ${junit_report_file}"
     exit "${test_return_code}"
@@ -276,7 +287,7 @@ elif [[ -n "${coverage_output_dir}" ]]; then
     # clean up all of the individual coverage reports as they have been subsumed into the report at ${coverage_output_dir}/coverage.html
     # we can clean up all of the coverage reports at once as they all exist in subdirectories of ${coverage_output_dir}/${OS_GO_PACKAGE}
     # and they are the only files found in those subdirectories
-    rm -rf "${coverage_output_dir}/${OS_GO_PACKAGE}"
+    rm -rf "${coverage_output_dir:?}/${OS_GO_PACKAGE}"
 else
     # we need to generate neither jUnit XML nor coverage reports
     go test ${gotest_flags} ${test_packages}

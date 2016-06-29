@@ -10,6 +10,11 @@ import (
 	"github.com/docker/distribution/registry/storage/driver"
 )
 
+// ErrFinishedWalk is used when the called walk function no longer wants
+// to accept any more values.  This is used for pagination when the
+// required number of repos have been found.
+var ErrFinishedWalk = errors.New("finished walk")
+
 // Returns a list, or partial list, of repositories in the registry.
 // Because it's a quite expensive operation, it should only be used when building up
 // an initial set of repositories.
@@ -25,15 +30,15 @@ func (reg *registry) Repositories(ctx context.Context, repos []string, last stri
 		return 0, err
 	}
 
-	err = WalkSortedChildren(ctx, reg.blobStore.driver, root, func(fileInfo driver.FileInfo) error {
+	err = Walk(ctx, reg.blobStore.driver, root, func(fileInfo driver.FileInfo) error {
 		filePath := fileInfo.Path()
 
 		// lop the base path off
 		repoPath := filePath[len(root)+1:]
 
 		_, file := path.Split(repoPath)
-		if file == layersDirectory {
-			repoPath = strings.TrimSuffix(repoPath, "/"+layersDirectory)
+		if file == "_layers" {
+			repoPath = strings.TrimSuffix(repoPath, "/_layers")
 			if repoPath > last {
 				foundRepos = append(foundRepos, repoPath)
 			}
@@ -58,4 +63,35 @@ func (reg *registry) Repositories(ctx context.Context, repos []string, last stri
 	}
 
 	return n, errVal
+}
+
+// Enumerate applies ingester to each repository
+func (reg *registry) Enumerate(ctx context.Context, ingester func(string) error) error {
+	repoNameBuffer := make([]string, 100)
+	var last string
+	for {
+		n, err := reg.Repositories(ctx, repoNameBuffer, last)
+		if err != nil && err != io.EOF {
+			return err
+		}
+
+		if n == 0 {
+			break
+		}
+
+		last = repoNameBuffer[n-1]
+		for i := 0; i < n; i++ {
+			repoName := repoNameBuffer[i]
+			err = ingester(repoName)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+	return nil
+
 }

@@ -19,10 +19,8 @@ if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
 	echo "++ Docker is not installed, running end-to-end against local binaries"
 fi
 
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/lib/log.sh"
-source "${OS_ROOT}/hack/lib/util/environment.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 
 ensure_iptables_or_die
 
@@ -61,5 +59,11 @@ start_os_server
 
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
+
+os::test::junit::declare_suite_start "end-to-end/startup"
+os::cmd::expect_success 'oadm registry'
+os::cmd::expect_success 'oadm policy add-scc-to-user hostnetwork -z router'
+os::cmd::expect_success 'oadm router'
+os::test::junit::declare_suite_end
 
 ${OS_ROOT}/test/end-to-end/core.sh

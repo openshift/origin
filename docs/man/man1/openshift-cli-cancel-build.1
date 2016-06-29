@@ -1,0 +1,134 @@
+.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli cancel\-build \- Cancel running, pending, or new builds
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli cancel\-build\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Cancel running, pending, or new builds
+
+.PP
+This command requests a graceful shutdown of the build. There may be a delay between requesting
+the build and the time the build is terminated.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-dump\-logs\fP=false
+    Specify if the build logs for the cancelled build should be shown.
+
+.PP
+\fB\-\-restart\fP=false
+    Specify if a new build should be created after the current build is cancelled.
+
+.PP
+\fB\-\-state\fP=[]
+    Only cancel builds in this state
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Cancel the build with the given name
+  openshift cli cancel\-build ruby\-build\-2
+
+  # Cancel the named build and print the build logs
+  openshift cli cancel\-build ruby\-build\-2 \-\-dump\-logs
+
+  # Cancel the named build and create a new one with the same parameters
+  openshift cli cancel\-build ruby\-build\-2 \-\-restart
+
+  # Cancel multiple builds
+  openshift cli cancel\-build ruby\-build\-1 ruby\-build\-2 ruby\-build\-3
+
+  # Cancel all builds created from 'ruby\-build' build configuration that are in 'new' state
+  openshift cli cancel\-build bc/ruby\-build \-\-state=new
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

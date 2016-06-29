@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/api/v1beta3"
@@ -33,7 +33,7 @@ func makeParameter(name, value, generate string, required bool) api.Parameter {
 func TestAddParameter(t *testing.T) {
 	var template api.Template
 
-	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
+	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
 	json.Unmarshal(jsonData, &template)
 
 	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", "", false))
@@ -106,7 +106,7 @@ func TestParameterGenerators(t *testing.T) {
 			map[string]generator.Generator{},
 			false,
 			makeParameter("PARAM-fail-foo-gen", "foo", "", false),
-			field.ErrorTypeNotFound,
+			field.ErrorTypeInvalid,
 			"template.parameters[0]",
 		},
 		{ // No str generator, should fail
@@ -216,7 +216,7 @@ func TestProcessValueEscape(t *testing.T) {
 	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}],"parameters":[{"name":"VALUE","value":"1"}]}`
 	stringResult := strings.TrimSpace(string(result))
 	if expect != stringResult {
-		t.Errorf("unexpected output: %s", util.StringDiff(expect, stringResult))
+		t.Errorf("unexpected output: %s", diff.StringDiff(expect, stringResult))
 	}
 }
 
@@ -264,31 +264,6 @@ func TestEvaluateLabels(t *testing.T) {
 					{
 						"apiVersion":"v1beta3","kind":"Service","metadata":{
 						"labels":{"key1":"v1","key2":"v2","key3":"v3"}}
-					}
-				],
-				"labels":{"key3":"v3"}
-			}`,
-			Labels: map[string]string{"key3": "v3"},
-		},
-		"when the root object has labels and no metadata": {
-			Input: `{
-				"kind":"Template", "apiVersion":"v1",
-				"objects": [
-					{
-						"kind": "Service", "apiVersion": "v1beta3",
-						"labels": {
-							"key1": "v1",
-							"key2": "v2"
-						}
-					}
-				]
-			}`,
-			Output: `{
-				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
-				"objects":[
-					{
-						"apiVersion":"v1beta3","kind":"Service",
-						"labels":{"key1":"v1","key2":"v2","key3":"v3"}
 					}
 				],
 				"labels":{"key3":"v3"}
@@ -375,7 +350,7 @@ func TestEvaluateLabels(t *testing.T) {
 		expect = trailingWhitespace.ReplaceAllString(expect, "")
 		stringResult := strings.TrimSpace(string(result))
 		if expect != stringResult {
-			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, stringResult))
+			t.Errorf("%s: unexpected output: %s", k, diff.StringDiff(expect, stringResult))
 			continue
 		}
 	}
@@ -383,12 +358,12 @@ func TestEvaluateLabels(t *testing.T) {
 
 func TestProcessTemplateParameters(t *testing.T) {
 	var template, expectedTemplate api.Template
-	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
+	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), jsonData, &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook_list.json")
+	expectedData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook_list.json")
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -413,6 +388,6 @@ func TestProcessTemplateParameters(t *testing.T) {
 	exp, _ := runtime.Encode(kapi.Codecs.LegacyCodec(v1beta3.SchemeGroupVersion), &expectedTemplate)
 
 	if string(result) != string(exp) {
-		t.Errorf("unexpected output: %s", util.StringDiff(string(exp), string(result)))
+		t.Errorf("unexpected output: %s", diff.StringDiff(string(exp), string(result)))
 	}
 }

@@ -1,0 +1,162 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: imagesourcebuild
+    name: imagesourcebuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: jenkins:latest
+          namespace: openshift
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /usr/lib/jenkins/jenkins.war
+    strategy:
+      sourceStrategy: 
+        forcePull: true
+        from: 
+          kind: ImageStreamTag
+          name: ruby:latest
+          namespace: openshift
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: imagedockerbuild
+    name: imagedockerbuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagedockerapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: jenkins:latest
+          namespace: openshift
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /usr/lib/jenkins/jenkins.war
+    strategy:
+      sourceStrategy: 
+        forcePull: true
+        from: 
+          kind: ImageStreamTag
+          name: ruby:latest
+          namespace: openshift
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: imagesourceapp
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: imagedockerapp
+  spec: {}
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: imagesourceapp
+  spec:
+    replicas: 1
+    selector:
+      app: imagesourceapp
+      deploymentconfig: imagesourceapp
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: imagesourceapp
+          deploymentconfig: imagesourceapp
+      spec:
+        containers:
+        - image:
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: imagesourceapp
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - imagesourceapp
+        from:
+          kind: ImageStreamTag
+          name: imagesourceapp:latest
+      type: ImageChange
+    - type: ConfigChange
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: imagedockerapp
+  spec:
+    replicas: 1
+    selector:
+      app: imagedockerapp
+      deploymentconfig: imagedockerapp
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: imagedockerapp
+          deploymentconfig: imagedockerapp
+      spec:
+        containers:
+        - image:
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: imagedockerapp
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - imagedockerapp
+        from:
+          kind: ImageStreamTag
+          name: imagedockerapp:latest
+      type: ImageChange
+    - type: ConfigChange

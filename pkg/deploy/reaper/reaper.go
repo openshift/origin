@@ -55,8 +55,9 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		return err
 	}
 
-	// If there is neither a config nor any deployments, we can return NotFound.
+	// If there is neither a config nor any deployments, nor any deployer pods, we can return NotFound.
 	deployments := rcList.Items
+
 	if configNotFound && len(deployments) == 0 {
 		return kerrors.NewNotFound(kapi.Resource("deploymentconfig"), name)
 	}
@@ -64,6 +65,26 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		if err = rcReaper.Stop(rc.Namespace, rc.Name, timeout, gracePeriod); err != nil {
 			// Better not error out here...
 			glog.Infof("Cannot delete ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
+		}
+
+		// Only remove deployer pods when the deployment was failed. For completed
+		// deployment the pods should be already deleted.
+		if !util.IsFailedDeployment(&rc) {
+			continue
+		}
+
+		// Delete all deployer and hook pods
+		options = kapi.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name)}
+		podList, err := reaper.kc.Pods(rc.Namespace).List(options)
+		if err != nil {
+			return err
+		}
+		for _, pod := range podList.Items {
+			err := reaper.kc.Pods(pod.Namespace).Delete(pod.Name, gracePeriod)
+			if err != nil {
+				// Better not error out here...
+				glog.Infof("Cannot delete Pod %s/%s: %v", pod.Namespace, pod.Name, err)
+			}
 		}
 	}
 

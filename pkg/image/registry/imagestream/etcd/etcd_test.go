@@ -12,8 +12,8 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/admission/testutil"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
@@ -25,8 +25,8 @@ const (
 )
 
 var (
-	testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "test", true })
-	noDefaultRegistry   = imagestream.DefaultRegistryFunc(func() (string, bool) { return "", false })
+	testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "test", true })
+	noDefaultRegistry   = api.DefaultRegistryFunc(func() (string, bool) { return "", false })
 )
 
 type fakeSubjectAccessReviewRegistry struct {
@@ -46,7 +46,7 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 
 func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
-	imageStorage, statusStorage, internalStorage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStorage, statusStorage, internalStorage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), noDefaultRegistry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validImageStream(),
 	)
@@ -196,6 +196,10 @@ func (u *fakeUser) GetUID() string {
 
 func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
+}
+
+func (u *fakeUser) GetExtra() map[string][]string {
+	return map[string][]string{}
 }
 
 // func TestCreateImageStreamOK(t *testing.T) {

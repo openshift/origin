@@ -31,6 +31,8 @@ type ProjectStatus struct {
 	Phase kapi.NamespacePhase `json:"phase,omitempty"`
 }
 
+// +genclient=true
+
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
 	unversioned.TypeMeta `json:",inline"`

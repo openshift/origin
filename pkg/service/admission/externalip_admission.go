@@ -59,11 +59,11 @@ func NewExternalIPRanger(reject, admit []*net.IPNet) *externalIPRanger {
 	}
 }
 
-// networkSlice is a helper for checking whether an IP is contained in a range
+// NetworkSlice is a helper for checking whether an IP is contained in a range
 // of networks.
-type networkSlice []*net.IPNet
+type NetworkSlice []*net.IPNet
 
-func (s networkSlice) Contains(ip net.IP) bool {
+func (s NetworkSlice) Contains(ip net.IP) bool {
 	for _, cidr := range s {
 		if cidr.Contains(ip) {
 			return true
@@ -74,7 +74,7 @@ func (s networkSlice) Contains(ip net.IP) bool {
 
 // Admit determines if the service should be admitted based on the configured network CIDR.
 func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
-	if a.GetResource() != kapi.Resource("services") {
+	if a.GetResource().GroupResource() != kapi.Resource("services") {
 		return nil
 	}
 
@@ -97,14 +97,14 @@ func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
 				errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs").Index(i), "externalIPs must be a valid address"))
 				continue
 			}
-			if networkSlice(r.reject).Contains(ip) || !networkSlice(r.admit).Contains(ip) {
+			if NetworkSlice(r.reject).Contains(ip) || !NetworkSlice(r.admit).Contains(ip) {
 				errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs").Index(i), "externalIP is not allowed"))
 				continue
 			}
 		}
 	}
 	if len(errs) > 0 {
-		return apierrs.NewInvalid(a.GetKind(), a.GetName(), errs)
+		return apierrs.NewInvalid(a.GetKind().GroupKind(), a.GetName(), errs)
 	}
 	return nil
 }

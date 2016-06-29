@@ -539,11 +539,13 @@ func newInvalidExtensionPolicies() []authorizationapi.Policy {
 					},
 					Rules: []authorizationapi.PolicyRule{
 						{
+							APIGroups:             []string{""},
 							Verbs:                 sets.NewString("watch", "list", "get"),
 							Resources:             sets.NewString("buildConfigs"),
 							AttributeRestrictions: &authorizationapi.Role{},
 						},
 						{
+							APIGroups: []string{""},
 							Verbs:     sets.NewString("update"),
 							Resources: sets.NewString("buildConfigs"),
 						},

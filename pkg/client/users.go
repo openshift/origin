@@ -2,6 +2,7 @@ package client
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -18,6 +19,7 @@ type UserInterface interface {
 	Create(user *userapi.User) (*userapi.User, error)
 	Update(user *userapi.User) (*userapi.User, error)
 	Delete(name string) error
+	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
 
 // users implements UserInterface interface
@@ -67,4 +69,13 @@ func (c *users) Update(user *userapi.User) (result *userapi.User, err error) {
 // Delete deletes the user on server. Returns an error if one occurs.
 func (c *users) Delete(name string) (err error) {
 	return c.r.Delete().Resource("users").Name(name).Do().Error()
+}
+
+// Watch returns a watch.Interface that watches the requested users.
+func (c *users) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+	return c.r.Get().
+		Prefix("watch").
+		Resource("users").
+		VersionedParams(&opts, kapi.ParameterCodec).
+		Watch()
 }

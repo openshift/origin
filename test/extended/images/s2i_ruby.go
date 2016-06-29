@@ -26,6 +26,7 @@ var _ = g.Describe("[images][ruby][Slow] hot deploy for openshift ruby image", f
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
+			exutil.CheckOpenShiftNamespaceImageStreams(oc)
 			g.By(fmt.Sprintf("calling oc new-app -f %q", railsTemplate))
 			err := oc.Run("new-app").Args("-f", railsTemplate).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -35,6 +36,11 @@ var _ = g.Describe("[images][ruby][Slow] hot deploy for openshift ruby image", f
 			if err != nil {
 				exutil.DumpBuildLogs("rails-postgresql-example", oc)
 			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
+			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "rails-postgresql-example", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")

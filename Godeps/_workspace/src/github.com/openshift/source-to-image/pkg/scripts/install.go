@@ -120,7 +120,7 @@ func (s *SourceScriptHandler) Get(script string) *api.InstallResult {
 	// and this should (and will) be removed soon.
 	location = strings.Replace(location, "s2i/bin", "sti/bin", 1)
 	if s.fs.Exists(location) {
-		glog.Infof("DEPRECATED: Use .s2i/bin instead of .sti/bin")
+		glog.Info("DEPRECATED: Use .s2i/bin instead of .sti/bin")
 		return &api.InstallResult{Script: script, URL: location}
 	}
 	return nil
@@ -248,7 +248,7 @@ func (i *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir st
 					result = append(result, *r)
 					installed = true
 					detected = true
-					glog.Infof("Using %q installed from %q", script, r.URL)
+					glog.V(4).Infof("Using %q installed from %q", script, r.URL)
 				}
 			}
 			if detected {

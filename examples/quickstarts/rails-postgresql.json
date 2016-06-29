@@ -169,7 +169,7 @@
             "containers": [
               {
                 "name": "rails-postgresql-example",
-                "image": "rails-postgresql-example",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080
@@ -287,7 +287,7 @@
           {
             "type": "ImageChange",
             "imageChangeParams": {
-              "automatic": false,
+              "automatic": true,
               "containerNames": [
                 "postgresql"
               ],
@@ -323,7 +323,7 @@
             "containers": [
               {
                 "name": "postgresql",
-                "image": "postgresql",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 5432

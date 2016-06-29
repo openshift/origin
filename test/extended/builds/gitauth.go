@@ -1,8 +1,11 @@
 package builds
 
-import (
-	"fmt"
+// these tests are diabled because the xip.io dns hook was proving way too unreliable;
+// we will reenable once an agreeable alternative is derived to get name resolution for the routes
+
+/*import (
 	"net"
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -12,6 +15,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
+
 )
 
 // hostname returns the hostname from a hostport specification
@@ -35,9 +39,9 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 	)
 
 	var (
-		gitServerFixture          = exutil.FixturePath("fixtures", "test-gitserver.yaml")
-		gitServerTokenAuthFixture = exutil.FixturePath("fixtures", "test-gitserver-tokenauth.yaml")
-		testBuildFixture          = exutil.FixturePath("fixtures", "test-auth-build.yaml")
+		gitServerFixture          = exutil.FixturePath("testdata", "test-gitserver.yaml")
+		gitServerTokenAuthFixture = exutil.FixturePath("testdata", "test-gitserver-tokenauth.yaml")
+		testBuildFixture          = exutil.FixturePath("testdata", "test-auth-build.yaml")
 		oc                        = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
 		caCertPath                = filepath.Join(filepath.Dir(exutil.KubeConfigPath()), "ca.crt")
 	)
@@ -94,11 +98,12 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 			testGitAuth(gitServerFixture, sourceURLTemplate, func() string {
 				g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s --cacert=%s",
 					sourceSecretName, gitUserName, gitPassword, caCertPath))
-				err := oc.Run("secrets").
-					Args("new-basicauth", sourceSecretName,
+				err := oc.Run("secrets").Args(
+					"new-basicauth", sourceSecretName,
 					fmt.Sprintf("--username=%s", gitUserName),
 					fmt.Sprintf("--password=%s", gitPassword),
-					fmt.Sprintf("--ca-cert=%s", caCertPath)).Execute()
+					fmt.Sprintf("--ca-cert=%s", caCertPath),
+				).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				return sourceSecretName
 			})
@@ -124,4 +129,4 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 			})
 		})
 	})
-})
+})*/

@@ -1,0 +1,40 @@
+.TH "OPENSHIFT INFRA" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift infra docker\-build \- Run a Docker build
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift infra docker\-build\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Perform a Docker build
+
+.PP
+This command executes a Docker build using arguments passed via the environment.
+It expects to be run inside of a container.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-infra(1)\fP, \fBopenshift\-infra\-docker\-build\-version(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
+	utilglog "github.com/openshift/origin/pkg/util/glog"
 )
+
+// glog is a placeholder until the builders pass an output stream down
+// client facing libraries should not be using glog
+var glog = utilglog.ToFile(os.Stderr, 2)
 
 const OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
 
@@ -28,7 +33,7 @@ type GitClient interface {
 	CloneWithOptions(dir string, url string, opts git.CloneOptions) error
 	Checkout(dir string, ref string) error
 	SubmoduleUpdate(dir string, init, recursive bool) error
-	ListRemote(url string, args ...string) (string, string, error)
+	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
 	GetInfo(location string) (*git.SourceInfo, []error)
 }
 
@@ -86,7 +91,7 @@ func updateBuildRevision(c client.BuildInterface, build *api.Build, sourceInfo *
 	glog.V(4).Infof("Setting build revision to %#v", build.Spec.Revision.Git)
 	_, err := c.UpdateDetails(build)
 	if err != nil {
-		glog.Warningf("An error occurred saving build revision: %v", err)
+		glog.V(0).Infof("error: An error occurred saving build revision: %v", err)
 	}
 }
 
@@ -133,7 +138,7 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 		// Post commit hook is not set, return early.
 		return nil
 	}
-	glog.Infof("Running post commit hook with image %s ...", image)
+	glog.V(0).Infof("Running post commit hook ...")
 	glog.V(4).Infof("Post commit hook spec: %+v", postCommitSpec)
 
 	if script != "" {

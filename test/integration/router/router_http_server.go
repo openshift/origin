@@ -45,7 +45,6 @@ func NewTestHttpService() *TestHttpService {
 		PodHttpAddr:          podHttpAddr,
 		AlternatePodHttpAddr: alternatePodHttpAddr,
 		PodHttpsAddr:         podHttpsAddr,
-		PodWebSocketPath:     "echo",
 		PodTestPath:          "test",
 		PodHttpsCert:         []byte(Example2Cert),
 		PodHttpsKey:          []byte(Example2Key),
@@ -71,7 +70,6 @@ type TestHttpService struct {
 	PodHttpsCert         []byte
 	PodHttpsKey          []byte
 	PodHttpsCaCert       []byte
-	PodWebSocketPath     string
 	PodTestPath          string
 	EndpointChannel      chan string
 	RouteChannel         chan string
@@ -90,6 +88,19 @@ const (
 	// HelloPodPathSecure is the expected response to a call to PodHttpsAddr (usually called through a route)
 	HelloPodPathSecure = "Hello Pod Path Secure!"
 )
+
+type TestHttpSocketService struct {
+	ServeMux         *http.ServeMux
+	WebSocketHandler websocket.Handler
+}
+
+func (s *TestHttpSocketService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Upgrade") == "websocket" {
+		s.WebSocketHandler.ServeHTTP(w, r)
+	} else {
+		s.ServeMux.ServeHTTP(w, r)
+	}
+}
 
 // handleHelloPod handles calls to PodHttpAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPod(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +202,7 @@ func (s *TestHttpService) startMaster() error {
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/watch/routes", version), s.handleRouteWatch)
 	}
 
-	if err := s.startServing(s.MasterHttpAddr, masterServer); err != nil {
+	if err := s.startServing(s.MasterHttpAddr, http.Handler(masterServer)); err != nil {
 		return err
 	}
 
@@ -199,28 +210,38 @@ func (s *TestHttpService) startMaster() error {
 }
 
 func (s *TestHttpService) startPod() error {
-	unsecurePodServer := http.NewServeMux()
-	unsecurePodServer.HandleFunc("/", s.handleHelloPod)
-	unsecurePodServer.HandleFunc("/"+s.PodTestPath, s.handleHelloPodTest)
-	unsecurePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
+	unsecurePodServeMux := http.NewServeMux()
+	unsecurePodServeMux.HandleFunc("/", s.handleHelloPod)
+	unsecurePodServeMux.HandleFunc("/"+s.PodTestPath, s.handleHelloPodTest)
+	unsecurePodServer := &TestHttpSocketService{
+		ServeMux:         unsecurePodServeMux,
+		WebSocketHandler: websocket.Handler(s.handleWebSocket),
+	}
 
-	if err := s.startServing(s.PodHttpAddr, unsecurePodServer); err != nil {
+	if err := s.startServing(s.PodHttpAddr, http.Handler(unsecurePodServer)); err != nil {
 		return err
 	}
 
-	alternatePodServer := http.NewServeMux()
-	alternatePodServer.HandleFunc("/", s.handleHelloPod2)
-	alternatePodServer.HandleFunc("/"+s.PodTestPath, s.handleHelloPod2)
+	alternatePodServeMux := http.NewServeMux()
+	alternatePodServeMux.HandleFunc("/", s.handleHelloPod2)
+	alternatePodServeMux.HandleFunc("/"+s.PodTestPath, s.handleHelloPod2)
+	alternatePodServer := &TestHttpSocketService{
+		ServeMux:         alternatePodServeMux,
+		WebSocketHandler: websocket.Handler(s.handleWebSocket),
+	}
 
-	if err := s.startServing(s.AlternatePodHttpAddr, alternatePodServer); err != nil {
+	if err := s.startServing(s.AlternatePodHttpAddr, http.Handler(alternatePodServer)); err != nil {
 		return err
 	}
 
-	securePodServer := http.NewServeMux()
-	securePodServer.HandleFunc("/", s.handleHelloPodSecure)
-	securePodServer.HandleFunc("/"+s.PodTestPath, s.handleHelloPodTestSecure)
-	securePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
-	if err := s.startServingTLS(s.PodHttpsAddr, s.PodHttpsCert, s.PodHttpsKey, s.PodHttpsCaCert, securePodServer); err != nil {
+	securePodServeMux := http.NewServeMux()
+	securePodServeMux.HandleFunc("/", s.handleHelloPodSecure)
+	securePodServeMux.HandleFunc("/"+s.PodTestPath, s.handleHelloPodTestSecure)
+	securePodServer := &TestHttpSocketService{
+		ServeMux:         securePodServeMux,
+		WebSocketHandler: websocket.Handler(s.handleWebSocket),
+	}
+	if err := s.startServingTLS(s.PodHttpsAddr, s.PodHttpsCert, s.PodHttpsKey, s.PodHttpsCaCert, http.Handler(securePodServer)); err != nil {
 		return err
 	}
 
@@ -228,7 +249,7 @@ func (s *TestHttpService) startPod() error {
 }
 
 // startServing creates and registers a non-secure listener and begins serving traffic
-func (s *TestHttpService) startServing(addr string, handler *http.ServeMux) error {
+func (s *TestHttpService) startServing(addr string, handler http.Handler) error {
 	listener, err := net.Listen("tcp", addr)
 
 	if err != nil {
@@ -252,7 +273,7 @@ func (s *TestHttpService) startServing(addr string, handler *http.ServeMux) erro
 }
 
 // startServingTLS creates and registers a secure listener and begins serving traffic.
-func (s *TestHttpService) startServingTLS(addr string, cert []byte, key []byte, caCert []byte, handler *http.ServeMux) error {
+func (s *TestHttpService) startServingTLS(addr string, cert []byte, key []byte, caCert []byte, handler http.Handler) error {
 	tlsCert, err := tls.X509KeyPair(append(cert, caCert...), key)
 
 	if err != nil {

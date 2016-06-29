@@ -227,7 +227,7 @@ func TestDNS(t *testing.T) {
 		},
 		{
 			dnsQuestionName:   "www.google.com.",
-			recursionExpected: false,
+			recursionExpected: true,
 		},
 	}
 	for i, tc := range tests {
@@ -236,7 +236,7 @@ func TestDNS(t *testing.T) {
 			qType = dns.TypeSRV
 		}
 		m1 := &dns.Msg{
-			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: false},
+			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: tc.recursionExpected},
 			Question: []dns.Question{{tc.dnsQuestionName, qType, dns.ClassINET}},
 		}
 		ch := make(chan struct{})

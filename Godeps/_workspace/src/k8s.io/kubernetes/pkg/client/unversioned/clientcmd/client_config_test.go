@@ -65,11 +65,36 @@ func createValidTestConfig() *clientcmdapi.Config {
 	return config
 }
 
+func createCAValidTestConfig() *clientcmdapi.Config {
+
+	config := createValidTestConfig()
+	config.Clusters["clean"].CertificateAuthorityData = []byte{0, 0}
+	return config
+}
+
+func TestInsecureOverridesCA(t *testing.T) {
+	config := createCAValidTestConfig()
+	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{
+		ClusterInfo: clientcmdapi.Cluster{
+			InsecureSkipTLSVerify: true,
+		},
+	}, nil)
+
+	actualCfg, err := clientBuilder.ClientConfig()
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	matchBoolArg(true, actualCfg.Insecure, t)
+	matchStringArg("", actualCfg.TLSClientConfig.CAFile, t)
+	matchByteArg(nil, actualCfg.TLSClientConfig.CAData, t)
+}
+
 func TestMergeContext(t *testing.T) {
 	const namespace = "overriden-namespace"
 
 	config := createValidTestConfig()
-	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{})
+	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{}, nil)
 
 	_, overridden, err := clientBuilder.Namespace()
 	if err != nil {
@@ -84,7 +109,7 @@ func TestMergeContext(t *testing.T) {
 		Context: clientcmdapi.Context{
 			Namespace: namespace,
 		},
-	})
+	}, nil)
 
 	actual, overridden, err := clientBuilder.Namespace()
 	if err != nil {
@@ -118,7 +143,7 @@ func TestCertificateData(t *testing.T) {
 	}
 	config.CurrentContext = "clean"
 
-	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{})
+	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{}, nil)
 
 	clientConfig, err := clientBuilder.ClientConfig()
 	if err != nil {
@@ -149,7 +174,7 @@ func TestBasicAuthData(t *testing.T) {
 	}
 	config.CurrentContext = "clean"
 
-	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{})
+	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{}, nil)
 
 	clientConfig, err := clientBuilder.ClientConfig()
 	if err != nil {
@@ -163,7 +188,7 @@ func TestBasicAuthData(t *testing.T) {
 
 func TestCreateClean(t *testing.T) {
 	config := createValidTestConfig()
-	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{})
+	clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{}, nil)
 
 	clientConfig, err := clientBuilder.ClientConfig()
 	if err != nil {
@@ -203,7 +228,7 @@ func TestCreateCleanWithPrefix(t *testing.T) {
 		cleanConfig.Server = tc.server
 		config.Clusters["clean"] = cleanConfig
 
-		clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{})
+		clientBuilder := NewNonInteractiveClientConfig(*config, "clean", &ConfigOverrides{}, nil)
 
 		clientConfig, err := clientBuilder.ClientConfig()
 		if err != nil {
@@ -231,7 +256,7 @@ func TestCreateCleanDefault(t *testing.T) {
 func TestCreateMissingContext(t *testing.T) {
 	const expectedErrorContains = "Context was not found for specified context"
 	config := createValidTestConfig()
-	clientBuilder := NewNonInteractiveClientConfig(*config, "not-present", &ConfigOverrides{})
+	clientBuilder := NewNonInteractiveClientConfig(*config, "not-present", &ConfigOverrides{}, nil)
 
 	clientConfig, err := clientBuilder.ClientConfig()
 	if err != nil {

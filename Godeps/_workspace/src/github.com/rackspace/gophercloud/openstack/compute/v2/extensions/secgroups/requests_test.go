@@ -217,6 +217,36 @@ func TestAddRule(t *testing.T) {
 	th.AssertDeepEquals(t, expected, rule)
 }
 
+func TestAddRuleICMPZero(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	mockAddRuleResponseICMPZero(t)
+
+	opts := CreateRuleOpts{
+		ParentGroupID: groupID,
+		FromPort:      0,
+		ToPort:        0,
+		IPProtocol:    "ICMP",
+		CIDR:          "0.0.0.0/0",
+	}
+
+	rule, err := CreateRule(client.ServiceClient(), opts).Extract()
+	th.AssertNoErr(t, err)
+
+	expected := &Rule{
+		FromPort:      0,
+		ToPort:        0,
+		Group:         Group{},
+		IPProtocol:    "ICMP",
+		ParentGroupID: groupID,
+		IPRange:       IPRange{CIDR: "0.0.0.0/0"},
+		ID:            ruleID,
+	}
+
+	th.AssertDeepEquals(t, expected, rule)
+}
+
 func TestDeleteRule(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()

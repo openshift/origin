@@ -20,37 +20,103 @@ type Build struct {
 	Status BuildStatus `json:"status,omitempty"`
 }
 
-// BuildSpec encapsulates all the inputs necessary to represent a build.
+// BuildSpec has the information to represent a build and also additional
+// information about a build
 type BuildSpec struct {
-	// ServiceAccount is the name of the ServiceAccount to use to run the pod
+	// CommonSpec is the information that represents a build
+	CommonSpec `json:",inline"`
+
+	// triggeredBy describes which triggers started the most recent update to the
+	// build configuration and contains information about those triggers.
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy"`
+}
+
+// CommonSpec encapsulates all the inputs necessary to represent a build.
+type CommonSpec struct {
+	// serviceAccount is the name of the ServiceAccount to use to run the pod
 	// created by this build.
 	// The pod will be allowed to use secrets referenced by the ServiceAccount
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 
-	// Source describes the SCM in use.
+	// source describes the SCM in use.
 	Source BuildSource `json:"source,omitempty"`
 
-	// Revision is the information from the source for a specific repo snapshot.
+	// revision is the information from the source for a specific repo snapshot.
 	// This is optional.
 	Revision *SourceRevision `json:"revision,omitempty"`
 
-	// Strategy defines how to perform a build.
+	// strategy defines how to perform a build.
 	Strategy BuildStrategy `json:"strategy"`
 
-	// Output describes the Docker image the Strategy should produce.
+	// output describes the Docker image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty"`
 
-	// Compute resource requirements to execute the build
+	// resources computes resource requirements to execute the build.
 	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 
-	// PostCommit is a build hook executed after the build output image is
+	// postCommit is a build hook executed after the build output image is
 	// committed, before it is pushed to a registry.
 	PostCommit BuildPostCommitSpec `json:"postCommit,omitempty"`
 
-	// Optional duration in seconds, counted from the time when a build pod gets
-	// scheduled in the system, that the build may be active on a node before the
-	// system actively tries to terminate the build; value must be positive integer
+	// completionDeadlineSeconds is an optional duration in seconds, counted from
+	// the time when a build pod gets scheduled in the system, that the build may
+	// be active on a node before the system actively tries to terminate the
+	// build; value must be positive integer
 	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty"`
+}
+
+// BuildTriggerCause holds information about a triggered build. It is used for
+// displaying build trigger data for each build and build configuration in oc
+// describe. It is also used to describe which triggers led to the most recent
+// update in the build configuration.
+type BuildTriggerCause struct {
+	// message is used to store a human readable message for why the build was
+	// triggered. E.g.: "Manually triggered by user", "Configuration change",etc.
+	Message string `json:"message,omitempty"`
+
+	// genericWebHook represents data for a generic webhook that fired a specific
+	// build.
+	GenericWebHook *GenericWebHookCause `json:"genericWebHook,omitempty"`
+
+	// gitHubWebHook represents data for a GitHub webhook that fired a
+	//specific build.
+	GitHubWebHook *GitHubWebHookCause `json:"githubWebHook,omitempty"`
+
+	// imageChangeBuild stores information about an imagechange event
+	// that triggered a new build.
+	ImageChangeBuild *ImageChangeCause `json:"imageChangeBuild,omitempty"`
+}
+
+// GenericWebHookCause holds information about a generic WebHook that
+// triggered a build.
+type GenericWebHookCause struct {
+	// revision is an optional field that stores the git source revision
+	// information of the generic webhook trigger when it is available.
+	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// secret is the obfuscated webhook secret that triggered a build.
+	Secret string `json:"secret,omitempty"`
+}
+
+// GitHubWebHookCause has information about a GitHub webhook that triggered a
+// build.
+type GitHubWebHookCause struct {
+	// revision is the git source revision information of the trigger.
+	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// secret is the obfuscated webhook secret that triggered a build.
+	Secret string `json:"secret,omitempty"`
+}
+
+// ImageChangeCause contains information about the image that triggered a
+// build.
+type ImageChangeCause struct {
+	// imageID is the ID of the image that triggered a a new build.
+	ImageID string `json:"imageID,omitempty"`
+
+	// fromRef contains detailed information about an image that triggered a
+	// build.
+	FromRef *kapi.ObjectReference `json:"fromRef,omitempty"`
 }
 
 // BuildStatus contains the status of a build
@@ -506,17 +572,43 @@ type BuildConfig struct {
 
 // BuildConfigSpec describes when and how builds are created
 type BuildConfigSpec struct {
-	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
+
+	// triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers"`
 
-	BuildSpec `json:",inline"`
+	// RunPolicy describes how the new build created from this build
+	// configuration will be scheduled for execution.
+	// This is optional, if not specified we default to "Serial".
+	RunPolicy BuildRunPolicy `json:"runPolicy,omitempty"`
+
+	// CommonSpec is the desired build specification
+	CommonSpec `json:",inline"`
 }
+
+// BuildRunPolicy defines the behaviour of how the new builds are executed
+// from the existing build configuration.
+type BuildRunPolicy string
+
+const (
+	// BuildRunPolicyParallel schedules new builds immediately after they are
+	// created. Builds will be executed in parallel.
+	BuildRunPolicyParallel BuildRunPolicy = "Parallel"
+
+	// BuildRunPolicySerial schedules new builds to execute in a sequence as
+	// they are created. Every build gets queued up and will execute when the
+	// previous build completes. This is the default policy.
+	BuildRunPolicySerial BuildRunPolicy = "Serial"
+
+	// BuildRunPolicySerialLatestOnly schedules only the latest build to execute,
+	// cancelling all the previously queued build.
+	BuildRunPolicySerialLatestOnly BuildRunPolicy = "SerialLatestOnly"
+)
 
 // BuildConfigStatus contains current state of the build config object.
 type BuildConfigStatus struct {
 	// LastVersion is used to inform about number of last triggered build.
-	LastVersion int `json:"lastVersion"`
+	LastVersion int64 `json:"lastVersion"`
 }
 
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
@@ -628,12 +720,17 @@ type BuildRequest struct {
 	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
-	LastVersion *int `json:"lastVersion,omitempty"`
+	LastVersion *int64 `json:"lastVersion,omitempty"`
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
+
+	// TriggeredBy describes which triggers started the most recent update to the
+	// buildconfig and contains information about those triggers.
+	TriggeredBy []BuildTriggerCause `json:"triggeredBy"`
 }
 
+// BinaryBuildRequestOptions are the options required to fully speficy a binary build request
 type BinaryBuildRequestOptions struct {
 	unversioned.TypeMeta `json:",inline"`
 	kapi.ObjectMeta      `json:"metadata,omitempty"`
@@ -676,7 +773,7 @@ type BuildLogOptions struct {
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceSeconds *int64 `json:"sinceSeconds,omitempty"`
 	// An RFC3339 timestamp from which to show logs. If this value
-	// preceeds the time a pod was started, only logs since the pod start will be returned.
+	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
 	SinceTime *unversioned.Time `json:"sinceTime,omitempty"`

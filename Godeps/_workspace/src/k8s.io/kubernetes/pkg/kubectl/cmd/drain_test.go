@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
@@ -50,7 +51,7 @@ func TestMain(m *testing.M) {
 	node = &api.Node{
 		ObjectMeta: api.ObjectMeta{
 			Name:              "node",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 		},
 		Spec: api.NodeSpec{
 			ExternalID: "node",
@@ -209,7 +210,7 @@ func TestDrain(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name:              "rc",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			Labels:            labels,
 			SelfLink:          testapi.Default.SelfLink("replicationcontrollers", "rc"),
 		},
@@ -221,11 +222,11 @@ func TestDrain(t *testing.T) {
 	rc_anno := make(map[string]string)
 	rc_anno[controller.CreatedByAnnotation] = refJson(t, &rc)
 
-	replicated_pod := api.Pod{
+	rc_pod := api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       rc_anno,
 		},
@@ -238,7 +239,7 @@ func TestDrain(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name:              "ds",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			SelfLink:          "/apis/extensions/v1beta1/namespaces/default/daemonsets/ds",
 		},
 		Spec: extensions.DaemonSetSpec{
@@ -253,7 +254,7 @@ func TestDrain(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       ds_anno,
 		},
@@ -262,14 +263,14 @@ func TestDrain(t *testing.T) {
 		},
 	}
 
-	job := extensions.Job{
+	job := batch.Job{
 		ObjectMeta: api.ObjectMeta{
 			Name:              "job",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			SelfLink:          "/apis/extensions/v1beta1/namespaces/default/jobs/job",
 		},
-		Spec: extensions.JobSpec{
+		Spec: batch.JobSpec{
 			Selector: &unversioned.LabelSelector{MatchLabels: labels},
 		},
 	}
@@ -278,9 +279,38 @@ func TestDrain(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       map[string]string{controller.CreatedByAnnotation: refJson(t, &job)},
+		},
+	}
+
+	rs := extensions.ReplicaSet{
+		ObjectMeta: api.ObjectMeta{
+			Name:              "rs",
+			Namespace:         "default",
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			Labels:            labels,
+			SelfLink:          testapi.Default.SelfLink("replicasets", "rs"),
+		},
+		Spec: extensions.ReplicaSetSpec{
+			Selector: &unversioned.LabelSelector{MatchLabels: labels},
+		},
+	}
+
+	rs_anno := make(map[string]string)
+	rs_anno[controller.CreatedByAnnotation] = refJson(t, &rs)
+
+	rs_pod := api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name:              "bar",
+			Namespace:         "default",
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			Labels:            labels,
+			Annotations:       rs_anno,
+		},
+		Spec: api.PodSpec{
+			NodeName: "node",
 		},
 	}
 
@@ -288,7 +318,7 @@ func TestDrain(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{time.Now()},
+			CreationTimestamp: unversioned.Time{Time: time.Now()},
 			Labels:            labels,
 		},
 		Spec: api.PodSpec{
@@ -302,6 +332,7 @@ func TestDrain(t *testing.T) {
 		expected     *api.Node
 		pods         []api.Pod
 		rcs          []api.ReplicationController
+		replicaSets  []extensions.ReplicaSet
 		args         []string
 		expectFatal  bool
 		expectDelete bool
@@ -310,7 +341,7 @@ func TestDrain(t *testing.T) {
 			description:  "RC-managed pod",
 			node:         node,
 			expected:     cordoned_node,
-			pods:         []api.Pod{replicated_pod},
+			pods:         []api.Pod{rc_pod},
 			rcs:          []api.ReplicationController{rc},
 			args:         []string{"node"},
 			expectFatal:  false,
@@ -342,6 +373,16 @@ func TestDrain(t *testing.T) {
 			expected:     cordoned_node,
 			pods:         []api.Pod{job_pod},
 			rcs:          []api.ReplicationController{rc},
+			args:         []string{"node"},
+			expectFatal:  false,
+			expectDelete: true,
+		},
+		{
+			description:  "RS-managed pod",
+			node:         node,
+			expected:     cordoned_node,
+			pods:         []api.Pod{rs_pod},
+			replicaSets:  []extensions.ReplicaSet{rs},
 			args:         []string{"node"},
 			expectFatal:  false,
 			expectDelete: true,
@@ -396,6 +437,8 @@ func TestDrain(t *testing.T) {
 					return &http.Response{StatusCode: 200, Body: objBody(testapi.Extensions.Codec(), &ds)}, nil
 				case m.isFor("GET", "/namespaces/default/jobs/job"):
 					return &http.Response{StatusCode: 200, Body: objBody(testapi.Extensions.Codec(), &job)}, nil
+				case m.isFor("GET", "/namespaces/default/replicasets/rs"):
+					return &http.Response{StatusCode: 200, Body: objBody(testapi.Extensions.Codec(), &test.replicaSets[0])}, nil
 				case m.isFor("GET", "/pods"):
 					values, err := url.ParseQuery(req.URL.RawQuery)
 					if err != nil {

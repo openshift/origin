@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -23,6 +25,7 @@ import (
 // ReconcileClusterRoleBindingsRecommendedName is the recommended command name
 const ReconcileClusterRoleBindingsRecommendedName = "reconcile-cluster-role-bindings"
 
+// ReconcileClusterRoleBindingsOptions contains all the necessary functionality for the OpenShift cli reconcile-cluster-role-bindings command
 type ReconcileClusterRoleBindingsOptions struct {
 	// RolesToReconcile says which roles should have their default bindings reconciled.
 	// An empty or nil slice means reconcile all of them.
@@ -34,6 +37,7 @@ type ReconcileClusterRoleBindingsOptions struct {
 	ExcludeSubjects []kapi.ObjectReference
 
 	Out    io.Writer
+	Err    io.Writer
 	Output string
 
 	RoleBindingClient client.ClusterRoleBindingInterface
@@ -41,7 +45,7 @@ type ReconcileClusterRoleBindingsOptions struct {
 
 const (
 	reconcileBindingsLong = `
-Replace cluster role bindings to match the recommended bootstrap policy
+Update cluster role bindings to match the recommended bootstrap policy
 
 This command will inspect the cluster role bindings against the recommended bootstrap policy.
 Any cluster role binding that does not match will be replaced by the recommended bootstrap role binding.
@@ -49,26 +53,27 @@ This command will not remove any additional cluster role bindings.
 
 You can see which recommended cluster role bindings have changed by choosing an output type.`
 
-	reconcileBindingsExample = `  # Display the cluster role bindings that would be modified
-  $ %[1]s
+	reconcileBindingsExample = `  # Display the names of cluster role bindings that would be modified
+  %[1]s -o name
 
   # Display the cluster role bindings that would be modified, removing any extra subjects
-  $ %[1]s --additive-only=false
+  %[1]s --additive-only=false
 
   # Update cluster role bindings that don't match the current defaults
-  $ %[1]s --confirm
+  %[1]s --confirm
 
   # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
-  $ %[1]s --confirm --exclude-groups=system:authenticated
+  %[1]s --confirm --exclude-groups=system:authenticated
 
   # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
-  $ %[1]s --confirm --additive-only=false`
+  %[1]s --confirm --additive-only=false`
 )
 
 // NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command
-func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Factory, out, err io.Writer) *cobra.Command {
 	o := &ReconcileClusterRoleBindingsOptions{
 		Out:   out,
+		Err:   err,
 		Union: true,
 	}
 
@@ -77,7 +82,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 
 	cmd := &cobra.Command{
 		Use:     name + " [ClusterRoleName]...",
-		Short:   "Replace cluster role bindings to match the recommended bootstrap policy",
+		Short:   "Update cluster role bindings to match the recommended bootstrap policy",
 		Long:    reconcileBindingsLong,
 		Example: fmt.Sprintf(reconcileBindingsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -117,7 +122,7 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *cl
 
 	o.ExcludeSubjects = authorizationapi.BuildSubjects(excludeUsers, excludeGroups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
-	mapper, _ := f.Object()
+	mapper, _ := f.Object(false)
 	for _, resourceString := range args {
 		resource, name, err := cmdutil.ResolveResource(authorizationapi.Resource("clusterroles"), resourceString, mapper)
 		if err != nil {
@@ -140,21 +145,18 @@ func (o *ReconcileClusterRoleBindingsOptions) Validate() error {
 	if o.RoleBindingClient == nil {
 		return errors.New("a role binding client is required")
 	}
-	if o.Output != "yaml" && o.Output != "json" && o.Output != "" {
-		return fmt.Errorf("unknown output specified: %s", o.Output)
-	}
 	return nil
 }
 
-// ReconcileClusterRoleBindingsOptions contains all the necessary functionality for the OpenShift cli reconcile-cluster-role-bindings command
 func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cmd *cobra.Command, f *clientcmd.Factory) error {
-	changedClusterRoleBindings, err := o.ChangedClusterRoleBindings()
-	if err != nil {
-		return err
+	changedClusterRoleBindings, fetchErr := o.ChangedClusterRoleBindings()
+	if fetchErr != nil && !IsClusterRoleBindingLookupError(fetchErr) {
+		// we got an error that isn't due to a partial match, so we can't continue
+		return fetchErr
 	}
 
 	if len(changedClusterRoleBindings) == 0 {
-		return nil
+		return fetchErr
 	}
 
 	if (len(o.Output) != 0) && !o.Confirmed {
@@ -162,21 +164,25 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		for _, item := range changedClusterRoleBindings {
 			list.Items = append(list.Items, item)
 		}
-		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, o.Out)
+		mapper, _ := f.Object(false)
+		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 		if err := fn(list); err != nil {
-			return err
+			return kutilerrors.NewAggregate([]error{fetchErr, err})
 		}
 	}
 
 	if o.Confirmed {
-		return o.ReplaceChangedRoleBindings(changedClusterRoleBindings)
+		if err := o.ReplaceChangedRoleBindings(changedClusterRoleBindings); err != nil {
+			return kutilerrors.NewAggregate([]error{fetchErr, err})
+		}
 	}
 
-	return nil
+	return fetchErr
 }
 
 // ChangedClusterRoleBindings returns the role bindings that must be created and/or updated to
-// match the recommended bootstrap policy
+// match the recommended bootstrap policy. If roles to reconcile are provided, but not all are
+// found, all partial results are returned.
 func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*authorizationapi.ClusterRoleBinding, error) {
 	changedRoleBindings := []*authorizationapi.ClusterRoleBinding{}
 
@@ -214,7 +220,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 
 	if len(rolesNotFound) != 0 {
 		// return the known changes and the error so that a caller can decide if he wants a partial update
-		return changedRoleBindings, fmt.Errorf("did not find requested cluster role %s", rolesNotFound.List())
+		return changedRoleBindings, NewClusterRoleBindingLookupError(rolesNotFound.List())
 	}
 
 	return changedRoleBindings, nil
@@ -332,4 +338,27 @@ func DiffObjectReferenceLists(list1 []kapi.ObjectReference, list2 []kapi.ObjectR
 		}
 	}
 	return
+}
+
+func NewClusterRoleBindingLookupError(rolesNotFound []string) error {
+	return &clusterRoleBindingLookupError{
+		rolesNotFound: rolesNotFound,
+	}
+}
+
+type clusterRoleBindingLookupError struct {
+	rolesNotFound []string
+}
+
+func (e *clusterRoleBindingLookupError) Error() string {
+	return fmt.Sprintf("did not find requested cluster roles: %s", strings.Join(e.rolesNotFound, ", "))
+}
+
+func IsClusterRoleBindingLookupError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, ok := err.(*clusterRoleBindingLookupError)
+	return ok
 }

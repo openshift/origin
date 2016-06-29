@@ -60,7 +60,7 @@ kubectl cordon foo
 func NewCmdCordon(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &DrainOptions{factory: f, out: out}
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "cordon NODE",
 		Short:   "Mark node as unschedulable",
 		Long:    cordon_long,
@@ -70,6 +70,7 @@ func NewCmdCordon(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(options.RunCordonOrUncordon(true))
 		},
 	}
+	return cmd
 }
 
 const (
@@ -83,7 +84,7 @@ $ kubectl uncordon foo
 func NewCmdUncordon(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &DrainOptions{factory: f, out: out}
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "uncordon NODE",
 		Short:   "Mark node as schedulable",
 		Long:    uncordon_long,
@@ -93,6 +94,7 @@ func NewCmdUncordon(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(options.RunCordonOrUncordon(false))
 		},
 	}
+	return cmd
 }
 
 const (
@@ -103,17 +105,18 @@ Then drain deletes all pods except mirror pods (which cannot be deleted through
 the API server).  If there are DaemonSet-managed pods, drain will not proceed
 without --ignore-daemonsets, and regardless it will not delete any
 DaemonSet-managed pods, because those pods would be immediately replaced by the
-DaemonSet controller, which ignores unschedulable marknigs.  If there are any
+DaemonSet controller, which ignores unschedulable markings.  If there are any
 pods that are neither mirror pods nor managed--by ReplicationController,
-DaemonSet or Job--, then drain will not delete any pods unless you use --force.
+ReplicaSet, DaemonSet or Job--, then drain will not delete any pods unless you
+use --force.
 
 When you are ready to put the node back into service, use kubectl uncordon, which
 will make the node schedulable again.
 `
-	drain_example = `# Drain node "foo", even if there are pods not managed by a ReplicationController, Job, or DaemonSet on it.
+	drain_example = `# Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
 $ kubectl drain foo --force
 
-# As above, but abort if there are pods not managed by a ReplicationController, Job, or DaemonSet, and use a grace period of 15 minutes.
+# As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
 $ kubectl drain foo --grace-period=900
 `
 )
@@ -131,7 +134,7 @@ func NewCmdDrain(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(options.RunDrain())
 		},
 	}
-	cmd.Flags().BoolVar(&options.Force, "force", false, "Continue even if there are pods not managed by a ReplicationController, Job, or DaemonSet.")
+	cmd.Flags().BoolVar(&options.Force, "force", false, "Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet.")
 	cmd.Flags().BoolVar(&options.IgnoreDaemonsets, "ignore-daemonsets", false, "Ignore DaemonSet-managed pods.")
 	cmd.Flags().IntVar(&options.GracePeriodSeconds, "grace-period", -1, "Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used.")
 	return cmd
@@ -149,14 +152,14 @@ func (o *DrainOptions) SetupDrain(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	o.mapper, o.typer = o.factory.Object()
+	o.mapper, o.typer = o.factory.Object(false)
 
 	cmdNamespace, _, err := o.factory.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	r := o.factory.NewBuilder().
+	r := o.factory.NewBuilder(cmdutil.GetIncludeThirdPartyAPIs(cmd)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		ResourceNames("node", args[0]).
 		Do()
@@ -180,7 +183,7 @@ func (o *DrainOptions) RunDrain() error {
 		return err
 	}
 
-	pods, err := o.getPodsForDeletion()
+	pods, err := o.GetPodsForDeletion()
 	if err != nil {
 		return err
 	}
@@ -192,10 +195,10 @@ func (o *DrainOptions) RunDrain() error {
 	return nil
 }
 
-// getPodsForDeletion returns all the pods we're going to delete.  If there are
+// GetPodsForDeletion returns all the pods we're going to delete.  If there are
 // any unmanaged pods and the user didn't pass --force, we return that list in
 // an error.
-func (o *DrainOptions) getPodsForDeletion() ([]api.Pod, error) {
+func (o *DrainOptions) GetPodsForDeletion() ([]api.Pod, error) {
 	pods := []api.Pod{}
 	podList, err := o.client.Pods(api.NamespaceAll).List(api.ListOptions{FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": o.nodeInfo.Name})})
 	if err != nil {
@@ -250,6 +253,15 @@ func (o *DrainOptions) getPodsForDeletion() ([]api.Pod, error) {
 				if err == nil && job != nil {
 					replicated = true
 				}
+			} else if sr.Reference.Kind == "ReplicaSet" {
+				rs, err := o.client.ExtensionsClient.ReplicaSets(sr.Reference.Namespace).Get(sr.Reference.Name)
+
+				// Assume the only reason for an error is because the RS is
+				// gone/missing, not for any other cause.  TODO(mml): something more
+				// sophisticated than this
+				if err == nil && rs != nil {
+					replicated = true
+				}
 			}
 		}
 
@@ -292,7 +304,7 @@ func (o *DrainOptions) getPodsForDeletion() ([]api.Pod, error) {
 func unmanagedMsg(unreplicatedNames []string, daemonSetNames []string, include_guidance bool) string {
 	msgs := []string{}
 	if len(unreplicatedNames) > 0 {
-		msg := fmt.Sprintf("pods not managed by ReplicationController, Job, or DaemonSet: %s", strings.Join(unreplicatedNames, ","))
+		msg := fmt.Sprintf("pods not managed by ReplicationController, ReplicaSet, Job, or DaemonSet: %s", strings.Join(unreplicatedNames, ","))
 		if include_guidance {
 			msg += " (use --force to override)"
 		}

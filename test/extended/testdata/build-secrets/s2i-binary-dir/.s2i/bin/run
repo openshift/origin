@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Ensure none of the build config inject secrets still exist in the file system
+for s in /tmp/secret? secret?; do
+    if [[ -s "${s}" ]]; then
+        echo "Found secret file which should have been removed: ${s}"
+        exit 1
+    fi
+done
+
+# Print out the secrets copied into the image during assemble
+cd "${HOME}"
+for s in testsecret/* testsecret2/*; do
+    echo -n "${s}=" && cat "${s}"
+done

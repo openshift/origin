@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -29,6 +31,10 @@ func init() {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
+		}
+		if pluginConfig == nil {
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", "ProjectRequestLimit")
+			return nil, nil
 		}
 		return NewProjectRequestLimit(pluginConfig)
 	})
@@ -70,7 +76,7 @@ func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
 	if o.config == nil {
 		return nil
 	}
-	if a.GetResource() != projectapi.Resource("projectrequests") {
+	if a.GetResource().GroupResource() != projectapi.Resource("projectrequests") {
 		return nil
 	}
 	if _, isProjectRequest := a.GetObject().(*projectapi.ProjectRequest); !isProjectRequest {

@@ -5,10 +5,8 @@ set -o nounset
 set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/util.sh"
-source "${OS_ROOT}/hack/cmd_util.sh"
-source "${OS_ROOT}/hack/lib/test/junit.sh"
-os::log::install_errexit
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/help"
@@ -95,9 +93,9 @@ os::cmd::expect_success_and_text 'openshift start --help' 'Start an all-in-one s
 os::cmd::expect_success_and_text 'openshift start master --help' 'Start a master'
 os::cmd::expect_success_and_text 'openshift start node --help' 'Start a node'
 os::cmd::expect_success_and_text 'oc project --help' 'Switch to another project'
-os::cmd::expect_success_and_text 'oc projects --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc projects --help' 'existing projects'
 os::cmd::expect_success_and_text 'openshift cli project --help' 'Switch to another project'
-os::cmd::expect_success_and_text 'openshift cli projects --help' 'Switch to another project'
+os::cmd::expect_success_and_text 'openshift cli projects --help' 'current active project and existing projects on the server'
 os::cmd::expect_success_and_text 'oc get --help' 'oc'
 
 # help for given command through help command must be consistent
@@ -108,7 +106,7 @@ os::cmd::expect_success_and_text 'openshift help start' 'Start an all-in-one ser
 os::cmd::expect_success_and_text 'openshift help start master' 'Start a master'
 os::cmd::expect_success_and_text 'openshift help start node' 'Start a node'
 os::cmd::expect_success_and_text 'oc help project' 'Switch to another project'
-os::cmd::expect_success_and_text 'oc help projects' 'Switch to another project'
+os::cmd::expect_success_and_text 'oc help projects' 'current active project and existing projects on the server'
 
 # runnable commands with required flags must error consistently
 os::cmd::expect_failure_and_text 'oc get' 'Required resource not specified'

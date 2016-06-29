@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -44,26 +43,22 @@ func makeTime(id int) time.Time {
 }
 
 // Makes a container with the specified properties.
-func makeContainer(id, uid, name string, running bool, created time.Time) *docker.Container {
-	return &docker.Container{
-		Name: fmt.Sprintf("/k8s_%s_bar_new_%s_42", name, uid),
-		State: docker.State{
-			Running: running,
-		},
-		ID:      id,
-		Created: created,
+func makeContainer(id, uid, name string, running bool, created time.Time) *FakeContainer {
+	return &FakeContainer{
+		Name:      fmt.Sprintf("/k8s_%s_bar_new_%s_42", name, uid),
+		Running:   running,
+		ID:        id,
+		CreatedAt: created,
 	}
 }
 
 // Makes a container with unidentified name and specified properties.
-func makeUndefinedContainer(id string, running bool, created time.Time) *docker.Container {
-	return &docker.Container{
-		Name: "/k8s_unidentified",
-		State: docker.State{
-			Running: running,
-		},
-		ID:      id,
-		Created: created,
+func makeUndefinedContainer(id string, running bool, created time.Time) *FakeContainer {
+	return &FakeContainer{
+		Name:      "/k8s_unidentified",
+		Running:   running,
+		ID:        id,
+		CreatedAt: created,
 	}
 }
 
@@ -96,18 +91,18 @@ func verifyStringArrayEqualsAnyOrder(t *testing.T, actual, expected []string) {
 
 func TestGarbageCollectZeroMaxContainers(t *testing.T) {
 	gc, fakeDocker := newTestContainerGC(t)
-	fakeDocker.SetFakeContainers([]*docker.Container{
+	fakeDocker.SetFakeContainers([]*FakeContainer{
 		makeContainer("1876", "foo", "POD", false, makeTime(0)),
 	})
 	addPods(gc.podGetter, "foo")
 
-	assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{time.Minute, 1, 0}))
+	assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{MinAge: time.Minute, MaxPerPodContainer: 1, MaxContainers: 0}))
 	assert.Len(t, fakeDocker.Removed, 1)
 }
 
 func TestGarbageCollectNoMaxPerPodContainerLimit(t *testing.T) {
 	gc, fakeDocker := newTestContainerGC(t)
-	fakeDocker.SetFakeContainers([]*docker.Container{
+	fakeDocker.SetFakeContainers([]*FakeContainer{
 		makeContainer("1876", "foo", "POD", false, makeTime(0)),
 		makeContainer("2876", "foo1", "POD", false, makeTime(1)),
 		makeContainer("3876", "foo2", "POD", false, makeTime(2)),
@@ -116,13 +111,13 @@ func TestGarbageCollectNoMaxPerPodContainerLimit(t *testing.T) {
 	})
 	addPods(gc.podGetter, "foo", "foo1", "foo2", "foo3", "foo4")
 
-	assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{time.Minute, -1, 4}))
+	assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{MinAge: time.Minute, MaxPerPodContainer: -1, MaxContainers: 4}))
 	assert.Len(t, fakeDocker.Removed, 1)
 }
 
 func TestGarbageCollectNoMaxLimit(t *testing.T) {
 	gc, fakeDocker := newTestContainerGC(t)
-	fakeDocker.SetFakeContainers([]*docker.Container{
+	fakeDocker.SetFakeContainers([]*FakeContainer{
 		makeContainer("1876", "foo", "POD", false, makeTime(0)),
 		makeContainer("2876", "foo1", "POD", false, makeTime(0)),
 		makeContainer("3876", "foo2", "POD", false, makeTime(0)),
@@ -131,18 +126,17 @@ func TestGarbageCollectNoMaxLimit(t *testing.T) {
 	})
 	addPods(gc.podGetter, "foo", "foo1", "foo2", "foo3", "foo4")
 
-	assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{time.Minute, 1, -1}))
 	assert.Len(t, fakeDocker.Removed, 0)
 }
 
 func TestGarbageCollect(t *testing.T) {
 	tests := []struct {
-		containers      []*docker.Container
+		containers      []*FakeContainer
 		expectedRemoved []string
 	}{
 		// Don't remove containers started recently.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, time.Now()),
 				makeContainer("2876", "foo", "POD", false, time.Now()),
 				makeContainer("3876", "foo", "POD", false, time.Now()),
@@ -150,7 +144,7 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// Remove oldest containers.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, makeTime(0)),
 				makeContainer("2876", "foo", "POD", false, makeTime(1)),
 				makeContainer("3876", "foo", "POD", false, makeTime(2)),
@@ -159,7 +153,7 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// Only remove non-running containers.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", true, makeTime(0)),
 				makeContainer("2876", "foo", "POD", false, makeTime(1)),
 				makeContainer("3876", "foo", "POD", false, makeTime(2)),
@@ -169,13 +163,13 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// Less than maxContainerCount doesn't delete any.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, makeTime(0)),
 			},
 		},
 		// maxContainerCount applies per (UID,container) pair.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, makeTime(0)),
 				makeContainer("2876", "foo", "POD", false, makeTime(1)),
 				makeContainer("3876", "foo", "POD", false, makeTime(2)),
@@ -190,7 +184,7 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// Remove non-running unidentified Kubernetes containers.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeUndefinedContainer("1876", true, makeTime(0)),
 				makeUndefinedContainer("2876", false, makeTime(0)),
 				makeContainer("3876", "foo", "POD", false, makeTime(0)),
@@ -199,7 +193,7 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// Max limit applied and tries to keep from every pod.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, makeTime(0)),
 				makeContainer("2876", "foo", "POD", false, makeTime(1)),
 				makeContainer("3876", "foo1", "POD", false, makeTime(0)),
@@ -215,7 +209,7 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// If more pods than limit allows, evicts oldest pod.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, makeTime(1)),
 				makeContainer("2876", "foo", "POD", false, makeTime(2)),
 				makeContainer("3876", "foo1", "POD", false, makeTime(1)),
@@ -231,7 +225,7 @@ func TestGarbageCollect(t *testing.T) {
 		},
 		// Containers for deleted pods should be GC'd.
 		{
-			containers: []*docker.Container{
+			containers: []*FakeContainer{
 				makeContainer("1876", "foo", "POD", false, makeTime(1)),
 				makeContainer("2876", "foo", "POD", false, makeTime(2)),
 				makeContainer("3876", "deleted", "POD", false, makeTime(1)),
@@ -246,7 +240,7 @@ func TestGarbageCollect(t *testing.T) {
 		gc, fakeDocker := newTestContainerGC(t)
 		fakeDocker.SetFakeContainers(test.containers)
 		addPods(gc.podGetter, "foo", "foo1", "foo2", "foo3", "foo4", "foo5", "foo6", "foo7")
-		assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{time.Hour, 2, 6}))
+		assert.Nil(t, gc.GarbageCollect(kubecontainer.ContainerGCPolicy{MinAge: time.Hour, MaxPerPodContainer: 2, MaxContainers: 6}))
 		verifyStringArrayEqualsAnyOrder(t, fakeDocker.Removed, test.expectedRemoved)
 	}
 }

@@ -108,7 +108,7 @@
             "containers": [
               {
                 "name": "nodejs-helloworld",
-                "image": "origin-nodejs-sample",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080,
@@ -291,7 +291,7 @@
             "containers": [
               {
                 "name": "nodejs-helloworld",
-                "image": "origin-nodejs-sample",
+                "image": " ",
                 "ports": [
                   {
                     "containerPort": 8080,

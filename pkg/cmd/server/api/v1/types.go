@@ -114,7 +114,8 @@ type NodeAuthConfig struct {
 // NodeNetworkConfig provides network options for the node
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string `json:"networkPluginName"`
+	// Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
+	NetworkPluginName string `json:"networkPluginName,omitempty"`
 	// Maximum transmission unit for the network packets
 	MTU uint `json:"mtu"`
 }
@@ -176,6 +177,9 @@ type MasterConfig struct {
 	// AdmissionConfig contains admission control plugin configuration.
 	AdmissionConfig AdmissionConfig `json:"admissionConfig"`
 
+	// ControllerConfig holds configuration values for controllers
+	ControllerConfig ControllerConfig `json:"controllerConfig"`
+
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
@@ -229,6 +233,10 @@ type MasterConfig struct {
 	// MasterVolumeConfig contains options for configuring volume plugins in the master node.
 	VolumeConfig MasterVolumeConfig `json:"volumeConfig"`
 
+	// JenkinsPipelineConfig holds information about the default Jenkins template
+	// used for JenkinsPipeline build strategy.
+	JenkinsPipelineConfig JenkinsPipelineConfig `json:"jenkinsPipelineConfig"`
+
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig `json:"auditConfig"`
 }
@@ -238,6 +246,24 @@ type AuditConfig struct {
 	// If this flag is set, basic audit log will be printed in the logs.
 	// The logs contains, method, user and a requested URL.
 	Enabled bool `json:"enabled"`
+}
+
+// JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
+type JenkinsPipelineConfig struct {
+	// If the enabled flag is set, a Jenkins server will be spawned from the provided
+	// template when the first build config in the project with type JenkinsPipeline
+	// is created. When not specified this option defaults to true.
+	Enabled *bool `json:"enabled"`
+	// TemplateNamespace contains the namespace name where the Jenkins template is stored
+	TemplateNamespace string `json:"templateNamespace"`
+	// TemplateName is the name of the default Jenkins template
+	TemplateName string `json:"templateName"`
+	// ServiceName is the name of the Jenkins service OpenShift uses to detect
+	// whether a Jenkins pipeline handler has already been installed in a project.
+	// This value *must* match a service name in the provided template.
+	ServiceName string `json:"serviceName"`
+	// Parameters specifies a set of optional parameters to the Jenkins template.
+	Parameters map[string]string `json:"parameters"`
 }
 
 // ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images
@@ -516,6 +542,10 @@ type AssetConfig struct {
 	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
 	// Console loads
 	ExtensionScripts []string `json:"extensionScripts"`
+
+	// ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under
+	// the global variable OPENSHIFT_EXTENSION_PROPERTIES
+	ExtensionProperties map[string]string `json:"extensionProperties"`
 
 	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
 	// the Web Console loads
@@ -862,6 +892,10 @@ type OpenIDClaims struct {
 type GrantConfig struct {
 	// Method: allow, deny, prompt
 	Method GrantHandlerType `json:"method"`
+
+	// ServiceAccountMethod is used for determining client authorization for service account oauth client.
+	// It must be either: deny, prompt
+	ServiceAccountMethod GrantHandlerType `json:"serviceAccountMethod"`
 }
 
 type GrantHandlerType string
@@ -1158,4 +1192,29 @@ type AdmissionConfig struct {
 	// PluginOrderOverride is a list of admission control plugin names that will be installed
 	// on the master. Order is significant. If empty, a default list of plugins is used.
 	PluginOrderOverride []string `json:"pluginOrderOverride,omitempty"`
+}
+
+// ControllerConfig holds configuration values for controllers
+type ControllerConfig struct {
+	// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+	// pods fulfilling a service to serve with.
+	ServiceServingCert ServiceServingCert `json:"serviceServingCert"`
+}
+
+// ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
+// pods fulfilling a service to serve with.
+type ServiceServingCert struct {
+	// Signer holds the signing information used to automatically sign serving certificates.
+	// If this value is nil, then certs are not signed automatically.
+	Signer *CertInfo `json:"signer"`
+}
+
+// DefaultAdmissionConfig can be used to enable or disable various admission plugins.
+// When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it,
+// this will cause an "off by default" admission plugin to be enabled
+type DefaultAdmissionConfig struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Disable turns off an admission plugin that is enabled by default.
+	Disable bool
 }

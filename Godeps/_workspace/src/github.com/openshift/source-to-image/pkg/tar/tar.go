@@ -22,9 +22,9 @@ import (
 // connections in which it would wait for a long time to untar and nothing would happen
 const defaultTimeout = 30 * time.Second
 
-// defaultExclusionPattern is the pattern of files that will not be included in a tar
+// DefaultExclusionPattern is the pattern of files that will not be included in a tar
 // file when creating one. By default it is any file inside a .git metadata directory
-var defaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\/.git$))")
+var DefaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\/.git$))")
 
 // Tar can create and extract tar files used in an STI build
 type Tar interface {
@@ -74,7 +74,7 @@ type Tar interface {
 // New creates a new Tar
 func New() Tar {
 	return &stiTar{
-		exclude: defaultExclusionPattern,
+		exclude: DefaultExclusionPattern,
 		timeout: defaultTimeout,
 	}
 }
@@ -91,24 +91,28 @@ func (t *stiTar) SetExclusionPattern(p *regexp.Regexp) {
 	t.exclude = p
 }
 
-// StreamFileAsTar streams the source file as a tar archive.
+// StreamDirAsTar streams the source directory as a tar archive.
 // The permissions of the file is changed to 0666.
 func (t *stiTar) StreamDirAsTar(source, dest string, writer io.Writer) error {
 	f, err := os.Open(source)
 	if err != nil {
 		return err
 	}
-	if info, _ := f.Stat(); !info.IsDir() {
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
 		return fmt.Errorf("the source %q has to be directory, not a file", source)
 	}
-	defer f.Close()
 	fs := util.NewFileSystem()
 	tmpDir, err := ioutil.TempDir("", "s2i-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpDir)
-	if err := fs.Copy(source, tmpDir); err != nil {
+	if err = fs.Copy(source, tmpDir); err != nil {
 		return err
 	}
 	// Skip chmod if on windows OS
@@ -136,10 +140,14 @@ func (t *stiTar) StreamFileAsTar(source, name string, writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if info, _ := f.Stat(); info.IsDir() {
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
 		return fmt.Errorf("the source %q has to be regular file, not directory", source)
 	}
-	defer f.Close()
 	fs := util.NewFileSystem()
 	tmpDir, err := ioutil.TempDir("", "s2i-")
 	if err != nil {
@@ -174,7 +182,7 @@ func (t *stiTar) CreateTarFile(base, dir string) (string, error) {
 }
 
 func (t *stiTar) shouldExclude(path string) bool {
-	return t.exclude != nil && t.exclude.MatchString(path)
+	return t.exclude != nil && t.exclude.String() != "" && t.exclude.MatchString(path)
 }
 
 // CreateTarStream calls CreateTarStreamWithLogging with a nil logger
@@ -198,7 +206,10 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 		if !info.IsDir() && !t.shouldExclude(path) {
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
-				if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+				if dir == path {
+					return nil
+				}
+				if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 					glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				}
 				return err
@@ -211,7 +222,7 @@ func (t *stiTar) CreateTarStreamWithLogging(dir string, includeDirInPath bool, w
 				return nil
 			}
 			defer file.Close()
-			if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+			if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
 				glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				return err
 			}
@@ -330,9 +341,9 @@ func (t *stiTar) ExtractTarStreamWithLogging(dir string, reader io.Reader, logge
 		select {
 		case err := <-errorChannel:
 			if err != nil {
-				glog.Errorf("Error extracting tar stream")
+				glog.Error("Error extracting tar stream")
 			} else {
-				glog.V(2).Infof("Done extracting tar stream")
+				glog.V(2).Info("Done extracting tar stream")
 			}
 			return err
 		case <-timeoutTimer.C:

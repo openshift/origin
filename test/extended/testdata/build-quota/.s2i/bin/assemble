@@ -1,0 +1,23 @@
+#!/bin/sh
+
+
+echo -n MEMORY= && cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+echo -n MEMORYSWAP= && cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes
+
+if [ -e /sys/fs/cgroup/cpuacct,cpu ]; then
+	quota=$(</sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us)
+	echo -n QUOTA= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us
+	echo -n SHARES= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.shares
+	echo -n PERIOD= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_period_us
+else
+	quota=$(</sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us)
+	echo -n QUOTA= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
+	echo -n SHARES= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.shares
+	echo -n PERIOD= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+fi
+
+if [ "${quota}" == "-1" ]; then
+	cat /proc/self/cgroup
+	cat /proc/self/mountinfo
+	findmnt
+fi

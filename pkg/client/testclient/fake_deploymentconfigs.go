@@ -63,7 +63,6 @@ func (c *FakeDeploymentConfigs) Watch(opts kapi.ListOptions) (watch.Interface, e
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
 	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("generatedeploymentconfigs", c.Namespace, name), &deployapi.DeploymentConfig{})
-
 	if obj == nil {
 		return nil, err
 	}
@@ -72,6 +71,15 @@ func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConf
 }
 
 func (c *FakeDeploymentConfigs) Rollback(inObj *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("deploymentconfigs/rollback", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*deployapi.DeploymentConfig), err
+}
+
+func (c *FakeDeploymentConfigs) RollbackDeprecated(inObj *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
 	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("deploymentconfigrollbacks", c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
@@ -96,4 +104,13 @@ func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensions.Scale) (*extension
 	}
 
 	return obj.(*extensions.Scale), err
+}
+
+func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("deploymentconfigs/status", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*deployapi.DeploymentConfig), err
 }

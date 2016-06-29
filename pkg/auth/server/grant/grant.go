@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
+	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
@@ -65,11 +66,11 @@ type Grant struct {
 	auth           authenticator.Request
 	csrf           csrf.CSRF
 	render         FormRenderer
-	clientregistry oauthclient.Registry
+	clientregistry oauthclient.Getter
 	authregistry   oauthclientauthorization.Registry
 }
 
-func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclient.Registry, authregistry oauthclientauthorization.Registry) *Grant {
+func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclient.Getter, authregistry oauthclientauthorization.Registry) *Grant {
 	return &Grant{
 		auth:           auth,
 		csrf:           csrf,
@@ -115,6 +116,12 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
+		return
+	}
+
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
+		l.failed(failure, w, req)
 		return
 	}
 
@@ -183,6 +190,11 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
+		return
+	}
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
+		l.failed(failure, w, req)
 		return
 	}
 

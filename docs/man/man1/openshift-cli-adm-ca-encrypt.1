@@ -1,0 +1,126 @@
+.TH "OPENSHIFT CLI ADM CA" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli adm ca encrypt \- Encrypt data with AES\-256\-CBC encryption
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli adm ca encrypt\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Encrypt data with AES\-256\-CBC encryption
+
+
+.SH OPTIONS
+.PP
+\fB\-\-genkey\fP=""
+    File to write a randomly generated key to.
+
+.PP
+\fB\-\-in\fP=""
+    File containing the data to encrypt. Read from stdin if omitted.
+
+.PP
+\fB\-\-key\fP=""
+    File containing the encrypting key from in the format written by \-\-genkey.
+
+.PP
+\fB\-\-out\fP=""
+    File to write the encrypted data to. Written to stdout if omitted.
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+	# Encrypt the content of secret.txt with a generated key:
+	openshift cli adm ca encrypt \-\-genkey=secret.key \-\-in=secret.txt \-\-out=secret.encrypted
+	
+	# Encrypt the content of secret2.txt with an existing key:
+	openshift cli adm ca encrypt \-\-key=secret.key < secret2.txt > secret2.encrypted
+
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-adm\-ca(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

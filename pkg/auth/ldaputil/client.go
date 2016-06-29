@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/crypto"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"gopkg.in/ldap.v2"
@@ -20,7 +20,7 @@ func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (l
 
 	tlsConfig := &tls.Config{}
 	if len(CA) > 0 {
-		roots, err := util.CertPoolFromFile(CA)
+		roots, err := crypto.CertPoolFromFile(CA)
 		if err != nil {
 			return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", CA, err)
 		}

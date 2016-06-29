@@ -52,7 +52,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"empty service": {
-			Path: "../../../../test/fixtures/app-scenarios/k8s-service-with-nothing.json",
+			Path: "../../../../test/testdata/app-scenarios/k8s-service-with-nothing.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -67,7 +67,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"service with RC": {
-			Path: "../../../../test/fixtures/app-scenarios/k8s-unserviced-rc.json",
+			Path: "../../../../test/testdata/app-scenarios/k8s-unserviced-rc.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -140,7 +140,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"unstarted build": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-no-build.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-no-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -196,7 +196,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"running build": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-one-build.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-one-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -215,7 +215,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
 		"a/b test DeploymentConfig": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-two-deployment-configs.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-two-deployment-configs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -235,7 +235,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
 		"with real deployments": {
-			Path: "../../../../test/fixtures/app-scenarios/new-project-deployed-app.yaml",
+			Path: "../../../../test/testdata/app-scenarios/new-project-deployed-app.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -274,7 +274,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				`container "ruby-helloworld" in pod/frontend-app-1-bjwh8 has restarted 8 times`,
-				`container "gitlab-ce" in pod/gitlab-ce-1-lc411 is crash-looping`,
+				`pod/gitlab-ce-1-lc411 is crash-looping`,
 				`oc logs -p gitlab-ce-1-lc411 -c gitlab-ce`, // verifies we print the log command
 				`policycommand example default`,             // verifies that we print the help command
 			},
@@ -293,6 +293,34 @@ func TestProjectStatus(t *testing.T) {
 				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
 			},
 		},
+		"monopod": {
+			Path: "../../../../test/testdata/app-scenarios/k8s-lonely-pod.json",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"pod/lonely-pod runs openshift/hello-openshift",
+				"You have no services, deployment configs, or build configs.",
+			},
+		},
+		"deploys single pod": {
+			Path: "../../../../test/testdata/simple-deployment.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"dc/simple-deployment deploys docker.io/openshift/deployment-example:v1",
+				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
+			},
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()
@@ -306,7 +334,7 @@ func TestProjectStatus(t *testing.T) {
 		o := ktestclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
 		if len(test.Path) > 0 {
 			if err := ktestclient.AddObjectsFromPath(test.Path, o, kapi.Codecs.UniversalDecoder()); err != nil {
-				t.Fatal(err)
+				t.Errorf("%s: unexpected error: %v", k, err)
 			}
 		}
 		for _, obj := range test.Extra {

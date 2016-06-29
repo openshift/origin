@@ -12,6 +12,7 @@ import (
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
+	kflag "k8s.io/kubernetes/pkg/util/flag"
 )
 
 const proxyLong = `
@@ -45,7 +46,7 @@ func NewProxyCommand(name, fullName string, out io.Writer) *cobra.Command {
 	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
-	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
+	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
 	flags.AddGoFlagSet(flag.CommandLine)
 	proxyConfig.AddFlags(flags)
 

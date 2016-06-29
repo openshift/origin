@@ -8,6 +8,9 @@
 #
 FROM scratch
 
-ADD bin/pod /pod
+COPY bin/pod /pod
 
+USER 1001
+LABEL io.k8s.display-name="OpenShift Origin Pod Infrastructure" \
+      io.k8s.description="This is a component of OpenShift Origin and holds on to the shared Linux namespaces within a Pod."
 ENTRYPOINT ["/pod"]

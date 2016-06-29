@@ -95,6 +95,7 @@ func TestAccessController(t *testing.T) {
 		openshiftResponses []response
 		expectedError      error
 		expectedChallenge  bool
+		expectedRepoErr    string
 		expectedActions    []string
 	}{
 		"no token": {
@@ -203,7 +204,7 @@ func TestAccessController(t *testing.T) {
 				{Resource: auth.Resource{Type: "repository", Name: "foo/aaa"}, Action: "pull"},
 				{Resource: auth.Resource{Type: "repository", Name: "bar/bbb"}, Action: "push"},
 				{Resource: auth.Resource{Type: "admin"}, Action: "prune"},
-				{Resource: auth.Resource{Type: "repository", Name: "baz/ccc"}, Action: "pull"},
+				{Resource: auth.Resource{Type: "repository", Name: "baz/ccc"}, Action: "push"},
 			},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
@@ -219,6 +220,30 @@ func TestAccessController(t *testing.T) {
 				"POST /oapi/v1/namespaces/bar/localsubjectaccessreviews",
 				"POST /oapi/v1/subjectaccessreviews",
 				"POST /oapi/v1/namespaces/baz/localsubjectaccessreviews",
+			},
+		},
+		"deferred cross-mount error": {
+			// cross-mount push requests check pull/push access on the target repo and pull access on the source repo.
+			// we expect the access check failure for fromrepo/bbb to be added to the context as a deferred error,
+			// which our blobstore will look for and prevent a cross mount from.
+			access: []auth.Access{
+				{Resource: auth.Resource{Type: "repository", Name: "pushrepo/aaa"}, Action: "pull"},
+				{Resource: auth.Resource{Type: "repository", Name: "pushrepo/aaa"}, Action: "push"},
+				{Resource: auth.Resource{Type: "repository", Name: "fromrepo/bbb"}, Action: "pull"},
+			},
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "pushrepo", Allowed: true, Reason: "authorized!"})},
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "pushrepo", Allowed: true, Reason: "authorized!"})},
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "fromrepo", Allowed: false, Reason: "no!"})},
+			},
+			expectedError:     nil,
+			expectedChallenge: false,
+			expectedRepoErr:   "fromrepo/bbb",
+			expectedActions: []string{
+				"POST /oapi/v1/namespaces/pushrepo/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/pushrepo/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/fromrepo/localsubjectaccessreviews",
 			},
 		},
 		"valid openshift token": {
@@ -308,6 +333,22 @@ func TestAccessController(t *testing.T) {
 			if authCtx == nil {
 				t.Errorf("%s: expected auth context but got nil", k)
 				continue
+			}
+			if !AuthPerformed(authCtx) {
+				t.Errorf("%s: expected AuthPerformed to be true", k)
+				continue
+			}
+			deferredErrors, hasDeferred := DeferredErrorsFrom(authCtx)
+			if len(test.expectedRepoErr) > 0 {
+				if !hasDeferred || deferredErrors[test.expectedRepoErr] == nil {
+					t.Errorf("%s: expected deferred error for repo %s, got none", k, test.expectedRepoErr)
+					continue
+				}
+			} else {
+				if hasDeferred && len(deferredErrors) > 0 {
+					t.Errorf("%s: didn't expect deferred errors, got %#v", k, deferredErrors)
+					continue
+				}
 			}
 		} else {
 			_, isChallenge := err.(auth.Challenge)

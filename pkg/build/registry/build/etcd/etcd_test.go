@@ -33,18 +33,20 @@ func validBuild() *api.Build {
 	return &api.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Spec: api.BuildSpec{
-			Source: api.BuildSource{
-				Git: &api.GitBuildSource{
-					URI: "http://github.com/my/repository",
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
 				},
-			},
-			Strategy: api.BuildStrategy{
-				DockerStrategy: &api.DockerBuildStrategy{},
-			},
-			Output: api.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "repository/data",
+				Strategy: api.BuildStrategy{
+					DockerStrategy: &api.DockerBuildStrategy{},
+				},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
@@ -54,7 +56,7 @@ func validBuild() *api.Build {
 func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	valid := validBuild()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -68,7 +70,7 @@ func TestCreate(t *testing.T) {
 func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestList(
 		validBuild(),
 	)
@@ -77,7 +79,7 @@ func TestList(t *testing.T) {
 func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestGet(
 		validBuild(),
 	)
@@ -86,7 +88,7 @@ func TestGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 	test.TestDelete(
 		validBuild(),
 	)
@@ -95,7 +97,7 @@ func TestDelete(t *testing.T) {
 func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
-	test := registrytest.New(t, storage.Etcd)
+	test := registrytest.New(t, storage.Store)
 
 	valid := validBuild()
 	valid.Name = "foo"

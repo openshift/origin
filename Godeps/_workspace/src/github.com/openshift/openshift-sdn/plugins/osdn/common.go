@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -13,10 +14,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/container"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	"k8s.io/kubernetes/pkg/util/iptables"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
 )
 
@@ -26,32 +25,35 @@ type PluginHooks interface {
 
 	SetupSDN(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) (bool, error)
 
-	AddHostSubnetRules(subnet *osapi.HostSubnet)
-	DeleteHostSubnetRules(subnet *osapi.HostSubnet)
+	AddHostSubnetRules(subnet *osapi.HostSubnet) error
+	DeleteHostSubnetRules(subnet *osapi.HostSubnet) error
 
-	AddServiceRules(service *kapi.Service, netID uint)
-	DeleteServiceRules(service *kapi.Service)
+	AddServiceRules(service *kapi.Service, netID uint) error
+	DeleteServiceRules(service *kapi.Service) error
 
 	UpdatePod(namespace string, name string, id kubetypes.DockerID) error
 }
 
 type OsdnController struct {
-	pluginHooks     PluginHooks
-	Registry        *Registry
-	localIP         string
-	localSubnet     *osapi.HostSubnet
-	HostName        string
-	subnetAllocator *netutils.SubnetAllocator
-	podNetworkReady chan struct{}
-	VNIDMap         map[string]uint
-	netIDManager    *netutils.NetIDAllocator
-	adminNamespaces []string
+	pluginHooks        PluginHooks
+	pluginName         string
+	Registry           *Registry
+	localIP            string
+	localSubnet        *osapi.HostSubnet
+	HostName           string
+	subnetAllocator    *netutils.SubnetAllocator
+	podNetworkReady    chan struct{}
+	vnidMap            map[string]uint
+	vnidLock           sync.Mutex
+	netIDManager       *netutils.NetIDAllocator
+	adminNamespaces    []string
+	iptablesSyncPeriod time.Duration
 }
 
 // Called by plug factory functions to initialize the generic plugin instance
-func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, multitenant bool, hostname string, selfIP string) error {
+func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, pluginName string, hostname string, selfIP string, iptablesSyncPeriod time.Duration) error {
 
-	log.Infof("Starting with configured hostname '%s' (IP '%s')", hostname, selfIP)
+	log.Infof("Starting with configured hostname %q (IP %q), iptables sync period %q", hostname, selfIP, iptablesSyncPeriod.String())
 
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
@@ -73,24 +75,22 @@ func (oc *OsdnController) BaseInit(registry *Registry, pluginHooks PluginHooks, 
 			selfIP = defaultIP.String()
 		}
 	}
-	if multitenant {
-		log.Infof("Initializing multi-tenant plugin for %s (%s)", hostname, selfIP)
-	} else {
-		log.Infof("Initializing single-tenant plugin for %s (%s)", hostname, selfIP)
-	}
+	log.Infof("Initializing %s plugin for %s (%s)", pluginName, hostname, selfIP)
 
 	oc.pluginHooks = pluginHooks
+	oc.pluginName = pluginName
 	oc.Registry = registry
 	oc.localIP = selfIP
 	oc.HostName = hostname
-	oc.VNIDMap = make(map[string]uint)
+	oc.vnidMap = make(map[string]uint)
 	oc.podNetworkReady = make(chan struct{})
 	oc.adminNamespaces = make([]string, 0)
+	oc.iptablesSyncPeriod = iptablesSyncPeriod
 
 	return nil
 }
 
-func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *net.IPNet) error {
+func (oc *OsdnController) validateNetworkConfig(ni *NetworkInfo) error {
 	// TODO: Instead of hardcoding 'tun0' and 'lbr0', get it from common place.
 	// This will ensure both the kube/multitenant scripts and master validations use the same name.
 	hostIPNets, err := netutils.GetHostIPNetworks([]string{"tun0", "lbr0"})
@@ -102,17 +102,17 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 
 	// Ensure cluster and service network don't overlap with host networks
 	for _, ipNet := range hostIPNets {
-		if ipNet.Contains(clusterNetwork.IP) {
-			errList = append(errList, fmt.Errorf("Error: Cluster IP: %s conflicts with host network: %s", clusterNetwork.IP.String(), ipNet.String()))
+		if ipNet.Contains(ni.ClusterNetwork.IP) {
+			errList = append(errList, fmt.Errorf("Error: Cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
 		}
-		if clusterNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), clusterNetwork.String()))
+		if ni.ClusterNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
 		}
-		if ipNet.Contains(serviceNetwork.IP) {
-			errList = append(errList, fmt.Errorf("Error: Service IP: %s conflicts with host network: %s", serviceNetwork.String(), ipNet.String()))
+		if ipNet.Contains(ni.ServiceNetwork.IP) {
+			errList = append(errList, fmt.Errorf("Error: Service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
 		}
-		if serviceNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), serviceNetwork.String()))
+		if ni.ServiceNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("Error: Host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
 		}
 	}
 
@@ -127,8 +127,8 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
 			continue
 		}
-		if !clusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, clusterNetwork.String()))
+		if !ni.ClusterNetwork.Contains(subnetIP) {
+			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
 		}
 	}
 
@@ -138,22 +138,24 @@ func (oc *OsdnController) validateNetworkConfig(clusterNetwork, serviceNetwork *
 		return err
 	}
 	for _, svc := range services {
-		if !serviceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
-			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, serviceNetwork.String()))
+		if !ni.ServiceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
+			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
 		}
 	}
 
 	return kerrors.NewAggregate(errList)
 }
 
-func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hostBitsPerSubnet int, serviceNetworkCIDR string) (bool, error) {
-	clusterNetwork, hostSubnetLength, serviceNetwork, err := oc.Registry.GetNetworkInfo()
+func (oc *OsdnController) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool, error) {
+	oldNetwork, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
 	}
-	if clusterNetworkCIDR != clusterNetwork.String() ||
-		hostSubnetLength != hostBitsPerSubnet ||
-		serviceNetworkCIDR != serviceNetwork.String() {
+
+	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
+		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
+		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() ||
+		curNetwork.PluginName != oldNetwork.PluginName {
 		return true, nil
 	}
 	return false, nil
@@ -161,27 +163,26 @@ func (oc *OsdnController) isClusterNetworkChanged(clusterNetworkCIDR string, hos
 
 func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// Validate command-line/config parameters
-	hostBitsPerSubnet := int(clusterBitsPerSubnet)
-	clusterNetwork, _, serviceNetwork, err := ValidateClusterNetwork(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
+	ni, err := ValidateClusterNetwork(clusterNetworkCIDR, int(clusterBitsPerSubnet), serviceNetworkCIDR, oc.pluginName)
 	if err != nil {
 		return err
 	}
 
-	changed, net_err := oc.isClusterNetworkChanged(clusterNetworkCIDR, hostBitsPerSubnet, serviceNetworkCIDR)
+	changed, net_err := oc.isClusterNetworkChanged(ni)
 	if changed {
-		if err := oc.validateNetworkConfig(clusterNetwork, serviceNetwork); err != nil {
+		if err := oc.validateNetworkConfig(ni); err != nil {
 			return err
 		}
-		if err := oc.Registry.UpdateClusterNetwork(clusterNetwork, hostBitsPerSubnet, serviceNetwork); err != nil {
+		if err := oc.Registry.UpdateClusterNetwork(ni); err != nil {
 			return err
 		}
 	} else if net_err != nil {
-		if err := oc.Registry.CreateClusterNetwork(clusterNetwork, hostBitsPerSubnet, serviceNetwork); err != nil {
+		if err := oc.Registry.CreateClusterNetwork(ni); err != nil {
 			return err
 		}
 	}
 
-	if err := oc.pluginHooks.PluginStartMaster(clusterNetwork, clusterBitsPerSubnet); err != nil {
+	if err := oc.pluginHooks.PluginStartMaster(ni.ClusterNetwork, clusterBitsPerSubnet); err != nil {
 		return fmt.Errorf("Failed to start plugin: %v", err)
 	}
 	return nil
@@ -189,23 +190,15 @@ func (oc *OsdnController) StartMaster(clusterNetworkCIDR string, clusterBitsPerS
 
 func (oc *OsdnController) StartNode(mtu uint) error {
 	// Assume we are working with IPv4
-	clusterNetwork, err := oc.Registry.GetClusterNetwork()
+	ni, err := oc.Registry.GetNetworkInfo()
 	if err != nil {
-		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
-		return err
+		return fmt.Errorf("Failed to get network information: %v", err)
 	}
 
-	ipt := iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4)
-	if err := SetupIptables(ipt, clusterNetwork.String()); err != nil {
+	nodeIPTables := NewNodeIPTables(ni.ClusterNetwork.String(), oc.iptablesSyncPeriod)
+	if err := nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
-
-	ipt.AddReloadFunc(func() {
-		err := SetupIptables(ipt, clusterNetwork.String())
-		if err != nil {
-			log.Errorf("Error reloading iptables: %v\n", err)
-		}
-	})
 
 	if err := oc.pluginHooks.PluginStartNode(mtu); err != nil {
 		return fmt.Errorf("Failed to start plugin: %v", err)
@@ -240,33 +233,8 @@ func (oc *OsdnController) WaitForPodNetworkReady() error {
 	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
 }
 
-type FirewallRule struct {
-	table string
-	chain string
-	args  []string
-}
-
-func SetupIptables(ipt iptables.Interface, clusterNetworkCIDR string) error {
-	rules := []FirewallRule{
-		{"nat", "POSTROUTING", []string{"-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE"}},
-		{"filter", "INPUT", []string{"-p", "udp", "-m", "multiport", "--dports", "4789", "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
-		{"filter", "INPUT", []string{"-i", "tun0", "-m", "comment", "--comment", "traffic from docker for internet", "-j", "ACCEPT"}},
-		{"filter", "FORWARD", []string{"-d", clusterNetworkCIDR, "-j", "ACCEPT"}},
-		{"filter", "FORWARD", []string{"-s", clusterNetworkCIDR, "-j", "ACCEPT"}},
-	}
-
-	for _, rule := range rules {
-		_, err := ipt.EnsureRule(iptables.Prepend, iptables.Table(rule.table), iptables.Chain(rule.chain), rule.args...)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func GetNodeIP(node *kapi.Node) (string, error) {
-	if len(node.Status.Addresses) > 0 {
+	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
 		return node.Status.Addresses[0].Address, nil
 	} else {
 		return netutils.GetNodeIP(node.Name)
@@ -284,5 +252,5 @@ func GetPodContainerID(pod *kapi.Pod) string {
 }
 
 func HostSubnetToString(subnet *osapi.HostSubnet) string {
-	return fmt.Sprintf("%s [host: '%s'] [ip: '%s'] [subnet: '%s']", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
+	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
 }

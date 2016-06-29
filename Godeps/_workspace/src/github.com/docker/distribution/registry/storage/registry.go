@@ -1,23 +1,26 @@
 package storage
 
 import (
-	"fmt"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage/cache"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
+	"github.com/docker/libtrust"
 )
 
 // registry is the top-level implementation of Registry for use in the storage
 // package. All instances should descend from this object.
 type registry struct {
-	blobStore                   *blobStore
-	blobServer                  *blobServer
-	statter                     *blobStatter // global statter service.
-	blobDescriptorCacheProvider cache.BlobDescriptorCacheProvider
-	deleteEnabled               bool
-	resumableDigestEnabled      bool
+	blobStore                    *blobStore
+	blobServer                   *blobServer
+	statter                      *blobStatter // global statter service.
+	blobDescriptorCacheProvider  cache.BlobDescriptorCacheProvider
+	deleteEnabled                bool
+	resumableDigestEnabled       bool
+	schema1SignaturesEnabled     bool
+	schema1SigningKey            libtrust.PrivateKey
+	blobDescriptorServiceFactory distribution.BlobDescriptorServiceFactory
 }
 
 // RegistryOption is the type used for functional options for NewRegistry.
@@ -33,7 +36,6 @@ func EnableRedirect(registry *registry) error {
 // EnableDelete is a functional option for NewRegistry. It enables deletion on
 // the registry.
 func EnableDelete(registry *registry) error {
-	registry.blobStore.deleteEnabled = true
 	registry.deleteEnabled = true
 	return nil
 }
@@ -45,13 +47,31 @@ func DisableDigestResumption(registry *registry) error {
 	return nil
 }
 
-// RemoveParentsOnDelete is a functional option for NewRegistry. It causes
-// parent directory of blob's data or link to be deleted as well during Delete.
-// It should be used only with storage drivers providing strong consistency.
-// Must be used together with `EnableDelete`.
-func RemoveParentsOnDelete(registry *registry) error {
-	registry.blobStore.removeParentsOnDelete = true
+// DisableSchema1Signatures is a functional option for NewRegistry. It disables
+// signature storage and ensures all schema1 manifests will only be returned
+// with a signature from a provided signing key.
+func DisableSchema1Signatures(registry *registry) error {
+	registry.schema1SignaturesEnabled = false
 	return nil
+}
+
+// Schema1SigningKey returns a functional option for NewRegistry. It sets the
+// signing key for adding a signature to all schema1 manifests. This should be
+// used in conjunction with disabling signature store.
+func Schema1SigningKey(key libtrust.PrivateKey) RegistryOption {
+	return func(registry *registry) error {
+		registry.schema1SigningKey = key
+		return nil
+	}
+}
+
+// BlobDescriptorServiceFactory returns a functional option for NewRegistry. It sets the
+// factory to create BlobDescriptorServiceFactory middleware.
+func BlobDescriptorServiceFactory(factory distribution.BlobDescriptorServiceFactory) RegistryOption {
+	return func(registry *registry) error {
+		registry.blobDescriptorServiceFactory = factory
+		return nil
+	}
 }
 
 // BlobDescriptorCacheProvider returns a functional option for
@@ -96,8 +116,9 @@ func NewRegistry(ctx context.Context, driver storagedriver.StorageDriver, option
 			statter: statter,
 			pathFn:  bs.path,
 		},
-		statter:                statter,
-		resumableDigestEnabled: true,
+		statter:                  statter,
+		resumableDigestEnabled:   true,
+		schema1SignaturesEnabled: true,
 	}
 
 	for _, option := range options {
@@ -118,18 +139,11 @@ func (reg *registry) Scope() distribution.Scope {
 // Repository returns an instance of the repository tied to the registry.
 // Instances should not be shared between goroutines but are cheap to
 // allocate. In general, they should be request scoped.
-func (reg *registry) Repository(ctx context.Context, canonicalName string) (distribution.Repository, error) {
-	if _, err := reference.ParseNamed(canonicalName); err != nil {
-		return nil, distribution.ErrRepositoryNameInvalid{
-			Name:   canonicalName,
-			Reason: err,
-		}
-	}
-
+func (reg *registry) Repository(ctx context.Context, canonicalName reference.Named) (distribution.Repository, error) {
 	var descriptorCache distribution.BlobDescriptorService
 	if reg.blobDescriptorCacheProvider != nil {
 		var err error
-		descriptorCache, err = reg.blobDescriptorCacheProvider.RepositoryScoped(canonicalName)
+		descriptorCache, err = reg.blobDescriptorCacheProvider.RepositoryScoped(canonicalName.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -143,40 +157,34 @@ func (reg *registry) Repository(ctx context.Context, canonicalName string) (dist
 	}, nil
 }
 
-// Blobs returns an instance of the BlobServer for registry's blob access.
-func (reg *registry) Blobs() distribution.BlobService {
+func (reg *registry) Blobs() distribution.BlobEnumerator {
 	return reg.blobStore
 }
 
-// RegistryBlobEnumerator returns an instance of BlobEnumerator for given registry object.
-func RegistryBlobEnumerator(ns distribution.Namespace) (distribution.BlobEnumerator, error) {
-	reg, ok := ns.(*registry)
-	if !ok {
-		return nil, fmt.Errorf("cannot instantiate BlobEnumerator with given namespace object (%T)", ns)
-	}
-	return reg.blobStore, nil
-}
-
-// RegistryBlobDeleter returns an instance of BlobDeleter for given registry object.
-func RegistryBlobDeleter(ns distribution.Namespace) (distribution.BlobDeleter, error) {
-	reg, ok := ns.(*registry)
-	if !ok {
-		return nil, fmt.Errorf("cannot instantiate BlobDeleter with given namespace object (%T)", ns)
-	}
-	return reg.blobStore, nil
+func (reg *registry) BlobStatter() distribution.BlobStatter {
+	return reg.statter
 }
 
 // repository provides name-scoped access to various services.
 type repository struct {
 	*registry
 	ctx             context.Context
-	name            string
+	name            reference.Named
 	descriptorCache distribution.BlobDescriptorService
 }
 
 // Name returns the name of the repository.
-func (repo *repository) Name() string {
+func (repo *repository) Named() reference.Named {
 	return repo.name
+}
+
+func (repo *repository) Tags(ctx context.Context) distribution.TagService {
+	tags := &tagStore{
+		repository: repo,
+		blobStore:  repo.registry.blobStore,
+	}
+
+	return tags
 }
 
 // Manifests returns an instance of ManifestService. Instantiation is cheap and
@@ -189,46 +197,61 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 		manifestRevisionLinkPath,
 		blobLinkPath,
 	}
-	manifestRootPathFns := []blobsRootPathFunc{
-		manifestRevisionsPath,
-		blobsRootPath,
+
+	manifestDirectoryPathSpec := manifestRevisionsPathSpec{name: repo.name.Name()}
+
+	var statter distribution.BlobDescriptorService = &linkedBlobStatter{
+		blobStore:   repo.blobStore,
+		repository:  repo,
+		linkPathFns: manifestLinkPathFns,
+	}
+
+	if repo.registry.blobDescriptorServiceFactory != nil {
+		statter = repo.registry.blobDescriptorServiceFactory.BlobAccessController(statter)
+	}
+
+	blobStore := &linkedBlobStore{
+		ctx:                  ctx,
+		blobStore:            repo.blobStore,
+		repository:           repo,
+		deleteEnabled:        repo.registry.deleteEnabled,
+		blobAccessController: statter,
+
+		// TODO(stevvooe): linkPath limits this blob store to only
+		// manifests. This instance cannot be used for blob checks.
+		linkPathFns:           manifestLinkPathFns,
+		linkDirectoryPathSpec: manifestDirectoryPathSpec,
 	}
 
 	ms := &manifestStore{
 		ctx:        ctx,
 		repository: repo,
-		revisionStore: &revisionStore{
+		blobStore:  blobStore,
+		schema1Handler: &signedManifestHandler{
 			ctx:        ctx,
 			repository: repo,
-			blobStore: &linkedBlobStore{
-				ctx:           ctx,
-				blobStore:     repo.blobStore,
-				repository:    repo,
-				deleteEnabled: repo.registry.deleteEnabled,
-				blobAccessController: &linkedBlobStatter{
-					blobStore:             repo.blobStore,
-					repository:            repo,
-					linkPathFns:           manifestLinkPathFns,
-					removeParentsOnDelete: repo.registry.blobStore.removeParentsOnDelete,
-				},
-
-				// TODO(stevvooe): linkPath limits this blob store to only
-				// manifests. This instance cannot be used for blob checks.
-				linkPathFns:            manifestLinkPathFns,
-				blobsRootPathFns:       manifestRootPathFns,
-				resumableDigestEnabled: repo.resumableDigestEnabled,
+			blobStore:  blobStore,
+			signatures: &signatureStore{
+				ctx:        ctx,
+				repository: repo,
+				blobStore:  repo.blobStore,
 			},
 		},
-		tagStore: &tagStore{
+		schema2Handler: &schema2ManifestHandler{
 			ctx:        ctx,
 			repository: repo,
-			blobStore:  repo.registry.blobStore,
+			blobStore:  blobStore,
+		},
+		manifestListHandler: &manifestListHandler{
+			ctx:        ctx,
+			repository: repo,
+			blobStore:  blobStore,
 		},
 	}
 
 	// Apply options
 	for _, option := range options {
-		err := option(ms)
+		err := option.Apply(ms)
 		if err != nil {
 			return nil, err
 		}
@@ -242,17 +265,21 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 // to a request local.
 func (repo *repository) Blobs(ctx context.Context) distribution.BlobStore {
 	var statter distribution.BlobDescriptorService = &linkedBlobStatter{
-		blobStore:             repo.blobStore,
-		repository:            repo,
-		linkPathFns:           []linkPathFunc{blobLinkPath},
-		removeParentsOnDelete: repo.registry.blobStore.removeParentsOnDelete,
+		blobStore:   repo.blobStore,
+		repository:  repo,
+		linkPathFns: []linkPathFunc{blobLinkPath},
 	}
 
 	if repo.descriptorCache != nil {
 		statter = cache.NewCachedBlobStatter(repo.descriptorCache, statter)
 	}
 
+	if repo.registry.blobDescriptorServiceFactory != nil {
+		statter = repo.registry.blobDescriptorServiceFactory.BlobAccessController(statter)
+	}
+
 	return &linkedBlobStore{
+		registry:             repo.registry,
 		blobStore:            repo.blobStore,
 		blobServer:           repo.blobServer,
 		blobAccessController: statter,
@@ -262,16 +289,7 @@ func (repo *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		// TODO(stevvooe): linkPath limits this blob store to only layers.
 		// This instance cannot be used for manifest checks.
 		linkPathFns:            []linkPathFunc{blobLinkPath},
-		blobsRootPathFns:       []blobsRootPathFunc{blobsRootPath},
 		deleteEnabled:          repo.registry.deleteEnabled,
 		resumableDigestEnabled: repo.resumableDigestEnabled,
-	}
-}
-
-func (repo *repository) Signatures() distribution.SignatureService {
-	return &signatureStore{
-		repository: repo,
-		blobStore:  repo.blobStore,
-		ctx:        repo.ctx,
 	}
 }

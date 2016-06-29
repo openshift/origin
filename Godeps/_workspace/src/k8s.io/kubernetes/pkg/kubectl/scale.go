@@ -48,7 +48,7 @@ func ScalerFor(kind unversioned.GroupKind, c client.Interface) (Scaler, error) {
 	case extensions.Kind("ReplicaSet"):
 		return &ReplicaSetScaler{c.Extensions()}, nil
 	case extensions.Kind("Job"), batch.Kind("Job"):
-		return &JobScaler{c.Extensions()}, nil // Either kind of job can be scaled with Extensions interface.
+		return &JobScaler{c.Batch()}, nil // Either kind of job can be scaled with Batch interface.
 	case extensions.Kind("Deployment"):
 		return &DeploymentScaler{c.Extensions()}, nil
 	}
@@ -81,7 +81,7 @@ type ScaleErrorType int
 const (
 	ScaleGetFailure ScaleErrorType = iota
 	ScaleUpdateFailure
-	ScaleUpdateInvalidFailure
+	ScaleUpdateConflictFailure
 )
 
 // A ScaleError is returned when a scale request passes
@@ -115,11 +115,8 @@ func ScaleCondition(r Scaler, precondition *ScalePrecondition, namespace, name s
 		case nil:
 			return true, nil
 		case ScaleError:
-			// if it's invalid we shouldn't keep waiting
-			if e.FailureType == ScaleUpdateInvalidFailure {
-				return false, err
-			}
-			if e.FailureType == ScaleUpdateFailure {
+			// Retry only on update conflicts.
+			if e.FailureType == ScaleUpdateConflictFailure {
 				return false, nil
 			}
 		}
@@ -129,8 +126,8 @@ func ScaleCondition(r Scaler, precondition *ScalePrecondition, namespace, name s
 
 // ValidateReplicationController ensures that the preconditions match.  Returns nil if they are valid, an error otherwise
 func (precondition *ScalePrecondition) ValidateReplicationController(controller *api.ReplicationController) error {
-	if precondition.Size != -1 && controller.Spec.Replicas != precondition.Size {
-		return PreconditionError{"replicas", strconv.Itoa(precondition.Size), strconv.Itoa(controller.Spec.Replicas)}
+	if precondition.Size != -1 && int(controller.Spec.Replicas) != precondition.Size {
+		return PreconditionError{"replicas", strconv.Itoa(precondition.Size), strconv.Itoa(int(controller.Spec.Replicas))}
 	}
 	if len(precondition.ResourceVersion) != 0 && controller.ResourceVersion != precondition.ResourceVersion {
 		return PreconditionError{"resource version", precondition.ResourceVersion, controller.ResourceVersion}
@@ -152,11 +149,10 @@ func (scaler *ReplicationControllerScaler) ScaleSimple(namespace, name string, p
 			return err
 		}
 	}
-	controller.Spec.Replicas = int(newSize)
-	// TODO: do retry on 409 errors here?
+	controller.Spec.Replicas = int32(newSize)
 	if _, err := scaler.c.ReplicationControllers(namespace).Update(controller); err != nil {
-		if errors.IsInvalid(err) {
-			return ScaleError{ScaleUpdateInvalidFailure, controller.ResourceVersion, err}
+		if errors.IsConflict(err) {
+			return ScaleError{ScaleUpdateConflictFailure, controller.ResourceVersion, err}
 		}
 		return ScaleError{ScaleUpdateFailure, controller.ResourceVersion, err}
 	}
@@ -183,16 +179,19 @@ func (scaler *ReplicationControllerScaler) Scale(namespace, name string, newSize
 		if err != nil {
 			return err
 		}
-		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout,
-			client.ControllerHasDesiredReplicas(scaler.c, rc))
+		err = wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout, client.ControllerHasDesiredReplicas(scaler.c, rc))
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("timed out waiting for %q to be synced", name)
+		}
+		return err
 	}
 	return nil
 }
 
 // ValidateReplicaSet ensures that the preconditions match.  Returns nil if they are valid, an error otherwise
 func (precondition *ScalePrecondition) ValidateReplicaSet(replicaSet *extensions.ReplicaSet) error {
-	if precondition.Size != -1 && replicaSet.Spec.Replicas != precondition.Size {
-		return PreconditionError{"replicas", strconv.Itoa(precondition.Size), strconv.Itoa(replicaSet.Spec.Replicas)}
+	if precondition.Size != -1 && int(replicaSet.Spec.Replicas) != precondition.Size {
+		return PreconditionError{"replicas", strconv.Itoa(precondition.Size), strconv.Itoa(int(replicaSet.Spec.Replicas))}
 	}
 	if len(precondition.ResourceVersion) != 0 && replicaSet.ResourceVersion != precondition.ResourceVersion {
 		return PreconditionError{"resource version", precondition.ResourceVersion, replicaSet.ResourceVersion}
@@ -214,11 +213,10 @@ func (scaler *ReplicaSetScaler) ScaleSimple(namespace, name string, precondition
 			return err
 		}
 	}
-	rs.Spec.Replicas = int(newSize)
-	// TODO: do retry on 409 errors here?
+	rs.Spec.Replicas = int32(newSize)
 	if _, err := scaler.c.ReplicaSets(namespace).Update(rs); err != nil {
-		if errors.IsInvalid(err) {
-			return ScaleError{ScaleUpdateInvalidFailure, rs.ResourceVersion, err}
+		if errors.IsConflict(err) {
+			return ScaleError{ScaleUpdateConflictFailure, rs.ResourceVersion, err}
 		}
 		return ScaleError{ScaleUpdateFailure, rs.ResourceVersion, err}
 	}
@@ -245,19 +243,22 @@ func (scaler *ReplicaSetScaler) Scale(namespace, name string, newSize uint, prec
 		if err != nil {
 			return err
 		}
-		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout,
-			client.ReplicaSetHasDesiredReplicas(scaler.c, rs))
+		err = wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout, client.ReplicaSetHasDesiredReplicas(scaler.c, rs))
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("timed out waiting for %q to be synced", name)
+		}
+		return err
 	}
 	return nil
 }
 
 // ValidateJob ensures that the preconditions match.  Returns nil if they are valid, an error otherwise.
-func (precondition *ScalePrecondition) ValidateJob(job *extensions.Job) error {
+func (precondition *ScalePrecondition) ValidateJob(job *batch.Job) error {
 	if precondition.Size != -1 && job.Spec.Parallelism == nil {
 		return PreconditionError{"parallelism", strconv.Itoa(precondition.Size), "nil"}
 	}
-	if precondition.Size != -1 && *job.Spec.Parallelism != precondition.Size {
-		return PreconditionError{"parallelism", strconv.Itoa(precondition.Size), strconv.Itoa(*job.Spec.Parallelism)}
+	if precondition.Size != -1 && int(*job.Spec.Parallelism) != precondition.Size {
+		return PreconditionError{"parallelism", strconv.Itoa(precondition.Size), strconv.Itoa(int(*job.Spec.Parallelism))}
 	}
 	if len(precondition.ResourceVersion) != 0 && job.ResourceVersion != precondition.ResourceVersion {
 		return PreconditionError{"resource version", precondition.ResourceVersion, job.ResourceVersion}
@@ -266,7 +267,7 @@ func (precondition *ScalePrecondition) ValidateJob(job *extensions.Job) error {
 }
 
 type JobScaler struct {
-	c client.ExtensionsInterface
+	c client.BatchInterface
 }
 
 // ScaleSimple is responsible for updating job's parallelism.
@@ -280,11 +281,11 @@ func (scaler *JobScaler) ScaleSimple(namespace, name string, preconditions *Scal
 			return err
 		}
 	}
-	parallelism := int(newSize)
+	parallelism := int32(newSize)
 	job.Spec.Parallelism = &parallelism
 	if _, err := scaler.c.Jobs(namespace).Update(job); err != nil {
-		if errors.IsInvalid(err) {
-			return ScaleError{ScaleUpdateInvalidFailure, job.ResourceVersion, err}
+		if errors.IsConflict(err) {
+			return ScaleError{ScaleUpdateConflictFailure, job.ResourceVersion, err}
 		}
 		return ScaleError{ScaleUpdateFailure, job.ResourceVersion, err}
 	}
@@ -311,16 +312,19 @@ func (scaler *JobScaler) Scale(namespace, name string, newSize uint, preconditio
 		if err != nil {
 			return err
 		}
-		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout,
-			client.JobHasDesiredParallelism(scaler.c, job))
+		err = wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout, client.JobHasDesiredParallelism(scaler.c, job))
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("timed out waiting for %q to be synced", name)
+		}
+		return err
 	}
 	return nil
 }
 
 // ValidateDeployment ensures that the preconditions match.  Returns nil if they are valid, an error otherwise.
 func (precondition *ScalePrecondition) ValidateDeployment(deployment *extensions.Deployment) error {
-	if precondition.Size != -1 && deployment.Spec.Replicas != precondition.Size {
-		return PreconditionError{"replicas", strconv.Itoa(precondition.Size), strconv.Itoa(deployment.Spec.Replicas)}
+	if precondition.Size != -1 && int(deployment.Spec.Replicas) != precondition.Size {
+		return PreconditionError{"replicas", strconv.Itoa(precondition.Size), strconv.Itoa(int(deployment.Spec.Replicas))}
 	}
 	if len(precondition.ResourceVersion) != 0 && deployment.ResourceVersion != precondition.ResourceVersion {
 		return PreconditionError{"resource version", precondition.ResourceVersion, deployment.ResourceVersion}
@@ -346,10 +350,10 @@ func (scaler *DeploymentScaler) ScaleSimple(namespace, name string, precondition
 
 	// TODO(madhusudancs): Fix this when Scale group issues are resolved (see issue #18528).
 	// For now I'm falling back to regular Deployment update operation.
-	deployment.Spec.Replicas = int(newSize)
+	deployment.Spec.Replicas = int32(newSize)
 	if _, err := scaler.c.Deployments(namespace).Update(deployment); err != nil {
-		if errors.IsInvalid(err) {
-			return ScaleError{ScaleUpdateInvalidFailure, deployment.ResourceVersion, err}
+		if errors.IsConflict(err) {
+			return ScaleError{ScaleUpdateConflictFailure, deployment.ResourceVersion, err}
 		}
 		return ScaleError{ScaleUpdateFailure, deployment.ResourceVersion, err}
 	}
@@ -375,8 +379,11 @@ func (scaler *DeploymentScaler) Scale(namespace, name string, newSize uint, prec
 		if err != nil {
 			return err
 		}
-		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout,
-			client.DeploymentHasDesiredReplicas(scaler.c, deployment))
+		err = wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout, client.DeploymentHasDesiredReplicas(scaler.c, deployment))
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("timed out waiting for %q to be synced", name)
+		}
+		return err
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
@@ -27,6 +28,9 @@ type AuthConfig struct {
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
 
+	// KubeClient is kubeclient with enough permission for the auth API
+	KubeClient kclient.Interface
+
 	// RESTOptionsGetter provides storage and RESTOption lookup
 	RESTOptionsGetter restoptions.Getter
 
@@ -45,6 +49,7 @@ type AuthConfig struct {
 
 func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 	options := masterConfig.Options
+	kubeClient := masterConfig.KubeClient()
 
 	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
 
@@ -99,6 +104,8 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 
 	ret := &AuthConfig{
 		Options: *options.OAuthConfig,
+
+		KubeClient: kubeClient,
 
 		AssetPublicAddresses: assetPublicURLs,
 		RESTOptionsGetter:    masterConfig.RESTOptionsGetter,

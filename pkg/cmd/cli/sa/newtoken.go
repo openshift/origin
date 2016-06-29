@@ -42,7 +42,7 @@ be applied to any created token so that tokens created with this command can be 
 	newServiceAccountTokenUsage = `%s SA-NAME`
 
 	newServiceAccountTokenExamples = `  # Generate a new token for service account 'default'
-  $ %[1]s 'default'
+  %[1]s 'default'
 
   # Generate a new token for service account 'default' and apply 
   # labels 'foo' and 'bar' to the new token for identification

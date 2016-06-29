@@ -29,8 +29,8 @@ import (
 func TestCacheOperations(t *testing.T) {
 	m := NewManager()
 
-	unsetID := kubecontainer.ContainerID{"test", "unset"}
-	setID := kubecontainer.ContainerID{"test", "set"}
+	unsetID := kubecontainer.ContainerID{Type: "test", ID: "unset"}
+	setID := kubecontainer.ContainerID{Type: "test", ID: "set"}
 
 	_, found := m.Get(unsetID)
 	assert.False(t, found, "unset result found")
@@ -49,14 +49,14 @@ func TestUpdates(t *testing.T) {
 	m := NewManager()
 
 	pod := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "test-pod"}}
-	fooID := kubecontainer.ContainerID{"test", "foo"}
-	barID := kubecontainer.ContainerID{"test", "bar"}
+	fooID := kubecontainer.ContainerID{Type: "test", ID: "foo"}
+	barID := kubecontainer.ContainerID{Type: "test", ID: "bar"}
 
 	expectUpdate := func(expected Update, msg string) {
 		select {
 		case u := <-m.Updates():
 			if expected != u {
-				t.Errorf("Expected update %v, recieved %v: %s %s", expected, u, msg)
+				t.Errorf("Expected update %v, recieved %v: %s", expected, u, msg)
 			}
 		case <-time.After(wait.ForeverTestTimeout):
 			t.Errorf("Timed out waiting for update %v: %s", expected, msg)

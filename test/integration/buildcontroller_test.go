@@ -35,7 +35,7 @@ var (
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
-	BuildControllersWatchTimeout = 10 * time.Second
+	BuildControllersWatchTimeout = 60 * time.Second
 )
 
 type controllerCount struct {
@@ -50,24 +50,28 @@ func mockBuild() *buildapi.Build {
 		ObjectMeta: kapi.ObjectMeta{
 			GenerateName: "mock-build",
 			Labels: map[string]string{
-				"label1": "value1",
-				"label2": "value2",
+				"label1":                     "value1",
+				"label2":                     "value2",
+				buildapi.BuildConfigLabel:    "mock-build-config",
+				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
 			},
 		},
 		Spec: buildapi.BuildSpec{
-			Source: buildapi.BuildSource{
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Kind: "DockerImage",
-					Name: "namespace/builtimage",
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
 				},
 			},
 		},
@@ -789,9 +793,9 @@ func configChangeBuildConfig() *buildapi.BuildConfig {
 	bc := &buildapi.BuildConfig{}
 	bc.Name = "testcfgbc"
 	bc.Namespace = testutil.Namespace()
-	bc.Spec.BuildSpec.Source.Git = &buildapi.GitBuildSource{}
-	bc.Spec.BuildSpec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
-	bc.Spec.BuildSpec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	bc.Spec.Source.Git = &buildapi.GitBuildSource{}
+	bc.Spec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
+	bc.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 	configChangeTrigger := buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType}
 	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)
 	return bc
