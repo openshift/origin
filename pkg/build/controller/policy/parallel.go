@@ -21,7 +21,7 @@ type ParallelPolicy struct {
 func (s *ParallelPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
-		return false, NewNoBuildConfigLabelError(build)
+		return true, nil
 	}
 	return !hasRunningSerialBuild(s.BuildLister, build.Namespace, bcName), nil
 }
