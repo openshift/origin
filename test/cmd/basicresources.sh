@@ -119,8 +119,8 @@ os::cmd::expect_success 'oc get      -f test/testdata/mixed-api-versions.yaml -o
 os::cmd::expect_success 'oc label    -f test/testdata/mixed-api-versions.yaml mylabel=a'
 os::cmd::expect_success 'oc annotate -f test/testdata/mixed-api-versions.yaml myannotation=b'
 # Make sure all six resources, with different API versions, got labeled and annotated
-os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a a a$'
-os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b b$'
+os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.labels.mylabel}"'           '^a a a a a$'
+os::cmd::expect_success_and_text 'oc get -f test/testdata/mixed-api-versions.yaml --output-version=v1 --output=jsonpath="{..metadata.annotations.myannotation}"' '^b b b b b$'
 os::cmd::expect_success 'oc delete   -f test/testdata/mixed-api-versions.yaml'
 echo "list version conversion: ok"
 os::test::junit::declare_suite_end

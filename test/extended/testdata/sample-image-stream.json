@@ -1,6 +1,6 @@
 {
   "kind": "ImageStream",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "samplerepository",
     "creationTimestamp": null

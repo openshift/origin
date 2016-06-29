@@ -310,14 +310,13 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			}
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
-			v1beta3GroupVersion := unversioned.GroupVersion{Group: "", Version: "v1beta3"}
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
-			if c.RandBool() || version == v1beta3GroupVersion {
+			if c.RandBool() {
 				priv := c.RandBool()
 				sc.Privileged = &priv
 			}
 
-			if c.RandBool() || version == v1beta3GroupVersion {
+			if c.RandBool() {
 				sc.Capabilities = &api.Capabilities{
 					Add:  make([]api.Capability, 0),
 					Drop: make([]api.Capability, 0),

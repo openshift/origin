@@ -108,9 +108,9 @@ report should be stored. For example:
 
 After that you can open `/path/to/dir/coverage.html` in the browser.
 
-To generate a jUnit XML report from the output of the tests, and see a summary of the test output 
+To generate a jUnit XML report from the output of the tests, and see a summary of the test output
 instead of the full test output, use:
-    
+
     $ JUNIT_REPORT=true hack/test-go.sh
 
 `hack/test-go.sh` cannot generate jUnit XML and a coverage report for all packages at once. If you
@@ -476,7 +476,7 @@ OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://s
 
     $ openshift start --cors-allowed-origins=.*
 
-and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta3 to see the schemas (and to try the API directly).
+and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1 to see the schemas (and to try the API directly).
 
 Note: Hosted API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
 
