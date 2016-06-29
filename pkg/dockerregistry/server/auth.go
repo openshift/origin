@@ -21,6 +21,19 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+type deferredErrors map[string]error
+
+func (d deferredErrors) Add(namespace string, name string, err error) {
+	d[namespace+"/"+name] = err
+}
+func (d deferredErrors) Get(namespace string, name string) (error, bool) {
+	err, exists := d[namespace+"/"+name]
+	return err, exists
+}
+func (d deferredErrors) Empty() bool {
+	return len(d) == 0
+}
+
 // DefaultRegistryClient is exposed for testing the registry with fake client.
 var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
@@ -59,6 +72,27 @@ func WithUserClient(parent context.Context, userClient client.Interface) context
 func UserClientFrom(ctx context.Context) (client.Interface, bool) {
 	userClient, ok := ctx.Value(userClientKey).(client.Interface)
 	return userClient, ok
+}
+
+const authPerformedKey = "openshift.auth.performed"
+
+func WithAuthPerformed(parent context.Context) context.Context {
+	return context.WithValue(parent, authPerformedKey, true)
+}
+
+func AuthPerformed(ctx context.Context) bool {
+	authPerformed, ok := ctx.Value(authPerformedKey).(bool)
+	return ok && authPerformed
+}
+
+const deferredErrorsKey = "openshift.auth.deferredErrors"
+
+func WithDeferredErrors(parent context.Context, errs deferredErrors) context.Context {
+	return context.WithValue(parent, deferredErrorsKey, errs)
+}
+func DeferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
+	errs, ok := ctx.Value(deferredErrorsKey).(deferredErrors)
+	return errs, ok
 }
 
 type AccessController struct {
@@ -160,6 +194,11 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 
+	// pushChecks remembers which ns/name pairs had push access checks done
+	pushChecks := map[string]bool{}
+	// possibleCrossMountErrors holds errors which may be related to cross mount errors
+	possibleCrossMountErrors := deferredErrors{}
+
 	verifiedPrune := false
 
 	// Validate all requested accessRecords
@@ -178,6 +217,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			switch access.Action {
 			case "push":
 				verb = "update"
+				pushChecks[imageStreamNS+"/"+imageStreamName] = true
 			case "pull":
 				verb = "get"
 			case "*":
@@ -197,7 +237,11 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				verifiedPrune = true
 			default:
 				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
-					return nil, ac.wrapErr(err)
+					if access.Action == "pull" {
+						possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(err))
+					} else {
+						return nil, ac.wrapErr(err)
+					}
 				}
 			}
 
@@ -218,6 +262,26 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			return nil, ac.wrapErr(ErrUnsupportedResource)
 		}
 	}
+
+	// deal with any possible cross-mount errors
+	for namespaceAndName, err := range possibleCrossMountErrors {
+		// If we have no push requests, this can't be a cross-mount request, so error
+		if len(pushChecks) == 0 {
+			return nil, err
+		}
+		// If we also requested a push to this ns/name, this isn't a cross-mount request, so error
+		if pushChecks[namespaceAndName] {
+			return nil, err
+		}
+	}
+
+	// Conditionally add auth errors we want to handle later to the context
+	if !possibleCrossMountErrors.Empty() {
+		context.GetLogger(ctx).Debugf("Origin auth: deferring errors: %#v", possibleCrossMountErrors)
+		ctx = WithDeferredErrors(ctx, possibleCrossMountErrors)
+	}
+	// Always add a marker to the context so we know auth was run
+	ctx = WithAuthPerformed(ctx)
 
 	return WithUserClient(ctx, osClient), nil
 }
