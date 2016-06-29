@@ -145,7 +145,7 @@ func (o ProjectsOptions) RunProjects() error {
 					}
 				}
 				if len(displayName) > 0 && displayName != project.Name && !o.DisplayShort {
-					msg += fmt.Sprintf("\n  "+asterisk+"%s (%s)", displayName, project.Name)
+					msg += fmt.Sprintf("\n"+asterisk+"%s - %s", project.Name, displayName)
 				} else {
 					if o.DisplayShort && count == 1 {
 						linebreak = ""
