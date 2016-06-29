@@ -479,6 +479,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kHistoryViewerFunc(mapping)
 	}
+	kRollbackerFunc := w.Factory.Rollbacker
+	w.Factory.Rollbacker = func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
+			return deploycmd.NewDeploymentConfigRollbacker(oc), nil
+		}
+		return kRollbackerFunc(mapping)
+	}
 
 	return w
 }

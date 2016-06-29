@@ -402,7 +402,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(version).To(o.ContainSubstring("2"))
 
 			g.By("verifying that we can rollback")
-			_, err = oc.Run("rollback").Args(resource).Output()
+			_, err = oc.Run("rollout").Args("undo", resource).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
