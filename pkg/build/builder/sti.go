@@ -93,13 +93,16 @@ func (s *S2IBuilder) Build() error {
 		return fmt.Errorf("the source to image builder must be used with the source strategy")
 	}
 	var runtimeImageName string
+	var runtimeArtifacts string
+	var runtimePullSecret string
 	var push bool
 
 	runtimeImage := s.build.Spec.Strategy.SourceStrategy.RuntimeImage
 	runtimeArtifacts := copyArtifactSourceList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
 
-	if runtimeImage != nil && runtimeImage.Name != "" {
+	if runtimeImage != nil {
 		runtimeImageName = runtimeImage.Name
+		runtimePullSecret = s.build.Spec.Strategy.SourceStrategy.RuntimePullSecret
 	}
 
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
@@ -197,6 +200,7 @@ func (s *S2IBuilder) Build() error {
 		BlockOnBuild:              true,
 		RuntimeImage:              runtimeImageName,
 		RuntimeArtifacts:          runtimeArtifacts,
+		RuntimePullSecret:         runtimePullSecret,
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
