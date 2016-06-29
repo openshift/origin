@@ -313,6 +313,12 @@ func IsTerminatedDeployment(deployment *api.ReplicationController) bool {
 	return current == deployapi.DeploymentStatusComplete || current == deployapi.DeploymentStatusFailed
 }
 
+// IsFailedDeployment returns true if the passed deployment failed.
+func IsFailedDeployment(deployment *api.ReplicationController) bool {
+	current := DeploymentStatusFor(deployment)
+	return current == deployapi.DeploymentStatusFailed
+}
+
 // CanTransitionPhase returns whether it is allowed to go from the current to the next phase.
 func CanTransitionPhase(current, next deployapi.DeploymentStatus) bool {
 	switch current {
