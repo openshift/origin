@@ -175,6 +175,9 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return kcmdutil.UsageError(cmd, "you may not specify -t and -T together")
 	case o.ForceTTY:
 		o.Attach.TTY = true
+	// since ForceTTY is defaulted to false, check if user specifically passed in "=false" flag
+	case !o.ForceTTY && cmd.Flags().Changed("tty"):
+		o.Attach.TTY = false
 	case o.DisableTTY:
 		o.Attach.TTY = false
 	// don't default TTY to true if a command is passed
