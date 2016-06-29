@@ -16,6 +16,8 @@ type ImageList struct {
 	Items []Image `json:"items"`
 }
 
+// +genclient=true
+
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	unversioned.TypeMeta `json:",inline"`

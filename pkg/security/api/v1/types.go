@@ -5,6 +5,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
+// +genclient=true
+
 // PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodSpec.
 type PodSecurityPolicySubjectReview struct {
 	unversioned.TypeMeta `json:",inline"`

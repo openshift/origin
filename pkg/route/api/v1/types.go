@@ -6,6 +6,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
+// +genclient=true
+
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {
 	unversioned.TypeMeta `json:",inline"`
