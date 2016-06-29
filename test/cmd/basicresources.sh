@@ -140,6 +140,8 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/basicresources/create"
 os::cmd::expect_success 'oc create dc my-nginx --image=nginx'
 os::cmd::expect_success 'oc delete dc my-nginx'
+os::cmd::expect_success 'oc create clusterquota limit-bob --project-selector=openshift.io/requester=user-bob --hard=pods=10'
+os::cmd::expect_success 'oc delete clusterquota/limit-bob'
 echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
