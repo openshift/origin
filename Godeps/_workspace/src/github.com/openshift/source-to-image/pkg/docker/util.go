@@ -19,7 +19,7 @@ import (
 
 // glog is a placeholder until the builders pass an output stream down
 // client facing libraries should not be using glog
-var glog = utilglog.ToFile(os.Stderr, 2)
+var glog = utilglog.StderrLog
 
 // ImageReference points to a Docker image.
 type ImageReference struct {

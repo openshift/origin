@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
+
+var glog = utilglog.StderrLog
 
 // Image label namespace constants
 const (

@@ -4,10 +4,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 // File represents a simplest possible Downloader implementation where the
 // sources are just copied from local directory.
