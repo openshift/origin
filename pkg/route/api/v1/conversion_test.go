@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/api/v1"
@@ -44,7 +43,7 @@ func TestSupportingCamelConstants(t *testing.T) {
 func TestDefaults(t *testing.T) {
 	obj := &v1.Route{
 		Spec: v1.RouteSpec{
-			To:  kapiv1.ObjectReference{Name: "other"},
+			To:  v1.RouteTargetReference{Name: "other"},
 			TLS: &v1.TLSConfig{},
 		},
 	}

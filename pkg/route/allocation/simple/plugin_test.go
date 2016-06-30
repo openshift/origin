@@ -73,7 +73,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 					Namespace: "namespace",
 				},
 				Spec: api.RouteSpec{
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "service",
 					},
 				},
@@ -87,7 +87,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 					Name: "name",
 				},
 				Spec: api.RouteSpec{
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "nonamespace",
 					},
 				},
@@ -112,7 +112,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "myservice",
 					},
 				},
@@ -127,7 +127,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "myservice",
 					},
 				},
@@ -169,7 +169,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 					Namespace: "namespace",
 				},
 				Spec: api.RouteSpec{
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "service",
 					},
 				},
@@ -195,7 +195,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 					Name: "name",
 				},
 				Spec: api.RouteSpec{
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "nonamespace",
 					},
 				},
@@ -220,7 +220,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
+					To: api.RouteTargetReference{
 						Name: "s3",
 					},
 				},

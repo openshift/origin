@@ -37,7 +37,7 @@ func TestRouteAllocationController(t *testing.T) {
 					Namespace: "namespace",
 				},
 				Spec: routeapi.RouteSpec{
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "service",
 					},
 				},
@@ -50,7 +50,7 @@ func TestRouteAllocationController(t *testing.T) {
 					Name: "name",
 				},
 				Spec: routeapi.RouteSpec{
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "nonamespace",
 					},
 				},
@@ -74,7 +74,7 @@ func TestRouteAllocationController(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example.org",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "serviceName",
 					},
 				},

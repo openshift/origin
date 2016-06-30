@@ -24918,8 +24918,15 @@
       "description": "Path that the router watches for, to route traffic for to the service. Optional"
      },
      "to": {
-      "$ref": "v1.ObjectReference",
+      "$ref": "v1.RouteTargetReference",
       "description": "To is an object the route points to. Only the Service kind is allowed, and it will be defaulted to Service."
+     },
+     "alternateBackends": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.RouteTargetReference"
+      },
+      "description": "AlternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference"
      },
      "port": {
       "$ref": "v1.RoutePort",
@@ -24928,6 +24935,30 @@
      "tls": {
       "$ref": "v1.TLSConfig",
       "description": "TLS provides the ability to configure certificates and termination for the route"
+     }
+    }
+   },
+   "v1.RouteTargetReference": {
+    "id": "v1.RouteTargetReference",
+    "description": "RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service' kind is allowed. Use 'weight' field to emphasize one over others.",
+    "required": [
+     "kind",
+     "name",
+     "weight"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "The kind of target that the route is referring to. Currently, only 'Service' is allowed"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the service/target that is being referred to. e.g. name of the service"
+     },
+     "weight": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Weight as an integer between 1 and 256 that specifies the target's relative weight against other target reference objects"
      }
     }
    },

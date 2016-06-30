@@ -185,7 +185,7 @@ func createRouteProperties(serviceName string) *routeapi.Route {
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
 			Path: "",
-			To: kapi.ObjectReference{
+			To: routeapi.RouteTargetReference{
 				Name: serviceName,
 			},
 			TLS: nil,
