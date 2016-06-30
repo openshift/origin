@@ -22,12 +22,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit df95f2ec3cd80861b7522fe1c1c623fc1caacd14
+%global commit 03d1b1583c9e0e531e928d9a9a787164ab3a6fe0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=1 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v1.3.0-alpha.1-1274-gdf95f2e -X github.com/openshift/origin/pkg/version.commitFromGit=df95f2e -X k8s.io/kubernetes/pkg/version.gitCommit=df95f2e -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.0-42-g03d1b15 -X github.com/openshift/origin/pkg/version.commitFromGit=03d1b15 -X k8s.io/kubernetes/pkg/version.gitCommit=03d1b15 -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -47,7 +47,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.0
+Version:        3.3.0.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -475,6 +475,28 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Thu Jun 30 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.1
+- add OSE 3.3 build target (tdawson@redhat.com)
+- add oc create clusterquota (deads@redhat.com)
+- Enable certain test debug with delve using DLV_DEBUG envvar.
+  (maszulik@redhat.com)
+- Registry auth cleanup (jliggitt@redhat.com)
+- dind: avoid being targeted by oci-systemd-hooks (marun@redhat.com)
+- dind: minor cleanup in systemd masking (marun@redhat.com)
+- dind: stop systemd containers with RTMIN+3 (marun@redhat.com)
+- Update hack/ose_image build scripts (tdawson@redhat.com)
+- add clusterresourcequota/namespace reverse index (deads@redhat.com)
+- Add master lease endpoint reconciler (agoldste@redhat.com)
+- Send lifecycle hook status events from deployer pod (mfojtik@redhat.com)
+- remove underscores from function names (deads@redhat.com)
+- ab testing (rchopra@redhat.com)
+- react to 27341: this does not fix races in our code (deads@redhat.com)
+- UPSTREAM: 27341: Fix race in informer (deads@redhat.com)
+- UPSTREAM: 28025: Add EndpointReconciler to master Config
+  (agoldste@redhat.com)
+- UPSTREAM: 26915: Extract interface for master endpoints reconciler
+  (agoldste@redhat.com)
+
 * Tue Jun 28 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.0
 - Godeps did not properly remove old registry godeps (ccoleman@redhat.com)
 - track generated manpages (jvallejo@redhat.com)
