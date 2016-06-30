@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/layered"
@@ -23,7 +22,10 @@ import (
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 var (
 	// List of directories that needs to be present inside working dir
@@ -35,8 +37,8 @@ var (
 	}
 )
 
-// STI strategy executes the STI build.
-// For more details about STI, visit https://github.com/openshift/source-to-image
+// STI strategy executes the S2I build.
+// For more details about S2I, visit https://github.com/openshift/source-to-image
 type STI struct {
 	config            *api.Config
 	result            *api.Result
@@ -293,7 +295,7 @@ func (builder *STI) PostExecute(containerID, location string) error {
 	builder.result.Success = true
 	builder.result.ImageID = imageID
 
-	glog.V(1).Infof("Successfully built %s", firstNonEmpty(builder.config.Tag, imageID))
+	glog.V(3).Infof("Successfully built %s", firstNonEmpty(builder.config.Tag, imageID))
 
 	if builder.incremental && builder.config.RemovePreviousImage {
 		builder.removePreviousImage(previousImageID)
@@ -316,7 +318,7 @@ func (builder *STI) getPreviousImage() string {
 func (builder *STI) createBuildEnvironment() []string {
 	env, err := scripts.GetEnvironment(builder.config)
 	if err != nil {
-		glog.V(1).Infof("No user environment provided (%v)", err)
+		glog.V(3).Infof("No user environment provided (%v)", err)
 	}
 
 	return append(scripts.ConvertEnvironment(env), builder.generateConfigEnv()...)
@@ -584,12 +586,14 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 
 	go func(reader io.Reader) {
 		scanner := bufio.NewReader(reader)
+		// Precede build output with newline
+		glog.Info()
 		for {
 			text, err := scanner.ReadString('\n')
 			if err != nil {
 				// we're ignoring ErrClosedPipe, as this is information
 				// the docker container ended streaming logs
-				if glog.V(2) && err != io.ErrClosedPipe && err != io.EOF {
+				if glog.Is(2) && err != io.ErrClosedPipe && err != io.EOF {
 					glog.Errorf("Error reading docker stdout, %v", err)
 				}
 				break
@@ -598,13 +602,11 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 			if config.Quiet {
 				continue
 			}
-			// The log level > 3 forces to use glog instead of printing to stdout
-			if glog.V(3) {
-				glog.Info(text)
-				continue
-			}
-			fmt.Fprintf(os.Stdout, "%s\n", strings.TrimSpace(text))
+			glog.Info(strings.TrimSpace(text))
 		}
+		// Terminate build output with new line
+		glog.Info()
+
 	}(outReader)
 
 	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Error)
