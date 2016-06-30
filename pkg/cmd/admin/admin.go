@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
+	"github.com/openshift/origin/pkg/cmd/admin/limits"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
@@ -67,6 +68,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out, errout),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
+				limits.NewCommandImageLimits(limits.ImageLimitsRecommendedName, fullName+" "+limits.ImageLimitsRecommendedName, f, out),
 			},
 		},
 		{
