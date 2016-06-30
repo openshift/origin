@@ -92,6 +92,15 @@ func DumpImageStreams(oc *CLI) {
 	}
 }
 
+func DumpNamedBuildLogs(buildName string, oc *CLI) {
+	bldOuput, err := oc.Run("logs").Args("-f", "build/"+buildName).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs for %s: %s\n\n", buildName, bldOuput)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs for %s: %+v\n\n", buildName, err)
+	}
+}
+
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
 	bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bc).Output()
