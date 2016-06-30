@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
 )
+
+var glog = utilglog.StderrLog
 
 // Downloader downloads the specified URL to the target file location
 type Downloader interface {

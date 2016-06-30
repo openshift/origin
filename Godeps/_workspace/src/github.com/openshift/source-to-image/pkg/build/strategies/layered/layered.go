@@ -12,14 +12,16 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 const defaultDestination = "/tmp"
 
@@ -188,7 +190,7 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 			if err != nil {
 				// we're ignoring ErrClosedPipe, as this is information
 				// the docker container ended streaming logs
-				if glog.V(2) && err != io.ErrClosedPipe && err != io.EOF {
+				if glog.Is(2) && err != io.ErrClosedPipe && err != io.EOF {
 					glog.Errorf("Error reading docker stdout, %v", err)
 				}
 				break
