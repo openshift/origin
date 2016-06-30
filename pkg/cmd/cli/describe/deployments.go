@@ -102,10 +102,12 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 			}
 		}
 
-		// Events
-		if events, err := d.kubeClient.Events(deploymentConfig.Namespace).Search(deploymentConfig); err == nil && events != nil {
-			fmt.Fprintln(out)
-			kctl.DescribeEvents(events, out)
+		if settings.ShowEvents {
+			// Events
+			if events, err := d.kubeClient.Events(deploymentConfig.Namespace).Search(deploymentConfig); err == nil && events != nil {
+				fmt.Fprintln(out)
+				kctl.DescribeEvents(events, out)
+			}
 		}
 		return nil
 	})

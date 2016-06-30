@@ -136,7 +136,9 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		describeCommonSpec(build.Spec.CommonSpec, out)
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
-		kctl.DescribeEvents(events, out)
+		if settings.ShowEvents {
+			kctl.DescribeEvents(events, out)
+		}
 
 		return nil
 	})
