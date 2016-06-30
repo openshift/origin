@@ -138,6 +138,19 @@ function docker-exec-script() {
     ${DOCKER_CMD} exec -t "${cid}" ${BASH_CMD} ${cmd}
 }
 
+# Ensure docker is configured with shared mount propagation
+function check_docker_mount_flags() {
+  local flags="$(systemctl show docker.service | grep MountFlags |
+      sed -e 's+MountFlags=++')"
+  # The default of shared will be used if the MountFlags is unset.
+  local unset="0"
+  local shared="1048576"
+  if [[ "${flags}" != "${shared}" && "${flags}" != "${unset}" ]]; then
+    >&2 echo "ERROR: The docker daemon is not running with MountFlags=shared."
+    exit 1
+  fi
+}
+
 function start() {
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -146,6 +159,7 @@ function start() {
 
   # TODO(marun) - perform these operations in a container for boot2docker compat
   echo "Ensuring compatible host configuration"
+  check_docker_mount_flags
   sudo modprobe openvswitch
   sudo modprobe br_netfilter 2> /dev/null || true
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
