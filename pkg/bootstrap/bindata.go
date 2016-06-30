@@ -2839,12 +2839,6 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
             }
           }
         ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world"
-          }
-        },
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
