@@ -54,7 +54,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || 3072,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 3586,
     "fixup_net_udev"    => ENV['OPENSHIFT_FIXUP_NET_UDEV'] || true,
     "skip_build"        => ENV['OPENSHIFT_SKIP_BUILD'] || false,
     "sync_folders_type" => nil,
