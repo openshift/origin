@@ -15,7 +15,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	sdnovs "github.com/openshift/openshift-sdn/plugins/osdn/ovs"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -288,7 +288,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 
 	// In case of openshift network plugin, nodeConfig.networkPluginName is optional and is auto detected/finalized
 	// once we build kubernetes node config. So perform plugin name related check here.
-	if sdnovs.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
+	if osdn.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
 		// TODO: SDN plugin depends on the Kubelet registering as a Node and doesn't retry cleanly,
 		// and Kubelet also can't start the PodSync loop until the SDN plugin has loaded.
 		if components.Enabled(ComponentKubelet) != components.Enabled(ComponentPlugins) {

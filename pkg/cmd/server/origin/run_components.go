@@ -46,7 +46,7 @@ import (
 	"github.com/openshift/origin/pkg/security/uidallocator"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
 
-	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -374,16 +374,8 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	oClient, kClient := c.SDNControllerClients()
-	controller, err := sdnfactory.NewMasterPlugin(c.Options.NetworkConfig.NetworkPluginName, oClient, kClient)
-	if err != nil {
+	if err := osdn.StartMaster(c.Options.NetworkConfig, oClient, kClient); err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-
-	if controller != nil {
-		err = controller.StartMaster(c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
-		if err != nil {
-			glog.Fatalf("SDN initialization failed: %v", err)
-		}
 	}
 }
 
