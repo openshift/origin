@@ -161,7 +161,10 @@ function start() {
   echo "Launching containers"
   local root_volume="-v ${OS_ROOT}:${DEPLOYED_ROOT}"
   local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
-  local base_run_cmd="${DOCKER_CMD} run -dt ${root_volume} ${config_volume}"
+  local volumes="${root_volume} ${config_volume}"
+  # systemd requires RTMIN+3 to shutdown properly
+  local stop="--stop-signal=$(kill -l RTMIN+3)"
+  local base_run_cmd="${DOCKER_CMD} run -dt ${stop} ${volumes}"
 
   local master_cid="$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
       --hostname="${MASTER_NAME}" "${DIND_IMAGE}")"

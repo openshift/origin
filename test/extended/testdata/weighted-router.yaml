@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: List
+items:
+# a weighted router
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: weighted-router
+    labels:
+      test: weighted-router
+  spec:
+    containers:
+    - name: router
+      image: openshift/origin-haproxy-router
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=weighted", "--stats-password=password", "--stats-port=1936", "--stats-user=admin"]
+      hostNetwork: false
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: system-router
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: system:router
+
+# a route that has multiple weighted services that it points to
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: weightedroute
+    labels:
+      test: router
+      select: weighted
+    annotations:
+      router.openshift.io/haproxy.balance: roundrobin
+  spec:
+    host: weighted.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 90
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 10
+    ports:
+    - targetPort: 8080
+
+# two services that can be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints1
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+    ports:
+    - port: 8080
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: weightedendpoints2
+    labels:
+      test: router
+  spec:
+    selector:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+    ports:
+    - port: 8080
+# two pods that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: weightedrouter1
+      endpoints: weightedrouter1
+  spec:
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-2
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP

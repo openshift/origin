@@ -53,6 +53,7 @@ verify: build
 	hack/verify-govet.sh
 	hack/verify-generated-deep-copies.sh
 	hack/verify-generated-conversions.sh
+	hack/verify-generated-clientsets.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
@@ -71,6 +72,7 @@ update: build
 	hack/update-generated-docs.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
+	hack/update-generated-clientsets.sh
 .PHONY: update
 
 # Run unit tests.

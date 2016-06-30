@@ -68,9 +68,11 @@ type routerInterface interface {
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
-	// AddRoute adds a route for the given id and the calculated host.  Returns true if a
+	// AddRoute adds a route for the given id and the calculated host. Weight
+	// suggests the weightage attached to it with respect to other services
+	// pointed to by the route. Returns true if a
 	// change was made and the state should be stored with Commit().
-	AddRoute(id string, route *routeapi.Route, host string) bool
+	AddRoute(id string, weight int32, route *routeapi.Route, host string) bool
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 	// Reduce the list of routes to only these namespaces
@@ -97,6 +99,9 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	globalFuncs := template.FuncMap{
 		"endpointsForAlias": endpointsForAlias,
 		"env":               env,
+		"matchString":       matchString,
+		"isInteger":         isInteger,
+		"matchValues":       matchValues,
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
@@ -166,25 +171,39 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	key := routeKey(route)
+	serviceKeys, weights := routeKeys(route)
 
 	host := route.Spec.Host
 
 	switch eventType {
 	case watch.Added, watch.Modified:
-		if _, ok := p.Router.FindServiceUnit(key); !ok {
-			glog.V(4).Infof("Creating new frontend for key: %v", key)
-			p.Router.CreateServiceUnit(key)
+		// Delete the route first, because modify is to be treated as delete+add
+		for i := range serviceKeys {
+			key := serviceKeys[i]
+			p.Router.RemoveRoute(key, route)
 		}
+		// Now add it back again
+		commit := false
+		for i := range serviceKeys {
+			key := serviceKeys[i]
+			weight := weights[i]
+			if _, ok := p.Router.FindServiceUnit(key); !ok {
+				glog.V(4).Infof("Creating new frontend for key: %v", key)
+				p.Router.CreateServiceUnit(key)
+			}
 
-		glog.V(4).Infof("Modifying routes for %s", key)
-		commit := p.Router.AddRoute(key, route, host)
+			glog.V(4).Infof("Modifying routes for %s", key)
+			commitRoute := p.Router.AddRoute(key, weight, route, host)
+			commit = (map[bool]bool{true: true, false: commit})[commitRoute]
+		}
 		if commit {
 			p.Router.Commit()
 		}
 	case watch.Deleted:
-		glog.V(4).Infof("Deleting routes for %s", key)
-		p.Router.RemoveRoute(key, route)
+		for _, key := range serviceKeys {
+			glog.V(4).Infof("Deleting routes for %s", key)
+			p.Router.RemoveRoute(key, route)
+		}
 		p.Router.Commit()
 	}
 	return nil
@@ -203,9 +222,22 @@ func (p *TemplatePlugin) SetLastSyncProcessed(processed bool) error {
 	return nil
 }
 
-// routeKey returns the internal router key to use for the given Route.
-func routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+// routeKeys returns the internal router keys to use for the given Route.
+// A route can have several services that it can point to, now
+func routeKeys(route *routeapi.Route) ([]string, []int32) {
+	keys := make([]string, 1+len(route.Spec.AlternateBackends))
+	weights := make([]int32, 1+len(route.Spec.AlternateBackends))
+	keys[0] = fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+	if route.Spec.To.Weight != nil {
+		weights[0] = *route.Spec.To.Weight
+	}
+	for i, svc := range route.Spec.AlternateBackends {
+		keys[i+1] = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
+		if svc.Weight != nil {
+			weights[i+1] = *svc.Weight
+		}
+	}
+	return keys, weights
 }
 
 // endpointsKey returns the internal router key to use for the given Endpoints.

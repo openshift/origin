@@ -36,7 +36,7 @@ func TestGenerateRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: api.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "someservice",
 					},
 					Port: &routeapi.RoutePort{
@@ -72,7 +72,7 @@ func TestGenerateRoute(t *testing.T) {
 							StrVal: "web",
 						},
 					},
-					To: api.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "someservice",
 					},
 				},

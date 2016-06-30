@@ -9,6 +9,8 @@ const (
 	ClusterNetworkDefault = "default"
 )
 
+// +genclient=true
+
 // ClusterNetwork describes a cluster network
 type ClusterNetwork struct {
 	unversioned.TypeMeta `json:",inline"`

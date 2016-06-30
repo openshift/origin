@@ -880,6 +880,19 @@ Create a resource by filename or stdin
 ====
 
 
+== oc create clusterresourcequota
+Create cluster resource quota resource.
+
+====
+
+[options="nowrap"]
+----
+  # Create an cluster resource quota limited to 10 pods
+  oc create clusterresourcequota limit-bob --project-selector=openshift.io/requester=user-bob --hard=pods=10
+----
+====
+
+
 == oc create configmap
 Create a configMap from a local file, directory or literal value.
 

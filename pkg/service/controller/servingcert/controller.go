@@ -136,14 +136,14 @@ func (sc *ServiceServingCertController) enqueueService(obj interface{}) {
 // It enforces that the syncHandler is never invoked concurrently with the same key.
 func (sc *ServiceServingCertController) worker() {
 	for {
-		if !sc.worker_inner() {
+		if !sc.work() {
 			return
 		}
 	}
 }
 
-// worker_inner returns true if the worker thread should continue
-func (sc *ServiceServingCertController) worker_inner() bool {
+// work returns true if the worker thread should continue
+func (sc *ServiceServingCertController) work() bool {
 	key, quit := sc.queue.Get()
 	if quit {
 		return false

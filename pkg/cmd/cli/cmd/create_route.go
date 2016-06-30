@@ -373,7 +373,7 @@ func unsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portS
 				Name: routeName,
 			},
 			Spec: api.RouteSpec{
-				To: kapi.ObjectReference{
+				To: api.RouteTargetReference{
 					Name: serviceName,
 				},
 				Port: resolveRoutePort(portString),
@@ -392,7 +392,7 @@ func unsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portS
 			Labels: svc.Labels,
 		},
 		Spec: api.RouteSpec{
-			To: kapi.ObjectReference{
+			To: api.RouteTargetReference{
 				Name: serviceName,
 			},
 		},

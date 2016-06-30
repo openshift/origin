@@ -43,9 +43,6 @@ func (routeStrategy) NamespaceScoped() bool {
 func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	route := obj.(*api.Route)
 	route.Status = api.RouteStatus{}
-	// Limit to kind/name
-	// TODO: convert to LocalObjectReference
-	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
 	err := s.allocateHost(route)
 	if err != nil {
 		// TODO: this will be changed when moved to a controller
@@ -57,9 +54,7 @@ func (s routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	route := obj.(*api.Route)
 	oldRoute := old.(*api.Route)
 	route.Status = oldRoute.Status
-	// Limit to kind/name
-	// TODO: convert to LocalObjectReference
-	route.Spec.To = kapi.ObjectReference{Kind: route.Spec.To.Kind, Name: route.Spec.To.Name}
+
 	// Ignore attempts to clear the spec Host
 	// Prevents "immutable field" errors when applying the same route definition used to create
 	if len(route.Spec.Host) == 0 {

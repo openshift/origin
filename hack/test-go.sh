@@ -18,6 +18,7 @@
 #  - GOTEST_FLAGS:        any other flags to be sent to 'go test'
 #  - JUNIT_REPORT:        toggles the creation of jUnit XML from the test output and changes this script's output behavior
 #                         to use the 'junitreport' tool for summarizing the tests.
+#  - DLV_DEBUG            toggles running tests using delve debugger
 
 set -o errexit
 set -o nounset
@@ -83,6 +84,7 @@ coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
 coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
 gotest_flags="${GOTEST_FLAGS:-}"
 junit_report="${JUNIT_REPORT:-}"
+dlv_debug="${DLV_DEBUG:-}"
 
 if [[ -n "${junit_report}" && -n "${coverage_output_dir}" ]]; then
     echo "$0 cannot create jUnit XML reports and coverage reports at the same time."
@@ -240,7 +242,7 @@ if [[ -n "${junit_report}" ]]; then
     echo
     summary="$( "${junitreport}" summarize < "${junit_report_file}" )"
     echo "${summary}"
-    
+
     if echo "${summary}" | grep -q ', 0 failed,'; then
         if [[ "${test_return_code}" -ne "0" ]]; then
             echo "[WARNING] While the jUnit report found no failed tests, the \`go test\` process failed."
@@ -288,6 +290,10 @@ elif [[ -n "${coverage_output_dir}" ]]; then
     # we can clean up all of the coverage reports at once as they all exist in subdirectories of ${coverage_output_dir}/${OS_GO_PACKAGE}
     # and they are the only files found in those subdirectories
     rm -rf "${coverage_output_dir:?}/${OS_GO_PACKAGE}"
+
+elif [[ -n "${dlv_debug}" ]]; then
+    # run tests using delve debugger
+    dlv test ${test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
     go test ${gotest_flags} ${test_packages}

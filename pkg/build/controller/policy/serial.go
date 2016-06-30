@@ -20,7 +20,7 @@ type SerialPolicy struct {
 func (s *SerialPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
-		return false, NewNoBuildConfigLabelError(build)
+		return true, nil
 	}
 	nextBuild, runningBuilds, err := GetNextConfigBuild(s.BuildLister, build.Namespace, bcName)
 	return !runningBuilds && (nextBuild != nil && nextBuild.Name == build.Name), err

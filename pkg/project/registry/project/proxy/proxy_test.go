@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	//  "fmt"
 	"strings"
 	"testing"
 

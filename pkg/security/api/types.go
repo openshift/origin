@@ -5,6 +5,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
+// +genclient=true
+
 // PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodSpec.
 type PodSecurityPolicySubjectReview struct {
 	unversioned.TypeMeta

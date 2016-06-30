@@ -105,6 +105,8 @@ type RoleBinding struct {
 	RoleRef kapi.ObjectReference
 }
 
+// +genclient=true
+
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
 type Policy struct {

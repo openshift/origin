@@ -243,12 +243,11 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
 		},
-		func(j *route.RouteSpec, c fuzz.Continue) {
+		func(j *route.RouteTargetReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.To = kapi.ObjectReference{
-				Kind: "Service",
-				Name: j.To.Name,
-			}
+			j.Kind = "Service"
+			j.Weight = new(int32)
+			*j.Weight = 100
 		},
 		func(j *route.TLSConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)

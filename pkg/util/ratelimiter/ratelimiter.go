@@ -39,7 +39,7 @@ func NewRateLimitedFunction(keyFunc kcache.KeyFunc, interval int, handlerFunc Ha
 // RunUntil begins processes the resources from queue asynchronously until
 // stopCh is closed.
 func (rlf *RateLimitedFunction) RunUntil(stopCh <-chan struct{}) {
-	go utilwait.Until(func() { rlf.handleOne(rlf.queue.Pop()) }, 0, stopCh)
+	go utilwait.Until(func() { rlf.handleOne(kcache.Pop(rlf.queue)) }, 0, stopCh)
 }
 
 // handleOne processes a request in the queue invoking the rate limited

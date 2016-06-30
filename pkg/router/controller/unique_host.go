@@ -93,7 +93,6 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		return nil
 	}
 
-	key := routeKey(route)
 	routeName := routeNameKey(route)
 
 	host := p.hostForRoute(route)
@@ -154,7 +153,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 			p.hostToRoute[host] = []*routeapi.Route{route}
 		}
 	} else {
-		glog.V(4).Infof("Route %s claims %s", key, host)
+		glog.V(4).Infof("Route %s claims %s", routeName, host)
 		p.hostToRoute[host] = []*routeapi.Route{route}
 	}
 
@@ -162,7 +161,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 	case watch.Added, watch.Modified:
 		if old, ok := p.routeToHost[routeName]; ok {
 			if old != host {
-				glog.V(4).Infof("Route %s changed from serving host %s to host %s", key, old, host)
+				glog.V(4).Infof("Route %s changed from serving host %s to host %s", routeName, old, host)
 				delete(p.hostToRoute, old)
 			}
 		}
@@ -170,7 +169,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		return p.plugin.HandleRoute(eventType, route)
 
 	case watch.Deleted:
-		glog.V(4).Infof("Deleting routes for %s", key)
+		glog.V(4).Infof("Deleting routes for %s", routeName)
 		if old, ok := p.hostToRoute[host]; ok {
 			switch len(old) {
 			case 1, 0:
@@ -216,9 +215,14 @@ func (p *UniqueHost) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
-// routeKey returns the internal router key to use for the given Route.
-func routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+// routeKeys returns the internal router key to use for the given Route.
+func routeKeys(route *routeapi.Route) []string {
+	keys := make([]string, 1+len(route.Spec.AlternateBackends))
+	keys[0] = fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+	for i, svc := range route.Spec.AlternateBackends {
+		keys[i] = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
+	}
+	return keys
 }
 
 // routeNameKey returns a unique name for a given route

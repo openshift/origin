@@ -32,7 +32,7 @@ type SerialLatestOnlyPolicy struct {
 func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
-		return false, NewNoBuildConfigLabelError(build)
+		return true, nil
 	}
 	if err := kerrors.NewAggregate(s.cancelPreviousBuilds(build)); err != nil {
 		return false, err
@@ -54,7 +54,7 @@ func (s *SerialLatestOnlyPolicy) OnComplete(build *buildapi.Build) error {
 func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []error {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
-		return []error{NewNoBuildConfigLabelError(build)}
+		return []error{}
 	}
 	currentBuildNumber, err := buildutil.BuildNumber(build)
 	if err != nil {
