@@ -198,6 +198,7 @@ function join { local IFS="$1"; shift; echo "$*"; }
 function run-extended-tests() {
   local kubeconfig=$1
   local log_path=${2:-}
+  local dlv_debug="${DLV_DEBUG:-}"
 
   local focus_regex="${NETWORKING_E2E_FOCUS}"
   local skip_regex="${NETWORKING_E2E_SKIP}"
@@ -212,9 +213,11 @@ function run-extended-tests() {
   local test_args="--test.v '--ginkgo.skip=${skip_regex}' \
 '--ginkgo.focus=${focus_regex}' ${TEST_EXTRA_ARGS}"
 
-  if [[ "${NETWORKING_DEBUG}" = 'true' ]]; then
+  if [[ -n "${dlv_debug}" ]]; then
+    # run tests using delve debugger
     local test_cmd="dlv exec ${TEST_BINARY} -- ${test_args}"
   else
+    # run tests normally
     local test_cmd="${TEST_BINARY} ${test_args}"
   fi
 

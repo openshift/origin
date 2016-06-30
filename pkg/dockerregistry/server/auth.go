@@ -237,11 +237,10 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				verifiedPrune = true
 			default:
 				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
-					if access.Action == "pull" {
-						possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(err))
-					} else {
+					if access.Action != "pull" {
 						return nil, ac.wrapErr(err)
 					}
+					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(err))
 				}
 			}
 

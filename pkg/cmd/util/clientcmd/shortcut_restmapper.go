@@ -100,14 +100,15 @@ func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 
 // shortForms is the list of short names to their expanded names
 var shortForms = map[string]string{
-	"dc":      "deploymentconfigs",
-	"bc":      "buildconfigs",
-	"is":      "imagestreams",
-	"istag":   "imagestreamtags",
-	"isimage": "imagestreamimages",
-	"sa":      "serviceaccounts",
-	"pv":      "persistentvolumes",
-	"pvc":     "persistentvolumeclaims",
+	"dc":           "deploymentconfigs",
+	"bc":           "buildconfigs",
+	"is":           "imagestreams",
+	"istag":        "imagestreamtags",
+	"isimage":      "imagestreamimages",
+	"sa":           "serviceaccounts",
+	"pv":           "persistentvolumes",
+	"pvc":          "persistentvolumeclaims",
+	"clusterquota": "clusterresourcequota",
 }
 
 // expandResourceShortcut will return the expanded version of resource

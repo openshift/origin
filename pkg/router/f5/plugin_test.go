@@ -1598,7 +1598,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1652,7 +1652,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example2.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					Path: "/foo/bar",
@@ -1705,7 +1705,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example2.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1734,7 +1734,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -1800,7 +1800,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -1866,7 +1866,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example3.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -1897,7 +1897,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example3.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -1930,7 +1930,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example3.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1958,7 +1958,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example3.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 				},
@@ -1986,7 +1986,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example3.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -2017,7 +2017,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example4.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -2101,7 +2101,7 @@ func TestHandleRoute(t *testing.T) {
 				},
 				Spec: routeapi.RouteSpec{
 					Host: "www.example4.com",
-					To: kapi.ObjectReference{
+					To: routeapi.RouteTargetReference{
 						Name: "TestService",
 					},
 					TLS: &routeapi.TLSConfig{
@@ -2197,7 +2197,7 @@ func TestHandleRouteModifications(t *testing.T) {
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
-			To: kapi.ObjectReference{
+			To: routeapi.RouteTargetReference{
 				Name: "testendpoint",
 			},
 		},
@@ -2266,7 +2266,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
-			To: kapi.ObjectReference{
+			To: routeapi.RouteTargetReference{
 				Name: "testendpoint",
 			},
 			TLS: &routeapi.TLSConfig{
@@ -2286,7 +2286,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example2.com",
-			To: kapi.ObjectReference{
+			To: routeapi.RouteTargetReference{
 				Name: "testhttpsendpoint",
 			},
 			TLS: &routeapi.TLSConfig{

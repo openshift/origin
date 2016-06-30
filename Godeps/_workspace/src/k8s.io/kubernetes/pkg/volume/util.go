@@ -120,8 +120,7 @@ func (c *realRecyclerClient) WatchPod(name, namespace, resourceVersion string, s
 	cache.NewReflector(podLW, &api.Pod{}, queue, 1*time.Minute).RunUntil(stopChannel)
 
 	return func() *api.Pod {
-		obj := queue.Pop()
-		return obj.(*api.Pod)
+		return cache.Pop(queue).(*api.Pod)
 	}
 }
 

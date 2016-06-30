@@ -52,6 +52,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -499,4 +500,9 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
+}
+
+func (c *MasterConfig) RunClusterQuotaMappingController() {
+	controller := clusterquotamapping.NewClusterQuotaMappingController(c.Informers.Namespaces(), c.Informers.ClusterResourceQuotas())
+	go controller.Run(5, utilwait.NeverStop)
 }

@@ -70,7 +70,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		Spec: api.RouteSpec{
 			Host: params["hostname"],
 			Path: params["path"],
-			To: kapi.ObjectReference{
+			To: api.RouteTargetReference{
 				Name: params["default-name"],
 			},
 		},

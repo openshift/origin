@@ -8,9 +8,13 @@ import (
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddDefaultingFuncs(
-		func(obj *RouteSpec) {
-			if len(obj.To.Kind) == 0 {
-				obj.To.Kind = "Service"
+		func(obj *RouteTargetReference) {
+			if len(obj.Kind) == 0 {
+				obj.Kind = "Service"
+			}
+			if obj.Weight == nil {
+				obj.Weight = new(int32)
+				*obj.Weight = 100
 			}
 		},
 		func(obj *TLSConfig) {
