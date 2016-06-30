@@ -40,4 +40,8 @@ RUN systemctl enable docker
 
 VOLUME /var/lib/docker
 
+# HACK(ncdc) to work around /sys/fs/cgroup/* getting mounted read-only for some reason
+# REMOVE once we figure out why this is happening
+VOLUME /sys/fs/cgroup
+
 CMD ["/usr/sbin/init"]
