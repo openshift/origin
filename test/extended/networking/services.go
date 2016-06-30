@@ -49,19 +49,19 @@ var _ = Describe("[networking] services", func() {
 		})
 
 		It("should allow connections to services in the default namespace from a pod in another namespace on the same node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(f1)
 			Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
 		})
 		It("should allow connections to services in the default namespace from a pod in another namespace on a different node", func() {
-			makeNamespaceGlobal(f1.Namespace)
+			makeNamespaceGlobal(f1)
 			Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
 		})
 		It("should allow connections from pods in the default namespace to a service in another namespace on the same node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(f2)
 			Expect(checkServiceConnectivity(f1, f2, 1)).To(Succeed())
 		})
 		It("should allow connections from pods in the default namespace to a service in another namespace on a different node", func() {
-			makeNamespaceGlobal(f2.Namespace)
+			makeNamespaceGlobal(f2)
 			Expect(checkServiceConnectivity(f1, f2, 2)).To(Succeed())
 		})
 	})

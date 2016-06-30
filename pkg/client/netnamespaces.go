@@ -1,3 +1,4 @@
+// Only needed for backward compatibility with older clients (openshift origin version <= v1.3.0)
 package client
 
 import (

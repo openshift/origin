@@ -46,12 +46,13 @@ type HostSubnetList struct {
 }
 
 // NetNamespace holds the network id against its name
+// This is a virtual resource backed by Namespace
 type NetNamespace struct {
 	unversioned.TypeMeta
 	kapi.ObjectMeta
 
-	NetName string
-	NetID   uint
+	NetName string // Namespace name
+	NetID   uint   // VNID annotation on namespace
 }
 
 // NetNamespaceList is a collection of NetNamespaces
