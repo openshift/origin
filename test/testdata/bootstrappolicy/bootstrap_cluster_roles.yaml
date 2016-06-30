@@ -2195,6 +2195,7 @@ items:
     - get
     - list
     - update
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null

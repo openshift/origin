@@ -298,6 +298,8 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
+	rcInformer := c.Informers.ReplicationControllers().Informer()
+	podInformer := c.Informers.Pods().Informer()
 	_, kclient := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig)
@@ -312,16 +314,20 @@ func (c *MasterConfig) RunDeploymentController() {
 		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
 	)
 
-	factory := deploycontroller.DeploymentControllerFactory{
-		KubeClient:     kclient,
-		Codec:          c.EtcdHelper.Codec(),
-		Environment:    env,
-		DeployerImage:  c.ImageFor("deployer"),
-		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
-	}
+	controller := deploycontroller.NewDeploymentController(
+		rcInformer,
+		podInformer,
+		kclient,
+		bootstrappolicy.DeployerServiceAccountName,
+		c.ImageFor("deployer"),
+		env,
+		c.EtcdHelper.Codec(),
+	)
 
-	controller := factory.Create()
-	controller.Run()
+	// TODO: Make the stop channel actually work.
+	stopCh := make(chan struct{})
+	// TODO: Make the number of workers configurable.
+	go controller.Run(5, stopCh)
 }
 
 // RunDeployerPodController starts the deployer pod controller process.
