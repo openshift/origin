@@ -188,7 +188,7 @@
               "tags": "builder,php",
               "supports":"php:5.5,php",
               "version": "5.5",
-              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"              
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -233,7 +233,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.4"
+              "name": "3.5"
             }
           },
           {
@@ -279,6 +279,21 @@
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
+            }
+          },
+          {
+            "name": "3.5",
+            "annotations": {
+              "description": "Build and run Python 3.5 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.5,python",
+              "version": "3.5",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/python-35-rhel7:latest"
             }
           }
         ]

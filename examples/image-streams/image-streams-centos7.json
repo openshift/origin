@@ -233,7 +233,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.4"
+              "name": "3.5"
             }
           },
           {
@@ -279,6 +279,21 @@
             "from": {
               "kind": "DockerImage",
               "name": "centos/python-34-centos7:latest"
+            }
+          },
+          {
+            "name": "3.5",
+            "annotations": {
+              "description": "Build and run Python 3.5 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.5,python",
+              "version": "3.5",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/python-35-centos7:latest"
             }
           }
         ]
