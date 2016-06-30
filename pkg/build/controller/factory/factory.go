@@ -95,9 +95,9 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	}
 
 	return &controller.RetryController{
-		Queue: queue,
+		Queue: controller.NewQueueWrapper(queue),
 		RetryManager: controller.NewQueueRetryManager(
-			queue,
+			controller.NewQueueWrapper(queue),
 			cache.MetaNamespaceKeyFunc,
 			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
@@ -134,9 +134,9 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 	}
 
 	return &controller.RetryController{
-		Queue: queue,
+		Queue: controller.NewQueueWrapper(queue),
 		RetryManager: controller.NewQueueRetryManager(
-			queue,
+			controller.NewQueueWrapper(queue),
 			cache.MetaNamespaceKeyFunc,
 			controller.RetryNever,
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
@@ -201,9 +201,9 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	}
 
 	return &controller.RetryController{
-		Queue: queue,
+		Queue: controller.NewQueueWrapper(queue),
 		RetryManager: controller.NewQueueRetryManager(
-			queue,
+			controller.NewQueueWrapper(queue),
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("BuildPod", nil),
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
@@ -250,9 +250,9 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 	}
 
 	return &controller.RetryController{
-		Queue: queue,
+		Queue: controller.NewQueueWrapper(queue),
 		RetryManager: controller.NewQueueRetryManager(
-			queue,
+			controller.NewQueueWrapper(queue),
 			cache.MetaNamespaceKeyFunc,
 			controller.RetryNever,
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
@@ -292,9 +292,9 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	}
 
 	return &controller.RetryController{
-		Queue: queue,
+		Queue: controller.NewQueueWrapper(queue),
 		RetryManager: controller.NewQueueRetryManager(
-			queue,
+			controller.NewQueueWrapper(queue),
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("ImageStream update", func(err error) bool {
 				_, isFatal := err.(buildcontroller.ImageChangeControllerFatalError)
@@ -331,9 +331,9 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 	}
 
 	return &controller.RetryController{
-		Queue: queue,
+		Queue: controller.NewQueueWrapper(queue),
 		RetryManager: controller.NewQueueRetryManager(
-			queue,
+			controller.NewQueueWrapper(queue),
 			cache.MetaNamespaceKeyFunc,
 			retryFunc("BuildConfig", buildcontroller.IsFatal),
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),

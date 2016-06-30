@@ -127,14 +127,14 @@ func (e *DockercfgController) enqueueServiceAccount(serviceAccount *api.ServiceA
 // It enforces that the syncHandler is never invoked concurrently with the same key.
 func (e *DockercfgController) worker() {
 	for {
-		if !e.worker_inner() {
+		if !e.work() {
 			return
 		}
 	}
 }
 
-// worker_inner returns true if the worker thread should continue
-func (e *DockercfgController) worker_inner() bool {
+// work returns true if the worker thread should continue
+func (e *DockercfgController) work() bool {
 	key, quit := e.queue.Get()
 	if quit {
 		return false

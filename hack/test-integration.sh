@@ -50,6 +50,10 @@ name="$(basename ${testdir})"
 testexec="${testdir}/${name}.test"
 mkdir -p "${testdir}"
 
+# Internalize environment variables we consume and default if they're not set
+dlv_debug="${DLV_DEBUG:-}"
+verbose="${VERBOSE:-}"
+
 # build the test executable (cgo must be disabled to have the symbol table available)
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]]; then
   echo "WARNING: Skipping build due to OPENSHIFT_SKIP_BUILD"
@@ -69,14 +73,17 @@ function exectest() {
 	rm -fr "${TEST_ETCD_DIR}"
 	mkdir -p "${TEST_ETCD_DIR}"
 	result=1
-	if [ -n "${DEBUG-}" ]; then
+	if [[ -n "${dlv_debug}" ]]; then
+		# run tests using delve debugger
 		dlv exec "${testexec}" -- -test.run="^$1$" "${@:2}"
 		result=$?
 		out=
-	elif [ -n "${VERBOSE-}" ]; then
+	elif [[ -n "${verbose}" ]]; then
+		# run tests with extra verbosity
 		out=$("${testexec}" -vmodule=*=5 -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	else
+		# run tests normally
 		out=$("${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)
 		result=$?
 	fi

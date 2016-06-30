@@ -121,32 +121,34 @@ bGvtpjWA4r9WASIDPFsxk/cDEEEO6iPxgMOf5MdpQC2y2MU0rzF/Gg==
 
 // TestRouter provides an implementation of the plugin's router interface suitable for unit testing.
 type TestRouter struct {
-	State     map[string]ServiceUnit
+	State        map[string]ServiceAliasConfig
+	ServiceUnits map[string]ServiceUnit
+
 	Committed bool
 }
 
 // NewTestRouter creates a new TestRouter and registers the initial state.
-func newTestRouter(state map[string]ServiceUnit) *TestRouter {
+func newTestRouter(state map[string]ServiceAliasConfig) *TestRouter {
 	return &TestRouter{
-		State:     state,
-		Committed: false,
+		State:        state,
+		ServiceUnits: make(map[string]ServiceUnit),
+		Committed:    false,
 	}
 }
 
 // CreateServiceUnit creates an empty service unit identified by id
 func (r *TestRouter) CreateServiceUnit(id string) {
 	su := ServiceUnit{
-		Name:                id,
-		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
-		EndpointTable:       []Endpoint{},
+		Name:          id,
+		EndpointTable: []Endpoint{},
 	}
 
-	r.State[id] = su
+	r.ServiceUnits[id] = su
 }
 
 // FindServiceUnit finds the service unit in the state
 func (r *TestRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
-	v, ok = r.State[id]
+	v, ok = r.ServiceUnits[id]
 	return
 }
 
@@ -160,7 +162,7 @@ func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 		return false
 	}
 	su.EndpointTable = endpoints
-	r.State[id] = su
+	r.ServiceUnits[id] = su
 	return true
 }
 
@@ -171,44 +173,59 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 		return
 	} else {
 		su.EndpointTable = []Endpoint{}
-		r.State[id] = su
+		r.ServiceUnits[id] = su
 	}
 }
 
-// AddRoute adds a ServiceAliasConfig for the route to the ServiceUnit identified by id
-func (r *TestRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
+// AddRoute adds a ServiceAliasConfig for the route with the ServiceUnit identified by id
+func (r *TestRouter) AddRoute(id string, weight int32, route *routeapi.Route, host string) bool {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	su, _ := r.FindServiceUnit(id)
 	routeKey := r.routeKey(route)
 
 	config := ServiceAliasConfig{
-		Host: host,
-		Path: route.Spec.Path,
+		Host:             host,
+		Path:             route.Spec.Path,
+		ServiceUnitNames: make(map[string]int32),
 	}
 
-	su.ServiceAliasConfigs[routeKey] = config
-	r.State[id] = su
+	config.ServiceUnitNames[su.Name] = weight
+	r.State[routeKey] = config
 	return true
 }
 
 // RemoveRoute removes the service alias config for Route from the ServiceUnit
 func (r *TestRouter) RemoveRoute(id string, route *routeapi.Route) {
 	r.Committed = false //expect any call to this method to subsequently call commit
-	if _, ok := r.State[id]; !ok {
+	routeKey := r.routeKey(route)
+	serviceAliasConfig, ok := r.State[routeKey]
+	if !ok {
 		return
 	} else {
-		delete(r.State[id].ServiceAliasConfigs, r.routeKey(route))
+		delete(serviceAliasConfig.ServiceUnitNames, id)
+		if len(serviceAliasConfig.ServiceUnitNames) == 0 {
+			delete(r.State, routeKey)
+		}
 	}
 }
 
 func (r *TestRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
-		r.State = make(map[string]ServiceUnit)
+		r.State = make(map[string]ServiceAliasConfig)
+		r.ServiceUnits = make(map[string]ServiceUnit)
 	}
-	for k := range r.State {
+	for k := range r.ServiceUnits {
 		// TODO: the id of a service unit should be defined inside this class, not passed in from the outside
 		//   remove the leak of the abstraction when we refactor this code
 		ns := strings.SplitN(k, "/", 2)[0]
+		if namespaces.Has(ns) {
+			continue
+		}
+		delete(r.ServiceUnits, k)
+	}
+
+	for k := range r.State {
+		ns := strings.SplitN(k, "-", 2)[0]
 		if namespaces.Has(ns) {
 			continue
 		}
@@ -310,7 +327,7 @@ func TestHandleEndpoints(t *testing.T) {
 		},
 	}
 
-	router := newTestRouter(make(map[string]ServiceUnit))
+	router := newTestRouter(make(map[string]ServiceAliasConfig))
 	templatePlugin := newDefaultTemplatePlugin(router, true)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
@@ -421,7 +438,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 		},
 	}
 
-	router := newTestRouter(make(map[string]ServiceUnit))
+	router := newTestRouter(make(map[string]ServiceAliasConfig))
 	templatePlugin := newDefaultTemplatePlugin(router, false)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
@@ -467,7 +484,7 @@ func (r *fakeRejections) RecordRouteRejection(route *routeapi.Route, reason, mes
 // TestHandleRoute test route watch events
 func TestHandleRoute(t *testing.T) {
 	rejections := &fakeRejections{}
-	router := newTestRouter(make(map[string]ServiceUnit))
+	router := newTestRouter(make(map[string]ServiceAliasConfig))
 	templatePlugin := newDefaultTemplatePlugin(router, true)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
@@ -484,8 +501,9 @@ func TestHandleRoute(t *testing.T) {
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
-			To: kapi.ObjectReference{
-				Name: "TestService",
+			To: routeapi.RouteTargetReference{
+				Name:   "TestService",
+				Weight: new(int32),
 			},
 		},
 	}
@@ -497,12 +515,12 @@ func TestHandleRoute(t *testing.T) {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
 
-	actualSU, ok := router.FindServiceUnit(serviceUnitKey)
+	_, ok := router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		serviceAliasCfg, ok := router.State[router.routeKey(route)]
 
 		if !ok {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
@@ -526,8 +544,9 @@ func TestHandleRoute(t *testing.T) {
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
-			To: kapi.ObjectReference{
-				Name: "TestService2",
+			To: routeapi.RouteTargetReference{
+				Name:   "TestService2",
+				Weight: new(int32),
 			},
 		},
 	}
@@ -574,15 +593,9 @@ func TestHandleRoute(t *testing.T) {
 	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err != nil {
 		t.Fatal("unexpected error")
 	}
-	otherSU, ok := router.FindServiceUnit("foo/TestService2")
+	_, ok = router.FindServiceUnit("foo/TestService2")
 	if !ok {
 		t.Fatalf("missing second unit: %#v", router)
-	}
-	if len(actualSU.ServiceAliasConfigs) != 0 || len(otherSU.ServiceAliasConfigs) != 1 {
-		t.Errorf("incorrect router state: %#v", router)
-	}
-	if _, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]; ok {
-		t.Errorf("unexpected service alias config %s", router.routeKey(route))
 	}
 	if len(rejections.rejections) != 1 ||
 		rejections.rejections[0].route.Name != "test" ||
@@ -600,11 +613,11 @@ func TestHandleRoute(t *testing.T) {
 	if !router.Committed {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
-	actualSU, ok = router.FindServiceUnit(serviceUnitKey)
+	_, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		serviceAliasCfg, ok := router.State[router.routeKey(route)]
 
 		if !ok {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
@@ -628,11 +641,11 @@ func TestHandleRoute(t *testing.T) {
 	if !router.Committed {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
-	actualSU, ok = router.FindServiceUnit(serviceUnitKey)
+	_, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		_, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		_, ok := router.State[router.routeKey(route)]
 
 		if ok {
 			t.Errorf("TestHandleRoute did not expect route key %s", router.routeKey(route))
@@ -649,7 +662,7 @@ func TestHandleRoute(t *testing.T) {
 // TestHandleRouteExtendedValidation test route watch events with extended route configuration validation.
 func TestHandleRouteExtendedValidation(t *testing.T) {
 	rejections := &fakeRejections{}
-	router := newTestRouter(make(map[string]ServiceUnit))
+	router := newTestRouter(make(map[string]ServiceAliasConfig))
 	templatePlugin := newDefaultTemplatePlugin(router, true)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
@@ -667,8 +680,9 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 		},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
-			To: kapi.ObjectReference{
-				Name: "TestService",
+			To: routeapi.RouteTargetReference{
+				Name:   "TestService",
+				Weight: new(int32),
 			},
 		},
 	}
@@ -680,12 +694,12 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 		t.Errorf("Expected router to be committed after HandleRoute call")
 	}
 
-	actualSU, ok := router.FindServiceUnit(serviceUnitKey)
+	_, ok := router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
 		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
-		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
+		serviceAliasCfg, ok := router.State[router.routeKey(route)]
 
 		if !ok {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
@@ -1001,7 +1015,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 }
 
 func TestNamespaceScopingFromEmpty(t *testing.T) {
-	router := newTestRouter(make(map[string]ServiceUnit))
+	router := newTestRouter(make(map[string]ServiceAliasConfig))
 	templatePlugin := newDefaultTemplatePlugin(router, true)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
@@ -1015,8 +1029,9 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "test"},
 		Spec: routeapi.RouteSpec{
 			Host: "www.example.com",
-			To: kapi.ObjectReference{
-				Name: "TestService",
+			To: routeapi.RouteTargetReference{
+				Name:   "TestService",
+				Weight: new(int32),
 			},
 		},
 	}
@@ -1061,7 +1076,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 }
 
 func TestUnchangingEndpointsDoesNotCommit(t *testing.T) {
-	router := newTestRouter(make(map[string]ServiceUnit))
+	router := newTestRouter(make(map[string]ServiceAliasConfig))
 	plugin := newDefaultTemplatePlugin(router, true)
 	endpoints := &kapi.Endpoints{
 		ObjectMeta: kapi.ObjectMeta{

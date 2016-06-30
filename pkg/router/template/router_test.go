@@ -235,12 +235,12 @@ func TestRouteKey(t *testing.T) {
 
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
-	su, ok := router.FindServiceUnit(suKey)
+	_, ok := router.FindServiceUnit(suKey)
 	if !ok {
 		t.Fatalf("Unable to find created service unit %s", suKey)
 	}
 
-	startCount := len(su.ServiceAliasConfigs)
+	startCount := len(router.state)
 	for _, tc := range testCases {
 		route := &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
@@ -261,20 +261,20 @@ func TestRouteKey(t *testing.T) {
 		}
 
 		// add route always returns true
-		added := router.AddRoute(suKey, route, route.Spec.Host)
+		added := router.AddRoute(suKey, 100, route, route.Spec.Host)
 		if !added {
 			t.Fatalf("expected AddRoute to return true but got false")
 		}
 
 		routeKey := router.routeKey(route)
-		_, ok := su.ServiceAliasConfigs[routeKey]
+		_, ok := router.state[routeKey]
 		if !ok {
 			t.Errorf("Unable to find created service alias config for route %s", routeKey)
 		}
 	}
 
 	// ensure all the generated routes were added.
-	numRoutesAdded := len(su.ServiceAliasConfigs) - startCount
+	numRoutesAdded := len(router.state) - startCount
 	expectedCount := len(testCases)
 	if numRoutesAdded != expectedCount {
 		t.Errorf("Expected %v routes to be added but only %v were actually added", expectedCount, numRoutesAdded)
@@ -305,18 +305,18 @@ func TestAddRoute(t *testing.T) {
 	router.CreateServiceUnit(suKey)
 
 	// add route always returns true
-	added := router.AddRoute(suKey, route, route.Spec.Host)
+	added := router.AddRoute(suKey, 100, route, route.Spec.Host)
 	if !added {
 		t.Fatalf("expected AddRoute to return true but got false")
 	}
 
-	su, ok := router.FindServiceUnit(suKey)
+	_, ok := router.FindServiceUnit(suKey)
 
 	if !ok {
 		t.Errorf("Unable to find created service unit %s", suKey)
 	} else {
 		routeKey := router.routeKey(route)
-		saCfg, ok := su.ServiceAliasConfigs[routeKey]
+		saCfg, ok := router.state[routeKey]
 
 		if !ok {
 			t.Errorf("Unable to find created service alias config for route %s", routeKey)
@@ -385,16 +385,16 @@ func TestRemoveRoute(t *testing.T) {
 	suKey := "test"
 
 	router.CreateServiceUnit(suKey)
-	router.AddRoute(suKey, route, route.Spec.Host)
-	router.AddRoute(suKey, route2, route2.Spec.Host)
+	router.AddRoute(suKey, 100, route, route.Spec.Host)
+	router.AddRoute(suKey, 100, route2, route2.Spec.Host)
 
-	su, ok := router.FindServiceUnit(suKey)
+	_, ok := router.FindServiceUnit(suKey)
 	if !ok {
 		t.Fatalf("Unable to find created service unit %s", suKey)
 	}
 
 	routeKey := router.routeKey(route)
-	saCfg, ok := su.ServiceAliasConfigs[routeKey]
+	saCfg, ok := router.state[routeKey]
 	if !ok {
 		t.Fatalf("Unable to find created serivce alias config for route %s", routeKey)
 	}
@@ -403,11 +403,10 @@ func TestRemoveRoute(t *testing.T) {
 	}
 
 	router.RemoveRoute(suKey, route)
-	su, _ = router.FindServiceUnit(suKey)
-	if _, ok := su.ServiceAliasConfigs[routeKey]; ok {
+	if _, ok := router.state[routeKey]; ok {
 		t.Errorf("Route %v was expected to be deleted but was still found", route)
 	}
-	if _, ok := su.ServiceAliasConfigs[router.routeKey(route2)]; !ok {
+	if _, ok := router.state[router.routeKey(route2)]; !ok {
 		t.Errorf("Route %v was expected to exist but was not found", route2)
 	}
 }
@@ -511,125 +510,6 @@ func makeCertMap(host string, valid bool) map[string]Certificate {
 	return certMap
 }
 
-// TestRouteExistsUnderOneServiceOnly tests that a unique route  exists under only
-// one service unit
-// context: service units are keyed by route namespace/service name, routes are keyed by route namespace
-// and route name.
-//
-// steps:
-// 1. Add a route N1/R1 with service name N1/A - service unit N1/A is created with service alias
-//    config N1/R1
-// 2. Add a route N1/R1 with service name N1/B - service unit N1/B is created with SAC N1/R1, N1/R1
-//    should be removed from service unit N1/A
-// 3. Add a route N2/R1 (same name as N1/R1, differente ns) service name N2/A - service unit
-//    N2/A should be created with SAC N2/R1 and service unit N1/B should still exist with N1/R1
-func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
-	routeWithBadService := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "foo",
-			Name:      "bar",
-		},
-		Spec: routeapi.RouteSpec{
-			Host: "host",
-			Path: "path",
-			To: kapi.ObjectReference{
-				Name: "bad-service",
-			},
-		},
-	}
-	routeWithGoodService := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "foo",
-			Name:      "bar",
-		},
-		Spec: routeapi.RouteSpec{
-			Host: "host",
-			Path: "path",
-			To: kapi.ObjectReference{
-				Name: "good-service",
-			},
-		},
-	}
-	routeWithGoodServiceDifferentNamespace := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: "foo2",
-			Name:      "bar",
-		},
-		Spec: routeapi.RouteSpec{
-			Host: "host",
-			Path: "path",
-			To: kapi.ObjectReference{
-				Name: "good-service",
-			},
-		},
-	}
-
-	// setup the router
-	router := NewFakeTemplateRouter()
-	routeWithBadServiceKey := routeKey(routeWithBadService)
-	routeWithBadServiceCfgKey := router.routeKey(routeWithBadService)
-	routeWithGoodServiceKey := routeKey(routeWithGoodService)
-	routeWithGoodServiceCfgKey := router.routeKey(routeWithGoodService)
-	routeWithGoodServiceDifferentNamespaceKey := routeKey(routeWithGoodServiceDifferentNamespace)
-	routeWithGoodServiceDifferentNamespaceCfgKey := router.routeKey(routeWithGoodServiceDifferentNamespace)
-	router.CreateServiceUnit(routeWithBadServiceKey)
-	router.CreateServiceUnit(routeWithGoodServiceKey)
-	router.CreateServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
-
-	// add the route with the bad service name, it should add fine
-	router.AddRoute(routeWithBadServiceKey, routeWithBadService, routeWithBadService.Spec.Host)
-	route, ok := router.FindServiceUnit(routeWithBadServiceKey)
-
-	if !ok {
-		t.Fatalf("unable to find route %s after adding", routeWithBadServiceKey)
-	}
-	_, ok = route.ServiceAliasConfigs[routeWithBadServiceCfgKey]
-	if !ok {
-		t.Fatalf("unable to find service alias config %s after adding route %s", routeWithBadServiceCfgKey, routeWithBadServiceKey)
-	}
-
-	// now add the same route with a modified service name, it should exists under the new service
-	// and no longer exist under the old service
-	router.AddRoute(routeWithGoodServiceKey, routeWithGoodService, routeWithGoodService.Spec.Host)
-	route, ok = router.FindServiceUnit(routeWithGoodServiceKey)
-	if !ok {
-		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceKey)
-	}
-	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceCfgKey]
-	if !ok {
-		t.Fatalf("unable to find service alias config %s after adding route %s", routeWithGoodServiceCfgKey, routeWithGoodServiceKey)
-	}
-
-	route, ok = router.FindServiceUnit(routeWithBadServiceKey)
-	if !ok {
-		t.Fatalf("route %s should already exists but was not found", routeWithBadServiceKey)
-	}
-	_, ok = route.ServiceAliasConfigs[routeWithBadServiceCfgKey]
-	if ok {
-		t.Fatalf("shouldn't have found service alias config %s under %s", routeWithBadServiceCfgKey, routeWithBadServiceKey)
-	}
-
-	// add a route with the same name but under a different namespace.
-	router.AddRoute(routeWithGoodServiceDifferentNamespaceKey, routeWithGoodServiceDifferentNamespace, routeWithGoodServiceDifferentNamespace.Spec.Host)
-	route, ok = router.FindServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
-	if !ok {
-		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceDifferentNamespaceKey)
-	}
-	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceDifferentNamespaceCfgKey]
-	if !ok {
-		t.Fatalf("unable to find service alias config %s after adding route %s", routeWithGoodServiceDifferentNamespaceCfgKey, routeWithGoodServiceDifferentNamespaceKey)
-	}
-
-	route, ok = router.FindServiceUnit(routeWithGoodServiceKey)
-	if !ok {
-		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceKey)
-	}
-	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceCfgKey]
-	if !ok {
-		t.Fatalf("unable to find service alias config %s after adding route %s", routeWithGoodServiceCfgKey, routeWithGoodServiceKey)
-	}
-}
-
 // TestAddRouteEdgeTerminationInsecurePolicy tests adding an insecure edge
 // terminated routes to a service unit
 func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
@@ -685,19 +565,19 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 		router.CreateServiceUnit(suKey)
 
 		// add route always returns true
-		added := router.AddRoute(suKey, route, route.Spec.Host)
+		added := router.AddRoute(suKey, 100, route, route.Spec.Host)
 		if !added {
 			t.Fatalf("InsecureEdgeTerminationPolicy test %s: expected AddRoute to return true but got false", tc.Name)
 		}
 
-		su, ok := router.FindServiceUnit(suKey)
+		_, ok := router.FindServiceUnit(suKey)
 
 		if !ok {
 			t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service unit %s",
 				tc.Name, suKey)
 		} else {
 			routeKey := router.routeKey(route)
-			saCfg, ok := su.ServiceAliasConfigs[routeKey]
+			saCfg, ok := router.state[routeKey]
 
 			if !ok {
 				t.Errorf("InsecureEdgeTerminationPolicy test %s: unable to find created service alias config for route %s",

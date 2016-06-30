@@ -350,32 +350,32 @@ func newF5LTM(cfg f5LTMCfg) (*f5LTM, error) {
 // Helper routines for REST calls.
 //
 
-// rest_request makes a REST request to the F5 BIG-IP host's F5 iControl REST
+// restRequest makes a REST request to the F5 BIG-IP host's F5 iControl REST
 // API.
 //
 // One of three things can happen as a result of a request to F5 iControl REST:
 //
 // (1) The request succeeds and F5 returns an HTTP 200 response, possibly with
 //     a JSON result payload, which should have the fields defined in the
-//     result argument.  In this case, rest_request decodes the payload into
+//     result argument.  In this case, restRequest decodes the payload into
 //     the result argument and returns nil.
 //
 // (2) The request fails and F5 returns an HTTP 4xx or 5xx response with a
 //     response payload.  Usually, this payload is JSON containing a numeric
 //     code (which should be the same as the HTTP response code) and a string
 //     message.  However, in some cases, the F5 iControl REST API returns an
-//     HTML response payload instead.  rest_request attempts to decode the
+//     HTML response payload instead.  restRequest attempts to decode the
 //     response payload as JSON but ignores decoding failures on the assumption
 //     that a failure to decode means that the response was in HTML.  Finally,
-//     rest_request returns an F5Error with the URL, HTTP verb, HTTP status
+//     restRequest returns an F5Error with the URL, HTTP verb, HTTP status
 //     code, and (if the response was JSON) error information from the response
 //     payload.
 //
 // (3) The REST call fails in some other way, such as a socket error or an
-//     error decoding the result payload.  In this case, rest_request returns
+//     error decoding the result payload.  In this case, restRequest returns
 //     an F5Error with the URL, HTTP verb, HTTP status code (if any), and error
 //     value.
-func (f5 *f5LTM) rest_request(verb string, url string, payload io.Reader,
+func (f5 *f5LTM) restRequest(verb string, url string, payload io.Reader,
 	result interface{}) error {
 	tr := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: f5.insecure},
@@ -423,9 +423,9 @@ func (f5 *f5LTM) rest_request(verb string, url string, payload io.Reader,
 	return nil
 }
 
-// rest_request_payload is a helper for F5 operations that take
+// restRequestPayload is a helper for F5 operations that take
 // a payload.
-func (f5 *f5LTM) rest_request_payload(verb string, url string,
+func (f5 *f5LTM) restRequestPayload(verb string, url string,
 	payload interface{}, result interface{}) error {
 	jsonStr, err := json.Marshal(payload)
 	if err != nil {
@@ -434,27 +434,27 @@ func (f5 *f5LTM) rest_request_payload(verb string, url string,
 
 	encodedPayload := bytes.NewBuffer(jsonStr)
 
-	return f5.rest_request(verb, url, encodedPayload, result)
+	return f5.restRequest(verb, url, encodedPayload, result)
 }
 
 // get issues a GET request against the F5 iControl REST API.
 func (f5 *f5LTM) get(url string, result interface{}) error {
-	return f5.rest_request("GET", url, nil, result)
+	return f5.restRequest("GET", url, nil, result)
 }
 
 // post issues a POST request against the F5 iControl REST API.
 func (f5 *f5LTM) post(url string, payload interface{}, result interface{}) error {
-	return f5.rest_request_payload("POST", url, payload, result)
+	return f5.restRequestPayload("POST", url, payload, result)
 }
 
 // patch issues a PATCH request against the F5 iControl REST API.
 func (f5 *f5LTM) patch(url string, payload interface{}, result interface{}) error {
-	return f5.rest_request_payload("PATCH", url, payload, result)
+	return f5.restRequestPayload("PATCH", url, payload, result)
 }
 
 // delete issues a DELETE request against the F5 iControl REST API.
 func (f5 *f5LTM) delete(url string, result interface{}) error {
-	return f5.rest_request("DELETE", url, nil, result)
+	return f5.restRequest("DELETE", url, nil, result)
 }
 
 //

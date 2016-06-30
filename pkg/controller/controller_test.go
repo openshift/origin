@@ -122,13 +122,14 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 	}
 
 	fifo := kcache.NewFIFO(keyFunc)
+	controllerQueue := NewQueueWrapper(fifo)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	controller := &RetryController{
-		Queue:        fifo,
-		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ Retry) bool { return true }, flowcontrol.NewTokenBucketRateLimiter(1000, 10)),
+		Queue:        controllerQueue,
+		RetryManager: NewQueueRetryManager(controllerQueue, keyFunc, func(_ interface{}, _ error, _ Retry) bool { return true }, flowcontrol.NewTokenBucketRateLimiter(1000, 10)),
 		Handle: func(obj interface{}) error {
 			if e, a := 1, obj.(testObj).value; e != a {
 				t.Fatalf("expected to handle test value %d, got %d", e, a)
@@ -144,13 +145,13 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 	}
 
 	fifo.Add(testObj{"a", 1})
-	controller.handleOne(fifo.Pop())
+	controller.handleOne(controllerQueue.Pop())
 
 	if e, a := 1, len(fifo.List()); e != a {
 		t.Fatalf("expected queue length %d, got %d", e, a)
 	}
 
-	obj := fifo.Pop()
+	obj := controllerQueue.Pop()
 	if e, a := 2, obj.(testObj).value; e != a {
 		t.Fatalf("expected queued value %d, got %d", e, a)
 	}
@@ -164,8 +165,9 @@ func TestRetryController_ratelimit(t *testing.T) {
 		return "key", nil
 	}
 	fifo := kcache.NewFIFO(keyFunc)
+	controllerQueue := NewQueueWrapper(fifo)
 	limiter := &mockLimiter{}
-	retryManager := NewQueueRetryManager(fifo,
+	retryManager := NewQueueRetryManager(controllerQueue,
 		keyFunc,
 		func(_ interface{}, _ error, r Retry) bool {
 			return r.Count < 15

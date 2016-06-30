@@ -8,6 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
+
+	ocache "github.com/openshift/origin/pkg/client/cache"
 )
 
 type PodInformer interface {
@@ -112,4 +114,59 @@ func (f *replicationControllerInformer) Indexer() cache.Indexer {
 func (f *replicationControllerInformer) Lister() *cache.StoreToReplicationControllerLister {
 	informer := f.Informer()
 	return &cache.StoreToReplicationControllerLister{Indexer: informer.GetIndexer()}
+}
+
+type NamespaceInformer interface {
+	Informer() framework.SharedIndexInformer
+	Indexer() cache.Indexer
+	Lister() *ocache.IndexerToNamespaceLister
+}
+
+type namespaceInformer struct {
+	*sharedInformerFactory
+}
+
+func (f *namespaceInformer) Informer() framework.SharedIndexInformer {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	informerObj := &kapi.Namespace{}
+	informerType := reflect.TypeOf(informerObj)
+	informer, exists := f.informers[informerType]
+	if exists {
+		return informer
+	}
+
+	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("namespaces"))
+	if lw == nil {
+		lw = &cache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return f.kubeClient.Namespaces().List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return f.kubeClient.Namespaces().Watch(options)
+			},
+		}
+
+	}
+
+	informer = framework.NewSharedIndexInformer(
+		lw,
+		informerObj,
+		f.defaultResync,
+		cache.Indexers{},
+	)
+	f.informers[informerType] = informer
+
+	return informer
+}
+
+func (f *namespaceInformer) Indexer() cache.Indexer {
+	informer := f.Informer()
+	return informer.GetIndexer()
+}
+
+func (f *namespaceInformer) Lister() *ocache.IndexerToNamespaceLister {
+	informer := f.Informer()
+	return &ocache.IndexerToNamespaceLister{Indexer: informer.GetIndexer()}
 }

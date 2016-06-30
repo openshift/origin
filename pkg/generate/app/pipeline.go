@@ -382,7 +382,7 @@ func AddRoutes(objects Objects) Objects {
 					Labels: t.Labels,
 				},
 				Spec: route.RouteSpec{
-					To: kapi.ObjectReference{
+					To: route.RouteTargetReference{
 						Name: t.Name,
 					},
 				},

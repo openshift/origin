@@ -162,6 +162,7 @@ openshift-cli-config-use-context.1
 openshift-cli-config-view.1
 openshift-cli-config.1
 openshift-cli-convert.1
+openshift-cli-create-clusterresourcequota.1
 openshift-cli-create-configmap.1
 openshift-cli-create-deploymentconfig.1
 openshift-cli-create-identity.1

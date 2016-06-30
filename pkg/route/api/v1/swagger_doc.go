@@ -60,12 +60,13 @@ func (RoutePort) SwaggerDoc() map[string]string {
 }
 
 var map_RouteSpec = map[string]string{
-	"":     "RouteSpec describes the route the user wishes to exist.",
-	"host": "Host is an alias/DNS that points to the service. Optional Must follow DNS952 subdomain conventions.",
-	"path": "Path that the router watches for, to route traffic for to the service. Optional",
-	"to":   "To is an object the route points to. Only the Service kind is allowed, and it will be defaulted to Service.",
-	"port": "If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.",
-	"tls":  "TLS provides the ability to configure certificates and termination for the route",
+	"":                  "RouteSpec describes the route the user wishes to exist.",
+	"host":              "Host is an alias/DNS that points to the service. Optional Must follow DNS952 subdomain conventions.",
+	"path":              "Path that the router watches for, to route traffic for to the service. Optional",
+	"to":                "To is an object the route points to. Only the Service kind is allowed, and it will be defaulted to Service.",
+	"alternateBackends": "AlternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference",
+	"port":              "If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.",
+	"tls":               "TLS provides the ability to configure certificates and termination for the route",
 }
 
 func (RouteSpec) SwaggerDoc() map[string]string {
@@ -79,6 +80,17 @@ var map_RouteStatus = map[string]string{
 
 func (RouteStatus) SwaggerDoc() map[string]string {
 	return map_RouteStatus
+}
+
+var map_RouteTargetReference = map[string]string{
+	"":       "RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service' kind is allowed. Use 'weight' field to emphasize one over others.",
+	"kind":   "The kind of target that the route is referring to. Currently, only 'Service' is allowed",
+	"name":   "Name of the service/target that is being referred to. e.g. name of the service",
+	"weight": "Weight as an integer between 1 and 256 that specifies the target's relative weight against other target reference objects",
+}
+
+func (RouteTargetReference) SwaggerDoc() map[string]string {
+	return map_RouteTargetReference
 }
 
 var map_RouterShard = map[string]string{

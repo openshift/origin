@@ -70,9 +70,9 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	}
 
 	return &controller.RetryController{
-		Queue: podQueue,
+		Queue: controller.NewQueueWrapper(podQueue),
 		RetryManager: controller.NewQueueRetryManager(
-			podQueue,
+			controller.NewQueueWrapper(podQueue),
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				utilruntime.HandleError(err)

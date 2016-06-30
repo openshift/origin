@@ -28,6 +28,8 @@ func init() {
 		Convert_api_RouteSpec_To_v1_RouteSpec,
 		Convert_v1_RouteStatus_To_api_RouteStatus,
 		Convert_api_RouteStatus_To_v1_RouteStatus,
+		Convert_v1_RouteTargetReference_To_api_RouteTargetReference,
+		Convert_api_RouteTargetReference_To_v1_RouteTargetReference,
 		Convert_v1_RouterShard_To_api_RouterShard,
 		Convert_api_RouterShard_To_v1_RouterShard,
 		Convert_v1_TLSConfig_To_api_TLSConfig,
@@ -237,12 +239,21 @@ func Convert_api_RoutePort_To_v1_RoutePort(in *route_api.RoutePort, out *RoutePo
 }
 
 func autoConvert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.RouteSpec, s conversion.Scope) error {
-	SetDefaults_RouteSpec(in)
 	out.Host = in.Host
 	out.Path = in.Path
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.To, &out.To, 0); err != nil {
+	if err := Convert_v1_RouteTargetReference_To_api_RouteTargetReference(&in.To, &out.To, s); err != nil {
 		return err
+	}
+	if in.AlternateBackends != nil {
+		in, out := &in.AlternateBackends, &out.AlternateBackends
+		*out = make([]route_api.RouteTargetReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1_RouteTargetReference_To_api_RouteTargetReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AlternateBackends = nil
 	}
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port
@@ -272,9 +283,19 @@ func Convert_v1_RouteSpec_To_api_RouteSpec(in *RouteSpec, out *route_api.RouteSp
 func autoConvert_api_RouteSpec_To_v1_RouteSpec(in *route_api.RouteSpec, out *RouteSpec, s conversion.Scope) error {
 	out.Host = in.Host
 	out.Path = in.Path
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.To, &out.To, 0); err != nil {
+	if err := Convert_api_RouteTargetReference_To_v1_RouteTargetReference(&in.To, &out.To, s); err != nil {
 		return err
+	}
+	if in.AlternateBackends != nil {
+		in, out := &in.AlternateBackends, &out.AlternateBackends
+		*out = make([]RouteTargetReference, len(*in))
+		for i := range *in {
+			if err := Convert_api_RouteTargetReference_To_v1_RouteTargetReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AlternateBackends = nil
 	}
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port
@@ -337,6 +358,41 @@ func autoConvert_api_RouteStatus_To_v1_RouteStatus(in *route_api.RouteStatus, ou
 
 func Convert_api_RouteStatus_To_v1_RouteStatus(in *route_api.RouteStatus, out *RouteStatus, s conversion.Scope) error {
 	return autoConvert_api_RouteStatus_To_v1_RouteStatus(in, out, s)
+}
+
+func autoConvert_v1_RouteTargetReference_To_api_RouteTargetReference(in *RouteTargetReference, out *route_api.RouteTargetReference, s conversion.Scope) error {
+	SetDefaults_RouteTargetReference(in)
+	out.Kind = in.Kind
+	out.Name = in.Name
+	if in.Weight != nil {
+		in, out := &in.Weight, &out.Weight
+		*out = new(int32)
+		**out = **in
+	} else {
+		out.Weight = nil
+	}
+	return nil
+}
+
+func Convert_v1_RouteTargetReference_To_api_RouteTargetReference(in *RouteTargetReference, out *route_api.RouteTargetReference, s conversion.Scope) error {
+	return autoConvert_v1_RouteTargetReference_To_api_RouteTargetReference(in, out, s)
+}
+
+func autoConvert_api_RouteTargetReference_To_v1_RouteTargetReference(in *route_api.RouteTargetReference, out *RouteTargetReference, s conversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	if in.Weight != nil {
+		in, out := &in.Weight, &out.Weight
+		*out = new(int32)
+		**out = **in
+	} else {
+		out.Weight = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteTargetReference_To_v1_RouteTargetReference(in *route_api.RouteTargetReference, out *RouteTargetReference, s conversion.Scope) error {
+	return autoConvert_api_RouteTargetReference_To_v1_RouteTargetReference(in, out, s)
 }
 
 func autoConvert_v1_RouterShard_To_api_RouterShard(in *RouterShard, out *route_api.RouterShard, s conversion.Scope) error {
