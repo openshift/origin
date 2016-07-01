@@ -1,0 +1,79 @@
+= Contributing to OpenShift
+OpenShift Developers <dev@lists.openshift.redhat.com>
+:data-uri:
+:icons:
+:toc2:
+:sectanchors:
+
+The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/kubernetes/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
+
+To get started you can either:
+
+* <<download-from-github>>
+
+Or if you are interested in development, start with:
+
+* <<openshift-development>> and choose between:
+
+	** <<develop-locally-on-your-host>>
+	** <<develop-on-virtual-machine-using-vagrant>>
+
+== Download from GitHub
+
+The OpenShift team periodically publishes binaries to GitHub on https://github.com/openshift/origin/releases[the Releases page].  These are Linux, Windows, or Mac OS X 64bit binaries (note that Mac and Windows are client only). You'll need Docker installed on your local system (see https://docs.docker.com/installation/[the installation page] if you've never installed Docker before).
+
+The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
+
+* Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/kubernetes/kubernetes/issues/1859.
+* Use `oc login <server> ...` to connect to an OpenShift server
+* Use `openshift help` to see more about the commands in the binary
+
+
+== OpenShift Development
+
+To get started, https://hep.github.com/articles/fork-a-repo[fork] the https://github.com/openshift/origin[origin repo].
+
+
+== Deployment
+
+There are several ways to setup openshift from source for development and testing.
+
+- Running a pure local all-in-one openshift.
+- Using VM's for each node, with a local installation
+- Using DIND abstraction for multinode tests.
+
+... And so on.
+
+The contributing/ directory has independent development environment setup recipes.
+
+== Development
+
+Any development environment with golang installed should work.  Note that you need to keep you're version of golang up
+to date - upstream has moved past 1.4 and is not backward compatible.  An editor such as IntelliJ or VSCode along side
+golang plugins can be used with advanced autocompletion  as well (make sure you enable vendor/ once supported, and until
+then, make sure you add godeps to the editors build path.  Other editors including VIM, Emacs, and so on also have golang
+plugins.  Developers are welcome to add sophisticated dev + test tooling to the contributing directory.
+
+== Development: What's on the Menu?
+Right now you can see what's happening with OpenShift development at:
+
+https://github.com/openshift/origin[github.com/openshift/origin]
+
+Ready to play with some code? Hop down and read up on our link:#the-roadmap[roadmap] for ideas on where you can contribute.
+You can also try to take a stab at any issue tagged with the https://github.com/openshift/origin/issues?q=is%3Aissue+is%3Aopen+label%3Ahelp-wanted[help-wanted] label.
+
+*If you are interested in contributing to Kubernetes directly:* +
+https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
+
+== Troubleshooting
+
+If you run into difficulties running OpenShift, start by reading through the https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md[troubleshooting guide].
+
+== The Roadmap
+The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/atomicopenshift-roadmap[on Trello].  A summary of the roadmap, releases, and other info can be found https://ci.openshift.redhat.com/roadmap_overview.html[here].
+
+== Stay in Touch
+Reach out to the OpenShift team and other community contributors through IRC and our mailing list:
+
+* IRC: Hop onto the http://webchat.freenode.net/?randomnick=1&channels=openshift-dev&uio=d4[#openshift-dev] channel on http://www.freenode.net/[FreeNode].
+* E-mail: Join the OpenShift developers' http://lists.openshift.redhat.com/openshiftmm/listinfo/dev[mailing list].
