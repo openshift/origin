@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
@@ -25,6 +26,19 @@ type ProjectsOptions struct {
 	PathOptions  *kclientcmd.PathOptions
 
 	DisplayShort bool
+}
+
+// SortByProjectName is sort
+type SortByProjectName []api.Project
+
+func (p SortByProjectName) Len() int {
+	return len(p)
+}
+func (p SortByProjectName) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p SortByProjectName) Less(i, j int) bool {
+	return p[i].Name < p[j].Name
 }
 
 const (
@@ -99,8 +113,8 @@ func (o ProjectsOptions) RunProjects() error {
 	currentContext := config.Contexts[config.CurrentContext]
 	currentProject := currentContext.Namespace
 
-	var currentProjectExists bool = false
-	var currentProjectErr error = nil
+	var currentProjectExists bool
+	var currentProjectErr error
 
 	client := o.Client
 
@@ -130,6 +144,8 @@ func (o ProjectsOptions) RunProjects() error {
 			if !o.DisplayShort {
 				msg += "You have access to the following projects and can switch between them with 'oc project <projectname>':\n"
 			}
+
+			sort.Sort(SortByProjectName(projects))
 			for _, project := range projects {
 				count = count + 1
 				displayName := project.Annotations["openshift.io/display-name"]
