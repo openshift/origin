@@ -1239,6 +1239,12 @@ DEPRECATED: set env
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc env rc --all ENV=prod
 
+  # Import environment from a secret
+  oc env --from=secret/mysecret dc/myapp
+
+  # Import environment from a config map with a prefix
+  oc env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
+
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc env dc --all --containers="c1" ENV-
 
@@ -2117,6 +2123,12 @@ Update environment variables on a pod template
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc set env rc --all ENV=prod
+
+  # Import environment from a secret
+  oc set env --from=secret/mysecret dc/myapp
+
+  # Import environment from a config map with a prefix
+  oc set env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
 
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc set env dc --all --containers="c1" ENV-
