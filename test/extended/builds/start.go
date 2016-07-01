@@ -155,6 +155,34 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
+		// run one valid binary build so we can do --from-build later
+		g.It("should reject binary build requests without a --from-xxxx value", func() {
+			g.By("starting a valid build with a directory")
+			out, err := oc.Run("start-build").Args("sample-build-binary", "--follow", "--wait", fmt.Sprintf("--from-dir=%s", exampleBuild)).Output()
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Uploading directory"))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
+
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-binary-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build-binary", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting a build without a --from-xxxx value")
+			out, err = oc.Run("start-build").Args("sample-build-binary").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("has no valid source inputs"))
+
+			g.By("starting a build from an existing binary build")
+			out, err = oc.Run("start-build").Args("sample-build-binary", fmt.Sprintf("--from-build=%s", "sample-build-binary-1")).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("has no valid source inputs"))
+
+		})
 	})
 
 	g.Describe("cancelling build started by oc start-build --wait", func() {

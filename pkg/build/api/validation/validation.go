@@ -142,7 +142,7 @@ func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.Er
 	s := spec.Strategy
 
 	if s.DockerStrategy != nil && s.JenkinsPipelineStrategy == nil && spec.Source.Git == nil && spec.Source.Binary == nil && spec.Source.Dockerfile == nil && spec.Source.Images == nil {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), spec.Source, "must provide a value for at least one of source, binary, images, or dockerfile"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("source"), "", "must provide a value for at least one source input(git, binary, dockerfile, images)."))
 	}
 
 	allErrs = append(allErrs,
@@ -202,7 +202,6 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrat
 			allErrs = append(allErrs, validateImageSource(image, fldPath.Child("images").Index(i))...)
 		}
 	}
-
 	if isJenkinsPipelineStrategyFromRepo && input.Git == nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("git"), "", "must be set when using Jenkins Pipeline strategy with Jenkinsfile from a git repo"))
 	}

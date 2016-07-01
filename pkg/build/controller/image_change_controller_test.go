@@ -302,12 +302,16 @@ func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 }
 
 func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildapi.BuildConfig {
+	dockerfile := "FROM foo"
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "testBuildCfg",
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Dockerfile: &dockerfile,
+				},
 				Strategy: buildapi.BuildStrategy{
 					DockerStrategy: &buildapi.DockerBuildStrategy{
 						From: &kapi.ObjectReference{
