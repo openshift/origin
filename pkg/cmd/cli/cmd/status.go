@@ -88,7 +88,7 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 // Complete completes the options for the Openshift cli status command.
 func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
-		return kcmdutil.UsageError(cmd, "no arguments should be provided")
+		return fmt.Errorf("no arguments should be provided")
 	}
 
 	o.logsCommandName = fmt.Sprintf("%s logs", cmd.Parent().CommandPath())

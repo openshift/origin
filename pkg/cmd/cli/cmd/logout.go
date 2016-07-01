@@ -95,7 +95,7 @@ func (o *LogoutOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, arg
 
 func (o LogoutOptions) Validate(args []string) error {
 	if len(args) > 0 {
-		return errors.New("No arguments are allowed")
+		return fmt.Errorf("no arguments should be provided")
 	}
 
 	if o.StartingKubeConfig == nil {

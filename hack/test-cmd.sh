@@ -272,6 +272,8 @@ os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 
 os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
 os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1"
 os::cmd::expect_success 'oc logout'
+# fails after receiving extraneous arguments with logout cmd
+os::cmd::expect_failure_and_text "oc logout test_arg" "no arguments"
 # logs in skipping certificate check
 os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything"
 # logs in by an existing and valid token
@@ -307,6 +309,10 @@ os::cmd::expect_success_and_text 'oc whoami' 'test-user'
 os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'
+os::cmd::expect_failure_and_text 'oc whoami -c -t test_arg' 'no arguments'
+
+# test status cmd with no arguments
+os::cmd::expect_failure_and_text "oc status test_arg" "no arguments"
 
 # test config files from the --config flag
 os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
