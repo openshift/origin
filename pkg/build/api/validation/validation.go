@@ -498,7 +498,9 @@ func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *fie
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validateFromImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
+	allErrs = append(allErrs, validateSecretRef(strategy.RuntimePullSecret, fldPath.Child("runtimePullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
+	allErrs = append(allErrs, validateRuntimeImage(strategy, fldPath.Child("runtimeImage"))...)
 	return allErrs
 }
 
@@ -646,4 +648,13 @@ func validatePostCommit(spec buildapi.BuildPostCommitSpec, fldPath *field.Path) 
 		allErrs = append(allErrs, field.Invalid(fldPath, spec, "cannot use command and script together"))
 	}
 	return allErrs
+}
+
+// validateRuntimeImage verifies that the runtimeImage field in
+// SourceBuildStrategy is not empty if it was specified.
+func validateRuntimeImage(sourceStrategy *buildapi.SourceBuildStrategy, fldPath *field.Path) (allErrs field.ErrorList) {
+	if sourceStrategy.RuntimeImage != nil && sourceStrategy.RuntimeImage.Name == "" {
+		return append(allErrs, field.Invalid(fldPath, sourceStrategy.RuntimeImage, "the runtime image name cannot be empty"))
+	}
+	return
 }
