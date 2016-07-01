@@ -10,6 +10,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -111,7 +112,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			cmd.Flags().Set("generator", generator)
 			fallthrough
 		case "route/v1":
-			route, err := unsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"))
+			route, err := cmdutil.UnsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"))
 			if err != nil {
 				return err
 			}

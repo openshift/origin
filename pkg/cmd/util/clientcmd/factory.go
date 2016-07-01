@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
@@ -425,6 +426,72 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
 	w.PrintObjectSpecificMessage = func(obj runtime.Object, out io.Writer) {}
+	kPauseObjectFunc := w.Factory.PauseObject
+	w.Factory.PauseObject = func(object runtime.Object) (bool, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return false, err
+		}
+
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			if t.Spec.Paused {
+				return true, nil
+			}
+			t.Spec.Paused = true
+			_, err := oc.DeploymentConfigs(t.Namespace).Update(t)
+			// TODO: Pause the deployer containers.
+			return false, err
+		default:
+			return kPauseObjectFunc(object)
+		}
+	}
+	kResumeObjectFunc := w.Factory.ResumeObject
+	w.Factory.ResumeObject = func(object runtime.Object) (bool, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return false, err
+		}
+
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			if !t.Spec.Paused {
+				return true, nil
+			}
+			t.Spec.Paused = false
+			_, err := oc.DeploymentConfigs(t.Namespace).Update(t)
+			// TODO: Resume the deployer containers.
+			return false, err
+		default:
+			return kResumeObjectFunc(object)
+		}
+	}
+	kHistoryViewerFunc := w.Factory.HistoryViewer
+	w.Factory.HistoryViewer = func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
+		oc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
+			return deploycmd.NewDeploymentConfigHistoryViewer(oc, kc), nil
+		}
+		return kHistoryViewerFunc(mapping)
+	}
+	kRollbackerFunc := w.Factory.Rollbacker
+	w.Factory.Rollbacker = func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
+			return deploycmd.NewDeploymentConfigRollbacker(oc), nil
+		}
+		return kRollbackerFunc(mapping)
+	}
 
 	return w
 }

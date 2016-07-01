@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/cluster"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/rollout"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
@@ -105,6 +106,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
+				rollout.NewCmdRollout(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
 				cmd.NewCmdNewBuild(fullName, f, in, out),

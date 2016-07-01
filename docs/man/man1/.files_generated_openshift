@@ -222,6 +222,11 @@ openshift-cli-projects.1
 openshift-cli-proxy.1
 openshift-cli-replace.1
 openshift-cli-rollback.1
+openshift-cli-rollout-history.1
+openshift-cli-rollout-pause.1
+openshift-cli-rollout-resume.1
+openshift-cli-rollout-undo.1
+openshift-cli-rollout.1
 openshift-cli-rsh.1
 openshift-cli-rsync.1
 openshift-cli-run.1

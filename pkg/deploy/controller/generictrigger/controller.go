@@ -204,6 +204,12 @@ func (c *DeploymentTriggerController) update(config *deployapi.DeploymentConfig,
 	config.Status.LatestVersion++
 	config.Status.Details = new(deployapi.DeploymentDetails)
 	config.Status.Details.Causes = causes
+	switch causes[0].Type {
+	case deployapi.DeploymentTriggerOnConfigChange:
+		config.Status.Details.Message = "caused by a config change"
+	case deployapi.DeploymentTriggerOnImageChange:
+		config.Status.Details.Message = "caused by an image change"
+	}
 	_, err := c.dn.DeploymentConfigs(config.Namespace).UpdateStatus(config)
 	return err
 }

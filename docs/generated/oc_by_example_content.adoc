@@ -1772,6 +1772,66 @@ Revert part of an application back to a previous deployment
 ====
 
 
+== oc rollout history
+view rollout history
+
+====
+
+[options="nowrap"]
+----
+  # View the rollout history of a deployment
+  oc rollout history dc/nginx
+
+  # View the details of deployment revision 3
+  oc rollout history dc/nginx --revision=3
+----
+====
+
+
+== oc rollout pause
+Mark the provided resource as paused
+
+====
+
+[options="nowrap"]
+----
+  # Mark the nginx deployment as paused. Any current state of
+  # the deployment will continue its function, new updates to the deployment will not
+  # have an effect as long as the deployment is paused.
+  oc rollout pause dc/nginx
+----
+====
+
+
+== oc rollout resume
+Resume a paused resource
+
+====
+
+[options="nowrap"]
+----
+  # Resume an already paused deployment
+  oc rollout resume dc/nginx
+----
+====
+
+
+== oc rollout undo
+undoes a previous rollout
+
+====
+
+[options="nowrap"]
+----
+  # Rollback to the previous deployment
+  oc rollout undo dc/nginx
+
+  # Rollback to deployment revision 3. The replication controller for that version must exist.
+  oc rollout undo dc/nginx --to-revision=3
+----
+====
+
+
 == oc rsh
 Start a shell session in a pod
 

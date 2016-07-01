@@ -96,6 +96,14 @@ os::cmd::expect_success_and_not_text "oc get dc frontend" "app=dockerbuild,templ
 echo "get: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/deployments/rollout"
+os::cmd::try_until_success 'oc rollout pause dc/database'
+os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "true"
+os::cmd::try_until_success 'oc rollout resume dc/database'
+os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "<no value>"
+echo "rollout: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/deployments/rollback"
 # should fail because there's no previous deployment
 os::cmd::expect_failure 'oc rollback database --to-version=1 -o=yaml'

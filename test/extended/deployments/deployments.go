@@ -241,6 +241,30 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
+	g.Describe("viewing rollout history", func() {
+		g.It("should print the rollout history [Conformance]", func() {
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			one := int64(1)
+			config.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
+			_, err = oc.REST().DeploymentConfigs(oc.Namespace()).Update(config)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			out, err := oc.Run("rollout").Args("history", resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the history for substrings\n%s", out))
+			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\" history viewed"))
+			o.Expect(out).To(o.ContainSubstring("REVISION	STATUS		CAUSE"))
+			o.Expect(out).To(o.ContainSubstring("1		Complete	caused by a config change"))
+			o.Expect(out).To(o.ContainSubstring("2		Complete	caused by a config change"))
+		})
+	})
+
 	g.Describe("generation", func() {
 		g.It("should deploy based on a status version bump [Conformance]", func() {
 			resource, name, err := createFixture(oc, generationFixture)
@@ -378,7 +402,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(version).To(o.ContainSubstring("2"))
 
 			g.By("verifying that we can rollback")
-			_, err = oc.Run("rollback").Args(resource).Output()
+			_, err = oc.Run("rollout").Args("undo", resource).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
