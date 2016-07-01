@@ -130,6 +130,55 @@ var _ = g.Describe("deploymentconfigs", func() {
 			g.By("verifying all but terminal deployment is marked complete")
 			o.Expect(waitForLatestCondition(oc, "deployment-simple", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
+
+		g.It("should immediately start a new deployment [Conformance]", func() {
+			resource, name, err := createFixture(oc, generationFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err = oc.Run("set", "env").Args(resource, "TRY=ONCE").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			condition := func() (bool, error) {
+				dc, rcs, pods, err := deploymentInfo(oc, name)
+				if err != nil {
+					return false, nil
+				}
+
+				// Check that the deployment config has latestVersion=2
+				g.By(fmt.Sprintf("by checking that the deployment config has the correct version"))
+				hasCorrectLatestVersion := dc.Status.LatestVersion == 2
+
+				// Check that the second deployment exists.
+				g.By(fmt.Sprintf("by checking that the second deployment exists"))
+				secondDeploymentExists := false
+				for _, rc := range rcs {
+					if rc.Name == deployutil.DeploymentNameForConfigVersion(name, 2) {
+						secondDeploymentExists = true
+						break
+					}
+				}
+
+				// Check that the first deployer is deleted and the second deployer exists.
+				g.By(fmt.Sprintf("by checking that the first deployer was deleted and the second deployer exists"))
+				deploymentNamesToDeployers, err := deploymentPods(pods)
+				if err != nil {
+					return false, nil
+				}
+
+				firstDeploymentName := deployutil.DeploymentNameForConfigVersion(name, 1)
+				firstDeployerRemoved := len(deploymentNamesToDeployers[firstDeploymentName]) == 0
+
+				secondDeploymentName := deployutil.DeploymentNameForConfigVersion(name, 2)
+				secondDeployerExists := len(deploymentNamesToDeployers[secondDeploymentName]) == 1
+
+				return hasCorrectLatestVersion &&
+					secondDeploymentExists &&
+					firstDeployerRemoved && secondDeployerExists, nil
+			}
+
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 	})
 
 	g.Describe("with test deployments", func() {
