@@ -18,6 +18,7 @@ package kubectl
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -263,10 +264,24 @@ func (p *JSONPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 		return err
 	}
 
-	data, err := json.Marshal(obj)
+	data, err := json.Marshal(&obj)
 	if err != nil {
 		return err
 	}
+
+	out := map[string]interface{}{}
+	err = json.Unmarshal(data, &out)
+	if err != nil {
+		return err
+	}
+	if decodedOut, ok := base64Decode(out).(map[string]interface{}); ok {
+		out = decodedOut
+		data, err = json.Marshal(&out)
+		if err != nil {
+			return err
+		}
+	}
+
 	dst := bytes.Buffer{}
 	err = json.Indent(&dst, data, "", "    ")
 	dst.WriteByte('\n')
@@ -302,6 +317,19 @@ func (p *YAMLPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	output, err := yaml.Marshal(obj)
 	if err != nil {
 		return err
+	}
+
+	out := map[string]interface{}{}
+	err = yaml.Unmarshal(output, &out)
+	if err != nil {
+		return err
+	}
+	if decodedOut, ok := base64Decode(out).(map[string]interface{}); ok {
+		out = decodedOut
+		output, err = yaml.Marshal(&out)
+		if err != nil {
+			return err
+		}
 	}
 	_, err = fmt.Fprint(w, string(output))
 	return err
@@ -1870,6 +1898,34 @@ func NewTemplatePrinter(tmpl []byte) (*TemplatePrinter, error) {
 	}, nil
 }
 
+// Recursively iterates through map or struct, decoding
+// base64 encoded values. This is needed as json.Marshal
+// will encode interface{} values to base64, and
+// json.Unmarshal will not decode them back, causing
+// erroneous values to be printed out for tokens, etc.
+func base64Decode(out interface{}) interface{} {
+	if inter, ok := out.(map[string]interface{}); ok {
+		for k, v := range inter {
+			inter[k] = base64Decode(v)
+		}
+
+		return inter
+	}
+
+	if token, isStr := out.(string); isStr {
+		btoken := []byte(token)
+		b := make([]byte, base64.StdEncoding.DecodedLen(len(btoken)))
+		_, err := base64.StdEncoding.Decode(b, btoken)
+		if err != nil {
+			return out
+		}
+
+		return string(b)
+	}
+
+	return out
+}
+
 // PrintObj formats the obj with the Go Template.
 func (p *TemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	data, err := json.Marshal(obj)
@@ -1879,6 +1935,9 @@ func (p *TemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	out := map[string]interface{}{}
 	if err := json.Unmarshal(data, &out); err != nil {
 		return err
+	}
+	if decodedOut, ok := base64Decode(out).(map[string]interface{}); ok {
+		out = decodedOut
 	}
 	if err = p.safeExecute(w, out); err != nil {
 		// It is way easier to debug this stuff when it shows up in
