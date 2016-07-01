@@ -50,7 +50,10 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				// is made (they init the DB when they start, not on each request).  So here we force
 				// an immediate deployment of the DB.  It may error because there is already a deployment
 				// in progress, so do not check for an error.
-				oc.Run("deploy").Args(c.dbDeploymentConfigName, "--latest").Execute()
+				err = oc.Run("deploy").Args(c.dbDeploymentConfigName, "--latest").Execute()
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "force deploy got error %+v", err)
+				}
 
 				// all the templates automatically start a build.
 				buildName := c.buildConfigName + "-1"
