@@ -150,8 +150,9 @@ func TestProjectStatus(t *testing.T) {
 			Contains: []string{
 				"In project example on server https://example.com:8443\n",
 				"svc/sinatra-example-2 - 172.30.17.48:8080",
+				"deploys istag/sinatra-example-2:latest <-",
 				"builds git://github.com",
-				"with docker.io/centos/ruby-22-centos7:latest",
+				"on docker.io/centos/ruby-22-centos7:latest",
 				"not built yet",
 				"deployment #1 waiting on image or update",
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
@@ -180,6 +181,8 @@ func TestProjectStatus(t *testing.T) {
 			Contains: []string{
 				// this makes sure that status knows this can push.  If it fails, there's a "(can't push image)" next to like #8
 				" hours\n  build #7",
+				"on fedora:23",
+				"-> repo-base:latest",
 			},
 			Time: mustParseTime("2015-12-17T20:36:15Z"),
 		},
@@ -193,6 +196,8 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"Cycle detected in build configurations:",
+				"on istag/ruby-22-centos7:latest",
+				"-> istag/ruby-hello-world:latest",
 			},
 		},
 		"running build": {
@@ -207,7 +212,7 @@ func TestProjectStatus(t *testing.T) {
 				"In project example on server https://example.com:8443\n",
 				"svc/sinatra-example-1 - 172.30.17.47:8080",
 				"builds git://github.com",
-				"with docker.io/centos/ruby-22-centos7:latest",
+				"on docker.io/centos/ruby-22-centos7:latest",
 				"build #1 running for about a minute",
 				"deployment #1 waiting on image or update",
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
@@ -227,7 +232,7 @@ func TestProjectStatus(t *testing.T) {
 				"svc/sinatra-app-example - 172.30.17.49:8080",
 				"sinatra-app-example-a deploys",
 				"sinatra-app-example-b deploys",
-				"with docker.io/centos/ruby-22-centos7:latest",
+				"on docker.io/centos/ruby-22-centos7:latest",
 				"build #1 running for about a minute",
 				"- 7a4f354: Prepare v1beta3 Template types (Roy Programmer <someguy@outhere.com>)",
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
@@ -250,7 +255,8 @@ func TestProjectStatus(t *testing.T) {
 				"svc/database-external (all nodes):31000 -> 3306",
 				"database test deploys",
 				"frontend deploys",
-				"with docker.io/centos/ruby-22-centos7:latest",
+				"istag/origin-ruby-sample:latest <-",
+				"on docker.io/centos/ruby-22-centos7:latest",
 				"deployment #3 pending on image",
 				"deployment #2 failed less than a second ago: unable to contact server - 0/1 pods",
 				"deployment #1 deployed less than a second ago",
