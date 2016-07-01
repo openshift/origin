@@ -28,9 +28,12 @@ Setting both liveness and readiness probes for each container is highly recommen
 The three probe types are:
 .IP \(bu 2
 
-\item Open a TCP socket on the pod IP
-\item Perform an HTTP GET against a URL on a container that must return 200 OK
-\item Run a command in the container that must return exit code 0
+.IP
+\(bu Open a TCP socket on the pod IP
+.IP
+\(bu Perform an HTTP GET against a URL on a container that must return 200 OK
+.IP
+\(bu Run a command in the container that must return exit code 0
 .PP
 Containers that take a variable amount of time to start should set generous
 initial\-delay\-seconds values, otherwise as your application evolves you may suddenly begin

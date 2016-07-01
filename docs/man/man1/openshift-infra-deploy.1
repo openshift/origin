@@ -22,32 +22,28 @@ use the \-\-until flag to run the deployment until you reach the specified condi
 
 .PP
 Available conditions:
+.IP 
 
-.PP
-.RS
+.IP
+\(bu "start": after old deployments are scaled to zero
+.IP
+\(bu "pre": after the pre hook completes (even if no hook specified)
+.IP
+\(bu "mid": after the mid hook completes (even if no hook specified)
+.IP
+\(bu A percentage of the deployment, based on which strategy is in use
+.IP 
 
-.nf
-"start": after old deployments are scaled to zero
-
-"pre": after the pre hook completes (even if no hook specified)
-
-"mid": after the mid hook completes (even if no hook specified)
-
-A percentage of the deployment, based on which strategy is in use
-
- "0%"   Recreate after the previous deployment is scaled to zero
-
- "N%"   Recreate after the acceptance check if this is not the first deployment
-
- "0%"   Rolling  before the rolling deployment is started, equivalent to "pre"
-
- "N%"   Rolling  the percentage of pods in the target deployment that are ready
-
- "100%" All      after the deployment is at full scale, but before the post hook runs
-
-.fi
-.RE
-
+.IP
+\(bu "0%"   Recreate after the previous deployment is scaled to zero
+.IP
+\(bu "N%"   Recreate after the acceptance check if this is not the first deployment
+.IP
+\(bu "0%"   Rolling  before the rolling deployment is started, equivalent to "pre"
+.IP
+\(bu "N%"   Rolling  the percentage of pods in the target deployment that are ready
+.IP
+\(bu "100%" All      after the deployment is at full scale, but before the post hook runs
 .PP
 Unrecognized conditions will be ignored and the deployment will run to completion. You can run this
 command multiple times when \-\-until is specified \- hooks will only be executed once.

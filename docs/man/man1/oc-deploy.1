@@ -22,26 +22,18 @@ and scaling up new ones. Use 'oc rollback' to rollback to any previous deploymen
 
 .PP
 There are several deployment strategies defined:
+.IP 
 
-.PP
-.RS
-
-.nf
-Rolling (default) \- scales up the new deployment in stages, gradually reducing the number
-
-.fi
-.RE
-
-.PP
+.IP
+\(bu Rolling (default) \- scales up the new deployment in stages, gradually reducing the number
 of old deployments. If one of the new deployed pods never becomes "ready", the new deployment
-  will be rolled back (scaled down to zero). Use when your application can tolerate two versions
-  of code running at the same time (many web applications, scalable databases)
-    Recreate \- scales the old deployment down to zero, then scales the new deployment up to full.
-
-.PP
+will be rolled back (scaled down to zero). Use when your application can tolerate two versions
+of code running at the same time (many web applications, scalable databases)
+.IP
+\(bu Recreate \- scales the old deployment down to zero, then scales the new deployment up to full.
 Use when your application cannot tolerate two versions of code running at the same time
-    Custom \- run your own deployment process inside a Docker container using your own scripts.
-
+.IP
+\(bu Custom \- run your own deployment process inside a Docker container using your own scripts.
 .PP
 If a deployment fails, you may opt to retry it (if the error was transient). Some deployments may
 never successfully complete \- in which case you can use the '\-\-latest' flag to force a redeployment.
