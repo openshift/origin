@@ -16,9 +16,9 @@ import (
 var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture   = exutil.FixturePath("..", "extended", "testdata", "test-build.json")
-		exampleGemfile = exutil.FixturePath("..", "extended", "testdata", "test-build-app", "Gemfile")
-		exampleBuild   = exutil.FixturePath("..", "extended", "testdata", "test-build-app")
+		buildFixture   = exutil.FixturePath("testdata", "test-build.json")
+		exampleGemfile = exutil.FixturePath("testdata", "test-build-app", "Gemfile")
+		exampleBuild   = exutil.FixturePath("testdata", "test-build-app")
 		oc             = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
 	)
 
