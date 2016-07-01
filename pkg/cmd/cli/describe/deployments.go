@@ -27,6 +27,18 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+const (
+	// maxDisplayDeployments is the number of deployments to show when describing
+	// deployment configuration.
+	maxDisplayDeployments = 3
+
+	// maxDisplayDeploymentsEvents is the number of events to display when
+	// describing the deployment configuration.
+	// TODO: Make the estimation of this number more sophisticated and make this
+	// number configurable via DescriberSettings
+	maxDisplayDeploymentsEvents = 8
+)
+
 // DeploymentConfigDescriber generates information about a DeploymentConfig
 type DeploymentConfigDescriber struct {
 	osClient   client.Interface
@@ -93,10 +105,15 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 			if err == nil {
 				sorted := deploymentsHistory.Items
 				sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
+				counter := 1
 				for _, item := range sorted {
 					if item.Name != deploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
 						header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
 						printDeploymentRc(&item, d.kubeClient, out, header, false)
+						counter++
+					}
+					if counter == maxDisplayDeployments {
+						break
 					}
 				}
 			}
@@ -105,8 +122,12 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		if settings.ShowEvents {
 			// Events
 			if events, err := d.kubeClient.Events(deploymentConfig.Namespace).Search(deploymentConfig); err == nil && events != nil {
+				latestDeploymentEvents := &kapi.EventList{Items: []kapi.Event{}}
+				for i := len(events.Items); i != 0 && i > len(events.Items)-maxDisplayDeploymentsEvents; i-- {
+					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])
+				}
 				fmt.Fprintln(out)
-				kctl.DescribeEvents(events, out)
+				kctl.DescribeEvents(latestDeploymentEvents, out)
 			}
 		}
 		return nil
