@@ -11,6 +11,7 @@ import (
 	gonum "github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -47,8 +48,9 @@ const (
 // pruneAlgorithm contains the various settings to use when evaluating images
 // and layers for pruning.
 type pruneAlgorithm struct {
-	keepYoungerThan  time.Duration
-	keepTagRevisions int
+	keepYoungerThan    time.Duration
+	keepTagRevisions   int
+	pruneOverSizeLimit bool
 }
 
 // ImageDeleter knows how to remove images from OpenShift.
@@ -90,10 +92,13 @@ type ManifestDeleter interface {
 type PrunerOptions struct {
 	// KeepYoungerThan indicates the minimum age an Image must be to be a
 	// candidate for pruning.
-	KeepYoungerThan time.Duration
+	KeepYoungerThan *time.Duration
 	// KeepTagRevisions is the minimum number of tag revisions to preserve;
 	// revisions older than this value are candidates for pruning.
-	KeepTagRevisions int
+	KeepTagRevisions *int
+	// PruneOverSizeLimit indicates that images exceeding defined limits (openshift.io/Image)
+	// will be considered as candidates for pruning.
+	PruneOverSizeLimit *bool
 	// Images is the entire list of images in OpenShift. An image must be in this
 	// list to be a candidate for pruning.
 	Images *imageapi.ImageList
@@ -113,6 +118,8 @@ type PrunerOptions struct {
 	// DCs is the entire list of deployment configs across all namespaces in the
 	// cluster.
 	DCs *deployapi.DeploymentConfigList
+	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
+	LimitRanges map[string][]*kapi.LimitRange
 	// DryRun indicates that no changes will be made to the cluster and nothing
 	// will be removed.
 	DryRun bool
@@ -203,6 +210,10 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 // status.tags that are preserved and ineligible for pruning. Any revision older
 // than keepTagRevisions is eligible for pruning.
 //
+// pruneOverSizeLimit is a boolean flag speyfing that all images exceeding limits
+// defined in their namespace will be considered for pruning. Important to note is
+// the fact that this flag does not work in any combination with the keep* flags.
+//
 // images, streams, pods, rcs, bcs, builds, and dcs are the resources used to run
 // the pruning algorithm. These should be the full list for each type from the
 // cluster; otherwise, the pruning algorithm might result in incorrect
@@ -230,15 +241,22 @@ func (*dryRunRegistryPinger) ping(registry string) error {
 func NewPruner(options PrunerOptions) Pruner {
 	g := graph.New()
 
-	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%d", options.KeepYoungerThan, options.KeepTagRevisions)
+	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%v, pruneOverSizeLimit=%v",
+		options.KeepYoungerThan, options.KeepTagRevisions, options.PruneOverSizeLimit)
 
-	algorithm := pruneAlgorithm{
-		keepYoungerThan:  options.KeepYoungerThan,
-		keepTagRevisions: options.KeepTagRevisions,
+	algorithm := pruneAlgorithm{}
+	if options.KeepYoungerThan != nil {
+		algorithm.keepYoungerThan = *options.KeepYoungerThan
+	}
+	if options.KeepTagRevisions != nil {
+		algorithm.keepTagRevisions = *options.KeepTagRevisions
+	}
+	if options.PruneOverSizeLimit != nil {
+		algorithm.pruneOverSizeLimit = *options.PruneOverSizeLimit
 	}
 
 	addImagesToGraph(g, options.Images, algorithm)
-	addImageStreamsToGraph(g, options.Streams, algorithm)
+	addImageStreamsToGraph(g, options.Streams, options.LimitRanges, algorithm)
 	addPodsToGraph(g, options.Pods, algorithm)
 	addReplicationControllersToGraph(g, options.RCs)
 	addBuildConfigsToGraph(g, options.BCs)
@@ -281,7 +299,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		}
 
 		age := unversioned.Now().Sub(image.CreationTimestamp.Time)
-		if age < algorithm.keepYoungerThan {
+		if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
 			glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%v)", image.Name, age)
 			continue
 		}
@@ -306,13 +324,17 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 // addImageStreamsToGraph adds all the streams to the graph. The most recent n
 // image revisions for a tag will be preserved, where n is specified by the
 // algorithm's keepTagRevisions. Image revisions older than n are candidates
-// for pruning.  if the image stream's age is at least as old as the minimum
+// for pruning if the image stream's age is at least as old as the minimum
 // threshold in algorithm.  Otherwise, if the image stream is younger than the
 // threshold, all image revisions for that stream are ineligible for pruning.
+// If pruneOverSizeLimit flag is set to true, above does not matter, instead
+// all images size is checked against LimitRanges defined in that same namespace,
+// and whenever its size exceeds the smallest limit in that namespace, it will be
+// considered a candidate for pruning.
 //
 // addImageStreamsToGraph also adds references from each stream to all the
 // layers it references (via each image a stream references).
-func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, algorithm pruneAlgorithm) {
+func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, limits map[string][]*kapi.LimitRange, algorithm pruneAlgorithm) {
 	for i := range streams.Items {
 		stream := &streams.Items[i]
 
@@ -322,9 +344,8 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 		oldImageRevisionReferenceKind := WeakReferencedImageEdgeKind
 
 		age := unversioned.Now().Sub(stream.CreationTimestamp.Time)
-		if age < algorithm.keepYoungerThan {
+		if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
 			// stream's age is below threshold - use a strong reference for old image revisions instead
-			glog.V(4).Infof("Stream %s/%s is below age threshold - none of its images are eligible for pruning", stream.Namespace, stream.Name)
 			oldImageRevisionReferenceKind = ReferencedImageEdgeKind
 		}
 
@@ -341,12 +362,17 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 				}
 				imageNode := n.(*imagegraph.ImageNode)
 
-				var kind string
-				switch {
-				case i < algorithm.keepTagRevisions:
-					kind = ReferencedImageEdgeKind
-				default:
-					kind = oldImageRevisionReferenceKind
+				kind := oldImageRevisionReferenceKind
+				if algorithm.pruneOverSizeLimit {
+					if exceedsLimits(stream, imageNode.Image, limits) {
+						kind = WeakReferencedImageEdgeKind
+					} else {
+						kind = ReferencedImageEdgeKind
+					}
+				} else {
+					if i < algorithm.keepTagRevisions {
+						kind = ReferencedImageEdgeKind
+					}
 				}
 
 				glog.V(4).Infof("Checking for existing strong reference from stream %s/%s to image %s", stream.Namespace, stream.Name, imageNode.Image.Name)
@@ -370,6 +396,41 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 			}
 		}
 	}
+}
+
+// exceedsLimits checks if given image exceeds LimitRanges defined in ImageStream's namespace.
+func exceedsLimits(is *imageapi.ImageStream, image *imageapi.Image, limits map[string][]*kapi.LimitRange) bool {
+	limitRanges, ok := limits[is.Namespace]
+	if !ok {
+		return false
+	}
+	if len(limitRanges) == 0 {
+		return false
+	}
+
+	imageSize := resource.NewQuantity(image.DockerImageMetadata.Size, resource.BinarySI)
+	for _, limitRange := range limitRanges {
+		if limitRange == nil {
+			continue
+		}
+		for _, limit := range limitRange.Spec.Limits {
+			if limit.Type != imageapi.LimitTypeImage {
+				continue
+			}
+
+			limitQuantity, ok := limit.Max[kapi.ResourceStorage]
+			if !ok {
+				continue
+			}
+			if limitQuantity.Cmp(*imageSize) < 0 {
+				// image size is larger than the permitted limit range max size
+				glog.V(4).Infof("Image %s in stream %s/%s exceeds limit %s: %v vs %v",
+					image.Name, is.Namespace, is.Name, limitRange.Name, *imageSize, limitQuantity)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // addPodsToGraph adds pods to the graph.

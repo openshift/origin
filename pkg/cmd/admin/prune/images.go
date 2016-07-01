@@ -45,14 +45,28 @@ images.`
   %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
 
   # To actually perform the prune operation, the confirm flag must be appended
-  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm`
+  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+
+  # See, what the prune command would delete if we're interested in removing images
+  # exceeding currently set LimitRanges ('openshift.io/Image')
+  %[1]s %[2]s --prune-over-size-limit
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  %[1]s %[2]s --prune-over-size-limit --confirm`
+)
+
+var (
+	defaultKeepYoungerThan         = 60 * time.Minute
+	defaultKeepTagRevisions        = 3
+	defaultPruneImageOverSizeLimit = false
 )
 
 // PruneImagesOptions holds all the required options for pruning images.
 type PruneImagesOptions struct {
 	Confirm             bool
-	KeepYoungerThan     time.Duration
-	KeepTagRevisions    int
+	KeepYoungerThan     *time.Duration
+	KeepTagRevisions    *int
+	PruneOverSizeLimit  *bool
 	CABundle            string
 	RegistryUrlOverride string
 
@@ -64,9 +78,10 @@ type PruneImagesOptions struct {
 // NewCmdPruneImages implements the OpenShift cli prune images command.
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	opts := &PruneImagesOptions{
-		Confirm:          false,
-		KeepYoungerThan:  60 * time.Minute,
-		KeepTagRevisions: 3,
+		Confirm:            false,
+		KeepYoungerThan:    &defaultKeepYoungerThan,
+		KeepTagRevisions:   &defaultKeepTagRevisions,
+		PruneOverSizeLimit: &defaultPruneImageOverSizeLimit,
 	}
 
 	cmd := &cobra.Command{
@@ -84,8 +99,9 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	}
 
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "Specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().DurationVar(&opts.KeepYoungerThan, "keep-younger-than", opts.KeepYoungerThan, "Specify the minimum age of an image for it to be considered a candidate for pruning.")
-	cmd.Flags().IntVar(&opts.KeepTagRevisions, "keep-tag-revisions", opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
+	cmd.Flags().DurationVar(opts.KeepYoungerThan, "keep-younger-than", *opts.KeepYoungerThan, "Specify the minimum age of an image for it to be considered a candidate for pruning.")
+	cmd.Flags().IntVar(opts.KeepTagRevisions, "keep-tag-revisions", *opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
+	cmd.Flags().BoolVar(opts.PruneOverSizeLimit, "prune-over-size-limit", *opts.PruneOverSizeLimit, "Specify if images which are exceeding LimitRanges (see 'openshift.io/Image'), specified in the same namespace, should be considered for pruning. This flag cannot be combined with --keep-younger-than nor --keep-tag-revisions.")
 	cmd.Flags().StringVar(&opts.CABundle, "certificate-authority", opts.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file.")
 	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works.")
 
@@ -97,6 +113,16 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
+	}
+
+	if !cmd.Flags().Lookup("keep-younger-than").Changed {
+		o.KeepYoungerThan = nil
+	}
+	if !cmd.Flags().Lookup("keep-tag-revisions").Changed {
+		o.KeepTagRevisions = nil
+	}
+	if !cmd.Flags().Lookup("prune-over-size-limit").Changed {
+		o.PruneOverSizeLimit = nil
 	}
 
 	o.Out = out
@@ -146,19 +172,36 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return err
 	}
 
+	limitRangesList, err := kClient.LimitRanges(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+	limitRangesMap := make(map[string][]*kapi.LimitRange)
+	for i := range limitRangesList.Items {
+		limit := limitRangesList.Items[i]
+		limits, ok := limitRangesMap[limit.Namespace]
+		if !ok {
+			limits = []*kapi.LimitRange{}
+		}
+		limits = append(limits, &limit)
+		limitRangesMap[limit.Namespace] = limits
+	}
+
 	options := prune.PrunerOptions{
-		KeepYoungerThan:  o.KeepYoungerThan,
-		KeepTagRevisions: o.KeepTagRevisions,
-		Images:           allImages,
-		Streams:          allStreams,
-		Pods:             allPods,
-		RCs:              allRCs,
-		BCs:              allBCs,
-		Builds:           allBuilds,
-		DCs:              allDCs,
-		DryRun:           o.Confirm == false,
-		RegistryClient:   registryClient,
-		RegistryURL:      o.RegistryUrlOverride,
+		KeepYoungerThan:    o.KeepYoungerThan,
+		KeepTagRevisions:   o.KeepTagRevisions,
+		PruneOverSizeLimit: o.PruneOverSizeLimit,
+		Images:             allImages,
+		Streams:            allStreams,
+		Pods:               allPods,
+		RCs:                allRCs,
+		BCs:                allBCs,
+		Builds:             allBuilds,
+		DCs:                allDCs,
+		LimitRanges:        limitRangesMap,
+		DryRun:             o.Confirm == false,
+		RegistryClient:     registryClient,
+		RegistryURL:        o.RegistryUrlOverride,
 	}
 
 	o.Pruner = prune.NewPruner(options)
@@ -168,10 +211,13 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 // Validate ensures that a PruneImagesOptions is valid and can be used to execute pruning.
 func (o PruneImagesOptions) Validate() error {
-	if o.KeepYoungerThan < 0 {
+	if o.PruneOverSizeLimit != nil && (o.KeepYoungerThan != nil || o.KeepTagRevisions != nil) {
+		return fmt.Errorf("--prune-over-size-limit cannot be specified with --keep-tag-revisions nor --keep-younger-than")
+	}
+	if o.KeepYoungerThan != nil && *o.KeepYoungerThan < 0 {
 		return fmt.Errorf("--keep-younger-than must be greater than or equal to 0")
 	}
-	if o.KeepTagRevisions < 0 {
+	if o.KeepTagRevisions != nil && *o.KeepTagRevisions < 0 {
 		return fmt.Errorf("--keep-tag-revisions must be greater than or equal to 0")
 	}
 	if _, err := url.Parse(o.RegistryUrlOverride); err != nil {

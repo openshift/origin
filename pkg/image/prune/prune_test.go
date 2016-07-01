@@ -13,6 +13,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
@@ -53,6 +54,21 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 	if ageInMinutes >= 0 {
 		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
+
+	return image
+}
+
+func sizedImage(id, ref string, size int64) imageapi.Image {
+	image := imageWithLayers(id, ref,
+		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		"tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0",
+		"tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171",
+		"tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd",
+		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+	)
+
+	image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1) * time.Minute))
+	image.DockerImageMetadata.Size = size
 
 	return image
 }
@@ -288,6 +304,26 @@ func build(namespace, name, strategyType, fromKind, fromNamespace, fromName stri
 	}
 }
 
+func limitList(limits ...int64) []*kapi.LimitRange {
+	list := make([]*kapi.LimitRange, len(limits))
+	for _, limit := range limits {
+		quantity := resource.NewQuantity(limit, resource.BinarySI)
+		list = append(list, &kapi.LimitRange{
+			Spec: kapi.LimitRangeSpec{
+				Limits: []kapi.LimitRangeItem{
+					{
+						Type: imageapi.LimitTypeImage,
+						Max: kapi.ResourceList{
+							kapi.ResourceStorage: *quantity,
+						},
+					},
+				},
+			},
+		})
+	}
+	return list
+}
+
 func commonSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi.CommonSpec {
 	spec := buildapi.CommonSpec{
 		Strategy: buildapi.BuildStrategy{},
@@ -390,6 +426,7 @@ func TestImagePruning(t *testing.T) {
 	registryURL := "registry"
 
 	tests := map[string]struct {
+		pruneOverSizeLimit     *bool
 		registryURLs           []string
 		images                 imageapi.ImageList
 		pods                   kapi.PodList
@@ -398,6 +435,7 @@ func TestImagePruning(t *testing.T) {
 		bcs                    buildapi.BuildConfigList
 		builds                 buildapi.BuildList
 		dcs                    deployapi.DeploymentConfigList
+		limits                 map[string][]*kapi.LimitRange
 		expectedDeletions      []string
 		expectedUpdatedStreams []string
 	}{
@@ -663,6 +701,79 @@ func TestImagePruning(t *testing.T) {
 			expectedDeletions:      []string{"id"},
 			expectedUpdatedStreams: []string{},
 		},
+		"image exceeding limits": {
+			pruneOverSizeLimit: newBool(true),
+			images: imageList(
+				unmanagedImage("id", "otherregistry/foo/bar@id", false, "", ""),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 100),
+				sizedImage("id3", registryURL+"/foo/bar@id3", 200),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "otherregistry/foo/bar@id"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(100, 200),
+			},
+			expectedDeletions:      []string{"id3"},
+			expectedUpdatedStreams: []string{"foo/bar|id3"},
+		},
+		"multiple images in different namespaces exceeding different limits": {
+			pruneOverSizeLimit: newBool(true),
+			images: imageList(
+				sizedImage("id1", registryURL+"/foo/bar@id1", 100),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 200),
+				sizedImage("id3", registryURL+"/bar/foo@id3", 500),
+				sizedImage("id4", registryURL+"/bar/foo@id4", 600),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+					),
+				)),
+				stream(registryURL, "bar", "foo", tags(
+					tag("latest",
+						tagEvent("id3", registryURL+"/bar/foo@id3"),
+						tagEvent("id4", registryURL+"/bar/foo@id4"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(150),
+				"bar": limitList(550),
+			},
+			expectedDeletions:      []string{"id2", "id4"},
+			expectedUpdatedStreams: []string{"foo/bar|id2", "bar/foo|id4"},
+		},
+		"image within allowed limits": {
+			pruneOverSizeLimit: newBool(true),
+			images: imageList(
+				unmanagedImage("id", "otherregistry/foo/bar@id", false, "", ""),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 100),
+				sizedImage("id3", registryURL+"/foo/bar@id3", 200),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "otherregistry/foo/bar@id"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(300),
+			},
+			expectedDeletions:      []string{},
+			expectedUpdatedStreams: []string{},
+		},
 	}
 
 	for name, test := range tests {
@@ -672,15 +783,22 @@ func TestImagePruning(t *testing.T) {
 		}
 
 		options := PrunerOptions{
-			KeepYoungerThan:  60 * time.Minute,
-			KeepTagRevisions: 3,
-			Images:           &test.images,
-			Streams:          &test.streams,
-			Pods:             &test.pods,
-			RCs:              &test.rcs,
-			BCs:              &test.bcs,
-			Builds:           &test.builds,
-			DCs:              &test.dcs,
+			Images:      &test.images,
+			Streams:     &test.streams,
+			Pods:        &test.pods,
+			RCs:         &test.rcs,
+			BCs:         &test.bcs,
+			Builds:      &test.builds,
+			DCs:         &test.dcs,
+			LimitRanges: test.limits,
+		}
+		if test.pruneOverSizeLimit != nil {
+			options.PruneOverSizeLimit = test.pruneOverSizeLimit
+		} else {
+			keepYoungerThan := 60 * time.Minute
+			keepTagRevisions := 3
+			options.KeepYoungerThan = &keepYoungerThan
+			options.KeepTagRevisions = &keepTagRevisions
 		}
 		p := NewPruner(options)
 		p.(*pruner).registryPinger = &fakeRegistryPinger{}
@@ -880,9 +998,11 @@ func TestRegistryPruning(t *testing.T) {
 
 		t.Logf("Running test case %s", name)
 
+		keepYoungerThan := 60 * time.Minute
+		keepTagRevisions := 1
 		options := PrunerOptions{
-			KeepYoungerThan:  60 * time.Minute,
-			KeepTagRevisions: 1,
+			KeepYoungerThan:  &keepYoungerThan,
+			KeepTagRevisions: &keepTagRevisions,
 			Images:           &test.images,
 			Streams:          &test.streams,
 			Pods:             &kapi.PodList{},
@@ -912,4 +1032,10 @@ func TestRegistryPruning(t *testing.T) {
 			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions, manifestDeleter.invocations)
 		}
 	}
+}
+
+func newBool(a bool) *bool {
+	r := new(bool)
+	*r = a
+	return r
 }
