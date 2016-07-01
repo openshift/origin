@@ -40,7 +40,7 @@ RUN dnf -y update && dnf -y install git golang hg tar make findutils \
 # sshd should be enabled as needed
 RUN systemctl disable sshd.service
 
-# Default storage to vfs.
+# Default storage to vfs.  overlay will be enabled at runtime if available.
 RUN echo "DOCKER_STORAGE_OPTIONS=--storage-driver vfs" >\
  /etc/sysconfig/docker-storage
 
