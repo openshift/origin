@@ -269,7 +269,8 @@ func (r *SourceRepository) RemoteURL() (*url.URL, bool, error) {
 		if len(ref) > 0 {
 			remote = fmt.Sprintf("%s#%s", remote, ref)
 		}
-		if r.remoteURL, err = url.Parse(remote); err != nil {
+
+		if r.remoteURL, err = git.ParseRepository(remote); err != nil {
 			return nil, false, err
 		}
 	default:

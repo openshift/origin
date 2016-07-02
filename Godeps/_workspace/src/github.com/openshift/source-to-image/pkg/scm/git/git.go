@@ -227,9 +227,9 @@ func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
 	// paths absolute and prepend file:// to the path which callers should
 	// switch to
 
-	// if source, minus potential file:// prefix, exists as is, denote
-	// and return
-	if doesExist(source) {
+	// if source, minus potential file:// prefix and #ref suffix,
+	// exists as is, denote and return
+	if doesExist(source) || doesExist(strings.SplitN(source, "#", 2)[0]) {
 		details = &FileProtoDetails{
 			FileExists:     true,
 			UseCopy:        useCopy(protoSpecified, source),
