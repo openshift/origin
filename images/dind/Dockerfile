@@ -40,12 +40,9 @@ RUN dnf -y update && dnf -y install git golang hg tar make findutils \
 # sshd should be enabled as needed
 RUN systemctl disable sshd.service
 
-## Configure dind
-ENV DIND_COMMIT 81aa1b507f51901eafcfaad70a656da376cf937d
-RUN curl -fL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" \
-  -o /usr/local/bin/dind && chmod +x /usr/local/bin/dind
-RUN mkdir -p /etc/systemd/system/docker.service.d
-COPY dind.conf /etc/systemd/system/docker.service.d/
+# Default storage to vfs.
+RUN echo "DOCKER_STORAGE_OPTIONS=--storage-driver vfs" >\
+ /etc/sysconfig/docker-storage
 
 RUN systemctl enable docker
 
