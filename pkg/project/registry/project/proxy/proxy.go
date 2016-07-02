@@ -131,16 +131,22 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 var _ = rest.Updater(&REST{})
 
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	oldObj, err := s.Get(ctx, name)
+	if err != nil {
+		return nil, false, err
+	}
+
+	obj, err := objInfo.UpdatedObject(ctx, oldObj)
+	if err != nil {
+		return nil, false, err
+	}
+
 	project, ok := obj.(*api.Project)
 	if !ok {
 		return nil, false, fmt.Errorf("not a project: %#v", obj)
 	}
 
-	oldObj, err := s.Get(ctx, project.Name)
-	if err != nil {
-		return nil, false, err
-	}
 	s.updateStrategy.PrepareForUpdate(obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
 		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)

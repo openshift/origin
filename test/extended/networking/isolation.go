@@ -61,10 +61,7 @@ var _ = Describe("[networking] network isolation", func() {
 })
 
 func checkPodIsolation(f1, f2 *e2e.Framework, numNodes int) error {
-	nodes, err := e2e.GetReadyNodes(f1)
-	if err != nil {
-		e2e.Failf("Failed to list nodes: %v", err)
-	}
+	nodes := e2e.GetReadySchedulableNodesOrDie(f1.Client)
 	var serverNode, clientNode *api.Node
 	serverNode = &nodes.Items[0]
 	if numNodes == 2 {

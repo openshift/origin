@@ -72,6 +72,7 @@ func (p *TestPod) GetBuild(t *testing.T) *buildapi.Build {
 
 func (p *TestPod) ToAttributes() admission.Attributes {
 	return admission.NewAttributesRecord((*kapi.Pod)(p),
+		nil,
 		kapi.Kind("Pod").WithVersion("version"),
 		"default",
 		"TestPod",

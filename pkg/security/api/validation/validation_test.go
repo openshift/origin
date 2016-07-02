@@ -129,13 +129,13 @@ func TestValidatePodSecurityPolicyReview(t *testing.T) {
 				PodSpec: invalidPodSpec(),
 			},
 		},
-		`spec.serviceAccountNames[0]: Invalid value: "my bad sa": must be a DNS subdomain (at most 253 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*): e.g. "example.com"`: {
+		`spec.serviceAccountNames[0]: Invalid value: "my bad sa": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`: {
 			Spec: securityapi.PodSecurityPolicyReviewSpec{
 				PodSpec:             validPodSpec(),
 				ServiceAccountNames: []string{"my bad sa"},
 			},
 		},
-		`spec.serviceAccountNames[1]: Invalid value: "my bad sa": must be a DNS subdomain (at most 253 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*): e.g. "example.com"`: {
+		`spec.serviceAccountNames[1]: Invalid value: "my bad sa": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`: {
 			Spec: securityapi.PodSecurityPolicyReviewSpec{
 				PodSpec:             validPodSpec(),
 				ServiceAccountNames: []string{"good-service.account", "my bad sa"},

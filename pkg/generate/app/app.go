@@ -466,7 +466,7 @@ func LabelsFromSpec(spec []string) (map[string]string, []string, error) {
 func AsVersionedObjects(objects []runtime.Object, typer runtime.ObjectTyper, convertor runtime.ObjectConvertor, versions ...unversioned.GroupVersion) []error {
 	var errs []error
 	for i, object := range objects {
-		kinds, err := typer.ObjectKinds(object)
+		kinds, _, err := typer.ObjectKinds(object)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -511,7 +511,7 @@ func kindsInVersions(kinds []unversioned.GroupVersionKind, versions []unversione
 func tryConvert(convertor runtime.ObjectConvertor, object runtime.Object, versions []unversioned.GroupVersion) (runtime.Object, error) {
 	var last error
 	for _, version := range versions {
-		obj, err := convertor.ConvertToVersion(object, version.String())
+		obj, err := convertor.ConvertToVersion(object, version)
 		if err != nil {
 			last = err
 			continue

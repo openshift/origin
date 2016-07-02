@@ -46,7 +46,8 @@ func (_ *Helper) GetKubeClient() (*KubeDocker, string, error) {
 	} else {
 		endpoint = "unix:///var/run/docker.sock"
 	}
-	client := dockertools.ConnectToDockerOrDie(endpoint)
+	// TODO: set a timeout here
+	client := dockertools.ConnectToDockerOrDie(endpoint, 0)
 	originClient := &KubeDocker{client}
 	return originClient, endpoint, nil
 }

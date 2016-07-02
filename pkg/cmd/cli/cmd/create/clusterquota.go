@@ -94,7 +94,7 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 		if err != nil {
 			return err
 		}
-		o.ClusterQuota.Spec.Quota.Hard[kapi.ResourceName(tokens[0])] = *quantity
+		o.ClusterQuota.Spec.Quota.Hard[kapi.ResourceName(tokens[0])] = quantity
 	}
 
 	o.Client, _, err = f.Clients()

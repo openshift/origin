@@ -59,7 +59,7 @@ func (s *storage) CreatePolicy(ctx kapi.Context, node *authorizationapi.Policy) 
 }
 
 func (s *storage) UpdatePolicy(ctx kapi.Context, node *authorizationapi.Policy) error {
-	_, _, err := s.Update(ctx, node)
+	_, _, err := s.Update(ctx, node.Name, rest.DefaultUpdatedObjectInfo(node, kapi.Scheme))
 	return err
 }
 

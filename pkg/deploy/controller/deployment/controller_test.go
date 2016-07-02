@@ -19,12 +19,13 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 var (
 	env   = []kapi.EnvVar{{Name: "ENV1", Value: "VAL1"}}
-	codec = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+	codec = kapi.Codecs.LegacyCodec(deployapiv1.SchemeGroupVersion)
 )
 
 func okDeploymentController(fake kclient.Interface, deployment *kapi.ReplicationController, hookPodNames []string, related bool) *DeploymentController {

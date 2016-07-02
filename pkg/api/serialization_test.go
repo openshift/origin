@@ -32,6 +32,7 @@ import (
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 	route "github.com/openshift/origin/pkg/route/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 	template "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 
@@ -65,21 +66,21 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				switch j.Subjects[i].Kind {
 				case authorizationapi.UserKind:
 					j.Subjects[i].Namespace = ""
-					if valid, _ := uservalidation.ValidateUserName(j.Subjects[i].Name, false); !valid {
+					if len(uservalidation.ValidateUserName(j.Subjects[i].Name, false)) != 0 {
 						j.Subjects[i].Name = fmt.Sprintf("validusername%d", i)
 					}
 
 				case authorizationapi.GroupKind:
 					j.Subjects[i].Namespace = ""
-					if valid, _ := uservalidation.ValidateGroupName(j.Subjects[i].Name, false); !valid {
+					if len(uservalidation.ValidateGroupName(j.Subjects[i].Name, false)) != 0 {
 						j.Subjects[i].Name = fmt.Sprintf("validgroupname%d", i)
 					}
 
 				case authorizationapi.ServiceAccountKind:
-					if valid, _ := validation.ValidateNamespaceName(j.Subjects[i].Namespace, false); !valid {
+					if len(validation.ValidateNamespaceName(j.Subjects[i].Namespace, false)) != 0 {
 						j.Subjects[i].Namespace = fmt.Sprintf("sanamespacehere%d", i)
 					}
-					if valid, _ := validation.ValidateServiceAccountName(j.Subjects[i].Name, false); !valid {
+					if len(validation.ValidateServiceAccountName(j.Subjects[i].Name, false)) != 0 {
 						j.Subjects[i].Name = fmt.Sprintf("sanamehere%d", i)
 					}
 
@@ -110,21 +111,21 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				switch j.Subjects[i].Kind {
 				case authorizationapi.UserKind:
 					j.Subjects[i].Namespace = ""
-					if valid, _ := uservalidation.ValidateUserName(j.Subjects[i].Name, false); !valid {
+					if len(uservalidation.ValidateUserName(j.Subjects[i].Name, false)) != 0 {
 						j.Subjects[i].Name = fmt.Sprintf("validusername%d", i)
 					}
 
 				case authorizationapi.GroupKind:
 					j.Subjects[i].Namespace = ""
-					if valid, _ := uservalidation.ValidateGroupName(j.Subjects[i].Name, false); !valid {
+					if len(uservalidation.ValidateGroupName(j.Subjects[i].Name, false)) != 0 {
 						j.Subjects[i].Name = fmt.Sprintf("validgroupname%d", i)
 					}
 
 				case authorizationapi.ServiceAccountKind:
-					if valid, _ := validation.ValidateNamespaceName(j.Subjects[i].Namespace, false); !valid {
+					if len(validation.ValidateNamespaceName(j.Subjects[i].Namespace, false)) != 0 {
 						j.Subjects[i].Namespace = fmt.Sprintf("sanamespacehere%d", i)
 					}
-					if valid, _ := validation.ValidateServiceAccountName(j.Subjects[i].Name, false); !valid {
+					if len(validation.ValidateServiceAccountName(j.Subjects[i].Name, false)) != 0 {
 						j.Subjects[i].Name = fmt.Sprintf("sanamehere%d", i)
 					}
 
@@ -340,6 +341,27 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			j.From.Kind = "DockerImage"
 			j.From.Name = specs[c.Intn(len(specs))]
 		},
+
+		// TODO: uncomment when round tripping for init containers is available (the annotation is
+		// not supported on security context review for now)
+		func(j *securityapi.PodSecurityPolicyReview, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Spec.PodSpec.InitContainers = nil
+			for i := range j.Status.AllowedServiceAccounts {
+				j.Status.AllowedServiceAccounts[i].PodSpec.InitContainers = nil
+			}
+		},
+		func(j *securityapi.PodSecurityPolicySelfSubjectReview, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Spec.PodSpec.InitContainers = nil
+			j.Status.PodSpec.InitContainers = nil
+		},
+		func(j *securityapi.PodSecurityPolicySubjectReview, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Spec.PodSpec.InitContainers = nil
+			j.Status.PodSpec.InitContainers = nil
+		},
+
 		func(j *runtime.Object, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
 		},
@@ -420,7 +442,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 
 	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, diff.ObjectDiff(originalItem, obj2), codec, string(data), diff.ObjectGoPrintSideBySide(originalItem, obj2))
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s", name, diff.ObjectReflectDiff(originalItem, obj2), codec, string(data))
 		return
 	}
 
@@ -430,7 +452,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		return
 	}
 	if !kapi.Semantic.DeepEqual(originalItem, obj3) {
-		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectDiff(originalItem, obj3), codec)
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectReflectDiff(originalItem, obj3), codec)
 		return
 	}
 }
@@ -457,14 +479,14 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		t.Logf(`About to test %v with "v1"`, kind)
+		//t.Logf(`About to test %v with "v1"`, kind)
 		fuzzInternalObject(t, v1.SchemeGroupVersion, item, seed)
 		roundTrip(t, kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), item)
 	}
 }
 
 // Keep this in sync with the respective upstream set
-var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions")
+var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "WatchEvent")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
@@ -497,13 +519,13 @@ func TestTypes(t *testing.T) {
 
 					if versions, ok := skipStandardVersions[kind]; ok {
 						for _, v := range versions {
-							t.Logf("About to test %v with %q", kind, v)
+							//t.Logf("About to test %v with %q", kind, v)
 							fuzzInternalObject(t, v, item, seed)
 							roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
 						}
 						continue
 					}
-					t.Logf(`About to test %v with "v1"`, kind)
+					//t.Logf(`About to test %v with "v1"`, kind)
 					fuzzInternalObject(t, externalVersion, item, seed)
 					roundTrip(t, kapi.Codecs.LegacyCodec(externalVersion), item)
 				}

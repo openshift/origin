@@ -211,13 +211,13 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 		hpaNode := node.(*kubegraph.HorizontalPodAutoscalerNode)
 
 		syntheticMeta := kapi.ObjectMeta{
-			Name:      hpaNode.HorizontalPodAutoscaler.Spec.ScaleRef.Name,
+			Name:      hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Name,
 			Namespace: hpaNode.HorizontalPodAutoscaler.Namespace,
 		}
 
 		var groupVersionResource unversioned.GroupVersionResource
-		resource := strings.ToLower(hpaNode.HorizontalPodAutoscaler.Spec.ScaleRef.Kind)
-		if groupVersion, err := unversioned.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleRef.APIVersion); err == nil {
+		resource := strings.ToLower(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Kind)
+		if groupVersion, err := unversioned.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion); err == nil {
 			groupVersionResource = groupVersion.WithResource(resource)
 		} else {
 			groupVersionResource = unversioned.GroupVersionResource{Resource: resource}

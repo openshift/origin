@@ -11,6 +11,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -65,7 +66,7 @@ func TestPodName(t *testing.T) {
 
 func TestMakeDeploymentOk(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, err := MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, err := MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
 	if err != nil {
 		t.Fatalf("unexpected error: %#v", err)
@@ -99,7 +100,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}
 
-	if decodedConfig, err := DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)); err != nil {
+	if decodedConfig, err := DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)); err != nil {
 		t.Fatalf("invalid encoded config on deployment: %v", err)
 	} else {
 		if e, a := config.Name, decodedConfig.Name; e != a {
@@ -135,7 +136,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 	mkdeployment := func(version int64) kapi.ReplicationController {
-		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		return *deployment
 	}
 	deployments := []kapi.ReplicationController{

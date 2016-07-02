@@ -8,7 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/install"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
@@ -130,11 +130,11 @@ func TestSecretEdges(t *testing.T) {
 }
 
 func TestHPARCEdges(t *testing.T) {
-	hpa := &extensions.HorizontalPodAutoscaler{}
+	hpa := &autoscaling.HorizontalPodAutoscaler{}
 	hpa.Namespace = "test-ns"
 	hpa.Name = "test-hpa"
-	hpa.Spec = extensions.HorizontalPodAutoscalerSpec{
-		ScaleRef: extensions.SubresourceReference{
+	hpa.Spec = autoscaling.HorizontalPodAutoscalerSpec{
+		ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 			Name: "test-rc",
 			Kind: "ReplicationController",
 		},
@@ -160,11 +160,11 @@ func TestHPARCEdges(t *testing.T) {
 }
 
 func TestHPADCEdges(t *testing.T) {
-	hpa := &extensions.HorizontalPodAutoscaler{}
+	hpa := &autoscaling.HorizontalPodAutoscaler{}
 	hpa.Namespace = "test-ns"
 	hpa.Name = "test-hpa"
-	hpa.Spec = extensions.HorizontalPodAutoscalerSpec{
-		ScaleRef: extensions.SubresourceReference{
+	hpa.Spec = autoscaling.HorizontalPodAutoscalerSpec{
+		ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 			Name: "test-dc",
 			Kind: "DeploymentConfig",
 		},

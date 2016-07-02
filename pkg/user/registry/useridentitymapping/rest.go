@@ -55,7 +55,11 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 // Update associates an identity with a user.
 // Both the identity and user must already exist.
 // If the identity is associated with another user already, it is disassociated.
-func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	obj, err := objInfo.UpdatedObject(ctx, nil)
+	if err != nil {
+		return nil, false, err
+	}
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
 		return nil, false, kerrs.NewBadRequest("invalid type")

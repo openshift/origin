@@ -293,7 +293,7 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			}
 			if in.Provider.Object != nil {
 				var err error
-				out.Provider, err = internal.Scheme.ConvertToVersion(in.Provider.Object, internal.SchemeGroupVersion.String())
+				out.Provider, err = internal.Scheme.ConvertToVersion(in.Provider.Object, internal.SchemeGroupVersion)
 				if err != nil {
 					return err
 				}
@@ -317,7 +317,7 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			}
 			if in.Configuration.Object != nil {
 				var err error
-				out.Configuration, err = internal.Scheme.ConvertToVersion(in.Configuration.Object, internal.SchemeGroupVersion.String())
+				out.Configuration, err = internal.Scheme.ConvertToVersion(in.Configuration.Object, internal.SchemeGroupVersion)
 				if err != nil {
 					return err
 				}

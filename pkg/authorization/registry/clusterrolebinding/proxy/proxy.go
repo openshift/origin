@@ -2,6 +2,7 @@ package proxy
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -82,11 +83,24 @@ func (s *ClusterRoleBindingStorage) Create(ctx kapi.Context, obj runtime.Object)
 	return authorizationapi.ToClusterRoleBinding(ret.(*authorizationapi.RoleBinding)), err
 }
 
-func (s *ClusterRoleBindingStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+type convertingObjectInfo struct {
+	rest.UpdatedObjectInfo
+}
+
+func (i convertingObjectInfo) UpdatedObject(ctx kapi.Context, old runtime.Object) (runtime.Object, error) {
+	oldObj := old.(*authorizationapi.RoleBinding)
+	convertedOldObj := authorizationapi.ToClusterRoleBinding(oldObj)
+	obj, err := i.UpdatedObjectInfo.UpdatedObject(ctx, convertedOldObj)
+	if err != nil {
+		return nil, err
+	}
 	clusterObj := obj.(*authorizationapi.ClusterRoleBinding)
 	convertedObj := authorizationapi.ToRoleBinding(clusterObj)
+	return convertedObj, nil
+}
 
-	ret, created, err := s.roleBindingStorage.Update(ctx, convertedObj)
+func (s *ClusterRoleBindingStorage) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	ret, created, err := s.roleBindingStorage.Update(ctx, name, convertingObjectInfo{objInfo})
 	if ret == nil {
 		return nil, created, err
 	}

@@ -26,6 +26,7 @@ import (
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -251,7 +252,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		KeyFile:    options.EtcdClientInfo.ClientCert.KeyFile,
 		CertFile:   options.EtcdClientInfo.ClientCert.CertFile,
 		CAFile:     options.EtcdClientInfo.CA,
-		DeserializationCacheSize: genericapiserver.DefaultDeserializationCacheSize,
+		DeserializationCacheSize: genericapiserveroptions.DefaultDeserializationCacheSize,
 	}
 	storageFactory := genericapiserver.NewDefaultStorageFactory(etcdConfig, "", kapi.Codecs, resourceEncodingConfig, master.DefaultAPIResourceConfigSource())
 	// the order here is important, it defines which version will be used for storage

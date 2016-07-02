@@ -408,6 +408,16 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kAttachablePodForObjectFunc(object)
 		}
 	}
+	kProtocolsForObject := w.Factory.ProtocolsForObject
+	w.ProtocolsForObject = func(object runtime.Object) (map[string]string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return getProtocols(t.Spec.Template.Spec), nil
+		default:
+			return kProtocolsForObject(object)
+		}
+	}
+
 	kSwaggerSchemaFunc := w.Factory.SwaggerSchema
 	w.Factory.SwaggerSchema = func(gvk unversioned.GroupVersionKind) (*swagger.ApiDeclaration, error) {
 		if !latest.OriginKind(gvk) {
@@ -514,6 +524,16 @@ func getPorts(spec api.PodSpec) []string {
 	for _, container := range spec.Containers {
 		for _, port := range container.Ports {
 			result = append(result, strconv.Itoa(int(port.ContainerPort)))
+		}
+	}
+	return result
+}
+
+func getProtocols(spec api.PodSpec) map[string]string {
+	result := make(map[string]string)
+	for _, container := range spec.Containers {
+		for _, port := range container.Ports {
+			result[strconv.Itoa(int(port.ContainerPort))] = string(port.Protocol)
 		}
 	}
 	return result

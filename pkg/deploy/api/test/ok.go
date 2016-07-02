@@ -3,7 +3,7 @@ package test
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -223,12 +223,12 @@ func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.Deploym
 	return config
 }
 
-func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *extensions.HorizontalPodAutoscaler {
+func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *autoscaling.HorizontalPodAutoscaler {
 	newMin := int32(min)
-	return &extensions.HorizontalPodAutoscaler{
+	return &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
-		Spec: extensions.HorizontalPodAutoscalerSpec{
-			ScaleRef: extensions.SubresourceReference{
+		Spec: autoscaling.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 				Name: config.Name,
 				Kind: "DeploymentConfig",
 			},

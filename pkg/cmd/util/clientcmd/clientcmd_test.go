@@ -38,7 +38,7 @@ func (c *fakeCodec) Decode([]byte, *unversioned.GroupVersionKind, runtime.Object
 	return nil, nil, nil
 }
 
-func (c *fakeCodec) EncodeToStream(obj runtime.Object, stream io.Writer, overrides ...unversioned.GroupVersion) error {
+func (c *fakeCodec) Encode(obj runtime.Object, stream io.Writer) error {
 	return nil
 }
 

@@ -276,8 +276,8 @@ func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubern
 	}
 
 	for i, name := range config.ManagedNames {
-		if ok, msg := kvalidation.ValidateServiceAccountName(name, false); !ok {
-			validationResults.AddErrors(field.Invalid(managedNamesPath.Index(i), name, msg))
+		if reasons := kvalidation.ValidateServiceAccountName(name, false); len(reasons) != 0 {
+			validationResults.AddErrors(field.Invalid(managedNamesPath.Index(i), name, strings.Join(reasons, ", ")))
 		}
 	}
 
@@ -574,7 +574,7 @@ func ValidateRoutingConfig(config api.RoutingConfig, fldPath *field.Path) field.
 
 	if len(config.Subdomain) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("subdomain"), ""))
-	} else if !kuval.IsDNS1123Subdomain(config.Subdomain) {
+	} else if len(kuval.IsDNS1123Subdomain(config.Subdomain)) != 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("subdomain"), config.Subdomain, "must be a valid subdomain"))
 	}
 

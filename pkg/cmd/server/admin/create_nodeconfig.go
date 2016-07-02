@@ -432,11 +432,11 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	}
 
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, latestconfigapi.Version.String())
+	ext, err := configapi.Scheme.ConvertToVersion(config, latestconfigapi.Version)
 	if err != nil {
 		return err
 	}
-	internal, err := configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
+	internal, err := configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion)
 	if err != nil {
 		return err
 	}

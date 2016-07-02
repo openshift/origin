@@ -81,7 +81,7 @@ func InitTest() {
 	TestContext.CreateTestingNS = createTestingNS
 
 	// Override the default Kubernetes E2E configuration
-	e2e.SetTestContext(TestContext)
+	e2e.TestContext = TestContext
 }
 
 func ExecuteTest(t *testing.T, suite string) {

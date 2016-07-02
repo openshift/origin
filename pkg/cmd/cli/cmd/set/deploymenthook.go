@@ -22,15 +22,15 @@ const (
 	deploymentHookLong = `
 Set or remove a deployment hook on a deployment config
 
-Deployment configs allow hooks to execute at different points in the lifecycle of the 
-deployment, depending on the deployment strategy. 
+Deployment configs allow hooks to execute at different points in the lifecycle of the
+deployment, depending on the deployment strategy.
 
-For deployments with a Recreate strategy, a Pre, Mid, and Post hook can be specified. 
-The Pre hook will execute before the deployment starts. The Mid hook will execute once the 
-previous deployment has been scaled down to 0, but before the new one ramps up. 
+For deployments with a Recreate strategy, a Pre, Mid, and Post hook can be specified.
+The Pre hook will execute before the deployment starts. The Mid hook will execute once the
+previous deployment has been scaled down to 0, but before the new one ramps up.
 The Post hook will execute once the deployment has completed.
 
-For deployments with a Rolling strategy, a Pre and Post hook can be specified. 
+For deployments with a Rolling strategy, a Pre and Post hook can be specified.
 The Pre hook will execute before the deployment starts and the Post hook will execute once
 the deployment has completed.
 
@@ -253,7 +253,7 @@ func (o *DeploymentHookOptions) Run() error {
 	}
 
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

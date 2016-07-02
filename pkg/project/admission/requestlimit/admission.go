@@ -110,7 +110,7 @@ func (o *projectRequestLimit) maxProjectsByRequester(userName string) (int, bool
 	}
 
 	// if we aren't a valid username, we came in as cert user for certain, use our cert user rules
-	if valid, _ := uservalidation.ValidateUserName(userName, false); !valid {
+	if reasons := uservalidation.ValidateUserName(userName, false); len(reasons) != 0 {
 		if o.config.MaxProjectsForSystemUsers == nil {
 			return 0, false, nil
 		}

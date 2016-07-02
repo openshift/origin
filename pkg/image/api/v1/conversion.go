@@ -36,7 +36,7 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 	if err != nil {
 		return err
 	}
-	data, err := runtime.Encode(api.Codecs.LegacyCodec(version), &in.DockerImageMetadata, version)
+	data, err := runtime.Encode(api.Codecs.LegacyCodec(version), &in.DockerImageMetadata)
 	if err != nil {
 		return err
 	}

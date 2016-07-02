@@ -156,7 +156,7 @@ func CalculatePatches(infos []*resource.Info, encoder runtime.Encoder, mutateFn 
 		}
 
 		// TODO: should be via New
-		versioned, err := info.Mapping.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion().String())
+		versioned, err := info.Mapping.ConvertToVersion(info.Object, info.Mapping.GroupVersionKind.GroupVersion())
 		if err != nil {
 			patch.Err = err
 			continue

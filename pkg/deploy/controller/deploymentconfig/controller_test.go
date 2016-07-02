@@ -18,6 +18,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -41,7 +42,7 @@ func TestHandleScenarios(t *testing.T) {
 		if d.test {
 			config = deploytest.TestDeploymentConfig(config)
 		}
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
 			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
@@ -642,7 +643,7 @@ func TestHandleScenarios(t *testing.T) {
 			deployments[rc.Name] = *rc
 			return true, rc, nil
 		})
-		codec := kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+		codec := kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 		dcInformer := framework.NewSharedIndexInformer(
 			&cache.ListWatch{

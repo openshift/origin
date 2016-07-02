@@ -144,13 +144,13 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 	}
 
 	fifo.Add(testObj{"a", 1})
-	controller.handleOne(fifo.Pop())
+	controller.handleOne(kcache.Pop(fifo))
 
 	if e, a := 1, len(fifo.List()); e != a {
 		t.Fatalf("expected queue length %d, got %d", e, a)
 	}
 
-	obj := fifo.Pop()
+	obj := kcache.Pop(fifo)
 	if e, a := 2, obj.(testObj).value; e != a {
 		t.Fatalf("expected queued value %d, got %d", e, a)
 	}
@@ -213,8 +213,10 @@ func (t *testFifo) AddIfNotPresent(obj interface{}) error {
 	return t.AddIfNotPresentFunc(obj)
 }
 
-func (t *testFifo) Pop() interface{} {
-	return t.PopFunc()
+func (t *testFifo) Pop(fn kcache.PopProcessFunc) (interface{}, error) {
+	obj := t.PopFunc()
+	err := fn(obj)
+	return obj, err
 }
 
 type testRetryManager struct {

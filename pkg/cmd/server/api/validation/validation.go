@@ -167,7 +167,7 @@ func ValidateNamedCertificates(fldPath *field.Path, namedCertificates []api.Name
 			// validate names as domain names or *.*.foo.com domain names
 			validDNSName := true
 			for _, s := range strings.Split(name, ".") {
-				if s != "*" && !utilvalidation.IsDNS1123Label(s) {
+				if s != "*" && len(utilvalidation.IsDNS1123Label(s)) != 0 {
 					validDNSName = false
 				}
 			}
@@ -313,7 +313,7 @@ func ValidateNamespace(namespace string, fldPath *field.Path) field.ErrorList {
 
 	if len(namespace) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath, ""))
-	} else if ok, _ := kvalidation.ValidateNamespaceName(namespace, false); !ok {
+	} else if reasons := kvalidation.ValidateNamespaceName(namespace, false); len(reasons) != 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath, namespace, "must be a valid namespace"))
 	}
 

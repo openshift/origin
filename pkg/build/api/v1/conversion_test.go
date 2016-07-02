@@ -38,7 +38,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 		AsFile: "Dockerfile",
 		Commit: "abcdef",
 	}
-	versioned, err := knewer.Scheme.ConvertToVersion(r, "v1")
+	versioned, err := knewer.Scheme.ConvertToVersion(r, kolder.SchemeGroupVersion)
 	if err != nil {
 		t.Fatal(err)
 	}

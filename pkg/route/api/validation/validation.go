@@ -26,7 +26,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Spec.Host) > 0 {
-		if !kvalidation.IsDNS1123Subdomain(route.Spec.Host) {
+		if len(kvalidation.IsDNS1123Subdomain(route.Spec.Host)) != 0 {
 			result = append(result, field.Invalid(specPath.Child("host"), route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
 	}

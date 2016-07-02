@@ -9,18 +9,20 @@ import (
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	testapi "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 var (
-	codec      = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 	mock       = &testclient.Fake{}
 	dcInformer = framework.NewSharedIndexInformer(
 		&cache.ListWatch{
@@ -147,7 +149,7 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 		config := testapi.OkDeploymentConfig(1)
 		config.Namespace = kapi.NamespaceDefault
 		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger()}
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		var updated *deployapi.DeploymentConfig
 
 		fake.PrependReactor("update", "deploymentconfigs/status", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
@@ -168,7 +170,7 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 
 		if !s.changeExpected {
 			if updated != nil {
-				t.Errorf("unexpected update to version %d", updated.Status.LatestVersion)
+				t.Errorf("unexpected update to version %d: %s", updated.Status.LatestVersion, diff.ObjectReflectDiff(config, updated))
 			}
 			continue
 		}
@@ -267,7 +269,7 @@ func TestHandle_automaticImageUpdates(t *testing.T) {
 		kFake.PrependReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			// This will always return no template difference. We test template differences in TestHandle_changeWithTemplateDiff
 			config := testapi.OkDeploymentConfig(0)
-			deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 			return true, deployment, nil
 		})
 

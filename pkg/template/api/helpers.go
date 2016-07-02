@@ -17,7 +17,7 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 			return errors.New("cannot add a nil object to a template")
 		}
 
-		kind, err := kapi.Scheme.ObjectKind(obj)
+		kind, _, err := kapi.Scheme.ObjectKind(obj)
 		if err != nil {
 			return err
 		}

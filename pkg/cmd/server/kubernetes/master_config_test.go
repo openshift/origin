@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
@@ -29,7 +29,7 @@ func TestAPIServerDefaults(t *testing.T) {
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &apiserveroptions.APIServer{
-		ServerRunOptions: &genericapiserver.ServerRunOptions{
+		ServerRunOptions: &genericapiserveroptions.ServerRunOptions{
 			BindAddress:            net.ParseIP("0.0.0.0"),
 			CertDirectory:          "/var/run/kubernetes",
 			InsecureBindAddress:    net.ParseIP("127.0.0.1"),
@@ -49,15 +49,15 @@ func TestAPIServerDefaults(t *testing.T) {
 			DefaultStorageVersions: registered.AllPreferredGroupVersions(),
 			StorageConfig: storagebackend.Config{
 				Prefix: "/registry",
-				DeserializationCacheSize: genericapiserver.DefaultDeserializationCacheSize,
+				DeserializationCacheSize: genericapiserveroptions.DefaultDeserializationCacheSize,
 			},
+			DefaultStorageMediaType: "application/json",
+			AdmissionControl:        "AlwaysAdmit",
+			AuthorizationMode:       "AlwaysAllow",
+			DeleteCollectionWorkers: 1,
+			MasterServiceNamespace:  "default",
 		},
-		DefaultStorageMediaType: "application/json",
-		AdmissionControl:        "AlwaysAdmit",
-		AuthorizationMode:       "AlwaysAllow",
-		DeleteCollectionWorkers: 1,
-		EventTTL:                1 * time.Hour,
-		MasterServiceNamespace:  "default",
+		EventTTL: 1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
 			Port:        10250,
 			EnableHttps: true,

@@ -65,7 +65,7 @@ func (s *storage) CreateClusterPolicyBinding(ctx kapi.Context, policyBinding *au
 }
 
 func (s *storage) UpdateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
-	_, _, err := s.Update(ctx, policyBinding)
+	_, _, err := s.Update(ctx, policyBinding.Name, rest.DefaultUpdatedObjectInfo(policyBinding, kapi.Scheme))
 	return err
 }
 

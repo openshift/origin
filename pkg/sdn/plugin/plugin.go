@@ -10,6 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	utilsets "k8s.io/kubernetes/pkg/util/sets"
@@ -52,7 +53,7 @@ func (plugin *OsdnNode) getExecutable() string {
 	return "openshift-sdn-ovs"
 }
 
-func (plugin *OsdnNode) Init(host knetwork.Host) error {
+func (plugin *OsdnNode) Init(host knetwork.Host, _ componentconfig.HairpinMode, _ string) error {
 	return nil
 }
 

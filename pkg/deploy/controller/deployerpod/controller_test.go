@@ -13,6 +13,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -75,12 +76,12 @@ func TestHandle_uncorrelatedPod(t *testing.T) {
 	controller := &DeployerPodController{
 		kClient: kFake,
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			return deployutil.DecodeDeploymentConfig(deployment, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		},
 	}
 
 	// Verify no-op
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	pod := runningPod(deployment)
 	pod.Annotations = make(map[string]string)
 
@@ -109,7 +110,7 @@ func TestHandle_orphanedPod(t *testing.T) {
 	})
 	kFake.PrependReactor("list", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 		mkpod := func(suffix string) kapi.Pod {
-			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 			p := okPod(deployment)
 			p.Name = p.Name + suffix
 			return *p
@@ -127,7 +128,7 @@ func TestHandle_orphanedPod(t *testing.T) {
 		kClient: kFake,
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	err := controller.Handle(runningPod(deployment))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -142,7 +143,7 @@ func TestHandle_orphanedPod(t *testing.T) {
 // TestHandle_runningPod ensures that a running deployer pod results in a
 // transition of the deployment's status to running.
 func TestHandle_runningPod(t *testing.T) {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusPending)
 	var updatedDeployment *kapi.ReplicationController
 
@@ -177,7 +178,7 @@ func TestHandle_runningPod(t *testing.T) {
 // TestHandle_podTerminatedOk ensures that a successfully completed deployer
 // pod results in a transition of the deployment's status to complete.
 func TestHandle_podTerminatedOk(t *testing.T) {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Spec.Replicas = 1
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 	var updatedDeployment *kapi.ReplicationController
@@ -219,7 +220,7 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 // TestHandle_podTerminatedOk ensures that a successfully completed deployer
 // pod results in a transition of the deployment's status to complete.
 func TestHandle_podTerminatedOkTest(t *testing.T) {
-	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1)), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1)), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Spec.Replicas = 1
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 	var updatedDeployment *kapi.ReplicationController
@@ -263,7 +264,7 @@ func TestHandle_podTerminatedOkTest(t *testing.T) {
 // deployment's status to failed.
 func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Spec.Replicas = 1
 	// since we do not set the desired replicas annotation,
 	// this also tests that the error is just logged and not result in a failure
@@ -308,7 +309,7 @@ func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 // deployment's status to failed.
 func TestHandle_podTerminatedFailNoContainerStatusTest(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
-	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1)), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1)), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Spec.Replicas = 1
 	// since we do not set the desired replicas annotation,
 	// this also tests that the error is just logged and not result in a failure
@@ -352,7 +353,7 @@ func TestHandle_podTerminatedFailNoContainerStatusTest(t *testing.T) {
 // will be cleaned up in a complete deployment and stay around in a failed deployment
 func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 	// shared fixtures shouldn't be used in unit tests
-	shared, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	shared, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
 	tests := []struct {
 		name     string
@@ -372,7 +373,7 @@ func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		var updatedDeployment *kapi.ReplicationController
 		deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "1"
 

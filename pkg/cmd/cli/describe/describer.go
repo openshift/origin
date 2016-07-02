@@ -915,10 +915,14 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 			continue
 		}
 
-		gvk, _ := d.ObjectTyper.ObjectKind(obj)
 		meta := kapi.ObjectMeta{}
 		meta.Name, _ = d.MetadataAccessor.Name(obj)
-		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, gvk.Kind, meta.Name))
+		gvk, _, err := d.ObjectTyper.ObjectKinds(obj)
+		if err != nil {
+			fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, "<unknown>", meta.Name))
+			continue
+		}
+		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, gvk[0].Kind, meta.Name))
 		//meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
 		//meta.Labels, _ = d.MetadataAccessor.Labels(obj)
 		/*if len(meta.Labels) > 0 {
