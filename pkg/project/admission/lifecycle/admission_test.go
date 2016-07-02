@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/controller/shared"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
@@ -166,11 +167,13 @@ func TestAdmissionLifecycle(t *testing.T) {
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false, genericapiserver.DefaultDeserializationCacheSize)
 
+	informerFactory := shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	config := &origin.MasterConfig{
-		KubeletClientConfig: &kubeletclient.KubeletClientConfig{},
-		RESTOptionsGetter:   restoptions.NewSimpleGetter(etcdHelper),
-		EtcdHelper:          etcdHelper,
-		Informers:           shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second),
+		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
+		RESTOptionsGetter:             restoptions.NewSimpleGetter(etcdHelper),
+		EtcdHelper:                    etcdHelper,
+		Informers:                     informerFactory,
+		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas()),
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}

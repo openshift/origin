@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
@@ -68,6 +69,7 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota"
 	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -76,7 +78,6 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/util/leaderlease"
 	"github.com/openshift/origin/pkg/util/restoptions"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -91,9 +92,10 @@ type MasterConfig struct {
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
-	GroupCache                *usercache.GroupCache
-	ProjectAuthorizationCache *projectauth.AuthorizationCache
-	ProjectCache              *projectcache.ProjectCache
+	GroupCache                    *usercache.GroupCache
+	ProjectAuthorizationCache     *projectauth.AuthorizationCache
+	ProjectCache                  *projectcache.ProjectCache
+	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -197,6 +199,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
 	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
@@ -274,9 +277,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
-		GroupCache:                groupCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
-		ProjectCache:              projectCache,
+		GroupCache:                    groupCache,
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
+		ProjectCache:                  projectCache,
+		ClusterQuotaMappingController: clusterQuotaMappingController,
 
 		RequestContextMapper: requestContextMapper,
 

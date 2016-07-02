@@ -446,6 +446,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	// Must start policy caching immediately
 	oc.Informers.StartCore(utilwait.NeverStop)
+	oc.RunClusterQuotaMappingController()
 	oc.RunGroupCache()
 	oc.RunProjectCache()
 

@@ -134,6 +134,8 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuota)
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuotaList)
+	p.Handler(clusterResourceQuotaColumns, printAppliedClusterResourceQuota)
+	p.Handler(clusterResourceQuotaColumns, printAppliedClusterResourceQuotaList)
 
 	return p
 }
@@ -937,6 +939,19 @@ func printClusterResourceQuota(resourceQuota *quotaapi.ClusterResourceQuota, w i
 func printClusterResourceQuotaList(list *quotaapi.ClusterResourceQuotaList, w io.Writer, options kctl.PrintOptions) error {
 	for i := range list.Items {
 		if err := printClusterResourceQuota(&list.Items[i], w, options); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printAppliedClusterResourceQuota(resourceQuota *quotaapi.AppliedClusterResourceQuota, w io.Writer, options kctl.PrintOptions) error {
+	return printClusterResourceQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(resourceQuota), w, options)
+}
+
+func printAppliedClusterResourceQuotaList(list *quotaapi.AppliedClusterResourceQuotaList, w io.Writer, options kctl.PrintOptions) error {
+	for i := range list.Items {
+		if err := printClusterResourceQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(&list.Items[i]), w, options); err != nil {
 			return err
 		}
 	}

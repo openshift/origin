@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -52,7 +53,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -500,7 +500,10 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
 }
 
+var initClusterQuotaMapping sync.Once
+
 func (c *MasterConfig) RunClusterQuotaMappingController() {
-	controller := clusterquotamapping.NewClusterQuotaMappingController(c.Informers.Namespaces(), c.Informers.ClusterResourceQuotas())
-	go controller.Run(5, utilwait.NeverStop)
+	initClusterQuotaMapping.Do(func() {
+		go c.ClusterQuotaMappingController.Run(5, utilwait.NeverStop)
+	})
 }

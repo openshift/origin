@@ -98,5 +98,4 @@ func registerAll() {
 	Validator.MustRegister(&securityapi.PodSecurityPolicyReview{}, securityvalidation.ValidatePodSecurityPolicyReview, nil)
 
 	Validator.MustRegister(&quotaapi.ClusterResourceQuota{}, quotavalidation.ValidateClusterResourceQuota, quotavalidation.ValidateClusterResourceQuotaUpdate)
-
 }

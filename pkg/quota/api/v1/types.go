@@ -63,3 +63,28 @@ type ResourceQuotaStatusByNamespace struct {
 	// Status indicates how many resources have been consumed by this namespace
 	Status kapi.ResourceQuotaStatus `json:"status"`
 }
+
+// AppliedClusterResourceQuota mirrors ClusterResourceQuota at a namespace scope, for projection
+// into a namespace.  It allows a project-admin to know which ClusterResourceQuotas are applied to
+// his project and their associated usage.
+type AppliedClusterResourceQuota struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata"`
+
+	// Spec defines the desired quota
+	Spec ClusterResourceQuotaSpec `json:"spec"`
+
+	// Status defines the actual enforced quota and its current usage
+	Status ClusterResourceQuotaStatus `json:"status,omitempty"`
+}
+
+// AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas
+type AppliedClusterResourceQuotaList struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	unversioned.ListMeta `json:"metadata,omitempty"`
+
+	// Items is a list of AppliedClusterResourceQuota
+	Items []AppliedClusterResourceQuota `json:"items"`
+}
