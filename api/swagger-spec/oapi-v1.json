@@ -20367,7 +20367,7 @@
       },
       "description": "runtimeArtifacts holds the mapping between the artifacts paths in the builder image and the paths in the runtime image where they should be copied."
      },
-     "RuntimePullSecret": {
+     "runtimePullSecret": {
       "$ref": "v1.LocalObjectReference",
       "description": "runtimePullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker runtime images from private Docker registries."
      }

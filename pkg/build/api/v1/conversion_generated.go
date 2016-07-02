@@ -1766,9 +1766,8 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 	out.ForcePull = in.ForcePull
 	if in.RuntimeImage != nil {
 		in, out := &in.RuntimeImage, &out.RuntimeImage
-		*out = new(api_v1.ObjectReference)
-		// TODO: Inefficient conversion - can we improve it?
-		if err := s.Convert(*in, *out, 0); err != nil {
+		*out = new(api.ObjectReference)
+		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1776,9 +1775,9 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 	}
 	if in.RuntimeArtifacts != nil {
 		in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
-		*out = make([]ImageSourcePath, len(*in))
+		*out = make([]build_api.ImageSourcePath, len(*in))
 		for i := range *in {
-			if err := Convert_api_ImageSourcePath_To_v1_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1_ImageSourcePath_To_api_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1787,9 +1786,8 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 	}
 	if in.RuntimePullSecret != nil {
 		in, out := &in.RuntimePullSecret, &out.RuntimePullSecret
-		*out = new(api_v1.LocalObjectReference)
-		// TODO: Inefficient conversion - can we improve it?
-		if err := s.Convert(*in, *out, 0); err != nil {
+		*out = new(api.LocalObjectReference)
+		if err := api_v1.Convert_v1_LocalObjectReference_To_api_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1827,9 +1825,8 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 	out.ForcePull = in.ForcePull
 	if in.RuntimeImage != nil {
 		in, out := &in.RuntimeImage, &out.RuntimeImage
-		*out = new(api.ObjectReference)
-		// TODO: Inefficient conversion - can we improve it?
-		if err := s.Convert(*in, *out, 0); err != nil {
+		*out = new(api_v1.ObjectReference)
+		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1837,9 +1834,9 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 	}
 	if in.RuntimeArtifacts != nil {
 		in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
-		*out = make([]build_api.ImageSourcePath, len(*in))
+		*out = make([]ImageSourcePath, len(*in))
 		for i := range *in {
-			if err := Convert_v1_ImageSourcePath_To_api_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_api_ImageSourcePath_To_v1_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -1848,9 +1845,8 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 	}
 	if in.RuntimePullSecret != nil {
 		in, out := &in.RuntimePullSecret, &out.RuntimePullSecret
-		*out = new(api.LocalObjectReference)
-		// TODO: Inefficient conversion - can we improve it?
-		if err := s.Convert(*in, *out, 0); err != nil {
+		*out = new(api_v1.LocalObjectReference)
+		if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {

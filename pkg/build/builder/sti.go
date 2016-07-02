@@ -390,7 +390,6 @@ func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
 }
 
 func getDockerAuth() (dockerAuth docker.AuthConfiguration) {
-
 	return
 }
 

@@ -502,6 +502,23 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		if build.Spec.Strategy.SourceStrategy.PullSecret == nil {
 			build.Spec.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Strategy.SourceStrategy.From, bc.Namespace)
 		}
+
+		if build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
+			runtimeImage, err := g.resolveImageStreamReference(ctx, *build.Spec.Strategy.SourceStrategy.RuntimeImage, bc.Namespace)
+			if err != nil {
+				return nil, err
+			}
+
+			build.Spec.Strategy.SourceStrategy.RuntimeImage = &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: runtimeImage,
+			}
+
+			if build.Spec.Strategy.SourceStrategy.RuntimePullSecret == nil {
+				build.Spec.Strategy.SourceStrategy.RuntimePullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Spec.Strategy.SourceStrategy.RuntimeImage, bc.Namespace)
+			}
+
+		}
 	case build.Spec.Strategy.DockerStrategy != nil &&
 		build.Spec.Strategy.DockerStrategy.From != nil:
 		if image == "" {
