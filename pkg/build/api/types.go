@@ -509,7 +509,7 @@ type SourceBuildStrategy struct {
 	// builder container.
 	Env []kapi.EnvVar
 
-	// Scripts is the location of Source scripts
+	// Scripts is the location of Source scripts.
 	Scripts string
 
 	// Incremental flag forces the Source build to do incremental builds if true.
