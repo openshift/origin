@@ -119,8 +119,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets", "daemonsets/status", "deployments", "deployments/scale",
 					"deployments/status", "horizontalpodautoscalers", "horizontalpodautoscalers/status", "ingresses", "ingresses/status", "jobs", "jobs/status",
-					"podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers", "replicationcontrollers/scale",
-					"thirdpartyresources").RuleOrDie(),
+					"networkpolicies", "podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers",
+					"replicationcontrollers/scale", "thirdpartyresources").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("clusterpolicies", "clusterpolicybindings", "clusterroles", "clusterrolebindings",
 					"policies", "policybindings", "roles", "rolebindings").RuleOrDie(),

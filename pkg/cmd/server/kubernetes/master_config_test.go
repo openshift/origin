@@ -56,6 +56,10 @@ func TestAPIServerDefaults(t *testing.T) {
 			AuthorizationMode:       "AlwaysAllow",
 			DeleteCollectionWorkers: 1,
 			MasterServiceNamespace:  "default",
+			AuthorizationConfig: genericapiserveroptions.AuthorizationConfig{
+				WebhookCacheAuthorizedTTL:   5 * time.Minute,
+				WebhookCacheUnauthorizedTTL: 30 * time.Second,
+			},
 		},
 		EventTTL: 1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
@@ -63,10 +67,11 @@ func TestAPIServerDefaults(t *testing.T) {
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
+		WebhookTokenAuthnCacheTTL: 2 * time.Minute,
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesMasterConfig and update expectedDefaults")
 	}
 }
@@ -93,11 +98,13 @@ func TestCMServerDefaults(t *testing.T) {
 			LookupCacheSizeForRC:              4096,
 			LookupCacheSizeForRS:              4096,
 			LookupCacheSizeForDaemonSet:       1024,
+			ConfigureCloudRoutes:              true,
+			NodeCIDRMaskSize:                  24,
 			ServiceSyncPeriod:                 unversioned.Duration{Duration: 5 * time.Minute},
 			NodeSyncPeriod:                    unversioned.Duration{Duration: 10 * time.Second},
 			ResourceQuotaSyncPeriod:           unversioned.Duration{Duration: 5 * time.Minute},
 			NamespaceSyncPeriod:               unversioned.Duration{Duration: 5 * time.Minute},
-			PVClaimBinderSyncPeriod:           unversioned.Duration{Duration: 10 * time.Minute},
+			PVClaimBinderSyncPeriod:           unversioned.Duration{Duration: 15 * time.Second},
 			HorizontalPodAutoscalerSyncPeriod: unversioned.Duration{Duration: 30 * time.Second},
 			DeploymentControllerSyncPeriod:    unversioned.Duration{Duration: 30 * time.Second},
 			MinResyncPeriod:                   unversioned.Duration{Duration: 12 * time.Hour},
@@ -109,7 +116,9 @@ func TestCMServerDefaults(t *testing.T) {
 			ClusterName:                       "kubernetes",
 			TerminatedPodGCThreshold:          12500,
 			VolumeConfiguration: componentconfig.VolumeConfiguration{
+				EnableDynamicProvisioning:  true,
 				EnableHostPathProvisioning: false,
+				FlexVolumePluginDir:        "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
 				PersistentVolumeRecyclerConfiguration: componentconfig.PersistentVolumeRecyclerConfiguration{
 					MaximumRetry:             3,
 					MinimumTimeoutNFS:        300,
@@ -118,7 +127,7 @@ func TestCMServerDefaults(t *testing.T) {
 					IncrementTimeoutHostPath: 30,
 				},
 			},
-			ContentType:  "",
+			ContentType:  "application/vnd.kubernetes.protobuf",
 			KubeAPIQPS:   20.0,
 			KubeAPIBurst: 30,
 			LeaderElection: componentconfig.LeaderElectionConfiguration{
@@ -131,7 +140,7 @@ func TestCMServerDefaults(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesMasterConfig and update expectedDefaults")
 	}
 }

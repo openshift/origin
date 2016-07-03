@@ -145,6 +145,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	cmserver.Address = "" // no healthz endpoint
 	cmserver.Port = 0     // no healthz endpoint
 	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
+	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide

@@ -122,6 +122,7 @@ items:
     - ingresses/status
     - jobs
     - jobs/status
+    - networkpolicies
     - podsecuritypolicies
     - replicasets
     - replicasets/scale

@@ -21,6 +21,9 @@ type InformerFactory interface {
 
 	Pods() PodInformer
 	Namespaces() NamespaceInformer
+	Nodes() NodeInformer
+	PersistentVolumes() PersistentVolumeInformer
+	PersistentVolumeClaims() PersistentVolumeClaimInformer
 	ReplicationControllers() ReplicationControllerInformer
 
 	ClusterPolicies() ClusterPolicyInformer
@@ -85,6 +88,18 @@ func (f *sharedInformerFactory) StartCore(stopCh <-chan struct{}) {
 
 func (f *sharedInformerFactory) Pods() PodInformer {
 	return &podInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) Nodes() NodeInformer {
+	return &nodeInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) PersistentVolumes() PersistentVolumeInformer {
+	return &persistentVolumeInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) PersistentVolumeClaims() PersistentVolumeClaimInformer {
+	return &persistentVolumeClaimInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerInformer {

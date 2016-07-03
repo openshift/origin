@@ -518,6 +518,7 @@ func TestSpecificKind(t *testing.T) {
 }
 
 // Keep this in sync with the respective upstream set
+// WatchEvent does not have TypeMeta and cannot be roundtripped.
 var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "WatchEvent")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
@@ -551,13 +552,11 @@ func TestTypes(t *testing.T) {
 
 					if versions, ok := skipStandardVersions[kind]; ok {
 						for _, v := range versions {
-							//t.Logf("About to test %v with %q", kind, v)
 							fuzzInternalObject(t, v, item, seed)
 							roundTrip(t, kapi.Codecs.LegacyCodec(v), item)
 						}
 						continue
 					}
-					//t.Logf(`About to test %v with "v1"`, kind)
 					fuzzInternalObject(t, externalVersion, item, seed)
 					roundTrip(t, kapi.Codecs.LegacyCodec(externalVersion), item)
 				}

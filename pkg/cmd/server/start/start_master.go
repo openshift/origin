@@ -563,19 +563,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
 
-		_, _, recyclerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for persistent volume recycler controller: %v", err)
-		}
-
 		_, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
-		}
-
-		_, _, provisionerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeProvisionerControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for persistent volume provisioner controller: %v", err)
 		}
 
 		_, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
@@ -627,11 +617,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 		kc.RunEndpointController()
 		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
-		kc.RunPersistentVolumeClaimBinder(binderClient)
-		if oc.Options.VolumeConfig.DynamicProvisioningEnabled {
-			kc.RunPersistentVolumeProvisioner(provisionerClient)
-		}
-		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("recycler"), recyclerClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
+		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"))
 		kc.RunGCController(gcClient)
 
 		kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)

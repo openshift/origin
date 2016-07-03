@@ -716,6 +716,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Creater:   kapi.Scheme,
 		Typer:     kapi.Scheme,
 		Convertor: kapi.Scheme,
+		Copier:    kapi.Scheme,
 		Linker:    registered.GroupOrDie("").SelfLinker,
 
 		Admit:                       c.AdmissionControl,
