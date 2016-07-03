@@ -17,7 +17,11 @@ func main() {
 
 	commits, err := util.CommitsBetween(start, end)
 	if err != nil {
-		os.Stderr.WriteString(fmt.Sprintf("ERROR: couldn't find commits from %s..%s: %v\n", start, end, err))
+		if err == util.ErrNotCommit {
+			fmt.Fprintf(os.Stderr, "WARNING: one of the provided commits does not exist, not a true branch\n")
+			os.Exit(0)
+		}
+		fmt.Fprintf(os.Stderr, "ERROR: couldn't find commits from %s..%s: %v\n", start, end, err)
 		os.Exit(1)
 	}
 
@@ -39,7 +43,7 @@ func main() {
 	}
 
 	if len(errs) > 0 {
-		os.Stderr.WriteString(strings.Join(errs, "\n\n"))
+		fmt.Fprintf(os.Stderr, "%s\n", strings.Join(errs, "\n\n"))
 		os.Exit(2)
 	}
 }
