@@ -30,11 +30,6 @@ readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
 readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
-readonly OS_GOPATH=$(
-  unset CDPATH
-  cd ${OS_ROOT}/../../../..
-  pwd
-)
 
 readonly OS_IMAGE_COMPILE_PLATFORMS=(
   linux/amd64
@@ -191,23 +186,30 @@ EOF
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.4" ]]; then
+    if [[ "${go_version[2]}" < "go1.5" ]]; then
       cat <<EOF
 
 Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.4 or greater.
+Origin builds require Go version 1.6 or greater.
 
 EOF
       exit 2
     fi
   fi
+  # For any tools that expect this to be set (it is default in golang 1.6),
+  # force vendor experiment.
+  export GO15VENDOREXPERIMENT=1
 
   unset GOBIN
 
+  # default to OS_OUTPUT_GOPATH if no GOPATH set
+  if [[ -z "${GOPATH:-}" ]]; then
+    export OS_OUTPUT_GOPATH=1
+  fi
+
   # use the regular gopath for building
   if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
-    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
-    export OS_TARGET_BIN=${OS_GOPATH}/bin
+    export OS_TARGET_BIN=${GOPATH}/bin
     return
   fi
 
@@ -223,17 +225,14 @@ EOF
   # TODO: This symlink should be relative.
   ln -s "${OS_ROOT}" "${go_pkg_dir}"
 
+  # lots of tools "just don't work" unless we're in the GOPATH
+  cd "${go_pkg_dir}"
+
   # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
   if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
     GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
     # TODO: needs to handle multiple directories
     OS_TARGET_BIN=${OS_EXTRA_GOPATH}/bin
-  fi
-  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
-  # is defined.
-  if [[ -z ${OS_NO_GODEPS:-} ]]; then
-    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
-    OS_TARGET_BIN=${OS_ROOT}/Godeps/_workspace/bin
   fi
   export GOPATH
   export OS_TARGET_BIN
@@ -262,7 +261,7 @@ readonly -f os::build::build_static_binaries
 function os::build::build_binaries() {
   local -a binaries=( "$@" )
   # Create a sub-shell so that we don't pollute the outer environment
-  ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )  
+  ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )
 }
 
 # Build binary targets specified. Should always be run in a sub-shell so we don't leak GOBIN
@@ -740,8 +739,8 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "k8s.io/kubernetes/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"

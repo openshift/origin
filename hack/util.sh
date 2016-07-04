@@ -560,7 +560,7 @@ function cleanup_openshift() {
 	set +e
 	dump_container_logs
 
- 	# pull information out of the server log so that we can get failure management in jenkins to highlight it and 
+ 	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
 	grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
@@ -758,7 +758,7 @@ function find_files() {
 		-o -wholename './pkg/assets/*/bindata.go' \
 		-o -wholename './pkg/bootstrap/bindata.go' \
 		-o -wholename './openshift.local.*' \
-		-o -wholename '*/Godeps/*' \
+		-o -wholename '*/vendor/*' \
 		-o -wholename './assets/bower_components/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u

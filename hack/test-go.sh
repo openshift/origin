@@ -130,11 +130,11 @@ function list_test_packages_under() {
     # arguments that use expansion, e.g. paths containing brace expansion or wildcards
     find ${basedir} -not \(                   \
         \(                                    \
-              -path 'Godeps'                  \
+              -path 'vendor'                  \
               -o -path '*_output'             \
               -o -path '*.git'                \
               -o -path '*openshift.local.*'   \
-              -o -path '*Godeps/*'            \
+              -o -path '*vendor/*'            \
               -o -path '*assets/node_modules' \
               -o -path '*test/*'              \
         \) -prune                             \
@@ -156,7 +156,7 @@ done
 gotest_flags+=" $*"
 
 # Determine packages to test
-godeps_package_prefix="Godeps/_workspace/src/"
+godeps_package_prefix="vendor/"
 test_packages=
 if [[ -n "${package_args}" ]]; then
     for package in ${package_args}; do
@@ -171,8 +171,8 @@ else
     # If no packages are given to test, we need to generate a list of all packages with unit tests
     openshift_test_packages="$(list_test_packages_under '*')"
 
-    kubernetes_path="Godeps/_workspace/src/k8s.io/kubernetes"
-    mandatory_kubernetes_packages="${OS_GO_PACKAGE}/${kubernetes_path}/pkg/api ${OS_GO_PACKAGE}/${kubernetes_path}/pkg/api/v1"
+    kubernetes_path="vendor/k8s.io/kubernetes"
+    mandatory_kubernetes_packages="./vendor/k8s.io/kubernetes/pkg/api ./vendor/k8s.io/kubernetes/pkg/api/v1"
 
     test_packages="${openshift_test_packages} ${mandatory_kubernetes_packages}"
 
@@ -184,12 +184,12 @@ else
           \(                                                                                          \
             -path "${kubernetes_path}/pkg/api"                                                        \
             -o -path "${kubernetes_path}/pkg/api/v1"                                                  \
-            -o -path "${kubernetes_path}/test/e2e"                                                    \
+            -o -path "${kubernetes_path}/test"                                                        \
             -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
             -o -path "${kubernetes_path}/pkg/storage/etcd3"                                           \
             -o -path "${kubernetes_path}/third_party/golang/go/build"                                 \
           \) -prune                                                                                   \
-        \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n")"
+        \) -name '*_test.go' | cut -f 2- -d / | xargs -n1 dirname | sort -u | xargs -n1 printf "./vendor/%s\n")"
 
         test_packages="${test_packages} ${optional_kubernetes_packages}"
     fi
@@ -208,7 +208,7 @@ fi
 # Run 'go test' with the accumulated arguments and packages:
 if [[ -n "${junit_report}" ]]; then
     # we need to generate jUnit xml
-    hack/build-go.sh tools/junitreport
+    "${OS_ROOT}/hack/build-go.sh" tools/junitreport
     junitreport="$(os::build::find-binary junitreport)"
 
     if [[ -z "${junitreport}" ]]; then

@@ -7,7 +7,9 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/lib/init.sh"
 
-"${OS_ROOT}/hack/build-go.sh" Godeps/_workspace/src/k8s.io/kubernetes/cmd/libs/go2idl/client-gen
+os::build::setup_env
+
+"${OS_ROOT}/hack/build-go.sh" vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen
 
 # Find binary
 clientgen="$(os::build::find-binary client-gen)"

@@ -10,7 +10,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/lib/init.sh"
 
 # ensure we have the latest compiled binaries
-(cd ${OS_ROOT} && make clean); "${OS_ROOT}/hack/build-go.sh"
+"${OS_ROOT}/hack/build-go.sh"
 
 platform="$(os::build::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then

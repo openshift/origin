@@ -56,7 +56,7 @@ func getOrCreateOriginKinds() map[unversioned.GroupVersionKind]bool {
 			// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
 			for _, version := range Versions {
 				for kind, t := range api.Scheme.KnownTypes(version) {
-					if !strings.Contains(t.PkgPath(), "openshift/origin") {
+					if !strings.Contains(t.PkgPath(), "github.com/openshift/origin") || strings.Contains(t.PkgPath(), "github.com/openshift/origin/vendor/") {
 						continue
 					}
 					gvk := version.WithKind(kind)

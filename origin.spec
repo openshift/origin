@@ -182,7 +182,7 @@ popd
 mkdir _thirdpartyhacks
 pushd _thirdpartyhacks
     ln -s \
-        $(dirs +1 -l)/Godeps/_workspace/src/ \
+        $(dirs +1 -l)/vendor/ \
             src
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}

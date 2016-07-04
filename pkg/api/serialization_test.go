@@ -475,7 +475,7 @@ func TestTypes(t *testing.T) {
 
 	for internalVersion, externalVersions := range internalVersionToExternalVersions {
 		for kind, reflectType := range kapi.Scheme.KnownTypes(internalVersion) {
-			if !strings.Contains(reflectType.PkgPath(), "/origin/") && reflectType.PkgPath() != "k8s.io/kubernetes/pkg/api" {
+			if !strings.Contains(reflectType.PkgPath(), "github.com/openshift/origin/") && reflectType.PkgPath() != "github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/api" {
 				continue
 			}
 			if nonInternalRoundTrippableTypes.Has(kind) {

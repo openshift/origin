@@ -26,7 +26,7 @@ function os::test::extended::setup {
 
   # build binaries
   if [[ -z $(os::build::find-binary ginkgo) ]]; then
-    hack/build-go.sh Godeps/_workspace/src/github.com/onsi/ginkgo/ginkgo
+    hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
   fi
   if [[ -z $(os::build::find-binary extended.test) ]]; then
     hack/build-go.sh test/extended/extended.test
@@ -43,7 +43,7 @@ function os::test::extended::setup {
   export EXTENDEDTEST="$(os::build::find-binary extended.test)"
   export TMPDIR=${BASETMPDIR:-/tmp}
   export EXTENDED_TEST_PATH="$(pwd)/test/extended"
-  export KUBE_REPO_ROOT="$(pwd)/Godeps/_workspace/src/k8s.io/kubernetes"
+  export KUBE_REPO_ROOT="$(pwd)/vendor/k8s.io/kubernetes"
 
   # output tests instead of running
   if [[ -n "${SHOW_ALL:-}" ]]; then
