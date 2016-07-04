@@ -116,7 +116,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	}
 
 	cmd := &cobra.Command{
-		Use:     "debug RESOURCE/NAME [ENV1=VAL1 ...] [-c CONTAINER] [-- COMMAND]",
+		Use:     "debug RESOURCE/NAME [ENV1=VAL1 ...] [-c CONTAINER] [options] [-- COMMAND]",
 		Short:   "Launch a new instance of a pod for debugging",
 		Long:    debugLong,
 		Example: fmt.Sprintf(debugExample, fmt.Sprintf("%s debug", fullName)),
