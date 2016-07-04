@@ -1,4 +1,4 @@
-package scaler
+package cmd
 
 import (
 	"testing"

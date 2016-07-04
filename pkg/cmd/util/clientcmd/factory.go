@@ -50,8 +50,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	deploygen "github.com/openshift/origin/pkg/deploy/generator"
-	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
-	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	routegen "github.com/openshift/origin/pkg/route/generator"
@@ -258,7 +256,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 
 		if mapping.GroupVersionKind.GroupKind() == deployapi.Kind("DeploymentConfig") {
-			return deployscaler.NewDeploymentConfigScaler(oc, kc), nil
+			return deploycmd.NewDeploymentConfigScaler(oc, kc), nil
 		}
 		return kScalerFunc(mapping)
 	}
@@ -271,7 +269,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
-			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
+			return deploycmd.NewDeploymentConfigReaper(oc, kc), nil
 		case authorizationapi.Kind("Role"):
 			return authorizationreaper.NewRoleReaper(oc, oc), nil
 		case authorizationapi.Kind("ClusterRole"):
