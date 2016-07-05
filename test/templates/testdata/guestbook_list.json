@@ -8,6 +8,7 @@
             "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
         }
     },
+    "message": "Your admin credentials are adminQ3H:dwNJiJwW",
     "objects": [
         {
             "apiVersion": "v1",
