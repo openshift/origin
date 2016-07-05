@@ -674,7 +674,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	versionedRoles := []authorizationapiv1.ClusterRole{}
 	for i := range saRoles {
 		newRole := &authorizationapiv1.ClusterRole{}
-		if err := kapi.Scheme.Convert(&saRoles[i], newRole); err != nil {
+		if err := kapi.Scheme.Convert(&saRoles[i], newRole, nil); err != nil {
 			panic(err)
 		}
 		versionedRoles = append(versionedRoles, *newRole)
@@ -682,7 +682,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	roundtrippedRoles := []authorizationapi.ClusterRole{}
 	for i := range versionedRoles {
 		newRole := &authorizationapi.ClusterRole{}
-		if err := kapi.Scheme.Convert(&versionedRoles[i], newRole); err != nil {
+		if err := kapi.Scheme.Convert(&versionedRoles[i], newRole, nil); err != nil {
 			panic(err)
 		}
 		roundtrippedRoles = append(roundtrippedRoles, *newRole)

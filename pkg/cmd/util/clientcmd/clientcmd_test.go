@@ -70,11 +70,11 @@ func (n *fakeNegotiatedSerializer) StreamingSerializerForMediaType(mediaType str
 	return runtime.StreamSerializerInfo{}, true
 }
 
-func (n *fakeNegotiatedSerializer) EncoderForVersion(serializer runtime.Encoder, gv unversioned.GroupVersion) runtime.Encoder {
+func (n *fakeNegotiatedSerializer) EncoderForVersion(serializer runtime.Encoder, gv runtime.GroupVersioner) runtime.Encoder {
 	return &fakeCodec{}
 }
 
-func (n *fakeNegotiatedSerializer) DecoderToVersion(serializer runtime.Decoder, gv unversioned.GroupVersion) runtime.Decoder {
+func (n *fakeNegotiatedSerializer) DecoderToVersion(serializer runtime.Decoder, gv runtime.GroupVersioner) runtime.Decoder {
 	return &fakeCodec{}
 }
 

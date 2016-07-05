@@ -47,7 +47,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	decoded := &older.BinaryBuildRequestOptions{}
-	if err := knewer.Scheme.Convert(&params, decoded); err != nil {
+	if err := knewer.Scheme.Convert(&params, decoded, nil); err != nil {
 		t.Fatal(err)
 	}
 	if decoded.Commit != "abcdef" || decoded.AsFile != "Dockerfile" {
@@ -70,7 +70,7 @@ func TestBuildConfigDefaulting(t *testing.T) {
 	}
 
 	var internalBuild newer.BuildConfig
-	Convert(buildConfig, &internalBuild)
+	Convert(buildConfig, &internalBuild, nil)
 
 	binary := internalBuild.Spec.Source.Binary
 	if binary == (*newer.BinaryBuildSource)(nil) || *binary != (newer.BinaryBuildSource{}) {
@@ -212,7 +212,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 
 		var internalbuild newer.BuildConfig
 
-		Convert(bc, &internalbuild)
+		Convert(bc, &internalbuild, nil)
 		switch bc.Spec.Strategy.Type {
 		case older.SourceBuildStrategyType:
 			if internalbuild.Spec.Strategy.SourceStrategy.From.Kind != "ImageStreamTag" {
@@ -311,7 +311,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 
 		var internalbuild older.BuildConfig
 
-		Convert(bc, &internalbuild)
+		Convert(bc, &internalbuild, nil)
 		if internalbuild.Spec.Source.Type != older.BuildSourceNone {
 			t.Errorf("Unexpected source type at index %d: %s", c, internalbuild.Spec.Source.Type)
 		}
@@ -353,7 +353,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 
 	var internalBC newer.BuildConfig
 
-	Convert(&buildConfig, &internalBC)
+	Convert(&buildConfig, &internalBC, nil)
 	if len(internalBC.Spec.Triggers) != 1 {
 		t.Errorf("Expected 1 trigger, got %d", len(internalBC.Spec.Triggers))
 	}
@@ -384,7 +384,7 @@ func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
 
 	var internalBC newer.BuildConfig
 
-	Convert(&buildConfig, &internalBC)
+	Convert(&buildConfig, &internalBC, nil)
 	for _, ic := range internalBC.Spec.Triggers {
 		if ic.ImageChange == nil {
 			t.Errorf("Expected trigger to have ImageChange value")

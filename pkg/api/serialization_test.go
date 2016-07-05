@@ -47,13 +47,37 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
-			j.Roles = make(map[string]*authorizationapi.Role)
+			c.FuzzNoCustom(j)
+			if j.Roles != nil {
+				j.Roles = make(map[string]*authorizationapi.Role)
+			}
+			for k, v := range j.Roles {
+				if v == nil {
+					delete(j.Roles, k)
+				}
+			}
 		},
 		func(j *authorizationapi.PolicyBinding, c fuzz.Continue) {
-			j.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
+			c.FuzzNoCustom(j)
+			if j.RoleBindings == nil {
+				j.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
+			}
+			for k, v := range j.RoleBindings {
+				if v == nil {
+					delete(j.RoleBindings, k)
+				}
+			}
 		},
 		func(j *authorizationapi.ClusterPolicy, c fuzz.Continue) {
-			j.Roles = make(map[string]*authorizationapi.ClusterRole)
+			c.FuzzNoCustom(j)
+			if j.Roles == nil {
+				j.Roles = make(map[string]*authorizationapi.ClusterRole)
+			}
+			for k, v := range j.Roles {
+				if v == nil {
+					delete(j.Roles, k)
+				}
+			}
 		},
 		func(j *authorizationapi.ClusterPolicyBinding, c fuzz.Continue) {
 			j.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
@@ -101,6 +125,14 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			// if no groups are found, then we assume "".  This matches defaulting
 			if len(j.APIGroups) == 0 {
 				j.APIGroups = []string{""}
+			}
+			switch c.Intn(3) {
+			case 0:
+				j.AttributeRestrictions = &authorizationapi.IsPersonalSubjectAccessReview{}
+			case 1:
+				j.AttributeRestrictions = &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Type", APIVersion: "other"}, Raw: []byte(`{"apiVersion":"other","kind":"Type"}`)}
+			default:
+				j.AttributeRestrictions = nil
 			}
 		},
 		func(j *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
@@ -434,7 +466,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
 		obj2conv := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-		if err := kapi.Scheme.Convert(obj2, obj2conv); err != nil {
+		if err := kapi.Scheme.Convert(obj2, obj2conv, nil); err != nil {
 			t.Errorf("0X: no conversion from %v to %v: %v", reflect.TypeOf(item), reflect.TypeOf(obj2), err)
 			return
 		}
