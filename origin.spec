@@ -5,7 +5,6 @@
 
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
-%global sdn_import_path github.com/openshift/openshift-sdn
 # The following should only be used for cleanup of sdn-ovs upgrades
 %global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
@@ -283,7 +282,7 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/bin
+pushd pkg/sdn/plugin/bin
    install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
    install -p -m 755 openshift-sdn-docker-setup.sh %{buildroot}%{_bindir}/openshift-sdn-docker-setup.sh
 popd

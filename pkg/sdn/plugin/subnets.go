@@ -1,4 +1,4 @@
-package osdn
+package plugin
 
 import (
 	"fmt"
@@ -14,8 +14,8 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/openshift-sdn/pkg/netutils"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
@@ -27,9 +27,9 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	}
 	for _, sub := range subnets {
 		subrange = append(subrange, sub.Subnet)
-		if err := master.registry.ValidateNodeIP(sub.HostIP); err != nil {
+		if err = master.registry.ValidateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
-			log.Errorf("Failed to validate HostSubnet %s: %v", err)
+			log.Errorf("Failed to validate HostSubnet %s: %v", hostSubnetToString(&sub), err)
 		} else {
 			log.Infof("Found existing HostSubnet %s", hostSubnetToString(&sub))
 		}
@@ -147,7 +147,7 @@ func (master *OsdnMaster) watchNodes() {
 			log.V(5).Infof("Watch %s event for Node %q", strings.Title(string(eventType)), name)
 			delete(nodeAddressMap, uid)
 
-			err := master.deleteNode(name)
+			err = master.deleteNode(name)
 			if err != nil {
 				log.Errorf("Error deleting node %s: %v", name, err)
 			}
@@ -196,7 +196,7 @@ func (node *OsdnNode) initSelfSubnet() error {
 		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", node.hostName, err)
 	}
 
-	if err := node.registry.ValidateNodeIP(subnet.HostIP); err != nil {
+	if err = node.registry.ValidateNodeIP(subnet.HostIP); err != nil {
 		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
 	}
 
@@ -231,17 +231,17 @@ func (node *OsdnNode) watchSubnets() {
 					continue
 				} else {
 					// Delete old subnet rules
-					if err := node.DeleteHostSubnetRules(oldSubnet); err != nil {
+					if err = node.DeleteHostSubnetRules(oldSubnet); err != nil {
 						log.Error(err)
 					}
 				}
 			}
-			if err := node.registry.ValidateNodeIP(hs.HostIP); err != nil {
+			if err = node.registry.ValidateNodeIP(hs.HostIP); err != nil {
 				log.Errorf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 				continue
 			}
 
-			if err := node.AddHostSubnetRules(hs); err != nil {
+			if err = node.AddHostSubnetRules(hs); err != nil {
 				log.Error(err)
 				continue
 			}
@@ -249,7 +249,7 @@ func (node *OsdnNode) watchSubnets() {
 		case watch.Deleted:
 			delete(subnets, string(hs.UID))
 
-			if err := node.DeleteHostSubnetRules(hs); err != nil {
+			if err = node.DeleteHostSubnetRules(hs); err != nil {
 				log.Error(err)
 			}
 		}

@@ -1,17 +1,17 @@
-package osdn
+package plugin
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
 	log "github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/sdn/plugin/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -27,7 +27,7 @@ type OsdnNode struct {
 	localSubnet        *osapi.HostSubnet
 	hostName           string
 	podNetworkReady    chan struct{}
-	vnids              vnidMap
+	vnids              *vnidMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint
 }
@@ -52,7 +52,8 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		selfIP, err = netutils.GetNodeIP(hostname)
 		if err != nil {
 			log.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", hostname, err)
-			defaultIP, err := kubeutilnet.ChooseHostInterface()
+			var defaultIP net.IP
+			defaultIP, err = kubeutilnet.ChooseHostInterface()
 			if err != nil {
 				return nil, err
 			}
@@ -81,23 +82,25 @@ func (node *OsdnNode) Start() error {
 	}
 
 	nodeIPTables := newNodeIPTables(ni.ClusterNetwork.String(), node.iptablesSyncPeriod)
-	if err := nodeIPTables.Setup(); err != nil {
+	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
 
-	networkChanged, err := node.SubnetStartNode(node.mtu)
+	var networkChanged bool
+	networkChanged, err = node.SubnetStartNode(node.mtu)
 	if err != nil {
 		return err
 	}
 
 	if node.multitenant {
-		if err := node.VnidStartNode(); err != nil {
+		if err = node.VnidStartNode(); err != nil {
 			return err
 		}
 	}
 
 	if networkChanged {
-		pods, err := node.GetLocalPods(kapi.NamespaceAll)
+		var pods []kapi.Pod
+		pods, err = node.GetLocalPods(kapi.NamespaceAll)
 		if err != nil {
 			return err
 		}

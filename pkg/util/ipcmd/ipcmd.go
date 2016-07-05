@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/openshift/openshift-sdn/pkg/exec"
+	"k8s.io/kubernetes/pkg/util/exec"
 )
 
 var addressRegexp *regexp.Regexp
@@ -16,15 +16,16 @@ func init() {
 }
 
 type Transaction struct {
-	link string
-	err  error
+	execer exec.Interface
+	link   string
+	err    error
 }
 
 // NewTransaction begins a new transaction for a given interface. If an error
 // occurs at any step in the transaction, it will be recorded until
 // EndTransaction(), and any further calls on the transaction will be ignored.
-func NewTransaction(link string) *Transaction {
-	return &Transaction{link: link}
+func NewTransaction(execer exec.Interface, link string) *Transaction {
+	return &Transaction{execer: execer, link: link}
 }
 
 func (tx *Transaction) exec(args []string) (string, error) {
@@ -32,15 +33,15 @@ func (tx *Transaction) exec(args []string) (string, error) {
 		return "", tx.err
 	}
 
-	ipcmdPath, err := exec.LookPath("ip")
+	ipcmdPath, err := tx.execer.LookPath("ip")
 	if err != nil {
 		tx.err = fmt.Errorf("ip is not installed")
 		return "", tx.err
 	}
 
-	var output string
-	output, tx.err = exec.Exec(ipcmdPath, args...)
-	return output, tx.err
+	var output []byte
+	output, tx.err = tx.execer.Command(ipcmdPath, args...).CombinedOutput()
+	return string(output), tx.err
 }
 
 // AddLink creates the interface associated with the transaction, optionally

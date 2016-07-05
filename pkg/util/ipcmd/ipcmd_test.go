@@ -4,28 +4,49 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/openshift/openshift-sdn/pkg/exec"
+	"k8s.io/kubernetes/pkg/util/exec"
 )
 
-func normalSetup() {
-	exec.SetTestMode()
-	exec.AddTestProgram("/sbin/ip")
+func normalSetup() *exec.FakeExec {
+	return &exec.FakeExec{
+		LookPathFunc: func(prog string) (string, error) {
+			if prog == "ip" {
+				return "/sbin/ip", nil
+			} else {
+				return "", fmt.Errorf("%s not found", prog)
+			}
+		},
+	}
 }
 
-func missingSetup() {
-	exec.SetTestMode()
+func missingSetup() *exec.FakeExec {
+	return &exec.FakeExec{
+		LookPathFunc: func(prog string) (string, error) {
+			return "", fmt.Errorf("%s not found", prog)
+		},
+	}
+}
+
+func addTestResult(fexec *exec.FakeExec, command string, output string, err error) {
+	fcmd := exec.FakeCmd{
+		CombinedOutputScript: []exec.FakeCombinedOutputAction{
+			func() ([]byte, error) { return []byte(output), err },
+		},
+	}
+	fexec.CommandScript = append(fexec.CommandScript,
+		func(cmd string, args ...string) exec.Cmd { return exec.InitFakeCmd(&fcmd, cmd, args...) })
 }
 
 func TestGetAddresses(t *testing.T) {
-	normalSetup()
-	exec.AddTestResult("/sbin/ip addr show dev lo", `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default 
+	fexec := normalSetup()
+	addTestResult(fexec, "/sbin/ip addr show dev lo", `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default 
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
        valid_lft forever preferred_lft forever
     inet6 ::1/128 scope host 
        valid_lft forever preferred_lft forever
 `, nil)
-	itx := NewTransaction("lo")
+	itx := NewTransaction(fexec, "lo")
 	addrs, err := itx.GetAddresses()
 	if err != nil {
 		t.Fatalf("Failed to get addresses for 'lo': %v", err)
@@ -41,14 +62,14 @@ func TestGetAddresses(t *testing.T) {
 		t.Fatalf("Transaction unexpectedly returned error: %v", err)
 	}
 
-	exec.AddTestResult("/sbin/ip addr show dev eth0", `2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+	addTestResult(fexec, "/sbin/ip addr show dev eth0", `2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
     link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
     inet 192.168.1.10/24 brd 192.168.1.255 scope global dynamic eth0
        valid_lft 81296sec preferred_lft 81296sec
     inet 192.168.1.152/24 brd 192.168.1.255 scope global dynamic eth0
        valid_lft 81296sec preferred_lft 81296sec
 `, nil)
-	itx = NewTransaction("eth0")
+	itx = NewTransaction(fexec, "eth0")
 	addrs, err = itx.GetAddresses()
 	if err != nil {
 		t.Fatalf("Failed to get addresses for 'eth0': %v", err)
@@ -64,8 +85,8 @@ func TestGetAddresses(t *testing.T) {
 		t.Fatalf("Transaction unexpectedly returned error: %v", err)
 	}
 
-	exec.AddTestResult("/sbin/ip addr show dev wlan0", "", fmt.Errorf("Device \"%s\" does not exist", "wlan0"))
-	itx = NewTransaction("wlan0")
+	addTestResult(fexec, "/sbin/ip addr show dev wlan0", "", fmt.Errorf("Device \"%s\" does not exist", "wlan0"))
+	itx = NewTransaction(fexec, "wlan0")
 	addrs, err = itx.GetAddresses()
 	if err == nil {
 		t.Fatalf("Allegedly got addresses for non-existent link: %v", addrs)
@@ -82,9 +103,9 @@ func TestGetRoutes(t *testing.T) {
 		l2 = "1.2.3.4 via 192.168.1.1  proto static  metric 10 "
 		l3 = "192.168.1.0/24  proto kernel  scope link  src 192.168.1.15 "
 	)
-	normalSetup()
-	exec.AddTestResult("/sbin/ip route show dev wlp3s0", l1+"\n"+l2+"\n"+l3+"\n", nil)
-	itx := NewTransaction("wlp3s0")
+	fexec := normalSetup()
+	addTestResult(fexec, "/sbin/ip route show dev wlp3s0", l1+"\n"+l2+"\n"+l3+"\n", nil)
+	itx := NewTransaction(fexec, "wlp3s0")
 	routes, err := itx.GetRoutes()
 	if err != nil {
 		t.Fatalf("Failed to get routes for 'wlp3s0': %v", err)
@@ -106,8 +127,8 @@ func TestGetRoutes(t *testing.T) {
 		t.Fatalf("Transaction unexpectedly returned error: %v", err)
 	}
 
-	exec.AddTestResult("/sbin/ip route show dev wlan0", "", fmt.Errorf("Device \"%s\" does not exist", "wlan0"))
-	itx = NewTransaction("wlan0")
+	addTestResult(fexec, "/sbin/ip route show dev wlan0", "", fmt.Errorf("Device \"%s\" does not exist", "wlan0"))
+	itx = NewTransaction(fexec, "wlan0")
 	routes, err = itx.GetRoutes()
 	if err == nil {
 		t.Fatalf("Allegedly got routes for non-existent link: %v", routes)
@@ -119,18 +140,18 @@ func TestGetRoutes(t *testing.T) {
 }
 
 func TestErrorHandling(t *testing.T) {
-	normalSetup()
-	exec.AddTestResult("/sbin/ip link del dummy0", "", fmt.Errorf("Device \"%s\" does not exist", "dummy0"))
-	itx := NewTransaction("dummy0")
+	fexec := normalSetup()
+	addTestResult(fexec, "/sbin/ip link del dummy0", "", fmt.Errorf("Device \"%s\" does not exist", "dummy0"))
+	itx := NewTransaction(fexec, "dummy0")
 	itx.DeleteLink()
 	err := itx.EndTransaction()
 	if err == nil {
 		t.Fatalf("Failed to get expected error")
 	}
 
-	exec.AddTestResult("/sbin/ip link del dummy0", "", fmt.Errorf("Device \"%s\" does not exist", "dummy0"))
-	exec.AddTestResult("/sbin/ip link add dummy0 type dummy", "", nil)
-	itx = NewTransaction("dummy0")
+	addTestResult(fexec, "/sbin/ip link del dummy0", "", fmt.Errorf("Device \"%s\" does not exist", "dummy0"))
+	addTestResult(fexec, "/sbin/ip link add dummy0 type dummy", "", nil)
+	itx = NewTransaction(fexec, "dummy0")
 	itx.DeleteLink()
 	itx.IgnoreError()
 	itx.AddLink("type", "dummy")
@@ -139,9 +160,9 @@ func TestErrorHandling(t *testing.T) {
 		t.Fatalf("Unexpectedly got error after IgnoreError(): %v", err)
 	}
 
-	exec.AddTestResult("/sbin/ip link add dummy0 type dummy", "", fmt.Errorf("RTNETLINK answers: Operation not permitted"))
+	addTestResult(fexec, "/sbin/ip link add dummy0 type dummy", "", fmt.Errorf("RTNETLINK answers: Operation not permitted"))
 	// other commands do not get run due to previous error
-	itx = NewTransaction("dummy0")
+	itx = NewTransaction(fexec, "dummy0")
 	itx.AddLink("type", "dummy")
 	itx.SetLink("up")
 	itx.DeleteLink()
@@ -152,8 +173,8 @@ func TestErrorHandling(t *testing.T) {
 }
 
 func TestIPMissing(t *testing.T) {
-	missingSetup()
-	itx := NewTransaction("dummy0")
+	fexec := missingSetup()
+	itx := NewTransaction(fexec, "dummy0")
 	itx.AddLink("type", "dummy")
 	err := itx.EndTransaction()
 	if err == nil {

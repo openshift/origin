@@ -1,4 +1,4 @@
-package osdn
+package plugin
 
 import (
 	"fmt"
@@ -8,9 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn/api"
-
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/sdn/plugin/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"

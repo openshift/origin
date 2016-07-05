@@ -1,4 +1,4 @@
-package osdn
+package plugin
 
 import (
 	"fmt"
@@ -6,10 +6,9 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/pkg/netutils"
-
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -18,7 +17,7 @@ import (
 type OsdnMaster struct {
 	registry        *Registry
 	subnetAllocator *netutils.SubnetAllocator
-	vnids           vnidMap
+	vnids           *vnidMap
 	netIDManager    *netutils.NetIDAllocator
 	adminNamespaces []string
 }
@@ -43,24 +42,24 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 
 	changed, net_err := master.isClusterNetworkChanged(ni)
 	if changed {
-		if err := master.validateNetworkConfig(ni); err != nil {
+		if err = master.validateNetworkConfig(ni); err != nil {
 			return err
 		}
-		if err := master.registry.UpdateClusterNetwork(ni); err != nil {
+		if err = master.registry.UpdateClusterNetwork(ni); err != nil {
 			return err
 		}
 	} else if net_err != nil {
-		if err := master.registry.CreateClusterNetwork(ni); err != nil {
+		if err = master.registry.CreateClusterNetwork(ni); err != nil {
 			return err
 		}
 	}
 
-	if err := master.SubnetStartMaster(ni.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
+	if err = master.SubnetStartMaster(ni.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
 		return err
 	}
 
 	if IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
-		if err := master.VnidStartMaster(); err != nil {
+		if err = master.VnidStartMaster(); err != nil {
 			return err
 		}
 	}
@@ -98,8 +97,8 @@ func (master *OsdnMaster) validateNetworkConfig(ni *NetworkInfo) error {
 		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
 	}
 	for _, sub := range subnets {
-		subnetIP, _, err := net.ParseCIDR(sub.Subnet)
-		if err != nil {
+		subnetIP, _, _ := net.ParseCIDR(sub.Subnet)
+		if subnetIP == nil {
 			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
 			continue
 		}

@@ -6,10 +6,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/openshift-sdn/pkg/cmd/admin/network"
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
+	"github.com/openshift/origin/pkg/cmd/admin/network"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"

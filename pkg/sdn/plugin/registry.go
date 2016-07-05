@@ -1,4 +1,4 @@
-package osdn
+package plugin
 
 import (
 	"fmt"
