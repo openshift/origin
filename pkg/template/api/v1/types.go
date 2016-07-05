@@ -14,15 +14,23 @@ type Template struct {
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	// Objects is an array of objects to include in this template. Required.
+	// message is an optional instructional message that will
+	// be displayed when this template is instantiated.
+	// This field should inform the user how to utilize the newly created resources.
+	// Parameter substitution will be performed on the message before being
+	// displayed so that generated credentials and other parameters can be
+	// included in the output.
+	Message string `json:"message,omitempty"`
+
+	// objects is an array of resources to include in this template.
 	Objects []runtime.RawExtension `json:"objects"`
 
-	// Optional: Parameters is an array of Parameters used during the
+	// parameters is an optional array of Parameters used during the
 	// Template to Config transformation.
 	Parameters []Parameter `json:"parameters,omitempty"`
 
-	// Labels is a set of labels that are applied to every
-	// object during the Template to Config transformation. Optional
+	// labels is a optional set of labels that are applied to every
+	// object during the Template to Config transformation.
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
