@@ -267,19 +267,7 @@ func (s *S2IBuilder) Build() error {
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
 		if err := pushImage(s.dockerClient, pushTag, pushAuthConfig); err != nil {
-			// write extended error message to assist in problem resolution
-			msg := fmt.Sprintf("Failed to push image. Response from registry is: %v", err)
-			if authPresent {
-				glog.V(0).Infof("Registry server Address: %s", pushAuthConfig.ServerAddress)
-				glog.V(0).Infof("Registry server User Name: %s", pushAuthConfig.Username)
-				glog.V(0).Infof("Registry server Email: %s", pushAuthConfig.Email)
-				passwordPresent := "<<empty>>"
-				if len(pushAuthConfig.Password) > 0 {
-					passwordPresent = "<<non-empty>>"
-				}
-				glog.V(0).Infof("Registry server Password: %s", passwordPresent)
-			}
-			return errors.New(msg)
+			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
 		glog.V(0).Infof("Push successful")
 	}
