@@ -1,36 +1,33 @@
-.TH "OPENSHIFT CLI CREATE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OPENSHIFT CLI ROLLOUT" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-openshift cli create clusterresourcequota \- Create cluster resource quota resource.
+openshift cli rollout resume \- Resume a paused resource
 
 
 .SH SYNOPSIS
 .PP
-\fBopenshift cli create clusterresourcequota\fP [OPTIONS]
+\fBopenshift cli rollout resume\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Create a cluster resource quota that controls certain resources.
+Resume a paused resource
 
 .PP
-Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.
+Paused resources will not be reconciled by a controller. By resuming a
+resource, we allow it to be reconciled again.
 
 
 .SH OPTIONS
 .PP
-\fB\-\-hard\fP=[]
-    The resource to constrain: RESOURCE=QUANTITY (pods=10)
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to a file identifying the resource to get from a server.
 
 .PP
-\fB\-o\fP, \fB\-\-output\fP=""
-    Output mode. Use "\-o name" for shorter output (resource/name).
-
-.PP
-\fB\-\-project\-selector\fP=""
-    The project selector for the cluster resource quota
+\fB\-R\fP, \fB\-\-recursive\fP=false
+    If true, process directory recursively.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -104,8 +101,8 @@ Cluster resource quota objects defined quota restrictions that span multiple pro
 .RS
 
 .nf
-  # Create an cluster resource quota limited to 10 pods
-  openshift cli create clusterresourcequota limit\-bob \-\-project\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
+  # Resume an already paused deployment
+  openshift cli rollout resume dc/nginx
 
 .fi
 .RE
@@ -113,7 +110,7 @@ Cluster resource quota objects defined quota restrictions that span multiple pro
 
 .SH SEE ALSO
 .PP
-\fBopenshift\-cli\-create(1)\fP,
+\fBopenshift\-cli\-rollout(1)\fP,
 
 
 .SH HISTORY

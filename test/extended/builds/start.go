@@ -16,9 +16,9 @@ import (
 var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture   = exutil.FixturePath("..", "extended", "testdata", "test-build.json")
-		exampleGemfile = exutil.FixturePath("..", "extended", "testdata", "test-build-app", "Gemfile")
-		exampleBuild   = exutil.FixturePath("..", "extended", "testdata", "test-build-app")
+		buildFixture   = exutil.FixturePath("testdata", "test-build.json")
+		exampleGemfile = exutil.FixturePath("testdata", "test-build-app", "Gemfile")
+		exampleBuild   = exutil.FixturePath("testdata", "test-build-app")
 		oc             = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
 	)
 
@@ -36,7 +36,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("verifying the build %q status", out))
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), out, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}

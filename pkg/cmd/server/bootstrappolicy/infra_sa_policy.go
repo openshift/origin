@@ -164,7 +164,7 @@ func init() {
 				},
 				// DeploymentController.podClient
 				{
-					Verbs:     sets.NewString("get", "list", "create", "delete", "update"),
+					Verbs:     sets.NewString("get", "list", "create", "watch", "delete", "update"),
 					Resources: sets.NewString("pods"),
 				},
 				// DeploymentController.recorder (EventBroadcaster)

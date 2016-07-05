@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -48,6 +49,12 @@ syntax.`
   # Update all containers in all replication controllers in the project to have ENV=prod
   %[1]s env rc --all ENV=prod
 
+  # Import environment from a secret
+  %[1]s env --from=secret/mysecret dc/myapp
+
+  # Import environment from a config map with a prefix
+  %[1]s env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
+
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   %[1]s env dc --all --containers="c1" ENV-
 
@@ -77,6 +84,8 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 		},
 	}
 	cmd.Flags().StringP("containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
+	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject enviroment variables")
+	cmd.Flags().StringP("prefix", "", "", "Prefix to append to variable names")
 	cmd.Flags().StringSliceVarP(&env, "env", "e", env, "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().Bool("list", false, "Display the environment and any changes in the standard format")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
@@ -101,6 +110,11 @@ func validateNoOverwrites(existing []kapi.EnvVar, env []kapi.EnvVar) error {
 	return nil
 }
 
+func keyToEnvName(key string) string {
+	validEnvNameRegexp := regexp.MustCompile("[^a-zA-Z0-9_]")
+	return strings.ToUpper(validEnvNameRegexp.ReplaceAllString(key, "_"))
+}
+
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
 func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
@@ -119,6 +133,8 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	overwrite := kcmdutil.GetFlagBool(cmd, "overwrite")
 	resourceVersion := kcmdutil.GetFlagString(cmd, "resource-version")
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+	from := kcmdutil.GetFlagString(cmd, "from")
+	prefix := kcmdutil.GetFlagString(cmd, "prefix")
 
 	if list && len(outputFormat) > 0 {
 		return kcmdutil.UsageError(cmd, "--list and --output may not be specified together")
@@ -137,6 +153,66 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	env, remove, err := cmdutil.ParseEnv(append(envParams, envArgs...), in)
 	if err != nil {
 		return err
+	}
+
+	if len(from) != 0 {
+		mapper, typer := f.Object(false)
+		b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+			ContinueOnError().
+			NamespaceParam(cmdNamespace).DefaultNamespace().
+			FilenameParam(explicit, false, filenames...).
+			SelectorParam(selector).
+			ResourceTypeOrNameArgs(all, from).
+			Flatten()
+
+		one := false
+		infos, err := b.Do().IntoSingular(&one).Infos()
+		if err != nil {
+			return err
+		}
+
+		for _, info := range infos {
+			switch from := info.Object.(type) {
+			case *kapi.Secret:
+				for key := range from.Data {
+					envVar := kapi.EnvVar{
+						Name: keyToEnvName(key),
+						ValueFrom: &kapi.EnvVarSource{
+							SecretKeyRef: &kapi.SecretKeySelector{
+								LocalObjectReference: kapi.LocalObjectReference{
+									Name: from.Name,
+								},
+								Key: key,
+							},
+						},
+					}
+					env = append(env, envVar)
+				}
+			case *kapi.ConfigMap:
+				for key := range from.Data {
+					envVar := kapi.EnvVar{
+						Name: keyToEnvName(key),
+						ValueFrom: &kapi.EnvVarSource{
+							ConfigMapKeyRef: &kapi.ConfigMapKeySelector{
+								LocalObjectReference: kapi.LocalObjectReference{
+									Name: from.Name,
+								},
+								Key: key,
+							},
+						},
+					}
+					env = append(env, envVar)
+				}
+			default:
+				return fmt.Errorf("unsupported resource specified in --from")
+			}
+		}
+	}
+
+	if len(prefix) != 0 {
+		for i := range env {
+			env[i].Name = fmt.Sprintf("%s%s", prefix, env[i].Name)
+		}
 	}
 
 	mapper, typer := f.Object(false)

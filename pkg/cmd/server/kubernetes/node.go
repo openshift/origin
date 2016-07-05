@@ -335,7 +335,7 @@ func (c *NodeConfig) RunPlugin() {
 	if c.SDNPlugin == nil {
 		return
 	}
-	if err := c.SDNPlugin.StartNode(c.MTU); err != nil {
+	if err := c.SDNPlugin.Start(); err != nil {
 		glog.Fatalf("error: SDN node startup failed: %v", err)
 	}
 }

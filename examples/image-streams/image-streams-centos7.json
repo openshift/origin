@@ -7,8 +7,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby",
-        "creationTimestamp": null
+        "name": "ruby"
       },
       "spec": {
         "tags": [
@@ -23,7 +22,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.2"
+              "name": "2.3"
             }
           },
           {
@@ -55,6 +54,21 @@
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7:latest"
             }
+          },
+          {
+            "name": "2.3",
+            "annotations": {
+              "description": "Build and run Ruby 2.3 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.3,ruby",
+              "version": "2.3",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-23-centos7:latest"
+            }
           }
         ]
       }
@@ -63,8 +77,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs",
-        "creationTimestamp": null
+        "name": "nodejs"
       },
       "spec": {
         "tags": [
@@ -104,8 +117,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "perl",
-        "creationTimestamp": null
+        "name": "perl"
       },
       "spec": {
         "tags": [
@@ -161,8 +173,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "php",
-        "creationTimestamp": null
+        "name": "php"
       },
       "spec": {
         "tags": [
@@ -217,8 +228,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "python",
-        "creationTimestamp": null
+        "name": "python"
       },
       "spec": {
         "tags": [
@@ -233,7 +243,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.4"
+              "name": "3.5"
             }
           },
           {
@@ -280,6 +290,21 @@
               "kind": "DockerImage",
               "name": "centos/python-34-centos7:latest"
             }
+          },
+          {
+            "name": "3.5",
+            "annotations": {
+              "description": "Build and run Python 3.5 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.5,python",
+              "version": "3.5",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/python-35-centos7:latest"
+            }
           }
         ]
       }
@@ -288,8 +313,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "wildfly",
-        "creationTimestamp": null
+        "name": "wildfly"
       },
       "spec": {
         "tags": [
@@ -359,8 +383,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mysql",
-        "creationTimestamp": null
+        "name": "mysql"
       },
       "spec": {
         "tags": [
@@ -409,8 +432,43 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "postgresql",
-        "creationTimestamp": null
+        "name": "mariadb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Provides a MariaDB database",
+              "iconClass": "icon-mariadb",
+              "tags": "mariadb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10.1"
+            }
+          },
+          {
+            "name": "10.1",
+            "annotations": {
+              "description": "Provides a MariaDB v10.1 database",
+              "iconClass": "icon-mariadb",
+              "tags": "mariadb",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/mariadb-101-centos7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "postgresql"
       },
       "spec": {
         "tags": [
@@ -423,7 +481,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "9.4"
+              "name": "9.5"
             }
           },
           {
@@ -451,6 +509,19 @@
               "kind": "DockerImage",
               "name": "centos/postgresql-94-centos7:latest"
             }
+          },
+          {
+            "name": "9.5",
+            "annotations": {
+              "description": "Provides a PostgreSQL v9.5 database",
+              "iconClass": "icon-postgresql",
+              "tags": "postgresql",
+              "version": "9.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/postgresql-95-centos7:latest"
+            }
           }
         ]
       }
@@ -459,8 +530,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mongodb",
-        "creationTimestamp": null
+        "name": "mongodb"
       },
       "spec": {
         "tags": [
@@ -473,7 +543,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.6"
+              "name": "3.2"
             }
           },
           {
@@ -501,6 +571,19 @@
               "kind": "DockerImage",
               "name": "centos/mongodb-26-centos7:latest"
             }
+          },
+          {
+            "name": "3.2",
+            "annotations": {
+              "description": "Provides a MongoDB v3.2 database",
+              "iconClass": "icon-mongodb",
+              "tags": "mongodb",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/mongodb-32-centos7:latest"
+            }
           }
         ]
       }
@@ -509,8 +592,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
-        "creationTimestamp": null
+        "name": "jenkins"
       },
       "spec": {
         "tags": [

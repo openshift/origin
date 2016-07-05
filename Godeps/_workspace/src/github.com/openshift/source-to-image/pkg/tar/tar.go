@@ -11,11 +11,13 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/golang/glog"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 )
+
+var glog = utilglog.StderrLog
 
 // defaultTimeout is the amount of time that the untar will wait for a tar
 // stream to extract a single file. A timeout is needed to guard against broken

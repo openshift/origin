@@ -281,25 +281,25 @@ function wait_for_command() {
 	expire=$(($(time_now) + $max_wait))
 	set +e
 	while [[ $(time_now) -lt $expire ]]; do
-	eval $cmd
-	if [ $? -eq 0 ]; then
-		set -e
-		ENDTIME=$(date +%s)
-		echo "[INFO] Success running command: '$cmd' after $(($ENDTIME - $STARTTIME)) seconds"
-		return 0
-	fi
-	#check a failure condition where the success
-	#command may never be evaulated before timing
-	#out
-	if [[ ! -z $fail ]]; then
-		eval $fail
+		eval $cmd
 		if [ $? -eq 0 ]; then
-		set -e
-		echo "[FAIL] Returning early. Command Failed '$cmd'"
-		return 1
+			set -e
+			ENDTIME=$(date +%s)
+			echo "[INFO] Success running command: '$cmd' after $(($ENDTIME - $STARTTIME)) seconds"
+			return 0
 		fi
-	fi
-	sleep $wait
+		#check a failure condition where the success
+		#command may never be evaluated before timing
+		#out
+		if [[ ! -z $fail ]]; then
+			eval $fail
+			if [ $? -eq 0 ]; then
+				set -e
+				echo "[FAIL] Returning early. Command Failed '$cmd'"
+				return 1
+			fi
+		fi
+		sleep $wait
 	done
 	echo "[ ERR] Gave up waiting for: '$cmd'"
 	set -e

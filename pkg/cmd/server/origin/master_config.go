@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
@@ -68,6 +69,7 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota"
 	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -76,7 +78,6 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/util/leaderlease"
 	"github.com/openshift/origin/pkg/util/restoptions"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -91,9 +92,10 @@ type MasterConfig struct {
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
-	GroupCache                *usercache.GroupCache
-	ProjectAuthorizationCache *projectauth.AuthorizationCache
-	ProjectCache              *projectcache.ProjectCache
+	GroupCache                    *usercache.GroupCache
+	ProjectAuthorizationCache     *projectauth.AuthorizationCache
+	ProjectCache                  *projectcache.ProjectCache
+	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -197,6 +199,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
 	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClient.Namespaces(), options.ProjectConfig.DefaultNodeSelector)
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
@@ -274,9 +277,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Authorizer:                    authorizer,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
-		GroupCache:                groupCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
-		ProjectCache:              projectCache,
+		GroupCache:                    groupCache,
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClient, informerFactory),
+		ProjectCache:                  projectCache,
+		ClusterQuotaMappingController: clusterQuotaMappingController,
 
 		RequestContextMapper: requestContextMapper,
 
@@ -347,6 +351,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
+	tokenAuthenticators := []authenticator.Request{}
 
 	// ServiceAccount token
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
@@ -358,26 +363,30 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			}
 			publicKeys = append(publicKeys, publicKey)
 		}
-		tokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
-		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
+		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
+		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator, true))
 	}
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		tokenAuthenticator, err := getEtcdTokenAuthenticator(restOptionsGetter, groupMapper)
+		oauthTokenAuthenticator, err := getEtcdTokenAuthenticator(restOptionsGetter, groupMapper)
 		if err != nil {
 			return nil, fmt.Errorf("Error building OAuth token authenticator: %v", err)
 		}
-		tokenRequestAuthenticators := []authenticator.Request{
-			bearertoken.New(tokenAuthenticator, true),
+		oauthTokenRequestAuthenticators := []authenticator.Request{
+			bearertoken.New(oauthTokenAuthenticator, true),
 			// Allow token as access_token param for WebSockets
-			paramtoken.New("access_token", tokenAuthenticator, true),
+			paramtoken.New("access_token", oauthTokenAuthenticator, true),
 		}
 
-		authenticators = append(authenticators,
+		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(tokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+			group.NewGroupAdder(unionrequest.NewUnionAuthentication(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+	}
+
+	if len(tokenAuthenticators) > 0 {
+		authenticators = append(authenticators, unionrequest.NewUnionAuthentication(tokenAuthenticators...))
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
@@ -394,7 +403,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		FailOnError: true,
 		Handlers: []authenticator.Request{
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
+			group.NewGroupAdder(&unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}, []string{bootstrappolicy.AuthenticatedGroup}),
 			anonymous.NewAuthenticator(),
 		},
 	}
@@ -650,7 +659,7 @@ func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient
 	return osClient, kClient
 }
 
-// DeployerPodControllerClients returns the deployer pod controller client object
+// DeployerPodControllerClient returns the deployer pod controller client object
 func (c *MasterConfig) DeployerPodControllerClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }

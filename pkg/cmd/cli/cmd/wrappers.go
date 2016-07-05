@@ -20,13 +20,18 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func tab(original string) string {
-	lines := []string{}
-	scanner := bufio.NewScanner(strings.NewReader(original))
-	for scanner.Scan() {
-		lines = append(lines, "  "+scanner.Text())
+func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
+	for _, subCmd := range cmd.Commands() {
+		adjustCmdExamples(subCmd, parentName, cmd.Name())
 	}
-	return strings.Join(lines, "\n")
+	cmd.Example = strings.Replace(cmd.Example, "kubectl", parentName, -1)
+	tabbing := "  "
+	examples := []string{}
+	scanner := bufio.NewScanner(strings.NewReader(cmd.Example))
+	for scanner.Scan() {
+		examples = append(examples, tabbing+strings.TrimSpace(scanner.Text()))
+	}
+	cmd.Example = strings.Join(examples, "\n")
 }
 
 const (
@@ -163,7 +168,7 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Example = fmt.Sprintf(createExample, parentName)
 
 	// create subcommands
-	cmd.AddCommand(NewCmdCreateRoute(parentName, f, out))
+	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, out))
 	cmd.AddCommand(create.NewCmdCreatePolicyBinding(create.PolicyBindingRecommendedName, parentName+" create "+create.PolicyBindingRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, parentName+" create "+create.ClusterQuotaRecommendedName, f, out))
@@ -179,6 +184,39 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 }
 
 const (
+	completionLong = `This command prints shell code which must be evaluated to provide interactive
+completion of %s commands.`
+
+	completionExample = `  # Generate the %s completion code for bash
+  %s completion bash > bash_completion.sh
+  source bash_completion.sh
+
+  # The above example depends on the bash-completion
+framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+
+  brew install bash-completion
+  source $(brew --prefix)/etc/bash_completion
+  %s completion bash > bash_completion.sh
+  source bash_completion.sh
+
+  # In zsh, the following will load openshift cli zsh completion:
+  source <(%s completion zsh)`
+)
+
+func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmdHelpName := fullName
+
+	if strings.HasSuffix(fullName, "completion") {
+		cmdHelpName = "openshift"
+	}
+
+	cmd := kcmd.NewCmdCompletion(f.Factory, out)
+	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
+	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
+	return cmd
+}
+
+const (
 	execLong = `Execute a command in a container`
 
 	execExample = `  # Get output from running 'date' in ruby-container from pod 'mypod'
@@ -186,30 +224,7 @@ const (
 
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
   %[1]s exec mypod -c ruby-container -i -t -- bash -il`
-
-	completionLong = `This command prints shell code which must be evaluation to provide interactive
-completion of openshift cli commands.`
-
-	completionExample = `  # Generate the openshift cli completion code for bash
-  source <(oc completion bash)
-
-  # The above example depends on the bash-completion
-framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
-
-  brew install bash-completion
-  source $(brew --prefix)/etc/bash_completion
-  source <(oc completion bash)
-
-  # In zsh, the following will load openshift cli zsh completion:
-  source <(oc completion zsh)`
 )
-
-func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdCompletion(f.Factory, out)
-	cmd.Long = completionLong
-	cmd.Example = completionExample
-	return cmd
-}
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
@@ -504,6 +519,7 @@ JSON and YAML formats are accepted.`
 cat pod.json | %[1]s apply -f -`
 )
 
+// NewCmdApply is a wrapper for the Kubernetes cli apply command
 func NewCmdApply(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdApply(f.Factory, out)
 	cmd.Long = applyLong
@@ -526,6 +542,7 @@ resourcequotas (quota), namespaces (ns) or endpoints (ep).`
 %[1]s explain pods.spec.containers`
 )
 
+// NewCmdExplain is a wrapper for the Kubernetes cli explain command
 func NewCmdExplain(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExplain(f.Factory, out)
 	cmd.Long = explainLong
@@ -556,6 +573,7 @@ to change to output destination.
 `
 )
 
+// NewCmdConvert is a wrapper for the Kubernetes cli convert command
 func NewCmdConvert(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdConvert(f.Factory, out)
 	cmd.Long = convertLong
@@ -598,6 +616,7 @@ saved copy to include the latest resource version.`
   %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
+// NewCmdEdit is a wrapper for the Kubernetes cli edit command
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdEdit(f.Factory, out, errout)
 	cmd.Long = editLong
@@ -622,6 +641,7 @@ Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/
   %[1]s %[2]s set preferences.some true`
 )
 
+// NewCmdConfig is a wrapper for the Kubernetes cli config command
 func NewCmdConfig(parentName, name string) *cobra.Command {
 	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
@@ -640,18 +660,4 @@ func NewCmdConfig(parentName, name string) *cobra.Command {
 	cmd.Example = fmt.Sprintf(configExample, parentName, name)
 	adjustCmdExamples(cmd, parentName, name)
 	return cmd
-}
-
-func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
-	for _, subCmd := range cmd.Commands() {
-		adjustCmdExamples(subCmd, parentName, cmd.Name())
-	}
-	cmd.Example = strings.Replace(cmd.Example, "kubectl", parentName, -1)
-	tabbing := "  "
-	examples := []string{}
-	scanner := bufio.NewScanner(strings.NewReader(cmd.Example))
-	for scanner.Scan() {
-		examples = append(examples, tabbing+strings.TrimSpace(scanner.Text()))
-	}
-	cmd.Example = strings.Join(examples, "\n")
 }

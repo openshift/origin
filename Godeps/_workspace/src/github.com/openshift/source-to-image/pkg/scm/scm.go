@@ -3,7 +3,7 @@ package scm
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/scm/empty"
@@ -11,6 +11,8 @@ import (
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util"
 )
+
+var glog = utilglog.StderrLog
 
 // DownloaderForSource determines what SCM plugin should be used for downloading
 // the sources from the repository.

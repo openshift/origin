@@ -27,9 +27,8 @@ import (
 	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	osdnapi "github.com/openshift/openshift-sdn/plugins/osdn/api"
-	sdnfactory "github.com/openshift/openshift-sdn/plugins/osdn/factory"
-	sdnovs "github.com/openshift/openshift-sdn/plugins/osdn/ovs"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -76,10 +75,8 @@ type NodeConfig struct {
 	// DNSConfig controls the DNS configuration.
 	DNSServer *dns.Server
 
-	// Maximum transmission unit for the network packets
-	MTU uint
 	// SDNPlugin is an optional SDN plugin
-	SDNPlugin osdnapi.OsdnPlugin
+	SDNPlugin osdnapi.OsdnNodePlugin
 	// EndpointsFilterer is an optional endpoints filterer
 	FilteringEndpointsHandler osdnapi.FilteringEndpointsConfigHandler
 }
@@ -174,7 +171,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		server.ResolverConfig = ""
 	}
 
-	if sdnovs.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
+	if osdn.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 		server.ConfigureCBR0 = false
@@ -278,7 +275,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
 	}
-	sdnPlugin, err := sdnfactory.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod)
+	sdnPlugin, err := osdn.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
 	}
@@ -286,7 +283,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		cfg.NetworkPlugins = append(cfg.NetworkPlugins, sdnPlugin)
 	}
 
-	endpointFilter, err := sdnfactory.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
+	endpointFilter, err := osdn.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("SDN proxy initialization failed: %v", err)
 	}
@@ -307,8 +304,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		ServicesReady: make(chan struct{}),
 
 		ProxyConfig: proxyconfig,
-
-		MTU: options.NetworkConfig.MTU,
 
 		SDNPlugin:                 sdnPlugin,
 		FilteringEndpointsHandler: endpointFilter,
@@ -418,7 +413,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 }
 
 func validateAndGetNetworkPluginName(originClient *osclient.Client, pluginName string) (string, error) {
-	if sdnovs.IsOpenShiftNetworkPlugin(pluginName) {
+	if osdn.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
 		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
 		if kerrs.IsNotFound(err) {

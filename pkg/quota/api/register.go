@@ -1,7 +1,6 @@
 package api
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -28,13 +27,18 @@ func AddToScheme(scheme *runtime.Scheme) {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&kapi.ListOptions{},
 		&ClusterResourceQuota{},
 		&ClusterResourceQuotaList{},
-
-		&kapi.DeleteOptions{},
-		&kapi.ListOptions{},
+		&AppliedClusterResourceQuota{},
+		&AppliedClusterResourceQuotaList{},
 	)
+}
+
+func (obj *AppliedClusterResourceQuotaList) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}
+func (obj *AppliedClusterResourceQuota) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
 }
 
 func (obj *ClusterResourceQuotaList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

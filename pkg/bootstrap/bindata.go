@@ -67,8 +67,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby",
-        "creationTimestamp": null
+        "name": "ruby"
       },
       "spec": {
         "tags": [
@@ -83,7 +82,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.2"
+              "name": "2.3"
             }
           },
           {
@@ -115,6 +114,21 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7:latest"
             }
+          },
+          {
+            "name": "2.3",
+            "annotations": {
+              "description": "Build and run Ruby 2.3 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.3,ruby",
+              "version": "2.3",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-23-centos7:latest"
+            }
           }
         ]
       }
@@ -123,8 +137,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs",
-        "creationTimestamp": null
+        "name": "nodejs"
       },
       "spec": {
         "tags": [
@@ -164,8 +177,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "perl",
-        "creationTimestamp": null
+        "name": "perl"
       },
       "spec": {
         "tags": [
@@ -221,8 +233,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "php",
-        "creationTimestamp": null
+        "name": "php"
       },
       "spec": {
         "tags": [
@@ -277,8 +288,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "python",
-        "creationTimestamp": null
+        "name": "python"
       },
       "spec": {
         "tags": [
@@ -293,7 +303,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.4"
+              "name": "3.5"
             }
           },
           {
@@ -340,6 +350,21 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "centos/python-34-centos7:latest"
             }
+          },
+          {
+            "name": "3.5",
+            "annotations": {
+              "description": "Build and run Python 3.5 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.5,python",
+              "version": "3.5",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/python-35-centos7:latest"
+            }
           }
         ]
       }
@@ -348,8 +373,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "wildfly",
-        "creationTimestamp": null
+        "name": "wildfly"
       },
       "spec": {
         "tags": [
@@ -419,8 +443,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mysql",
-        "creationTimestamp": null
+        "name": "mysql"
       },
       "spec": {
         "tags": [
@@ -469,8 +492,43 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "postgresql",
-        "creationTimestamp": null
+        "name": "mariadb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Provides a MariaDB database",
+              "iconClass": "icon-mariadb",
+              "tags": "mariadb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10.1"
+            }
+          },
+          {
+            "name": "10.1",
+            "annotations": {
+              "description": "Provides a MariaDB v10.1 database",
+              "iconClass": "icon-mariadb",
+              "tags": "mariadb",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/mariadb-101-centos7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "postgresql"
       },
       "spec": {
         "tags": [
@@ -483,7 +541,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "9.4"
+              "name": "9.5"
             }
           },
           {
@@ -511,6 +569,19 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "centos/postgresql-94-centos7:latest"
             }
+          },
+          {
+            "name": "9.5",
+            "annotations": {
+              "description": "Provides a PostgreSQL v9.5 database",
+              "iconClass": "icon-postgresql",
+              "tags": "postgresql",
+              "version": "9.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/postgresql-95-centos7:latest"
+            }
           }
         ]
       }
@@ -519,8 +590,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mongodb",
-        "creationTimestamp": null
+        "name": "mongodb"
       },
       "spec": {
         "tags": [
@@ -533,7 +603,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.6"
+              "name": "3.2"
             }
           },
           {
@@ -561,6 +631,19 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "kind": "DockerImage",
               "name": "centos/mongodb-26-centos7:latest"
             }
+          },
+          {
+            "name": "3.2",
+            "annotations": {
+              "description": "Provides a MongoDB v3.2 database",
+              "iconClass": "icon-mongodb",
+              "tags": "mongodb",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/mongodb-32-centos7:latest"
+            }
           }
         ]
       }
@@ -569,8 +652,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
-        "creationTimestamp": null
+        "name": "jenkins"
       },
       "spec": {
         "tags": [
@@ -630,8 +712,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby",
-        "creationTimestamp": null
+        "name": "ruby"
       },
       "spec": {
         "tags": [
@@ -641,12 +722,12 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "description": "Build and run Ruby applications",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
-              "supports": "ruby,ruby",
+              "supports": "ruby",
               "sampleRepo": "https://github.com/openshift/ruby-ex.git"
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.2"
+              "name": "2.3"
             }
           },
           {
@@ -678,6 +759,21 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
             }
+          },
+          {
+            "name": "2.3",
+            "annotations": {
+              "description": "Build and run Ruby 2.3 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.3,ruby",
+              "version": "2.3",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/ruby-23-rhel7:latest"
+            }
           }
         ]
       }
@@ -686,8 +782,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs",
-        "creationTimestamp": null
+        "name": "nodejs"
       },
       "spec": {
         "tags": [
@@ -702,7 +797,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "0.10"
+              "name": "4"
             }
           },
           {
@@ -719,6 +814,21 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/openshift3/nodejs-010-rhel7:latest"
             }
+          },
+          {
+            "name": "4",
+            "annotations": {
+              "description": "Build and run NodeJS 4.x applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:4,nodejs",
+              "version": "4",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/nodejs-4-rhel7:latest"
+            }
           }
         ]
       }
@@ -727,8 +837,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "perl",
-        "creationTimestamp": null
+        "name": "perl"
       },
       "spec": {
         "tags": [
@@ -784,8 +893,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "php",
-        "creationTimestamp": null
+        "name": "php"
       },
       "spec": {
         "tags": [
@@ -840,8 +948,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "python",
-        "creationTimestamp": null
+        "name": "python"
       },
       "spec": {
         "tags": [
@@ -856,7 +963,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.4"
+              "name": "3.5"
             }
           },
           {
@@ -903,6 +1010,21 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-34-rhel7:latest"
             }
+          },
+          {
+            "name": "3.5",
+            "annotations": {
+              "description": "Build and run Python 3.5 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.5,python",
+              "version": "3.5",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/python-35-rhel7:latest"
+            }
           }
         ]
       }
@@ -911,8 +1033,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mysql",
-        "creationTimestamp": null
+        "name": "mysql"
       },
       "spec": {
         "tags": [
@@ -961,8 +1082,43 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "postgresql",
-        "creationTimestamp": null
+        "name": "mariadb"
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Provides a MariaDB database",
+              "iconClass": "icon-mariadb",
+              "tags": "mariadb"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "10.1"
+            }
+          },
+          {
+            "name": "10.1",
+            "annotations": {
+              "description": "Provides a MariaDB v10.1 database",
+              "iconClass": "icon-mariadb",
+              "tags": "mariadb",
+              "version": "10.1"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/mariadb-101-rhel7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "postgresql"
       },
       "spec": {
         "tags": [
@@ -975,7 +1131,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "9.4"
+              "name": "9.5"
             }
           },
           {
@@ -1003,6 +1159,19 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/postgresql-94-rhel7:latest"
             }
+          },
+          {
+            "name": "9.5",
+            "annotations": {
+              "description": "Provides a PostgreSQL v9.5 database",
+              "iconClass": "icon-postgresql",
+              "tags": "postgresql",
+              "version": "9.5"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/postgresql-95-rhel7:latest"
+            }
           }
         ]
       }
@@ -1011,8 +1180,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mongodb",
-        "creationTimestamp": null
+        "name": "mongodb"
       },
       "spec": {
         "tags": [
@@ -1025,7 +1193,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.6"
+              "name": "3.2"
             }
           },
           {
@@ -1053,6 +1221,19 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/mongodb-26-rhel7:latest"
             }
+          },
+          {
+            "name": "3.2",
+            "annotations": {
+              "description": "Provides a MongoDB v3.2 database",
+              "iconClass": "icon-mongodb",
+              "tags": "mongodb",
+              "version": "3.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/mongodb-32-rhel7:latest"
+            }
           }
         ]
       }
@@ -1061,8 +1242,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
-        "creationTimestamp": null
+        "name": "jenkins"
       },
       "spec": {
         "tags": [
@@ -2839,12 +3019,6 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
             }
           }
         ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world"
-          }
-        },
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {

@@ -22,12 +22,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 03d1b1583c9e0e531e928d9a9a787164ab3a6fe0
+%global commit 52723dccf6f0ed174ec9ee98ddcdaec5bad52d72
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.0-42-g03d1b15 -X github.com/openshift/origin/pkg/version.commitFromGit=03d1b15 -X k8s.io/kubernetes/pkg/version.gitCommit=03d1b15 -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.1-81-g52723dc -X github.com/openshift/origin/pkg/version.commitFromGit=52723dc -X k8s.io/kubernetes/pkg/version.gitCommit=52723dc -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -47,7 +47,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.1
+Version:        3.3.0.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -283,7 +283,7 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/ovs/bin
+pushd _thirdpartyhacks/src/%{sdn_import_path}/plugins/osdn/bin
    install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
    install -p -m 755 openshift-sdn-docker-setup.sh %{buildroot}%{_bindir}/openshift-sdn-docker-setup.sh
 popd
@@ -475,6 +475,66 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Tue Jul 05 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.2
+- clarify makefile (li.guangxu@zte.com.cn)
+- Remove deprecated man pages (ffranz@redhat.com)
+- Fixes usage for oc set probe and oc debug (ffranz@redhat.com)
+- Add test for DockerImageConfig parsing and counting size of image layers
+  (agladkov@redhat.com)
+- Fix parsing DockerImageConfig (agladkov@redhat.com)
+- disable stack tracing logic for curl operations, it breaks them.
+  (bparees@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  ebd41a8b24bd95716b90a05fe0fda540c69fc119 (bparees@redhat.com)
+- better warning for users when the buildconfig is of type binary
+  (bparees@redhat.com)
+- sort projects alphabetically (jvallejo@redhat.com)
+- UPSTREAM: 28179: dedup workqueue requeing (deads@redhat.com)
+- Add test for invalid client cert (jliggitt@redhat.com)
+- add clusterquota projection for associated projects (deads@redhat.com)
+- integration: wait for synced config before testing autoscaling
+  (mkargaki@redhat.com)
+- Unify counting of image layers in our helper and registry
+  (agladkov@redhat.com)
+- extended: test for iterative deployments (mkargaki@redhat.com)
+- Limit the number of events and deployments displayed in dc describer
+  (mfojtik@redhat.com)
+- remove extra deploy invocation for sample repos tests (bparees@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  ec23cd36484d1c32d3cfdbbc160d30d06bac9db4 (jupierce@redhat.com)
+- Clean up references to NETWORKING_DEBUG (marun@redhat.com)
+- Bump vagrant memory to allow go builds (marun@redhat.com)
+- UPSTREAM: 27435: Fix bugs in DeltaFIFO (deads@redhat.com)
+- update completion help example (jvallejo@redhat.com)
+- update generated docs (jvallejo@redhat.com)
+- update completion help to use root command in examples (jvallejo@redhat.com)
+- set env from secrets and configmaps (sjenning@redhat.com)
+- Note that --env flag doesn't apply to templates (rhcarvalho@gmail.com)
+- Simplify calls to FixturePath (rhcarvalho@gmail.com)
+- oc: support rollout undo (mkargaki@redhat.com)
+- oc: tests for rollout {pause,resume,history} (mkargaki@redhat.com)
+- oc: support rollout history (mkargaki@redhat.com)
+- UPSTREAM: 27267: kubectl: refactor rollout history (mkargaki@redhat.com)
+- oc: support rollout {pause,resume} (mkargaki@redhat.com)
+- oc: generated completions/docs for rollout (mkargaki@redhat.com)
+- oc: make route utility reusable across packages (mkargaki@redhat.com)
+- oc: port rollout command from kubectl (mkargaki@redhat.com)
+- add new SCL version imagestreams (bparees@redhat.com)
+- remove source repo from pipeline buildconfig (bparees@redhat.com)
+- deploy: update tests in the deployment controller (mkargaki@redhat.com)
+- deploy: use shared caches in the deployment controller (mkargaki@redhat.com)
+- Fix --show-events=false for build configs and deployment configs
+  (mfojtik@redhat.com)
+- Update for openshift-sdn changes (danw@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  e2106a29fc38f962af64332e6e1d9f94e421c7aa (danw@redhat.com)
+- Add 'MissingSecret' reason for pending builds (mfojtik@redhat.com)
+- Don't fallback to cert when given invalid token (mkhan@redhat.com)
+- commonize bc input across strategies; better insure bc ouput is set
+  (gmontero@redhat.com)
+- Do not hard code build name (rhcarvalho@gmail.com)
+- e2e: honor $USE_IMAGES during registry's deployment (miminar@redhat.com)
+
 * Thu Jun 30 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.1
 - add OSE 3.3 build target (tdawson@redhat.com)
 - add oc create clusterquota (deads@redhat.com)

@@ -42,8 +42,16 @@ function wait_for_app() {
   wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
   echo "[INFO] Testing app"
+  set -x
+  set +u
+  OLD=$OS_USE_STACK_TRACE
+  OS_USE_STACK_TRACE=""
   wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
   wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
+  OS_USE_STACK_TRACE=$OLD
+  set -u
+  set +x
+
 }
 
 os::test::junit::declare_suite_start "end-to-end/core"

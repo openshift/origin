@@ -1,4 +1,4 @@
-package ovs
+package osdn
 
 import (
 	"fmt"
@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/pkg/ovs"
-	"github.com/openshift/openshift-sdn/plugins/osdn"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -32,6 +31,8 @@ const (
 	VLINUXBR = "vlinuxbr"
 	VOVSBR   = "vovsbr"
 	VXLAN    = "vxlan0"
+
+	VXLAN_PORT = "4789"
 )
 
 func getPluginVersion(multitenant bool) []string {
@@ -129,7 +130,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (plugin *ovsPlugin) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
+func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -326,8 +327,8 @@ func (plugin *ovsPlugin) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesN
 	return true, nil
 }
 
-func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
-	glog.Infof("AddHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
+func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
+	glog.Infof("AddHostSubnetRules for %s", hostSubnetToString(subnet))
 	otx := ovs.NewTransaction(BR)
 
 	otx.AddFlow("table=1, priority=100, tun_src=%s, actions=goto_table:5", subnet.HostIP)
@@ -341,8 +342,8 @@ func (plugin *ovsPlugin) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 	return nil
 }
 
-func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
-	glog.Infof("DeleteHostSubnetRules for %s", osdn.HostSubnetToString(subnet))
+func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
+	glog.Infof("DeleteHostSubnetRules for %s", hostSubnetToString(subnet))
 
 	otx := ovs.NewTransaction(BR)
 	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
@@ -354,7 +355,7 @@ func (plugin *ovsPlugin) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 	return nil
 }
 
-func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) error {
+func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint) error {
 	if !plugin.multitenant {
 		return nil
 	}
@@ -372,7 +373,7 @@ func (plugin *ovsPlugin) AddServiceRules(service *kapi.Service, netID uint) erro
 	return nil
 }
 
-func (plugin *ovsPlugin) DeleteServiceRules(service *kapi.Service) error {
+func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) error {
 	if !plugin.multitenant {
 		return nil
 	}

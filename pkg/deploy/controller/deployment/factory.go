@@ -1,177 +1,230 @@
 package deployment
 
 import (
-	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 
-	controller "github.com/openshift/origin/pkg/controller"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// DeploymentControllerFactory can create a DeploymentController that creates
-// deployer pods in a configurable way.
-type DeploymentControllerFactory struct {
-	// KubeClient is a Kubernetes client.
-	KubeClient kclient.Interface
-	// Codec is used for encoding/decoding.
-	Codec runtime.Codec
-	// ServiceAccount is the service account name to run deployer pods as
-	ServiceAccount string
-	// Environment is a set of environment which should be injected into all deployer pod containers.
-	Environment []kapi.EnvVar
-	// DeployerImage specifies which Docker image can support the default strategies.
-	DeployerImage string
-}
+const (
+	// We must avoid creating processing deployment configs until the deployment config and image
+	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
+	// between checks.
+	StoreSyncedPollPeriod = 100 * time.Millisecond
+)
 
-// Create creates a DeploymentController.
-func (factory *DeploymentControllerFactory) Create() controller.RunnableController {
-	deploymentLW := &cache.ListWatch{
-		// TODO: Investigate specifying annotation field selectors to fetch only 'deployments'
-		// Currently field selectors are not supported for replication controllers
-		ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(options)
-		},
-		WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(options)
-		},
-	}
-	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
-
+// NewDeploymentController creates a new DeploymentController.
+func NewDeploymentController(rcInformer, podInformer framework.SharedIndexInformer, kc kclient.Interface, sa, image string, env []kapi.EnvVar, codec runtime.Codec) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
-	eventRecorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployments-controller"})
+	eventBroadcaster.StartRecordingToSink(kc.Events(""))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployments-controller"})
 
 	c := &DeploymentController{
-		serviceAccount: factory.ServiceAccount,
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
-			},
-		},
-		podClient: &podClientImpl{
-			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
-				return factory.KubeClient.Pods(namespace).Get(name)
-			},
-			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				return factory.KubeClient.Pods(namespace).Create(pod)
-			},
-			deletePodFunc: func(namespace, name string) error {
-				return factory.KubeClient.Pods(namespace).Delete(name, nil)
-			},
-			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				return factory.KubeClient.Pods(namespace).Update(pod)
-			},
-			// Find deployer pods using the label they should all have which
-			// correlates them to the named deployment.
-			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
-				labelSel, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, name))
-				if err != nil {
-					return []kapi.Pod{}, err
-				}
-				options := kapi.ListOptions{LabelSelector: labelSel}
-				pods, err := factory.KubeClient.Pods(namespace).List(options)
-				if err != nil {
-					return []kapi.Pod{}, err
-				}
-				return pods.Items, nil
-			},
-		},
-		makeContainer: func(strategy *deployapi.DeploymentStrategy) *kapi.Container {
-			return factory.makeContainer(strategy)
-		},
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
-		},
-		recorder: eventRecorder,
+		rn: kc,
+		pn: kc,
+
+		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+
+		serviceAccount: sa,
+		deployerImage:  image,
+		environment:    env,
+		recorder:       recorder,
+		codec:          codec,
 	}
 
-	return &controller.RetryController{
-		Queue: controller.NewQueueWrapper(deploymentQueue),
-		RetryManager: controller.NewQueueRetryManager(
-			controller.NewQueueWrapper(deploymentQueue),
-			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, retries controller.Retry) bool {
-				if _, isFatal := err.(fatalError); isFatal {
-					utilruntime.HandleError(err)
-					return false
-				}
-				if retries.Count > 1 {
-					_, isActionableErr := err.(actionableError)
-					deployment, noReasonToPanic := obj.(*kapi.ReplicationController)
+	c.rcStore.Indexer = rcInformer.GetIndexer()
+	rcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    c.addReplicationController,
+		UpdateFunc: c.updateReplicationController,
+	})
 
-					if isActionableErr && noReasonToPanic {
-						c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedRetry", fmt.Sprintf("About to stop retrying %s: %v", deployment.Name, err))
-					}
-					return false
-				}
-				return true
-			},
-			flowcontrol.NewTokenBucketRateLimiter(1, 10),
-		),
-		Handle: func(obj interface{}) error {
-			deployment := obj.(*kapi.ReplicationController)
-			return c.Handle(deployment)
-		},
+	c.podStore.Indexer = podInformer.GetIndexer()
+	podInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		UpdateFunc: c.updatePod,
+		DeleteFunc: c.deletePod,
+	})
+
+	c.rcStoreSynced = rcInformer.HasSynced
+	c.podStoreSynced = podInformer.HasSynced
+
+	return c
+}
+
+// Run begins watching and syncing.
+func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	// Wait for the dc store to sync before starting any work in this controller.
+	ready := make(chan struct{})
+	go c.waitForSyncedStores(ready, stopCh)
+	select {
+	case <-ready:
+	case <-stopCh:
+		return
+	}
+
+	for i := 0; i < workers; i++ {
+		go wait.Until(c.worker, time.Second, stopCh)
+	}
+	<-stopCh
+	glog.Infof("Shutting down deployment controller")
+	c.queue.ShutDown()
+}
+
+func (c *DeploymentController) waitForSyncedStores(ready chan<- struct{}, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	for !c.rcStoreSynced() || !c.podStoreSynced() {
+		glog.V(4).Infof("Waiting for the rc and pod caches to sync before starting the deployment controller workers")
+		select {
+		case <-time.After(StoreSyncedPollPeriod):
+		case <-stopCh:
+			return
+		}
+	}
+	close(ready)
+}
+
+func (c *DeploymentController) addReplicationController(obj interface{}) {
+	rc := obj.(*kapi.ReplicationController)
+	// Filter out all unrelated replication controllers.
+	if !deployutil.IsOwnedByConfig(rc) {
+		return
+	}
+
+	c.enqueueReplicationController(rc)
+}
+
+func (c *DeploymentController) updateReplicationController(old, cur interface{}) {
+	rc := cur.(*kapi.ReplicationController)
+	// Filter out all unrelated replication controllers.
+	if !deployutil.IsOwnedByConfig(rc) {
+		return
+	}
+
+	c.enqueueReplicationController(rc)
+}
+
+func (c *DeploymentController) updatePod(old, cur interface{}) {
+	// A periodic relist will send update events for all known controllers.
+	if kapi.Semantic.DeepEqual(old, cur) {
+		return
+	}
+
+	pod := cur.(*kapi.Pod)
+
+	if rc, err := c.rcForDeployerPod(pod); err == nil && rc != nil {
+		c.enqueueReplicationController(rc)
 	}
 }
 
-// makeContainer creates containers in the following way:
-//
-//   1. For the Recreate and Rolling strategies, strategy, use the factory's
-//      DeployerImage as the container image, and the factory's Environment
-//      as the container environment.
-//   2. For all Custom strategies, or if the CustomParams field is set, use
-//      the strategy's image for the container image, and use the combination
-//      of the factory's Environment and the strategy's environment as the
-//      container environment.
-//
-func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.DeploymentStrategy) *kapi.Container {
-	image := factory.DeployerImage
-	var environment []kapi.EnvVar
-	var command []string
-
-	set := sets.NewString()
-	// Use user-defined values from the strategy input.
-	if p := strategy.CustomParams; p != nil {
-		if len(p.Image) > 0 {
-			image = p.Image
+func (c *DeploymentController) deletePod(obj interface{}) {
+	pod, ok := obj.(*kapi.Pod)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			glog.Errorf("Couldn't get object from tombstone: %+v", obj)
+			return
 		}
-		if len(p.Command) > 0 {
-			command = p.Command
-		}
-		for _, env := range strategy.CustomParams.Environment {
-			set.Insert(env.Name)
-			environment = append(environment, env)
+		pod, ok = tombstone.Obj.(*kapi.Pod)
+		if !ok {
+			glog.Errorf("Tombstone contained object that is not a pod: %+v", obj)
+			return
 		}
 	}
 
-	// Set default environment values
-	for _, env := range factory.Environment {
-		if set.Has(env.Name) {
-			continue
+	if rc, err := c.rcForDeployerPod(pod); err == nil && rc != nil {
+		c.enqueueReplicationController(rc)
+	}
+}
+
+func (c *DeploymentController) enqueueReplicationController(rc *kapi.ReplicationController) {
+	key, err := kcontroller.KeyFunc(rc)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %#v: %v", rc, err)
+		return
+	}
+	c.queue.Add(key)
+}
+
+func (c *DeploymentController) rcForDeployerPod(pod *kapi.Pod) (*kapi.ReplicationController, error) {
+	key := pod.Namespace + "/" + deployutil.DeploymentNameFor(pod)
+	return c.getByKey(key)
+}
+
+func (c *DeploymentController) worker() {
+	for {
+		if quit := c.work(); quit {
+			return
 		}
-		environment = append(environment, env)
+	}
+}
+
+func (c *DeploymentController) work() bool {
+	key, quit := c.queue.Get()
+	if quit {
+		return true
+	}
+	defer c.queue.Done(key)
+
+	rc, err := c.getByKey(key.(string))
+	if err != nil {
+		glog.Error(err.Error())
 	}
 
-	return &kapi.Container{
-		Image:   image,
-		Command: command,
-		Env:     environment,
+	if rc == nil {
+		return false
 	}
+
+	copied, err := deployutil.DeploymentDeepCopy(rc)
+	if err != nil {
+		glog.Error(err.Error())
+		return false
+	}
+
+	err = c.Handle(copied)
+	c.handleErr(err, key, copied)
+
+	return false
+}
+
+func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController, error) {
+	obj, exists, err := c.rcStore.Indexer.GetByKey(key)
+	if err != nil {
+		glog.Infof("Unable to retrieve replication controller %q from store: %v", key, err)
+		c.queue.Add(key)
+		return nil, err
+	}
+	if !exists {
+		glog.Infof("Replication controller %q has been deleted", key)
+		return nil, nil
+	}
+
+	return obj.(*kapi.ReplicationController), nil
+}
+
+// TODO: Move this in the upstream pod lister
+func (c *DeploymentController) getPod(namespace, name string) (*kapi.Pod, error) {
+	key := namespace + "/" + name
+	obj, exists, err := c.podStore.Indexer.GetByKey(key)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, kerrors.NewNotFound(kapi.Resource("pod"), name)
+	}
+	return obj.(*kapi.Pod), nil
 }

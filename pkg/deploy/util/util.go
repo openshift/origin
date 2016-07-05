@@ -117,6 +117,18 @@ func DeploymentConfigDeepCopy(dc *deployapi.DeploymentConfig) (*deployapi.Deploy
 	return copied, nil
 }
 
+func DeploymentDeepCopy(rc *api.ReplicationController) (*api.ReplicationController, error) {
+	objCopy, err := api.Scheme.DeepCopy(rc)
+	if err != nil {
+		return nil, err
+	}
+	copied, ok := objCopy.(*api.ReplicationController)
+	if !ok {
+		return nil, fmt.Errorf("expected ReplicationController, got %#v", objCopy)
+	}
+	return copied, nil
+}
+
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
@@ -218,6 +230,9 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 			},
 		},
 	}
+	if config.Status.Details != nil && len(config.Status.Details.Message) > 0 {
+		deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = config.Status.Details.Message
+	}
 	if value, ok := config.Annotations[deployapi.DeploymentIgnorePodAnnotation]; ok {
 		deployment.Annotations[deployapi.DeploymentIgnorePodAnnotation] = value
 	}
@@ -304,6 +319,14 @@ func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 
 func HasSynced(dc *deployapi.DeploymentConfig) bool {
 	return dc.Status.ObservedGeneration >= dc.Generation
+}
+
+// IsOwnedByConfig checks whether the provided replication controller is part of a
+// deployment configuration.
+// TODO: Switch to use owner references once we got those working.
+func IsOwnedByConfig(deployment *api.ReplicationController) bool {
+	_, ok := deployment.Annotations[deployapi.DeploymentConfigAnnotation]
+	return ok
 }
 
 // IsTerminatedDeployment returns true if the passed deployment has terminated (either

@@ -19,8 +19,6 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/lib/init.sh"
 os::log::stacktrace::install
 
-NETWORKING_DEBUG=${NETWORKING_DEBUG:-false}
-
 # These strings filter the available tests.
 #
 # The EmptyDir test is a canary; it will fail if mount propagation is

@@ -234,9 +234,29 @@ func DeepCopy_api_DockerImage(in DockerImage, out *DockerImage, c *conversion.Cl
 }
 
 func DeepCopy_api_DockerImageConfig(in DockerImageConfig, out *DockerImageConfig, c *conversion.Cloner) error {
-	if err := DeepCopy_api_DockerImage(in.DockerImage, &out.DockerImage, c); err != nil {
+	out.ID = in.ID
+	out.Parent = in.Parent
+	out.Comment = in.Comment
+	if err := unversioned.DeepCopy_unversioned_Time(in.Created, &out.Created, c); err != nil {
 		return err
 	}
+	out.Container = in.Container
+	if err := DeepCopy_api_DockerConfig(in.ContainerConfig, &out.ContainerConfig, c); err != nil {
+		return err
+	}
+	out.DockerVersion = in.DockerVersion
+	out.Author = in.Author
+	if in.Config != nil {
+		in, out := in.Config, &out.Config
+		*out = new(DockerConfig)
+		if err := DeepCopy_api_DockerConfig(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Config = nil
+	}
+	out.Architecture = in.Architecture
+	out.Size = in.Size
 	if in.RootFS != nil {
 		in, out := in.RootFS, &out.RootFS
 		*out = new(DockerConfigRootFS)

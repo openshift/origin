@@ -64,18 +64,20 @@ Output shell completion code for the given shell (bash or zsh)
 
 [options="nowrap"]
 ----
-  # Generate the openshift cli completion code for bash
-  source <(oc completion bash)
+  # Generate the oc adm completion code for bash
+  oc adm completion bash > bash_completion.sh
+  source bash_completion.sh
 
   # The above example depends on the bash-completion
 framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash-completion
   source $(brew --prefix)/etc/bash_completion
-  source <(oc completion bash)
+  oc adm completion bash > bash_completion.sh
+  source bash_completion.sh
 
   # In zsh, the following will load openshift cli zsh completion:
-  source <(oc completion zsh)
+  source <(oc adm completion zsh)
 ----
 ====
 
@@ -730,15 +732,17 @@ Output shell completion code for the given shell (bash or zsh)
 
 [options="nowrap"]
 ----
-  # Generate the openshift cli completion code for bash
-  source <(oc completion bash)
+  # Generate the oc completion code for bash
+  oc completion bash > bash_completion.sh
+  source bash_completion.sh
 
   # The above example depends on the bash-completion
 framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash-completion
   source $(brew --prefix)/etc/bash_completion
-  source <(oc completion bash)
+  oc completion bash > bash_completion.sh
+  source bash_completion.sh
 
   # In zsh, the following will load openshift cli zsh completion:
   source <(oc completion zsh)
@@ -1234,6 +1238,12 @@ DEPRECATED: set env
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc env rc --all ENV=prod
+
+  # Import environment from a secret
+  oc env --from=secret/mysecret dc/myapp
+
+  # Import environment from a config map with a prefix
+  oc env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
 
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc env dc --all --containers="c1" ENV-
@@ -1768,6 +1778,66 @@ Revert part of an application back to a previous deployment
 ====
 
 
+== oc rollout history
+view rollout history
+
+====
+
+[options="nowrap"]
+----
+  # View the rollout history of a deployment
+  oc rollout history dc/nginx
+
+  # View the details of deployment revision 3
+  oc rollout history dc/nginx --revision=3
+----
+====
+
+
+== oc rollout pause
+Mark the provided resource as paused
+
+====
+
+[options="nowrap"]
+----
+  # Mark the nginx deployment as paused. Any current state of
+  # the deployment will continue its function, new updates to the deployment will not
+  # have an effect as long as the deployment is paused.
+  oc rollout pause dc/nginx
+----
+====
+
+
+== oc rollout resume
+Resume a paused resource
+
+====
+
+[options="nowrap"]
+----
+  # Resume an already paused deployment
+  oc rollout resume dc/nginx
+----
+====
+
+
+== oc rollout undo
+undoes a previous rollout
+
+====
+
+[options="nowrap"]
+----
+  # Rollback to the previous deployment
+  oc rollout undo dc/nginx
+
+  # Rollback to deployment revision 3. The replication controller for that version must exist.
+  oc rollout undo dc/nginx --to-revision=3
+----
+====
+
+
 == oc rsh
 Start a shell session in a pod
 
@@ -2053,6 +2123,12 @@ Update environment variables on a pod template
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc set env rc --all ENV=prod
+
+  # Import environment from a secret
+  oc set env --from=secret/mysecret dc/myapp
+
+  # Import environment from a config map with a prefix
+  oc set env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
 
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc set env dc --all --containers="c1" ENV-

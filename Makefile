@@ -20,7 +20,7 @@ export OS_OUTPUT_GOPATH
 #
 # Args:
 #   WHAT: Directory names to build.  If any of these directories has a 'main'
-#     package, the build will produce executable files under $(OUT_DIR)/go/bin.
+#     package, the build will produce executable files under $(OUT_DIR)/local/bin.
 #     If not specified, "everything" will be built.
 #   GOFLAGS: Extra flags to pass to 'go' when building.
 #   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
@@ -28,7 +28,7 @@ export OS_OUTPUT_GOPATH
 # Example:
 #   make
 #   make all
-#   make all WHAT=cmd/kubelet GOFLAGS=-v
+#   make all WHAT=cmd/oc GOFLAGS=-v
 all build:
 	hack/build-go.sh $(WHAT)
 .PHONY: all build
