@@ -42,16 +42,6 @@ function os::log::stacktrace::print() {
     local return_code=$1
     local last_command=$2
     local errexit_set=${3:-}
-    set --
-
-    # evaulate all of the variables in the last command literal so we have a useful stacktrace
-    # this will *not* be able to capture positional variables ($1, $@, $*) or variables declared
-    # in this scope or in the trap handler ($return_code, $last_command, $errexit_set)
-    # Furthermore, since it is possible that the failure in the last command itself was an unset
-    # variable, we need to turn off that check to ensure we're not re-triggering it here.
-    set +o nounset
-    local -r last_command_with_vars="$( eval "echo \"${last_command}\"" )"
-    set -o nounset
 
     if [[ "${return_code}" = "0" ]]; then
         # we're not supposed to respond when no error has occurred
@@ -82,8 +72,6 @@ function os::log::stacktrace::print() {
         if [[ -z "${preamble_finished:-}" ]]; then
             preamble_finished=true
             os::log::error "PID ${BASHPID:-$$}: ${bash_source}:${BASH_LINENO[$i-1]}: \`${last_command}\` exited with status ${return_code}." >&2
-            os::log::error "Command with variables substituted is: "
-            os::log::error $'\t'"${last_command_with_vars}"
             os::log::info $'\t\t'"Stack Trace: "  >&2
             os::log::info $'\t\t'"  ${stack_index}: ${bash_source}:${BASH_LINENO[$i-1]}: \`${last_command}\`" >&2
         else
