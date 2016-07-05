@@ -220,7 +220,7 @@ backend be_edge_http_{{$cfgIdx}}
   option redispatch
   option forwardfor
     {{ with $balanceAlgo := index $cfg.Annotations "router.openshift.io/haproxy.balance" }}
-      {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" ) }}
+      {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
@@ -252,7 +252,13 @@ backend be_tcp_{{$cfgIdx}}
 {{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
 {{ end }}
+    {{ with $balanceAlgo := index $cfg.Annotations "router.openshift.io/haproxy.balance" }}
+      {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
+  balance {{ $balanceAlgo }}
+      {{ end }}
+    {{ else }}
   balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source" }}
+    {{ end }}
   hash-type consistent
   timeout check 5000ms
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
@@ -269,7 +275,13 @@ backend be_tcp_{{$cfgIdx}}
 backend be_secure_{{$cfgIdx}}
   mode http
   option redispatch
+    {{ with $balanceAlgo := index $cfg.Annotations "router.openshift.io/haproxy.balance" }}
+      {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
+  balance {{ $balanceAlgo }}
+      {{ end }}
+    {{ else }}
   balance leastconn
+    {{ end }}
   timeout check 5000ms
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
