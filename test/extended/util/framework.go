@@ -112,8 +112,8 @@ func DumpBuildLogs(bc string, oc *CLI) {
 
 	// if we suspect that we are filling up the registry file syste, call ExamineDiskUsage / ExaminePodDiskUsage
 	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
-	//ExamineDiskUsage()
-	//ExaminePodDiskUsage(oc)
+	ExamineDiskUsage()
+	ExaminePodDiskUsage(oc)
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
