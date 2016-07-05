@@ -181,14 +181,17 @@ os::cmd::expect_success 'oc whoami'
 
 echo "[INFO] Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
-oc run cli-with-token --attach --image=openshift/origin:${TAG} --restart=Never -- cli status --loglevel=4 > ${LOG_DIR}/cli-with-token.log 2>&1
+#TODO(skuznets): remove sleeps after k8s attach becomes more synchronized
+oc run cli-with-token --attach --image=openshift/origin:${TAG} --restart=Never -- 'sleep 10 && cli status --loglevel=4' > ${LOG_DIR}/cli-with-token.log 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
 os::cmd::expect_success 'oc delete pod cli-with-token'
-oc run cli-with-token-2 --attach --image=openshift/origin:${TAG} --restart=Never -- cli whoami --loglevel=4 > ${LOG_DIR}/cli-with-token2.log 2>&1
+#TODO(skuznets): remove sleeps after k8s attach becomes more synchronized
+oc run cli-with-token-2 --attach --image=openshift/origin:${TAG} --restart=Never -- 'sleep 10 && cli whoami --loglevel=4' > ${LOG_DIR}/cli-with-token2.log 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
 os::cmd::expect_success 'oc delete pod cli-with-token-2'
-oc run kubectl-with-token --attach --image=openshift/origin:${TAG} --restart=Never --command -- kubectl get pods --loglevel=4 > ${LOG_DIR}/kubectl-with-token.log 2>&1
+#TODO(skuznets): remove sleeps after k8s attach becomes more synchronized
+oc run kubectl-with-token --attach --image=openshift/origin:${TAG} --restart=Never --command -- 'sleep 10 && kubectl get pods --loglevel=4' > ${LOG_DIR}/kubectl-with-token.log 2>&1
 cat ${LOG_DIR}/kubectl-with-token.log
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
