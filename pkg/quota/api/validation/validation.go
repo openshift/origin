@@ -38,9 +38,19 @@ func ValidateClusterResourceQuota(clusterquota *quotaapi.ClusterResourceQuota) f
 	return allErrs
 }
 
-func ValidateClusterResourceQuotaUpdate(clusterquota *quotaapi.ClusterResourceQuota, oldClusterResourceQuota *quotaapi.ClusterResourceQuota) field.ErrorList {
+func ValidateClusterResourceQuotaUpdate(clusterquota, oldClusterResourceQuota *quotaapi.ClusterResourceQuota) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&clusterquota.ObjectMeta, &oldClusterResourceQuota.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClusterResourceQuota(clusterquota)...)
 
 	return allErrs
+}
+
+func ValidateAppliedClusterResourceQuota(clusterquota *quotaapi.AppliedClusterResourceQuota) field.ErrorList {
+	return ValidateClusterResourceQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(clusterquota))
+}
+
+func ValidateAppliedClusterResourceQuotaUpdate(clusterquota, oldClusterResourceQuota *quotaapi.AppliedClusterResourceQuota) field.ErrorList {
+	return ValidateClusterResourceQuotaUpdate(
+		quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(clusterquota),
+		quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(oldClusterResourceQuota))
 }

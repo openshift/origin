@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 )
 

@@ -305,6 +305,10 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 
 }
 
+func (c *ClusterQuotaMappingController) GetClusterQuotaMapper() ClusterQuotaMapper {
+	return c.clusterQuotaMapper
+}
+
 func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 

@@ -1,11 +1,13 @@
 package build
 
 import (
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 // DefaultCleaner provides a cleaner for most STI build use-cases. It cleans the
 // temporary directories created by STI build and it also cleans the temporary

@@ -47,6 +47,10 @@ syntax.
     Filename, directory, or URL to file to use to edit the resource.
 
 .PP
+\fB\-\-from\fP=""
+    The name of a resource from which to inject enviroment variables
+
+.PP
 \fB\-\-list\fP=false
     Display the environment and any changes in the standard format
 
@@ -61,6 +65,10 @@ syntax.
 .PP
 \fB\-\-overwrite\fP=true
     If true, allow environment to be overwritten, otherwise reject updates that overwrite existing environment.
+
+.PP
+\fB\-\-prefix\fP=""
+    Prefix to append to variable names
 
 .PP
 \fB\-\-resource\-version\fP=""
@@ -156,6 +164,12 @@ syntax.
 
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc set env rc \-\-all ENV=prod
+
+  # Import environment from a secret
+  oc set env \-\-from=secret/mysecret dc/myapp
+
+  # Import environment from a config map with a prefix
+  oc set env \-\-from=configmap/myconfigmap \-\-prefix=MYSQL\_ dc/myapp
 
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc set env dc \-\-all \-\-containers="c1" ENV\-

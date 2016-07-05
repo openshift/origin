@@ -217,6 +217,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - appliedclusterresourcequotas
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - clusterresourcequotas
     verbs:
     - get
@@ -644,6 +653,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - appliedclusterresourcequotas
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes
     verbs:
     - create
@@ -956,6 +974,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - appliedclusterresourcequotas
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes
     verbs:
     - create
@@ -1158,6 +1185,15 @@ items:
     - projects
     verbs:
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - appliedclusterresourcequotas
+    verbs:
+    - get
+    - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -2195,6 +2231,7 @@ items:
     - get
     - list
     - update
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null

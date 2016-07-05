@@ -321,9 +321,9 @@ https://github.com/onsi/ginkgo[ginkgo] test runner.
 
 To debug a test run with https://github.com/derekparker/delve[delve],
 make sure the dlv executable is installed in your path and run the
-tests with NETWORKING_DEBUG set to true:
+tests with DLV_DEBUG set:
 
-        $ NETWORKING_DEBUG=true test/extended/networking.sh
+        $ DLV_DEBUG=1 test/extended/networking.sh
 
 ==== Running networking tests against any cluster
 

@@ -12,10 +12,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
+
+var glog = utilglog.StderrLog
 
 // Git is an interface used by main STI code to extract/checkout git repositories
 type Git interface {
@@ -189,7 +191,7 @@ func ParseURL(source string) (*url.URL, error) {
 		return nil, fmt.Errorf("unsupported protocol specfied:  %s", uri.Scheme)
 	}
 
-	// have a valid protocol, return sucess
+	// have a valid protocol, return success
 	return uri, nil
 }
 
@@ -225,9 +227,9 @@ func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
 	// paths absolute and prepend file:// to the path which callers should
 	// switch to
 
-	// if source, minus potential file:// prefix, exists as is, denote
-	// and return
-	if doesExist(source) {
+	// if source, minus potential file:// prefix and #ref suffix,
+	// exists as is, denote and return
+	if doesExist(source) || doesExist(strings.SplitN(source, "#", 2)[0]) {
 		details = &FileProtoDetails{
 			FileExists:     true,
 			UseCopy:        useCopy(protoSpecified, source),
@@ -392,7 +394,7 @@ func (h *stiGit) Clone(source, target string, c api.CloneConfig) error {
 	// git, sending of stdout/stderr to the Pipes created here, and the glog routines sent to pipeToLog
 	//
 	// It was agreed that we wanted to keep --quiet and no stdout output ....leaving stderr only since
-	// --quiet does not surpress that anyway reduced the frequency of the hang, but it still occurred.
+	// --quiet does not suppress that anyway reduced the frequency of the hang, but it still occurred.
 	// the pipeToLog method has been left for now for historical purposes, but if this implemenetation
 	// of git clone holds, we'll want to delete that at some point.
 

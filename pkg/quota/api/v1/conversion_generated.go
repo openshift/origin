@@ -13,6 +13,10 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedConversionFuncs(
+		Convert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota,
+		Convert_api_AppliedClusterResourceQuota_To_v1_AppliedClusterResourceQuota,
+		Convert_v1_AppliedClusterResourceQuotaList_To_api_AppliedClusterResourceQuotaList,
+		Convert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourceQuotaList,
 		Convert_v1_ClusterResourceQuota_To_api_ClusterResourceQuota,
 		Convert_api_ClusterResourceQuota_To_v1_ClusterResourceQuota,
 		Convert_v1_ClusterResourceQuotaList_To_api_ClusterResourceQuotaList,
@@ -25,6 +29,98 @@ func init() {
 		// if one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
+}
+
+func autoConvert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota(in *AppliedClusterResourceQuota, out *quota_api.AppliedClusterResourceQuota, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+		return err
+	}
+	if err := Convert_v1_ClusterResourceQuotaSpec_To_api_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_ClusterResourceQuotaStatus_To_api_ClusterResourceQuotaStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota(in *AppliedClusterResourceQuota, out *quota_api.AppliedClusterResourceQuota, s conversion.Scope) error {
+	return autoConvert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota(in, out, s)
+}
+
+func autoConvert_api_AppliedClusterResourceQuota_To_v1_AppliedClusterResourceQuota(in *quota_api.AppliedClusterResourceQuota, out *AppliedClusterResourceQuota, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	// TODO: Inefficient conversion - can we improve it?
+	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+		return err
+	}
+	if err := Convert_api_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_api_ClusterResourceQuotaStatus_To_v1_ClusterResourceQuotaStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_AppliedClusterResourceQuota_To_v1_AppliedClusterResourceQuota(in *quota_api.AppliedClusterResourceQuota, out *AppliedClusterResourceQuota, s conversion.Scope) error {
+	return autoConvert_api_AppliedClusterResourceQuota_To_v1_AppliedClusterResourceQuota(in, out, s)
+}
+
+func autoConvert_v1_AppliedClusterResourceQuotaList_To_api_AppliedClusterResourceQuotaList(in *AppliedClusterResourceQuotaList, out *quota_api.AppliedClusterResourceQuotaList, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]quota_api.AppliedClusterResourceQuota, len(*in))
+		for i := range *in {
+			if err := Convert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_v1_AppliedClusterResourceQuotaList_To_api_AppliedClusterResourceQuotaList(in *AppliedClusterResourceQuotaList, out *quota_api.AppliedClusterResourceQuotaList, s conversion.Scope) error {
+	return autoConvert_v1_AppliedClusterResourceQuotaList_To_api_AppliedClusterResourceQuotaList(in, out, s)
+}
+
+func autoConvert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourceQuotaList(in *quota_api.AppliedClusterResourceQuotaList, out *AppliedClusterResourceQuotaList, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]AppliedClusterResourceQuota, len(*in))
+		for i := range *in {
+			if err := Convert_api_AppliedClusterResourceQuota_To_v1_AppliedClusterResourceQuota(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourceQuotaList(in *quota_api.AppliedClusterResourceQuotaList, out *AppliedClusterResourceQuotaList, s conversion.Scope) error {
+	return autoConvert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourceQuotaList(in, out, s)
 }
 
 func autoConvert_v1_ClusterResourceQuota_To_api_ClusterResourceQuota(in *ClusterResourceQuota, out *quota_api.ClusterResourceQuota, s conversion.Scope) error {

@@ -1,36 +1,19 @@
-.TH "OC CREATE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OC" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-oc create clusterresourcequota \- Create cluster resource quota resource.
+oc rollout \- rollout manages a deployment
 
 
 .SH SYNOPSIS
 .PP
-\fBoc create clusterresourcequota\fP [OPTIONS]
+\fBoc rollout\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Create a cluster resource quota that controls certain resources.
-
-.PP
-Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.
-
-
-.SH OPTIONS
-.PP
-\fB\-\-hard\fP=[]
-    The resource to constrain: RESOURCE=QUANTITY (pods=10)
-
-.PP
-\fB\-o\fP, \fB\-\-output\fP=""
-    Output mode. Use "\-o name" for shorter output (resource/name).
-
-.PP
-\fB\-\-project\-selector\fP=""
-    The project selector for the cluster resource quota
+Manage deployments.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -99,21 +82,9 @@ Cluster resource quota objects defined quota restrictions that span multiple pro
     The name of the kubeconfig user to use
 
 
-.SH EXAMPLE
-.PP
-.RS
-
-.nf
-  # Create an cluster resource quota limited to 10 pods
-  oc create clusterresourcequota limit\-bob \-\-project\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
-
-.fi
-.RE
-
-
 .SH SEE ALSO
 .PP
-\fBoc\-create(1)\fP,
+\fBoc(1)\fP, \fBoc\-rollout\-history(1)\fP, \fBoc\-rollout\-pause(1)\fP, \fBoc\-rollout\-resume(1)\fP, \fBoc\-rollout\-undo(1)\fP,
 
 
 .SH HISTORY

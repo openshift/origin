@@ -632,6 +632,144 @@ func validImageWithManifestData() Image {
 	}
 }
 
+func validImageWithManifestV2Data() Image {
+	return Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "id",
+		},
+		DockerImageManifestMediaType: "application/vnd.docker.container.image.v1+json",
+		DockerImageConfig: `{
+    "architecture": "amd64",
+    "config": {
+        "AttachStderr": false,
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "Cmd": [
+            "/bin/sh",
+            "-c",
+            "echo hi"
+        ],
+        "Domainname": "",
+        "Entrypoint": null,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "derived=true",
+            "asdf=true"
+        ],
+        "Hostname": "23304fc829f9",
+        "Image": "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246",
+        "Labels": {},
+        "OnBuild": [],
+        "OpenStdin": false,
+        "StdinOnce": false,
+        "Tty": false,
+        "User": "",
+        "Volumes": null,
+        "WorkingDir": ""
+    },
+    "container": "e91032eb0403a61bfe085ff5a5a48e3659e5a6deae9f4d678daa2ae399d5a001",
+    "container_config": {
+        "AttachStderr": false,
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "Cmd": [
+            "/bin/sh",
+            "-c",
+            "#(nop) CMD [\"/bin/sh\" \"-c\" \"echo hi\"]"
+        ],
+        "Domainname": "",
+        "Entrypoint": null,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "derived=true",
+            "asdf=true"
+        ],
+        "Hostname": "23304fc829f9",
+        "Image": "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246",
+        "Labels": {},
+        "OnBuild": [],
+        "OpenStdin": false,
+        "StdinOnce": false,
+        "Tty": false,
+        "User": "",
+        "Volumes": null,
+        "WorkingDir": ""
+    },
+    "created": "2015-02-21T02:11:06.735146646Z",
+    "docker_version": "1.9.0-dev",
+    "history": [
+        {
+            "created": "2015-10-31T22:22:54.690851953Z",
+            "created_by": "/bin/sh -c #(nop) ADD file:a3bc1e842b69636f9df5256c49c5374fb4eef1e281fe3f282c65fb853ee171c5 in /"
+        },
+        {
+            "created": "2015-10-31T22:22:55.613815829Z",
+            "created_by": "/bin/sh -c #(nop) CMD [\"sh\"]"
+        },
+        {
+            "created": "2015-11-04T23:06:30.934316144Z",
+            "created_by": "/bin/sh -c #(nop) ENV derived=true",
+            "empty_layer": true
+        },
+        {
+            "created": "2015-11-04T23:06:31.192097572Z",
+            "created_by": "/bin/sh -c #(nop) ENV asdf=true",
+            "empty_layer": true
+        },
+        {
+            "created": "2015-11-04T23:06:32.083868454Z",
+            "created_by": "/bin/sh -c dd if=/dev/zero of=/file bs=1024 count=1024"
+        },
+        {
+            "created": "2015-11-04T23:06:32.365666163Z",
+            "created_by": "/bin/sh -c #(nop) CMD [\"/bin/sh\" \"-c\" \"echo hi\"]",
+            "empty_layer": true
+        }
+    ],
+    "os": "linux",
+    "rootfs": {
+        "diff_ids": [
+            "sha256:c6f988f4874bb0add23a778f753c65efe992244e148a1d2ec2a8b664fb66bbd1",
+            "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+            "sha256:13f53e08df5a220ab6d13c58b2bf83a59cbdc2e04d0a3f041ddf4b0ba4112d49"
+        ],
+        "type": "layers"
+    }
+}`,
+		DockerImageManifest: `{
+    "schemaVersion": 2,
+    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+    "config": {
+        "mediaType": "application/vnd.docker.container.image.v1+json",
+        "size": 7023,
+        "digest": "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d"
+    },
+    "layers": [
+        {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 5312,
+            "digest": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+        },
+        {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 235231,
+            "digest": "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa"
+        },
+        {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 235231,
+            "digest": "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa"
+        },
+        {
+            "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "size": 639152,
+            "digest": "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+        }
+    ]
+}`,
+	}
+}
+
 func TestImageWithMetadata(t *testing.T) {
 	tests := map[string]struct {
 		image         Image
@@ -738,6 +876,85 @@ func TestImageWithMetadata(t *testing.T) {
 					},
 					Architecture: "amd64",
 					Size:         188294133,
+				},
+			},
+		},
+		"valid metadata size": {
+			image: validImageWithManifestV2Data(),
+			expectedImage: Image{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "id",
+				},
+				DockerImageConfig:            validImageWithManifestV2Data().DockerImageConfig,
+				DockerImageManifest:          validImageWithManifestV2Data().DockerImageManifest,
+				DockerImageManifestMediaType: "application/vnd.docker.container.image.v1+json",
+				DockerImageLayers: []ImageLayer{
+					{Name: "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 639152},
+					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
+					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
+					{Name: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 5312},
+				},
+				DockerImageMetadata: DockerImage{
+					ID:            "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d",
+					Parent:        "",
+					Comment:       "",
+					Created:       unversioned.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
+					Container:     "e91032eb0403a61bfe085ff5a5a48e3659e5a6deae9f4d678daa2ae399d5a001",
+					DockerVersion: "1.9.0-dev",
+					Author:        "",
+					Architecture:  "amd64",
+					Size:          882848,
+					ContainerConfig: DockerConfig{
+						Hostname:        "23304fc829f9",
+						Domainname:      "",
+						User:            "",
+						Memory:          0,
+						MemorySwap:      0,
+						CPUShares:       0,
+						CPUSet:          "",
+						AttachStdin:     false,
+						AttachStdout:    false,
+						AttachStderr:    false,
+						PortSpecs:       nil,
+						ExposedPorts:    nil,
+						Tty:             false,
+						OpenStdin:       false,
+						StdinOnce:       false,
+						Env:             []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "derived=true", "asdf=true"},
+						Cmd:             []string{"/bin/sh", "-c", "#(nop) CMD [\"/bin/sh\" \"-c\" \"echo hi\"]"},
+						Image:           "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246",
+						Volumes:         nil,
+						WorkingDir:      "",
+						Entrypoint:      nil,
+						NetworkDisabled: false,
+						SecurityOpts:    nil,
+						OnBuild:         []string{},
+					},
+					Config: &DockerConfig{
+						Hostname:        "23304fc829f9",
+						Domainname:      "",
+						User:            "",
+						Memory:          0,
+						MemorySwap:      0,
+						CPUShares:       0,
+						CPUSet:          "",
+						AttachStdin:     false,
+						AttachStdout:    false,
+						AttachStderr:    false,
+						PortSpecs:       nil,
+						ExposedPorts:    nil,
+						Tty:             false,
+						OpenStdin:       false,
+						StdinOnce:       false,
+						Env:             []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "derived=true", "asdf=true"},
+						Cmd:             []string{"/bin/sh", "-c", "echo hi"},
+						Image:           "sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246",
+						Volumes:         nil,
+						WorkingDir:      "",
+						Entrypoint:      nil,
+						NetworkDisabled: false,
+						OnBuild:         []string{},
+					},
 				},
 			},
 		},

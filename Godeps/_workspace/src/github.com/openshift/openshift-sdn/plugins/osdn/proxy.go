@@ -1,4 +1,4 @@
-package ovs
+package osdn
 
 import (
 	"fmt"
@@ -8,10 +8,12 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
+	osclient "github.com/openshift/origin/pkg/client"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -19,16 +21,21 @@ import (
 )
 
 type ovsProxyPlugin struct {
-	registry  *osdn.Registry
+	registry  *Registry
 	podsByIP  map[string]*kapi.Pod
 	podsMutex sync.Mutex
 
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 }
 
-func CreateProxyPlugin(registry *osdn.Registry) (api.FilteringEndpointsConfigHandler, error) {
+// Called by higher layers to create the proxy plugin instance; only used by nodes
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (api.FilteringEndpointsConfigHandler, error) {
+	if !IsOpenShiftMultitenantNetworkPlugin(pluginName) {
+		return nil, nil
+	}
+
 	return &ovsProxyPlugin{
-		registry: registry,
+		registry: newRegistry(osClient, kClient),
 		podsByIP: make(map[string]*kapi.Pod),
 	}, nil
 }
@@ -54,7 +61,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 }
 
 func (proxy *ovsProxyPlugin) watchPods() {
-	eventQueue := proxy.registry.RunEventQueue(osdn.Pods)
+	eventQueue := proxy.registry.RunEventQueue(Pods)
 
 	for {
 		eventType, obj, err := eventQueue.Pop()

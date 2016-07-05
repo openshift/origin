@@ -109,7 +109,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			// Cancel running deployments.
 			awaitingCancellations = true
 			if !deployutil.IsDeploymentCancelled(&deployment) {
-				copied, err := deploymentCopy(&deployment)
+				copied, err := deployutil.DeploymentDeepCopy(&deployment)
 				if err != nil {
 					return err
 				}
@@ -279,7 +279,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
 		// Only update if necessary.
 		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
-			copied, err := deploymentCopy(&deployment)
+			copied, err := deployutil.DeploymentDeepCopy(&deployment)
 			if err != nil {
 				glog.V(2).Infof("Deep copy of deployment %q failed: %v", deployment.Name, err)
 				return err
@@ -381,16 +381,4 @@ func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 		glog.V(2).Infof(err.Error())
 		c.queue.Forget(key)
 	}
-}
-
-func deploymentCopy(rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	objCopy, err := kapi.Scheme.DeepCopy(rc)
-	if err != nil {
-		return nil, err
-	}
-	copied, ok := objCopy.(*kapi.ReplicationController)
-	if !ok {
-		return nil, fmt.Errorf("expected ReplicationController, got %#v", objCopy)
-	}
-	return copied, nil
 }

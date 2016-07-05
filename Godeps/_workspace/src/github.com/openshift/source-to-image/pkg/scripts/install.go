@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	dockerClient "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"

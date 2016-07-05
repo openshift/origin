@@ -61,6 +61,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
 		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
+		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
 	}
 	return m
 }
@@ -136,7 +137,9 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		describeCommonSpec(build.Spec.CommonSpec, out)
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
-		kctl.DescribeEvents(events, out)
+		if settings.ShowEvents {
+			kctl.DescribeEvents(events, out)
+		}
 
 		return nil
 	})
@@ -1415,7 +1418,10 @@ func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.D
 	if err != nil {
 		return "", err
 	}
+	return DescribeClusterQuota(quota)
+}
 
+func DescribeClusterQuota(quota *quotaapi.ClusterResourceQuota) (string, error) {
 	selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
 	if err != nil {
 		return "", err
@@ -1450,4 +1456,16 @@ func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.D
 		}
 		return nil
 	})
+}
+
+type AppliedClusterQuotaDescriber struct {
+	client.Interface
+}
+
+func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	quota, err := d.AppliedClusterResourceQuotas(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+	return DescribeClusterQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(quota))
 }

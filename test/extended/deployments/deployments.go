@@ -23,13 +23,13 @@ var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                      = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
-		deploymentFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment-test.yaml")
-		simpleDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "deployment-simple.yaml")
-		customDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "custom-deployment.yaml")
-		generationFixture       = exutil.FixturePath("..", "extended", "testdata", "test-deployment.yaml")
-		pausedDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "paused-deployment.yaml")
-		failedHookFixture       = exutil.FixturePath("..", "extended", "testdata", "failing-pre-hook.yaml")
-		brokenDeploymentFixture = exutil.FixturePath("..", "extended", "testdata", "test-deployment-broken.yaml")
+		deploymentFixture       = exutil.FixturePath("testdata", "test-deployment-test.yaml")
+		simpleDeploymentFixture = exutil.FixturePath("testdata", "deployment-simple.yaml")
+		customDeploymentFixture = exutil.FixturePath("testdata", "custom-deployment.yaml")
+		generationFixture       = exutil.FixturePath("testdata", "test-deployment.yaml")
+		pausedDeploymentFixture = exutil.FixturePath("testdata", "paused-deployment.yaml")
+		failedHookFixture       = exutil.FixturePath("testdata", "failing-pre-hook.yaml")
+		brokenDeploymentFixture = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -129,6 +129,55 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("verifying all but terminal deployment is marked complete")
 			o.Expect(waitForLatestCondition(oc, "deployment-simple", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should immediately start a new deployment [Conformance]", func() {
+			resource, name, err := createFixture(oc, generationFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err = oc.Run("set", "env").Args(resource, "TRY=ONCE").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			condition := func() (bool, error) {
+				dc, rcs, pods, err := deploymentInfo(oc, name)
+				if err != nil {
+					return false, nil
+				}
+
+				// Check that the deployment config has latestVersion=2
+				g.By(fmt.Sprintf("by checking that the deployment config has the correct version"))
+				hasCorrectLatestVersion := dc.Status.LatestVersion == 2
+
+				// Check that the second deployment exists.
+				g.By(fmt.Sprintf("by checking that the second deployment exists"))
+				secondDeploymentExists := false
+				for _, rc := range rcs {
+					if rc.Name == deployutil.DeploymentNameForConfigVersion(name, 2) {
+						secondDeploymentExists = true
+						break
+					}
+				}
+
+				// Check that the first deployer is deleted and the second deployer exists.
+				g.By(fmt.Sprintf("by checking that the first deployer was deleted and the second deployer exists"))
+				deploymentNamesToDeployers, err := deploymentPods(pods)
+				if err != nil {
+					return false, nil
+				}
+
+				firstDeploymentName := deployutil.DeploymentNameForConfigVersion(name, 1)
+				firstDeployerRemoved := len(deploymentNamesToDeployers[firstDeploymentName]) == 0
+
+				secondDeploymentName := deployutil.DeploymentNameForConfigVersion(name, 2)
+				secondDeployerExists := len(deploymentNamesToDeployers[secondDeploymentName]) == 1
+
+				return hasCorrectLatestVersion &&
+					secondDeploymentExists &&
+					firstDeployerRemoved && secondDeployerExists, nil
+			}
+
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 
@@ -238,6 +287,30 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("Halfway"))
 			o.Expect(out).To(o.ContainSubstring("Finished"))
 			o.Expect(out).To(o.ContainSubstring("--> Success"))
+		})
+	})
+
+	g.Describe("viewing rollout history", func() {
+		g.It("should print the rollout history [Conformance]", func() {
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			one := int64(1)
+			config.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
+			_, err = oc.REST().DeploymentConfigs(oc.Namespace()).Update(config)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			out, err := oc.Run("rollout").Args("history", resource).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("checking the history for substrings\n%s", out))
+			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\" history viewed"))
+			o.Expect(out).To(o.ContainSubstring("REVISION	STATUS		CAUSE"))
+			o.Expect(out).To(o.ContainSubstring("1		Complete	caused by a config change"))
+			o.Expect(out).To(o.ContainSubstring("2		Complete	caused by a config change"))
 		})
 	})
 
@@ -378,7 +451,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(version).To(o.ContainSubstring("2"))
 
 			g.By("verifying that we can rollback")
-			_, err = oc.Run("rollback").Args(resource).Output()
+			_, err = oc.Run("rollout").Args("undo", resource).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
