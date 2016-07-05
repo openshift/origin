@@ -119,10 +119,10 @@ func DumpBuildLogs(bc string, oc *CLI) {
 		}*/
 	}
 
-	// if we suspect that we are filling up the registry file syste, call ExamineDiskUsage / ExaminePodDiskUsage
+	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
 	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
-	//ExamineDiskUsage()
-	//ExaminePodDiskUsage(oc)
+	ExamineDiskUsage()
+	ExaminePodDiskUsage(oc)
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
@@ -178,6 +178,12 @@ func ExamineDiskUsage() {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n df -m output: %s\n\n", string(out))
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
+	}
+	out, err = exec.Command("/bin/docker", "info").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n docker info output: \n%s\n\n", string(out))
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on docker inspect %v\n\n", err)
 	}
 }
 

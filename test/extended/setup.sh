@@ -101,9 +101,9 @@ function os::test::extended::setup {
     # Similar to above check, if the XFS volume dir mount point exists enable
     # local storage quota in node-config.yaml so these tests can pass:
     if [ -d "/mnt/openshift-xfs-vol-dir" ]; then
-	# The ec2 images have have 1Gi of space defined; want to give /registry a good chunk of that
+	# The ec2 images usually have ~5Gi of space defined for the xfs vol for the registry; want to give /registry a good chunk of that
 	# to store the images created when the extended tests run
-      sed -i 's/perFSGroup: null/perFSGroup: 896Mi/' $NODE_CONFIG_DIR/node-config.yaml
+      sed -i 's/perFSGroup: null/perFSGroup: 4480Mi/' $NODE_CONFIG_DIR/node-config.yaml
     fi
     echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
 
