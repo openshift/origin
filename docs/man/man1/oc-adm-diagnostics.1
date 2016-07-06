@@ -40,13 +40,16 @@ oc adm diagnostics \-\-master\-config=/etc/origin/master/master\-config.yaml
 
 .fi
 .RE
-.IP \n+[step]
+.IP 
 
-\item If master/node config files are not found and the \-\-host flag is not
+.IP
+\(bu If master/node config files are not found and the \-\-host flag is not
 present, host diagnostics are skipped.
-\item If the client has cluster\-admin access, this access enables cluster
+.IP
+\(bu If the client has cluster\-admin access, this access enables cluster
 diagnostics to run which regular users cannot.
-\item If a client config file is not found, client and cluster diagnostics
+.IP
+\(bu If a client config file is not found, client and cluster diagnostics
 are skipped.
 .PP
 Diagnostics may be individually run by passing diagnostic name as arguments.
