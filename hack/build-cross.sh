@@ -24,7 +24,7 @@ fi
 
 # Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${platforms[@]}")
-os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
+OS_GOFLAGS_LINUX_AMD64="-tags=gssapi" os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
 # Build image binaries for a subset of platforms. Image binaries are currently
 # linux-only, and are compiled with flags to make them static for use in Docker

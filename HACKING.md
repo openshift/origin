@@ -470,6 +470,29 @@ Version, %commit, and %ldflags values on your own or you may use
 [tito](https://github.com/dgoodwin/tito) to build
 and tag releases.
 
+## GSSAPI-enabled builds
+
+When built with GSSAPI support, the `oc` client supports logging in with Kerberos credentials on Linux and OS X.
+GSSAPI-enabled builds of `oc` cannot be cross-compiled, but must be built on the target platform with the GSSAPI header files available.
+
+On Linux, ensure the `krb5-devel` package is installed:
+
+    $ sudo yum install -y krb5-devel
+
+On OS X, you can obtain header files via Homebrew:
+
+    $ brew install homebrew/dupes/heimdal --without-x11
+
+Once dependencies are in place, build with the `gssapi` tag:
+
+    $ hack/build-go.sh cmd/oc -tags=gssapi
+
+Verify that the GSSAPI feature is enabled with `oc version`: 
+
+    $ oc version
+    ...
+    features: Basic-Auth GSSAPI Kerberos SPNEGO
+
 ## Swagger API Documentation
 
 OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `https://localhost:8443/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:

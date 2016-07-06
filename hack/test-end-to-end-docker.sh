@@ -84,7 +84,8 @@ out=$(
 )
 
 # Setup
-echo "[INFO] `openshift version`"
+echo "[INFO] openshift version: `openshift version`"
+echo "[INFO] oc version:        `oc version`"
 echo "[INFO] Using images:							${USE_IMAGES}"
 
 echo "[INFO] Starting OpenShift containerized server"

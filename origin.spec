@@ -55,6 +55,7 @@ ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  golang = %{golang_version}
+BuildRequires:  krb5-devel
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
 Obsoletes:      openshift < %{package_refector_version}
@@ -187,10 +188,9 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry
-do
-        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
-done
+go install -ldflags "%{ldflags}" %{import_path}/cmd/dockerregistry
+go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/openshift
+go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/oc
 go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test/extended
 
 %if 0%{?make_redistributable}
