@@ -927,11 +927,6 @@ func (c *MasterConfig) DeploymentTriggerControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// DeploymentImageChangeTriggerControllerClient returns the deploymentConfig image change controller client object
-func (c *MasterConfig) DeploymentImageChangeTriggerControllerClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
 // DeploymentLogClient returns the deployment log client object
 func (c *MasterConfig) DeploymentLogClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
