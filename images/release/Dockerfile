@@ -15,7 +15,7 @@ ENV VERSION=1.6 \
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc zip mercurial" && \
+    INSTALL_PKGS="make gcc zip mercurial krb5-devel" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
