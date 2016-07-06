@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/api/validation"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -25,6 +26,7 @@ import (
 var KnownUpdateValidationExceptions = []reflect.Type{
 	reflect.TypeOf(&extapi.Scale{}),                         // scale operation uses the ValidateScale() function for both create and update
 	reflect.TypeOf(&quotaapi.AppliedClusterResourceQuota{}), // this only retrieved, never created.  its a virtual projection of ClusterResourceQuota
+	reflect.TypeOf(&deployapi.DeploymentRequest{}),          // request for deployments already use ValidateDeploymentRequest()
 }
 
 // TestValidationRegistration makes sure that any RESTStorage that allows create or update has the correct validation register.

@@ -493,7 +493,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter, c.DeploymentConfigScaleClient())
+	dcInstantiateOriginClient, dcInstantiateKubeClient := c.DeploymentConfigInstantiateClients()
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, dcInstantiateStorage, err := deployconfigetcd.NewREST(
+		c.RESTOptionsGetter, dcInstantiateOriginClient, dcInstantiateKubeClient, c.EtcdHelper.Codec())
+
 	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
@@ -652,11 +655,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamMappings":  imageStreamMappingStorage,
 		"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":          deployConfigStorage,
-		"deploymentConfigs/scale":    deployConfigScaleStorage,
-		"deploymentConfigs/status":   deployConfigStatusStorage,
-		"deploymentConfigs/rollback": deployConfigRollbackStorage,
-		"deploymentConfigs/log":      deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs":             deployConfigStorage,
+		"deploymentConfigs/scale":       deployConfigScaleStorage,
+		"deploymentConfigs/status":      deployConfigStatusStorage,
+		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
+		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs/instantiate": dcInstantiateStorage,
 
 		// TODO: Deprecate these
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),

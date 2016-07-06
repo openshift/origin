@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -15,10 +16,11 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
+	"github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	"github.com/openshift/origin/pkg/util/restoptions"
-	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 )
 
 // REST contains the REST storage for DeploymentConfig objects.
@@ -29,7 +31,7 @@ type REST struct {
 // NewREST returns a deploymentConfigREST containing the REST storage for DeploymentConfig objects,
 // a statusREST containing the REST storage for changing the status of a DeploymentConfig,
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
-func NewREST(optsGetter restoptions.Getter, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *StatusREST, *ScaleREST, error) {
+func NewREST(optsGetter restoptions.Getter, oc client.Interface, kc kclient.Interface, decoder runtime.Decoder) (*REST, *StatusREST, *ScaleREST, *instantiate.REST, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
 		NewListFunc:       func() runtime.Object { return &api.DeploymentConfigList{} },
@@ -47,25 +49,21 @@ func NewREST(optsGetter restoptions.Getter, rcNamespacer kclient.ReplicationCont
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	deploymentConfigREST := &REST{store}
 	statusStore := *store
 	statusStore.UpdateStrategy = deployconfig.StatusStrategy
 	statusREST := &StatusREST{store: &statusStore}
-	scaleREST := &ScaleREST{
-		registry:     deployconfig.NewRegistry(deploymentConfigREST),
-		rcNamespacer: rcNamespacer,
-	}
+	scaleREST := &ScaleREST{registry: deployconfig.NewRegistry(deploymentConfigREST)}
 
-	return deploymentConfigREST, statusREST, scaleREST, nil
+	return deploymentConfigREST, statusREST, scaleREST, instantiate.NewREST(*store, oc, kc, decoder), nil
 }
 
 // ScaleREST contains the REST storage for the Scale subresource of DeploymentConfigs.
 type ScaleREST struct {
-	registry     deployconfig.Registry
-	rcNamespacer kclient.ReplicationControllersNamespacer
+	registry deployconfig.Registry
 }
 
 // ScaleREST implements Patcher

@@ -417,8 +417,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			g.By(fmt.Sprintf("checking the history for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\""))
 			o.Expect(out).To(o.ContainSubstring("REVISION	STATUS		CAUSE"))
-			o.Expect(out).To(o.ContainSubstring("1		Complete	caused by a config change"))
-			o.Expect(out).To(o.ContainSubstring("2		Complete	caused by a config change"))
+			o.Expect(out).To(o.ContainSubstring("1		Complete	config change"))
+			o.Expect(out).To(o.ContainSubstring("2		Complete	config change"))
 		})
 	})
 
@@ -448,10 +448,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				generation = strings.Trim(generation, "\"")
 				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
 
-				return strings.Contains(generation, "1") && strings.Contains(version, "1"), nil
+				return strings.Contains(generation, "2") && strings.Contains(version, "1"), nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected generation: 1, got: %s, expected latestVersion: 1, got: %s", generation, version)
+				err = fmt.Errorf("expected generation: 2, got: %s, expected latestVersion: 1, got: %s", generation, version)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -470,10 +470,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				generation = strings.Trim(generation, "\"")
 				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
 
-				return strings.Contains(generation, "2"), nil
+				return strings.Contains(generation, "3"), nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected generation: 2, got: %s", generation)
+				err = fmt.Errorf("expected generation: 3, got: %s", generation)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -497,10 +497,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				generation = strings.Trim(generation, "\"")
 				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
 
-				return strings.Contains(generation, "3") && strings.Contains(version, "2"), nil
+				return strings.Contains(generation, "4") && strings.Contains(version, "2"), nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected generation: 3, got: %s, expected latestVersion: 2, got: %s", generation, version)
+				err = fmt.Errorf("expected generation: 4, got: %s, expected latestVersion: 2, got: %s", generation, version)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 

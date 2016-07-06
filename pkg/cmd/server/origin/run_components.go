@@ -356,9 +356,9 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 func (c *MasterConfig) RunDeploymentTriggerController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
 	streamInformer := c.Informers.ImageStreams().Informer()
-	osclient, kclient := c.DeploymentTriggerControllerClients()
+	osclient := c.DeploymentTriggerControllerClient()
 
-	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, kclient, c.ExternalVersionCodec)
+	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, c.ExternalVersionCodec)
 	go controller.Run(5, utilwait.NeverStop)
 }
 
