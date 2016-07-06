@@ -3,13 +3,14 @@
 #
 # The standard name for this image is openshift/origin-f5-router
 #
-FROM openshift3/ose:v3.1.1.901
+FROM openshift3/ose:v3.3.0.2
 
 LABEL BZComponent="aos-f5-router-docker"
 LABEL Name="openshift3/ose-f5-router"
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-
+LABEL io.k8s.display-name="Atomic OpenShift F5 Router" \
+      io.k8s.description="This is a component of Atomic OpenShift and programs a BigIP F5 router to expose services within the cluster."
 ENTRYPOINT ["/usr/bin/openshift-f5-router"]

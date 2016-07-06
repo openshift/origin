@@ -10,13 +10,14 @@
 #
 # The standard name for this image is openshift3/ose-sti-builder
 #
-FROM openshift3/ose:v3.1.1.901
+FROM openshift3/ose:v3.3.0.2
 
 LABEL BZComponent="openshift-enterprise-sti-builder-docker"
 LABEL Name="openshift3/ose-sti-builder"
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-ENV HOME /root
+LABEL io.k8s.display-name="Atomic OpenShift S2I Builder" \
+      io.k8s.description="This is a component of Atomic OpenShift and is responsible for executing source-to-image (s2i) image builds."
 ENTRYPOINT ["/usr/bin/openshift-sti-build"]

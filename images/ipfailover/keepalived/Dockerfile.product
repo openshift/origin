@@ -3,21 +3,22 @@
 #
 # ImageName: openshift3/ose-keepalived-ipfailover
 #
-FROM openshift3/ose-base:v3.1.1.901
+FROM openshift3/ose-base:v3.3.0.2
 
 LABEL BZComponent="openshift-enterprise-keepalived-ipfailover-docker"
 LABEL Name="openshift3/ose-keepalived-ipfailover"
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-RUN yum -y install kmod keepalived iproute psmisc nc net-tools && \
+RUN INSTALL_PKGS="kmod keepalived iproute psmisc nmap-ncat net-tools" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     yum clean all
+COPY . /var/lib/ipfailover/keepalived/
 
-ADD conf/ /var/lib/origin/ipfailover/keepalived/conf/
-ADD lib/  /var/lib/origin/ipfailover/keepalived/lib/
-ADD bin/  /var/lib/origin/ipfailover/keepalived/bin/
-ADD monitor.sh /var/lib/origin/ipfailover/keepalived/
-
+LABEL io.k8s.display-name="Atomic OpenShift IP Failover" \
+      io.k8s.description="This is a component of Atomic OpenShift and runs a clustered keepalived instance across multiple hosts to allow highly available IP addresses."
 EXPOSE 1985
-ENTRYPOINT ["/var/lib/origin/ipfailover/keepalived/monitor.sh"]
+WORKDIR /var/lib/ipfailover
+ENTRYPOINT ["/var/lib/ipfailover/keepalived/monitor.sh"]

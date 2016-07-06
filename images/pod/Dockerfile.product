@@ -7,15 +7,22 @@
 # The standard name for this image is openshift3/ose-pod
 #
 # Pulp can't handle the scratch later currently
-FROM rhel7:latest
+FROM rhel7.2:7.2-released
 
 LABEL BZComponent="openshift-enterprise-pod-docker"
 LABEL Name="openshift3/ose-pod"
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-RUN yum install -y --enablerepo=rhel-7-server-ose-3.2-rpms atomic-openshift-pod && yum clean all
-RUN ln -s /usr/bin/pod /pod
+RUN yum-config-manager --enable rhel-7-server-ose-3.2-rpms && \
+    INSTALL_PKGS="atomic-openshift-pod" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum clean all && \
+    ln -s /usr/bin/pod /pod
 
+USER 1001
+LABEL io.k8s.display-name="Atomic OpenShift Pod Infrastructure" \
+      io.k8s.description="This is a component of Atomic OpenShift and holds on to the shared Linux namespaces within a Pod."
 ENTRYPOINT ["/pod"]

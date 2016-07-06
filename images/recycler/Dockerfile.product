@@ -3,15 +3,20 @@
 #
 # The standard name for this image is openshift3/ose-recycler
 #
-FROM openshift3/ose-base:v3.1.1.901
+FROM openshift3/ose-base:v3.3.0.2
 
 LABEL BZComponent="openshift-enterprise-recycler-docker"
 LABEL Name="openshift3/ose-recycler"
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-RUN yum install -y --enablerepo=rhel-7-server-ose-3.2-rpms atomic-openshift-recycle && \
+RUN yum-config-manager --enable rhel-7-server-ose-3.2-rpms && \
+    INSTALL_PKGS="atomic-openshift-recycle" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     yum clean all
 
-ENTRYPOINT ["/usr/bin/recycle"]
+LABEL io.k8s.display-name="Atomic OpenShift Volume Recycler" \
+      io.k8s.description="This is a component of Atomic OpenShift and is used to prepare persistent volumes for reuse after they are deleted."
+ENTRYPOINT ["/usr/bin/openshift-recycle"]

@@ -5,43 +5,33 @@
 # The standard name for this image is openshift/node
 #
 
-FROM openshift3/ose:v3.1.1.901
+FROM openshift3/ose:v3.3.0.2
 
 # Based on work by: Peter Schiffer <pschiffe@redhat.com>
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 LABEL Name="openshift3/node"
 LABEL Vendor="Red Hat" License=GPLv2+
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL BZComponent="openshift-enterprise-node-docker"
 LABEL Architecture="x86_64"
 
-# We need to install openvswitch for the client portions, the daemons are expected
-# to run in another container
+COPY scripts/* /usr/local/bin/
 
-RUN yum-config-manager --enable rhel-7-server-ose-3.2-rpms --enable rhel-7-server-extras-rpms
-RUN yum clean all \
-    && yum list systemd\* device-mapper\*
-RUN yum --enablerepo=rhel-7-server-ose-3.2-rpms install -y openvswitch \
-    atomic-openshift-sdn-ovs libmnl libnetfilter_conntrack \
-    libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
-    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
-    && yum clean all
+RUN yum-config-manager --enable rhel-7-server-ose-3.2-rpms && \
+    yum-config-manager --enable rhel-7-server-extras-rpms && \
+    INSTALL_PKGS="atomic-openshift-sdn-ovs libmnl libnetfilter_conntrack openvswitch \
+      libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
+      binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
+      ceph-common iscsi-initiator-utils" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum clean all && \
+    mkdir -p /usr/lib/systemd/system/origin-node.service.d /usr/lib/systemd/system/docker.service.d && \
+    chmod +x /usr/local/bin/* /usr/bin/openshift-*
 
-RUN mkdir -p \
-    /usr/lib/systemd/system/origin-node.service.d \
-    /usr/lib/systemd/system/docker.service.d
-
-# All of the following are placed in images/node by hack/build-images.sh
-# They won't exist in the git checkout
-ADD scripts/* /usr/local/bin/
-RUN chmod +x /usr/local/bin/* /usr/bin/openshift-*
-
-VOLUME [ "/etc/origin/node", "/var/lib/origin" ]
-WORKDIR /var/lib/origin
-
-ENV HOME /root
-ENV OPENSHIFT_CONTAINERIZED true
-ENV KUBECONFIG /etc/origin/node/node.kubeconfig
-ENTRYPOINT []
-CMD [ "/usr/local/bin/origin-node-run.sh" ]
+LABEL io.k8s.display-name="Atomic OpenShift Node" \
+      io.k8s.description="This is a component of Atomic OpenShift and contains the software for individual nodes when using SDN."
+VOLUME /etc/origin/node
+ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
+ENTRYPOINT [ "/usr/local/bin/origin-node-run.sh" ]

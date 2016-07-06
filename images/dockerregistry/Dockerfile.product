@@ -4,23 +4,29 @@
 #
 # The standard name for this image is openshift3/ose-dockerregistry
 #
-FROM openshift3/ose-base:v3.1.1.901
+FROM openshift3/ose-base:v3.3.0.2
 
 LABEL BZComponent="openshift-enterprise-dockerregistry-docker"
 LABEL Name="openshift3/ose-docker-registry"
-LABEL Version="v3.1.1.901"
+LABEL Version="v3.3.0.2"
 LABEL Release="1"
 LABEL Architecture="x86_64"
 
-RUN yum install -y --enablerepo=RH7-RHAOS-3.1 tree findutils atomic-openshift-dockerregistry && \
+RUN yum-config-manager --enable rhel-7-server-ose-3.2-rpms && \
+    INSTALL_PKGS="tree findutils atomic-openshift-dockerregistry" && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
     yum clean all
 
-# The registry doesn't require a privileged user.
-USER 1001
+COPY config.yml $REGISTRY_CONFIGURATION_PATH
 
+LABEL io.k8s.display-name="Atomic OpenShift Image Registry" \
+      io.k8s.description="This is a component ofAtomic OpenShift and exposes a Docker registry that is integrated with the cluster for authentication and management."
+
+# The registry doesn't require a root user.
+USER 1001
 EXPOSE 5000
 VOLUME /registry
-ENV REGISTRY_CONFIGURATION_PATH /config.yml
-CMD DOCKER_REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} /usr/bin/dockerregistry ${REGISTRY_CONFIGURATION_PATH}
+ENV REGISTRY_CONFIGURATION_PATH=/config.yml
 
-ADD config.yml $REGISTRY_CONFIGURATION_PATH
+CMD DOCKER_REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} /dockerregistry ${REGISTRY_CONFIGURATION_PATH}
