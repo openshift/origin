@@ -127,7 +127,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 	)
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName, false))
+		cmds.AddCommand(version.NewVersionCommand(fullName, version.Options{}))
 	}
 
 	return cmds

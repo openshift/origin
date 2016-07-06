@@ -35,7 +35,7 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, false))
+	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
 	return cmd
 }
 
@@ -50,6 +50,6 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.AddCommand(version.NewVersionCommand(name, false))
+	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
 	return cmd
 }

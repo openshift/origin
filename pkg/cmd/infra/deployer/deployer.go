@@ -79,7 +79,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, false))
+	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
 
 	flag := cmd.Flags()
 	flag.StringVar(&cfg.rcName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")

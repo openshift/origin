@@ -204,7 +204,7 @@ Password: `,
 			}
 
 			if canHandle {
-				headers, handled, err := tc.Handler.HandleChallenge(challenge.Headers)
+				headers, handled, err := tc.Handler.HandleChallenge("", challenge.Headers)
 				if !reflect.DeepEqual(headers, challenge.ExpectedHeaders) {
 					t.Errorf("%s: %d: Expected headers\n\t%#v\ngot\n\t%#v", k, i, challenge.ExpectedHeaders, headers)
 				}

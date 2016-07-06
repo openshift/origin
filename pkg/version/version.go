@@ -8,7 +8,10 @@ import (
 	etcdversion "github.com/coreos/etcd/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+
 	kubeversion "k8s.io/kubernetes/pkg/version"
+
+	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
 
 var (
@@ -87,16 +90,33 @@ func (info Info) LastSemanticVersion() string {
 	return strings.Join(parts, "-")
 }
 
+type Options struct {
+	PrintEtcdVersion    bool
+	PrintClientFeatures bool
+}
+
 // NewVersionCommand creates a command for displaying the version of this binary
-func NewVersionCommand(basename string, printEtcdVersion bool) *cobra.Command {
+func NewVersionCommand(basename string, options Options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Display version",
 		Run: func(c *cobra.Command, args []string) {
 			fmt.Printf("%s %v\n", basename, Get())
 			fmt.Printf("kubernetes %v\n", kubeversion.Get())
-			if printEtcdVersion {
+			if options.PrintEtcdVersion {
 				fmt.Printf("etcd %v\n", etcdversion.Version)
+			}
+			if options.PrintClientFeatures {
+				features := []string{}
+				if tokencmd.BasicEnabled() {
+					features = append(features, "Basic-Auth")
+				}
+				if tokencmd.GSSAPIEnabled() {
+					features = append(features, "GSSAPI")
+					features = append(features, "Kerberos") // GSSAPI or SSPI
+					features = append(features, "SPNEGO")   // GSSAPI or SSPI
+				}
+				fmt.Printf("features: %s\n", strings.Join(features, " "))
 			}
 		},
 	}
