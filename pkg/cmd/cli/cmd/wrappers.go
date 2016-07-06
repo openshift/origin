@@ -561,15 +561,15 @@ not supported, convert to latest version.
 The default output will be printed to stdout in YAML format. One can use -o option
 to change to output destination.
 `
-	convertExample = `# Convert 'pod.yaml' to latest version and print to stdout.
-%[1]s convert -f pod.yaml
+	convertExample = `  # Convert 'pod.yaml' to latest version and print to stdout.
+  %[1]s convert -f pod.yaml
 
-# Convert the live state of the resource specified by 'pod.yaml' to the latest version
-# and print to stdout in json format.
-%[1]s convert -f pod.yaml --local -o json
+  # Convert the live state of the resource specified by 'pod.yaml' to the latest version
+  # and print to stdout in json format.
+  %[1]s convert -f pod.yaml --local -o json
 
-# Convert all files under current directory to latest version and create them all.
-%[1]s convert -f . | kubectl create -f -
+  # Convert all files under current directory to latest version and create them all.
+  %[1]s convert -f . | kubectl create -f -
 `
 )
 
