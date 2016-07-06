@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -43,7 +42,6 @@ func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
-	flags.AddGoFlagSet(flag.CommandLine)
 	kubeletOptions.AddFlags(flags)
 
 	return cmd

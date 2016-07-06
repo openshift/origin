@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -47,7 +46,6 @@ func NewProxyCommand(name, fullName string, out io.Writer) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
-	flags.AddGoFlagSet(flag.CommandLine)
 	proxyConfig.AddFlags(flags)
 
 	return cmd

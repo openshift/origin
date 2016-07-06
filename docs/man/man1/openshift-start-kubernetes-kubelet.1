@@ -30,16 +30,8 @@ starting from a configuration file.
     If true, allow containers to request privileged mode. [default=false]
 
 .PP
-\fB\-\-alsologtostderr\fP=false
-    log to standard error as well as files
-
-.PP
 \fB\-\-api\-servers\fP=[]
     List of Kubernetes API servers for publishing events, and reading pods and services. (ip:port), comma separated.
-
-.PP
-\fB\-\-application\-metrics\-count\-limit\fP=100
-    Max number of application metrics to store (per container)
 
 .PP
 \fB\-\-auth\-path\fP="/var/lib/kubelet/kubernetes\_auth"
@@ -48,10 +40,6 @@ starting from a configuration file.
 .PP
 \fB\-\-babysit\-daemons\fP=false
     If true, the node has babysitter process monitoring docker and kubelet.
-
-.PP
-\fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
-    Comma\-separated list of files to check for boot\-id. Use the first one that exists.
 
 .PP
 \fB\-\-cadvisor\-port\fP=4194
@@ -94,10 +82,6 @@ starting from a configuration file.
     If true, kubelet will configure cbr0 based on Node.Spec.PodCIDR.
 
 .PP
-\fB\-\-container\-hints\fP="/etc/cadvisor/container\_hints.json"
-    location of the container hints file
-
-.PP
 \fB\-\-container\-runtime\fP="docker"
     The container runtime to use. Possible values: 'docker', 'rkt'. Default: 'docker'.
 
@@ -110,32 +94,12 @@ starting from a configuration file.
     Enable CPU CFS quota enforcement for containers that specify CPU limits
 
 .PP
-\fB\-\-docker\fP="unix:///var/run/docker.sock"
-    docker endpoint
-
-.PP
 \fB\-\-docker\-endpoint\fP=""
     If non\-empty, use this for the docker endpoint to communicate with
 
 .PP
-\fB\-\-docker\-env\-metadata\-whitelist\fP=""
-    a comma\-separated list of environment variable keys that needs to be collected for docker containers
-
-.PP
 \fB\-\-docker\-exec\-handler\fP="native"
     Handler to use when executing a command in a container. Valid values are 'native' and 'nsenter'. Defaults to 'native'.
-
-.PP
-\fB\-\-docker\-only\fP=false
-    Only report docker containers in addition to root stats
-
-.PP
-\fB\-\-docker\-root\fP="/var/lib/docker"
-    Absolute path to the Docker state root directory (default: /var/lib/docker)
-
-.PP
-\fB\-\-docker\-run\fP="/var/run/docker"
-    Absolute path to the Docker run directory (default: /var/run/docker)
 
 .PP
 \fB\-\-enable\-custom\-metrics\fP=false
@@ -144,10 +108,6 @@ starting from a configuration file.
 .PP
 \fB\-\-enable\-debugging\-handlers\fP=true
     Enables server endpoints for log collection and local running of containers and commands
-
-.PP
-\fB\-\-enable\-load\-reader\fP=false
-    Whether to enable cpu load reader
 
 .PP
 \fB\-\-enable\-server\fP=true
@@ -160,14 +120,6 @@ starting from a configuration file.
 .PP
 \fB\-\-event\-qps\fP=5
     If > 0, limit event creations per second to this value. If 0, unlimited.
-
-.PP
-\fB\-\-event\-storage\-age\-limit\fP="default=24h"
-    Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
-
-.PP
-\fB\-\-event\-storage\-event\-limit\fP="default=100000"
-    Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
 
 .PP
 \fB\-\-eviction\-hard\fP=""
@@ -188,10 +140,6 @@ starting from a configuration file.
 .PP
 \fB\-\-file\-check\-frequency\fP=0
     Duration between checking config files for new data
-
-.PP
-\fB\-\-global\-housekeeping\-interval\fP=0
-    Interval between global housekeepings
 
 .PP
 \fB\-\-hairpin\-mode\fP="promiscuous\-bridge"
@@ -222,16 +170,8 @@ starting from a configuration file.
     If non\-empty, will use this string as identification instead of the actual hostname.
 
 .PP
-\fB\-\-housekeeping\-interval\fP=0
-    Interval between container housekeepings
-
-.PP
 \fB\-\-http\-check\-frequency\fP=0
     Duration between checking http for new data
-
-.PP
-\fB\-\-httptest.serve\fP=""
-    if non\-empty, httptest.NewServer serves on this address and blocks
 
 .PP
 \fB\-\-image\-gc\-high\-threshold\fP=90
@@ -240,38 +180,6 @@ starting from a configuration file.
 .PP
 \fB\-\-image\-gc\-low\-threshold\fP=80
     The percent of disk usage before which image garbage collection is never run. Lowest disk usage to garbage collect to. Default: 80%
-
-.PP
-\fB\-\-ir\-data\-source\fP="influxdb"
-    Data source used by InitialResources. Supported options: influxdb, gcm.
-
-.PP
-\fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
-
-.PP
-\fB\-\-ir\-hawkular\fP=""
-    Hawkular configuration URL
-
-.PP
-\fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
-
-.PP
-\fB\-\-ir\-namespace\-only\fP=false
-    Whether the estimation should be made only based on data from the same namespace.
-
-.PP
-\fB\-\-ir\-password\fP="root"
-    Password used for connecting to InfluxDB
-
-.PP
-\fB\-\-ir\-percentile\fP=90
-    Which percentile of samples should InitialResources use when estimating resources. For experiment purposes.
-
-.PP
-\fB\-\-ir\-user\fP="root"
-    User used for connecting to InfluxDB
 
 .PP
 \fB\-\-kube\-api\-burst\fP=10
@@ -303,28 +211,8 @@ starting from a configuration file.
     <Warning: Alpha feature> The path to file for kubelet to use as a lock file.
 
 .PP
-\fB\-\-log\-backtrace\-at\fP=:0
-    when logging hits line file:N, emit a stack trace
-
-.PP
-\fB\-\-log\-cadvisor\-usage\fP=false
-    Whether to log the usage of the cAdvisor container
-
-.PP
-\fB\-\-log\-dir\fP=""
-    If non\-empty, write log files in this directory
-
-.PP
-\fB\-\-logtostderr\fP=true
-    log to standard error instead of files
-
-.PP
 \fB\-\-low\-diskspace\-threshold\-mb\fP=256
     The absolute free disk space, in MB, to maintain. When disk space falls below this threshold, new pods would be rejected. Default: 256
-
-.PP
-\fB\-\-machine\-id\-file\fP="/etc/machine\-id,/var/lib/dbus/machine\-id"
-    Comma\-separated list of files to check for machine\-id. Use the first one that exists.
 
 .PP
 \fB\-\-manifest\-url\fP=""
@@ -471,38 +359,6 @@ starting from a configuration file.
     Pull images one at a time. We recommend \fInot\fP changing the default value on nodes that run docker daemon with version < 1.9 or an Aufs storage backend. Issue #10959 has more details. [default=true]
 
 .PP
-\fB\-\-stderrthreshold\fP=2
-    logs at or above this threshold go to stderr
-
-.PP
-\fB\-\-storage\-driver\-buffer\-duration\fP=0
-    Writes in the storage driver will be buffered for this duration, and committed to the non memory backends as a single transaction
-
-.PP
-\fB\-\-storage\-driver\-db\fP="cadvisor"
-    database name
-
-.PP
-\fB\-\-storage\-driver\-host\fP="localhost:8086"
-    database host:port
-
-.PP
-\fB\-\-storage\-driver\-password\fP="root"
-    database password
-
-.PP
-\fB\-\-storage\-driver\-secure\fP=false
-    use secure connection with database
-
-.PP
-\fB\-\-storage\-driver\-table\fP="stats"
-    table name
-
-.PP
-\fB\-\-storage\-driver\-user\fP="root"
-    database username
-
-.PP
 \fB\-\-streaming\-connection\-idle\-timeout\fP=0
     Maximum time a streaming connection can be idle before the connection is automatically closed. 0 indicates no timeout. Example: '5m'
 
@@ -530,14 +386,6 @@ starting from a configuration file.
 .PP
 \fB\-\-tls\-private\-key\-file\fP=""
     File containing x509 private key matching \-\-tls\-cert\-file.
-
-.PP
-\fB\-\-v\fP=0
-    log level for V logs
-
-.PP
-\fB\-\-vmodule\fP=
-    comma\-separated list of pattern=N settings for file\-filtered logging
 
 .PP
 \fB\-\-volume\-plugin\-dir\fP="/usr/libexec/kubernetes/kubelet\-plugins/volume/exec/"
