@@ -313,9 +313,17 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 			continue
 		}
 
+		// schema1 layers
 		for _, layer := range manifest.FSLayers {
-			glog.V(4).Infof("Adding image layer %q to graph", layer.DockerBlobSum)
+			glog.V(4).Infof("Adding image layer v1 %q to graph", layer.DockerBlobSum)
 			layerNode := imagegraph.EnsureImageLayerNode(g, layer.DockerBlobSum)
+			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
+		}
+
+		// schema2 layers
+		for _, layer := range manifest.Layers {
+			glog.V(4).Infof("Adding image layer v2 %q to graph", layer.Digest)
+			layerNode := imagegraph.EnsureImageLayerNode(g, layer.Digest)
 			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
 		}
 	}
