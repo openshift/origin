@@ -94,7 +94,7 @@ func (e *streamProtocolV2) stream(conn httpstream.Connection) error {
 		case err != nil && err != io.EOF:
 			errorChan <- fmt.Errorf("error reading from error stream: %s", err)
 		case len(message) > 0:
-			errorChan <- fmt.Errorf("error executing remote command: %s", message)
+			errorChan <- nil
 		default:
 			errorChan <- nil
 		}
