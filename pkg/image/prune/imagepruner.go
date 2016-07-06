@@ -299,10 +299,21 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 			continue
 		}
 
-		for _, layer := range manifest.FSLayers {
-			glog.V(4).Infof("Adding image layer %q to graph", layer.DockerBlobSum)
-			layerNode := imagegraph.EnsureImageLayerNode(g, layer.DockerBlobSum)
-			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
+		switch manifest.SchemaVersion {
+		case 0:
+			// legacy config object
+		case 1:
+			for _, layer := range manifest.FSLayers {
+				glog.V(4).Infof("Adding image layer %q to graph", layer.DockerBlobSum)
+				layerNode := imagegraph.EnsureImageLayerNode(g, layer.DockerBlobSum)
+				g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
+			}
+		case 2:
+			for _, layer := range manifest.Layers {
+				glog.V(4).Infof("Adding image layer %q to graph", layer.Digest)
+				layerNode := imagegraph.EnsureImageLayerNode(g, layer.Digest)
+				g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
+			}
 		}
 	}
 }
