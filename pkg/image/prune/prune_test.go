@@ -13,6 +13,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
@@ -53,6 +54,21 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 	if ageInMinutes >= 0 {
 		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
+
+	return image
+}
+
+func sizedImage(id, ref string, size int64) imageapi.Image {
+	image := imageWithLayers(id, ref,
+		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		"tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0",
+		"tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171",
+		"tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd",
+		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+	)
+
+	image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1) * time.Minute))
+	image.DockerImageMetadata.Size = size
 
 	return image
 }
@@ -288,6 +304,26 @@ func build(namespace, name, strategyType, fromKind, fromNamespace, fromName stri
 	}
 }
 
+func limitList(limits ...int64) []*kapi.LimitRange {
+	list := make([]*kapi.LimitRange, len(limits))
+	for _, limit := range limits {
+		quantity := resource.NewQuantity(limit, resource.BinarySI)
+		list = append(list, &kapi.LimitRange{
+			Spec: kapi.LimitRangeSpec{
+				Limits: []kapi.LimitRangeItem{
+					{
+						Type: imageapi.LimitTypeImage,
+						Max: kapi.ResourceList{
+							kapi.ResourceStorage: *quantity,
+						},
+					},
+				},
+			},
+		})
+	}
+	return list
+}
+
 func commonSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi.CommonSpec {
 	spec := buildapi.CommonSpec{
 		Strategy: buildapi.BuildStrategy{},
@@ -322,62 +358,62 @@ func commonSpec(strategyType, fromKind, fromNamespace, fromName string) buildapi
 	return spec
 }
 
-type fakeImagePruner struct {
+type fakeImageDeleter struct {
 	invocations sets.String
 	err         error
 }
 
-var _ ImagePruner = &fakeImagePruner{}
+var _ ImageDeleter = &fakeImageDeleter{}
 
-func (p *fakeImagePruner) PruneImage(image *imageapi.Image) error {
+func (p *fakeImageDeleter) DeleteImage(image *imageapi.Image) error {
 	p.invocations.Insert(image.Name)
 	return p.err
 }
 
-type fakeImageStreamPruner struct {
+type fakeImageStreamDeleter struct {
 	invocations sets.String
 	err         error
 }
 
-var _ ImageStreamPruner = &fakeImageStreamPruner{}
+var _ ImageStreamDeleter = &fakeImageStreamDeleter{}
 
-func (p *fakeImageStreamPruner) PruneImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
+func (p *fakeImageStreamDeleter) DeleteImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
 	p.invocations.Insert(fmt.Sprintf("%s/%s|%s", stream.Namespace, stream.Name, image.Name))
 	return stream, p.err
 }
 
-type fakeBlobPruner struct {
+type fakeBlobDeleter struct {
 	invocations sets.String
 	err         error
 }
 
-var _ BlobPruner = &fakeBlobPruner{}
+var _ BlobDeleter = &fakeBlobDeleter{}
 
-func (p *fakeBlobPruner) PruneBlob(registryClient *http.Client, registryURL, blob string) error {
+func (p *fakeBlobDeleter) DeleteBlob(registryClient *http.Client, registryURL, blob string) error {
 	p.invocations.Insert(fmt.Sprintf("%s|%s", registryURL, blob))
 	return p.err
 }
 
-type fakeLayerPruner struct {
+type fakeLayerDeleter struct {
 	invocations sets.String
 	err         error
 }
 
-var _ LayerPruner = &fakeLayerPruner{}
+var _ LayerDeleter = &fakeLayerDeleter{}
 
-func (p *fakeLayerPruner) PruneLayer(registryClient *http.Client, registryURL, repo, layer string) error {
+func (p *fakeLayerDeleter) DeleteLayer(registryClient *http.Client, registryURL, repo, layer string) error {
 	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, layer))
 	return p.err
 }
 
-type fakeManifestPruner struct {
+type fakeManifestDeleter struct {
 	invocations sets.String
 	err         error
 }
 
-var _ ManifestPruner = &fakeManifestPruner{}
+var _ ManifestDeleter = &fakeManifestDeleter{}
 
-func (p *fakeManifestPruner) PruneManifest(registryClient *http.Client, registryURL, repo, manifest string) error {
+func (p *fakeManifestDeleter) DeleteManifest(registryClient *http.Client, registryURL, repo, manifest string) error {
 	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, manifest))
 	return p.err
 }
@@ -390,6 +426,7 @@ func TestImagePruning(t *testing.T) {
 	registryURL := "registry"
 
 	tests := map[string]struct {
+		pruneOverSizeLimit     *bool
 		registryURLs           []string
 		images                 imageapi.ImageList
 		pods                   kapi.PodList
@@ -398,6 +435,7 @@ func TestImagePruning(t *testing.T) {
 		bcs                    buildapi.BuildConfigList
 		builds                 buildapi.BuildList
 		dcs                    deployapi.DeploymentConfigList
+		limits                 map[string][]*kapi.LimitRange
 		expectedDeletions      []string
 		expectedUpdatedStreams []string
 	}{
@@ -663,6 +701,79 @@ func TestImagePruning(t *testing.T) {
 			expectedDeletions:      []string{"id"},
 			expectedUpdatedStreams: []string{},
 		},
+		"image exceeding limits": {
+			pruneOverSizeLimit: newBool(true),
+			images: imageList(
+				unmanagedImage("id", "otherregistry/foo/bar@id", false, "", ""),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 100),
+				sizedImage("id3", registryURL+"/foo/bar@id3", 200),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "otherregistry/foo/bar@id"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(100, 200),
+			},
+			expectedDeletions:      []string{"id3"},
+			expectedUpdatedStreams: []string{"foo/bar|id3"},
+		},
+		"multiple images in different namespaces exceeding different limits": {
+			pruneOverSizeLimit: newBool(true),
+			images: imageList(
+				sizedImage("id1", registryURL+"/foo/bar@id1", 100),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 200),
+				sizedImage("id3", registryURL+"/bar/foo@id3", 500),
+				sizedImage("id4", registryURL+"/bar/foo@id4", 600),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+					),
+				)),
+				stream(registryURL, "bar", "foo", tags(
+					tag("latest",
+						tagEvent("id3", registryURL+"/bar/foo@id3"),
+						tagEvent("id4", registryURL+"/bar/foo@id4"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(150),
+				"bar": limitList(550),
+			},
+			expectedDeletions:      []string{"id2", "id4"},
+			expectedUpdatedStreams: []string{"foo/bar|id2", "bar/foo|id4"},
+		},
+		"image within allowed limits": {
+			pruneOverSizeLimit: newBool(true),
+			images: imageList(
+				unmanagedImage("id", "otherregistry/foo/bar@id", false, "", ""),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 100),
+				sizedImage("id3", registryURL+"/foo/bar@id3", 200),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "otherregistry/foo/bar@id"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(300),
+			},
+			expectedDeletions:      []string{},
+			expectedUpdatedStreams: []string{},
+		},
 	}
 
 	for name, test := range tests {
@@ -671,41 +782,48 @@ func TestImagePruning(t *testing.T) {
 			continue
 		}
 
-		options := ImageRegistryPrunerOptions{
-			KeepYoungerThan:  60 * time.Minute,
-			KeepTagRevisions: 3,
-			Images:           &test.images,
-			Streams:          &test.streams,
-			Pods:             &test.pods,
-			RCs:              &test.rcs,
-			BCs:              &test.bcs,
-			Builds:           &test.builds,
-			DCs:              &test.dcs,
+		options := PrunerOptions{
+			Images:      &test.images,
+			Streams:     &test.streams,
+			Pods:        &test.pods,
+			RCs:         &test.rcs,
+			BCs:         &test.bcs,
+			Builds:      &test.builds,
+			DCs:         &test.dcs,
+			LimitRanges: test.limits,
 		}
-		p := NewImageRegistryPruner(options)
-		p.(*imageRegistryPruner).registryPinger = &fakeRegistryPinger{}
+		if test.pruneOverSizeLimit != nil {
+			options.PruneOverSizeLimit = test.pruneOverSizeLimit
+		} else {
+			keepYoungerThan := 60 * time.Minute
+			keepTagRevisions := 3
+			options.KeepYoungerThan = &keepYoungerThan
+			options.KeepTagRevisions = &keepTagRevisions
+		}
+		p := NewPruner(options)
+		p.(*pruner).registryPinger = &fakeRegistryPinger{}
 
-		imagePruner := &fakeImagePruner{invocations: sets.NewString()}
-		streamPruner := &fakeImageStreamPruner{invocations: sets.NewString()}
-		layerPruner := &fakeLayerPruner{invocations: sets.NewString()}
-		blobPruner := &fakeBlobPruner{invocations: sets.NewString()}
-		manifestPruner := &fakeManifestPruner{invocations: sets.NewString()}
+		imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
+		streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
+		layerDeleter := &fakeLayerDeleter{invocations: sets.NewString()}
+		blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
+		manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
 
-		p.Prune(imagePruner, streamPruner, layerPruner, blobPruner, manifestPruner)
+		p.Prune(imageDeleter, streamDeleter, layerDeleter, blobDeleter, manifestDeleter)
 
 		expectedDeletions := sets.NewString(test.expectedDeletions...)
-		if !reflect.DeepEqual(expectedDeletions, imagePruner.invocations) {
-			t.Errorf("%s: expected image deletions %q, got %q", name, expectedDeletions.List(), imagePruner.invocations.List())
+		if !reflect.DeepEqual(expectedDeletions, imageDeleter.invocations) {
+			t.Errorf("%s: expected image deletions %q, got %q", name, expectedDeletions.List(), imageDeleter.invocations.List())
 		}
 
 		expectedUpdatedStreams := sets.NewString(test.expectedUpdatedStreams...)
-		if !reflect.DeepEqual(expectedUpdatedStreams, streamPruner.invocations) {
-			t.Errorf("%s: expected stream updates %q, got %q", name, expectedUpdatedStreams.List(), streamPruner.invocations.List())
+		if !reflect.DeepEqual(expectedUpdatedStreams, streamDeleter.invocations) {
+			t.Errorf("%s: expected stream updates %q, got %q", name, expectedUpdatedStreams.List(), streamDeleter.invocations.List())
 		}
 	}
 }
 
-func TestDeletingImagePruner(t *testing.T) {
+func TestImageDeleter(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 
 	tests := map[string]struct {
@@ -722,8 +840,8 @@ func TestDeletingImagePruner(t *testing.T) {
 		imageClient.AddReactor("delete", "images", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, test.imageDeletionError
 		})
-		imagePruner := NewDeletingImagePruner(imageClient.Images())
-		err := imagePruner.PruneImage(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
+		imageDeleter := NewImageDeleter(imageClient.Images())
+		err := imageDeleter.DeleteImage(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
 		if test.imageDeletionError != nil {
 			if e, a := test.imageDeletionError, err; e != a {
 				t.Errorf("%s: err: expected %v, got %v", name, e, a)
@@ -742,7 +860,7 @@ func TestDeletingImagePruner(t *testing.T) {
 	}
 }
 
-func TestDeletingLayerPruner(t *testing.T) {
+func TestLayerDeleter(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 
 	var actions []string
@@ -750,8 +868,8 @@ func TestDeletingLayerPruner(t *testing.T) {
 		actions = append(actions, req.Method+":"+req.URL.String())
 		return &http.Response{StatusCode: http.StatusServiceUnavailable, Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, nil
 	})
-	layerPruner := NewDeletingLayerPruner()
-	layerPruner.PruneLayer(client, "registry1", "repo", "layer1")
+	layerDeleter := NewLayerDeleter()
+	layerDeleter.DeleteLayer(client, "registry1", "repo", "layer1")
 
 	if !reflect.DeepEqual(actions, []string{"DELETE:https://registry1/v2/repo/blobs/layer1",
 		"DELETE:http://registry1/v2/repo/blobs/layer1"}) {
@@ -759,7 +877,7 @@ func TestDeletingLayerPruner(t *testing.T) {
 	}
 }
 
-func TestDeletingNotFoundLayerPruner(t *testing.T) {
+func TestNotFoundLayerDeleter(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 
 	var actions []string
@@ -767,8 +885,8 @@ func TestDeletingNotFoundLayerPruner(t *testing.T) {
 		actions = append(actions, req.Method+":"+req.URL.String())
 		return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, nil
 	})
-	layerPruner := NewDeletingLayerPruner()
-	layerPruner.PruneLayer(client, "registry1", "repo", "layer1")
+	layerDeleter := NewLayerDeleter()
+	layerDeleter.DeleteLayer(client, "registry1", "repo", "layer1")
 
 	if !reflect.DeepEqual(actions, []string{"DELETE:https://registry1/v2/repo/blobs/layer1"}) {
 		t.Errorf("Unexpected actions %v", actions)
@@ -880,9 +998,11 @@ func TestRegistryPruning(t *testing.T) {
 
 		t.Logf("Running test case %s", name)
 
-		options := ImageRegistryPrunerOptions{
-			KeepYoungerThan:  60 * time.Minute,
-			KeepTagRevisions: 1,
+		keepYoungerThan := 60 * time.Minute
+		keepTagRevisions := 1
+		options := PrunerOptions{
+			KeepYoungerThan:  &keepYoungerThan,
+			KeepTagRevisions: &keepTagRevisions,
 			Images:           &test.images,
 			Streams:          &test.streams,
 			Pods:             &kapi.PodList{},
@@ -891,25 +1011,31 @@ func TestRegistryPruning(t *testing.T) {
 			Builds:           &buildapi.BuildList{},
 			DCs:              &deployapi.DeploymentConfigList{},
 		}
-		p := NewImageRegistryPruner(options)
-		p.(*imageRegistryPruner).registryPinger = &fakeRegistryPinger{err: test.pingErr}
+		p := NewPruner(options)
+		p.(*pruner).registryPinger = &fakeRegistryPinger{err: test.pingErr}
 
-		imagePruner := &fakeImagePruner{invocations: sets.NewString()}
-		streamPruner := &fakeImageStreamPruner{invocations: sets.NewString()}
-		layerPruner := &fakeLayerPruner{invocations: sets.NewString()}
-		blobPruner := &fakeBlobPruner{invocations: sets.NewString()}
-		manifestPruner := &fakeManifestPruner{invocations: sets.NewString()}
+		imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
+		streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
+		layerDeleter := &fakeLayerDeleter{invocations: sets.NewString()}
+		blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
+		manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
 
-		p.Prune(imagePruner, streamPruner, layerPruner, blobPruner, manifestPruner)
+		p.Prune(imageDeleter, streamDeleter, layerDeleter, blobDeleter, manifestDeleter)
 
-		if !reflect.DeepEqual(test.expectedLayerDeletions, layerPruner.invocations) {
-			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedLayerDeletions, layerPruner.invocations)
+		if !reflect.DeepEqual(test.expectedLayerDeletions, layerDeleter.invocations) {
+			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedLayerDeletions, layerDeleter.invocations)
 		}
-		if !reflect.DeepEqual(test.expectedBlobDeletions, blobPruner.invocations) {
-			t.Errorf("%s: expected blob deletions %#v, got %#v", name, test.expectedBlobDeletions, blobPruner.invocations)
+		if !reflect.DeepEqual(test.expectedBlobDeletions, blobDeleter.invocations) {
+			t.Errorf("%s: expected blob deletions %#v, got %#v", name, test.expectedBlobDeletions, blobDeleter.invocations)
 		}
-		if !reflect.DeepEqual(test.expectedManifestDeletions, manifestPruner.invocations) {
-			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions, manifestPruner.invocations)
+		if !reflect.DeepEqual(test.expectedManifestDeletions, manifestDeleter.invocations) {
+			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions, manifestDeleter.invocations)
 		}
 	}
+}
+
+func newBool(a bool) *bool {
+	r := new(bool)
+	*r = a
+	return r
 }

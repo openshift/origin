@@ -42,6 +42,10 @@ images.
     Specify the minimum age of an image for it to be considered a candidate for pruning.
 
 .PP
+\fB\-\-prune\-over\-size\-limit\fP=false
+    Specify if images which are exceeding LimitRanges (see 'openshift.io/Image'), specified in the same namespace, should be considered for pruning. This flag cannot be combined with \-\-keep\-younger\-than nor \-\-keep\-tag\-revisions.
+
+.PP
 \fB\-\-registry\-url\fP=""
     The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster\-internal URL) but you do have an alternative route that works.
 
@@ -119,6 +123,13 @@ images.
 
   # To actually perform the prune operation, the confirm flag must be appended
   oadm prune images \-\-keep\-tag\-revisions=3 \-\-keep\-younger\-than=60m \-\-confirm
+
+  # See, what the prune command would delete if we're interested in removing images
+  # exceeding currently set LimitRanges ('openshift.io/Image')
+  oadm prune images \-\-prune\-over\-size\-limit
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oadm prune images \-\-prune\-over\-size\-limit \-\-confirm
 
 .fi
 .RE

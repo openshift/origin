@@ -523,6 +523,13 @@ Remove unreferenced images
 
   # To actually perform the prune operation, the confirm flag must be appended
   oc adm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+
+  # See, what the prune command would delete if we're interested in removing images
+  # exceeding currently set LimitRanges ('openshift.io/Image')
+  oc adm prune images --prune-over-size-limit
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oc adm prune images --prune-over-size-limit --confirm
 ----
 ====
 
