@@ -274,7 +274,7 @@ function os::cmd::internal::determine_caller() {
 	local call_depth=
 	local len_sources="${#BASH_SOURCE[@]}"
 	for (( i=0; i<${len_sources}; i++ )); do
-		if [ ! $(echo "${BASH_SOURCE[i]}" | grep "hack/cmd_util\.sh$") ]; then
+		if [ ! $(echo "${BASH_SOURCE[i]}" | grep "hack/lib/cmd\.sh$") ]; then
 			call_depth=i
 			break
 		fi
