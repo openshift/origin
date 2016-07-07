@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 )
@@ -43,7 +43,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 func TestKubeAdmissionControllerUsage(t *testing.T) {
 	registeredKubePlugins := sets.NewString(admission.GetPlugins()...)
 
-	usedAdmissionPlugins := sets.NewString(kubernetes.AdmissionPlugins...)
+	usedAdmissionPlugins := sets.NewString(origin.KubeAdmissionPlugins...)
 
 	if missingPlugins := usedAdmissionPlugins.Difference(registeredKubePlugins); len(missingPlugins) != 0 {
 		t.Errorf("%v not found", missingPlugins.List())
