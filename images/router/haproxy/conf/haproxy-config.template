@@ -264,7 +264,7 @@ backend be_tcp_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{ $weight }}
         {{ end }}
       {{ end }}
     {{ end }}{{/* end iterate over services*/}}
@@ -287,7 +287,7 @@ backend be_secure_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{ $weight }}
         {{ end }}
       {{ end }}
     {{ end }}
