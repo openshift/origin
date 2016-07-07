@@ -395,24 +395,28 @@
       "name": "NAMESPACE",
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the Rails container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "MEMORY_POSTGRESQL_LIMIT",
       "displayName": "Memory Limit (PostgreSQL)",
       "description": "Maximum amount of memory the PostgreSQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/rails-ex.git"
     },
     {
@@ -449,23 +453,27 @@
       "name": "APPLICATION_USER",
       "displayName": "Application Username",
       "description": "The application user that is used within the sample application to authorize access on pages.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "APPLICATION_PASSWORD",
       "displayName": "Application Password",
       "description": "The application password that is used within the sample application to authorize access on pages.",
+      "required": true,
       "value": "secret"
     },
     {
       "name": "RAILS_ENV",
       "displayName": "Rails Environment",
       "description": "Environment under which the sample application will run. Could be set to production, development or test.",
+      "required": true,
       "value": "production"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "postgresql"
     },
     {
@@ -483,6 +491,7 @@
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "root"
     },
     {
