@@ -162,7 +162,7 @@ to change to output destination.
   openshift cli convert \-f pod.yaml \-\-local \-o json
 
   # Convert all files under current directory to latest version and create them all.
-  openshift cli convert \-f . | kubectl create \-f \-
+  openshift cli convert \-f . | openshift cli create \-f \-
 
 
 .fi

@@ -869,7 +869,7 @@ Convert config files between different API versions
   oc convert -f pod.yaml --local -o json
 
   # Convert all files under current directory to latest version and create them all.
-  oc convert -f . | kubectl create -f -
+  oc convert -f . | oc create -f -
 
 ----
 ====
