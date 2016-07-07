@@ -104,10 +104,11 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
 
 	root := &cobra.Command{
-		Use:   name,
-		Short: "Build, deploy, and manage your cloud applications",
-		Long:  fmt.Sprintf(openshiftLong, name, cmdutil.GetPlatformName(name), cmdutil.GetDistributionName(name)),
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Use:                  name,
+		Short:                "Build, deploy, and manage your cloud applications",
+		Long:                 fmt.Sprintf(openshiftLong, name, cmdutil.GetPlatformName(name), cmdutil.GetDistributionName(name)),
+		Run:                  cmdutil.DefaultSubCommandRun(out),
+		ExcludeGlobalFlagSet: true,
 	}
 
 	f := clientcmd.New(pflag.NewFlagSet("", pflag.ContinueOnError))

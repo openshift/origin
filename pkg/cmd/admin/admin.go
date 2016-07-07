@@ -40,10 +40,11 @@ var adminLong = templates.LongDesc(`
 func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
-		Use:   name,
-		Short: "Tools for managing a cluster",
-		Long:  fmt.Sprintf(adminLong),
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Use:                  name,
+		Short:                "Tools for managing a cluster",
+		Long:                 fmt.Sprintf(adminLong),
+		Run:                  cmdutil.DefaultSubCommandRun(out),
+		ExcludeGlobalFlagSet: true,
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
