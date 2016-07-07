@@ -49,7 +49,7 @@ type RequestTokenOptions struct {
 func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string) (string, error) {
 	handlers := []ChallengeHandler{}
 	if GSSAPIEnabled() {
-		handlers = append(handlers, NewNegotiateChallengeHandler(NewGSSAPINegotiator()))
+		handlers = append(handlers, NewNegotiateChallengeHandler(NewGSSAPINegotiator(defaultUsername)))
 	}
 	if BasicEnabled() {
 		handlers = append(handlers, &BasicChallengeHandler{Host: clientCfg.Host, Reader: reader, Username: defaultUsername, Password: defaultPassword})

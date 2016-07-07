@@ -34,12 +34,18 @@ type gssapiNegotiator struct {
 	// TODO: surface option for mutual authentication, e.g. gssapi.GSS_C_MUTUAL_FLAG
 	flags uint32
 
+	// principalName contains the name of the principal desired by the user, if specified.
+	principalName string
+	// cred holds the credentials obtained for the specified principalName.
+	// if no principalName is specified, GSS_C_NO_CREDENTIAL is used.
+	cred *gssapi.CredId
+
 	// track whether the last response from InitSecContext was GSS_S_COMPLETE
 	complete bool
 }
 
-func NewGSSAPINegotiator() Negotiater {
-	return &gssapiNegotiator{}
+func NewGSSAPINegotiator(principalName string) Negotiater {
+	return &gssapiNegotiator{principalName: principalName}
 }
 
 func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error) {
@@ -50,6 +56,33 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 
 	// Initialize our context if we haven't already
 	if g.ctx == nil {
+
+		if len(g.principalName) > 0 {
+			// Get credentials for a specific principal
+			glog.V(5).Infof("acquiring credentials for principal name %s", g.principalName)
+			credBuffer, err := lib.MakeBufferString(g.principalName)
+			if err != nil {
+				return nil, err
+			}
+			defer credBuffer.Release()
+
+			credName, err := credBuffer.Name(lib.GSS_KRB5_NT_PRINCIPAL_NAME)
+			if err != nil {
+				return nil, err
+			}
+			defer credName.Release()
+
+			cred, _, _, err := lib.AcquireCred(credName, time.Duration(0), lib.GSS_C_NO_OID_SET, gssapi.GSS_C_INITIATE)
+			if err != nil {
+				glog.V(5).Infof("AcquireCred returned error: %v", err)
+				return nil, err
+			}
+			g.cred = cred
+		} else {
+			// otherwise, express no opinion about the credentials and let gssapi decide
+			g.cred = lib.GSS_C_NO_CREDENTIAL
+		}
+
 		u, err := url.Parse(requestURL)
 		if err != nil {
 			return nil, err
@@ -83,7 +116,7 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 	defer incomingTokenBuffer.Release()
 
 	var outgoingToken *gssapi.Buffer
-	g.ctx, _, outgoingToken, _, _, err = lib.InitSecContext(lib.GSS_C_NO_CREDENTIAL, g.ctx, g.name, lib.GSS_C_NO_OID, g.flags, time.Duration(0), lib.GSS_C_NO_CHANNEL_BINDINGS, incomingTokenBuffer)
+	g.ctx, _, outgoingToken, _, _, err = lib.InitSecContext(g.cred, g.ctx, g.name, lib.GSS_C_NO_OID, g.flags, time.Duration(0), lib.GSS_C_NO_CHANNEL_BINDINGS, incomingTokenBuffer)
 	defer outgoingToken.Release()
 
 	switch err {
@@ -111,6 +144,9 @@ func (g *gssapiNegotiator) Release() error {
 		errs = append(errs, err)
 	}
 	if err := g.ctx.Release(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := g.cred.Release(); err != nil {
 		errs = append(errs, err)
 	}
 	if err := g.lib.Unload(); err != nil {

@@ -10,7 +10,7 @@ func GSSAPIEnabled() bool {
 
 type gssapiUnsupported struct{}
 
-func NewGSSAPINegotiator() Negotiater {
+func NewGSSAPINegotiator(principalName string) Negotiater {
 	return &gssapiUnsupported{}
 }
 
