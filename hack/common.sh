@@ -656,7 +656,14 @@ function os::build::os_version_vars() {
     OS_GIT_SHORT_VERSION="${OS_GIT_COMMIT}"
 
     # Use git describe to find the version based on annotated tags.
-    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+      # This translates the "git describe" to an actual semver.org
+      # compatible semantic version that looks something like this:
+      #   v1.1.0-alpha.0.6+84c76d1142ea4d
+      #
+      # TODO: We continue calling this "git version" because so many
+      # downstream consumers are expecting it there.
+      OS_GIT_VERSION=$(echo "${OS_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7\}\)$/\+\2/")
       if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
         # git describe --dirty only considers changes to existing files, but
         # that is problematic since new untracked .go files affect the build,
@@ -668,10 +675,10 @@ function os::build::os_version_vars() {
       # Try to match the "git describe" output to a regex to try to extract
       # the "major" and "minor" versions and whether this is the exact tagged
       # version or whether the tree is between two tagged versions.
-      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)([.-].*)?$ ]]; then
+      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
         OS_GIT_MAJOR=${BASH_REMATCH[1]}
         OS_GIT_MINOR=${BASH_REMATCH[2]}
-        if [[ -n "${BASH_REMATCH[3]}" ]]; then
+        if [[ -n "${BASH_REMATCH[4]}" ]]; then
           OS_GIT_MINOR+="+"
         fi
       fi
@@ -685,6 +692,25 @@ readonly -f os::build::os_version_vars
 function os::build::kube_version_vars() {
   KUBE_GIT_VERSION=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api" "comment")
   KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api")
+
+  # This translates the "git describe" to an actual semver.org
+  # compatible semantic version that looks something like this:
+  #   v1.1.0-alpha.0.6+84c76d1142ea4d
+  #
+  # TODO: We continue calling this "git version" because so many
+  # downstream consumers are expecting it there.
+  KUBE_GIT_VERSION=$(echo "${KUBE_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7\}\)$/\+\2/")
+
+  # Try to match the "git describe" output to a regex to try to extract
+  # the "major" and "minor" versions and whether this is the exact tagged
+  # version or whether the tree is between two tagged versions.
+  if [[ "${KUBE_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
+    KUBE_GIT_MAJOR=${BASH_REMATCH[1]}
+    KUBE_GIT_MINOR=${BASH_REMATCH[2]}
+    if [[ -n "${BASH_REMATCH[4]}" ]]; then
+      KUBE_GIT_MINOR+="+"
+    fi
+  fi
 }
 readonly -f os::build::kube_version_vars
 
@@ -733,14 +759,19 @@ function os::build::ldflags() {
 
   os::build::get_version_vars
 
+  local buildDate="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
   declare -a ldflags=()
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.buildDate" "${buildDate}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitTreeState" "clean"))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"
