@@ -52,11 +52,13 @@ type WantsRESTClientConfig interface {
 	SetRESTClientConfig(restclient.Config)
 }
 
-// WantsInformers should be implemented by admission plugins that wil select its own informer
+// WantsInformers should be implemented by admission plugins that will select its own informer
 type WantsInformers interface {
 	SetInformers(shared.InformerFactory)
 }
 
+// WantsClusterQuotaMapper should be implemented by admission plugins that need to know how to map between
+// cluster quota and namespaces
 type WantsClusterQuotaMapper interface {
 	SetClusterQuotaMapper(clusterquotamapping.ClusterQuotaMapper)
 }

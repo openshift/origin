@@ -17,84 +17,77 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
-// QuotaAccessor abstracts the get/set logic from the rest of the Evaluator.  This could be a test stub, a straight passthrough,
-// or most commonly a series of deconflicting caches.
-type QuotaAccessor interface {
-	// UpdateQuotaStatus is called to persist final status.  This method should write to persistent storage.
-	// An error indicates that write didn't complete successfully.
-	UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error
+type clusterQuotaAccessor struct {
+	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
+	namespaceLister    *ocache.IndexerToNamespaceLister
+	clusterQuotaClient oclient.ClusterResourceQuotasInterface
 
-	// GetQuotas gets all possible quotas for a given namespace
-	GetQuotas(namespace string) ([]kapi.ResourceQuota, error)
-}
+	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
 
-type quotaAccessor struct {
-	quotaLister     *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister *ocache.IndexerToNamespaceLister
-	quotaClient     oclient.ClusterResourceQuotasInterface
-
-	quotaMapper clusterquotamapping.ClusterQuotaMapper
-
-	// updatedQuotas holds a cache of quotas that we've updated.  This is used to pull the "really latest" during back to
+	// updatedClusterQuotas holds a cache of quotas that we've updated.  This is used to pull the "really latest" during back to
 	// back quota evaluations that touch the same quota doc.  This only works because we can compare etcd resourceVersions
 	// for the same resource as integers.  Before this change: 22 updates with 12 conflicts.  after this change: 15 updates with 0 conflicts
-	updatedQuotas *lru.Cache
+	updatedClusterQuotas *lru.Cache
 }
 
 // newQuotaAccessor creates an object that conforms to the QuotaAccessor interface to be used to retrieve quota objects.
-func newQuotaAccessor(quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *ocache.IndexerToNamespaceLister, quotaClient oclient.ClusterResourceQuotasInterface, quotaMapper clusterquotamapping.ClusterQuotaMapper) *quotaAccessor {
+func newQuotaAccessor(clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *ocache.IndexerToNamespaceLister, clusterQuotaClient oclient.ClusterResourceQuotasInterface, clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper) *clusterQuotaAccessor {
 	updatedCache, err := lru.New(100)
 	if err != nil {
 		// this should never happen
 		panic(err)
 	}
 
-	return &quotaAccessor{
-		quotaLister:     quotaLister,
-		namespaceLister: namespaceLister,
-		quotaClient:     quotaClient,
-		quotaMapper:     quotaMapper,
-		updatedQuotas:   updatedCache,
+	return &clusterQuotaAccessor{
+		clusterQuotaLister:   clusterQuotaLister,
+		namespaceLister:      namespaceLister,
+		clusterQuotaClient:   clusterQuotaClient,
+		clusterQuotaMapper:   clusterQuotaMapper,
+		updatedClusterQuotas: updatedCache,
 	}
 }
 
 // UpdateQuotaStatus the newQuota coming in will be incremented from the original.  The difference between the original
 // and the new is the amount to add to the namespace total, but the total status is the used value itself
-func (e *quotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error {
-	quota, err := e.quotaLister.Get(newQuota.Name)
+func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error {
+	clusterQuota, err := e.clusterQuotaLister.Get(newQuota.Name)
 	if err != nil {
 		return err
 	}
-	quota = e.checkCache(quota)
+	clusterQuota = e.checkCache(clusterQuota)
 
 	// make a copy
-	obj, err := kapi.Scheme.Copy(quota)
+	obj, err := kapi.Scheme.Copy(clusterQuota)
 	if err != nil {
 		return err
 	}
-	quota = obj.(*quotaapi.ClusterResourceQuota)
-	usageDiff := utilquota.Subtract(newQuota.Status.Used, quota.Status.Total.Used)
-
 	// re-assign objectmeta
-	quota.ObjectMeta = newQuota.ObjectMeta
-	quota.Namespace = ""
-	quota.Status.Total.Used = newQuota.Status.Used
+	clusterQuota = obj.(*quotaapi.ClusterResourceQuota)
+	clusterQuota.ObjectMeta = newQuota.ObjectMeta
+	clusterQuota.Namespace = ""
 
-	oldNamespaceTotals, _ := quota.Status.Namespaces.Get(newQuota.Namespace)
+	// determine change in usage
+	usageDiff := utilquota.Subtract(newQuota.Status.Used, clusterQuota.Status.Total.Used)
+
+	// update aggregate usage
+	clusterQuota.Status.Total.Used = newQuota.Status.Used
+
+	// update per namespace totals
+	oldNamespaceTotals, _ := clusterQuota.Status.Namespaces.Get(newQuota.Namespace)
 	namespaceTotalCopy, err := kapi.Scheme.DeepCopy(oldNamespaceTotals)
 	if err != nil {
 		return err
 	}
 	newNamespaceTotals := namespaceTotalCopy.(kapi.ResourceQuotaStatus)
 	newNamespaceTotals.Used = utilquota.Add(oldNamespaceTotals.Used, usageDiff)
-	quota.Status.Namespaces.Insert(newQuota.Namespace, newNamespaceTotals)
+	clusterQuota.Status.Namespaces.Insert(newQuota.Namespace, newNamespaceTotals)
 
-	updatedQuota, err := e.quotaClient.ClusterResourceQuotas().Update(quota)
+	updatedQuota, err := e.clusterQuotaClient.ClusterResourceQuotas().Update(clusterQuota)
 	if err != nil {
 		return err
 	}
 
-	e.updatedQuotas.Add(quota.Name, updatedQuota)
+	e.updatedClusterQuotas.Add(clusterQuota.Name, updatedQuota)
 	return nil
 }
 
@@ -103,26 +96,57 @@ var etcdVersioner = etcd.APIObjectVersioner{}
 // checkCache compares the passed quota against the value in the look-aside cache and returns the newer
 // if the cache is out of date, it deletes the stale entry.  This only works because of etcd resourceVersions
 // being monotonically increasing integers
-func (e *quotaAccessor) checkCache(quota *quotaapi.ClusterResourceQuota) *quotaapi.ClusterResourceQuota {
-	uncastCachedQuota, ok := e.updatedQuotas.Get(quota.Name)
+func (e *clusterQuotaAccessor) checkCache(clusterQuota *quotaapi.ClusterResourceQuota) *quotaapi.ClusterResourceQuota {
+	uncastCachedQuota, ok := e.updatedClusterQuotas.Get(clusterQuota.Name)
 	if !ok {
-		return quota
+		return clusterQuota
 	}
 	cachedQuota := uncastCachedQuota.(*quotaapi.ClusterResourceQuota)
 
-	if etcdVersioner.CompareResourceVersion(quota, cachedQuota) >= 0 {
-		e.updatedQuotas.Remove(quota.Name)
-		return quota
+	if etcdVersioner.CompareResourceVersion(clusterQuota, cachedQuota) >= 0 {
+		e.updatedClusterQuotas.Remove(clusterQuota.Name)
+		return clusterQuota
 	}
 	return cachedQuota
 }
 
-func (e *quotaAccessor) GetQuotas(namespaceName string) ([]kapi.ResourceQuota, error) {
-	var quotaNames []string
+func (e *clusterQuotaAccessor) GetQuotas(namespaceName string) ([]kapi.ResourceQuota, error) {
+	clusterQuotaNames, err := e.waitForReadyClusterQuotaNames(namespaceName)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceQuotas := []kapi.ResourceQuota{}
+	for _, clusterQuotaName := range clusterQuotaNames {
+		clusterQuota, err := e.clusterQuotaLister.Get(clusterQuotaName)
+		if kapierrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		clusterQuota = e.checkCache(clusterQuota)
+
+		// now convert to a ResourceQuota
+		convertedQuota := kapi.ResourceQuota{}
+		convertedQuota.ObjectMeta = clusterQuota.ObjectMeta
+		convertedQuota.Namespace = namespaceName
+		convertedQuota.Spec = clusterQuota.Spec.Quota
+		convertedQuota.Status = clusterQuota.Status.Total
+		resourceQuotas = append(resourceQuotas, convertedQuota)
+
+	}
+
+	return resourceQuotas, nil
+}
+
+func (e *clusterQuotaAccessor) waitForReadyClusterQuotaNames(namespaceName string) ([]string, error) {
+	var clusterQuotaNames []string
 	// wait for a valid mapping cache.  The overall response can be delayed for up to 10 seconds.
 	err := utilwait.PollImmediate(100*time.Millisecond, 8*time.Second, func() (done bool, err error) {
 		var namespacelabels map[string]string
-		quotaNames, namespacelabels = e.quotaMapper.GetClusterQuotasFor(namespaceName)
+		clusterQuotaNames, namespacelabels = e.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
 		namespace, err := e.namespaceLister.Get(namespaceName)
 		if err != nil {
 			return false, err
@@ -132,31 +156,5 @@ func (e *quotaAccessor) GetQuotas(namespaceName string) ([]kapi.ResourceQuota, e
 		}
 		return false, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	resourceQuotas := []kapi.ResourceQuota{}
-	for _, quotaName := range quotaNames {
-		quota, err := e.quotaLister.Get(quotaName)
-		if kapierrors.IsNotFound(err) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		quota = e.checkCache(quota)
-
-		// now convert to a ResourceQuota
-		convertedQuota := kapi.ResourceQuota{}
-		convertedQuota.ObjectMeta = quota.ObjectMeta
-		convertedQuota.Namespace = namespaceName
-		convertedQuota.Spec = quota.Spec.Quota
-		convertedQuota.Status = quota.Status.Total
-		resourceQuotas = append(resourceQuotas, convertedQuota)
-
-	}
-
-	return resourceQuotas, nil
+	return clusterQuotaNames, err
 }

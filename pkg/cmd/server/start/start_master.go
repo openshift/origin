@@ -597,10 +597,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		namespaceControllerClientSet := clientadapter.FromUnversionedClient(namespaceControllerKubeClient)
 		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, dynamic.LegacyAPIPathResolverFunc)
 
-		// called by admission control
-		kc.RunResourceQuotaManager()
-		oc.RunResourceQuotaManager(controllerManagerOptions)
-
 		// no special order
 		kc.RunNodeController()
 		kc.RunScheduler()
@@ -630,8 +626,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
 
 		glog.Infof("Started Kubernetes Controllers")
-	} else {
-		oc.RunResourceQuotaManager(nil)
 	}
 
 	// no special order
@@ -649,6 +643,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
+
+	// initializes quota docs used by admission
+	oc.RunResourceQuotaManager(nil)
 	oc.RunClusterQuotaReconciliationController()
 	oc.RunClusterQuotaMappingController()
 

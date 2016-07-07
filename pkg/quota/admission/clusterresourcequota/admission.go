@@ -12,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/quota/install"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
@@ -26,23 +25,21 @@ import (
 func init() {
 	admission.RegisterPlugin("ClusterResourceQuota",
 		func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-			registry := install.NewRegistry(client)
-			// TODO: expose a stop channel in admission factory
-			return NewClusterResourceQuota(registry)
+			return NewClusterResourceQuota()
 		})
 }
 
-// quotaAdmission implements an admission controller that can enforce quota constraints
-type quotaAdmission struct {
+// clusterQuotaAdmission implements an admission controller that can enforce clusterQuota constraints
+type clusterQuotaAdmission struct {
 	*admission.Handler
 
 	// these are used to create the accessor
-	quotaLister     *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister *ocache.IndexerToNamespaceLister
-	quotaSynced     func() bool
-	namespaceSynced func() bool
-	quotaClient     oclient.ClusterResourceQuotasInterface
-	quotaMapper     clusterquotamapping.ClusterQuotaMapper
+	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
+	namespaceLister    *ocache.IndexerToNamespaceLister
+	clusterQuotaSynced func() bool
+	namespaceSynced    func() bool
+	clusterQuotaClient oclient.ClusterResourceQuotasInterface
+	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
 
 	lockFactory LockFactory
 
@@ -53,24 +50,28 @@ type quotaAdmission struct {
 	evaluator resourcequota.Evaluator
 }
 
-var _ oadmission.WantsInformers = &quotaAdmission{}
-var _ oadmission.WantsOpenshiftClient = &quotaAdmission{}
-var _ oadmission.WantsClusterQuotaMapper = &quotaAdmission{}
-var _ oadmission.Validator = &quotaAdmission{}
+var _ oadmission.WantsInformers = &clusterQuotaAdmission{}
+var _ oadmission.WantsOpenshiftClient = &clusterQuotaAdmission{}
+var _ oadmission.WantsClusterQuotaMapper = &clusterQuotaAdmission{}
+var _ oadmission.Validator = &clusterQuotaAdmission{}
 
-// NewResourceQuota configures an admission controller that can enforce quota constraints
+const (
+	timeToWaitForCacheSync = 10 * time.Second
+	numEvaluatorThreads    = 10
+)
+
+// NewClusterResourceQuota configures an admission controller that can enforce clusterQuota constraints
 // using the provided registry.  The registry must have the capability to handle group/kinds that
 // are persisted by the server this admission controller is intercepting
-func NewClusterResourceQuota(registry quota.Registry) (admission.Interface, error) {
-	return &quotaAdmission{
+func NewClusterResourceQuota() (admission.Interface, error) {
+	return &clusterQuotaAdmission{
 		Handler:     admission.NewHandler(admission.Create),
-		registry:    registry,
 		lockFactory: NewDefaultLockFactory(),
 	}, nil
 }
 
-// Admit makes admission decisions while enforcing quota
-func (q *quotaAdmission) Admit(a admission.Attributes) (err error) {
+// Admit makes admission decisions while enforcing clusterQuota
+func (q *clusterQuotaAdmission) Admit(a admission.Attributes) (err error) {
 	// ignore all operations that correspond to sub-resource actions
 	if len(a.GetSubresource()) != 0 {
 		return nil
@@ -80,19 +81,19 @@ func (q *quotaAdmission) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	if !q.waitForSyncedStore(time.After(10 * time.Second)) {
+	if !q.waitForSyncedStore(time.After(timeToWaitForCacheSync)) {
 		return admission.NewForbidden(a, errors.New("caches not synchronized"))
 	}
 
 	q.init.Do(func() {
-		quotaAccessor := newQuotaAccessor(q.quotaLister, q.namespaceLister, q.quotaClient, q.quotaMapper)
-		q.evaluator = resourcequota.NewQuotaEvaluator(quotaAccessor, q.registry, q.lockAquisition, 10, utilwait.NeverStop)
+		clusterQuotaAccessor := newQuotaAccessor(q.clusterQuotaLister, q.namespaceLister, q.clusterQuotaClient, q.clusterQuotaMapper)
+		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, q.registry, q.lockAquisition, numEvaluatorThreads, utilwait.NeverStop)
 	})
 
 	return q.evaluator.Evaluate(a)
 }
 
-func (q *quotaAdmission) lockAquisition(quotas []kapi.ResourceQuota) func() {
+func (q *clusterQuotaAdmission) lockAquisition(quotas []kapi.ResourceQuota) func() {
 	locks := []sync.Locker{}
 
 	// acquire the locks in alphabetical order because I'm too lazy to think of something clever
@@ -110,45 +111,52 @@ func (q *quotaAdmission) lockAquisition(quotas []kapi.ResourceQuota) func() {
 	}
 }
 
-func (q *quotaAdmission) waitForSyncedStore(timeout <-chan time.Time) bool {
-	for !q.quotaSynced() || !q.namespaceSynced() {
+func (q *clusterQuotaAdmission) waitForSyncedStore(timeout <-chan time.Time) bool {
+	for !q.clusterQuotaSynced() || !q.namespaceSynced() {
 		select {
 		case <-time.After(100 * time.Millisecond):
 		case <-timeout:
-			return q.quotaSynced() && q.namespaceSynced()
+			return q.clusterQuotaSynced() && q.namespaceSynced()
 		}
 	}
 
 	return true
 }
 
-func (q *quotaAdmission) SetInformers(informers shared.InformerFactory) {
-	q.quotaLister = informers.ClusterResourceQuotas().Lister()
-	q.quotaSynced = informers.ClusterResourceQuotas().Informer().HasSynced
+func (q *clusterQuotaAdmission) SetOriginQuotaRegistry(registry quota.Registry) {
+	q.registry = registry
+}
+
+func (q *clusterQuotaAdmission) SetInformers(informers shared.InformerFactory) {
+	q.clusterQuotaLister = informers.ClusterResourceQuotas().Lister()
+	q.clusterQuotaSynced = informers.ClusterResourceQuotas().Informer().HasSynced
 	q.namespaceLister = informers.Namespaces().Lister()
 	q.namespaceSynced = informers.Namespaces().Informer().HasSynced
 }
 
-func (q *quotaAdmission) SetOpenshiftClient(client oclient.Interface) {
-	q.quotaClient = client
+func (q *clusterQuotaAdmission) SetOpenshiftClient(client oclient.Interface) {
+	q.clusterQuotaClient = client
 }
 
-func (q *quotaAdmission) SetClusterQuotaMapper(clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper) {
-	q.quotaMapper = clusterQuotaMapper
+func (q *clusterQuotaAdmission) SetClusterQuotaMapper(clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper) {
+	q.clusterQuotaMapper = clusterQuotaMapper
 }
 
-func (q *quotaAdmission) Validate() error {
-	if q.quotaLister == nil {
-		return errors.New("missing quotaLister")
+func (q *clusterQuotaAdmission) Validate() error {
+	if q.clusterQuotaLister == nil {
+		return errors.New("missing clusterQuotaLister")
 	}
 	if q.namespaceLister == nil {
 		return errors.New("missing namespaceLister")
 	}
-	if q.quotaClient == nil {
-		return errors.New("missing quotaClient")
+	if q.clusterQuotaClient == nil {
+		return errors.New("missing clusterQuotaClient")
 	}
-	if q.quotaMapper == nil {
-		return errors.New("missing quotaMapper")
+	if q.clusterQuotaMapper == nil {
+		return errors.New("missing clusterQuotaMapper")
+	}
+	if q.registry == nil {
+		return errors.New("missing registry")
 	}
 
 	return nil

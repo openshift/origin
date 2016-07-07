@@ -19,7 +19,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -50,7 +49,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
@@ -491,13 +489,13 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(osClient)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
 		KubeClient:                kClient,
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:                  resourceQuotaRegistry,
-		GroupKindsToReplenish:     []unversioned.GroupKind{imageapi.Kind("ImageStream")},
-		ControllerFactory:         quotacontroller.NewReplenishmentControllerFactory(osClient),
+		GroupKindsToReplenish:     quota.AllEvaluatedGroupKinds,
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClient),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
@@ -511,18 +509,10 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 	})
 }
 
-//InitClusterQuotaReconciliationController returns a start function
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quotainstall.NewRegistry(kClient)
-	groupKindsToReplenish := []unversioned.GroupKind{
-		kapi.Kind("Pod"),
-		kapi.Kind("Service"),
-		kapi.Kind("ReplicationController"),
-		kapi.Kind("PersistentVolumeClaim"),
-		kapi.Kind("Secret"),
-		kapi.Kind("ConfigMap"),
-	}
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient)
+	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
 		ClusterQuotaInformer: c.Informers.ClusterResourceQuotas(),
@@ -531,7 +521,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 
 		Registry:                  resourceQuotaRegistry,
 		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
-		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactory(c.Informers.Pods().Informer(), kClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClient),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}

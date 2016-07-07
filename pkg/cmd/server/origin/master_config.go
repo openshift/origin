@@ -211,7 +211,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	quotaRegistry := quota.NewOriginQuotaRegistry(privilegedLoopbackOpenShiftClient)
+	kubeClientSet := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
+	quotaRegistry := quota.NewAllResourceQuotaRegistry(privilegedLoopbackOpenShiftClient, kubeClientSet)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
@@ -220,7 +221,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	)
 	authorizer := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
 
-	kubeClientSet := clientadapter.FromUnversionedClient(privilegedLoopbackKubeClient)
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
 		ProjectCache:          projectCache,
@@ -315,7 +315,8 @@ var (
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
-		"ResourceQuota",
+		quotaadmission.PluginName,
+		"ClusterResourceQuota",
 	}
 
 	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
@@ -343,7 +344,7 @@ var (
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		quotaadmission.PluginName,
-		"ResourceQuota",
+		"ClusterResourceQuota",
 	}
 )
 
