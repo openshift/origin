@@ -96,6 +96,8 @@ type Command struct {
 	PersistentPostRunE func(cmd *Command, args []string) error
 	// DisableAutoGenTag remove
 	DisableAutoGenTag bool
+	// ExcludeGlobalFlagSet allows to exclude flags added globally in flag.CommandLine
+	ExcludeGlobalFlagSet bool
 	// Commands is the list of commands supported by this program.
 	commands []*Command
 	// Parent Command for this command
@@ -1069,7 +1071,7 @@ func (c *Command) LocalFlags() *flag.FlagSet {
 	c.lflags.VisitAll(func(f *flag.Flag) {
 		local.AddFlag(f)
 	})
-	if !c.HasParent() {
+	if !c.Root().ExcludeGlobalFlagSet && !c.ExcludeGlobalFlagSet && !c.HasParent() {
 		flag.CommandLine.VisitAll(func(f *flag.Flag) {
 			if local.Lookup(f.Name) == nil {
 				local.AddFlag(f)
@@ -1233,7 +1235,7 @@ func (c *Command) mergePersistentFlags() {
 		c.PersistentFlags().VisitAll(addtolocal)
 	}
 	rmerge = func(x *Command) {
-		if !x.HasParent() {
+		if !c.Root().ExcludeGlobalFlagSet && !c.ExcludeGlobalFlagSet && !x.HasParent() {
 			flag.CommandLine.VisitAll(func(f *flag.Flag) {
 				if x.PersistentFlags().Lookup(f.Name) == nil {
 					x.PersistentFlags().AddFlag(f)
