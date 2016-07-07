@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -52,6 +53,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
 	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
@@ -507,4 +509,32 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 	initClusterQuotaMapping.Do(func() {
 		go c.ClusterQuotaMappingController.Run(5, utilwait.NeverStop)
 	})
+}
+
+func (c *MasterConfig) RunClusterQuotaReconciliationController() {
+	osClient, kClient := c.ResourceQuotaManagerClients()
+	resourceQuotaRegistry := quotainstall.NewRegistry(kClient)
+	groupKindsToReplenish := []unversioned.GroupKind{
+		kapi.Kind("Pod"),
+		kapi.Kind("Service"),
+		kapi.Kind("ReplicationController"),
+		kapi.Kind("PersistentVolumeClaim"),
+		kapi.Kind("Secret"),
+		kapi.Kind("ConfigMap"),
+	}
+
+	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
+		ClusterQuotaInformer: c.Informers.ClusterResourceQuotas(),
+		ClusterQuotaMapper:   c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
+		ClusterQuotaClient:   osClient,
+
+		Registry:                  resourceQuotaRegistry,
+		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
+		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactory(c.Informers.Pods().Informer(), kClient),
+		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
+		GroupKindsToReplenish:     groupKindsToReplenish,
+	}
+	controller := clusterquotareconciliation.NewClusterQuotaReconcilationController(options)
+	c.ClusterQuotaMappingController.GetClusterQuotaMapper().AddListener(controller)
+	go controller.Run(5, utilwait.NeverStop)
 }

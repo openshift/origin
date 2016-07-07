@@ -41,6 +41,14 @@ func (c *FakeClusterResourceQuotas) Create(inObj *quotaapi.ClusterResourceQuota)
 	return obj.(*quotaapi.ClusterResourceQuota), err
 }
 
+func (c *FakeClusterResourceQuotas) Update(inObj *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("clusterresourcequotas", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*quotaapi.ClusterResourceQuota), err
+}
 func (c *FakeClusterResourceQuotas) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("clusterresourcequotas", name), &quotaapi.ClusterResourceQuota{})
 	return err

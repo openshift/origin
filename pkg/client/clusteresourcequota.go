@@ -15,6 +15,7 @@ type ClusterResourceQuotaInterface interface {
 	List(opts kapi.ListOptions) (*quotaapi.ClusterResourceQuotaList, error)
 	Get(name string) (*quotaapi.ClusterResourceQuota, error)
 	Create(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
+	Update(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Delete(name string) error
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
@@ -45,6 +46,12 @@ func (c *clusterResourceQuotas) Get(name string) (result *quotaapi.ClusterResour
 func (c *clusterResourceQuotas) Create(resourceQuota *quotaapi.ClusterResourceQuota) (result *quotaapi.ClusterResourceQuota, err error) {
 	result = &quotaapi.ClusterResourceQuota{}
 	err = c.r.Post().Resource("clusterresourcequotas").Body(resourceQuota).Do().Into(result)
+	return
+}
+
+func (c *clusterResourceQuotas) Update(resourceQuota *quotaapi.ClusterResourceQuota) (result *quotaapi.ClusterResourceQuota, err error) {
+	result = &quotaapi.ClusterResourceQuota{}
+	err = c.r.Put().Resource("clusterresourcequotas").Name(resourceQuota.Name).Body(resourceQuota).Do().Into(result)
 	return
 }
 
