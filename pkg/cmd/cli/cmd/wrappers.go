@@ -569,7 +569,7 @@ to change to output destination.
   %[1]s convert -f pod.yaml --local -o json
 
   # Convert all files under current directory to latest version and create them all.
-  %[1]s convert -f . | kubectl create -f -
+  %[1]s convert -f . | %[1]s create -f -
 `
 )
 
