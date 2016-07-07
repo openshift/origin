@@ -42,14 +42,16 @@ func imageList(images ...imageapi.Image) imageapi.ImageList {
 	}
 }
 
+const (
+	layer1 = "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	layer2 = "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0"
+	layer3 = "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171"
+	layer4 = "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd"
+	layer5 = "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+)
+
 func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
-	image := imageWithLayers(id, ref,
-		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		"tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0",
-		"tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171",
-		"tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd",
-		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-	)
+	image := imageWithLayers(id, ref, false, layer1, layer2, layer3, layer4, layer5)
 
 	if ageInMinutes >= 0 {
 		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
@@ -59,14 +61,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 }
 
 func sizedImage(id, ref string, size int64) imageapi.Image {
-	image := imageWithLayers(id, ref,
-		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-		"tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0",
-		"tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171",
-		"tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd",
-		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-	)
-
+	image := imageWithLayers(id, ref, false, layer1, layer2, layer3, layer4, layer5)
 	image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1) * time.Minute))
 	image.DockerImageMetadata.Size = size
 
@@ -77,7 +72,41 @@ func image(id, ref string) imageapi.Image {
 	return agedImage(id, ref, -1)
 }
 
-func imageWithLayers(id, ref string, layers ...string) imageapi.Image {
+func imageWithLayers(id, ref string, v2 bool, layers ...string) imageapi.Image {
+	image := imageapi.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: id,
+			Annotations: map[string]string{
+				imageapi.ManagedByOpenShiftAnnotation: "true",
+			},
+		},
+		DockerImageReference: ref,
+	}
+
+	manifest := imageapi.DockerImageManifest{}
+	if v2 {
+		manifest.Layers = []imageapi.Descriptor{}
+		for _, layer := range layers {
+			manifest.Layers = append(manifest.Layers, imageapi.Descriptor{Digest: layer})
+		}
+	} else {
+		manifest.FSLayers = []imageapi.DockerFSLayer{}
+		for _, layer := range layers {
+			manifest.FSLayers = append(manifest.FSLayers, imageapi.DockerFSLayer{DockerBlobSum: layer})
+		}
+	}
+
+	manifestBytes, err := json.Marshal(&manifest)
+	if err != nil {
+		panic(err)
+	}
+
+	image.DockerImageManifest = string(manifestBytes)
+
+	return image
+}
+
+func imageWithLayersV1(id, ref string, layers ...string) imageapi.Image {
 	image := imageapi.Image{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: id,
@@ -91,7 +120,6 @@ func imageWithLayers(id, ref string, layers ...string) imageapi.Image {
 	manifest := imageapi.DockerImageManifest{
 		FSLayers: []imageapi.DockerFSLayer{},
 	}
-
 	for _, layer := range layers {
 		manifest.FSLayers = append(manifest.FSLayers, imageapi.DockerFSLayer{DockerBlobSum: layer})
 	}
@@ -107,7 +135,7 @@ func imageWithLayers(id, ref string, layers ...string) imageapi.Image {
 }
 
 func unmanagedImage(id, ref string, hasAnnotations bool, annotation, value string) imageapi.Image {
-	image := imageWithLayers(id, ref)
+	image := imageWithLayers(id, ref, false)
 	if !hasAnnotations {
 		image.Annotations = nil
 	} else {
@@ -436,13 +464,15 @@ func TestImagePruning(t *testing.T) {
 		builds                 buildapi.BuildList
 		dcs                    deployapi.DeploymentConfigList
 		limits                 map[string][]*kapi.LimitRange
-		expectedDeletions      []string
-		expectedUpdatedStreams []string
+		expectedImageDeletions []string
+		expectedStreamUpdates  []string
+		expectedLayerDeletions []string
+		expectedBlobDeletions  []string
 	}{
 		"1 pod - phase pending - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			pods:              podList(pod("foo", "pod1", kapi.PodPending, registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods:   podList(pod("foo", "pod1", kapi.PodPending, registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"3 pods - last phase pending - don't prune": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
@@ -451,12 +481,12 @@ func TestImagePruning(t *testing.T) {
 				pod("foo", "pod2", kapi.PodSucceeded, registryURL+"/foo/bar@id"),
 				pod("foo", "pod3", kapi.PodPending, registryURL+"/foo/bar@id"),
 			),
-			expectedDeletions: []string{},
+			expectedImageDeletions: []string{},
 		},
 		"1 pod - phase running - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			pods:              podList(pod("foo", "pod1", kapi.PodRunning, registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods:   podList(pod("foo", "pod1", kapi.PodRunning, registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"3 pods - last phase running - don't prune": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
@@ -465,22 +495,29 @@ func TestImagePruning(t *testing.T) {
 				pod("foo", "pod2", kapi.PodSucceeded, registryURL+"/foo/bar@id"),
 				pod("foo", "pod3", kapi.PodRunning, registryURL+"/foo/bar@id"),
 			),
-			expectedDeletions: []string{},
+			expectedImageDeletions: []string{},
 		},
 		"pod phase succeeded - prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			pods:              podList(pod("foo", "pod1", kapi.PodSucceeded, registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{"id"},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods:   podList(pod("foo", "pod1", kapi.PodSucceeded, registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{"id"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + layer1,
+				registryURL + "|" + layer2,
+				registryURL + "|" + layer3,
+				registryURL + "|" + layer4,
+				registryURL + "|" + layer5,
+			},
 		},
 		"pod phase succeeded, pod less than min pruning age - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			pods:              podList(agedPod("foo", "pod1", kapi.PodSucceeded, 5, registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods:   podList(agedPod("foo", "pod1", kapi.PodSucceeded, 5, registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"pod phase succeeded, image less than min pruning age - don't prune": {
-			images:            imageList(agedImage("id", registryURL+"/foo/bar@id", 5)),
-			pods:              podList(pod("foo", "pod1", kapi.PodSucceeded, registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(agedImage("id", registryURL+"/foo/bar@id", 5)),
+			pods:   podList(pod("foo", "pod1", kapi.PodSucceeded, registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"pod phase failed - prune": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
@@ -489,7 +526,14 @@ func TestImagePruning(t *testing.T) {
 				pod("foo", "pod2", kapi.PodFailed, registryURL+"/foo/bar@id"),
 				pod("foo", "pod3", kapi.PodFailed, registryURL+"/foo/bar@id"),
 			),
-			expectedDeletions: []string{"id"},
+			expectedImageDeletions: []string{"id"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + layer1,
+				registryURL + "|" + layer2,
+				registryURL + "|" + layer3,
+				registryURL + "|" + layer4,
+				registryURL + "|" + layer5,
+			},
 		},
 		"pod phase unknown - prune": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
@@ -498,98 +542,126 @@ func TestImagePruning(t *testing.T) {
 				pod("foo", "pod2", kapi.PodUnknown, registryURL+"/foo/bar@id"),
 				pod("foo", "pod3", kapi.PodUnknown, registryURL+"/foo/bar@id"),
 			),
-			expectedDeletions: []string{"id"},
+			expectedImageDeletions: []string{"id"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + layer1,
+				registryURL + "|" + layer2,
+				registryURL + "|" + layer3,
+				registryURL + "|" + layer4,
+				registryURL + "|" + layer5,
+			},
 		},
 		"pod container image not parsable": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
 			pods: podList(
 				pod("foo", "pod1", kapi.PodRunning, "a/b/c/d/e"),
 			),
-			expectedDeletions: []string{"id"},
+			expectedImageDeletions: []string{"id"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + layer1,
+				registryURL + "|" + layer2,
+				registryURL + "|" + layer3,
+				registryURL + "|" + layer4,
+				registryURL + "|" + layer5,
+			},
 		},
 		"pod container image doesn't have an id": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
 			pods: podList(
 				pod("foo", "pod1", kapi.PodRunning, "foo/bar:latest"),
 			),
-			expectedDeletions: []string{"id"},
+			expectedImageDeletions: []string{"id"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + layer1,
+				registryURL + "|" + layer2,
+				registryURL + "|" + layer3,
+				registryURL + "|" + layer4,
+				registryURL + "|" + layer5,
+			},
 		},
 		"pod refers to image not in graph": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
 			pods: podList(
 				pod("foo", "pod1", kapi.PodRunning, registryURL+"/foo/bar@otherid"),
 			),
-			expectedDeletions: []string{"id"},
+			expectedImageDeletions: []string{"id"},
+			expectedBlobDeletions: []string{
+				registryURL + "|" + layer1,
+				registryURL + "|" + layer2,
+				registryURL + "|" + layer3,
+				registryURL + "|" + layer4,
+				registryURL + "|" + layer5,
+			},
 		},
 		"referenced by rc - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			rcs:               rcList(rc("foo", "rc1", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			rcs:    rcList(rc("foo", "rc1", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by dc - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			dcs:               dcList(dc("foo", "rc1", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			dcs:    dcList(dc("foo", "rc1", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by bc - sti - ImageStreamImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			bcs:    bcList(bc("foo", "bc1", "source", "ImageStreamImage", "foo", "bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by bc - docker - ImageStreamImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			bcs:    bcList(bc("foo", "bc1", "docker", "ImageStreamImage", "foo", "bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by bc - custom - ImageStreamImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			bcs:    bcList(bc("foo", "bc1", "custom", "ImageStreamImage", "foo", "bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by bc - sti - DockerImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			bcs:    bcList(bc("foo", "bc1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by bc - docker - DockerImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", "docker", "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			bcs:    bcList(bc("foo", "bc1", "docker", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by bc - custom - DockerImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", "custom", "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			bcs:    bcList(bc("foo", "bc1", "custom", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by build - sti - ImageStreamImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", "source", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions: []string{},
+			images:                 imageList(image("id", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "source", "ImageStreamImage", "foo", "bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by build - docker - ImageStreamImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", "docker", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions: []string{},
+			images:                 imageList(image("id", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "docker", "ImageStreamImage", "foo", "bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by build - custom - ImageStreamImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions: []string{},
+			images:                 imageList(image("id", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by build - sti - DockerImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images:                 imageList(image("id", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by build - docker - DockerImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", "docker", "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images:                 imageList(image("id", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "docker", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"referenced by build - custom - DockerImage - don't prune": {
-			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", "custom", "DockerImage", "foo", registryURL+"/foo/bar@id")),
-			expectedDeletions: []string{},
+			images:                 imageList(image("id", registryURL+"/foo/bar@id")),
+			builds:                 buildList(build("foo", "build1", "custom", "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			expectedImageDeletions: []string{},
 		},
 		"image stream - keep most recent n images": {
 			images: imageList(
@@ -608,8 +680,8 @@ func TestImagePruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedDeletions:      []string{"id4"},
-			expectedUpdatedStreams: []string{"foo/bar|id4"},
+			expectedImageDeletions: []string{"id4"},
+			expectedStreamUpdates:  []string{"foo/bar|id4"},
 		},
 		"image stream - same manifest listed multiple times in tag history": {
 			images: imageList(
@@ -644,8 +716,8 @@ func TestImagePruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedDeletions:      []string{},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 		"multiple resources pointing to image - don't prune": {
 			images: imageList(
@@ -665,22 +737,22 @@ func TestImagePruning(t *testing.T) {
 			dcs:                    dcList(dc("foo", "rc1", registryURL+"/foo/bar@id")),
 			bcs:                    bcList(bc("foo", "bc1", "source", "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			builds:                 buildList(build("foo", "build1", "custom", "ImageStreamImage", "foo", "bar@id")),
-			expectedDeletions:      []string{},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 		"image with nil annotations": {
 			images: imageList(
 				unmanagedImage("id", "someregistry/foo/bar@id", false, "", ""),
 			),
-			expectedDeletions:      []string{},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 		"image missing managed annotation": {
 			images: imageList(
 				unmanagedImage("id", "someregistry/foo/bar@id", true, "foo", "bar"),
 			),
-			expectedDeletions:      []string{},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 		"image with managed annotation != true": {
 			images: imageList(
@@ -691,15 +763,79 @@ func TestImagePruning(t *testing.T) {
 				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
 				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
 			),
-			expectedDeletions:      []string{},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 		"image with bad manifest is pruned ok": {
 			images: imageList(
 				imageWithBadManifest("id", "someregistry/foo/bar@id"),
 			),
-			expectedDeletions:      []string{"id"},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{"id"},
+			expectedStreamUpdates:  []string{},
+		},
+		"image with v1 layers": {
+			images: imageList(
+				imageWithLayers("id1", registryURL+"/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", registryURL+"/foo/bar@id2", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id3", registryURL+"/foo/bar@id3", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id4", registryURL+"/foo/bar@id4", false, "layer5", "layer6", "layer7", "layer8"),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+						tagEvent("id4", registryURL+"/foo/bar@id4"),
+					),
+				)),
+			),
+			expectedImageDeletions: []string{"id4"},
+			expectedStreamUpdates:  []string{"foo/bar|id4"},
+			expectedLayerDeletions: []string{
+				registryURL + "|foo/bar|layer5",
+				registryURL + "|foo/bar|layer6",
+				registryURL + "|foo/bar|layer7",
+				registryURL + "|foo/bar|layer8",
+			},
+			expectedBlobDeletions: []string{
+				registryURL + "|layer5",
+				registryURL + "|layer6",
+				registryURL + "|layer7",
+				registryURL + "|layer8",
+			},
+		},
+		"image with v2 layers": {
+			images: imageList(
+				imageWithLayers("id1", registryURL+"/foo/bar@id1", true, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", registryURL+"/foo/bar@id2", true, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id3", registryURL+"/foo/bar@id3", true, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id4", registryURL+"/foo/bar@id4", true, "layer5", "layer6", "layer7", "layer8"),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+						tagEvent("id4", registryURL+"/foo/bar@id4"),
+					),
+				)),
+			),
+			expectedImageDeletions: []string{"id4"},
+			expectedStreamUpdates:  []string{"foo/bar|id4"},
+			expectedLayerDeletions: []string{
+				registryURL + "|foo/bar|layer5",
+				registryURL + "|foo/bar|layer6",
+				registryURL + "|foo/bar|layer7",
+				registryURL + "|foo/bar|layer8",
+			},
+			expectedBlobDeletions: []string{
+				registryURL + "|layer5",
+				registryURL + "|layer6",
+				registryURL + "|layer7",
+				registryURL + "|layer8",
+			},
 		},
 		"image exceeding limits": {
 			pruneOverSizeLimit: newBool(true),
@@ -720,8 +856,8 @@ func TestImagePruning(t *testing.T) {
 			limits: map[string][]*kapi.LimitRange{
 				"foo": limitList(100, 200),
 			},
-			expectedDeletions:      []string{"id3"},
-			expectedUpdatedStreams: []string{"foo/bar|id3"},
+			expectedImageDeletions: []string{"id3"},
+			expectedStreamUpdates:  []string{"foo/bar|id3"},
 		},
 		"multiple images in different namespaces exceeding different limits": {
 			pruneOverSizeLimit: newBool(true),
@@ -749,8 +885,8 @@ func TestImagePruning(t *testing.T) {
 				"foo": limitList(150),
 				"bar": limitList(550),
 			},
-			expectedDeletions:      []string{"id2", "id4"},
-			expectedUpdatedStreams: []string{"foo/bar|id2", "bar/foo|id4"},
+			expectedImageDeletions: []string{"id2", "id4"},
+			expectedStreamUpdates:  []string{"foo/bar|id2", "bar/foo|id4"},
 		},
 		"image within allowed limits": {
 			pruneOverSizeLimit: newBool(true),
@@ -771,8 +907,8 @@ func TestImagePruning(t *testing.T) {
 			limits: map[string][]*kapi.LimitRange{
 				"foo": limitList(300),
 			},
-			expectedDeletions:      []string{},
-			expectedUpdatedStreams: []string{},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 	}
 
@@ -811,14 +947,24 @@ func TestImagePruning(t *testing.T) {
 
 		p.Prune(imageDeleter, streamDeleter, layerDeleter, blobDeleter, manifestDeleter)
 
-		expectedDeletions := sets.NewString(test.expectedDeletions...)
-		if !reflect.DeepEqual(expectedDeletions, imageDeleter.invocations) {
-			t.Errorf("%s: expected image deletions %q, got %q", name, expectedDeletions.List(), imageDeleter.invocations.List())
+		expectedImageDeletions := sets.NewString(test.expectedImageDeletions...)
+		if !reflect.DeepEqual(expectedImageDeletions, imageDeleter.invocations) {
+			t.Errorf("%s: expected image deletions %q, got %q", name, expectedImageDeletions.List(), imageDeleter.invocations.List())
 		}
 
-		expectedUpdatedStreams := sets.NewString(test.expectedUpdatedStreams...)
-		if !reflect.DeepEqual(expectedUpdatedStreams, streamDeleter.invocations) {
-			t.Errorf("%s: expected stream updates %q, got %q", name, expectedUpdatedStreams.List(), streamDeleter.invocations.List())
+		expectedStreamUpdates := sets.NewString(test.expectedStreamUpdates...)
+		if !reflect.DeepEqual(expectedStreamUpdates, streamDeleter.invocations) {
+			t.Errorf("%s: expected stream updates %q, got %q", name, expectedStreamUpdates.List(), streamDeleter.invocations.List())
+		}
+
+		expectedLayerDeletions := sets.NewString(test.expectedLayerDeletions...)
+		if !reflect.DeepEqual(expectedLayerDeletions, layerDeleter.invocations) {
+			t.Errorf("%s: expected layer deletions %q, got %q", name, expectedLayerDeletions.List(), layerDeleter.invocations.List())
+		}
+
+		expectedBlobDeletions := sets.NewString(test.expectedBlobDeletions...)
+		if !reflect.DeepEqual(expectedBlobDeletions, blobDeleter.invocations) {
+			t.Errorf("%s: expected blob deletions %q, got %q", name, expectedBlobDeletions.List(), blobDeleter.invocations.List())
 		}
 	}
 }
@@ -906,8 +1052,8 @@ func TestRegistryPruning(t *testing.T) {
 	}{
 		"layers unique to id1 pruned": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", false, "layer3", "layer4", "layer5", "layer6"),
 			),
 			streams: streamList(
 				stream("registry1", "foo", "bar", tags(
@@ -936,7 +1082,7 @@ func TestRegistryPruning(t *testing.T) {
 		},
 		"no pruning when no images are pruned": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
 			),
 			streams: streamList(
 				stream("registry1", "foo", "bar", tags(
@@ -951,8 +1097,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 		"blobs pruned when streams have already been deleted": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", false, "layer3", "layer4", "layer5", "layer6"),
 			),
 			expectedLayerDeletions: sets.NewString(),
 			expectedBlobDeletions: sets.NewString(
@@ -967,8 +1113,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 		"ping error": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", false, "layer3", "layer4", "layer5", "layer6"),
 			),
 			streams: streamList(
 				stream("registry1", "foo", "bar", tags(
