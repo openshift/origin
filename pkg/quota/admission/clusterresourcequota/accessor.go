@@ -58,6 +58,8 @@ func newQuotaAccessor(quotaLister *ocache.IndexerToClusterResourceQuotaLister, n
 	}
 }
 
+// UpdateQuotaStatus the newQuota coming in will be incremented from the original.  The difference between the original
+// and the new is the amount to add to the namespace total, but the total status is the used value itself
 func (e *quotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error {
 	quota, err := e.quotaLister.Get(newQuota.Name)
 	if err != nil {
@@ -76,6 +78,7 @@ func (e *quotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error {
 	// re-assign objectmeta
 	quota.ObjectMeta = newQuota.ObjectMeta
 	quota.Namespace = ""
+	quota.Status.Total.Used = newQuota.Status.Used
 
 	oldNamespaceTotals, _ := quota.Status.Namespaces.Get(newQuota.Namespace)
 	namespaceTotalCopy, err := kapi.Scheme.DeepCopy(oldNamespaceTotals)
@@ -83,10 +86,8 @@ func (e *quotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) error {
 		return err
 	}
 	newNamespaceTotals := namespaceTotalCopy.(kapi.ResourceQuotaStatus)
-	newNamespaceTotals.Used = utilquota.Add(newNamespaceTotals.Used, usageDiff)
+	newNamespaceTotals.Used = utilquota.Add(oldNamespaceTotals.Used, usageDiff)
 	quota.Status.Namespaces.Insert(newQuota.Namespace, newNamespaceTotals)
-
-	quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, usageDiff)
 
 	updatedQuota, err := e.quotaClient.ClusterResourceQuotas().Update(quota)
 	if err != nil {

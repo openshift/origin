@@ -100,9 +100,9 @@ func (e *workQueueBucket) GetWithData() (interface{}, []interface{}, bool) {
 	work := e.work[key]
 	delete(e.work, key)
 	delete(e.dirtyWork, key)
+	e.inProgress[key] = true
 
 	if len(work) != 0 {
-		e.inProgress[key] = true
 		return key, work, false
 	}
 

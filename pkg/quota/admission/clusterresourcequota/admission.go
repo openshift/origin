@@ -3,12 +3,14 @@ package clusterresourcequota
 import (
 	"errors"
 	"io"
+	"sort"
 	"sync"
 	"time"
 
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -42,6 +44,8 @@ type quotaAdmission struct {
 	quotaClient     oclient.ClusterResourceQuotasInterface
 	quotaMapper     clusterquotamapping.ClusterQuotaMapper
 
+	lockFactory LockFactory
+
 	// these are used to create the evaluator
 	registry quota.Registry
 
@@ -59,8 +63,9 @@ var _ oadmission.Validator = &quotaAdmission{}
 // are persisted by the server this admission controller is intercepting
 func NewClusterResourceQuota(registry quota.Registry) (admission.Interface, error) {
 	return &quotaAdmission{
-		Handler:  admission.NewHandler(admission.Create),
-		registry: registry,
+		Handler:     admission.NewHandler(admission.Create),
+		registry:    registry,
+		lockFactory: NewDefaultLockFactory(),
 	}, nil
 }
 
@@ -81,10 +86,28 @@ func (q *quotaAdmission) Admit(a admission.Attributes) (err error) {
 
 	q.init.Do(func() {
 		quotaAccessor := newQuotaAccessor(q.quotaLister, q.namespaceLister, q.quotaClient, q.quotaMapper)
-		q.evaluator = resourcequota.NewQuotaEvaluator(quotaAccessor, q.registry, nil, 10, utilwait.NeverStop)
+		q.evaluator = resourcequota.NewQuotaEvaluator(quotaAccessor, q.registry, q.lockAquisition, 10, utilwait.NeverStop)
 	})
 
 	return q.evaluator.Evaluate(a)
+}
+
+func (q *quotaAdmission) lockAquisition(quotas []kapi.ResourceQuota) func() {
+	locks := []sync.Locker{}
+
+	// acquire the locks in alphabetical order because I'm too lazy to think of something clever
+	sort.Sort(ByName(quotas))
+	for _, quota := range quotas {
+		lock := q.lockFactory.GetLock(quota.Name)
+		lock.Lock()
+		locks = append(locks, lock)
+	}
+
+	return func() {
+		for i := len(locks) - 1; i >= 0; i-- {
+			locks[i].Unlock()
+		}
+	}
 }
 
 func (q *quotaAdmission) waitForSyncedStore(timeout <-chan time.Time) bool {
@@ -130,3 +153,9 @@ func (q *quotaAdmission) Validate() error {
 
 	return nil
 }
+
+type ByName []kapi.ResourceQuota
+
+func (v ByName) Len() int           { return len(v) }
+func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (v ByName) Less(i, j int) bool { return v[i].Name < v[j].Name }
