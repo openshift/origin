@@ -61,7 +61,7 @@ var (
 	netNamespaceColumns   = []string{"NAME", "NETID"}
 	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
 
-	clusterResourceQuotaColumns = []string{"NAME", "SELECTOR"}
+	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -926,7 +926,10 @@ func printClusterResourceQuota(resourceQuota *quotaapi.ClusterResourceQuota, w i
 	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "\t%s", unversioned.FormatLabelSelector(resourceQuota.Spec.Selector)); err != nil {
+	if _, err := fmt.Fprintf(w, "\t%s", unversioned.FormatLabelSelector(resourceQuota.Spec.Selector.LabelSelector)); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "\t%s", resourceQuota.Spec.Selector.AnnotationSelector); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprint(w, kctl.AppendLabels(resourceQuota.Labels, options.ColumnLabels)); err != nil {

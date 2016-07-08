@@ -1437,14 +1437,15 @@ func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kctl.D
 }
 
 func DescribeClusterQuota(quota *quotaapi.ClusterResourceQuota) (string, error) {
-	selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
+	labelSelector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector.LabelSelector)
 	if err != nil {
 		return "", err
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, quota.ObjectMeta)
-		fmt.Fprintf(out, "Selector:\t%s\n", selector)
+		fmt.Fprintf(out, "Label Selector: %s\n", labelSelector)
+		fmt.Fprintf(out, "AnnotationSelector: %s\n", quota.Spec.Selector.AnnotationSelector)
 		if len(quota.Spec.Quota.Scopes) > 0 {
 			scopes := []string{}
 			for _, scope := range quota.Spec.Quota.Scopes {

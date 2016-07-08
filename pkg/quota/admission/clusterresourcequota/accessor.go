@@ -145,13 +145,13 @@ func (e *clusterQuotaAccessor) waitForReadyClusterQuotaNames(namespaceName strin
 	var clusterQuotaNames []string
 	// wait for a valid mapping cache.  The overall response can be delayed for up to 10 seconds.
 	err := utilwait.PollImmediate(100*time.Millisecond, 8*time.Second, func() (done bool, err error) {
-		var namespacelabels map[string]string
-		clusterQuotaNames, namespacelabels = e.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
+		var namespaceSelectionFields clusterquotamapping.SelectionFields
+		clusterQuotaNames, namespaceSelectionFields = e.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
 		namespace, err := e.namespaceLister.Get(namespaceName)
 		if err != nil {
 			return false, err
 		}
-		if kapi.Semantic.DeepEqual(namespacelabels, namespace.Labels) {
+		if kapi.Semantic.DeepEqual(namespaceSelectionFields, clusterquotamapping.GetSelectionFields(namespace)) {
 			return true, nil
 		}
 		return false, nil

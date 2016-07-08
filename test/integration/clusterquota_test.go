@@ -44,7 +44,9 @@ func TestClusterQuota(t *testing.T) {
 	cq := &quotaapi.ClusterResourceQuota{
 		ObjectMeta: kapi.ObjectMeta{Name: "overall"},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			Selector: quotaapi.ClusterResourceQuotaSelector{
+				LabelSelector: &unversioned.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			},
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{
 					kapi.ResourceConfigMaps: resource.MustParse("2"),

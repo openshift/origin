@@ -11,12 +11,16 @@ import (
 func ValidateClusterResourceQuota(clusterquota *quotaapi.ClusterResourceQuota) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&clusterquota.ObjectMeta, false, validation.ValidateResourceQuotaName, field.NewPath("metadata"))
 
-	if clusterquota.Spec.Selector == nil {
+	hasSelectionCriteria := (clusterquota.Spec.Selector.LabelSelector != nil && len(clusterquota.Spec.Selector.LabelSelector.MatchLabels)+len(clusterquota.Spec.Selector.LabelSelector.MatchExpressions) > 0) ||
+		(len(clusterquota.Spec.Selector.AnnotationSelector) > 0)
+
+	if !hasSelectionCriteria {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec", "selector"), "must restrict the selected projects"))
-	} else {
-		allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(clusterquota.Spec.Selector, field.NewPath("spec", "selector"))...)
-		if len(clusterquota.Spec.Selector.MatchLabels)+len(clusterquota.Spec.Selector.MatchExpressions) == 0 {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "selector"), clusterquota.Spec.Selector, "must restrict the selected projects"))
+	}
+	if clusterquota.Spec.Selector.LabelSelector != nil {
+		allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(clusterquota.Spec.Selector.LabelSelector, field.NewPath("spec", "selector", "labels"))...)
+		if len(clusterquota.Spec.Selector.LabelSelector.MatchLabels)+len(clusterquota.Spec.Selector.LabelSelector.MatchExpressions) == 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "selector", "labels"), clusterquota.Spec.Selector.LabelSelector, "must restrict the selected projects"))
 		}
 	}
 
