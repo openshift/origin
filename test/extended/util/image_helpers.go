@@ -102,13 +102,15 @@ func WaitForBuild(context, buildConfig, buildName string, oc *CLI) error {
 func StartBuildFromJSON(jsonFile, buildPrefix string, oc *CLI) {
 	err := oc.Run("create").Args("-f", jsonFile).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	_, berr := oc.Run("start-build").Args(buildPrefix).Output()
+	out, berr := oc.Run("start-build").Args(buildPrefix).Output()
+	fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 	o.Expect(berr).NotTo(o.HaveOccurred())
 }
 
 //StartBuild starts a build, with the assumption that the build config was previously created
 func StartBuild(buildPrefix string, oc *CLI) {
-	_, err := oc.Run("start-build").Args(buildPrefix).Output()
+	out, err := oc.Run("start-build").Args(buildPrefix).Output()
+	fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 

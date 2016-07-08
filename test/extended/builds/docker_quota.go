@@ -36,7 +36,8 @@ var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			_, err = oc.Run("start-build").Args("docker-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota")).Output()
+			out, err := oc.Run("start-build").Args("docker-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota")).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Failed phase")
@@ -48,7 +49,7 @@ var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build logs to contain the correct cgroups values")
-			out, err := oc.Run("logs").Args(fmt.Sprintf("build/docker-build-quota-1")).Output()
+			out, err = oc.Run("logs").Args(fmt.Sprintf("build/docker-build-quota-1")).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("MEMORY=209715200"))
 			o.Expect(out).To(o.ContainSubstring("MEMORYSWAP=209715200"))

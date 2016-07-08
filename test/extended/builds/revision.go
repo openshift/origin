@@ -25,8 +25,16 @@ var _ = g.Describe("[builds] build have source revision metadata", func() {
 
 	g.Describe("started build", func() {
 		g.It("should contain source revision information", func() {
-			g.By("starting the build with --wait flag")
-			err := oc.Run("start-build").Args("sample-build", "--wait").Execute()
+			g.By("starting the build with")
+			out, err := oc.Run("start-build").Args("sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the build to complete")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("verifying the build %q status", "sample-build-1"))
