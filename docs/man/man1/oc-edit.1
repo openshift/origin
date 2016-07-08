@@ -60,7 +60,7 @@ saved copy to include the latest resource version.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
-    If true, process directory recursively.
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-save\-config\fP=false
@@ -151,8 +151,8 @@ saved copy to include the latest resource version.
   # Use an alternative editor
   OC\_EDITOR="nano" oc edit dc/my\-deployment
 
-  # Edit the service 'docker\-registry' in JSON using the v1beta3 API format:
-  oc edit svc/docker\-registry \-\-output\-version=v1beta3 \-o json
+  # Edit the service 'docker\-registry' in JSON using the v1 API format:
+  oc edit svc/docker\-registry \-\-output\-version=v1 \-o json
 
 .fi
 .RE

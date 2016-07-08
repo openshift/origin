@@ -24,18 +24,18 @@ increase or decrease number of pods deployed within the system as needed.
 .SH OPTIONS
 .PP
 \fB\-\-cpu\-percent\fP=\-1
-    The target average CPU utilization (represented as a percent of requested CPU) over all the pods. If it's not specified or negative, the server will apply a default value.
+    The target average CPU utilization (represented as a percent of requested CPU) over all the pods. If it's not specified or negative, a default autoscaling policy will be used.
 
 .PP
 \fB\-\-dry\-run\fP=false
-    If true, only print the object that would be sent, without creating it.
+    If true, only print the object that would be sent, without sending it.
 
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
     Filename, directory, or URL to a file identifying the resource to autoscale.
 
 .PP
-\fB\-\-generator\fP="horizontalpodautoscaler/v1beta1"
+\fB\-\-generator\fP="horizontalpodautoscaler/v1"
     The name of the API generator to use. Currently there is only 1 generator.
 
 .PP
@@ -62,7 +62,7 @@ increase or decrease number of pods deployed within the system as needed.
 \fB\-o\fP, \fB\-\-output\fP=""
     Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/HEAD/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -74,7 +74,7 @@ increase or decrease number of pods deployed within the system as needed.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
-    If true, process directory recursively.
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-save\-config\fP=false

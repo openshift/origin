@@ -40,7 +40,7 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-dry\-run\fP=false
-    If true, only print the object that would be sent, without creating it.
+    If true, only print the object that would be sent, without sending it.
 
 .PP
 \fB\-\-external\-ip\fP=""
@@ -74,7 +74,7 @@ Possible resources include (case insensitive):
 \fB\-o\fP, \fB\-\-output\fP=""
     Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/HEAD/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -89,8 +89,8 @@ Possible resources include (case insensitive):
     The port that the service should serve on. Copied from the resource being exposed, if unspecified
 
 .PP
-\fB\-\-protocol\fP="TCP"
-    The network protocol for the service to be created. Default is 'tcp'.
+\fB\-\-protocol\fP=""
+    The network protocol for the service to be created. Default is 'TCP'.
 
 .PP
 \fB\-\-record\fP=false
@@ -98,7 +98,7 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
-    If true, process directory recursively.
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-save\-config\fP=false
@@ -201,22 +201,18 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-docker\-root\fP="/var/lib/docker"
-    Absolute path to the Docker state root directory (default: /var/lib/docker)
-
-.PP
-\fB\-\-docker\-run\fP="/var/run/docker"
-    Absolute path to the Docker run directory (default: /var/run/docker)
+    DEPRECATED: docker root is read from docker info (this is a fallback, default: /var/lib/docker)
 
 .PP
 \fB\-\-enable\-load\-reader\fP=false
     Whether to enable cpu load reader
 
 .PP
-\fB\-\-event\-storage\-age\-limit\fP="default=24h"
+\fB\-\-event\-storage\-age\-limit\fP="default=0"
     Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
 
 .PP
-\fB\-\-event\-storage\-event\-limit\fP="default=100000"
+\fB\-\-event\-storage\-event\-limit\fP="default=0"
     Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
 
 .PP
