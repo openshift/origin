@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"time"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	"k8s.io/kubernetes/pkg/storage"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
@@ -81,8 +83,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 			glog.Fatalf(err.Error())
 		}
 
-		leaseTTL := uint64(master.DefaultEndpointReconcilerInterval + 5) // add 5 seconds for wiggle room
-		masterLeases := election.NewLeases(leaseStorage, "/masterleases/", leaseTTL)
+		masterLeases := newMasterLeases(leaseStorage)
 
 		storage, err := c.Master.StorageFactory.New(kapi.Resource("endpoints"))
 		if err != nil {
@@ -126,6 +127,12 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 	}
 
 	return messages, nil
+}
+
+func newMasterLeases(storage storage.Interface) election.Leases {
+	// leaseTTL is in seconds, i.e. 15 means 15 seconds; do NOT do 15*time.Second!
+	leaseTTL := uint64((master.DefaultEndpointReconcilerInterval + 5*time.Second) / time.Second) // add 5 seconds for wiggle room
+	return election.NewLeases(storage, "/masterleases/", leaseTTL)
 }
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
