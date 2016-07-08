@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta3"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -98,14 +98,10 @@ func TestClientConfigForVersion(t *testing.T) {
 		t.Fatalf("Expected not be called again getting a config from cache, was called %d additional times", called)
 	}
 
-	// Call for unsupported version, negotiate to supported version
+	// Call for removed version, return error
 	called = 0
-	v1beta3Config, err := clients.ClientConfigForVersion(&v1beta3.SchemeGroupVersion)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if v1beta3Config.GroupVersion.String() != "v1" {
-		t.Fatalf("Expected to negotiate v1 for v1beta3 config, got %v", v1beta3Config.GroupVersion.String())
+	if _, err := clients.ClientConfigForVersion(&unversioned.GroupVersion{Version: "v1beta3"}); err == nil {
+		t.Fatalf("Unexpected non-error: %v", err)
 	}
 	if called != 1 {
 		t.Fatalf("Expected to be called once getting a config for a new version, was called %d times", called)

@@ -10,30 +10,12 @@ items:
       description: v1 Secret - used to test v1 negotiation of k8s objects
     name: v1-secret
 
-- apiVersion: v1beta3
-  kind: Secret
-  metadata:
-    annotations:
-      description: v1beta3 Secret - used to test v1beta3 negotiation of k8s objects
-    name: v1beta3-secret
-
 - apiVersion: v1
   kind: Route
   metadata:
     annotations:
       description: v1 Route - used to test v1 negotiation of origin objects
     name: v1-route
-  spec:
-    to:
-      kind: Service
-      name: test
-
-- apiVersion: v1beta3
-  kind: Route
-  metadata:
-    annotations:
-      description: v1beta3 Route - used to test v1beta3 negotiation of origin objects
-    name: v1beta3-route
   spec:
     to:
       kind: Service
@@ -53,6 +35,23 @@ items:
       metadata:
         labels:
           run: v1beta1-job
+      spec:
+        containers:
+        - image: openshift/hello-openshift
+          name: hello-container
+        restartPolicy: Never
+
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    annotations:
+      description: v1 Job - used to test v1 negotation of group k8s objects
+    name: v1-job
+  spec:
+    template:
+      metadata:
+        labels:
+          run: v1-job
       spec:
         containers:
         - image: openshift/hello-openshift

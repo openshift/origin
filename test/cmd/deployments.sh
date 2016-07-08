@@ -52,7 +52,7 @@ os::cmd::expect_success_and_text 'oc env dc/test-deployment-config OTHER=foo -o 
 os::cmd::expect_success_and_text 'echo OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success_and_not_text 'echo #OTHER=foo | oc env dc/test-deployment-config -e - --list' 'OTHER=foo'
 os::cmd::expect_success 'oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-'
-os::cmd::expect_success_and_not_text 'oc env -f test/integration/testdata/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1beta3'
+os::cmd::expect_success_and_text 'oc env -f test/integration/testdata/test-deployment-config.yaml TEST=VERSION -o yaml' 'v1'
 os::cmd::expect_success 'oc env dc/test-deployment-config A=a B=b C=c D=d E=e F=f G=g'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'A=a'
 os::cmd::expect_success_and_text 'oc env dc/test-deployment-config --list' 'B=b'

@@ -13,7 +13,7 @@ import (
 )
 
 func TestRESTRootScope(t *testing.T) {
-	for _, v := range [][]string{{"v1beta3"}, {"v1"}} {
+	for _, v := range [][]string{{"v1"}} {
 		mapping, err := registered.RESTMapper().RESTMapping(kapi.Kind("Node"), v...)
 		if err != nil {
 			t.Fatal(err)

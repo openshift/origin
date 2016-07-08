@@ -7,7 +7,7 @@ items:
     name: ruby-hello-world
     namespace: default
     resourceVersion: "1125"
-    selfLink: /osapi/v1beta3/namespaces/default/buildconfigs/ruby-hello-world
+    selfLink: /osapi/v1/namespaces/default/buildconfigs/ruby-hello-world
     uid: 4a10e762-3064-11e5-8da2-080027c5bfa9
   spec:
     output:
@@ -49,7 +49,7 @@ items:
     name: ruby-sample-build
     namespace: test
     resourceVersion: "9848"
-    selfLink: /osapi/v1beta3/namespaces/test/buildconfigs/ruby-sample-build
+    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build
     uid: 5f52f442-31d7-11e5-868e-080027c5bfa9
   spec:
     output:
@@ -88,7 +88,7 @@ items:
     name: ruby-sample-build-invalidtag
     namespace: test
     resourceVersion: "1605"
-    selfLink: /osapi/v1beta3/namespaces/test/buildconfigs/ruby-sample-build-invalidtag
+    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build-invalidtag
     uid: 4a633dd5-306a-11e5-8da2-080027c5bfa9
   spec:
     output:
@@ -120,7 +120,7 @@ items:
     name: ruby-sample-build-validtag
     namespace: test
     resourceVersion: "1604"
-    selfLink: /osapi/v1beta3/namespaces/test/buildconfigs/ruby-sample-build-validtag
+    selfLink: /osapi/v1/namespaces/test/buildconfigs/ruby-sample-build-validtag
     uid: 4a623b89-306a-11e5-8da2-080027c5bfa9
   spec:
     output:

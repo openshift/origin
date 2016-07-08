@@ -44,10 +44,7 @@ to generate the API structure for a template to which you can add parameters and
   %[1]s export service --as-template=test
 
   # export to JSON
-  %[1]s export service -o json
-
-  # convert a file on disk to the latest API version (in YAML, the default)
-  %[1]s export -f a_v1beta3_service.json --output-version=v1 --exact`
+  %[1]s export service -o json`
 )
 
 func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
