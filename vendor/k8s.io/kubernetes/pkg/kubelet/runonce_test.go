@@ -24,25 +24,32 @@ import (
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/record"
 	cadvisortest "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
+	"k8s.io/kubernetes/pkg/kubelet/eviction"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	nettest "k8s.io/kubernetes/pkg/kubelet/network/testing"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
 	podtest "k8s.io/kubernetes/pkg/kubelet/pod/testing"
+	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	"k8s.io/kubernetes/pkg/kubelet/status"
+	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volume"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
+	"k8s.io/kubernetes/pkg/volume"
+	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 )
 
 func TestRunOnce(t *testing.T) {
 	cadvisor := &cadvisortest.Mock{}
 	cadvisor.On("MachineInfo").Return(&cadvisorapi.MachineInfo{}, nil)
-	cadvisor.On("DockerImagesFsInfo").Return(cadvisorapiv2.FsInfo{
+	cadvisor.On("ImagesFsInfo").Return(cadvisorapiv2.FsInfo{
 		Usage:     400 * mb,
 		Capacity:  1000 * mb,
 		Available: 600 * mb,
@@ -68,17 +75,50 @@ func TestRunOnce(t *testing.T) {
 		statusManager:       status.NewManager(nil, podManager),
 		containerRefManager: kubecontainer.NewRefManager(),
 		podManager:          podManager,
-		os:                  containertest.FakeOS{},
-		volumeManager:       newVolumeManager(),
+		os:                  &containertest.FakeOS{},
 		diskSpaceManager:    diskSpaceManager,
 		containerRuntime:    fakeRuntime,
 		reasonCache:         NewReasonCache(),
 		clock:               util.RealClock{},
 		kubeClient:          &fake.Clientset{},
+		hostname:            testKubeletHostname,
+		nodeName:            testKubeletHostname,
 	}
 	kb.containerManager = cm.NewStubContainerManager()
 
-	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", nettest.NewFakeHost(nil))
+	plug := &volumetest.FakeVolumePlugin{PluginName: "fake", Host: nil}
+	kb.volumePluginMgr, err =
+		NewInitializedVolumePluginMgr(kb, []volume.VolumePlugin{plug})
+	if err != nil {
+		t.Fatalf("failed to initialize VolumePluginMgr: %v", err)
+	}
+	kb.volumeManager, err = kubeletvolume.NewVolumeManager(
+		true,
+		kb.hostname,
+		kb.podManager,
+		kb.kubeClient,
+		kb.volumePluginMgr,
+		fakeRuntime)
+
+	kb.networkPlugin, _ = network.InitNetworkPlugin([]network.NetworkPlugin{}, "", nettest.NewFakeHost(nil), componentconfig.HairpinNone, kb.nonMasqueradeCIDR)
+	// TODO: Factor out "StatsProvider" from Kubelet so we don't have a cyclic dependency
+	volumeStatsAggPeriod := time.Second * 10
+	kb.resourceAnalyzer = stats.NewResourceAnalyzer(kb, volumeStatsAggPeriod, kb.containerRuntime)
+	nodeRef := &api.ObjectReference{
+		Kind:      "Node",
+		Name:      kb.nodeName,
+		UID:       types.UID(kb.nodeName),
+		Namespace: "",
+	}
+	fakeKillPodFunc := func(pod *api.Pod, podStatus api.PodStatus, gracePeriodOverride *int64) error {
+		return nil
+	}
+	evictionManager, evictionAdmitHandler, err := eviction.NewManager(kb.resourceAnalyzer, eviction.Config{}, fakeKillPodFunc, kb.recorder, nodeRef, kb.clock)
+	if err != nil {
+		t.Fatalf("failed to initialize eviction manager: %v", err)
+	}
+	kb.evictionManager = evictionManager
+	kb.AddPodAdmitHandler(evictionAdmitHandler)
 	if err := kb.setupDataDirs(); err != nil {
 		t.Errorf("Failed to init data dirs: %v", err)
 	}

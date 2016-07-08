@@ -304,6 +304,65 @@ func TestRunExposeService(t *testing.T) {
 			},
 			status: 200,
 		},
+		{
+			name: "expose-multiprotocol-object",
+			args: []string{"service", "foo"},
+			ns:   "test",
+			calls: map[string]string{
+				"GET":  "/namespaces/test/services/foo",
+				"POST": "/namespaces/test/services",
+			},
+			input: &api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "", Labels: map[string]string{"svc": "multiport"}},
+				Spec: api.ServiceSpec{
+					Ports: []api.ServicePort{
+						{
+							Protocol:   api.ProtocolTCP,
+							Port:       80,
+							TargetPort: intstr.FromInt(80),
+						},
+						{
+							Protocol:   api.ProtocolUDP,
+							Port:       8080,
+							TargetPort: intstr.FromInt(8080),
+						},
+						{
+							Protocol:   api.ProtocolUDP,
+							Port:       8081,
+							TargetPort: intstr.FromInt(8081),
+						},
+					},
+				},
+			},
+			flags: map[string]string{"selector": "svc=fromfoo", "generator": "service/v2", "name": "fromfoo", "dry-run": "true"},
+			output: &api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "fromfoo", Namespace: "", Labels: map[string]string{"svc": "multiport"}},
+				Spec: api.ServiceSpec{
+					Ports: []api.ServicePort{
+						{
+							Name:       "port-1",
+							Protocol:   api.ProtocolTCP,
+							Port:       80,
+							TargetPort: intstr.FromInt(80),
+						},
+						{
+							Name:       "port-2",
+							Protocol:   api.ProtocolUDP,
+							Port:       8080,
+							TargetPort: intstr.FromInt(8080),
+						},
+						{
+							Name:       "port-3",
+							Protocol:   api.ProtocolUDP,
+							Port:       8081,
+							TargetPort: intstr.FromInt(8081),
+						},
+					},
+					Selector: map[string]string{"svc": "fromfoo"},
+				},
+			},
+			status: 200,
+		},
 	}
 
 	for _, test := range tests {
@@ -314,9 +373,9 @@ func TestRunExposeService(t *testing.T) {
 			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
 				case p == test.calls[m] && m == "GET":
-					return &http.Response{StatusCode: test.status, Body: objBody(codec, test.input)}, nil
+					return &http.Response{StatusCode: test.status, Header: defaultHeader(), Body: objBody(codec, test.input)}, nil
 				case p == test.calls[m] && m == "POST":
-					return &http.Response{StatusCode: test.status, Body: objBody(codec, test.output)}, nil
+					return &http.Response{StatusCode: test.status, Header: defaultHeader(), Body: objBody(codec, test.output)}, nil
 				default:
 					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 					return nil, nil

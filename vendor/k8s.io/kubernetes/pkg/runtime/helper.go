@@ -26,25 +26,118 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 )
 
-type objectTyperToTyper struct {
-	typer ObjectTyper
+// unsafeObjectConvertor implements ObjectConvertor using the unsafe conversion path.
+type unsafeObjectConvertor struct {
+	*Scheme
 }
 
-func (t objectTyperToTyper) ObjectKind(obj Object) (*unversioned.GroupVersionKind, bool, error) {
-	gvk, err := t.typer.ObjectKind(obj)
+var _ ObjectConvertor = unsafeObjectConvertor{}
+
+// ConvertToVersion converts in to the provided outVersion without copying the input first, which
+// is only safe if the output object is not mutated or reused.
+func (c unsafeObjectConvertor) ConvertToVersion(in Object, outVersion GroupVersioner) (Object, error) {
+	return c.Scheme.UnsafeConvertToVersion(in, outVersion)
+}
+
+// UnsafeObjectConvertor performs object conversion without copying the object structure,
+// for use when the converted object will not be reused or mutated. Primarily for use within
+// versioned codecs, which use the external object for serialization but do not return it.
+func UnsafeObjectConvertor(scheme *Scheme) ObjectConvertor {
+	return unsafeObjectConvertor{scheme}
+}
+
+// PreferredGroupVersion returns the desired group and version reported by the GroupVersioner, or
+// false if no such group version was indicated.
+func PreferredGroupVersion(target GroupVersioner) (unversioned.GroupVersion, bool) {
+	if group, ok := target.PrefersGroup(); ok {
+		if gv, ok := target.VersionForGroupKind(unversioned.GroupKind{Group: group}); ok {
+			return gv, true
+		}
+	}
+	return unversioned.GroupVersion{}, false
+}
+
+var (
+	InternalGroupVersioner GroupVersioner = internalGroupVersioner{}
+	DisabledGroupVersioner GroupVersioner = disabledGroupVersioner{}
+)
+
+type internalGroupVersioner struct{}
+
+func (internalGroupVersioner) VersionForGroupKind(group unversioned.GroupKind) (unversioned.GroupVersion, bool) {
+	return unversioned.GroupVersion{Group: group.Group, Version: APIVersionInternal}, true
+}
+
+func (internalGroupVersioner) PrefersGroup() (string, bool) { return "", false }
+
+type disabledGroupVersioner struct{}
+
+func (disabledGroupVersioner) VersionForGroupKind(group unversioned.GroupKind) (unversioned.GroupVersion, bool) {
+	return unversioned.GroupVersion{}, false
+}
+
+func (disabledGroupVersioner) PrefersGroup() (string, bool) { return "", false }
+
+type GroupVersioners []GroupVersioner
+
+func (gvs GroupVersioners) VersionForGroupKind(group unversioned.GroupKind) (unversioned.GroupVersion, bool) {
+	for _, gv := range gvs {
+		if v, ok := gv.VersionForGroupKind(group); ok {
+			return v, true
+		}
+	}
+	return unversioned.GroupVersion{}, false
+}
+
+func (gvs GroupVersioners) PrefersGroup() (string, bool) {
+	for _, gv := range gvs {
+		if g, ok := gv.PrefersGroup(); ok {
+			return g, true
+		}
+	}
+	return "", false
+
+}
+
+// SetField puts the value of src, into fieldName, which must be a member of v.
+// The value of src must be assignable to the field.
+func SetField(src interface{}, v reflect.Value, fieldName string) error {
+	field := v.FieldByName(fieldName)
+	if !field.IsValid() {
+		return fmt.Errorf("couldn't find %v field in %#v", fieldName, v.Interface())
+	}
+	srcValue := reflect.ValueOf(src)
+	if srcValue.Type().AssignableTo(field.Type()) {
+		field.Set(srcValue)
+		return nil
+	}
+	if srcValue.Type().ConvertibleTo(field.Type()) {
+		field.Set(srcValue.Convert(field.Type()))
+		return nil
+	}
+	return fmt.Errorf("couldn't assign/convert %v to %v", srcValue.Type(), field.Type())
+}
+
+// Field puts the value of fieldName, which must be a member of v, into dest,
+// which must be a variable to which this field's value can be assigned.
+func Field(v reflect.Value, fieldName string, dest interface{}) error {
+	field := v.FieldByName(fieldName)
+	if !field.IsValid() {
+		return fmt.Errorf("couldn't find %v field in %#v", fieldName, v.Interface())
+	}
+	destValue, err := conversion.EnforcePtr(dest)
 	if err != nil {
-		return nil, false, err
+		return err
 	}
-	unversionedType, ok := t.typer.IsUnversioned(obj)
-	if !ok {
-		// ObjectTyper violates its contract
-		return nil, false, fmt.Errorf("typer returned a kind for %v, but then reported it was not in the scheme with IsUnversioned", reflect.TypeOf(obj))
+	if field.Type().AssignableTo(destValue.Type()) {
+		destValue.Set(field)
+		return nil
 	}
-	return &gvk, unversionedType, nil
-}
-
-func ObjectTyperToTyper(typer ObjectTyper) Typer {
-	return objectTyperToTyper{typer: typer}
+	if field.Type().ConvertibleTo(destValue.Type()) {
+		destValue.Set(field.Convert(destValue.Type()))
+		return nil
+	}
+	return fmt.Errorf("couldn't assign/convert %v to %v", field.Type(), destValue.Type())
 }
 
 // fieldPtr puts the address of fieldName, which must be a member of v,
@@ -73,10 +166,10 @@ func FieldPtr(v reflect.Value, fieldName string, dest interface{}) error {
 
 // EncodeList ensures that each object in an array is converted to a Unknown{} in serialized form.
 // TODO: accept a content type.
-func EncodeList(e Encoder, objects []Object, overrides ...unversioned.GroupVersion) error {
+func EncodeList(e Encoder, objects []Object) error {
 	var errs []error
 	for i := range objects {
-		data, err := Encode(e, objects[i], overrides...)
+		data, err := Encode(e, objects[i])
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -133,19 +226,9 @@ type MultiObjectTyper []ObjectTyper
 
 var _ ObjectTyper = MultiObjectTyper{}
 
-func (m MultiObjectTyper) ObjectKind(obj Object) (gvk unversioned.GroupVersionKind, err error) {
+func (m MultiObjectTyper) ObjectKinds(obj Object) (gvks []unversioned.GroupVersionKind, unversionedType bool, err error) {
 	for _, t := range m {
-		gvk, err = t.ObjectKind(obj)
-		if err == nil {
-			return
-		}
-	}
-	return
-}
-
-func (m MultiObjectTyper) ObjectKinds(obj Object) (gvks []unversioned.GroupVersionKind, err error) {
-	for _, t := range m {
-		gvks, err = t.ObjectKinds(obj)
+		gvks, unversionedType, err = t.ObjectKinds(obj)
 		if err == nil {
 			return
 		}
@@ -160,15 +243,6 @@ func (m MultiObjectTyper) Recognizes(gvk unversioned.GroupVersionKind) bool {
 		}
 	}
 	return false
-}
-
-func (m MultiObjectTyper) IsUnversioned(obj Object) (bool, bool) {
-	for _, t := range m {
-		if unversioned, ok := t.IsUnversioned(obj); ok {
-			return unversioned, true
-		}
-	}
-	return false, false
 }
 
 // SetZeroValue would set the object of objPtr to zero value of its type.

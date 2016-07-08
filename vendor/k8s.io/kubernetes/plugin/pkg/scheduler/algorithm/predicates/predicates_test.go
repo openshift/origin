@@ -71,21 +71,23 @@ func (pvs FakePersistentVolumeInfo) GetPersistentVolumeInfo(pvID string) (*api.P
 	return nil, fmt.Errorf("Unable to find persistent volume: %s", pvID)
 }
 
-func makeResources(milliCPU int64, memory int64, pods int64) api.NodeResources {
+func makeResources(milliCPU int64, memory int64, nvidiaGPUs int64, pods int64) api.NodeResources {
 	return api.NodeResources{
 		Capacity: api.ResourceList{
-			api.ResourceCPU:    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
-			api.ResourceMemory: *resource.NewQuantity(memory, resource.BinarySI),
-			api.ResourcePods:   *resource.NewQuantity(pods, resource.DecimalSI),
+			api.ResourceCPU:       *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
+			api.ResourceMemory:    *resource.NewQuantity(memory, resource.BinarySI),
+			api.ResourcePods:      *resource.NewQuantity(pods, resource.DecimalSI),
+			api.ResourceNvidiaGPU: *resource.NewQuantity(nvidiaGPUs, resource.DecimalSI),
 		},
 	}
 }
 
-func makeAllocatableResources(milliCPU int64, memory int64, pods int64) api.ResourceList {
+func makeAllocatableResources(milliCPU int64, memory int64, nvidiaGPUs int64, pods int64) api.ResourceList {
 	return api.ResourceList{
-		api.ResourceCPU:    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
-		api.ResourceMemory: *resource.NewQuantity(memory, resource.BinarySI),
-		api.ResourcePods:   *resource.NewQuantity(pods, resource.DecimalSI),
+		api.ResourceCPU:       *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
+		api.ResourceMemory:    *resource.NewQuantity(memory, resource.BinarySI),
+		api.ResourcePods:      *resource.NewQuantity(pods, resource.DecimalSI),
+		api.ResourceNvidiaGPU: *resource.NewQuantity(nvidiaGPUs, resource.DecimalSI),
 	}
 }
 
@@ -95,8 +97,9 @@ func newResourcePod(usage ...resourceRequest) *api.Pod {
 		containers = append(containers, api.Container{
 			Resources: api.ResourceRequirements{
 				Requests: api.ResourceList{
-					api.ResourceCPU:    *resource.NewMilliQuantity(req.milliCPU, resource.DecimalSI),
-					api.ResourceMemory: *resource.NewQuantity(req.memory, resource.BinarySI),
+					api.ResourceCPU:       *resource.NewMilliQuantity(req.milliCPU, resource.DecimalSI),
+					api.ResourceMemory:    *resource.NewQuantity(req.memory, resource.BinarySI),
+					api.ResourceNvidiaGPU: *resource.NewQuantity(req.nvidiaGPU, resource.DecimalSI),
 				},
 			},
 		})
@@ -106,6 +109,11 @@ func newResourcePod(usage ...resourceRequest) *api.Pod {
 			Containers: containers,
 		},
 	}
+}
+
+func newResourceInitPod(pod *api.Pod, usage ...resourceRequest) *api.Pod {
+	pod.Spec.InitContainers = newResourcePod(usage...).Spec.Containers
+	return pod
 }
 
 func TestPodFitsResources(t *testing.T) {
@@ -133,6 +141,54 @@ func TestPodFitsResources(t *testing.T) {
 			wErr: newInsufficientResourceError(cpuResourceName, 1, 10, 10),
 		},
 		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 1, memory: 1}), resourceRequest{milliCPU: 3, memory: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 8, memory: 19})),
+			fits: false,
+			test: "too many resources fails due to init container cpu",
+			wErr: newInsufficientResourceError(cpuResourceName, 3, 8, 10),
+		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 1, memory: 1}), resourceRequest{milliCPU: 3, memory: 1}, resourceRequest{milliCPU: 2, memory: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 8, memory: 19})),
+			fits: false,
+			test: "too many resources fails due to highest init container cpu",
+			wErr: newInsufficientResourceError(cpuResourceName, 3, 8, 10),
+		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 1, memory: 1}), resourceRequest{milliCPU: 1, memory: 3}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 9, memory: 19})),
+			fits: false,
+			test: "too many resources fails due to init container memory",
+			wErr: newInsufficientResourceError(memoryResourceName, 3, 19, 20),
+		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 1, memory: 1}), resourceRequest{milliCPU: 1, memory: 3}, resourceRequest{milliCPU: 1, memory: 2}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 9, memory: 19})),
+			fits: false,
+			test: "too many resources fails due to highest init container memory",
+			wErr: newInsufficientResourceError(memoryResourceName, 3, 19, 20),
+		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 1, memory: 1}), resourceRequest{milliCPU: 1, memory: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 9, memory: 19})),
+			fits: true,
+			test: "init container fits because it's the max, not sum, of containers and init containers",
+			wErr: nil,
+		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 1, memory: 1}), resourceRequest{milliCPU: 1, memory: 1}, resourceRequest{milliCPU: 1, memory: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 9, memory: 19})),
+			fits: true,
+			test: "multiple init containers fit because it's the max, not sum, of containers and init containers",
+			wErr: nil,
+		},
+		{
 			pod: newResourcePod(resourceRequest{milliCPU: 1, memory: 1}),
 			nodeInfo: schedulercache.NewNodeInfo(
 				newResourcePod(resourceRequest{milliCPU: 5, memory: 5})),
@@ -146,7 +202,7 @@ func TestPodFitsResources(t *testing.T) {
 				newResourcePod(resourceRequest{milliCPU: 5, memory: 19})),
 			fits: false,
 			test: "one resources fits",
-			wErr: newInsufficientResourceError(memoryResoureceName, 2, 19, 20),
+			wErr: newInsufficientResourceError(memoryResourceName, 2, 19, 20),
 		},
 		{
 			pod: newResourcePod(resourceRequest{milliCPU: 5, memory: 1}),
@@ -156,10 +212,18 @@ func TestPodFitsResources(t *testing.T) {
 			test: "equal edge case",
 			wErr: nil,
 		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 4, memory: 1}), resourceRequest{milliCPU: 5, memory: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 5, memory: 19})),
+			fits: true,
+			test: "equal edge case for init container",
+			wErr: nil,
+		},
 	}
 
 	for _, test := range enoughPodsTests {
-		node := api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 32)}}
+		node := api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 0, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 0, 32)}}
 		test.nodeInfo.SetNode(&node)
 
 		fits, err := PodFitsResources(test.pod, test.nodeInfo)
@@ -202,9 +266,17 @@ func TestPodFitsResources(t *testing.T) {
 			test: "even for equal edge case predicate fails when there's no space for additional pod",
 			wErr: newInsufficientResourceError(podCountResourceName, 1, 1, 1),
 		},
+		{
+			pod: newResourceInitPod(newResourcePod(resourceRequest{milliCPU: 5, memory: 1}), resourceRequest{milliCPU: 5, memory: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 5, memory: 19})),
+			fits: false,
+			test: "even for equal edge case predicate fails when there's no space for additional pod due to init container",
+			wErr: newInsufficientResourceError(podCountResourceName, 1, 1, 1),
+		},
 	}
 	for _, test := range notEnoughPodsTests {
-		node := api.Node{Status: api.NodeStatus{Capacity: api.ResourceList{}, Allocatable: makeAllocatableResources(10, 20, 1)}}
+		node := api.Node{Status: api.NodeStatus{Capacity: api.ResourceList{}, Allocatable: makeAllocatableResources(10, 20, 0, 1)}}
 		test.nodeInfo.SetNode(&node)
 
 		fits, err := PodFitsResources(test.pod, test.nodeInfo)
@@ -1320,6 +1392,32 @@ func TestEBSVolumeCountConflicts(t *testing.T) {
 			},
 		},
 	}
+	deletedPVCPod := &api.Pod{
+		Spec: api.PodSpec{
+			Volumes: []api.Volume{
+				{
+					VolumeSource: api.VolumeSource{
+						PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
+							ClaimName: "deletedPVC",
+						},
+					},
+				},
+			},
+		},
+	}
+	deletedPVPod := &api.Pod{
+		Spec: api.PodSpec{
+			Volumes: []api.Volume{
+				{
+					VolumeSource: api.VolumeSource{
+						PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
+							ClaimName: "pvcWithDeletedPV",
+						},
+					},
+				},
+			},
+		},
+	}
 	emptyPod := &api.Pod{
 		Spec: api.PodSpec{},
 	}
@@ -1394,6 +1492,34 @@ func TestEBSVolumeCountConflicts(t *testing.T) {
 			fits:         true,
 			test:         "the same EBS volumes are not counted multiple times",
 		},
+		{
+			newPod:       ebsPVCPod,
+			existingPods: []*api.Pod{oneVolPod, deletedPVCPod},
+			maxVols:      2,
+			fits:         false,
+			test:         "pod with missing PVC is counted towards the PV limit",
+		},
+		{
+			newPod:       ebsPVCPod,
+			existingPods: []*api.Pod{oneVolPod, deletedPVCPod},
+			maxVols:      3,
+			fits:         true,
+			test:         "pod with missing PVC is counted towards the PV limit",
+		},
+		{
+			newPod:       ebsPVCPod,
+			existingPods: []*api.Pod{oneVolPod, deletedPVPod},
+			maxVols:      2,
+			fits:         false,
+			test:         "pod with missing PV is counted towards the PV limit",
+		},
+		{
+			newPod:       ebsPVCPod,
+			existingPods: []*api.Pod{oneVolPod, deletedPVPod},
+			maxVols:      3,
+			fits:         true,
+			test:         "pod with missing PV is counted towards the PV limit",
+		},
 	}
 
 	pvInfo := FakePersistentVolumeInfo{
@@ -1401,7 +1527,7 @@ func TestEBSVolumeCountConflicts(t *testing.T) {
 			ObjectMeta: api.ObjectMeta{Name: "someEBSVol"},
 			Spec: api.PersistentVolumeSpec{
 				PersistentVolumeSource: api.PersistentVolumeSource{
-					AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{},
+					AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{VolumeID: "ebsVol"},
 				},
 			},
 		},
@@ -1421,6 +1547,10 @@ func TestEBSVolumeCountConflicts(t *testing.T) {
 		{
 			ObjectMeta: api.ObjectMeta{Name: "someNonEBSVol"},
 			Spec:       api.PersistentVolumeClaimSpec{VolumeName: "someNonEBSVol"},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "pvcWithDeletedPV"},
+			Spec:       api.PersistentVolumeClaimSpec{VolumeName: "pvcWithDeletedPV"},
 		},
 	}
 
@@ -1529,7 +1659,7 @@ func TestRunGeneralPredicates(t *testing.T) {
 				newResourcePod(resourceRequest{milliCPU: 9, memory: 19})),
 			node: &api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "machine1"},
-				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 32)},
+				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 0, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 0, 32)},
 			},
 			fits: true,
 			wErr: nil,
@@ -1541,11 +1671,38 @@ func TestRunGeneralPredicates(t *testing.T) {
 				newResourcePod(resourceRequest{milliCPU: 5, memory: 19})),
 			node: &api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "machine1"},
-				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 32)},
+				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 0, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 0, 32)},
 			},
 			fits: false,
 			wErr: newInsufficientResourceError("CPU", 8, 5, 10),
 			test: "not enough cpu resource",
+		},
+		{
+			pod: &api.Pod{},
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 9, memory: 19})),
+			node: &api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 1, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 1, 32)}},
+			fits: true,
+			wErr: nil,
+			test: "no resources/port/host requested always fits on GPU machine",
+		},
+		{
+			pod: newResourcePod(resourceRequest{milliCPU: 3, memory: 1, nvidiaGPU: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 5, memory: 10, nvidiaGPU: 1})),
+			node: &api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 1, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 1, 32)}},
+			fits: false,
+			wErr: newInsufficientResourceError("NvidiaGpu", 1, 1, 1),
+			test: "not enough GPU resource",
+		},
+		{
+			pod: newResourcePod(resourceRequest{milliCPU: 3, memory: 1, nvidiaGPU: 1}),
+			nodeInfo: schedulercache.NewNodeInfo(
+				newResourcePod(resourceRequest{milliCPU: 5, memory: 10, nvidiaGPU: 0})),
+			node: &api.Node{Status: api.NodeStatus{Capacity: makeResources(10, 20, 1, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 1, 32)}},
+			fits: true,
+			wErr: nil,
+			test: "enough GPU resource",
 		},
 		{
 			pod: &api.Pod{
@@ -1556,7 +1713,7 @@ func TestRunGeneralPredicates(t *testing.T) {
 			nodeInfo: schedulercache.NewNodeInfo(),
 			node: &api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "machine1"},
-				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 32)},
+				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 0, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 0, 32)},
 			},
 			fits: false,
 			wErr: ErrPodNotMatchHostName,
@@ -1567,7 +1724,7 @@ func TestRunGeneralPredicates(t *testing.T) {
 			nodeInfo: schedulercache.NewNodeInfo(newPodWithPort(123)),
 			node: &api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "machine1"},
-				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 32)},
+				Status:     api.NodeStatus{Capacity: makeResources(10, 20, 0, 32).Capacity, Allocatable: makeAllocatableResources(10, 20, 0, 32)},
 			},
 			fits: false,
 			wErr: ErrPodNotFitsHostPorts,
@@ -2256,6 +2413,397 @@ func TestInterPodAffinityWithMultipleNodes(t *testing.T) {
 			if fits != test.fits[node.Name] {
 				t.Errorf("%s: expected %v for %s got %v", test.test, test.fits[node.Name], node.Name, fits)
 			}
+		}
+	}
+}
+
+func TestPodToleratesTaints(t *testing.T) {
+	podTolerateTaintsTests := []struct {
+		pod  *api.Pod
+		node api.Node
+		fits bool
+		test string
+	}{
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod0",
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"value": "user1",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: false,
+			test: "a pod having no tolerations can't be scheduled onto a node with nonempty taints",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod1",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"value": "user1",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod1:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"value": "user1",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: true,
+			test: "a pod which can be scheduled on a dedicated node assgined to user1 with effect NoSchedule",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod2",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"operator": "Equal",
+							"value": "user2",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod2:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"value": "user1",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: false,
+			test: "a pod which can't be scheduled on a dedicated node assgined to user2 with effect NoSchedule",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod2",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "foo",
+							"operator": "Exists",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod2:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "foo",
+							"value": "bar",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: true,
+			test: "a pod can be scheduled onto the node, with a toleration uses operator Exists that tolerates the taints on the node",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod2",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"operator": "Equal",
+							"value": "user2",
+							"effect": "NoSchedule"
+						}, {
+							"key": "foo",
+							"operator": "Exists",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod2:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"value": "user2",
+							"effect": "NoSchedule"
+						}, {
+							"key": "foo",
+							"value": "bar",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: true,
+			test: "a pod has multiple tolerations, node has multiple taints, all the taints are tolerated, pod can be scheduled onto the node",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod2",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "foo",
+							"operator": "Equal",
+							"value": "bar",
+							"effect": "PreferNoSchedule"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod2:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "foo",
+							"value": "bar",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: false,
+			test: "a pod has a toleration that keys and values match the taint on the node, but (non-empty) effect doesn't match, " +
+				"can't be scheduled onto the node",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod2",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "foo",
+							"operator": "Equal",
+							"value": "bar"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod2:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "foo",
+							"value": "bar",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: true,
+			test: "The pod has a toleration that keys and values match the taint on the node, the effect of toleration is empty, " +
+				"and the effect of taint is NoSchedule. Pod can be scheduled onto the node",
+		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name: "pod2",
+					Annotations: map[string]string{
+						api.TolerationsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"operator": "Equal",
+							"value": "user2",
+							"effect": "NoSchedule"
+						}]`,
+					},
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{{Image: "pod2:V1"}},
+				},
+			},
+			node: api.Node{
+				ObjectMeta: api.ObjectMeta{
+					Annotations: map[string]string{
+						api.TaintsAnnotationKey: `
+						[{
+							"key": "dedicated",
+							"value": "user1",
+							"effect": "PreferNoSchedule"
+						}]`,
+					},
+				},
+			},
+			fits: true,
+			test: "The pod has a toleration that key and value don't match the taint on the node, " +
+				"but the effect of taint on node is PreferNochedule. Pod can be shceduled onto the node",
+		},
+	}
+
+	for _, test := range podTolerateTaintsTests {
+		tolerationMatch := TolerationMatch{FakeNodeInfo(test.node)}
+		nodeInfo := schedulercache.NewNodeInfo()
+		nodeInfo.SetNode(&test.node)
+		fits, err := tolerationMatch.PodToleratesNodeTaints(test.pod, nodeInfo)
+		if fits == false && !reflect.DeepEqual(err, ErrTaintsTolerationsNotMatch) {
+			t.Errorf("%s, unexpected error: %v", test.test, err)
+		}
+		if fits != test.fits {
+			t.Errorf("%s, expected: %v got %v", test.test, test.fits, fits)
+		}
+	}
+}
+
+func makeEmptyNodeInfo(node *api.Node) *schedulercache.NodeInfo {
+	nodeInfo := schedulercache.NewNodeInfo()
+	nodeInfo.SetNode(node)
+	return nodeInfo
+}
+
+func TestPodSchedulesOnNodeWithMemoryPressureCondition(t *testing.T) {
+	// specify best-effort pod
+	bestEffortPod := &api.Pod{
+		Spec: api.PodSpec{
+			Containers: []api.Container{
+				{
+					Name:            "container",
+					Image:           "image",
+					ImagePullPolicy: "Always",
+					// no requirements -> best effort pod
+					Resources: api.ResourceRequirements{},
+				},
+			},
+		},
+	}
+
+	// specify non-best-effort pod
+	nonBestEffortPod := &api.Pod{
+		Spec: api.PodSpec{
+			Containers: []api.Container{
+				{
+					Name:            "container",
+					Image:           "image",
+					ImagePullPolicy: "Always",
+					// at least one requirement -> burstable pod
+					Resources: api.ResourceRequirements{
+						Requests: makeAllocatableResources(100, 100, 100, 100),
+					},
+				},
+			},
+		},
+	}
+
+	// specify a node with no memory pressure condition on
+	noMemoryPressureNode := &api.Node{
+		Status: api.NodeStatus{
+			Conditions: []api.NodeCondition{
+				{
+					Type:   "Ready",
+					Status: "True",
+				},
+			},
+		},
+	}
+
+	// specify a node with memory pressure condition on
+	memoryPressureNode := &api.Node{
+		Status: api.NodeStatus{
+			Conditions: []api.NodeCondition{
+				{
+					Type:   "MemoryPressure",
+					Status: "True",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		pod      *api.Pod
+		nodeInfo *schedulercache.NodeInfo
+		fits     bool
+		name     string
+	}{
+		{
+			pod:      bestEffortPod,
+			nodeInfo: makeEmptyNodeInfo(noMemoryPressureNode),
+			fits:     true,
+			name:     "best-effort pod schedulable on node without memory pressure condition on",
+		},
+		{
+			pod:      bestEffortPod,
+			nodeInfo: makeEmptyNodeInfo(memoryPressureNode),
+			fits:     false,
+			name:     "best-effort pod not schedulable on node with memory pressure condition on",
+		},
+		{
+			pod:      nonBestEffortPod,
+			nodeInfo: makeEmptyNodeInfo(memoryPressureNode),
+			fits:     true,
+			name:     "non best-effort pod schedulable on node with memory pressure condition on",
+		},
+		{
+			pod:      nonBestEffortPod,
+			nodeInfo: makeEmptyNodeInfo(noMemoryPressureNode),
+			fits:     true,
+			name:     "non best-effort pod schedulable on node without memory pressure condition on",
+		},
+	}
+
+	for _, test := range tests {
+		fits, err := CheckNodeMemoryPressurePredicate(test.pod, test.nodeInfo)
+		if fits != test.fits {
+			t.Errorf("%s: expected %v got %v", test.name, test.fits, fits)
+		}
+
+		if err != nil && err != ErrNodeUnderMemoryPressure {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
 		}
 	}
 }

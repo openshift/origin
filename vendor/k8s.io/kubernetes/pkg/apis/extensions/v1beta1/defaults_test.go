@@ -204,6 +204,30 @@ func TestSetDefaultDeployment(t *testing.T) {
 		{
 			original: &Deployment{
 				Spec: DeploymentSpec{
+					Replicas: newInt32(3),
+					Strategy: DeploymentStrategy{
+						Type:          RollingUpdateDeploymentStrategyType,
+						RollingUpdate: nil,
+					},
+				},
+			},
+			expected: &Deployment{
+				Spec: DeploymentSpec{
+					Replicas: newInt32(3),
+					Strategy: DeploymentStrategy{
+						Type: RollingUpdateDeploymentStrategyType,
+						RollingUpdate: &RollingUpdateDeployment{
+							MaxSurge:       &defaultIntOrString,
+							MaxUnavailable: &defaultIntOrString,
+						},
+					},
+					Template: defaultTemplate,
+				},
+			},
+		},
+		{
+			original: &Deployment{
+				Spec: DeploymentSpec{
 					Replicas: newInt32(5),
 					Strategy: DeploymentStrategy{
 						Type: RecreateDeploymentStrategyType,
@@ -704,7 +728,7 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 		return nil
 	}
 	obj3 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
-	err = api.Scheme.Convert(obj2, obj3)
+	err = api.Scheme.Convert(obj2, obj3, nil)
 	if err != nil {
 		t.Errorf("%v\nSource: %#v", err, obj2)
 		return nil

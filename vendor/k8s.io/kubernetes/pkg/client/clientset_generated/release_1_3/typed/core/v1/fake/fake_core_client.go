@@ -18,6 +18,7 @@ package fake
 
 import (
 	v1 "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_3/typed/core/v1"
+	restclient "k8s.io/kubernetes/pkg/client/restclient"
 	core "k8s.io/kubernetes/pkg/client/testing/core"
 )
 
@@ -77,10 +78,20 @@ func (c *FakeCore) Secrets(namespace string) v1.SecretInterface {
 	return &FakeSecrets{c, namespace}
 }
 
+func (c *FakeCore) SecurityContextConstraints() v1.SecurityContextConstraintsInterface {
+	return &FakeSecurityContextConstraints{c}
+}
+
 func (c *FakeCore) Services(namespace string) v1.ServiceInterface {
 	return &FakeServices{c, namespace}
 }
 
 func (c *FakeCore) ServiceAccounts(namespace string) v1.ServiceAccountInterface {
 	return &FakeServiceAccounts{c, namespace}
+}
+
+// GetRESTClient returns a RESTClient that is used to communicate
+// with API server by this client implementation.
+func (c *FakeCore) GetRESTClient() *restclient.RESTClient {
+	return nil
 }

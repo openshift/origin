@@ -1370,7 +1370,7 @@ func TestUpdateExistingReplicationController(t *testing.T) {
 	}
 }
 
-func TestUpdateWithRetries(t *testing.T) {
+func TestUpdateRcWithRetries(t *testing.T) {
 	codec := testapi.Default.Codec()
 	rc := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{Name: "rc",
@@ -1400,14 +1400,16 @@ func TestUpdateWithRetries(t *testing.T) {
 	newRc := *rc
 	newRc.ResourceVersion = "2"
 	newRc.Spec.Selector["baz"] = "foobar"
+	header := http.Header{}
+	header.Set("Content-Type", runtime.ContentTypeJSON)
 	updates := []*http.Response{
-		{StatusCode: 500, Body: objBody(codec, &api.ReplicationController{})},
-		{StatusCode: 500, Body: objBody(codec, &api.ReplicationController{})},
-		{StatusCode: 200, Body: objBody(codec, &newRc)},
+		{StatusCode: 409, Header: header, Body: objBody(codec, &api.ReplicationController{})}, // conflict
+		{StatusCode: 409, Header: header, Body: objBody(codec, &api.ReplicationController{})}, // conflict
+		{StatusCode: 200, Header: header, Body: objBody(codec, &newRc)},
 	}
 	gets := []*http.Response{
-		{StatusCode: 500, Body: objBody(codec, &api.ReplicationController{})},
-		{StatusCode: 200, Body: objBody(codec, rc)},
+		{StatusCode: 500, Header: header, Body: objBody(codec, &api.ReplicationController{})},
+		{StatusCode: 200, Header: header, Body: objBody(codec, rc)},
 	}
 	fakeClient := &fake.RESTClient{
 		Codec: codec,
@@ -1440,8 +1442,8 @@ func TestUpdateWithRetries(t *testing.T) {
 	client := client.NewOrDie(clientConfig)
 	client.Client = fakeClient.Client
 
-	if rc, err := updateWithRetries(
-		client.ReplicationControllers("default"), rc, func(c *api.ReplicationController) {
+	if rc, err := updateRcWithRetries(
+		client, "default", rc, func(c *api.ReplicationController) {
 			c.Spec.Selector["baz"] = "foobar"
 		}); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1449,7 +1451,7 @@ func TestUpdateWithRetries(t *testing.T) {
 		t.Errorf("Expected updated rc, got %+v", rc)
 	}
 	if len(updates) != 0 || len(gets) != 0 {
-		t.Errorf("Remaining updates %+v gets %+v", updates, gets)
+		t.Errorf("Remaining updates %#v gets %#v", updates, gets)
 	}
 }
 
@@ -1503,30 +1505,32 @@ func TestAddDeploymentHash(t *testing.T) {
 	fakeClient := &fake.RESTClient{
 		Codec: codec,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			header := http.Header{}
+			header.Set("Content-Type", runtime.ContentTypeJSON)
 			switch p, m := req.URL.Path, req.Method; {
 			case p == testapi.Default.ResourcePath("pods", "default", "") && m == "GET":
 				if req.URL.RawQuery != "labelSelector=foo%3Dbar" {
 					t.Errorf("Unexpected query string: %s", req.URL.RawQuery)
 				}
-				return &http.Response{StatusCode: 200, Body: objBody(codec, podList)}, nil
+				return &http.Response{StatusCode: 200, Header: header, Body: objBody(codec, podList)}, nil
 			case p == testapi.Default.ResourcePath("pods", "default", "foo") && m == "PUT":
 				seen.Insert("foo")
 				obj := readOrDie(t, req, codec)
 				podList.Items[0] = *(obj.(*api.Pod))
-				return &http.Response{StatusCode: 200, Body: objBody(codec, &podList.Items[0])}, nil
+				return &http.Response{StatusCode: 200, Header: header, Body: objBody(codec, &podList.Items[0])}, nil
 			case p == testapi.Default.ResourcePath("pods", "default", "bar") && m == "PUT":
 				seen.Insert("bar")
 				obj := readOrDie(t, req, codec)
 				podList.Items[1] = *(obj.(*api.Pod))
-				return &http.Response{StatusCode: 200, Body: objBody(codec, &podList.Items[1])}, nil
+				return &http.Response{StatusCode: 200, Header: header, Body: objBody(codec, &podList.Items[1])}, nil
 			case p == testapi.Default.ResourcePath("pods", "default", "baz") && m == "PUT":
 				seen.Insert("baz")
 				obj := readOrDie(t, req, codec)
 				podList.Items[2] = *(obj.(*api.Pod))
-				return &http.Response{StatusCode: 200, Body: objBody(codec, &podList.Items[2])}, nil
+				return &http.Response{StatusCode: 200, Header: header, Body: objBody(codec, &podList.Items[2])}, nil
 			case p == testapi.Default.ResourcePath("replicationcontrollers", "default", "rc") && m == "PUT":
 				updatedRc = true
-				return &http.Response{StatusCode: 200, Body: objBody(codec, rc)}, nil
+				return &http.Response{StatusCode: 200, Header: header, Body: objBody(codec, rc)}, nil
 			default:
 				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 				return nil, nil

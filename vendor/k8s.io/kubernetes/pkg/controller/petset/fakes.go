@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	inf "gopkg.in/inf.v0"
+
 	"k8s.io/kubernetes/pkg/api"
 	api_pod "k8s.io/kubernetes/pkg/api/pod"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -28,7 +30,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"speter.net/go/exp/math/dec/inf"
 )
 
 func dec(i int64, exponent int) *inf.Dec {
@@ -43,10 +44,7 @@ func newPVC(name string) api.PersistentVolumeClaim {
 		Spec: api.PersistentVolumeClaimSpec{
 			Resources: api.ResourceRequirements{
 				Requests: api.ResourceList{
-					api.ResourceStorage: resource.Quantity{
-						Amount: dec(1, 0),
-						Format: resource.BinarySI,
-					},
+					api.ResourceStorage: *resource.NewQuantity(1, resource.BinarySI),
 				},
 			},
 		},
@@ -253,6 +251,9 @@ func (f *fakePetClient) setHealthy(index int) error {
 	}
 	f.pets[index].pod.Status.Phase = api.PodRunning
 	f.pets[index].pod.Annotations[PetSetInitAnnotation] = "true"
+	f.pets[index].pod.Status.Conditions = []api.PodCondition{
+		{Type: api.PodReady, Status: api.ConditionTrue},
+	}
 	return nil
 }
 

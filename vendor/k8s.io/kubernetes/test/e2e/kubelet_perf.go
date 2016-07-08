@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/stats"
 	"k8s.io/kubernetes/pkg/util"
@@ -38,6 +39,8 @@ const (
 	monitoringTime = 20 * time.Minute
 	// The periodic reporting period.
 	reportingPeriod = 5 * time.Minute
+	// Timeout for waiting for the image prepulling to complete.
+	imagePrePullingLongTimeout = time.Minute * 8
 )
 
 type resourceTest struct {
@@ -69,7 +72,7 @@ func runResourceTrackingTest(f *framework.Framework, podsPerNode int, nodeNames 
 		Client:    f.Client,
 		Name:      rcName,
 		Namespace: f.Namespace.Name,
-		Image:     "gcr.io/google_containers/pause-amd64:3.0",
+		Image:     framework.GetPauseImageName(f.Client),
 		Replicas:  totalPods,
 	})).NotTo(HaveOccurred())
 
@@ -193,7 +196,13 @@ var _ = framework.KubeDescribe("Kubelet [Serial] [Slow]", func() {
 	var rm *framework.ResourceMonitor
 
 	BeforeEach(func() {
-		nodes := framework.ListSchedulableNodesOrDie(f.Client)
+		// Wait until image prepull pod has completed so that they wouldn't
+		// affect the runtime cpu usage. Fail the test if prepulling cannot
+		// finish in time.
+		if err := framework.WaitForPodsSuccess(f.Client, api.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingLongTimeout); err != nil {
+			framework.Failf("Image puller didn't complete in %v, not running resource usage test since the metrics might be adultrated", imagePrePullingLongTimeout)
+		}
+		nodes := framework.GetReadySchedulableNodesOrDie(f.Client)
 		nodeNames = sets.NewString()
 		for _, node := range nodes.Items {
 			nodeNames.Insert(node.Name)
@@ -235,17 +244,27 @@ var _ = framework.KubeDescribe("Kubelet [Serial] [Slow]", func() {
 				podsPerNode: 35,
 				cpuLimits: framework.ContainersCPUSummary{
 					stats.SystemContainerKubelet: {0.50: 0.12, 0.95: 0.14},
-					stats.SystemContainerRuntime: {0.50: 0.06, 0.95: 0.08},
+					stats.SystemContainerRuntime: {0.50: 0.05, 0.95: 0.07},
 				},
 				// We set the memory limits generously because the distribution
 				// of the addon pods affect the memory usage on each node.
 				memLimits: framework.ResourceUsagePerContainer{
-					stats.SystemContainerRuntime: &framework.ContainerResourceUsage{MemoryRSSInBytes: 100 * 1024 * 1024},
+					stats.SystemContainerKubelet: &framework.ContainerResourceUsage{MemoryRSSInBytes: 70 * 1024 * 1024},
+					stats.SystemContainerRuntime: &framework.ContainerResourceUsage{MemoryRSSInBytes: 150 * 1024 * 1024},
 				},
 			},
 			{
-				// TODO(yujuhong): Set the limits after collecting enough data.
+				cpuLimits: framework.ContainersCPUSummary{
+					stats.SystemContainerKubelet: {0.50: 0.17, 0.95: 0.22},
+					stats.SystemContainerRuntime: {0.50: 0.06, 0.95: 0.09},
+				},
 				podsPerNode: 100,
+				// We set the memory limits generously because the distribution
+				// of the addon pods affect the memory usage on each node.
+				memLimits: framework.ResourceUsagePerContainer{
+					stats.SystemContainerKubelet: &framework.ContainerResourceUsage{MemoryRSSInBytes: 80 * 1024 * 1024},
+					stats.SystemContainerRuntime: &framework.ContainerResourceUsage{MemoryRSSInBytes: 300 * 1024 * 1024},
+				},
 			},
 		}
 		for _, testArg := range rTests {

@@ -92,6 +92,7 @@ func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			err := RunGet(f, out, cmd, args, options)
 			cmdutil.CheckErr(err)
 		},
+		SuggestFor: []string{"list", "ps"},
 		ValidArgs:  validArgs,
 		ArgAliases: argAliases,
 	}
@@ -218,27 +219,18 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		return err
 	}
 
-	infos := []*resource.Info{}
-	allErrs := []error{}
-	err = r.Visit(func(info *resource.Info, err error) error {
-		if err != nil {
-			return err
-		}
-		infos = append(infos, info)
-		return nil
-	})
-	if err != nil {
-		allErrs = append(allErrs, err)
-	}
-
 	if generic {
 		clientConfig, err := f.ClientConfig()
 		if err != nil {
 			return err
 		}
 
+		allErrs := []error{}
 		singular := false
-		r.IntoSingular(&singular)
+		infos, err := r.IntoSingular(&singular).Infos()
+		if err != nil {
+			allErrs = append(allErrs, err)
+		}
 
 		// the outermost object will be converted to the output-version, but inner
 		// objects can use their mappings
@@ -246,12 +238,22 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		if err != nil {
 			return err
 		}
-		obj, err := resource.AsVersionedObject(infos, !singular, version.String(), f.JSONEncoder())
+
+		obj, err := resource.AsVersionedObject(infos, !singular, version, f.JSONEncoder())
 		if err != nil {
 			return err
 		}
 
-		return printer.PrintObj(obj, out)
+		if err := printer.PrintObj(obj, out); err != nil {
+			allErrs = append(allErrs, err)
+		}
+		return utilerrors.NewAggregate(allErrs)
+	}
+
+	allErrs := []error{}
+	infos, err := r.Infos()
+	if err != nil {
+		allErrs = append(allErrs, err)
 	}
 
 	objs := make([]runtime.Object, len(infos))
@@ -273,7 +275,7 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		}
 
 		for ix := range infos {
-			objs[ix], err = infos[ix].Mapping.ConvertToVersion(infos[ix].Object, version.String())
+			objs[ix], err = infos[ix].Mapping.ConvertToVersion(infos[ix].Object, version)
 			if err != nil {
 				allErrs = append(allErrs, err)
 				continue

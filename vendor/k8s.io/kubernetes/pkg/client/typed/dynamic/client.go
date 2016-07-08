@@ -42,6 +42,11 @@ type Client struct {
 	cl *restclient.RESTClient
 }
 
+type ClientWithParameterCodec struct {
+	client         *Client
+	parameterCodec runtime.ParameterCodec
+}
+
 // NewClient returns a new client based on the passed in config. The
 // codec is ignored, as the dynamic client uses it's own codec.
 func NewClient(conf *restclient.Config) (*Client, error) {
@@ -79,9 +84,9 @@ func NewClient(conf *restclient.Config) (*Client, error) {
 	return &Client{cl: cl}, nil
 }
 
-// Resource returns an API interface to the specified resource for
-// this client's group and version. If resource is not a namespaced
-// resource, then namespace is ignored.
+// Resource returns an API interface to the specified resource for this client's
+// group and version. If resource is not a namespaced resource, then namespace
+// is ignored.
 func (c *Client) Resource(resource *unversioned.APIResource, namespace string) *ResourceClient {
 	return &ResourceClient{
 		cl:       c.cl,
@@ -90,30 +95,46 @@ func (c *Client) Resource(resource *unversioned.APIResource, namespace string) *
 	}
 }
 
+// ParameterCodec wraps a parameterCodec around the Client.
+func (c *Client) ParameterCodec(parameterCodec runtime.ParameterCodec) *ClientWithParameterCodec {
+	return &ClientWithParameterCodec{
+		client:         c,
+		parameterCodec: parameterCodec,
+	}
+}
+
+// Resource returns an API interface to the specified resource for this client's
+// group and version. If resource is not a namespaced resource, then namespace
+// is ignored. The ResourceClient inherits the parameter codec of c.
+func (c *ClientWithParameterCodec) Resource(resource *unversioned.APIResource, namespace string) *ResourceClient {
+	return &ResourceClient{
+		cl:             c.client.cl,
+		resource:       resource,
+		ns:             namespace,
+		parameterCodec: c.parameterCodec,
+	}
+}
+
 // ResourceClient is an API interface to a specific resource under a
 // dynamic client.
 type ResourceClient struct {
-	cl       *restclient.RESTClient
-	resource *unversioned.APIResource
-	ns       string
-}
-
-// namespace applies a namespace to the request if the configured
-// resource is a namespaced resource. Otherwise, it just returns the
-// passed in request.
-func (rc *ResourceClient) namespace(req *restclient.Request) *restclient.Request {
-	if rc.resource.Namespaced {
-		return req.Namespace(rc.ns)
-	}
-	return req
+	cl             *restclient.RESTClient
+	resource       *unversioned.APIResource
+	ns             string
+	parameterCodec runtime.ParameterCodec
 }
 
 // List returns a list of objects for this resource.
-func (rc *ResourceClient) List(opts v1.ListOptions) (*runtime.UnstructuredList, error) {
+func (rc *ResourceClient) List(opts runtime.Object) (*runtime.UnstructuredList, error) {
 	result := new(runtime.UnstructuredList)
-	err := rc.namespace(rc.cl.Get()).
+	parameterEncoder := rc.parameterCodec
+	if parameterEncoder == nil {
+		parameterEncoder = defaultParameterEncoder
+	}
+	err := rc.cl.Get().
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
-		VersionedParams(&opts, parameterEncoder).
+		VersionedParams(opts, parameterEncoder).
 		Do().
 		Into(result)
 	return result, err
@@ -122,7 +143,8 @@ func (rc *ResourceClient) List(opts v1.ListOptions) (*runtime.UnstructuredList, 
 // Get gets the resource with the specified name.
 func (rc *ResourceClient) Get(name string) (*runtime.Unstructured, error) {
 	result := new(runtime.Unstructured)
-	err := rc.namespace(rc.cl.Get()).
+	err := rc.cl.Get().
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
 		Name(name).
 		Do().
@@ -132,7 +154,8 @@ func (rc *ResourceClient) Get(name string) (*runtime.Unstructured, error) {
 
 // Delete deletes the resource with the specified name.
 func (rc *ResourceClient) Delete(name string, opts *v1.DeleteOptions) error {
-	return rc.namespace(rc.cl.Delete()).
+	return rc.cl.Delete().
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
 		Name(name).
 		Body(opts).
@@ -141,10 +164,15 @@ func (rc *ResourceClient) Delete(name string, opts *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (rc *ResourceClient) DeleteCollection(deleteOptions *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	return rc.namespace(rc.cl.Delete()).
+func (rc *ResourceClient) DeleteCollection(deleteOptions *v1.DeleteOptions, listOptions runtime.Object) error {
+	parameterEncoder := rc.parameterCodec
+	if parameterEncoder == nil {
+		parameterEncoder = defaultParameterEncoder
+	}
+	return rc.cl.Delete().
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
-		VersionedParams(&listOptions, parameterEncoder).
+		VersionedParams(listOptions, parameterEncoder).
 		Body(deleteOptions).
 		Do().
 		Error()
@@ -153,7 +181,8 @@ func (rc *ResourceClient) DeleteCollection(deleteOptions *v1.DeleteOptions, list
 // Create creates the provided resource.
 func (rc *ResourceClient) Create(obj *runtime.Unstructured) (*runtime.Unstructured, error) {
 	result := new(runtime.Unstructured)
-	err := rc.namespace(rc.cl.Post()).
+	err := rc.cl.Post().
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
 		Body(obj).
 		Do().
@@ -167,7 +196,8 @@ func (rc *ResourceClient) Update(obj *runtime.Unstructured) (*runtime.Unstructur
 	if len(obj.GetName()) == 0 {
 		return result, errors.New("object missing name")
 	}
-	err := rc.namespace(rc.cl.Put()).
+	err := rc.cl.Put().
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
 		Name(obj.GetName()).
 		Body(obj).
@@ -177,11 +207,29 @@ func (rc *ResourceClient) Update(obj *runtime.Unstructured) (*runtime.Unstructur
 }
 
 // Watch returns a watch.Interface that watches the resource.
-func (rc *ResourceClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	return rc.namespace(rc.cl.Get().Prefix("watch")).
+func (rc *ResourceClient) Watch(opts runtime.Object) (watch.Interface, error) {
+	parameterEncoder := rc.parameterCodec
+	if parameterEncoder == nil {
+		parameterEncoder = defaultParameterEncoder
+	}
+	return rc.cl.Get().
+		Prefix("watch").
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
 		Resource(rc.resource.Name).
-		VersionedParams(&opts, parameterEncoder).
+		VersionedParams(opts, parameterEncoder).
 		Watch()
+}
+
+func (rc *ResourceClient) Patch(name string, pt api.PatchType, data []byte) (*runtime.Unstructured, error) {
+	result := new(runtime.Unstructured)
+	err := rc.cl.Patch(pt).
+		NamespaceIfScoped(rc.ns, rc.resource.Namespaced).
+		Resource(rc.resource.Name).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return result, err
 }
 
 // dynamicCodec is a codec that wraps the standard unstructured codec
@@ -205,8 +253,8 @@ func (dynamicCodec) Decode(data []byte, gvk *unversioned.GroupVersionKind, obj r
 	return obj, gvk, nil
 }
 
-func (dynamicCodec) EncodeToStream(obj runtime.Object, w io.Writer, overrides ...unversioned.GroupVersion) error {
-	return runtime.UnstructuredJSONScheme.EncodeToStream(obj, w, overrides...)
+func (dynamicCodec) Encode(obj runtime.Object, w io.Writer) error {
+	return runtime.UnstructuredJSONScheme.Encode(obj, w)
 }
 
 // paramaterCodec is a codec converts an API object to query
@@ -221,4 +269,27 @@ func (parameterCodec) DecodeParameters(parameters url.Values, from unversioned.G
 	return errors.New("DecodeParameters not implemented on dynamic parameterCodec")
 }
 
-var parameterEncoder runtime.ParameterCodec = parameterCodec{}
+var defaultParameterEncoder runtime.ParameterCodec = parameterCodec{}
+
+type versionedParameterEncoderWithV1Fallback struct{}
+
+func (versionedParameterEncoderWithV1Fallback) EncodeParameters(obj runtime.Object, to unversioned.GroupVersion) (url.Values, error) {
+	ret, err := api.ParameterCodec.EncodeParameters(obj, to)
+	if err != nil && runtime.IsNotRegisteredError(err) {
+		// fallback to v1
+		return api.ParameterCodec.EncodeParameters(obj, v1.SchemeGroupVersion)
+	}
+	return ret, err
+}
+
+func (versionedParameterEncoderWithV1Fallback) DecodeParameters(parameters url.Values, from unversioned.GroupVersion, into runtime.Object) error {
+	return errors.New("DecodeParameters not implemented on versionedParameterEncoderWithV1Fallback")
+}
+
+// VersionedParameterEncoderWithV1Fallback is useful for encoding query
+// parameters for thirdparty resources. It tries to convert object to the
+// specified version before converting it to query parameters, and falls back to
+// converting to v1 if the object is not registered in the specified version.
+// For the record, currently API server always treats query parameters sent to a
+// thirdparty resource endpoint as v1.
+var VersionedParameterEncoderWithV1Fallback runtime.ParameterCodec = versionedParameterEncoderWithV1Fallback{}

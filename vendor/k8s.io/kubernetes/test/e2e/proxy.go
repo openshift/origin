@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -114,9 +115,10 @@ func proxyContext(version string) {
 			Replicas:     1,
 			PollInterval: time.Second,
 			Env: map[string]string{
-				"SERVE_PORT_80":  `<a href="/rewriteme">test</a>`,
-				"SERVE_PORT_160": "foo",
-				"SERVE_PORT_162": "bar",
+				"SERVE_PORT_80":   `<a href="/rewriteme">test</a>`,
+				"SERVE_PORT_1080": `<a href="/rewriteme">test</a>`,
+				"SERVE_PORT_160":  "foo",
+				"SERVE_PORT_162":  "bar",
 
 				"SERVE_TLS_PORT_443": `<a href="/tlsrewriteme">test</a>`,
 				"SERVE_TLS_PORT_460": `tls baz`,
@@ -183,21 +185,21 @@ func proxyContext(version string) {
 			subresourceServiceProxyURL("https", "tlsportname1") + "/": "tls baz",
 			subresourceServiceProxyURL("https", "tlsportname2") + "/": "tls qux",
 
-			podProxyURL("", "80") + "/":  `<a href="` + podProxyURL("", "80") + `/rewriteme">test</a>`,
-			podProxyURL("", "160") + "/": "foo",
-			podProxyURL("", "162") + "/": "bar",
+			podProxyURL("", "1080") + "/": `<a href="` + podProxyURL("", "1080") + `/rewriteme">test</a>`,
+			podProxyURL("", "160") + "/":  "foo",
+			podProxyURL("", "162") + "/":  "bar",
 
-			podProxyURL("http", "80") + "/":  `<a href="` + podProxyURL("http", "80") + `/rewriteme">test</a>`,
-			podProxyURL("http", "160") + "/": "foo",
-			podProxyURL("http", "162") + "/": "bar",
+			podProxyURL("http", "1080") + "/": `<a href="` + podProxyURL("http", "1080") + `/rewriteme">test</a>`,
+			podProxyURL("http", "160") + "/":  "foo",
+			podProxyURL("http", "162") + "/":  "bar",
 
-			subresourcePodProxyURL("", "") + "/":        `<a href="` + subresourcePodProxyURL("", "") + `/rewriteme">test</a>`,
-			subresourcePodProxyURL("", "80") + "/":      `<a href="` + subresourcePodProxyURL("", "80") + `/rewriteme">test</a>`,
-			subresourcePodProxyURL("http", "80") + "/":  `<a href="` + subresourcePodProxyURL("http", "80") + `/rewriteme">test</a>`,
-			subresourcePodProxyURL("", "160") + "/":     "foo",
-			subresourcePodProxyURL("http", "160") + "/": "foo",
-			subresourcePodProxyURL("", "162") + "/":     "bar",
-			subresourcePodProxyURL("http", "162") + "/": "bar",
+			subresourcePodProxyURL("", "") + "/":         `<a href="` + subresourcePodProxyURL("", "") + `/rewriteme">test</a>`,
+			subresourcePodProxyURL("", "1080") + "/":     `<a href="` + subresourcePodProxyURL("", "1080") + `/rewriteme">test</a>`,
+			subresourcePodProxyURL("http", "1080") + "/": `<a href="` + subresourcePodProxyURL("http", "1080") + `/rewriteme">test</a>`,
+			subresourcePodProxyURL("", "160") + "/":      "foo",
+			subresourcePodProxyURL("http", "160") + "/":  "foo",
+			subresourcePodProxyURL("", "162") + "/":      "bar",
+			subresourcePodProxyURL("http", "162") + "/":  "bar",
 
 			subresourcePodProxyURL("https", "443") + "/": `<a href="` + subresourcePodProxyURL("https", "443") + `/tlsrewriteme">test</a>`,
 			subresourcePodProxyURL("https", "460") + "/": "tls baz",
@@ -209,12 +211,12 @@ func proxyContext(version string) {
 		}
 
 		wg := sync.WaitGroup{}
-		errors := []string{}
+		errs := []string{}
 		errLock := sync.Mutex{}
 		recordError := func(s string) {
 			errLock.Lock()
 			defer errLock.Unlock()
-			errors = append(errors, s)
+			errs = append(errs, s)
 		}
 		for i := 0; i < proxyAttempts; i++ {
 			for path, val := range expectations {
@@ -223,7 +225,11 @@ func proxyContext(version string) {
 					defer wg.Done()
 					body, status, d, err := doProxy(f, path)
 					if err != nil {
-						recordError(fmt.Sprintf("%v: path %v gave error: %v", i, path, err))
+						if serr, ok := err.(*errors.StatusError); ok {
+							recordError(fmt.Sprintf("%v: path %v gave status error: %+v", i, path, serr.Status()))
+						} else {
+							recordError(fmt.Sprintf("%v: path %v gave error: %v", i, path, err))
+						}
 						return
 					}
 					if status != http.StatusOK {
@@ -242,8 +248,15 @@ func proxyContext(version string) {
 		}
 		wg.Wait()
 
-		if len(errors) != 0 {
-			Fail(strings.Join(errors, "\n"))
+		if len(errs) != 0 {
+			body, err := f.Client.Pods(f.Namespace.Name).GetLogs(pods[0].Name, &api.PodLogOptions{}).Do().Raw()
+			if err != nil {
+				framework.Logf("Error getting logs for pod %s: %v", pods[0].Name, err)
+			} else {
+				framework.Logf("Pod %s has the following error logs: %s", pods[0].Name, body)
+			}
+
+			Fail(strings.Join(errs, "\n"))
 		}
 	})
 }
@@ -277,7 +290,7 @@ func truncate(b []byte, maxLen int) []byte {
 
 func pickNode(c *client.Client) (string, error) {
 	// TODO: investigate why it doesn't work on master Node.
-	nodes := framework.ListSchedulableNodesOrDie(c)
+	nodes := framework.GetReadySchedulableNodesOrDie(c)
 	if len(nodes.Items) == 0 {
 		return "", fmt.Errorf("no nodes exist, can't test node proxy")
 	}

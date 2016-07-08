@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/fields"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 const defaultReplicas = 100
@@ -55,6 +57,13 @@ func validNewDeployment() *extensions.Deployment {
 		},
 		Spec: extensions.DeploymentSpec{
 			Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"a": "b"}},
+			Strategy: extensions.DeploymentStrategy{
+				Type: extensions.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &extensions.RollingUpdateDeployment{
+					MaxSurge:       intstr.FromInt(1),
+					MaxUnavailable: intstr.FromInt(1),
+				},
+			},
 			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
@@ -233,7 +242,7 @@ func TestScaleUpdate(t *testing.T) {
 		},
 	}
 
-	if _, _, err := storage.Scale.Update(ctx, &update); err != nil {
+	if _, _, err := storage.Scale.Update(ctx, update.Name, rest.DefaultUpdatedObjectInfo(&update, api.Scheme)); err != nil {
 		t.Fatalf("error updating scale %v: %v", update, err)
 	}
 	obj, err := storage.Scale.Get(ctx, name)
@@ -248,7 +257,7 @@ func TestScaleUpdate(t *testing.T) {
 	update.ResourceVersion = deployment.ResourceVersion
 	update.Spec.Replicas = 15
 
-	if _, _, err = storage.Scale.Update(ctx, &update); err != nil && !errors.IsConflict(err) {
+	if _, _, err = storage.Scale.Update(ctx, update.Name, rest.DefaultUpdatedObjectInfo(&update, api.Scheme)); err != nil && !errors.IsConflict(err) {
 		t.Fatalf("unexpected error, expecting an update conflict but got %v", err)
 	}
 }
@@ -272,7 +281,7 @@ func TestStatusUpdate(t *testing.T) {
 		},
 	}
 
-	if _, _, err := storage.Status.Update(ctx, &update); err != nil {
+	if _, _, err := storage.Status.Update(ctx, update.Name, rest.DefaultUpdatedObjectInfo(&update, api.Scheme)); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	obj, err := storage.Deployment.Get(ctx, name)

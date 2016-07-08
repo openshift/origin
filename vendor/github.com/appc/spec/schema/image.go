@@ -22,7 +22,7 @@ import (
 
 	"github.com/appc/spec/schema/types"
 
-	"github.com/camlistore/go4/errorutil"
+	"go4.org/errorutil"
 )
 
 const (

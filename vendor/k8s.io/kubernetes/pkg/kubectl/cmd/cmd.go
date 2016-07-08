@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/flag"
 
@@ -207,6 +208,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.SetGlobalNormalizationFunc(flag.WarnWordSepNormalizeFunc)
 
 	cmds.AddCommand(NewCmdGet(f, out))
+	cmds.AddCommand(set.NewCmdSet(f, out))
 	cmds.AddCommand(NewCmdDescribe(f, out))
 	cmds.AddCommand(NewCmdCreate(f, out))
 	cmds.AddCommand(NewCmdReplace(f, out))
@@ -236,6 +238,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 
 	cmds.AddCommand(NewCmdLabel(f, out))
 	cmds.AddCommand(NewCmdAnnotate(f, out))
+	cmds.AddCommand(NewCmdTaint(f, out))
 
 	cmds.AddCommand(cmdconfig.NewCmdConfig(clientcmd.NewDefaultPathOptions(), out))
 	cmds.AddCommand(NewCmdClusterInfo(f, out))
@@ -243,6 +246,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdVersion(f, out))
 	cmds.AddCommand(NewCmdExplain(f, out))
 	cmds.AddCommand(NewCmdConvert(f, out))
+	cmds.AddCommand(NewCmdCompletion(f, out))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {

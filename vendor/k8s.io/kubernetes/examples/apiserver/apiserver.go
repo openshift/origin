@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericoptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 
 	// Install the testgroup API
@@ -37,12 +38,11 @@ const (
 	// Ports on which to run the server.
 	// Explicitly setting these to a different value than the default values, to prevent this from clashing with a local cluster.
 	InsecurePort = 8081
-	SecurePort   = 6444
 )
 
 func newStorageFactory() genericapiserver.StorageFactory {
 	config := storagebackend.Config{
-		Prefix:     genericapiserver.DefaultEtcdPathPrefix,
+		Prefix:     genericoptions.DefaultEtcdPathPrefix,
 		ServerList: []string{"http://127.0.0.1:4001"},
 	}
 	storageFactory := genericapiserver.NewDefaultStorageFactory(config, "application/json", api.Codecs, genericapiserver.NewDefaultResourceEncodingConfig(), genericapiserver.NewResourceConfig())
@@ -50,14 +50,13 @@ func newStorageFactory() genericapiserver.StorageFactory {
 	return storageFactory
 }
 
-func NewServerRunOptions() *genericapiserver.ServerRunOptions {
-	serverOptions := genericapiserver.NewServerRunOptions()
+func NewServerRunOptions() *genericoptions.ServerRunOptions {
+	serverOptions := genericoptions.NewServerRunOptions()
 	serverOptions.InsecurePort = InsecurePort
-	serverOptions.SecurePort = SecurePort
 	return serverOptions
 }
 
-func Run(serverOptions *genericapiserver.ServerRunOptions) error {
+func Run(serverOptions *genericoptions.ServerRunOptions) error {
 	// Set ServiceClusterIPRange
 	_, serviceClusterIPRange, _ := net.ParseCIDR("10.0.0.0/24")
 	serverOptions.ServiceClusterIPRange = *serviceClusterIPRange

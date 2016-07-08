@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"path"
 	rt "runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,6 +91,7 @@ type APIGroupVersion struct {
 	Typer     runtime.ObjectTyper
 	Creater   runtime.ObjectCreater
 	Convertor runtime.ObjectConvertor
+	Copier    runtime.ObjectCopier
 	Linker    runtime.SelfLinker
 
 	Admit   admission.Interface
@@ -174,7 +176,8 @@ func InstallVersionHandler(mux Mux, container *restful.Container) {
 			Doc("get the code version").
 			Operation("getCodeVersion").
 			Produces(restful.MIME_JSON).
-			Consumes(restful.MIME_JSON))
+			Consumes(restful.MIME_JSON).
+			Writes(version.Info{}))
 
 	container.Add(versionWS)
 }
@@ -252,9 +255,9 @@ type stripVersionEncoder struct {
 	serializer runtime.Serializer
 }
 
-func (c stripVersionEncoder) EncodeToStream(obj runtime.Object, w io.Writer, overrides ...unversioned.GroupVersion) error {
+func (c stripVersionEncoder) Encode(obj runtime.Object, w io.Writer) error {
 	buf := bytes.NewBuffer([]byte{})
-	err := c.encoder.EncodeToStream(obj, buf, overrides...)
+	err := c.encoder.Encode(obj, buf)
 	if err != nil {
 		return err
 	}
@@ -264,8 +267,8 @@ func (c stripVersionEncoder) EncodeToStream(obj runtime.Object, w io.Writer, ove
 	}
 	gvk.Group = ""
 	gvk.Version = ""
-	roundTrippedObj.GetObjectKind().SetGroupVersionKind(gvk)
-	return c.serializer.EncodeToStream(roundTrippedObj, w)
+	roundTrippedObj.GetObjectKind().SetGroupVersionKind(*gvk)
+	return c.serializer.Encode(roundTrippedObj, w)
 }
 
 // StripVersionNegotiatedSerializer will return stripVersionEncoder when
@@ -274,7 +277,7 @@ type StripVersionNegotiatedSerializer struct {
 	runtime.NegotiatedSerializer
 }
 
-func (n StripVersionNegotiatedSerializer) EncoderForVersion(encoder runtime.Encoder, gv unversioned.GroupVersion) runtime.Encoder {
+func (n StripVersionNegotiatedSerializer) EncoderForVersion(encoder runtime.Encoder, gv runtime.GroupVersioner) runtime.Encoder {
 	serializer, ok := encoder.(runtime.Serializer)
 	if !ok {
 		// The stripVersionEncoder needs both an encoder and decoder, but is called from a context that doesn't have access to the
@@ -440,7 +443,7 @@ func writeNegotiated(s runtime.NegotiatedSerializer, gv unversioned.GroupVersion
 	w.WriteHeader(statusCode)
 
 	encoder := s.EncoderForVersion(serializer, gv)
-	if err := encoder.EncodeToStream(object, w); err != nil {
+	if err := encoder.Encode(object, w); err != nil {
 		errorJSONFatal(err, encoder, w)
 	}
 }
@@ -449,6 +452,11 @@ func writeNegotiated(s runtime.NegotiatedSerializer, gv unversioned.GroupVersion
 func errorNegotiated(err error, s runtime.NegotiatedSerializer, gv unversioned.GroupVersion, w http.ResponseWriter, req *http.Request) int {
 	status := errToAPIStatus(err)
 	code := int(status.Code)
+	// when writing an error, check to see if the status indicates a retry after period
+	if status.Details != nil && status.Details.RetryAfterSeconds > 0 {
+		delay := strconv.Itoa(int(status.Details.RetryAfterSeconds))
+		w.Header().Set("Retry-After", delay)
+	}
 	writeNegotiated(s, gv, w, req, code, status)
 	return code
 }

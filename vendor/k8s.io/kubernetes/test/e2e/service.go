@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/controller/endpoint"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -68,9 +69,7 @@ var _ = framework.KubeDescribe("Services", func() {
 	var c *client.Client
 
 	BeforeEach(func() {
-		var err error
-		c, err = framework.LoadClient()
-		Expect(err).NotTo(HaveOccurred())
+		c = f.Client
 	})
 
 	// TODO: We get coverage of TCP/UDP and multi-port services through the DNS test. We should have a simpler test for multi-port TCP here.
@@ -330,8 +329,7 @@ var _ = framework.KubeDescribe("Services", func() {
 
 	It("should work after restarting apiserver [Disruptive]", func() {
 		// TODO: use the ServiceTestJig here
-		// TODO: framework.RestartApiserver doesn't work in GKE - fix it and reenable this test.
-		framework.SkipUnlessProviderIs("gce")
+		framework.SkipUnlessProviderIs("gce", "gke")
 
 		ns := f.Namespace.Name
 		numPods, servicePort := 3, 80
@@ -350,7 +348,7 @@ var _ = framework.KubeDescribe("Services", func() {
 		framework.ExpectNoError(verifyServeHostnameServiceUp(c, ns, host, podNames1, svc1IP, servicePort))
 
 		// Restart apiserver
-		if err := framework.RestartApiserver(); err != nil {
+		if err := framework.RestartApiserver(c); err != nil {
 			framework.Failf("error restarting apiserver: %v", err)
 		}
 		if err := framework.WaitForApiserverUp(c); err != nil {
@@ -481,6 +479,8 @@ var _ = framework.KubeDescribe("Services", func() {
 
 		// Change the services to LoadBalancer.
 
+		// Here we test that LoadBalancers can receive static IP addresses.  This isn't
+		// necessary, but is an additional feature this monolithic test checks.
 		requestedIP := ""
 		staticIPName := ""
 		if framework.ProviderIs("gce", "gke") {
@@ -900,6 +900,64 @@ var _ = framework.KubeDescribe("Services", func() {
 		service, err = t.CreateService(service)
 		Expect(err).NotTo(HaveOccurred())
 	})
+
+	It("should create endpoints for unready pods", func() {
+		serviceName := "never-ready"
+		ns := f.Namespace.Name
+
+		t := NewServerTest(c, ns, serviceName)
+		defer func() {
+			defer GinkgoRecover()
+			errs := t.Cleanup()
+			if len(errs) != 0 {
+				framework.Failf("errors in cleanup: %v", errs)
+			}
+		}()
+
+		service := t.BuildServiceSpec()
+		service.Annotations = map[string]string{endpoint.TolerateUnreadyEndpointsAnnotation: "true"}
+		rcSpec := rcByNameContainer(t.name, 1, t.image, t.Labels, api.Container{
+			Name:  t.name,
+			Image: t.image,
+			Ports: []api.ContainerPort{{ContainerPort: int32(80), Protocol: api.ProtocolTCP}},
+			ReadinessProbe: &api.Probe{
+				Handler: api.Handler{
+					Exec: &api.ExecAction{
+						Command: []string{"/bin/false"},
+					},
+				},
+			},
+		})
+
+		By(fmt.Sprintf("createing RC %v with selectors %v", rcSpec.Name, rcSpec.Spec.Selector))
+		_, err := t.createRC(rcSpec)
+		ExpectNoError(err)
+
+		By(fmt.Sprintf("creating Service %v with selectors %v", service.Name, service.Spec.Selector))
+		_, err = t.CreateService(service)
+		ExpectNoError(err)
+
+		By("Verifying pods for RC " + t.name)
+		ExpectNoError(framework.VerifyPods(t.Client, t.Namespace, t.name, false, 1))
+
+		svcName := fmt.Sprintf("%v.%v", serviceName, f.Namespace.Name)
+		By("waiting for endpoints of Service with DNS name " + svcName)
+
+		execPodName := createExecPodOrFail(f.Client, f.Namespace.Name, "execpod-")
+		cmd := fmt.Sprintf("wget -qO- %v", svcName)
+		var stdout string
+		if pollErr := wait.PollImmediate(framework.Poll, kubeProxyLagTimeout, func() (bool, error) {
+			var err error
+			stdout, err = framework.RunHostCmd(f.Namespace.Name, execPodName, cmd)
+			if err != nil {
+				framework.Logf("expected un-ready endpoint for Service %v, stdout: %v, err %v", t.name, stdout, err)
+				return false, nil
+			}
+			return true, nil
+		}); pollErr != nil {
+			framework.Failf("expected un-ready endpoint for Service %v within %v, stdout: %v", t.name, kubeProxyLagTimeout, stdout)
+		}
+	})
 })
 
 // updateService fetches a service, calls the update function on it,
@@ -1036,13 +1094,14 @@ func validateEndpointsOrFail(c *client.Client, namespace, serviceName string, ex
 
 // createExecPodOrFail creates a simple busybox pod in a sleep loop used as a
 // vessel for kubectl exec commands.
-func createExecPodOrFail(c *client.Client, ns, name string) {
+// Returns the name of the created pod.
+func createExecPodOrFail(c *client.Client, ns, generateName string) string {
 	framework.Logf("Creating new exec pod")
 	immediate := int64(0)
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			Name:      name,
-			Namespace: ns,
+			GenerateName: generateName,
+			Namespace:    ns,
 		},
 		Spec: api.PodSpec{
 			TerminationGracePeriodSeconds: &immediate,
@@ -1055,16 +1114,17 @@ func createExecPodOrFail(c *client.Client, ns, name string) {
 			},
 		},
 	}
-	_, err := c.Pods(ns).Create(pod)
+	created, err := c.Pods(ns).Create(pod)
 	Expect(err).NotTo(HaveOccurred())
 	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := c.Pods(pod.Namespace).Get(pod.Name)
+		retrievedPod, err := c.Pods(pod.Namespace).Get(created.Name)
 		if err != nil {
 			return false, nil
 		}
 		return retrievedPod.Status.Phase == api.PodRunning, nil
 	})
 	Expect(err).NotTo(HaveOccurred())
+	return created.Name
 }
 
 func createPodOrFail(c *client.Client, ns, name string, labels map[string]string, containerPorts []api.ContainerPort) {
@@ -1077,8 +1137,8 @@ func createPodOrFail(c *client.Client, ns, name string, labels map[string]string
 		Spec: api.PodSpec{
 			Containers: []api.Container{
 				{
-					Name:  "test",
-					Image: "gcr.io/google_containers/pause-amd64:3.0",
+					Name:  "pause",
+					Image: framework.GetPauseImageName(c),
 					Ports: containerPorts,
 					// Add a dummy environment variable to work around a docker issue.
 					// https://github.com/docker/docker/issues/14203
@@ -1112,7 +1172,7 @@ func collectAddresses(nodes *api.NodeList, addressType api.NodeAddressType) []st
 }
 
 func getNodePublicIps(c *client.Client) ([]string, error) {
-	nodes := framework.ListSchedulableNodesOrDie(c)
+	nodes := framework.GetReadySchedulableNodesOrDie(c)
 
 	ips := collectAddresses(nodes, api.NodeExternalIP)
 	if len(ips) == 0 {
@@ -1348,8 +1408,7 @@ func stopServeHostnameService(c *client.Client, ns, name string) error {
 // in the cluster. Each pod in the service is expected to echo its name. These
 // names are compared with the given expectedPods list after a sort | uniq.
 func verifyServeHostnameServiceUp(c *client.Client, ns, host string, expectedPods []string, serviceIP string, servicePort int) error {
-	execPodName := "execpod"
-	createExecPodOrFail(c, ns, execPodName)
+	execPodName := createExecPodOrFail(c, ns, "execpod-")
 	defer func() {
 		deletePodOrFail(c, ns, execPodName)
 	}()

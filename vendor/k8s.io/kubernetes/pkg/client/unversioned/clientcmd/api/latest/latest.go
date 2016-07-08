@@ -43,12 +43,12 @@ var Versions = []string{"v1"}
 var Codec runtime.Codec
 
 func init() {
-	yamlSerializer := json.NewYAMLSerializer(json.DefaultMetaFactory, api.Scheme, runtime.ObjectTyperToTyper(api.Scheme))
+	yamlSerializer := json.NewYAMLSerializer(json.DefaultMetaFactory, api.Scheme, api.Scheme)
 	Codec = versioning.NewCodecForScheme(
 		api.Scheme,
 		yamlSerializer,
 		yamlSerializer,
-		[]unversioned.GroupVersion{{Version: Version}},
-		[]unversioned.GroupVersion{{Version: runtime.APIVersionInternal}},
+		unversioned.GroupVersion{Version: Version},
+		runtime.InternalGroupVersioner,
 	)
 }

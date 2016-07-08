@@ -52,8 +52,8 @@ func ValidateEvent(event *api.Event) field.ErrorList {
 		}
 	}
 
-	if !validation.IsDNS1123Subdomain(event.Namespace) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("namespace"), event.Namespace, ""))
+	for _, msg := range validation.IsDNS1123Subdomain(event.Namespace) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("namespace"), event.Namespace, msg))
 	}
 	return allErrs
 }

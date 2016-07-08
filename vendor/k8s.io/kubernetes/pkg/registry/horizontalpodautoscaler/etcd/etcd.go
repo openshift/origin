@@ -18,7 +18,8 @@ package etcd
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -36,12 +37,12 @@ type REST struct {
 func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 	prefix := "/horizontalpodautoscalers"
 
-	newListFunc := func() runtime.Object { return &extensions.HorizontalPodAutoscalerList{} }
+	newListFunc := func() runtime.Object { return &autoscaling.HorizontalPodAutoscalerList{} }
 	storageInterface := opts.Decorator(
-		opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.HorizontalPodAutoscalers), &extensions.HorizontalPodAutoscaler{}, prefix, horizontalpodautoscaler.Strategy, newListFunc)
+		opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.HorizontalPodAutoscalers), &autoscaling.HorizontalPodAutoscaler{}, prefix, horizontalpodautoscaler.Strategy, newListFunc)
 
 	store := &registry.Store{
-		NewFunc: func() runtime.Object { return &extensions.HorizontalPodAutoscaler{} },
+		NewFunc: func() runtime.Object { return &autoscaling.HorizontalPodAutoscaler{} },
 		// NewListFunc returns an object capable of storing results of an etcd list.
 		NewListFunc: newListFunc,
 		// Produces a path that etcd understands, to the root of the resource
@@ -56,13 +57,13 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 		},
 		// Retrieve the name field of an autoscaler
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*extensions.HorizontalPodAutoscaler).Name, nil
+			return obj.(*autoscaling.HorizontalPodAutoscaler).Name, nil
 		},
 		// Used to match objects based on labels/fields for list
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return horizontalpodautoscaler.MatchAutoscaler(label, field)
 		},
-		QualifiedResource:       extensions.Resource("horizontalpodautoscalers"),
+		QualifiedResource:       autoscaling.Resource("horizontalpodautoscalers"),
 		DeleteCollectionWorkers: opts.DeleteCollectionWorkers,
 
 		// Used to validate autoscaler creation
@@ -85,10 +86,15 @@ type StatusREST struct {
 }
 
 func (r *StatusREST) New() runtime.Object {
-	return &extensions.HorizontalPodAutoscaler{}
+	return &autoscaling.HorizontalPodAutoscaler{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch.
+func (r *StatusREST) Get(ctx api.Context, name string) (runtime.Object, error) {
+	return r.store.Get(ctx, name)
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
+func (r *StatusREST) Update(ctx api.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }

@@ -224,6 +224,26 @@ func TestDeltaFIFO_addReplace(t *testing.T) {
 	}
 }
 
+func TestDeltaFIFO_ResyncNonExisting(t *testing.T) {
+	f := NewDeltaFIFO(
+		testFifoObjectKeyFunc,
+		nil,
+		keyLookupFunc(func() []testFifoObject {
+			return []testFifoObject{mkFifoObj("foo", 5)}
+		}),
+	)
+	f.Delete(mkFifoObj("foo", 10))
+	f.Resync()
+
+	deltas := f.items["foo"]
+	if len(deltas) != 1 {
+		t.Fatalf("unexpected deltas length: %v", deltas)
+	}
+	if deltas[0].Type != Deleted {
+		t.Errorf("unexpected delta: %v", deltas[0])
+	}
+}
+
 func TestDeltaFIFO_DeleteExistingNonPropagated(t *testing.T) {
 	f := NewDeltaFIFO(
 		testFifoObjectKeyFunc,

@@ -28,4 +28,4 @@ fmt.Println(anchorName)
 License
 -------
 
-- [MIT License](http://opensource.org/licenses/mit-license.php)
+- [MIT License](LICENSE)

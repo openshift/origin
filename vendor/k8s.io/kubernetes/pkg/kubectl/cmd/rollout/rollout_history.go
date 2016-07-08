@@ -23,7 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/spf13/cobra"
 )
@@ -77,30 +76,31 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 		return err
 	}
 
-	infos, err := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
 		ResourceTypeOrNameArgs(true, args...).
+		ContinueOnError().
 		Latest().
 		Flatten().
-		Do().
-		Infos()
+		Do()
+	err = r.Err()
 	if err != nil {
 		return err
 	}
 
-	errs := []error{}
-	for _, info := range infos {
+	err = r.Visit(func(info *resource.Info, err error) error {
+		if err != nil {
+			return err
+		}
 		mapping := info.ResourceMapping()
 		historyViewer, err := f.HistoryViewer(mapping)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			return err
 		}
 		historyInfo, err := historyViewer.ViewHistory(info.Namespace, info.Name, revision)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			return err
 		}
 
 		header := fmt.Sprintf("%s %q history viewed", mapping.Resource, info.Name)
@@ -109,7 +109,8 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 		}
 		fmt.Fprintf(out, "%s\n", header)
 		fmt.Fprintf(out, "%s\n", historyInfo)
-	}
+		return nil
+	})
 
-	return errors.NewAggregate(errs)
+	return err
 }

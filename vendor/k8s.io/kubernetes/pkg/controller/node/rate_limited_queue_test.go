@@ -62,6 +62,13 @@ func TestAddNode(t *testing.T) {
 }
 
 func TestDelNode(t *testing.T) {
+	defer func() { now = time.Now }()
+	var tick int64
+	now = func() time.Time {
+		t := time.Unix(tick, 0)
+		tick++
+		return t
+	}
 	evictor := NewRateLimitedTimedQueue(flowcontrol.NewFakeAlwaysRateLimiter())
 	evictor.Add("first")
 	evictor.Add("second")
@@ -259,5 +266,18 @@ func TestTryRemovingWhileTry(t *testing.T) {
 	}
 	if count != 3 {
 		t.Fatalf("unexpected iterations: %d", count)
+	}
+}
+
+func TestClear(t *testing.T) {
+	evictor := NewRateLimitedTimedQueue(flowcontrol.NewFakeAlwaysRateLimiter())
+	evictor.Add("first")
+	evictor.Add("second")
+	evictor.Add("third")
+
+	evictor.Clear()
+
+	if len(evictor.queue.queue) != 0 {
+		t.Fatalf("Clear should remove all elements from the queue.")
 	}
 }

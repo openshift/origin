@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -273,7 +274,7 @@ func TestStoreCreate(t *testing.T) {
 }
 
 func updateAndVerify(t *testing.T, ctx api.Context, registry *Store, pod *api.Pod) bool {
-	obj, _, err := registry.Update(ctx, pod)
+	obj, _, err := registry.Update(ctx, pod.Name, rest.DefaultUpdatedObjectInfo(pod, api.Scheme))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		return false
@@ -309,7 +310,7 @@ func TestStoreUpdate(t *testing.T) {
 	defer server.Terminate(t)
 
 	// Test1 try to update a non-existing node
-	_, _, err := registry.Update(testContext, podA)
+	_, _, err := registry.Update(testContext, podA.Name, rest.DefaultUpdatedObjectInfo(podA, api.Scheme))
 	if !errors.IsNotFound(err) {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -322,7 +323,7 @@ func TestStoreUpdate(t *testing.T) {
 	registry.UpdateStrategy.(*testRESTStrategy).allowCreateOnUpdate = false
 
 	// Test3 outofDate
-	_, _, err = registry.Update(testContext, podAWithResourceVersion)
+	_, _, err = registry.Update(testContext, podAWithResourceVersion.Name, rest.DefaultUpdatedObjectInfo(podAWithResourceVersion, api.Scheme))
 	if !errors.IsConflict(err) {
 		t.Errorf("Unexpected error updating podAWithResourceVersion: %v", err)
 	}
@@ -369,7 +370,8 @@ func TestNoOpUpdates(t *testing.T) {
 	}
 
 	var updateResult runtime.Object
-	if updateResult, _, err = registry.Update(api.NewDefaultContext(), newPod()); err != nil {
+	p := newPod()
+	if updateResult, _, err = registry.Update(api.NewDefaultContext(), p.Name, rest.DefaultUpdatedObjectInfo(p, api.Scheme)); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -446,8 +448,12 @@ func TestStoreCustomExport(t *testing.T) {
 	if exportedPod.Labels["exact"] != "false" {
 		t.Errorf("expected: exact->false, found: %s", exportedPod.Labels["exact"])
 	}
+	if exportedPod.Labels["prepare_create"] != "true" {
+		t.Errorf("expected: prepare_create->true, found: %s", exportedPod.Labels["prepare_create"])
+	}
 	delete(exportedPod.Labels, "exported")
 	delete(exportedPod.Labels, "exact")
+	delete(exportedPod.Labels, "prepare_create")
 	exportObjectMeta(&podA.ObjectMeta, false)
 	podA.Spec = exportedPod.Spec
 	if !reflect.DeepEqual(&podA, exportedPod) {
@@ -483,6 +489,7 @@ func TestStoreBasicExport(t *testing.T) {
 	if exportedPod.Labels["prepare_create"] != "true" {
 		t.Errorf("expected: prepare_create->true, found: %s", exportedPod.Labels["prepare_create"])
 	}
+	delete(exportedPod.Labels, "prepare_create")
 	exportObjectMeta(&podA.ObjectMeta, false)
 	podA.Spec = exportedPod.Spec
 	if !reflect.DeepEqual(&podA, exportedPod) {
@@ -543,6 +550,259 @@ func TestStoreDelete(t *testing.T) {
 	_, err = registry.Get(testContext, podA.Name)
 	if !errors.IsNotFound(err) {
 		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestStoreHandleFinalizers(t *testing.T) {
+	EnableGarbageCollector = true
+	defer func() { EnableGarbageCollector = false }()
+	podWithFinalizer := &api.Pod{
+		ObjectMeta: api.ObjectMeta{Name: "foo", Finalizers: []string{"foo.com/x"}},
+		Spec:       api.PodSpec{NodeName: "machine"},
+	}
+
+	testContext := api.WithNamespace(api.NewContext(), "test")
+	server, registry := NewTestGenericStoreRegistry(t)
+	defer server.Terminate(t)
+
+	// create pod
+	_, err := registry.Create(testContext, podWithFinalizer)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// delete object with nil delete options doesn't delete the object
+	_, err = registry.Delete(testContext, podWithFinalizer.Name, nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// the object should still exist
+	obj, err := registry.Get(testContext, podWithFinalizer.Name)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	podWithFinalizer, ok := obj.(*api.Pod)
+	if !ok {
+		t.Errorf("Unexpected object: %#v", obj)
+	}
+	if podWithFinalizer.ObjectMeta.DeletionTimestamp == nil {
+		t.Errorf("Expect the object to have DeletionTimestamp set, but got %#v", podWithFinalizer.ObjectMeta)
+	}
+	if podWithFinalizer.ObjectMeta.DeletionGracePeriodSeconds == nil || *podWithFinalizer.ObjectMeta.DeletionGracePeriodSeconds != 0 {
+		t.Errorf("Expect the object to have 0 DeletionGracePeriodSecond, but got %#v", podWithFinalizer.ObjectMeta)
+	}
+
+	updatedPodWithFinalizer := &api.Pod{
+		ObjectMeta: api.ObjectMeta{Name: "foo", Finalizers: []string{"foo.com/x"}, ResourceVersion: podWithFinalizer.ObjectMeta.ResourceVersion},
+		Spec:       api.PodSpec{NodeName: "machine"},
+	}
+	_, _, err = registry.Update(testContext, updatedPodWithFinalizer.ObjectMeta.Name, rest.DefaultUpdatedObjectInfo(updatedPodWithFinalizer, api.Scheme))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// the object should still exist, because it still has a finalizer
+	obj, err = registry.Get(testContext, podWithFinalizer.Name)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	podWithFinalizer, ok = obj.(*api.Pod)
+	if !ok {
+		t.Errorf("Unexpected object: %#v", obj)
+	}
+
+	podWithNoFinalizer := &api.Pod{
+		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: podWithFinalizer.ObjectMeta.ResourceVersion},
+		Spec:       api.PodSpec{NodeName: "anothermachine"},
+	}
+	_, _, err = registry.Update(testContext, podWithFinalizer.ObjectMeta.Name, rest.DefaultUpdatedObjectInfo(podWithNoFinalizer, api.Scheme))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	// the pod should be removed, because it's finalizer is removed
+	_, err = registry.Get(testContext, podWithFinalizer.Name)
+	if !errors.IsNotFound(err) {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestStoreDeleteWithOrphanDependents(t *testing.T) {
+	EnableGarbageCollector = true
+	defer func() { EnableGarbageCollector = false }()
+	podWithOrphanFinalizer := func(name string) *api.Pod {
+		return &api.Pod{
+			ObjectMeta: api.ObjectMeta{Name: name, Finalizers: []string{"foo.com/x", api.FinalizerOrphan, "bar.com/y"}},
+			Spec:       api.PodSpec{NodeName: "machine"},
+		}
+	}
+	podWithOtherFinalizers := func(name string) *api.Pod {
+		return &api.Pod{
+			ObjectMeta: api.ObjectMeta{Name: name, Finalizers: []string{"foo.com/x", "bar.com/y"}},
+			Spec:       api.PodSpec{NodeName: "machine"},
+		}
+	}
+	podWithNoFinalizer := func(name string) *api.Pod {
+		return &api.Pod{
+			ObjectMeta: api.ObjectMeta{Name: name},
+			Spec:       api.PodSpec{NodeName: "machine"},
+		}
+	}
+	podWithOnlyOrphanFinalizer := func(name string) *api.Pod {
+		return &api.Pod{
+			ObjectMeta: api.ObjectMeta{Name: name, Finalizers: []string{api.FinalizerOrphan}},
+			Spec:       api.PodSpec{NodeName: "machine"},
+		}
+	}
+	trueVar, falseVar := true, false
+	orphanOptions := &api.DeleteOptions{OrphanDependents: &trueVar}
+	nonOrphanOptions := &api.DeleteOptions{OrphanDependents: &falseVar}
+	nilOrphanOptions := &api.DeleteOptions{}
+
+	testcases := []struct {
+		pod               *api.Pod
+		options           *api.DeleteOptions
+		expectNotFound    bool
+		updatedFinalizers []string
+	}{
+		// cases run with DeleteOptions.OrphanDedependents=true
+		{
+			podWithOrphanFinalizer("pod1"),
+			orphanOptions,
+			false,
+			[]string{"foo.com/x", api.FinalizerOrphan, "bar.com/y"},
+		},
+		{
+			podWithOtherFinalizers("pod2"),
+			orphanOptions,
+			false,
+			[]string{"foo.com/x", "bar.com/y", api.FinalizerOrphan},
+		},
+		{
+			podWithNoFinalizer("pod3"),
+			orphanOptions,
+			false,
+			[]string{api.FinalizerOrphan},
+		},
+		{
+			podWithOnlyOrphanFinalizer("pod4"),
+			orphanOptions,
+			false,
+			[]string{api.FinalizerOrphan},
+		},
+		// cases run with DeleteOptions.OrphanDedependents=false
+		{
+			podWithOrphanFinalizer("pod5"),
+			nonOrphanOptions,
+			false,
+			[]string{"foo.com/x", "bar.com/y"},
+		},
+		{
+			podWithOtherFinalizers("pod6"),
+			nonOrphanOptions,
+			false,
+			[]string{"foo.com/x", "bar.com/y"},
+		},
+		{
+			podWithNoFinalizer("pod7"),
+			nonOrphanOptions,
+			true,
+			[]string{},
+		},
+		{
+			podWithOnlyOrphanFinalizer("pod8"),
+			nonOrphanOptions,
+			true,
+			[]string{},
+		},
+		// cases run with nil DeleteOptions, the finalizers are not updated.
+		{
+			podWithOrphanFinalizer("pod9"),
+			nil,
+			false,
+			[]string{"foo.com/x", api.FinalizerOrphan, "bar.com/y"},
+		},
+		{
+			podWithOtherFinalizers("pod10"),
+			nil,
+			false,
+			[]string{"foo.com/x", "bar.com/y"},
+		},
+		{
+			podWithNoFinalizer("pod11"),
+			nil,
+			true,
+			[]string{},
+		},
+		{
+			podWithOnlyOrphanFinalizer("pod12"),
+			nil,
+			false,
+			[]string{api.FinalizerOrphan},
+		},
+		// cases run with non-nil DeleteOptions, but nil OrphanDependents, it's treated as OrphanDependents=true
+		{
+			podWithOrphanFinalizer("pod13"),
+			nilOrphanOptions,
+			false,
+			[]string{"foo.com/x", api.FinalizerOrphan, "bar.com/y"},
+		},
+		{
+			podWithOtherFinalizers("pod14"),
+			nilOrphanOptions,
+			false,
+			[]string{"foo.com/x", "bar.com/y"},
+		},
+		{
+			podWithNoFinalizer("pod15"),
+			nilOrphanOptions,
+			true,
+			[]string{},
+		},
+		{
+			podWithOnlyOrphanFinalizer("pod16"),
+			nilOrphanOptions,
+			false,
+			[]string{api.FinalizerOrphan},
+		},
+	}
+
+	testContext := api.WithNamespace(api.NewContext(), "test")
+	server, registry := NewTestGenericStoreRegistry(t)
+	defer server.Terminate(t)
+
+	for _, tc := range testcases {
+		// create pod
+		_, err := registry.Create(testContext, tc.pod)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		_, err = registry.Delete(testContext, tc.pod.Name, tc.options)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		obj, err := registry.Get(testContext, tc.pod.Name)
+		if tc.expectNotFound && (err == nil || !errors.IsNotFound(err)) {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if !tc.expectNotFound && err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if !tc.expectNotFound {
+			pod, ok := obj.(*api.Pod)
+			if !ok {
+				t.Fatalf("Expect the object to be a pod, but got %#v", obj)
+			}
+			if pod.ObjectMeta.DeletionTimestamp == nil {
+				t.Errorf("Expect the object to have DeletionTimestamp set, but got %#v", pod.ObjectMeta)
+			}
+			if pod.ObjectMeta.DeletionGracePeriodSeconds == nil || *pod.ObjectMeta.DeletionGracePeriodSeconds != 0 {
+				t.Errorf("Expect the object to have 0 DeletionGracePeriodSecond, but got %#v", pod.ObjectMeta)
+			}
+			if e, a := tc.updatedFinalizers, pod.ObjectMeta.Finalizers; !reflect.DeepEqual(e, a) {
+				t.Errorf("Expect object %s to have finalizers %v, got %v", pod.ObjectMeta.Name, e, a)
+			}
+		}
 	}
 }
 

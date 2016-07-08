@@ -18,36 +18,35 @@ limitations under the License.
 package webhook
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/authorization/v1beta1"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/pkg/runtime"
-	runtimeserializer "k8s.io/kubernetes/pkg/runtime/serializer"
-	"k8s.io/kubernetes/pkg/runtime/serializer/json"
-	"k8s.io/kubernetes/pkg/runtime/serializer/versioning"
+	"k8s.io/kubernetes/pkg/util/cache"
+	"k8s.io/kubernetes/plugin/pkg/webhook"
 
 	_ "k8s.io/kubernetes/pkg/apis/authorization/install"
 )
 
 var (
-	encodeVersions = []unversioned.GroupVersion{v1beta1.SchemeGroupVersion}
-	decodeVersions = []unversioned.GroupVersion{v1beta1.SchemeGroupVersion}
-
-	requireEnabled = []unversioned.GroupVersion{v1beta1.SchemeGroupVersion}
+	groupVersions = []unversioned.GroupVersion{v1beta1.SchemeGroupVersion}
 )
+
+const retryBackoff = 500 * time.Millisecond
 
 // Ensure Webhook implements the authorizer.Authorizer interface.
 var _ authorizer.Authorizer = (*WebhookAuthorizer)(nil)
 
 type WebhookAuthorizer struct {
-	restClient *restclient.RESTClient
+	*webhook.GenericWebhook
+	responseCache   *cache.LRUExpireCache
+	authorizedTTL   time.Duration
+	unauthorizedTTL time.Duration
 }
 
 // New creates a new WebhookAuthorizer from the provided kubeconfig file.
@@ -70,38 +69,17 @@ type WebhookAuthorizer struct {
 //
 // For additional HTTP configuration, refer to the kubeconfig documentation
 // http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html.
-func New(kubeConfigFile string) (*WebhookAuthorizer, error) {
+func New(kubeConfigFile string, authorizedTTL, unauthorizedTTL time.Duration) (*WebhookAuthorizer, error) {
+	return newWithBackoff(kubeConfigFile, authorizedTTL, unauthorizedTTL, retryBackoff)
+}
 
-	for _, groupVersion := range requireEnabled {
-		if !registered.IsEnabledVersion(groupVersion) {
-			return nil, fmt.Errorf("webhook authz plugin requires enabling extension resource: %s", groupVersion)
-		}
-	}
-
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	loadingRules.ExplicitPath = kubeConfigFile
-	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-
-	clientConfig, err := loader.ClientConfig()
+// newWithBackoff allows tests to skip the sleep.
+func newWithBackoff(kubeConfigFile string, authorizedTTL, unauthorizedTTL, initialBackoff time.Duration) (*WebhookAuthorizer, error) {
+	gw, err := webhook.NewGenericWebhook(kubeConfigFile, groupVersions, initialBackoff)
 	if err != nil {
 		return nil, err
 	}
-
-	serializer := json.NewSerializer(json.DefaultMetaFactory, api.Scheme, runtime.ObjectTyperToTyper(api.Scheme), false)
-	codec := versioning.NewCodecForScheme(api.Scheme, serializer, serializer, encodeVersions, decodeVersions)
-	clientConfig.ContentConfig.NegotiatedSerializer = runtimeserializer.NegotiatedSerializerWrapper(
-		runtime.SerializerInfo{Serializer: codec},
-		runtime.StreamSerializerInfo{},
-	)
-
-	restClient, err := restclient.UnversionedRESTClientFor(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO(ericchiang): Can we ensure remote service is reachable?
-
-	return &WebhookAuthorizer{restClient}, nil
+	return &WebhookAuthorizer{gw, cache.NewLRUExpireCache(1024), authorizedTTL, unauthorizedTTL}, nil
 }
 
 // Authorize makes a REST request to the remote service describing the attempted action as a JSON
@@ -171,13 +149,31 @@ func (w *WebhookAuthorizer) Authorize(attr authorizer.Attributes) (err error) {
 			Verb: attr.GetVerb(),
 		}
 	}
-	result := w.restClient.Post().Body(r).Do()
-	if err := result.Error(); err != nil {
+	key, err := json.Marshal(r.Spec)
+	if err != nil {
 		return err
 	}
-
-	if err := result.Into(r); err != nil {
-		return err
+	if entry, ok := w.responseCache.Get(string(key)); ok {
+		r.Status = entry.(v1beta1.SubjectAccessReviewStatus)
+	} else {
+		result := w.WithExponentialBackoff(func() restclient.Result {
+			return w.RestClient.Post().Body(r).Do()
+		})
+		if err := result.Error(); err != nil {
+			return err
+		}
+		var statusCode int
+		if result.StatusCode(&statusCode); statusCode < 200 || statusCode >= 300 {
+			return fmt.Errorf("Error contacting webhook: %d", statusCode)
+		}
+		if err := result.Into(r); err != nil {
+			return err
+		}
+		if r.Status.Allowed {
+			w.responseCache.Add(string(key), r.Status, w.authorizedTTL)
+		} else {
+			w.responseCache.Add(string(key), r.Status, w.unauthorizedTTL)
+		}
 	}
 	if r.Status.Allowed {
 		return nil

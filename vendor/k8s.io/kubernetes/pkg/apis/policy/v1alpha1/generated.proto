@@ -40,14 +40,21 @@ message PodDisruptionBudget {
   optional PodDisruptionBudgetStatus status = 3;
 }
 
+// PodDisruptionBudgetList is a collection of PodDisruptionBudgets.
+message PodDisruptionBudgetList {
+  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+
+  repeated PodDisruptionBudget items = 2;
+}
+
 // PodDisruptionBudgetSpec is a description of a PodDisruptionBudget.
 message PodDisruptionBudgetSpec {
   // The minimum number of pods that must be available simultaneously.  This
   // can be either an integer or a string specifying a percentage, e.g. "28%".
   optional k8s.io.kubernetes.pkg.util.intstr.IntOrString minAvailable = 1;
 
-  // Selector is a label query over pods whose evictions are managed by the
-  // disruption budget.
+  // Label query over pods whose evictions are managed by the disruption
+  // budget.
   optional k8s.io.kubernetes.pkg.api.unversioned.LabelSelector selector = 2;
 }
 

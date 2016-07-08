@@ -28,8 +28,8 @@ func TestIsDNS1123Label(t *testing.T) {
 		strings.Repeat("a", 63),
 	}
 	for _, val := range goodValues {
-		if !IsDNS1123Label(val) {
-			t.Errorf("expected true for '%s'", val)
+		if msgs := IsDNS1123Label(val); len(msgs) != 0 {
+			t.Errorf("expected true for '%s': %v", val, msgs)
 		}
 	}
 
@@ -42,7 +42,7 @@ func TestIsDNS1123Label(t *testing.T) {
 		strings.Repeat("a", 64),
 	}
 	for _, val := range badValues {
-		if IsDNS1123Label(val) {
+		if msgs := IsDNS1123Label(val); len(msgs) == 0 {
 			t.Errorf("expected false for '%s'", val)
 		}
 	}
@@ -60,8 +60,8 @@ func TestIsDNS1123Subdomain(t *testing.T) {
 		strings.Repeat("a", 253),
 	}
 	for _, val := range goodValues {
-		if !IsDNS1123Subdomain(val) {
-			t.Errorf("expected true for '%s'", val)
+		if msgs := IsDNS1123Subdomain(val); len(msgs) != 0 {
+			t.Errorf("expected true for '%s': %v", val, msgs)
 		}
 	}
 
@@ -80,7 +80,7 @@ func TestIsDNS1123Subdomain(t *testing.T) {
 		strings.Repeat("a", 254),
 	}
 	for _, val := range badValues {
-		if IsDNS1123Subdomain(val) {
+		if msgs := IsDNS1123Subdomain(val); len(msgs) == 0 {
 			t.Errorf("expected false for '%s'", val)
 		}
 	}
@@ -92,8 +92,8 @@ func TestIsDNS952Label(t *testing.T) {
 		strings.Repeat("a", 24),
 	}
 	for _, val := range goodValues {
-		if !IsDNS952Label(val) {
-			t.Errorf("expected true for '%s'", val)
+		if msgs := IsDNS952Label(val); len(msgs) != 0 {
+			t.Errorf("expected true for '%s': %v", val, msgs)
 		}
 	}
 
@@ -107,7 +107,7 @@ func TestIsDNS952Label(t *testing.T) {
 		strings.Repeat("a", 25),
 	}
 	for _, val := range badValues {
-		if IsDNS952Label(val) {
+		if msgs := IsDNS952Label(val); len(msgs) == 0 {
 			t.Errorf("expected false for '%s'", val)
 		}
 	}
@@ -222,8 +222,8 @@ func TestIsQualifiedName(t *testing.T) {
 		strings.Repeat("a", 253) + "/" + strings.Repeat("b", 63),
 	}
 	for i := range successCases {
-		if !IsQualifiedName(successCases[i]) {
-			t.Errorf("case[%d]: %q: expected success", i, successCases[i])
+		if errs := IsQualifiedName(successCases[i]); len(errs) != 0 {
+			t.Errorf("case[%d]: %q: expected success: %v", i, successCases[i], errs)
 		}
 	}
 
@@ -240,7 +240,7 @@ func TestIsQualifiedName(t *testing.T) {
 		strings.Repeat("a", 254) + "/abc",
 	}
 	for i := range errorCases {
-		if IsQualifiedName(errorCases[i]) {
+		if errs := IsQualifiedName(errorCases[i]); len(errs) == 0 {
 			t.Errorf("case[%d]: %q: expected failure", i, errorCases[i])
 		}
 	}
@@ -257,8 +257,8 @@ func TestIsValidLabelValue(t *testing.T) {
 		"", // empty value
 	}
 	for i := range successCases {
-		if !IsValidLabelValue(successCases[i]) {
-			t.Errorf("case %s expected success", successCases[i])
+		if errs := IsValidLabelValue(successCases[i]); len(errs) != 0 {
+			t.Errorf("case %s expected success: %v", successCases[i], errs)
 		}
 	}
 
@@ -273,7 +273,7 @@ func TestIsValidLabelValue(t *testing.T) {
 		strings.Repeat("a", 64), // over the limit
 	}
 	for i := range errorCases {
-		if IsValidLabelValue(errorCases[i]) {
+		if errs := IsValidLabelValue(errorCases[i]); len(errs) == 0 {
 			t.Errorf("case[%d] expected failure", i)
 		}
 	}

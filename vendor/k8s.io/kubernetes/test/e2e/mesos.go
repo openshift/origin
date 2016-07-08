@@ -65,11 +65,11 @@ var _ = framework.KubeDescribe("Mesos", func() {
 		client := f.Client
 		framework.ExpectNoError(framework.AllNodesReady(client, wait.ForeverTestTimeout), "all nodes ready")
 
-		nodelist := framework.ListSchedulableNodesOrDie(f.Client)
+		nodelist := framework.GetReadySchedulableNodesOrDie(f.Client)
 
 		const ns = "static-pods"
 		numpods := int32(len(nodelist.Items))
-		framework.ExpectNoError(framework.WaitForPodsRunningReady(ns, numpods, wait.ForeverTestTimeout),
+		framework.ExpectNoError(framework.WaitForPodsRunningReady(client, ns, numpods, wait.ForeverTestTimeout, map[string]string{}, false),
 			fmt.Sprintf("number of static pods in namespace %s is %d", ns, numpods))
 	})
 
@@ -94,7 +94,7 @@ var _ = framework.KubeDescribe("Mesos", func() {
 				Containers: []api.Container{
 					{
 						Name:  podName,
-						Image: "beta.gcr.io/google_containers/pause-amd64:3.0",
+						Image: framework.GetPauseImageName(f.Client),
 					},
 				},
 			},

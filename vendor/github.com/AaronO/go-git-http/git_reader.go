@@ -8,8 +8,8 @@ import (
 
 // GitReader scans for errors in the output of a git command
 type GitReader struct {
-	// Underlying reader (to relay calls to)
-	io.Reader
+	// Underlaying reader (to relay calls to)
+	io.ReadCloser
 
 	// Error
 	GitError error
@@ -23,7 +23,7 @@ var (
 // Implement the io.Reader interface
 func (g *GitReader) Read(p []byte) (n int, err error) {
 	// Relay call
-	n, err = g.Reader.Read(p)
+	n, err = g.ReadCloser.Read(p)
 
 	// Scan for errors
 	g.scan(p)

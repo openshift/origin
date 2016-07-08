@@ -19,18 +19,20 @@ package framework
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	"k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset"
+	unversionedfederation "k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset/typed/federation/unversioned"
+	"k8s.io/kubernetes/federation/client/clientset_generated/federation_release_1_3"
 	"k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/release_1_2"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/release_1_3"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	adapter_1_2 "k8s.io/kubernetes/pkg/client/unversioned/adapters/release_1_2"
-	adapter_1_3 "k8s.io/kubernetes/pkg/client/unversioned/adapters/release_1_3"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/metrics"
@@ -39,6 +41,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -50,9 +53,16 @@ const (
 type Framework struct {
 	BaseName string
 
-	Client        *client.Client
-	Clientset_1_2 *release_1_2.Clientset
-	Clientset_1_3 *release_1_3.Clientset
+	ClientConfigGetter ClientConfigGetter
+	Client             *client.Client
+	Clientset_1_2      *release_1_2.Clientset
+	Clientset_1_3      *release_1_3.Clientset
+
+	// TODO(mml): Remove this.  We should generally use the versioned clientset.
+	FederationClientset     *federation_internalclientset.Clientset
+	FederationClientset_1_3 *federation_release_1_3.Clientset
+	// TODO: remove FederationClient, all the client access must be through FederationClientset
+	FederationClient *unversionedfederation.FederationClient
 
 	Namespace                *api.Namespace   // Every test has at least one namespace
 	namespacesToDelete       []*api.Namespace // Some tests have more than one.
@@ -75,6 +85,9 @@ type Framework struct {
 
 	// configuration for framework's client
 	options FrameworkOptions
+
+	// will this framework exercise a federated cluster as well
+	federated bool
 }
 
 type TestDataSummary interface {
@@ -97,12 +110,23 @@ func NewDefaultFramework(baseName string) *Framework {
 	return NewFramework(baseName, options, nil)
 }
 
+func NewDefaultFederatedFramework(baseName string) *Framework {
+	f := NewDefaultFramework(baseName)
+	f.federated = true
+	return f
+}
+
 func NewFramework(baseName string, options FrameworkOptions, client *client.Client) *Framework {
+	return NewFrameworkWithConfigGetter(baseName, options, client, LoadConfig)
+}
+
+func NewFrameworkWithConfigGetter(baseName string, options FrameworkOptions, client *client.Client, configGetter ClientConfigGetter) *Framework {
 	f := &Framework{
 		BaseName:                 baseName,
 		AddonResourceConstraints: make(map[string]ResourceConstraint),
 		options:                  options,
 		Client:                   client,
+		ClientConfigGetter:       configGetter,
 	}
 
 	BeforeEach(f.BeforeEach)
@@ -116,10 +140,9 @@ func (f *Framework) BeforeEach() {
 	// The fact that we need this feels like a bug in ginkgo.
 	// https://github.com/onsi/ginkgo/issues/222
 	f.cleanupHandle = AddCleanupAction(f.AfterEach)
-
 	if f.Client == nil {
 		By("Creating a kubernetes client")
-		config, err := LoadConfig()
+		config, err := f.ClientConfigGetter()
 		Expect(err).NotTo(HaveOccurred())
 		config.QPS = f.options.ClientQPS
 		config.Burst = f.options.ClientBurst
@@ -129,9 +152,36 @@ func (f *Framework) BeforeEach() {
 		c, err := loadClientFromConfig(config)
 		Expect(err).NotTo(HaveOccurred())
 		f.Client = c
+		f.Clientset_1_2, err = release_1_2.NewForConfig(config)
+		Expect(err).NotTo(HaveOccurred())
+		f.Clientset_1_3, err = release_1_3.NewForConfig(config)
+		Expect(err).NotTo(HaveOccurred())
 	}
-	f.Clientset_1_2 = adapter_1_2.FromUnversionedClient(f.Client)
-	f.Clientset_1_3 = adapter_1_3.FromUnversionedClient(f.Client)
+
+	if f.federated {
+		if f.FederationClient == nil {
+			By("Creating a federated kubernetes client")
+			var err error
+			f.FederationClient, err = LoadFederationClient()
+			Expect(err).NotTo(HaveOccurred())
+		}
+		if f.FederationClientset == nil {
+			By("Creating an unversioned federation Clientset")
+			var err error
+			f.FederationClientset, err = LoadFederationClientset()
+			Expect(err).NotTo(HaveOccurred())
+		}
+		if f.FederationClientset_1_3 == nil {
+			By("Creating a release 1.3 federation Clientset")
+			var err error
+			f.FederationClientset_1_3, err = LoadFederationClientset_1_3()
+			Expect(err).NotTo(HaveOccurred())
+		}
+		By("Waiting for federation-apiserver to be ready")
+		err := WaitForFederationApiserverReady(f.FederationClientset)
+		Expect(err).NotTo(HaveOccurred())
+		By("federation-apiserver is ready")
+	}
 
 	By("Building a namespace api object")
 	namespace, err := f.CreateNamespace(f.BaseName, map[string]string{
@@ -149,8 +199,11 @@ func (f *Framework) BeforeEach() {
 		Logf("Skipping waiting for service account")
 	}
 
-	if TestContext.GatherKubeSystemResourceUsageData {
-		f.gatherer, err = NewResourceUsageGatherer(f.Client, ResourceGathererOptions{inKubemark: ProviderIs("kubemark")})
+	if TestContext.GatherKubeSystemResourceUsageData != "false" && TestContext.GatherKubeSystemResourceUsageData != "none" {
+		f.gatherer, err = NewResourceUsageGatherer(f.Client, ResourceGathererOptions{
+			inKubemark: ProviderIs("kubemark"),
+			masterOnly: TestContext.GatherKubeSystemResourceUsageData == "master",
+		})
 		if err != nil {
 			Logf("Error while creating NewResourceUsageGatherer: %v", err)
 		} else {
@@ -203,13 +256,35 @@ func (f *Framework) AfterEach() {
 		f.Client = nil
 	}()
 
+	if f.federated {
+		defer func() {
+			if f.FederationClient == nil {
+				Logf("Warning: framework is marked federated, but has no federation client")
+				return
+			}
+			if f.FederationClientset == nil {
+				Logf("Warning: framework is marked federated, but has no federation clientset")
+				return
+			}
+			if err := f.FederationClient.Clusters().DeleteCollection(nil, api.ListOptions{}); err != nil {
+				Logf("Error: failed to delete Clusters: %+v", err)
+			}
+		}()
+	}
+
 	// Print events if the test failed.
-	if CurrentGinkgoTestDescription().Failed {
+	if CurrentGinkgoTestDescription().Failed && TestContext.DumpLogsOnFailure {
 		DumpAllNamespaceInfo(f.Client, f.Namespace.Name)
+		By(fmt.Sprintf("Dumping a list of prepulled images on each node"))
+		LogContainersInPodsWithLabels(f.Client, api.NamespaceSystem, ImagePullerLabels, "image-puller")
+		if f.federated {
+			// Print logs of federation control plane pods (federation-apiserver and federation-controller-manager)
+			LogPodsWithLabels(f.Client, "federation", map[string]string{"app": "federated-cluster"})
+		}
 	}
 
 	summaries := make([]TestDataSummary, 0)
-	if TestContext.GatherKubeSystemResourceUsageData && f.gatherer != nil {
+	if TestContext.GatherKubeSystemResourceUsageData != "false" && TestContext.GatherKubeSystemResourceUsageData != "none" && f.gatherer != nil {
 		By("Collecting resource usage data")
 		summaries = append(summaries, f.gatherer.stopAndSummarize([]int{90, 99, 100}, f.AddonResourceConstraints))
 	}
@@ -228,7 +303,7 @@ func (f *Framework) AfterEach() {
 		if err != nil {
 			Logf("Failed to create MetricsGrabber. Skipping metrics gathering.")
 		} else {
-			received, err := grabber.Grab(nil)
+			received, err := grabber.Grab()
 			if err != nil {
 				Logf("MetricsGrabber failed grab metrics. Skipping metrics gathering.")
 			} else {
@@ -439,7 +514,7 @@ func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName str
 
 // CreatePodsPerNodeForSimpleApp Creates pods w/ labels.  Useful for tests which make a bunch of pods w/o any networking.
 func (f *Framework) CreatePodsPerNodeForSimpleApp(appName string, podSpec func(n api.Node) api.PodSpec, maxCount int) map[string]string {
-	nodes := ListSchedulableNodesOrDie(f.Client)
+	nodes := GetReadySchedulableNodesOrDie(f.Client)
 	labels := map[string]string{
 		"app": appName + "-pod",
 	}
@@ -460,6 +535,105 @@ func (f *Framework) CreatePodsPerNodeForSimpleApp(appName string, podSpec func(n
 	return labels
 }
 
+type KubeUser struct {
+	Name string `yaml:"name"`
+	User struct {
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		Token    string `yaml:"token"`
+	} `yaml:"user"`
+}
+
+type KubeCluster struct {
+	Name    string `yaml:"name"`
+	Cluster struct {
+		CertificateAuthorityData string `yaml:"certificate-authority-data"`
+		Server                   string `yaml:"server"`
+	} `yaml:"cluster"`
+}
+
+type KubeConfig struct {
+	Contexts []struct {
+		Name    string `yaml:"name"`
+		Context struct {
+			Cluster string `yaml:"cluster"`
+			User    string
+		} `yaml:"context"`
+	} `yaml:"contexts"`
+
+	Clusters []KubeCluster `yaml:"clusters"`
+
+	Users []KubeUser `yaml:"users"`
+}
+
+func (kc *KubeConfig) findUser(name string) *KubeUser {
+	for _, user := range kc.Users {
+		if user.Name == name {
+			return &user
+		}
+	}
+	return nil
+}
+
+func (kc *KubeConfig) findCluster(name string) *KubeCluster {
+	for _, cluster := range kc.Clusters {
+		if cluster.Name == name {
+			return &cluster
+		}
+	}
+	return nil
+}
+
+type E2EContext struct {
+	// Raw context name,
+	RawName string `yaml:"rawName"`
+	// A valid dns subdomain which can be used as the name of kubernetes resources.
+	Name    string       `yaml:"name"`
+	Cluster *KubeCluster `yaml:"cluster"`
+	User    *KubeUser    `yaml:"user"`
+}
+
+func (f *Framework) GetUnderlyingFederatedContexts() []E2EContext {
+	if !f.federated {
+		Failf("geUnderlyingFederatedContexts called on non-federated framework")
+	}
+
+	kubeconfig := KubeConfig{}
+	configBytes, err := ioutil.ReadFile(TestContext.KubeConfig)
+	ExpectNoError(err)
+	err = yaml.Unmarshal(configBytes, &kubeconfig)
+	ExpectNoError(err)
+
+	e2eContexts := []E2EContext{}
+	for _, context := range kubeconfig.Contexts {
+		if strings.HasPrefix(context.Name, "federation") && context.Name != "federation-cluster" {
+
+			user := kubeconfig.findUser(context.Context.User)
+			if user == nil {
+				Failf("Could not find user for context %+v", context)
+			}
+
+			cluster := kubeconfig.findCluster(context.Context.Cluster)
+			if cluster == nil {
+				Failf("Could not find cluster for context %+v", context)
+			}
+
+			dnsSubdomainName, err := GetValidDNSSubdomainName(context.Name)
+			if err != nil {
+				Failf("Could not convert context name %s to a valid dns subdomain name, error: %s", context.Name, err)
+			}
+			e2eContexts = append(e2eContexts, E2EContext{
+				RawName: context.Name,
+				Name:    dnsSubdomainName,
+				Cluster: cluster,
+				User:    user,
+			})
+		}
+	}
+
+	return e2eContexts
+}
+
 func kubectlExecWithRetry(namespace string, podName, containerName string, args ...string) ([]byte, []byte, error) {
 	for numRetries := 0; numRetries < maxKubectlExecRetries; numRetries++ {
 		if numRetries > 0 {
@@ -471,6 +645,12 @@ func kubectlExecWithRetry(namespace string, podName, containerName string, args 
 			if strings.Contains(strings.ToLower(string(stdErrBytes)), "i/o timeout") {
 				// Retry on "i/o timeout" errors
 				Logf("Warning: kubectl exec encountered i/o timeout.\nerr=%v\nstdout=%v\nstderr=%v)", err, string(stdOutBytes), string(stdErrBytes))
+				continue
+			}
+			if strings.Contains(strings.ToLower(string(stdErrBytes)), "container not found") {
+				// Retry on "container not found" errors
+				Logf("Warning: kubectl exec encountered container not found.\nerr=%v\nstdout=%v\nstderr=%v)", err, string(stdOutBytes), string(stdErrBytes))
+				time.Sleep(2 * time.Second)
 				continue
 			}
 		}
@@ -494,7 +674,7 @@ func kubectlExec(namespace string, podName, containerName string, args ...string
 	cmd := KubectlCmd(cmdArgs...)
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 
-	Logf("Running '%s %s'", cmd.Path, strings.Join(cmd.Args, " "))
+	Logf("Running '%s %s'", cmd.Path, strings.Join(cmdArgs, " "))
 	err := cmd.Run()
 	return stdout.Bytes(), stderr.Bytes(), err
 }

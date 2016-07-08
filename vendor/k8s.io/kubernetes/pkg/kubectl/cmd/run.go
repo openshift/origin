@@ -56,7 +56,7 @@ kubectl run nginx --image=nginx --dry-run
 # Start a single instance of nginx, but overload the spec of the deployment with a partial set of values parsed from JSON.
 kubectl run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
-# Start a single instance of busybox and keep it in the foreground, don't restart it if it exits.
+# Start a pod of busybox and keep it in the foreground, don't restart it if it exits.
 kubectl run -i -t busybox --image=busybox --restart=Never
 
 # Start the nginx container using the default command, but use custom arguments (arg1 .. argN) for that command.
@@ -100,12 +100,12 @@ func NewCmdRunWithOptions(f *cmdutil.Factory, opts *RunOptions, cmdIn io.Reader,
 }
 
 func addRunFlags(cmd *cobra.Command) {
-	cmd.Flags().String("generator", "", "The name of the API generator to use.  Default is 'deployment/v1beta1' if --restart=Always, otherwise the default is 'job/v1'.  This will happen only for cluster version at least 1.2, for olders we will fallback to 'run/v1' for --restart=Always, 'run-pod/v1' for others.")
+	cmdutil.AddDryRunFlag(cmd)
+	cmd.Flags().String("generator", "", "The name of the API generator to use.  Default is 'deployment/v1beta1' if --restart=Always, 'job/v1' for OnFailure and 'run-pod/v1' for Never.  This will happen only for cluster version at least 1.3, for 1.2 we will fallback to 'deployment/v1beta1' for --restart=Always, 'job/v1' for others, for olders we will fallback to 'run/v1' for --restart=Always, 'run-pod/v1' for others.")
 	cmd.Flags().String("image", "", "The image for the container to run.")
 	cmd.MarkFlagRequired("image")
 	cmd.Flags().IntP("replicas", "r", 1, "Number of replicas to create for this container. Default is 1.")
 	cmd.Flags().Bool("rm", false, "If true, delete resources created in this command for attached containers.")
-	cmd.Flags().Bool("dry-run", false, "If true, only print the object that would be sent, without sending it.")
 	cmd.Flags().String("overrides", "", "An inline JSON override for the generated object. If this is non-empty, it is used to override the generated object. Requires that the object supply a valid apiVersion field.")
 	cmd.Flags().StringSlice("env", []string{}, "Environment variables to set in the container")
 	cmd.Flags().Int("port", -1, "The port that this container exposes.  If --expose is true, this is also the port used by the service that is created.")
@@ -113,9 +113,9 @@ func addRunFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("labels", "l", "", "Labels to apply to the pod(s).")
 	cmd.Flags().BoolP("stdin", "i", false, "Keep stdin open on the container(s) in the pod, even if nothing is attached.")
 	cmd.Flags().BoolP("tty", "t", false, "Allocated a TTY for each container in the pod.")
-	cmd.Flags().Bool("attach", false, "If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '-i/--interactive' is set, in which case the default is true.")
+	cmd.Flags().Bool("attach", false, "If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '-i/--stdin' is set, in which case the default is true.")
 	cmd.Flags().Bool("leave-stdin-open", false, "If the pod is started in interactive mode or with stdin, leave stdin open after the first attach completes. By default, stdin will be closed after the first attach completes.")
-	cmd.Flags().String("restart", "Always", "The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created for this pod, if set to OnFailure or Never, a job is created for this pod and --replicas must be 1.  Default 'Always'")
+	cmd.Flags().String("restart", "Always", "The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a deployment is created for this pod, if set to 'OnFailure', a job is created for this pod, if set to 'Never', a regular pod is created. For the latter two --replicas must be 1.  Default 'Always'")
 	cmd.Flags().Bool("command", false, "If true and extra arguments are present, use them as the 'command' field in the container, rather than the 'args' field which is the default.")
 	cmd.Flags().String("requests", "", "The resource requirement requests for this container.  For example, 'cpu=100m,memory=256Mi'.  Note that server side components may assign requests depending on the server configuration, such as limit ranges.")
 	cmd.Flags().String("limits", "", "The resource requirement limits for this container.  For example, 'cpu=200m,memory=512Mi'.  Note that server side components may assign limits depending on the server configuration, such as limit ranges.")
@@ -171,17 +171,18 @@ func Run(f *cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr i
 			return err
 		}
 		resourcesList, err := client.Discovery().ServerResources()
+		// ServerResources ignores errors for old servers do not expose discovery
 		if err != nil {
-			// this cover the cases where old servers do not expose discovery
-			resourcesList = nil
+			return fmt.Errorf("failed to discover supported resources: %v", err)
 		}
-		if restartPolicy == api.RestartPolicyAlways {
+		switch restartPolicy {
+		case api.RestartPolicyAlways:
 			if contains(resourcesList, v1beta1.SchemeGroupVersion.WithResource("deployments")) {
 				generatorName = "deployment/v1beta1"
 			} else {
 				generatorName = "run/v1"
 			}
-		} else {
+		case api.RestartPolicyOnFailure:
 			if contains(resourcesList, batchv1.SchemeGroupVersion.WithResource("jobs")) {
 				generatorName = "job/v1"
 			} else if contains(resourcesList, v1beta1.SchemeGroupVersion.WithResource("jobs")) {
@@ -189,6 +190,8 @@ func Run(f *cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr i
 			} else {
 				generatorName = "run-pod/v1"
 			}
+		case api.RestartPolicyNever:
+			generatorName = "run-pod/v1"
 		}
 	}
 	generators := f.Generators("run")
@@ -459,10 +462,11 @@ func createGeneratedObject(f *cmdutil.Factory, cmd *cobra.Command, generator kub
 	}
 
 	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
-	groupVersionKind, err := typer.ObjectKind(obj)
+	groupVersionKinds, _, err := typer.ObjectKinds(obj)
 	if err != nil {
 		return nil, "", nil, nil, err
 	}
+	groupVersionKind := groupVersionKinds[0]
 
 	if len(overrides) > 0 {
 		codec := runtime.NewCodec(f.JSONEncoder(), f.Decoder(true))
@@ -490,8 +494,7 @@ func createGeneratedObject(f *cmdutil.Factory, cmd *cobra.Command, generator kub
 			return nil, "", nil, nil, err
 		}
 	}
-	// TODO: extract this flag to a central location, when such a location exists.
-	if !cmdutil.GetFlagBool(cmd, "dry-run") {
+	if !cmdutil.GetDryRunFlag(cmd) {
 		resourceMapper := &resource.Mapper{
 			ObjectTyper:  typer,
 			RESTMapper:   mapper,

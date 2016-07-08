@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"reflect"
 	"testing"
@@ -49,6 +50,21 @@ func initTestErrorHandler(t *testing.T) {
 	})
 }
 
+func defaultHeader() http.Header {
+	header := http.Header{}
+	header.Set("Content-Type", runtime.ContentTypeJSON)
+	return header
+}
+
+func defaultClientConfig() *restclient.Config {
+	return &restclient.Config{
+		ContentConfig: restclient.ContentConfig{
+			ContentType:  runtime.ContentTypeJSON,
+			GroupVersion: testapi.Default.GroupVersion(),
+		},
+	}
+}
+
 type internalType struct {
 	Kind       string
 	APIVersion string
@@ -71,24 +87,24 @@ type ExternalType2 struct {
 }
 
 func (obj *internalType) GetObjectKind() unversioned.ObjectKind { return obj }
-func (obj *internalType) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+func (obj *internalType) SetGroupVersionKind(gvk unversioned.GroupVersionKind) {
 	obj.APIVersion, obj.Kind = gvk.ToAPIVersionAndKind()
 }
-func (obj *internalType) GroupVersionKind() *unversioned.GroupVersionKind {
+func (obj *internalType) GroupVersionKind() unversioned.GroupVersionKind {
 	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
 }
 func (obj *externalType) GetObjectKind() unversioned.ObjectKind { return obj }
-func (obj *externalType) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+func (obj *externalType) SetGroupVersionKind(gvk unversioned.GroupVersionKind) {
 	obj.APIVersion, obj.Kind = gvk.ToAPIVersionAndKind()
 }
-func (obj *externalType) GroupVersionKind() *unversioned.GroupVersionKind {
+func (obj *externalType) GroupVersionKind() unversioned.GroupVersionKind {
 	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
 }
 func (obj *ExternalType2) GetObjectKind() unversioned.ObjectKind { return obj }
-func (obj *ExternalType2) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+func (obj *ExternalType2) SetGroupVersionKind(gvk unversioned.GroupVersionKind) {
 	obj.APIVersion, obj.Kind = gvk.ToAPIVersionAndKind()
 }
-func (obj *ExternalType2) GroupVersionKind() *unversioned.GroupVersionKind {
+func (obj *ExternalType2) GroupVersionKind() unversioned.GroupVersionKind {
 	return unversioned.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
 }
 
@@ -304,17 +320,18 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 				}
 				return c.Pods(t.Namespace).GetLogs(t.Name, opts), nil
 			default:
-				fqKind, err := api.Scheme.ObjectKind(object)
+				fqKinds, _, err := api.Scheme.ObjectKinds(object)
 				if err != nil {
 					return nil, err
 				}
-				return nil, fmt.Errorf("cannot get the logs from %v", fqKind)
+				return nil, fmt.Errorf("cannot get the logs from %v", fqKinds[0])
 			}
 		},
 	}
 	rf := cmdutil.NewFactory(nil)
 	f.MapBasedSelectorForObject = rf.MapBasedSelectorForObject
 	f.PortsForObject = rf.PortsForObject
+	f.ProtocolsForObject = rf.ProtocolsForObject
 	f.LabelsForObject = rf.LabelsForObject
 	f.CanBeExposed = rf.CanBeExposed
 	f.PrintObjectSpecificMessage = rf.PrintObjectSpecificMessage
@@ -517,6 +534,7 @@ func Example_printPodWithWideFormat() {
 				{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
 				{RestartCount: 3},
 			},
+			PodIP: "10.1.1.3",
 		},
 	}
 	mapper, _ := f.Object(false)
@@ -525,8 +543,8 @@ func Example_printPodWithWideFormat() {
 		fmt.Printf("Unexpected error: %v", err)
 	}
 	// Output:
-	// NAME      READY     STATUS     RESTARTS   AGE       NODE
-	// test1     1/2       podPhase   6          10y       kubernetes-minion-abcd
+	// NAME      READY     STATUS     RESTARTS   AGE       IP         NODE
+	// test1     1/2       podPhase   6          10y       10.1.1.3   kubernetes-minion-abcd
 }
 
 func Example_printPodWithShowLabels() {

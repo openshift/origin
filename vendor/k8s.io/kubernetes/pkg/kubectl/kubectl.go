@@ -43,7 +43,7 @@ type NamespaceInfo struct {
 }
 
 func listOfImages(spec *api.PodSpec) []string {
-	var images []string
+	images := make([]string, 0, len(spec.Containers))
 	for _, container := range spec.Containers {
 		images = append(images, container.Image)
 	}
@@ -64,7 +64,7 @@ func NewThirdPartyResourceMapper(gvs []unversioned.GroupVersion, gvks []unversio
 				}, nil
 			}
 		}
-		groupVersions := []string{}
+		groupVersions := make([]string, 0, len(gvs))
 		for ix := range gvs {
 			groupVersions = append(groupVersions, gvs[ix].String())
 		}
@@ -127,12 +127,16 @@ func (e ShortcutExpander) ResourceFor(resource unversioned.GroupVersionResource)
 	return e.RESTMapper.ResourceFor(expandResourceShortcut(resource))
 }
 
-func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
-	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
-}
-
 func (e ShortcutExpander) RESTMapping(gk unversioned.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	return e.RESTMapper.RESTMapping(gk, versions...)
+}
+
+func (e ShortcutExpander) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMapping, error) {
+	return e.RESTMapper.RESTMappings(gk)
+}
+
+func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
+	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
 }
 
 func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {

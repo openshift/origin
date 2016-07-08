@@ -69,12 +69,17 @@ type Runtime interface {
 	APIVersion() (Version, error)
 	// Status returns error if the runtime is unhealthy; nil otherwise.
 	Status() error
-	// GetPods returns a list containers group by pods. The boolean parameter
+	// GetPods returns a list of containers grouped by pods. The boolean parameter
 	// specifies whether the runtime returns all containers including those already
 	// exited and dead containers (used for garbage collection).
 	GetPods(all bool) ([]*Pod, error)
 	// GarbageCollect removes dead containers using the specified container gc policy
-	GarbageCollect(gcPolicy ContainerGCPolicy) error
+	// If allSourcesReady is not true, it means that kubelet doesn't have the
+	// complete list of pods from all avialble sources (e.g., apiserver, http,
+	// file). In this case, garbage collector should refrain itself from aggressive
+	// behavior such as removing all containers of unrecognized pods (yet).
+	// TODO: Revisit this method and make it cleaner.
+	GarbageCollect(gcPolicy ContainerGCPolicy, allSourcesReady bool) error
 	// Syncs the running pod into the desired pod.
 	SyncPod(pod *api.Pod, apiPodStatus api.PodStatus, podStatus *PodStatus, pullSecrets []api.Secret, backOff *flowcontrol.Backoff) PodSyncResult
 	// KillPod kills all the containers of a pod. Pod may be nil, running pod must not be.
@@ -97,6 +102,17 @@ type Runtime interface {
 	RemoveImage(image ImageSpec) error
 	// Returns Image statistics.
 	ImageStats() (*ImageStats, error)
+	// Returns the filesystem path of the pod's network namespace; if the
+	// runtime does not handle namespace creation itself, or cannot return
+	// the network namespace path, it should return an error.
+	// TODO: Change ContainerID to a Pod ID since the namespace is shared
+	// by all containers in the pod.
+	GetNetNS(containerID ContainerID) (string, error)
+	// Returns the container ID that represents the Pod, as passed to network
+	// plugins. For example if the runtime uses an infra container, returns
+	// the infra container's ContainerID.
+	// TODO: Change ContainerID to a Pod ID, see GetNetNS()
+	GetPodContainerID(*Pod) (ContainerID, error)
 	// TODO(vmarmol): Unify pod and containerID args.
 	// GetContainerLogs returns logs of a specific container. By
 	// default, it returns a snapshot of the container log. Set 'follow' to true to
@@ -115,9 +131,6 @@ type ContainerAttacher interface {
 
 // CommandRunner encapsulates the command runner interfaces for testability.
 type ContainerCommandRunner interface {
-	// TODO(vmarmol): Merge RunInContainer and ExecInContainer.
-	// Runs the command in the container of the specified pod.
-	RunInContainer(containerID ContainerID, cmd []string) ([]byte, error)
 	// Runs the command in the container of the specified pod using nsenter.
 	// Attaches the processes stdin, stdout, and stderr. Optionally uses a
 	// tty.
@@ -359,6 +372,8 @@ type RunContainerOptions struct {
 	Envs []EnvVar
 	// The mounts for the containers.
 	Mounts []Mount
+	// The host devices mapped into the containers.
+	Devices []string
 	// The port mappings for the containers.
 	PortMappings []PortMapping
 	// If the container has specified the TerminationMessagePath, then

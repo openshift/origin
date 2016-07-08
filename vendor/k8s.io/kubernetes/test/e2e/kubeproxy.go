@@ -463,7 +463,8 @@ func (config *KubeProxyTestConfig) setup() {
 	}
 
 	By("Getting node addresses")
-	nodeList := framework.ListSchedulableNodesOrDie(config.f.Client)
+	framework.ExpectNoError(framework.WaitForAllNodesSchedulable(config.f.Client))
+	nodeList := framework.GetReadySchedulableNodesOrDie(config.f.Client)
 	config.externalAddrs = framework.NodeAddresses(nodeList, api.NodeExternalIP)
 	if len(config.externalAddrs) < 2 {
 		// fall back to legacy IPs
@@ -501,7 +502,8 @@ func (config *KubeProxyTestConfig) cleanup() {
 }
 
 func (config *KubeProxyTestConfig) createNetProxyPods(podName string, selector map[string]string) []*api.Pod {
-	nodes := framework.ListSchedulableNodesOrDie(config.f.Client)
+	framework.ExpectNoError(framework.WaitForAllNodesSchedulable(config.f.Client))
+	nodes := framework.GetReadySchedulableNodesOrDie(config.f.Client)
 
 	// create pods, one for each node
 	createdPods := make([]*api.Pod, 0, len(nodes.Items))

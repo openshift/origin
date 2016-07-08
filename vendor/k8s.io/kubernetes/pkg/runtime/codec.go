@@ -40,10 +40,10 @@ func NewCodec(e Encoder, d Decoder) Codec {
 }
 
 // Encode is a convenience wrapper for encoding to a []byte from an Encoder
-func Encode(e Encoder, obj Object, overrides ...unversioned.GroupVersion) ([]byte, error) {
+func Encode(e Encoder, obj Object) ([]byte, error) {
 	// TODO: reuse buffer
 	buf := &bytes.Buffer{}
-	if err := e.EncodeToStream(obj, buf, overrides...); err != nil {
+	if err := e.Encode(obj, buf); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -78,13 +78,13 @@ func EncodeOrDie(e Encoder, obj Object) string {
 
 // UseOrCreateObject returns obj if the canonical ObjectKind returned by the provided typer matches gvk, or
 // invokes the ObjectCreator to instantiate a new gvk. Returns an error if the typer cannot find the object.
-func UseOrCreateObject(t Typer, c ObjectCreater, gvk unversioned.GroupVersionKind, obj Object) (Object, error) {
+func UseOrCreateObject(t ObjectTyper, c ObjectCreater, gvk unversioned.GroupVersionKind, obj Object) (Object, error) {
 	if obj != nil {
-		into, _, err := t.ObjectKind(obj)
+		into, _, err := t.ObjectKinds(obj)
 		if err != nil {
 			return nil, err
 		}
-		if gvk == *into {
+		if gvk == into[0] {
 			return obj, nil
 		}
 	}
@@ -98,7 +98,7 @@ type NoopEncoder struct {
 
 var _ Serializer = NoopEncoder{}
 
-func (n NoopEncoder) EncodeToStream(obj Object, w io.Writer, overrides ...unversioned.GroupVersion) error {
+func (n NoopEncoder) Encode(obj Object, w io.Writer) error {
 	return fmt.Errorf("encoding is not allowed for this codec: %v", reflect.TypeOf(n.Decoder))
 }
 
@@ -116,7 +116,7 @@ func (n NoopDecoder) Decode(data []byte, gvk *unversioned.GroupVersionKind, into
 // NewParameterCodec creates a ParameterCodec capable of transforming url values into versioned objects and back.
 func NewParameterCodec(scheme *Scheme) ParameterCodec {
 	return &parameterCodec{
-		typer:     ObjectTyperToTyper(scheme),
+		typer:     scheme,
 		convertor: scheme,
 		creator:   scheme,
 	}
@@ -124,7 +124,7 @@ func NewParameterCodec(scheme *Scheme) ParameterCodec {
 
 // parameterCodec implements conversion to and from query parameters and objects.
 type parameterCodec struct {
-	typer     Typer
+	typer     ObjectTyper
 	convertor ObjectConvertor
 	creator   ObjectCreater
 }
@@ -137,32 +137,34 @@ func (c *parameterCodec) DecodeParameters(parameters url.Values, from unversione
 	if len(parameters) == 0 {
 		return nil
 	}
-	targetGVK, _, err := c.typer.ObjectKind(into)
+	targetGVKs, _, err := c.typer.ObjectKinds(into)
 	if err != nil {
 		return err
 	}
+	targetGVK := targetGVKs[0]
 	if targetGVK.GroupVersion() == from {
-		return c.convertor.Convert(&parameters, into)
+		return c.convertor.Convert(&parameters, into, nil)
 	}
 	input, err := c.creator.New(from.WithKind(targetGVK.Kind))
 	if err != nil {
 		return err
 	}
-	if err := c.convertor.Convert(&parameters, input); err != nil {
+	if err := c.convertor.Convert(&parameters, input, nil); err != nil {
 		return err
 	}
-	return c.convertor.Convert(input, into)
+	return c.convertor.Convert(input, into, nil)
 }
 
 // EncodeParameters converts the provided object into the to version, then converts that object to url.Values.
 // Returns an error if conversion is not possible.
 func (c *parameterCodec) EncodeParameters(obj Object, to unversioned.GroupVersion) (url.Values, error) {
-	gvk, _, err := c.typer.ObjectKind(obj)
+	gvks, _, err := c.typer.ObjectKinds(obj)
 	if err != nil {
 		return nil, err
 	}
+	gvk := gvks[0]
 	if to != gvk.GroupVersion() {
-		out, err := c.convertor.ConvertToVersion(obj, to.String())
+		out, err := c.convertor.ConvertToVersion(obj, to)
 		if err != nil {
 			return nil, err
 		}
@@ -179,9 +181,9 @@ func NewBase64Serializer(s Serializer) Serializer {
 	return &base64Serializer{s}
 }
 
-func (s base64Serializer) EncodeToStream(obj Object, stream io.Writer, overrides ...unversioned.GroupVersion) error {
+func (s base64Serializer) Encode(obj Object, stream io.Writer) error {
 	e := base64.NewEncoder(base64.StdEncoding, stream)
-	err := s.Serializer.EncodeToStream(obj, e, overrides...)
+	err := s.Serializer.Encode(obj, e)
 	e.Close()
 	return err
 }
@@ -193,4 +195,80 @@ func (s base64Serializer) Decode(data []byte, defaults *unversioned.GroupVersion
 		return nil, nil, err
 	}
 	return s.Serializer.Decode(out[:n], defaults, into)
+}
+
+// Assert that unversioned.GroupVersion and GroupVersions implement GroupVersioner
+var _ GroupVersioner = unversioned.GroupVersion{}
+var _ GroupVersioner = unversioned.GroupVersions{}
+var _ GroupVersioner = multiGroupVersioner{}
+
+type multiGroupVersioner struct {
+	target     unversioned.GroupVersion
+	groupKinds []unversioned.GroupKind
+}
+
+// NewMultiGroupVersioner creates a group versioner that returns gv for each specified group, and
+// prefers the first item in groups.
+func NewMultiGroupVersioner(gv unversioned.GroupVersion, groupKinds ...unversioned.GroupKind) GroupVersioner {
+	if len(groupKinds) == 0 || (len(groupKinds) == 1 && groupKinds[0].Group == gv.Group) {
+		return gv
+	}
+	return multiGroupVersioner{target: gv, groupKinds: groupKinds}
+}
+
+// VersionForGroupKind returns the target version if the provided src GroupKind matches any of the allowed
+// group kinds. If Kind is specified on src, only an equivalent Kind or empty kind will match.
+func (v multiGroupVersioner) VersionForGroupKind(src unversioned.GroupKind) (unversioned.GroupVersion, bool) {
+	// match any group kind with the same kind
+	if len(src.Kind) > 0 {
+		for _, kind := range v.groupKinds {
+			// skip group kinds that don't match this kind
+			if len(kind.Kind) > 0 && kind.Kind != src.Kind {
+				continue
+			}
+			if kind.Group == src.Group {
+				return v.target, true
+			}
+		}
+		return unversioned.GroupVersion{}, false
+	}
+
+	// match only group kinds that specify no kind
+	for _, kind := range v.groupKinds {
+		if len(kind.Kind) > 0 {
+			continue
+		}
+		if kind.Group == src.Group {
+			return v.target, true
+		}
+	}
+	return unversioned.GroupVersion{}, false
+}
+
+func (v multiGroupVersioner) PrefersGroup() (string, bool) {
+	return v.groupKinds[0].Group, true
+}
+
+// kindForGroupVersioner identifies the first GVK that the target group versioner accepts.
+func kindForGroupVersioner(kinds []unversioned.GroupVersionKind, target GroupVersioner) (unversioned.GroupVersionKind, bool) {
+	// select the kind that matches the preferred group
+	if group, ok := target.PrefersGroup(); ok {
+		if gv, ok := target.VersionForGroupKind(unversioned.GroupKind{Group: group}); ok {
+			for _, kind := range kinds {
+				if kind.Group == group {
+					return gv.WithKind(kind.Kind), true
+				}
+			}
+		}
+	}
+
+	// find the first group that has a target version
+	for _, kind := range kinds {
+		if gv, ok := target.VersionForGroupKind(kind.GroupKind()); ok {
+			return gv.WithKind(kind.Kind), true
+		}
+	}
+
+	// no match
+	return unversioned.GroupVersionKind{}, false
 }

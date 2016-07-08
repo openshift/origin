@@ -124,11 +124,8 @@ func (s *Scheme) nameFunc(t reflect.Type) string {
 
 // fromScope gets the input version, desired output version, and desired Scheme
 // from a conversion.Scope.
-func (s *Scheme) fromScope(scope conversion.Scope) (inVersion, outVersion string, scheme *Scheme) {
-	scheme = s
-	inVersion = scope.Meta().SrcVersion
-	outVersion = scope.Meta().DestVersion
-	return inVersion, outVersion, scheme
+func (s *Scheme) fromScope(scope conversion.Scope) *Scheme {
+	return s
 }
 
 // Converter allows access to the converter for the scheme
@@ -214,31 +211,32 @@ func (s *Scheme) KnownTypes(gv unversioned.GroupVersion) map[string]reflect.Type
 	return types
 }
 
-// ObjectKind returns the group,version,kind of the go object,
-// or an error if it's not a pointer or is unregistered.
-func (s *Scheme) ObjectKind(obj Object) (unversioned.GroupVersionKind, error) {
-	gvks, err := s.ObjectKinds(obj)
+// ObjectKind returns the group,version,kind of the go object and true if this object
+// is considered unversioned, or an error if it's not a pointer or is unregistered.
+func (s *Scheme) ObjectKind(obj Object) (unversioned.GroupVersionKind, bool, error) {
+	gvks, unversionedType, err := s.ObjectKinds(obj)
 	if err != nil {
-		return unversioned.GroupVersionKind{}, err
+		return unversioned.GroupVersionKind{}, false, err
 	}
-	return gvks[0], nil
+	return gvks[0], unversionedType, nil
 }
 
-// ObjectKinds returns all possible group,version,kind of the go object,
-// or an error if it's not a pointer or is unregistered.
-func (s *Scheme) ObjectKinds(obj Object) ([]unversioned.GroupVersionKind, error) {
+// ObjectKinds returns all possible group,version,kind of the go object, true if the
+// object is considered unversioned, or an error if it's not a pointer or is unregistered.
+func (s *Scheme) ObjectKinds(obj Object) ([]unversioned.GroupVersionKind, bool, error) {
 	v, err := conversion.EnforcePtr(obj)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	t := v.Type()
 
 	gvks, ok := s.typeToGVK[t]
 	if !ok {
-		return nil, &notRegisteredErr{t: t}
+		return nil, false, &notRegisteredErr{t: t}
 	}
+	_, unversionedType := s.unversionedTypes[t]
 
-	return gvks, nil
+	return gvks, unversionedType, nil
 }
 
 // Recognizes returns true if the scheme is able to handle the provided group,version,kind
@@ -435,23 +433,11 @@ func (s *Scheme) DeepCopy(src interface{}) (interface{}, error) {
 // Convert will attempt to convert in into out. Both must be pointers. For easy
 // testing of conversion functions. Returns an error if the conversion isn't
 // possible. You can call this with types that haven't been registered (for example,
-// a to test conversion of types that are nested within registered types), but in
-// that case, the conversion.Scope object passed to your conversion functions won't
-// have SrcVersion or DestVersion fields set correctly in Meta().
-func (s *Scheme) Convert(in, out interface{}) error {
-	inVersion := unversioned.GroupVersion{Group: "unknown", Version: "unknown"}
-	outVersion := unversioned.GroupVersion{Group: "unknown", Version: "unknown"}
-	if inObj, ok := in.(Object); ok {
-		if gvk, err := s.ObjectKind(inObj); err == nil {
-			inVersion = gvk.GroupVersion()
-		}
-	}
-	if outObj, ok := out.(Object); ok {
-		if gvk, err := s.ObjectKind(outObj); err == nil {
-			outVersion = gvk.GroupVersion()
-		}
-	}
-	flags, meta := s.generateConvertMeta(inVersion, outVersion, in)
+// a to test conversion of types that are nested within registered types). The
+// context interface is passed to the convertor.
+func (s *Scheme) Convert(in, out interface{}, context interface{}) error {
+	flags, meta := s.generateConvertMeta(in)
+	meta.Context = context
 	if flags == 0 {
 		flags = conversion.AllowDifferentFieldTypeNames
 	}
@@ -475,84 +461,101 @@ func (s *Scheme) ConvertFieldLabel(version, kind, label, value string) (string, 
 // version within this scheme. Will return an error if the provided version does not
 // contain the inKind (or a mapping by name defined with AddKnownTypeWithName). Will also
 // return an error if the conversion does not result in a valid Object being
-// returned. The serializer handles loading/serializing nested objects.
-func (s *Scheme) ConvertToVersion(in Object, outVersion string) (Object, error) {
-	gv, err := unversioned.ParseGroupVersion(outVersion)
-	if err != nil {
-		return nil, err
-	}
-	switch in.(type) {
-	case *Unknown, *Unstructured, *UnstructuredList:
-		old := in.GetObjectKind().GroupVersionKind()
-		defer in.GetObjectKind().SetGroupVersionKind(old)
-		setTargetVersion(in, s, gv)
-		return in, nil
-	}
+// returned. Passes target down to the conversion methods as the Context on the scope.
+func (s *Scheme) ConvertToVersion(in Object, target GroupVersioner) (Object, error) {
+	return s.convertToVersion(true, in, target)
+}
+
+// UnsafeConvertToVersion will convert in to the provided target if such a conversion is possible,
+// but does not guarantee the output object does not share fields with the input object. It attempts to be as
+// efficient as possible when doing conversion.
+func (s *Scheme) UnsafeConvertToVersion(in Object, target GroupVersioner) (Object, error) {
+	return s.convertToVersion(false, in, target)
+}
+
+// convertToVersion handles conversion with an optional copy.
+func (s *Scheme) convertToVersion(copy bool, in Object, target GroupVersioner) (Object, error) {
+	// determine the incoming kinds with as few allocations as possible.
 	t := reflect.TypeOf(in)
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("only pointer types may be converted: %v", t)
 	}
-
 	t = t.Elem()
 	if t.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("only pointers to struct types may be converted: %v", t)
 	}
+	kinds, ok := s.typeToGVK[t]
+	if !ok || len(kinds) == 0 {
+		return nil, &notRegisteredErr{t: t}
+	}
 
-	var kind unversioned.GroupVersionKind
-	if unversionedKind, ok := s.unversionedTypes[t]; ok {
-		kind = unversionedKind
-	} else {
-		kinds, ok := s.typeToGVK[t]
-		if !ok || len(kinds) == 0 {
-			return nil, fmt.Errorf("%v is not a registered type and cannot be converted into version %q", t, outVersion)
-		}
+	// if the Go type is also registered to the destination kind, no conversion is necessary
+	if gv, ok := PreferredGroupVersion(target); ok {
 		for _, kind := range kinds {
-			if gv.Version == kind.Version && gv.Group == kind.Group {
-				setTargetKind(in, kind)
-				return in, nil
+			if kind.Group == gv.Group && kind.Version == gv.Version {
+				return copyAndSetTargetKind(copy, s, in, kind)
 			}
 		}
-
-		kind = kinds[0]
+	}
+	for _, kind := range kinds {
+		if gv, ok := target.VersionForGroupKind(kind.GroupKind()); ok && kind.Version == gv.Version {
+			return copyAndSetTargetKind(copy, s, in, kind)
+		}
 	}
 
-	outKind := gv.WithKind(kind.Kind)
+	// type is unversioned, no conversion necessary
+	if unversionedKind, ok := s.unversionedTypes[t]; ok {
+		if desiredGV, ok := target.VersionForGroupKind(unversionedKind.GroupKind()); ok {
+			return copyAndSetTargetKind(copy, s, in, desiredGV.WithKind(unversionedKind.Kind))
+		}
+		return copyAndSetTargetKind(copy, s, in, unversionedKind)
+	}
 
-	inKind, err := s.ObjectKind(in)
+	// allocate a new object as the target using the target kind
+	kind, ok := kindForGroupVersioner(kinds, target)
+	if !ok {
+		// TODO: should this be a typed error?
+		return nil, fmt.Errorf("%v is not suitable for converting to %q", t, target)
+	}
+	out, err := s.New(kind)
 	if err != nil {
 		return nil, err
 	}
 
-	out, err := s.New(outKind)
-	if err != nil {
-		return nil, err
+	if copy {
+		copied, err := s.Copy(in)
+		if err != nil {
+			return nil, err
+		}
+		in = copied
 	}
 
-	flags, meta := s.generateConvertMeta(inKind.GroupVersion(), gv, in)
+	flags, meta := s.generateConvertMeta(in)
+	meta.Context = target
 	if err := s.converter.Convert(in, out, flags, meta); err != nil {
 		return nil, err
 	}
 
-	setTargetVersion(out, s, gv)
+	setTargetKind(out, kind)
 	return out, nil
 }
 
 // generateConvertMeta constructs the meta value we pass to Convert.
-func (s *Scheme) generateConvertMeta(srcGroupVersion, destGroupVersion unversioned.GroupVersion, in interface{}) (conversion.FieldMatchingFlags, *conversion.Meta) {
-	flags, meta := s.converter.DefaultMeta(reflect.TypeOf(in))
-	meta.SrcVersion = srcGroupVersion.String()
-	meta.DestVersion = destGroupVersion.String()
-	return flags, meta
+func (s *Scheme) generateConvertMeta(in interface{}) (conversion.FieldMatchingFlags, *conversion.Meta) {
+	return s.converter.DefaultMeta(reflect.TypeOf(in))
 }
 
-func setTargetVersion(obj Object, raw *Scheme, gv unversioned.GroupVersion) {
-	if gv.Version == APIVersionInternal {
-		// internal is a special case
-		obj.GetObjectKind().SetGroupVersionKind(nil)
-	} else {
-		gvk, _ := raw.ObjectKind(obj)
-		obj.GetObjectKind().SetGroupVersionKind(&unversioned.GroupVersionKind{Group: gv.Group, Version: gv.Version, Kind: gvk.Kind})
+// copyAndSetTargetKind performs a conditional copy before returning the object, or an error if copy was not successful.
+func copyAndSetTargetKind(copy bool, copier ObjectCopier, obj Object, kind unversioned.GroupVersionKind) (Object, error) {
+	if copy {
+		copied, err := copier.Copy(obj)
+		if err != nil {
+			return nil, err
+		}
+		obj = copied
 	}
+	setTargetKind(obj, kind)
+	return obj, nil
 }
 
 // setTargetKind sets the kind on an object, taking into account whether the target kind is the internal version.
@@ -560,8 +563,8 @@ func setTargetKind(obj Object, kind unversioned.GroupVersionKind) {
 	if kind.Version == APIVersionInternal {
 		// internal is a special case
 		// TODO: look at removing the need to special case this
-		obj.GetObjectKind().SetGroupVersionKind(&unversioned.GroupVersionKind{})
+		obj.GetObjectKind().SetGroupVersionKind(unversioned.GroupVersionKind{})
 		return
 	}
-	obj.GetObjectKind().SetGroupVersionKind(&kind)
+	obj.GetObjectKind().SetGroupVersionKind(kind)
 }

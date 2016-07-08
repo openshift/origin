@@ -30,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/batch/v1"
+	"k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -42,7 +43,7 @@ const importPrefix = "k8s.io/kubernetes/pkg/apis/batch"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion, v2alpha1.SchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
@@ -109,6 +110,11 @@ func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, e
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
+	case v2alpha1.SchemeGroupVersion:
+		return &meta.VersionInterfaces{
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
+		}, nil
 	default:
 		g, _ := registered.Group(batch.GroupName)
 		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
@@ -127,6 +133,8 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 		switch v {
 		case v1.SchemeGroupVersion:
 			v1.AddToScheme(api.Scheme)
+		case v2alpha1.SchemeGroupVersion:
+			v2alpha1.AddToScheme(api.Scheme)
 		}
 	}
 }

@@ -20,9 +20,11 @@ import (
 	api "k8s.io/kubernetes/pkg/api"
 	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
 	restclient "k8s.io/kubernetes/pkg/client/restclient"
+	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
 )
 
 type CoreInterface interface {
+	GetRESTClient() *restclient.RESTClient
 	ComponentStatusesGetter
 	ConfigMapsGetter
 	EndpointsGetter
@@ -36,6 +38,7 @@ type CoreInterface interface {
 	ReplicationControllersGetter
 	ResourceQuotasGetter
 	SecretsGetter
+	SecurityContextConstraintsGetter
 	ServicesGetter
 	ServiceAccountsGetter
 }
@@ -97,6 +100,10 @@ func (c *CoreClient) Secrets(namespace string) SecretInterface {
 	return newSecrets(c, namespace)
 }
 
+func (c *CoreClient) SecurityContextConstraints() SecurityContextConstraintsInterface {
+	return newSecurityContextConstraints(c)
+}
+
 func (c *CoreClient) Services(namespace string) ServiceInterface {
 	return newServices(c, namespace)
 }
@@ -149,7 +156,7 @@ func setConfigDefaults(config *restclient.Config) error {
 	config.GroupVersion = &copyGroupVersion
 	//}
 
-	config.NegotiatedSerializer = api.Codecs
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: api.Codecs}
 
 	if config.QPS == 0 {
 		config.QPS = 5
@@ -158,4 +165,13 @@ func setConfigDefaults(config *restclient.Config) error {
 		config.Burst = 10
 	}
 	return nil
+}
+
+// GetRESTClient returns a RESTClient that is used to communicate
+// with API server by this client implementation.
+func (c *CoreClient) GetRESTClient() *restclient.RESTClient {
+	if c == nil {
+		return nil
+	}
+	return c.RESTClient
 }

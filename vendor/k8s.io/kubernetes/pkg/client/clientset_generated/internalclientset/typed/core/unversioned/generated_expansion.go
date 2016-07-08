@@ -22,8 +22,6 @@ type EndpointsExpansion interface{}
 
 type LimitRangeExpansion interface{}
 
-type NodeExpansion interface{}
-
 type PersistentVolumeExpansion interface{}
 
 type PersistentVolumeClaimExpansion interface{}
@@ -33,8 +31,6 @@ type PodTemplateExpansion interface{}
 type ReplicationControllerExpansion interface{}
 
 type ResourceQuotaExpansion interface{}
-
-type SecurityContextConstraintsExpansion interface{}
 
 type SecretExpansion interface{}
 

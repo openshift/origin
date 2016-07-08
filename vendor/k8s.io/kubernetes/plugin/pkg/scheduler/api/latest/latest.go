@@ -42,12 +42,12 @@ var Versions = []string{"v1"}
 var Codec runtime.Codec
 
 func init() {
-	jsonSerializer := json.NewSerializer(json.DefaultMetaFactory, api.Scheme, runtime.ObjectTyperToTyper(api.Scheme), true)
+	jsonSerializer := json.NewSerializer(json.DefaultMetaFactory, api.Scheme, api.Scheme, true)
 	Codec = versioning.NewCodecForScheme(
 		api.Scheme,
 		jsonSerializer,
 		jsonSerializer,
-		[]unversioned.GroupVersion{{Version: Version}},
-		[]unversioned.GroupVersion{{Version: runtime.APIVersionInternal}},
+		unversioned.GroupVersion{Version: Version},
+		runtime.InternalGroupVersioner,
 	)
 }

@@ -49,7 +49,7 @@ func (kl *Kubelet) RunOnce(updates <-chan kubetypes.PodUpdate) ([]RunPodResult, 
 
 	// If the container logs directory does not exist, create it.
 	if _, err := os.Stat(containerLogsDir); err != nil {
-		if err := kl.os.Mkdir(containerLogsDir, 0755); err != nil {
+		if err := kl.os.MkdirAll(containerLogsDir, 0755); err != nil {
 			glog.Errorf("Failed to create directory %q: %v", containerLogsDir, err)
 		}
 	}
@@ -123,8 +123,12 @@ func (kl *Kubelet) runPod(pod *api.Pod, retryDelay time.Duration) error {
 			glog.Errorf("Failed creating a mirror pod %q: %v", format.Pod(pod), err)
 		}
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-
-		if err = kl.syncPod(pod, mirrorPod, status, kubetypes.SyncPodUpdate); err != nil {
+		if err = kl.syncPod(syncPodOptions{
+			pod:        pod,
+			mirrorPod:  mirrorPod,
+			podStatus:  status,
+			updateType: kubetypes.SyncPodUpdate,
+		}); err != nil {
 			return fmt.Errorf("error syncing pod %q: %v", format.Pod(pod), err)
 		}
 		if retry >= runOnceMaxRetries {

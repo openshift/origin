@@ -39,6 +39,7 @@ import (
 )
 
 type cadvisorClient struct {
+	runtime string
 	manager.Manager
 }
 
@@ -52,15 +53,26 @@ const defaultHousekeepingInterval = 10 * time.Second
 const allowDynamicHousekeeping = true
 
 func init() {
-	// Override the default cAdvisor housekeeping interval.
-	if f := flag.Lookup("housekeeping_interval"); f != nil {
-		f.DefValue = defaultHousekeepingInterval.String()
-		f.Value.Set(f.DefValue)
+	// Override cAdvisor flag defaults.
+	flagOverrides := map[string]string{
+		// Override the default cAdvisor housekeeping interval.
+		"housekeeping_interval": defaultHousekeepingInterval.String(),
+		// Disable event storage by default.
+		"event_storage_event_limit": "default=0",
+		"event_storage_age_limit":   "default=0",
+	}
+	for name, defaultValue := range flagOverrides {
+		if f := flag.Lookup(name); f != nil {
+			f.DefValue = defaultValue
+			f.Value.Set(defaultValue)
+		} else {
+			glog.Errorf("Expected cAdvisor flag %q not found", name)
+		}
 	}
 }
 
 // Creates a cAdvisor and exports its API on the specified port if port > 0.
-func New(port uint) (Interface, error) {
+func New(port uint, runtime string) (Interface, error) {
 	sysFs, err := sysfs.NewRealSysFs()
 	if err != nil {
 		return nil, err
@@ -73,6 +85,7 @@ func New(port uint) (Interface, error) {
 	}
 
 	cadvisorClient := &cadvisorClient{
+		runtime: runtime,
 		Manager: m,
 	}
 
@@ -148,7 +161,7 @@ func (cc *cadvisorClient) VersionInfo() (*cadvisorapi.VersionInfo, error) {
 
 func (cc *cadvisorClient) SubcontainerInfo(name string, req *cadvisorapi.ContainerInfoRequest) (map[string]*cadvisorapi.ContainerInfo, error) {
 	infos, err := cc.SubcontainersInfo(name, req)
-	if err != nil {
+	if err != nil && len(infos) == 0 {
 		return nil, err
 	}
 
@@ -156,15 +169,26 @@ func (cc *cadvisorClient) SubcontainerInfo(name string, req *cadvisorapi.Contain
 	for _, info := range infos {
 		result[info.Name] = info
 	}
-	return result, nil
+	return result, err
 }
 
 func (cc *cadvisorClient) MachineInfo() (*cadvisorapi.MachineInfo, error) {
 	return cc.GetMachineInfo()
 }
 
-func (cc *cadvisorClient) DockerImagesFsInfo() (cadvisorapiv2.FsInfo, error) {
-	return cc.getFsInfo(cadvisorfs.LabelDockerImages)
+func (cc *cadvisorClient) ImagesFsInfo() (cadvisorapiv2.FsInfo, error) {
+	var label string
+
+	switch cc.runtime {
+	case "docker":
+		label = cadvisorfs.LabelDockerImages
+	case "rkt":
+		label = cadvisorfs.LabelRktImages
+	default:
+		return cadvisorapiv2.FsInfo{}, fmt.Errorf("ImagesFsInfo: unknown runtime: %v", cc.runtime)
+	}
+
+	return cc.getFsInfo(label)
 }
 
 func (cc *cadvisorClient) RootFsInfo() (cadvisorapiv2.FsInfo, error) {

@@ -23,10 +23,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net"
 	"net/http"
-	"net/url"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path"
@@ -37,16 +38,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elazarl/goproxy"
 	"github.com/ghodss/yaml"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/annotations"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
+	pkgutil "k8s.io/kubernetes/pkg/util"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/version"
@@ -75,10 +79,14 @@ const (
 	simplePodName            = "nginx"
 	nginxDefaultOutput       = "Welcome to nginx!"
 	simplePodPort            = 80
+	pausePodSelector         = "name=pause"
+	pausePodName             = "pause"
 	runJobTimeout            = 5 * time.Minute
 	busyboxImage             = "gcr.io/google_containers/busybox:1.24"
 	nginxImage               = "gcr.io/google_containers/nginx:1.7.9"
 	kubeCtlManifestPath      = "test/e2e/testing-manifests/kubectl"
+	redisControllerFilename  = "redis-master-controller.json"
+	redisServiceFilename     = "redis-master-service.json"
 )
 
 var (
@@ -115,6 +123,41 @@ var (
 	podProbeParametersVersion = version.MustParse("v1.2.0-alpha.4")
 )
 
+// Stops everything from filePath from namespace ns and checks if everything matching selectors from the given namespace is correctly stopped.
+// Aware of the kubectl example files map.
+func cleanupKubectlInputs(fileContents string, ns string, selectors ...string) {
+	By("using delete to clean up resources")
+	var nsArg string
+	if ns != "" {
+		nsArg = fmt.Sprintf("--namespace=%s", ns)
+	}
+	// support backward compatibility : file paths or raw json - since we are removing file path
+	// dependencies from this test.
+	framework.RunKubectlOrDieInput(fileContents, "delete", "--grace-period=0", "-f", "-", nsArg)
+	framework.AssertCleanup(ns, selectors...)
+}
+
+func readTestFileOrDie(file string) []byte {
+	return framework.ReadOrDie(path.Join(kubeCtlManifestPath, file))
+}
+
+func runKubectlRetryOrDie(args ...string) string {
+	var err error
+	var output string
+	for i := 0; i < 3; i++ {
+		output, err = framework.RunKubectl(args...)
+		if err == nil || !strings.Contains(err.Error(), registry.OptimisticLockErrorMsg) {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	// Expect no errors to be present after retries are finished
+	// Copied from framework #ExecOrDie
+	framework.Logf("stdout: %q", output)
+	Expect(err).NotTo(HaveOccurred())
+	return output
+}
+
 var _ = framework.KubeDescribe("Kubectl client", func() {
 	defer GinkgoRecover()
 	f := framework.NewDefaultFramework("kubectl")
@@ -127,13 +170,6 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				ValidPhases: []api.PodPhase{api.PodRunning /*api.PodPending*/},
 			})
 	}
-	// Customized Wait  / ForEach wrapper for this test.  These demonstrate the
-	// idiomatic way to wrap the ClusterVerification structs for syntactic sugar in large
-	// test files.
-	waitFor := func(atLeast int) {
-		// 60 seconds can be flakey for some of the containers.
-		clusterState().WaitFor(atLeast, 90*time.Second)
-	}
 	forEachPod := func(podFunc func(p api.Pod)) {
 		clusterState().ForEach(podFunc)
 	}
@@ -144,26 +180,39 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 		ns = f.Namespace.Name
 	})
 
+	// Customized Wait  / ForEach wrapper for this test.  These demonstrate the
+	// idiomatic way to wrap the ClusterVerification structs for syntactic sugar in large
+	// test files.
+	// Print debug info if atLeast Pods are not found before the timeout
+	waitForOrFailWithDebug := func(atLeast int) {
+		pods, err := clusterState().WaitFor(atLeast, framework.PodStartTimeout)
+		if err != nil || len(pods) < atLeast {
+			// TODO: Generalize integrating debug info into these tests so we always get debug info when we need it
+			framework.DumpAllNamespaceInfo(c, ns)
+			framework.Failf("Verified %v of %v pods , error : %v", len(pods), atLeast, err)
+		}
+	}
+
 	framework.KubeDescribe("Update Demo", func() {
-		var updateDemoRoot, nautilusPath, kittenPath string
+		var nautilus, kitten []byte
 		BeforeEach(func() {
-			updateDemoRoot = filepath.Join(framework.TestContext.RepoRoot, "docs/user-guide/update-demo")
-			nautilusPath = filepath.Join(updateDemoRoot, "nautilus-rc.yaml")
-			kittenPath = filepath.Join(updateDemoRoot, "kitten-rc.yaml")
+			updateDemoRoot := "docs/user-guide/update-demo"
+			nautilus = framework.ReadOrDie(filepath.Join(updateDemoRoot, "nautilus-rc.yaml"))
+			kitten = framework.ReadOrDie(filepath.Join(updateDemoRoot, "kitten-rc.yaml"))
 		})
 		It("should create and stop a replication controller [Conformance]", func() {
-			defer framework.Cleanup(nautilusPath, ns, updateDemoSelector)
+			defer cleanupKubectlInputs(string(nautilus), ns, updateDemoSelector)
 
 			By("creating a replication controller")
-			framework.RunKubectlOrDie("create", "-f", nautilusPath, fmt.Sprintf("--namespace=%v", ns))
+			framework.RunKubectlOrDieInput(string(nautilus[:]), "create", "-f", "-", fmt.Sprintf("--namespace=%v", ns))
 			framework.ValidateController(c, nautilusImage, 2, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 		})
 
 		It("should scale a replication controller [Conformance]", func() {
-			defer framework.Cleanup(nautilusPath, ns, updateDemoSelector)
+			defer cleanupKubectlInputs(string(nautilus[:]), ns, updateDemoSelector)
 
 			By("creating a replication controller")
-			framework.RunKubectlOrDie("create", "-f", nautilusPath, fmt.Sprintf("--namespace=%v", ns))
+			framework.RunKubectlOrDieInput(string(nautilus[:]), "create", "-f", "-", fmt.Sprintf("--namespace=%v", ns))
 			framework.ValidateController(c, nautilusImage, 2, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 			By("scaling down the replication controller")
 			framework.RunKubectlOrDie("scale", "rc", "update-demo-nautilus", "--replicas=1", "--timeout=5m", fmt.Sprintf("--namespace=%v", ns))
@@ -175,29 +224,41 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 
 		It("should do a rolling update of a replication controller [Conformance]", func() {
 			By("creating the initial replication controller")
-			framework.RunKubectlOrDie("create", "-f", nautilusPath, fmt.Sprintf("--namespace=%v", ns))
+			framework.RunKubectlOrDieInput(string(nautilus[:]), "create", "-f", "-", fmt.Sprintf("--namespace=%v", ns))
 			framework.ValidateController(c, nautilusImage, 2, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 			By("rolling-update to new replication controller")
-			framework.RunKubectlOrDie("rolling-update", "update-demo-nautilus", "--update-period=1s", "-f", kittenPath, fmt.Sprintf("--namespace=%v", ns))
+			framework.RunKubectlOrDieInput(string(kitten[:]), "rolling-update", "update-demo-nautilus", "--update-period=1s", "-f", "-", fmt.Sprintf("--namespace=%v", ns))
 			framework.ValidateController(c, kittenImage, 2, "update-demo", updateDemoSelector, getUDData("kitten.jpg", ns), ns)
 			// Everything will hopefully be cleaned up when the namespace is deleted.
 		})
 	})
 
 	framework.KubeDescribe("Guestbook application", func() {
-		var guestbookPath string
-
-		BeforeEach(func() {
-			guestbookPath = filepath.Join(framework.TestContext.RepoRoot, "examples/guestbook")
-		})
+		forEachGBFile := func(run func(s string)) {
+			for _, gbAppFile := range []string{
+				"examples/guestbook/frontend-deployment.yaml",
+				"examples/guestbook/frontend-service.yaml",
+				"examples/guestbook/redis-master-deployment.yaml",
+				"examples/guestbook/redis-master-service.yaml",
+				"examples/guestbook/redis-slave-deployment.yaml",
+				"examples/guestbook/redis-slave-service.yaml",
+			} {
+				contents := framework.ReadOrDie(gbAppFile)
+				run(string(contents))
+			}
+		}
 
 		It("should create and stop a working application [Conformance]", func() {
 			framework.SkipUnlessServerVersionGTE(deploymentsVersion, c)
 
-			defer framework.Cleanup(guestbookPath, ns, frontendSelector, redisMasterSelector, redisSlaveSelector)
-
+			defer forEachGBFile(func(contents string) {
+				cleanupKubectlInputs(contents, ns)
+			})
 			By("creating all guestbook components")
-			framework.RunKubectlOrDie("create", "-f", guestbookPath, fmt.Sprintf("--namespace=%v", ns))
+			forEachGBFile(func(contents string) {
+				framework.Logf(contents)
+				framework.RunKubectlOrDieInput(contents, "create", "-f", "-", fmt.Sprintf("--namespace=%v", ns))
+			})
 
 			By("validating guestbook app")
 			validateGuestbookApp(c, ns)
@@ -205,22 +266,22 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 	})
 
 	framework.KubeDescribe("Simple pod", func() {
-		var podPath string
+		var podPath []byte
 
 		BeforeEach(func() {
-			podPath = filepath.Join(framework.TestContext.RepoRoot, "test", "e2e", "testing-manifests", "kubectl", "pod-with-readiness-probe.yaml")
-			By(fmt.Sprintf("creating the pod from %v", podPath))
-			framework.RunKubectlOrDie("create", "-f", podPath, fmt.Sprintf("--namespace=%v", ns))
-			framework.CheckPodsRunningReady(c, ns, []string{simplePodName}, framework.PodStartTimeout)
+			podPath = framework.ReadOrDie(path.Join(kubeCtlManifestPath, "pod-with-readiness-probe.yaml"))
+			By(fmt.Sprintf("creating the pod from %v", string(podPath)))
+			framework.RunKubectlOrDieInput(string(podPath[:]), "create", "-f", "-", fmt.Sprintf("--namespace=%v", ns))
+			Expect(framework.CheckPodsRunningReady(c, ns, []string{simplePodName}, framework.PodStartTimeout)).To(BeTrue())
 		})
 		AfterEach(func() {
-			framework.Cleanup(podPath, ns, simplePodSelector)
+			cleanupKubectlInputs(string(podPath[:]), ns, simplePodSelector)
 		})
 
 		It("should support exec", func() {
 			By("executing a command in the container")
 			execOutput := framework.RunKubectlOrDie("exec", fmt.Sprintf("--namespace=%v", ns), simplePodName, "echo", "running", "in", "container")
-			if e, a := "running in container", execOutput; e != a {
+			if e, a := "running in container", strings.TrimSpace(execOutput); e != a {
 				framework.Failf("Unexpected kubectl exec output. Wanted %q, got %q", e, a)
 			}
 
@@ -244,7 +305,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			execOutput = framework.NewKubectlCommand("exec", fmt.Sprintf("--namespace=%v", ns), "-i", simplePodName, "bash").
 				WithStdinReader(r).
 				ExecOrDie()
-			if e, a := "hi", execOutput; e != a {
+			if e, a := "hi", strings.TrimSpace(execOutput); e != a {
 				framework.Failf("Unexpected kubectl exec output. Wanted %q, got %q", e, a)
 			}
 		})
@@ -258,226 +319,32 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				framework.Failf("--host variable must be set to the full URI to the api server on e2e run.")
 			}
 
-			// Make sure the apiServer is set to what kubectl requires
-			apiServer := framework.TestContext.Host
-			apiServerUrl, err := url.Parse(apiServer)
-			if err != nil {
-				framework.Failf("Unable to parse URL %s. Error=%s", apiServer, err)
-			}
-			apiServerUrl.Scheme = "https"
-			if !strings.Contains(apiServer, ":443") {
-				apiServerUrl.Host = apiServerUrl.Host + ":443"
-			}
-			apiServer = apiServerUrl.String()
-
-			// Build the static kubectl
-			By("Finding a static kubectl for upload")
-			testStaticKubectlPath, err := findBinary("kubectl", "linux/386")
-			if err != nil {
-				framework.Logf("No kubectl found: %v.\nAttempting a local build...", err)
-				// Fall back to trying to build a local static kubectl
-				kubectlContainerPath := path.Join(framework.TestContext.RepoRoot, "/examples/kubectl-container/")
-				if _, err := os.Stat(path.Join(framework.TestContext.RepoRoot, "hack/build-go.sh")); err != nil {
-					framework.Failf("Can't build static kubectl due to missing hack/build-go.sh. Error=%s", err)
-				}
-				By("Building a static kubectl for upload")
-				staticKubectlBuild := exec.Command("make", "-C", kubectlContainerPath)
-				if out, err := staticKubectlBuild.Output(); err != nil {
-					framework.Failf("Unable to create static kubectl. Error=%s, Output=%q", err, out)
-				}
-				// Verify the static kubectl path
-				testStaticKubectlPath = path.Join(kubectlContainerPath, "kubectl")
-				_, err := os.Stat(testStaticKubectlPath)
-				if err != nil {
-					framework.Failf("static kubectl path could not be found in %s. Error=%s", testStaticKubectlPath, err)
-				}
-			}
-			By(fmt.Sprintf("Using the kubectl in %s", testStaticKubectlPath))
-
-			// Verify the kubeconfig path
-			kubeConfigFilePath := framework.TestContext.KubeConfig
-			_, err = os.Stat(kubeConfigFilePath)
-			if err != nil {
-				framework.Failf("kube config path could not be accessed. Error=%s", err)
-			}
-			// start exec-proxy-tester container
-			netexecPodPath := filepath.Join(framework.TestContext.RepoRoot, "test/images/netexec/pod.yaml")
-
-			// Add "validate=false" if the server version is less than 1.2.
-			// More details: https://github.com/kubernetes/kubernetes/issues/22884.
-			validateFlag := "--validate=true"
-			gte, err := framework.ServerVersionGTE(podProbeParametersVersion, c)
-			if err != nil {
-				framework.Failf("Failed to get server version: %v", err)
-			}
-			if !gte {
-				validateFlag = "--validate=false"
-			}
-			framework.RunKubectlOrDie("create", "-f", netexecPodPath, fmt.Sprintf("--namespace=%v", ns), validateFlag)
-			framework.CheckPodsRunningReady(c, ns, []string{netexecContainer}, framework.PodStartTimeout)
-			// Clean up
-			defer framework.Cleanup(netexecPodPath, ns, netexecPodSelector)
-			// Upload kubeconfig
-			type NetexecOutput struct {
-				Output string `json:"output"`
-				Error  string `json:"error"`
-			}
-
-			var uploadConfigOutput NetexecOutput
-			// Upload the kubeconfig file
-			By("uploading kubeconfig to netexec")
-			pipeConfigReader, postConfigBodyWriter, err := newStreamingUpload(kubeConfigFilePath)
-			if err != nil {
-				framework.Failf("unable to create streaming upload. Error: %s", err)
-			}
-
-			subResourceProxyAvailable, err := framework.ServerVersionGTE(framework.SubResourcePodProxyVersion, c)
-			if err != nil {
-				framework.Failf("Unable to determine server version.  Error: %s", err)
-			}
-
-			var resp []byte
-			if subResourceProxyAvailable {
-				resp, err = c.Post().
-					Namespace(ns).
-					Name("netexec").
-					Resource("pods").
-					SubResource("proxy").
-					Suffix("upload").
-					SetHeader("Content-Type", postConfigBodyWriter.FormDataContentType()).
-					Body(pipeConfigReader).
-					Do().Raw()
-			} else {
-				resp, err = c.Post().
-					Prefix("proxy").
-					Namespace(ns).
-					Name("netexec").
-					Resource("pods").
-					Suffix("upload").
-					SetHeader("Content-Type", postConfigBodyWriter.FormDataContentType()).
-					Body(pipeConfigReader).
-					Do().Raw()
-			}
-			if err != nil {
-				framework.Failf("Unable to upload kubeconfig to the remote exec server due to error: %s", err)
-			}
-
-			if err := json.Unmarshal(resp, &uploadConfigOutput); err != nil {
-				framework.Failf("Unable to read the result from the netexec server. Error: %s", err)
-			}
-			kubecConfigRemotePath := uploadConfigOutput.Output
-
-			// Upload
-			pipeReader, postBodyWriter, err := newStreamingUpload(testStaticKubectlPath)
-			if err != nil {
-				framework.Failf("unable to create streaming upload. Error: %s", err)
-			}
-
-			By("uploading kubectl to netexec")
-			var uploadOutput NetexecOutput
-			// Upload the kubectl binary
-			if subResourceProxyAvailable {
-				resp, err = c.Post().
-					Namespace(ns).
-					Name("netexec").
-					Resource("pods").
-					SubResource("proxy").
-					Suffix("upload").
-					SetHeader("Content-Type", postBodyWriter.FormDataContentType()).
-					Body(pipeReader).
-					Do().Raw()
-			} else {
-				resp, err = c.Post().
-					Prefix("proxy").
-					Namespace(ns).
-					Name("netexec").
-					Resource("pods").
-					Suffix("upload").
-					SetHeader("Content-Type", postBodyWriter.FormDataContentType()).
-					Body(pipeReader).
-					Do().Raw()
-			}
-			if err != nil {
-				framework.Failf("Unable to upload kubectl binary to the remote exec server due to error: %s", err)
-			}
-
-			if err := json.Unmarshal(resp, &uploadOutput); err != nil {
-				framework.Failf("Unable to read the result from the netexec server. Error: %s", err)
-			}
-			uploadBinaryName := uploadOutput.Output
-			// Verify that we got the expected response back in the body
-			if !strings.HasPrefix(uploadBinaryName, "/uploads/") {
-				framework.Failf("Unable to upload kubectl binary to remote exec server. /uploads/ not in response. Response: %s", uploadBinaryName)
-			}
-
-			By("Starting goproxy pod")
-			goproxyPodPath := filepath.Join(framework.TestContext.RepoRoot, "test/images/goproxy/pod.yaml")
-			framework.RunKubectlOrDie("create", "-f", goproxyPodPath, fmt.Sprintf("--namespace=%v", ns))
-			framework.CheckPodsRunningReady(c, ns, []string{goproxyContainer}, framework.PodStartTimeout)
-
-			// get the proxy address
-			goproxyPod, err := c.Pods(ns).Get(goproxyContainer)
-			if err != nil {
-				framework.Failf("Unable to get the goproxy pod. Error: %s", err)
-			}
-			proxyAddr := fmt.Sprintf("http://%s:8080", goproxyPod.Status.PodIP)
+			By("Starting goproxy")
+			testSrv, proxyLogs := startLocalProxy()
+			defer testSrv.Close()
+			proxyAddr := testSrv.URL
 
 			for _, proxyVar := range []string{"https_proxy", "HTTPS_PROXY"} {
-				By("Running kubectl in netexec via an HTTP proxy using " + proxyVar)
-				shellCommand := fmt.Sprintf("%s=%s .%s --kubeconfig=%s --server=%s --namespace=%s exec nginx echo running in container",
-					proxyVar, proxyAddr, uploadBinaryName, kubecConfigRemotePath, apiServer, ns)
-				framework.Logf("About to remote exec: %v", shellCommand)
-				// Execute kubectl on remote exec server.
-				var netexecShellOutput []byte
-				if subResourceProxyAvailable {
-					netexecShellOutput, err = c.Post().
-						Namespace(ns).
-						Name("netexec").
-						Resource("pods").
-						SubResource("proxy").
-						Suffix("shell").
-						Param("shellCommand", shellCommand).
-						Do().Raw()
-				} else {
-					netexecShellOutput, err = c.Post().
-						Prefix("proxy").
-						Namespace(ns).
-						Name("netexec").
-						Resource("pods").
-						Suffix("shell").
-						Param("shellCommand", shellCommand).
-						Do().Raw()
-				}
-				if err != nil {
-					framework.Failf("Unable to execute kubectl binary on the remote exec server due to error: %s", err)
-				}
-
-				var netexecOuput NetexecOutput
-				if err := json.Unmarshal(netexecShellOutput, &netexecOuput); err != nil {
-					framework.Failf("Unable to read the result from the netexec server. Error: %s", err)
-				}
-
-				// Get (and print!) the proxy logs here, so
-				// they'll be present in case the below check
-				// fails the test, to help diagnose #19500 if
-				// it recurs.
-				proxyLog := framework.RunKubectlOrDie("log", "goproxy", fmt.Sprintf("--namespace=%v", ns))
+				proxyLogs.Reset()
+				By("Running kubectl via an HTTP proxy using " + proxyVar)
+				output := framework.NewKubectlCommand(fmt.Sprintf("--namespace=%s", ns), "exec", "nginx", "echo", "running", "in", "container").
+					WithEnv(append(os.Environ(), fmt.Sprintf("%s=%s", proxyVar, proxyAddr))).
+					ExecOrDie()
 
 				// Verify we got the normal output captured by the exec server
 				expectedExecOutput := "running in container\n"
-				if netexecOuput.Output != expectedExecOutput {
-					framework.Failf("Unexpected kubectl exec output. Wanted %q, got  %q", expectedExecOutput, netexecOuput.Output)
+				if output != expectedExecOutput {
+					framework.Failf("Unexpected kubectl exec output. Wanted %q, got  %q", expectedExecOutput, output)
 				}
 
 				// Verify the proxy server logs saw the connection
 				expectedProxyLog := fmt.Sprintf("Accepting CONNECT to %s", strings.TrimRight(strings.TrimLeft(framework.TestContext.Host, "https://"), "/api"))
 
+				proxyLog := proxyLogs.String()
 				if !strings.Contains(proxyLog, expectedProxyLog) {
 					framework.Failf("Missing expected log result on proxy server for %s. Expected: %q, got %q", proxyVar, expectedProxyLog, proxyLog)
 				}
 			}
-			// Clean up the goproxyPod
-			framework.Cleanup(goproxyPodPath, ns, goproxyPodSelector)
 		})
 
 		It("should support inline execution and attach", func() {
@@ -486,7 +353,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 
 			By("executing a command with run and attach with stdin")
-			runOutput := framework.NewKubectlCommand(nsFlag, "run", "run-test", "--image="+busyboxImage, "--restart=Never", "--attach=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput := framework.NewKubectlCommand(nsFlag, "run", "run-test", "--image="+busyboxImage, "--restart=OnFailure", "--attach=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				WithStdinData("abcd1234").
 				ExecOrDie()
 			Expect(runOutput).To(ContainSubstring("abcd1234"))
@@ -494,7 +361,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			Expect(c.Extensions().Jobs(ns).Delete("run-test", nil)).To(BeNil())
 
 			By("executing a command with run and attach without stdin")
-			runOutput = framework.NewKubectlCommand(fmt.Sprintf("--namespace=%v", ns), "run", "run-test-2", "--image="+busyboxImage, "--restart=Never", "--attach=true", "--leave-stdin-open=true", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput = framework.NewKubectlCommand(fmt.Sprintf("--namespace=%v", ns), "run", "run-test-2", "--image="+busyboxImage, "--restart=OnFailure", "--attach=true", "--leave-stdin-open=true", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				WithStdinData("abcd1234").
 				ExecOrDie()
 			Expect(runOutput).ToNot(ContainSubstring("abcd1234"))
@@ -502,7 +369,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			Expect(c.Extensions().Jobs(ns).Delete("run-test-2", nil)).To(BeNil())
 
 			By("executing a command with run and attach with stdin with open stdin should remain running")
-			runOutput = framework.NewKubectlCommand(nsFlag, "run", "run-test-3", "--image="+busyboxImage, "--restart=Never", "--attach=true", "--leave-stdin-open=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput = framework.NewKubectlCommand(nsFlag, "run", "run-test-3", "--image="+busyboxImage, "--restart=OnFailure", "--attach=true", "--leave-stdin-open=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				WithStdinData("abcd1234\n").
 				ExecOrDie()
 			Expect(runOutput).ToNot(ContainSubstring("stdin closed"))
@@ -563,15 +430,13 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 
 	framework.KubeDescribe("Kubectl apply", func() {
 		It("should apply a new configuration to an existing RC", func() {
-			mkpath := func(file string) string {
-				return filepath.Join(framework.TestContext.RepoRoot, kubeCtlManifestPath, file)
-			}
-			controllerJson := mkpath("redis-master-controller.json")
+			controllerJson := readTestFileOrDie(redisControllerFilename)
+
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			By("creating Redis RC")
-			framework.RunKubectlOrDie("create", "-f", controllerJson, nsFlag)
+			framework.RunKubectlOrDieInput(string(controllerJson), "create", "-f", "-", nsFlag)
 			By("applying a modified configuration")
-			stdin := modifyReplicationControllerConfiguration(controllerJson)
+			stdin := modifyReplicationControllerConfiguration(string(controllerJson))
 			framework.NewKubectlCommand("apply", "-f", "-", nsFlag).
 				WithStdinReader(stdin).
 				ExecOrDie()
@@ -579,19 +444,21 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			forEachReplicationController(c, ns, "app", "redis", validateReplicationControllerConfiguration)
 		})
 		It("should reuse nodePort when apply to an existing SVC", func() {
-			mkpath := func(file string) string {
-				return filepath.Join(framework.TestContext.RepoRoot, kubeCtlManifestPath, file)
-			}
-			serviceJson := mkpath("redis-master-service.json")
+			serviceJson := readTestFileOrDie(redisServiceFilename)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
+
 			By("creating Redis SVC")
-			framework.RunKubectlOrDie("create", "-f", serviceJson, nsFlag)
+			framework.RunKubectlOrDieInput(string(serviceJson[:]), "create", "-f", "-", nsFlag)
+
 			By("getting the original nodePort")
 			originalNodePort := framework.RunKubectlOrDie("get", "service", "redis-master", nsFlag, "-o", "jsonpath={.spec.ports[0].nodePort}")
+
 			By("applying the same configuration")
-			framework.RunKubectlOrDie("apply", "-f", serviceJson, nsFlag)
+			framework.RunKubectlOrDieInput(string(serviceJson[:]), "apply", "-f", "-", nsFlag)
+
 			By("getting the nodePort after applying configuration")
 			currentNodePort := framework.RunKubectlOrDie("get", "service", "redis-master", nsFlag, "-o", "jsonpath={.spec.ports[0].nodePort}")
+
 			By("checking the result")
 			if originalNodePort != currentNodePort {
 				framework.Failf("nodePort should keep the same")
@@ -617,22 +484,17 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 	})
 
 	framework.KubeDescribe("Kubectl describe", func() {
-		// Flaky issue: #25083
-		It("should check if kubectl describe prints relevant information for rc and pods [Conformance] [Flaky]", func() {
+		It("should check if kubectl describe prints relevant information for rc and pods [Conformance]", func() {
 			framework.SkipUnlessServerVersionGTE(nodePortsOptionalVersion, c)
-
-			mkpath := func(file string) string {
-				return filepath.Join(framework.TestContext.RepoRoot, kubeCtlManifestPath, file)
-			}
-			controllerJson := mkpath("redis-master-controller.json")
-			serviceJson := mkpath("redis-master-service.json")
+			controllerJson := readTestFileOrDie(redisControllerFilename)
+			serviceJson := readTestFileOrDie(redisServiceFilename)
 
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
-			framework.RunKubectlOrDie("create", "-f", controllerJson, nsFlag)
-			framework.RunKubectlOrDie("create", "-f", serviceJson, nsFlag)
+			framework.RunKubectlOrDieInput(string(controllerJson[:]), "create", "-f", "-", nsFlag)
+			framework.RunKubectlOrDieInput(string(serviceJson[:]), "create", "-f", "-", nsFlag)
 
 			By("Waiting for Redis master to start.")
-			waitFor(1)
+			waitForOrFailWithDebug(1)
 			// Pod
 			forEachPod(func(pod api.Pod) {
 				output := framework.RunKubectlOrDie("describe", "pod", pod.Name, nsFlag)
@@ -646,8 +508,8 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 					{"IP:"},
 					{"Controllers:", "ReplicationController/redis-master"},
 					{"Image:", redisImage},
-					{"cpu:", "BestEffort"},
 					{"State:", "Running"},
+					{"QoS Tier:", "BestEffort"},
 				}
 				checkOutput(output, requiredStrings)
 			})
@@ -723,10 +585,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 
 	framework.KubeDescribe("Kubectl expose", func() {
 		It("should create services for rc [Conformance]", func() {
-			mkpath := func(file string) string {
-				return filepath.Join(framework.TestContext.RepoRoot, kubeCtlManifestPath, file)
-			}
-			controllerJson := mkpath("redis-master-controller.json")
+			controllerJson := readTestFileOrDie(redisControllerFilename)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 
 			redisPort := 6379
@@ -734,11 +593,11 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			By("creating Redis RC")
 
 			framework.Logf("namespace %v", ns)
-			framework.RunKubectlOrDie("create", "-f", controllerJson, nsFlag)
+			framework.RunKubectlOrDieInput(string(controllerJson[:]), "create", "-f", "-", nsFlag)
 
 			// It may take a while for the pods to get registered in some cases, wait to be sure.
 			By("Waiting for Redis master to start.")
-			waitFor(1)
+			waitForOrFailWithDebug(1)
 			forEachPod(func(pod api.Pod) {
 				framework.Logf("wait on redis-master startup in %v ", ns)
 				framework.LookForStringInLog(ns, pod.Name, "redis-master", "The server is now ready to accept connections", framework.PodStartTimeout)
@@ -799,17 +658,17 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 	})
 
 	framework.KubeDescribe("Kubectl label", func() {
-		var podPath string
+		var pod []byte
 		var nsFlag string
 		BeforeEach(func() {
-			podPath = filepath.Join(framework.TestContext.RepoRoot, "docs/user-guide/pod.yaml")
+			pod = readTestFileOrDie("pause-pod.yaml")
 			By("creating the pod")
 			nsFlag = fmt.Sprintf("--namespace=%v", ns)
-			framework.RunKubectlOrDie("create", "-f", podPath, nsFlag)
-			framework.CheckPodsRunningReady(c, ns, []string{simplePodName}, framework.PodStartTimeout)
+			framework.RunKubectlOrDieInput(string(pod), "create", "-f", "-", nsFlag)
+			Expect(framework.CheckPodsRunningReady(c, ns, []string{pausePodName}, framework.PodStartTimeout)).To(BeTrue())
 		})
 		AfterEach(func() {
-			framework.Cleanup(podPath, ns, simplePodSelector)
+			cleanupKubectlInputs(string(pod[:]), ns, pausePodSelector)
 		})
 
 		It("should update the label on a resource [Conformance]", func() {
@@ -817,38 +676,35 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			labelValue := "testing-label-value"
 
 			By("adding the label " + labelName + " with value " + labelValue + " to a pod")
-			framework.RunKubectlOrDie("label", "pods", simplePodName, labelName+"="+labelValue, nsFlag)
+			framework.RunKubectlOrDie("label", "pods", pausePodName, labelName+"="+labelValue, nsFlag)
 			By("verifying the pod has the label " + labelName + " with the value " + labelValue)
-			output := framework.RunKubectlOrDie("get", "pod", simplePodName, "-L", labelName, nsFlag)
+			output := framework.RunKubectlOrDie("get", "pod", pausePodName, "-L", labelName, nsFlag)
 			if !strings.Contains(output, labelValue) {
-				framework.Failf("Failed updating label " + labelName + " to the pod " + simplePodName)
+				framework.Failf("Failed updating label " + labelName + " to the pod " + pausePodName)
 			}
 
 			By("removing the label " + labelName + " of a pod")
-			framework.RunKubectlOrDie("label", "pods", simplePodName, labelName+"-", nsFlag)
+			framework.RunKubectlOrDie("label", "pods", pausePodName, labelName+"-", nsFlag)
 			By("verifying the pod doesn't have the label " + labelName)
-			output = framework.RunKubectlOrDie("get", "pod", simplePodName, "-L", labelName, nsFlag)
+			output = framework.RunKubectlOrDie("get", "pod", pausePodName, "-L", labelName, nsFlag)
 			if strings.Contains(output, labelValue) {
-				framework.Failf("Failed removing label " + labelName + " of the pod " + simplePodName)
+				framework.Failf("Failed removing label " + labelName + " of the pod " + pausePodName)
 			}
 		})
 	})
 
 	framework.KubeDescribe("Kubectl logs", func() {
-		var rcPath string
+		var rc []byte
 		var nsFlag string
 		containerName := "redis-master"
 		BeforeEach(func() {
-			mkpath := func(file string) string {
-				return filepath.Join(framework.TestContext.RepoRoot, kubeCtlManifestPath, file)
-			}
-			rcPath = mkpath("redis-master-controller.json")
+			rc = readTestFileOrDie(redisControllerFilename)
 			By("creating an rc")
 			nsFlag = fmt.Sprintf("--namespace=%v", ns)
-			framework.RunKubectlOrDie("create", "-f", rcPath, nsFlag)
+			framework.RunKubectlOrDieInput(string(rc[:]), "create", "-f", "-", nsFlag)
 		})
 		AfterEach(func() {
-			framework.Cleanup(rcPath, ns, simplePodSelector)
+			cleanupKubectlInputs(string(rc[:]), ns, simplePodSelector)
 		})
 
 		It("should be able to retrieve and filter logs [Conformance]", func() {
@@ -861,7 +717,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			}
 
 			By("Waiting for Redis master to start.")
-			waitFor(1)
+			waitForOrFailWithDebug(1)
 			forEachPod(func(pod api.Pod) {
 				By("checking for a matching strings")
 				_, err := framework.LookForStringInLog(ns, pod.Name, containerName, "The server is now ready to accept connections", framework.PodStartTimeout)
@@ -905,15 +761,12 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 
 	framework.KubeDescribe("Kubectl patch", func() {
 		It("should add annotations for pods in rc [Conformance]", func() {
-			mkpath := func(file string) string {
-				return filepath.Join(framework.TestContext.RepoRoot, kubeCtlManifestPath, file)
-			}
-			controllerJson := mkpath("redis-master-controller.json")
+			controllerJson := readTestFileOrDie(redisControllerFilename)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			By("creating Redis RC")
-			framework.RunKubectlOrDie("create", "-f", controllerJson, nsFlag)
+			framework.RunKubectlOrDieInput(string(controllerJson[:]), "create", "-f", "-", nsFlag)
 			By("Waiting for Redis master to start.")
-			waitFor(1)
+			waitForOrFailWithDebug(1)
 			By("patching all pods")
 			forEachPod(func(pod api.Pod) {
 				framework.RunKubectlOrDie("patch", "pod", pod.Name, nsFlag, "-p", "{\"metadata\":{\"annotations\":{\"x\":\"y\"}}}")
@@ -1057,8 +910,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			framework.RunKubectlOrDie("delete", "rc", rcName, nsFlag)
 		})
 
-		// Flaky issue: #25140
-		It("should support rolling-update to same image [Conformance] [Flaky]", func() {
+		It("should support rolling-update to same image [Conformance]", func() {
 			By("running the image " + nginxImage)
 			framework.RunKubectlOrDie("run", rcName, "--image="+nginxImage, "--generator=run/v1", nsFlag)
 			By("verifying the rc " + rcName + " was created")
@@ -1070,9 +922,11 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			if containers == nil || len(containers) != 1 || containers[0].Image != nginxImage {
 				framework.Failf("Failed creating rc %s for 1 pod with expected image %s", rcName, nginxImage)
 			}
+			framework.WaitForRCToStabilize(c, ns, rcName, framework.PodStartTimeout)
 
 			By("rolling-update to same image controller")
-			framework.RunKubectlOrDie("rolling-update", rcName, "--update-period=1s", "--image="+nginxImage, "--image-pull-policy="+string(api.PullIfNotPresent), nsFlag)
+
+			runKubectlRetryOrDie("rolling-update", rcName, "--update-period=1s", "--image="+nginxImage, "--image-pull-policy="+string(api.PullIfNotPresent), nsFlag)
 			framework.ValidateController(c, nginxImage, 1, rcName, "run="+rcName, noOpValidatorFn, ns)
 		})
 	})
@@ -1136,7 +990,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			framework.SkipUnlessServerVersionGTE(jobsVersion, c)
 
 			By("running the image " + nginxImage)
-			framework.RunKubectlOrDie("run", jobName, "--restart=OnFailure", "--image="+nginxImage, nsFlag)
+			framework.RunKubectlOrDie("run", jobName, "--restart=OnFailure", "--generator=job/v1", "--image="+nginxImage, nsFlag)
 			By("verifying the job " + jobName + " was created")
 			job, err := c.Extensions().Jobs(ns).Get(jobName)
 			if err != nil {
@@ -1150,23 +1004,37 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 				framework.Failf("Failed creating a job with correct restart policy for --restart=OnFailure")
 			}
 		})
+	})
 
-		It("should create a job from an image when restart is Never [Conformance]", func() {
+	framework.KubeDescribe("Kubectl run pod", func() {
+		var nsFlag string
+		var podName string
+
+		BeforeEach(func() {
+			nsFlag = fmt.Sprintf("--namespace=%v", ns)
+			podName = "e2e-test-nginx-pod"
+		})
+
+		AfterEach(func() {
+			framework.RunKubectlOrDie("delete", "pods", podName, nsFlag)
+		})
+
+		It("should create a pod from an image when restart is Never [Conformance]", func() {
 			framework.SkipUnlessServerVersionGTE(jobsVersion, c)
 
 			By("running the image " + nginxImage)
-			framework.RunKubectlOrDie("run", jobName, "--restart=Never", "--image="+nginxImage, nsFlag)
-			By("verifying the job " + jobName + " was created")
-			job, err := c.Extensions().Jobs(ns).Get(jobName)
+			framework.RunKubectlOrDie("run", podName, "--restart=Never", "--generator=run-pod/v1", "--image="+nginxImage, nsFlag)
+			By("verifying the pod " + podName + " was created")
+			pod, err := c.Pods(ns).Get(podName)
 			if err != nil {
-				framework.Failf("Failed getting job %s: %v", jobName, err)
+				framework.Failf("Failed getting pod %s: %v", podName, err)
 			}
-			containers := job.Spec.Template.Spec.Containers
+			containers := pod.Spec.Containers
 			if containers == nil || len(containers) != 1 || containers[0].Image != nginxImage {
-				framework.Failf("Failed creating job %s for 1 pod with expected image %s", jobName, nginxImage)
+				framework.Failf("Failed creating pod %s with expected image %s", podName, nginxImage)
 			}
-			if job.Spec.Template.Spec.RestartPolicy != api.RestartPolicyNever {
-				framework.Failf("Failed creating a job with correct restart policy for --restart=OnFailure")
+			if pod.Spec.RestartPolicy != api.RestartPolicyNever {
+				framework.Failf("Failed creating a pod with correct restart policy for --restart=Never")
 			}
 		})
 	})
@@ -1181,7 +1049,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			By("executing a command with run --rm and attach with stdin")
 			t := time.NewTimer(runJobTimeout)
 			defer t.Stop()
-			runOutput := framework.NewKubectlCommand(nsFlag, "run", jobName, "--image="+busyboxImage, "--rm=true", "--restart=Never", "--attach=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
+			runOutput := framework.NewKubectlCommand(nsFlag, "run", jobName, "--image="+busyboxImage, "--rm=true", "--generator=job/v1", "--restart=OnFailure", "--attach=true", "--stdin", "--", "sh", "-c", "cat && echo 'stdin closed'").
 				WithStdinData("abcd1234").
 				WithTimeout(t.C).
 				ExecOrDie()
@@ -1243,6 +1111,39 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 			if err != nil {
 				framework.Failf("Failed get of /api at %s: %v", path, err)
 			}
+		})
+	})
+
+	framework.KubeDescribe("Kubectl taint", func() {
+		It("should update the taint on a node", func() {
+			taintName := fmt.Sprintf("kubernetes.io/e2e-taint-key-%s", string(pkgutil.NewUUID()))
+			taintValue := "testing-taint-value"
+			taintEffect := fmt.Sprintf("%s", api.TaintEffectNoSchedule)
+
+			nodes, err := c.Nodes().List(api.ListOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			node := nodes.Items[0]
+			nodeName := node.Name
+
+			By("adding the taint " + taintName + " with value " + taintValue + " and taint effect " + taintEffect + " to a node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+"="+taintValue+":"+taintEffect)
+			By("verifying the node has the taint " + taintName + " with the value " + taintValue)
+			output := framework.RunKubectlOrDie("describe", "node", nodeName)
+			requiredStrings := [][]string{
+				{"Name:", nodeName},
+				{"Taints:"},
+				{taintName + "=" + taintValue + ":" + taintEffect},
+			}
+			checkOutput(output, requiredStrings)
+
+			By("removing the taint " + taintName + " of a node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+"-")
+			By("verifying the node doesn't have the taint " + taintName)
+			output = framework.RunKubectlOrDie("describe", "node", nodeName)
+			if strings.Contains(output, taintName) {
+				framework.Failf("Failed removing taint " + taintName + " of the node " + nodeName)
+			}
+
 		})
 	})
 })
@@ -1331,6 +1232,10 @@ func curl(url string) (string, error) {
 }
 
 func validateGuestbookApp(c *client.Client, ns string) {
+	framework.Logf("Waiting for all frontend pods to be Running.")
+	label := labels.SelectorFromSet(labels.Set(map[string]string{"tier": "frontend", "app": "guestbook"}))
+	err := framework.WaitForPodsWithLabelRunning(c, ns, label)
+	Expect(err).NotTo(HaveOccurred())
 	framework.Logf("Waiting for frontend to serve content.")
 	if !waitForGuestbookResponse(c, "get", "", `{"data": ""}`, guestbookStartupTimeout, ns) {
 		framework.Failf("Frontend service did not start serving content in %v seconds.", guestbookStartupTimeout.Seconds())
@@ -1395,18 +1300,17 @@ func readBytesFromFile(filename string) []byte {
 	return data
 }
 
-func readReplicationControllerFromFile(filename string) *api.ReplicationController {
-	data := readBytesFromFile(filename)
+func readReplicationControllerFromString(contents string) *api.ReplicationController {
 	rc := api.ReplicationController{}
-	if err := yaml.Unmarshal(data, &rc); err != nil {
+	if err := yaml.Unmarshal([]byte(contents), &rc); err != nil {
 		framework.Failf(err.Error())
 	}
 
 	return &rc
 }
 
-func modifyReplicationControllerConfiguration(filename string) io.Reader {
-	rc := readReplicationControllerFromFile(filename)
+func modifyReplicationControllerConfiguration(contents string) io.Reader {
+	rc := readReplicationControllerFromString(contents)
 	rc.Labels[applyTestLabel] = "ADDED"
 	rc.Spec.Selector[applyTestLabel] = "ADDED"
 	rc.Spec.Template.Labels[applyTestLabel] = "ADDED"
@@ -1442,7 +1346,7 @@ func forEachReplicationController(c *client.Client, ns, selectorKey, selectorVal
 
 func validateReplicationControllerConfiguration(rc api.ReplicationController) {
 	if rc.Name == "redis-master" {
-		if _, ok := rc.Annotations[kubectl.LastAppliedConfigAnnotation]; !ok {
+		if _, ok := rc.Annotations[annotations.LastAppliedConfigAnnotation]; !ok {
 			framework.Failf("Annotation not found in modified configuration:\n%v\n", rc)
 		}
 
@@ -1560,33 +1464,10 @@ func streamingUpload(file *os.File, fileName string, postBodyWriter *multipart.W
 	}
 }
 
-var binPrefixes = []string{
-	"_output/dockerized/bin",
-	"_output/local/bin",
-	"platforms",
-}
-
-// findBinary searches through likely paths to find the specified binary.  It
-// takes the one that has been built most recently.  Platform should be
-// specified as '<os>/<arch>'.  For example: 'linux/amd64'.
-func findBinary(binName string, platform string) (string, error) {
-	var binTime time.Time
-	var binPath string
-
-	for _, pre := range binPrefixes {
-		tryPath := path.Join(framework.TestContext.RepoRoot, pre, platform, binName)
-		fi, err := os.Stat(tryPath)
-		if err != nil {
-			continue
-		}
-		if fi.ModTime().After(binTime) {
-			binPath = tryPath
-			binTime = fi.ModTime()
-		}
-	}
-
-	if len(binPath) > 0 {
-		return binPath, nil
-	}
-	return binPath, fmt.Errorf("Could not find %v for %v", binName, platform)
+func startLocalProxy() (srv *httptest.Server, logs *bytes.Buffer) {
+	logs = &bytes.Buffer{}
+	p := goproxy.NewProxyHttpServer()
+	p.Verbose = true
+	p.Logger = log.New(logs, "", 0)
+	return httptest.NewServer(p), logs
 }

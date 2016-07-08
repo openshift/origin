@@ -32,16 +32,35 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/openstack"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/cinder"
+	"k8s.io/kubernetes/pkg/volume/flexvolume"
 	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
+	"k8s.io/kubernetes/pkg/volume/vsphere_volume"
 
 	"github.com/golang/glog"
 )
+
+// ProbeAttachableVolumePlugins collects all volume plugins for the attach/
+// detach controller. VolumeConfiguration is used ot get FlexVolumePluginDir
+// which specifies the directory to search for additional third party volume
+// plugins.
+// The list of plugins is manually compiled. This code and the plugin
+// initialization code for kubelet really, really need a through refactor.
+func ProbeAttachableVolumePlugins(config componentconfig.VolumeConfiguration) []volume.VolumePlugin {
+	allPlugins := []volume.VolumePlugin{}
+
+	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, flexvolume.ProbeVolumePlugins(config.FlexVolumePluginDir)...)
+	return allPlugins
+}
 
 // ProbeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
 func ProbeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration) []volume.VolumePlugin {
@@ -79,6 +98,7 @@ func ProbeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration) []
 	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, vsphere_volume.ProbeVolumePlugins()...)
 
 	return allPlugins
 }
@@ -97,6 +117,8 @@ func NewVolumeProvisioner(cloud cloudprovider.Interface, config componentconfig.
 		return getProvisionablePluginFromVolumePlugins(gce_pd.ProbeVolumePlugins())
 	case cloud != nil && openstack.ProviderName == cloud.ProviderName():
 		return getProvisionablePluginFromVolumePlugins(cinder.ProbeVolumePlugins())
+	case cloud != nil && vsphere.ProviderName == cloud.ProviderName():
+		return getProvisionablePluginFromVolumePlugins(vsphere_volume.ProbeVolumePlugins())
 	}
 	return nil, nil
 }

@@ -22,7 +22,6 @@ package federation
 
 import (
 	api "k8s.io/kubernetes/pkg/api"
-	resource "k8s.io/kubernetes/pkg/api/resource"
 	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 )
@@ -32,9 +31,9 @@ func init() {
 		DeepCopy_federation_Cluster,
 		DeepCopy_federation_ClusterCondition,
 		DeepCopy_federation_ClusterList,
-		DeepCopy_federation_ClusterMeta,
 		DeepCopy_federation_ClusterSpec,
 		DeepCopy_federation_ClusterStatus,
+		DeepCopy_federation_ServerAddressByClientCIDR,
 	); err != nil {
 		// if one of the deep copy functions is malformed, detect it immediately.
 		panic(err)
@@ -92,24 +91,27 @@ func DeepCopy_federation_ClusterList(in ClusterList, out *ClusterList, c *conver
 	return nil
 }
 
-func DeepCopy_federation_ClusterMeta(in ClusterMeta, out *ClusterMeta, c *conversion.Cloner) error {
-	out.Version = in.Version
-	return nil
-}
-
 func DeepCopy_federation_ClusterSpec(in ClusterSpec, out *ClusterSpec, c *conversion.Cloner) error {
 	if in.ServerAddressByClientCIDRs != nil {
 		in, out := in.ServerAddressByClientCIDRs, &out.ServerAddressByClientCIDRs
-		*out = make([]unversioned.ServerAddressByClientCIDR, len(in))
+		*out = make([]ServerAddressByClientCIDR, len(in))
 		for i := range in {
-			if err := unversioned.DeepCopy_unversioned_ServerAddressByClientCIDR(in[i], &(*out)[i], c); err != nil {
+			if err := DeepCopy_federation_ServerAddressByClientCIDR(in[i], &(*out)[i], c); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.ServerAddressByClientCIDRs = nil
 	}
-	out.Credential = in.Credential
+	if in.SecretRef != nil {
+		in, out := in.SecretRef, &out.SecretRef
+		*out = new(api.LocalObjectReference)
+		if err := api.DeepCopy_api_LocalObjectReference(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.SecretRef = nil
+	}
 	return nil
 }
 
@@ -125,34 +127,19 @@ func DeepCopy_federation_ClusterStatus(in ClusterStatus, out *ClusterStatus, c *
 	} else {
 		out.Conditions = nil
 	}
-	if in.Capacity != nil {
-		in, out := in.Capacity, &out.Capacity
-		*out = make(api.ResourceList)
-		for key, val := range in {
-			newVal := new(resource.Quantity)
-			if err := resource.DeepCopy_resource_Quantity(val, newVal, c); err != nil {
-				return err
-			}
-			(*out)[key] = *newVal
-		}
+	if in.Zones != nil {
+		in, out := in.Zones, &out.Zones
+		*out = make([]string, len(in))
+		copy(*out, in)
 	} else {
-		out.Capacity = nil
+		out.Zones = nil
 	}
-	if in.Allocatable != nil {
-		in, out := in.Allocatable, &out.Allocatable
-		*out = make(api.ResourceList)
-		for key, val := range in {
-			newVal := new(resource.Quantity)
-			if err := resource.DeepCopy_resource_Quantity(val, newVal, c); err != nil {
-				return err
-			}
-			(*out)[key] = *newVal
-		}
-	} else {
-		out.Allocatable = nil
-	}
-	if err := DeepCopy_federation_ClusterMeta(in.ClusterMeta, &out.ClusterMeta, c); err != nil {
-		return err
-	}
+	out.Region = in.Region
+	return nil
+}
+
+func DeepCopy_federation_ServerAddressByClientCIDR(in ServerAddressByClientCIDR, out *ServerAddressByClientCIDR, c *conversion.Cloner) error {
+	out.ClientCIDR = in.ClientCIDR
+	out.ServerAddress = in.ServerAddress
 	return nil
 }

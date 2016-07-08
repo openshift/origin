@@ -45,7 +45,7 @@ const (
 
 JSON and YAML formats are accepted.
 
-Please refer to the models in https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/HEAD/docs/api-reference/v1/definitions.html to find if a field is mutable.`
+Please refer to the models in https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/v1.3.0-beta.0/docs/api-reference/v1/definitions.html to find if a field is mutable.`
 	patch_example = `
 # Partially update a node using strategic merge patch
 kubectl patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
@@ -57,7 +57,7 @@ kubectl patch -f node.json -p '{"spec":{"unschedulable":true}}'
 kubectl patch pod valid-pod -p '{"spec":{"containers":[{"name":"kubernetes-serve-hostname","image":"new image"}]}}'
 
 # Update a container's image using a json patch with positional arrays
-kubectl patch pod valid-pod -type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"new image"}]'`
+kubectl patch pod valid-pod --type='json' -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"new image"}]'`
 )
 
 func NewCmdPatch(f *cmdutil.Factory, out io.Writer) *cobra.Command {

@@ -136,8 +136,8 @@ func (h *etcdHelper) Create(ctx context.Context, key string, obj, out runtime.Ob
 		PrevExist: etcd.PrevNoExist,
 	}
 	response, err := h.etcdKeysAPI.Set(ctx, key, string(data), &opts)
-	metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
 	trace.Step("Object created")
+	metrics.RecordEtcdRequestLatency("create", getTypeName(obj), startTime)
 	if err != nil {
 		return toStorageErr(err, key, 0)
 	}
@@ -335,9 +335,8 @@ func (h *etcdHelper) GetToList(ctx context.Context, key string, filter storage.F
 		Quorum: h.quorum,
 	}
 	response, err := h.etcdKeysAPI.Get(ctx, key, opts)
-
-	metrics.RecordEtcdRequestLatency("get", getTypeName(listPtr), startTime)
 	trace.Step("Etcd node read")
+	metrics.RecordEtcdRequestLatency("get", getTypeName(listPtr), startTime)
 	if err != nil {
 		if etcdutil.IsEtcdNotFound(err) {
 			return nil
@@ -361,7 +360,7 @@ func (h *etcdHelper) GetToList(ctx context.Context, key string, filter storage.F
 // decodeNodeList walks the tree of each node in the list and decodes into the specified object
 func (h *etcdHelper) decodeNodeList(nodes []*etcd.Node, filter storage.FilterFunc, slicePtr interface{}) error {
 	trace := util.NewTrace("decodeNodeList " + getTypeName(slicePtr))
-	defer trace.LogIfLong(500 * time.Millisecond)
+	defer trace.LogIfLong(400 * time.Millisecond)
 	v, err := conversion.EnforcePtr(slicePtr)
 	if err != nil || v.Kind() != reflect.Slice {
 		// This should not happen at runtime.
@@ -406,7 +405,7 @@ func (h *etcdHelper) List(ctx context.Context, key string, resourceVersion strin
 		glog.Errorf("Context is nil")
 	}
 	trace := util.NewTrace("List " + getTypeName(listObj))
-	defer trace.LogIfLong(time.Second)
+	defer trace.LogIfLong(400 * time.Millisecond)
 	listPtr, err := meta.GetItemsPtr(listObj)
 	if err != nil {
 		return err
@@ -415,8 +414,8 @@ func (h *etcdHelper) List(ctx context.Context, key string, resourceVersion strin
 	startTime := time.Now()
 	trace.Step("About to list etcd node")
 	nodes, index, err := h.listEtcdNode(ctx, key)
-	metrics.RecordEtcdRequestLatency("list", getTypeName(listPtr), startTime)
 	trace.Step("Etcd node listed")
+	metrics.RecordEtcdRequestLatency("list", getTypeName(listPtr), startTime)
 	if err != nil {
 		return err
 	}

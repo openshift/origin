@@ -40,6 +40,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/handlers"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/genericapiserver/options"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	ipallocator "k8s.io/kubernetes/pkg/registry/service/ipallocator"
@@ -56,11 +57,7 @@ import (
 	"github.com/golang/glog"
 )
 
-const (
-	DefaultEtcdPathPrefix           = "/registry"
-	DefaultDeserializationCacheSize = 50000
-	globalTimeout                   = time.Minute
-)
+const globalTimeout = time.Minute
 
 // Info about an API group.
 type APIGroupInfo struct {
@@ -94,6 +91,7 @@ type APIGroupInfo struct {
 
 // Config is a structure used to configure a GenericAPIServer.
 type Config struct {
+	// The storage factory for other objects
 	StorageFactory StorageFactory
 	// allow downstream consumers to disable the core controller loops
 	EnableLogsSupport bool
@@ -119,6 +117,8 @@ type Config struct {
 	Authorizer             authorizer.Authorizer
 	AdmissionControl       admission.Interface
 	MasterServiceNamespace string
+	// TODO(ericchiang): Determine if policy escalation checks should be an admission controller.
+	AuthorizerRBACSuperUser string
 
 	// Map requests to contexts. Exported so downstream consumers can provider their own mappers
 	RequestContextMapper api.RequestContextMapper
@@ -302,7 +302,7 @@ func setDefaults(c *Config) {
 	if len(c.ExternalHost) == 0 && c.PublicAddress != nil {
 		hostAndPort := c.PublicAddress.String()
 		if c.ReadWritePort != 0 {
-			hostAndPort = net.JoinHostPort(hostAndPort, strconv.Itoa(c.ServiceReadWritePort))
+			hostAndPort = net.JoinHostPort(hostAndPort, strconv.Itoa(c.ReadWritePort))
 		}
 		c.ExternalHost = hostAndPort
 	}
@@ -537,7 +537,7 @@ func (s *GenericAPIServer) installGroupsDiscoveryHandler() {
 }
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
-func verifyClusterIPFlags(options *ServerRunOptions) {
+func verifyClusterIPFlags(options *options.ServerRunOptions) {
 	if options.ServiceClusterIPRange.IP == nil {
 		glog.Fatal("No --service-cluster-ip-range specified")
 	}
@@ -547,7 +547,7 @@ func verifyClusterIPFlags(options *ServerRunOptions) {
 	}
 }
 
-func NewConfig(options *ServerRunOptions) *Config {
+func NewConfig(options *options.ServerRunOptions) *Config {
 	return &Config{
 		APIGroupPrefix:            options.APIGroupPrefix,
 		APIPrefix:                 options.APIPrefix,
@@ -570,25 +570,25 @@ func NewConfig(options *ServerRunOptions) *Config {
 	}
 }
 
-func verifyServiceNodePort(options *ServerRunOptions) {
+func verifyServiceNodePort(options *options.ServerRunOptions) {
 	if options.KubernetesServiceNodePort > 0 && !options.ServiceNodePortRange.Contains(options.KubernetesServiceNodePort) {
 		glog.Fatalf("Kubernetes service port range %v doesn't contain %v", options.ServiceNodePortRange, (options.KubernetesServiceNodePort))
 	}
 }
 
-func verifyEtcdServersList(options *ServerRunOptions) {
+func verifyEtcdServersList(options *options.ServerRunOptions) {
 	if len(options.StorageConfig.ServerList) == 0 {
 		glog.Fatalf("--etcd-servers must be specified")
 	}
 }
 
-func ValidateRunOptions(options *ServerRunOptions) {
+func ValidateRunOptions(options *options.ServerRunOptions) {
 	verifyClusterIPFlags(options)
 	verifyServiceNodePort(options)
 	verifyEtcdServersList(options)
 }
 
-func DefaultAndValidateRunOptions(options *ServerRunOptions) {
+func DefaultAndValidateRunOptions(options *options.ServerRunOptions) {
 	ValidateRunOptions(options)
 
 	// If advertise-address is not specified, use bind-address. If bind-address
@@ -634,7 +634,7 @@ func DefaultAndValidateRunOptions(options *ServerRunOptions) {
 	}
 }
 
-func (s *GenericAPIServer) Run(options *ServerRunOptions) {
+func (s *GenericAPIServer) Run(options *options.ServerRunOptions) {
 	if s.enableSwaggerSupport {
 		s.InstallSwaggerAPI()
 	}
@@ -667,8 +667,10 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 			Handler:        apiserver.MaxInFlightLimit(sem, longRunningRequestCheck, apiserver.RecoverPanics(handler)),
 			MaxHeaderBytes: 1 << 20,
 			TLSConfig: &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
+				// Can't use SSLv3 because of POODLE and BEAST
+				// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
+				// Can't use TLSv1.1 because of RC4 cipher usage
+				MinVersion: tls.VersionTLS12,
 			},
 		}
 
@@ -693,7 +695,7 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 			alternateDNS := []string{"kubernetes.default.svc", "kubernetes.default", "kubernetes"}
 			// It would be nice to set a fqdn subject alt name, but only the kubelets know, the apiserver is clueless
 			// alternateDNS = append(alternateDNS, "kubernetes.default.svc.CLUSTER.DNS.NAME")
-			if shouldGenSelfSignedCerts(options.TLSCertFile, options.TLSPrivateKeyFile) {
+			if crypto.ShouldGenSelfSignedCerts(options.TLSCertFile, options.TLSPrivateKeyFile) {
 				if err := crypto.GenerateSelfSignedCert(s.ClusterIP.String(), options.TLSCertFile, options.TLSPrivateKeyFile, alternateIPs, alternateDNS); err != nil {
 					glog.Errorf("Unable to generate self signed cert: %v", err)
 				} else {
@@ -732,28 +734,6 @@ func (s *GenericAPIServer) Run(options *ServerRunOptions) {
 	glog.Fatal(http.ListenAndServe())
 }
 
-// If the file represented by path exists and
-// readable, return true otherwise return false.
-func canReadFile(path string) bool {
-	f, err := os.Open(path)
-	if err != nil {
-		return false
-	}
-
-	defer f.Close()
-
-	return true
-}
-
-func shouldGenSelfSignedCerts(certPath, keyPath string) bool {
-	if canReadFile(certPath) || canReadFile(keyPath) {
-		glog.Infof("using existing apiserver.crt and apiserver.key files")
-		return false
-	}
-
-	return true
-}
-
 // Exposes the given group version in API.
 func (s *GenericAPIServer) InstallAPIGroup(apiGroupInfo *APIGroupInfo) error {
 	apiPrefix := s.APIGroupPrefix
@@ -764,12 +744,6 @@ func (s *GenericAPIServer) InstallAPIGroup(apiGroupInfo *APIGroupInfo) error {
 	// Install REST handlers for all the versions in this group.
 	apiVersions := []string{}
 	for _, groupVersion := range apiGroupInfo.GroupMeta.GroupVersions {
-		// Don't serve any versions other than v1 from the legacy group
-		// TODO: plumb API-enabled versions here, so we can choose to enable/disable particular versions in an API group
-		if apiGroupInfo.IsLegacyGroup && groupVersion.Group == "" && groupVersion.Version != "v1" {
-			continue
-		}
-
 		apiVersions = append(apiVersions, groupVersion.Version)
 
 		apiGroupVersion, err := s.getAPIGroupVersion(apiGroupInfo, groupVersion, apiPrefix)
@@ -869,6 +843,7 @@ func (s *GenericAPIServer) getAPIGroupVersion(apiGroupInfo *APIGroupInfo, groupV
 	version.Serializer = apiGroupInfo.NegotiatedSerializer
 	version.Creater = apiGroupInfo.Scheme
 	version.Convertor = apiGroupInfo.Scheme
+	version.Copier = apiGroupInfo.Scheme
 	version.Typer = apiGroupInfo.Scheme
 	version.SubresourceGroupVersionKind = apiGroupInfo.SubresourceGroupVersionKind
 	return version, err

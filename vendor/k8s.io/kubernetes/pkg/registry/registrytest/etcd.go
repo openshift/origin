@@ -65,6 +65,11 @@ func (t *Tester) ClusterScope() *Tester {
 	return t
 }
 
+func (t *Tester) Namer(namer func(int) string) *Tester {
+	t.tester = t.tester.Namer(namer)
+	return t
+}
+
 func (t *Tester) AllowCreateOnUpdate() *Tester {
 	t.tester = t.tester.AllowCreateOnUpdate()
 	return t
@@ -148,10 +153,11 @@ func (t *Tester) TestWatch(valid runtime.Object, labelsPass, labelsFail []labels
 // =============================================================================
 // get codec based on runtime.Object
 func getCodec(obj runtime.Object) (runtime.Codec, error) {
-	fqKind, err := api.Scheme.ObjectKind(obj)
+	fqKinds, _, err := api.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return nil, fmt.Errorf("unexpected encoding error: %v", err)
 	}
+	fqKind := fqKinds[0]
 	// TODO: caesarxuchao: we should detect which group an object belongs to
 	// by using the version returned by Schem.ObjectVersionAndKind() once we
 	// split the schemes for internal objects.

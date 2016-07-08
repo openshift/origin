@@ -20,8 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sort"
-	"strconv"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -30,7 +28,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/runtime"
 	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
-	"k8s.io/kubernetes/pkg/util/errors"
+	sliceutil "k8s.io/kubernetes/pkg/util/slice"
 )
 
 const (
@@ -60,13 +58,9 @@ func (h *DeploymentHistoryViewer) ViewHistory(namespace, name string, revision i
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve deployment %s: %v", name, err)
 	}
-	_, allOldRSs, err := deploymentutil.GetOldReplicaSets(deployment, h.c)
+	_, allOldRSs, newRS, err := deploymentutil.GetAllReplicaSets(deployment, h.c)
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve old replica sets from deployment %s: %v", name, err)
-	}
-	newRS, err := deploymentutil.GetNewReplicaSet(deployment, h.c)
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve new replica set from deployment %s: %v", name, err)
 	}
 
 	historyInfo := make(map[int64]*api.PodTemplateSpec)
@@ -101,29 +95,23 @@ func (h *DeploymentHistoryViewer) ViewHistory(namespace, name string, revision i
 	}
 
 	// Sort the revisionToChangeCause map by revision
-	var revisions []string
-	for k := range historyInfo {
-		revisions = append(revisions, strconv.FormatInt(k, 10))
+	var revisions []int64
+	for r := range historyInfo {
+		revisions = append(revisions, r)
 	}
-	sort.Strings(revisions)
+	sliceutil.SortInts64(revisions)
 
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "REVISION\tCHANGE-CAUSE\n")
-		errs := []error{}
 		for _, r := range revisions {
 			// Find the change-cause of revision r
-			r64, err := strconv.ParseInt(r, 10, 64)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			changeCause := historyInfo[r64].Annotations[ChangeCauseAnnotation]
+			changeCause := historyInfo[r].Annotations[ChangeCauseAnnotation]
 			if len(changeCause) == 0 {
 				changeCause = "<none>"
 			}
-			fmt.Fprintf(out, "%s\t%s\n", r, changeCause)
+			fmt.Fprintf(out, "%d\t%s\n", r, changeCause)
 		}
-		return errors.NewAggregate(errs)
+		return nil
 	})
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package prober
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"net/http"
@@ -30,6 +31,7 @@ import (
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
+	"k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	"k8s.io/kubernetes/pkg/probe"
 	execprobe "k8s.io/kubernetes/pkg/probe/exec"
 	httprobe "k8s.io/kubernetes/pkg/probe/http"
@@ -206,11 +208,16 @@ func findPortByName(container api.Container, portName string) (int, error) {
 
 // formatURL formats a URL from args.  For testability.
 func formatURL(scheme string, host string, port int, path string) *url.URL {
-	return &url.URL{
-		Scheme: scheme,
-		Host:   net.JoinHostPort(host, strconv.Itoa(port)),
-		Path:   path,
+	u, err := url.Parse(path)
+	// Something is busted with the path, but it's too late to reject it. Pass it along as is.
+	if err != nil {
+		u = &url.URL{
+			Path: path,
+		}
 	}
+	u.Scheme = scheme
+	u.Host = net.JoinHostPort(host, strconv.Itoa(port))
+	return u
 }
 
 type execInContainer struct {
@@ -219,7 +226,14 @@ type execInContainer struct {
 
 func (p *prober) newExecInContainer(container api.Container, containerID kubecontainer.ContainerID, cmd []string) exec.Cmd {
 	return execInContainer{func() ([]byte, error) {
-		return p.runner.RunInContainer(containerID, cmd)
+		var buffer bytes.Buffer
+		output := ioutils.WriteCloserWrapper(&buffer)
+		err := p.runner.ExecInContainer(containerID, cmd, nil, output, output, false)
+		if err != nil {
+			return nil, err
+		}
+
+		return buffer.Bytes(), nil
 	}}
 }
 

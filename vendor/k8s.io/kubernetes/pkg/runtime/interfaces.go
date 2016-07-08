@@ -30,22 +30,23 @@ const (
 	APIVersionInternal = "__internal"
 )
 
-// Typer retrieves information about an object's group, version, and kind.
-type Typer interface {
-	// ObjectKind returns the version and kind of the provided object, or an
-	// error if the object is not recognized (IsNotRegisteredError will return true).
-	// It returns whether the object is considered unversioned at the same time.
-	// TODO: align the signature of ObjectTyper with this interface
-	ObjectKind(Object) (*unversioned.GroupVersionKind, bool, error)
+// GroupVersioner conveys information about a desired target version for objects being converted.
+type GroupVersioner interface {
+	// VersionForGroupKind returns the desired GroupVersion for a given group, or false if no version
+	// is preferred. The kind on the GroupKind is optional, and implementers may choose to ignore it.
+	VersionForGroupKind(group unversioned.GroupKind) (unversioned.GroupVersion, bool)
+	// PrefersGroup returns the preferred group for a conversion, or false if no group is preferred.
+	PrefersGroup() (string, bool)
 }
 
+// Encoders write objects to a serialized form
 type Encoder interface {
-	// EncodeToStream writes an object to a stream. Override versions may be provided for each group
-	// that enforce a certain versioning. Implementations may return errors if the versions are incompatible,
-	// or if no conversion is defined.
-	EncodeToStream(obj Object, stream io.Writer, overrides ...unversioned.GroupVersion) error
+	// Encode writes an object to a stream. Implementations may return errors if the versions are
+	// incompatible, or if no conversion is defined.
+	Encode(obj Object, w io.Writer) error
 }
 
+// Decoders attempt to load an object from data.
 type Decoder interface {
 	// Decode attempts to deserialize the provided data using either the innate typing of the scheme or the
 	// default kind, group, and version provided. It returns a decoded object as well as the kind, group, and
@@ -127,12 +128,10 @@ type NegotiatedSerializer interface {
 
 	// EncoderForVersion returns an encoder that ensures objects being written to the provided
 	// serializer are in the provided group version.
-	// TODO: take multiple group versions
-	EncoderForVersion(serializer Encoder, gv unversioned.GroupVersion) Encoder
+	EncoderForVersion(serializer Encoder, gv GroupVersioner) Encoder
 	// DecoderForVersion returns a decoder that ensures objects being read by the provided
 	// serializer are in the provided group version by default.
-	// TODO: take multiple group versions
-	DecoderToVersion(serializer Decoder, gv unversioned.GroupVersion) Decoder
+	DecoderToVersion(serializer Decoder, gv GroupVersioner) Decoder
 }
 
 // StorageSerializer is an interface used for obtaining encoders, decoders, and serializers
@@ -149,49 +148,55 @@ type StorageSerializer interface {
 
 	// EncoderForVersion returns an encoder that ensures objects being written to the provided
 	// serializer are in the provided group version.
-	// TODO: take multiple group versions
-	EncoderForVersion(serializer Encoder, gv unversioned.GroupVersion) Encoder
+	EncoderForVersion(serializer Encoder, gv GroupVersioner) Encoder
 	// DecoderForVersion returns a decoder that ensures objects being read by the provided
 	// serializer are in the provided group version by default.
-	// TODO: take multiple group versions
-	DecoderToVersion(serializer Decoder, gv unversioned.GroupVersion) Decoder
+	DecoderToVersion(serializer Decoder, gv GroupVersioner) Decoder
+}
+
+// NestedObjectEncoder is an optional interface that objects may implement to be given
+// an opportunity to encode any nested Objects / RawExtensions during serialization.
+type NestedObjectEncoder interface {
+	EncodeNestedObjects(e Encoder) error
+}
+
+// NestedObjectDecoder is an optional interface that objects may implement to be given
+// an opportunity to decode any nested Objects / RawExtensions during serialization.
+type NestedObjectDecoder interface {
+	DecodeNestedObjects(d Decoder) error
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Non-codec interfaces
 
 type ObjectVersioner interface {
-	ConvertToVersion(in Object, outVersion string) (out Object, err error)
+	ConvertToVersion(in Object, gv GroupVersioner) (out Object, err error)
 }
 
 // ObjectConvertor converts an object to a different version.
 type ObjectConvertor interface {
 	// Convert attempts to convert one object into another, or returns an error. This method does
-	// not guarantee the in object is not mutated.
-	Convert(in, out interface{}) error
+	// not guarantee the in object is not mutated. The context argument will be passed to
+	// all nested conversions.
+	Convert(in, out, context interface{}) error
 	// ConvertToVersion takes the provided object and converts it the provided version. This
-	// method does not guarantee that the in object is not mutated.
-	ConvertToVersion(in Object, outVersion string) (out Object, err error)
+	// method does not guarantee that the in object is not mutated. This method is similar to
+	// Convert() but handles specific details of choosing the correct output version.
+	ConvertToVersion(in Object, gv GroupVersioner) (out Object, err error)
 	ConvertFieldLabel(version, kind, label, value string) (string, string, error)
 }
 
 // ObjectTyper contains methods for extracting the APIVersion and Kind
 // of objects.
 type ObjectTyper interface {
-	// ObjectKind returns the default group,version,kind of the provided object, or an
-	// error if the object is not recognized (IsNotRegisteredError will return true).
-	ObjectKind(Object) (unversioned.GroupVersionKind, error)
-	// ObjectKinds returns the all possible group,version,kind of the provided object, or an
-	// error if the object is not recognized (IsNotRegisteredError will return true).
-	ObjectKinds(Object) ([]unversioned.GroupVersionKind, error)
+	// ObjectKinds returns the all possible group,version,kind of the provided object, true if
+	// the object is unversioned, or an error if the object is not recognized
+	// (IsNotRegisteredError will return true).
+	ObjectKinds(Object) ([]unversioned.GroupVersionKind, bool, error)
 	// Recognizes returns true if the scheme is able to handle the provided version and kind,
 	// or more precisely that the provided version is a possible conversion or decoding
 	// target.
 	Recognizes(gvk unversioned.GroupVersionKind) bool
-	// IsUnversioned returns true if the provided object is considered unversioned and thus
-	// should have Version and Group suppressed in the output. If the object is not recognized
-	// in the scheme, ok is false.
-	IsUnversioned(Object) (unversioned bool, ok bool)
 }
 
 // ObjectCreater contains methods for instantiating an object by kind and version.

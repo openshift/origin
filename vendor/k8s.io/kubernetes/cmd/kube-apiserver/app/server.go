@@ -46,6 +46,15 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
+	"k8s.io/kubernetes/pkg/registry/clusterrole"
+	clusterroleetcd "k8s.io/kubernetes/pkg/registry/clusterrole/etcd"
+	"k8s.io/kubernetes/pkg/registry/clusterrolebinding"
+	clusterrolebindingetcd "k8s.io/kubernetes/pkg/registry/clusterrolebinding/etcd"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/registry/role"
+	roleetcd "k8s.io/kubernetes/pkg/registry/role/etcd"
+	"k8s.io/kubernetes/pkg/registry/rolebinding"
+	rolebindingetcd "k8s.io/kubernetes/pkg/registry/rolebinding/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
 
@@ -177,18 +186,20 @@ func Run(s *options.APIServer) error {
 	}
 
 	authenticator, err := authenticator.New(authenticator.AuthenticatorConfig{
-		BasicAuthFile:             s.BasicAuthFile,
-		ClientCAFile:              s.ClientCAFile,
-		TokenAuthFile:             s.TokenAuthFile,
-		OIDCIssuerURL:             s.OIDCIssuerURL,
-		OIDCClientID:              s.OIDCClientID,
-		OIDCCAFile:                s.OIDCCAFile,
-		OIDCUsernameClaim:         s.OIDCUsernameClaim,
-		OIDCGroupsClaim:           s.OIDCGroupsClaim,
-		ServiceAccountKeyFile:     s.ServiceAccountKeyFile,
-		ServiceAccountLookup:      s.ServiceAccountLookup,
-		ServiceAccountTokenGetter: serviceAccountGetter,
-		KeystoneURL:               s.KeystoneURL,
+		BasicAuthFile:               s.BasicAuthFile,
+		ClientCAFile:                s.ClientCAFile,
+		TokenAuthFile:               s.TokenAuthFile,
+		OIDCIssuerURL:               s.OIDCIssuerURL,
+		OIDCClientID:                s.OIDCClientID,
+		OIDCCAFile:                  s.OIDCCAFile,
+		OIDCUsernameClaim:           s.OIDCUsernameClaim,
+		OIDCGroupsClaim:             s.OIDCGroupsClaim,
+		ServiceAccountKeyFile:       s.ServiceAccountKeyFile,
+		ServiceAccountLookup:        s.ServiceAccountLookup,
+		ServiceAccountTokenGetter:   serviceAccountGetter,
+		KeystoneURL:                 s.KeystoneURL,
+		WebhookTokenAuthnConfigFile: s.WebhookTokenAuthnConfigFile,
+		WebhookTokenAuthnCacheTTL:   s.WebhookTokenAuthnCacheTTL,
 	})
 
 	if err != nil {
@@ -196,7 +207,41 @@ func Run(s *options.APIServer) error {
 	}
 
 	authorizationModeNames := strings.Split(s.AuthorizationMode, ",")
-	authorizer, err := apiserver.NewAuthorizerFromAuthorizationConfig(authorizationModeNames, s.AuthorizationConfig)
+
+	modeEnabled := func(mode string) bool {
+		for _, m := range authorizationModeNames {
+			if m == mode {
+				return true
+			}
+		}
+		return false
+	}
+
+	authorizationConfig := apiserver.AuthorizationConfig{
+		PolicyFile:                  s.AuthorizationConfig.PolicyFile,
+		WebhookConfigFile:           s.AuthorizationConfig.WebhookConfigFile,
+		WebhookCacheAuthorizedTTL:   s.AuthorizationConfig.WebhookCacheAuthorizedTTL,
+		WebhookCacheUnauthorizedTTL: s.AuthorizationConfig.WebhookCacheUnauthorizedTTL,
+		RBACSuperUser:               s.AuthorizationConfig.RBACSuperUser,
+	}
+
+	if modeEnabled(apiserver.ModeRBAC) {
+		mustGetRESTOptions := func(resource string) generic.RESTOptions {
+			s, err := storageFactory.New(api.Resource(resource))
+			if err != nil {
+				glog.Fatalf("Unable to get %s storage: %v", resource, err)
+			}
+			return generic.RESTOptions{Storage: s, Decorator: generic.UndecoratedStorage}
+		}
+
+		// For initial bootstrapping go directly to etcd to avoid privillege escalation check.
+		authorizationConfig.RBACRoleRegistry = role.NewRegistry(roleetcd.NewREST(mustGetRESTOptions("roles")))
+		authorizationConfig.RBACRoleBindingRegistry = rolebinding.NewRegistry(rolebindingetcd.NewREST(mustGetRESTOptions("rolebindings")))
+		authorizationConfig.RBACClusterRoleRegistry = clusterrole.NewRegistry(clusterroleetcd.NewREST(mustGetRESTOptions("clusterroles")))
+		authorizationConfig.RBACClusterRoleBindingRegistry = clusterrolebinding.NewRegistry(clusterrolebindingetcd.NewREST(mustGetRESTOptions("clusterrolebindings")))
+	}
+
+	authorizer, err := apiserver.NewAuthorizerFromAuthorizationConfig(authorizationModeNames, authorizationConfig)
 	if err != nil {
 		glog.Fatalf("Invalid Authorization Config: %v", err)
 	}
@@ -214,6 +259,7 @@ func Run(s *options.APIServer) error {
 	genericConfig.Authenticator = authenticator
 	genericConfig.SupportsBasicAuth = len(s.BasicAuthFile) > 0
 	genericConfig.Authorizer = authorizer
+	genericConfig.AuthorizerRBACSuperUser = s.AuthorizationConfig.RBACSuperUser
 	genericConfig.AdmissionControl = admissionController
 	genericConfig.APIResourceConfigSource = storageFactory.APIResourceConfigSource
 	genericConfig.MasterServiceNamespace = s.MasterServiceNamespace

@@ -45,7 +45,7 @@ func TestAPItoV1VolumeSourceConversion(t *testing.T) {
 	if err := c.Convert(&in, &out, 0, nil); err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	if e, a := in.DownwardAPI.Items[0].Path, out.Metadata.Items[0].Name; e != a {
+	if e, a := in.DownwardAPI.Items[0].Path, out.Metadata.Items[0].Path; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := in.DownwardAPI.Items[0].Path, out.DownwardAPI.Items[0].Path; e != a {
@@ -69,10 +69,10 @@ func TestV1toAPIVolumeSourceConversion(t *testing.T) {
 				},
 			},
 		},
-		Metadata: &MetadataVolumeSource{
-			Items: []MetadataFile{
+		Metadata: &DeprecatedDownwardAPIVolumeSource{
+			Items: []DeprecatedDownwardAPIVolumeFile{
 				{
-					Name: "./test/v1-to-api/conversion",
+					Path: "./test/v1-to-api/conversion",
 				},
 			},
 		},
@@ -82,7 +82,7 @@ func TestV1toAPIVolumeSourceConversion(t *testing.T) {
 	if err := c.Convert(&in, &out, 0, nil); err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	if e, a := in.Metadata.Items[0].Name, out.DownwardAPI.Items[0].Path; e != a {
+	if e, a := in.Metadata.Items[0].Path, out.DownwardAPI.Items[0].Path; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 	if e, a := in.DownwardAPI.Items[0].Path, out.DownwardAPI.Items[0].Path; e != a {

@@ -30,6 +30,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -484,6 +485,14 @@ func (ec2 *FakeELB) ApplySecurityGroupsToLoadBalancer(*elb.ApplySecurityGroupsTo
 }
 
 func (elb *FakeELB) ConfigureHealthCheck(*elb.ConfigureHealthCheckInput) (*elb.ConfigureHealthCheckOutput, error) {
+	panic("Not implemented")
+}
+
+func (elb *FakeELB) CreateLoadBalancerPolicy(*elb.CreateLoadBalancerPolicyInput) (*elb.CreateLoadBalancerPolicyOutput, error) {
+	panic("Not implemented")
+}
+
+func (elb *FakeELB) SetLoadBalancerPoliciesForBackendServer(*elb.SetLoadBalancerPoliciesForBackendServerInput) (*elb.SetLoadBalancerPoliciesForBackendServerOutput, error) {
 	panic("Not implemented")
 }
 
@@ -1084,7 +1093,7 @@ func TestFindInstanceByNodeNameExcludesTerminatedInstances(t *testing.T) {
 	}
 }
 
-func TestFindInstancesByNodeName(t *testing.T) {
+func TestFindInstancesByNodeNameCached(t *testing.T) {
 	awsServices := NewFakeAWSServices()
 
 	nodeNameOne := "my-dns.internal"
@@ -1123,8 +1132,8 @@ func TestFindInstancesByNodeName(t *testing.T) {
 		return
 	}
 
-	nodeNames := []string{nodeNameOne}
-	returnedInstances, errr := c.getInstancesByNodeNames(nodeNames)
+	nodeNames := sets.NewString(nodeNameOne)
+	returnedInstances, errr := c.getInstancesByNodeNamesCached(nodeNames)
 
 	if errr != nil {
 		t.Errorf("Failed to find instance: %v", err)
@@ -1197,5 +1206,159 @@ func TestDescribeLoadBalancerOnEnsure(t *testing.T) {
 	c, _ := newAWSCloud(strings.NewReader("[global]"), awsServices)
 	awsServices.elb.expectDescribeLoadBalancers("aid")
 
-	c.EnsureLoadBalancer(&api.Service{ObjectMeta: api.ObjectMeta{Name: "myservice", UID: "id"}}, []string{}, map[string]string{})
+	c.EnsureLoadBalancer(&api.Service{ObjectMeta: api.ObjectMeta{Name: "myservice", UID: "id"}}, []string{})
+}
+
+func TestBuildListener(t *testing.T) {
+	tests := []struct {
+		name string
+
+		lbPort                    int64
+		portName                  string
+		instancePort              int64
+		backendProtocolAnnotation string
+		certAnnotation            string
+		sslPortAnnotation         string
+
+		expectError      bool
+		lbProtocol       string
+		instanceProtocol string
+		certID           string
+	}{
+		{
+			"No cert or BE protocol annotation, passthrough",
+			80, "", 7999, "", "", "",
+			false, "tcp", "tcp", "",
+		},
+		{
+			"Cert annotation without BE protocol specified, SSL->TCP",
+			80, "", 8000, "", "cert", "",
+			false, "ssl", "tcp", "cert",
+		},
+		{
+			"BE protocol without cert annotation, passthrough",
+			443, "", 8001, "https", "", "",
+			false, "tcp", "tcp", "",
+		},
+		{
+			"Invalid cert annotation, bogus backend protocol",
+			443, "", 8002, "bacon", "foo", "",
+			true, "tcp", "tcp", "",
+		},
+		{
+			"Invalid cert annotation, protocol followed by equal sign",
+			443, "", 8003, "http=", "=", "",
+			true, "tcp", "tcp", "",
+		},
+		{
+			"HTTPS->HTTPS",
+			443, "", 8004, "https", "cert", "",
+			false, "https", "https", "cert",
+		},
+		{
+			"HTTPS->HTTP",
+			443, "", 8005, "http", "cert", "",
+			false, "https", "http", "cert",
+		},
+		{
+			"SSL->SSL",
+			443, "", 8006, "ssl", "cert", "",
+			false, "ssl", "ssl", "cert",
+		},
+		{
+			"SSL->TCP",
+			443, "", 8007, "tcp", "cert", "",
+			false, "ssl", "tcp", "cert",
+		},
+		{
+			"Port in whitelist",
+			1234, "", 8008, "tcp", "cert", "1234,5678",
+			false, "ssl", "tcp", "cert",
+		},
+		{
+			"Port not in whitelist, passthrough",
+			443, "", 8009, "tcp", "cert", "1234,5678",
+			false, "tcp", "tcp", "",
+		},
+		{
+			"Named port in whitelist",
+			1234, "bar", 8010, "tcp", "cert", "foo,bar",
+			false, "ssl", "tcp", "cert",
+		},
+		{
+			"Named port not in whitelist, passthrough",
+			443, "", 8011, "tcp", "cert", "foo,bar",
+			false, "tcp", "tcp", "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Logf("Running test case %s", test.name)
+		annotations := make(map[string]string)
+		if test.backendProtocolAnnotation != "" {
+			annotations[ServiceAnnotationLoadBalancerBEProtocol] = test.backendProtocolAnnotation
+		}
+		if test.certAnnotation != "" {
+			annotations[ServiceAnnotationLoadBalancerCertificate] = test.certAnnotation
+		}
+		ports := getPortSets(test.sslPortAnnotation)
+		l, err := buildListener(api.ServicePort{
+			NodePort: int32(test.instancePort),
+			Port:     int32(test.lbPort),
+			Name:     test.portName,
+			Protocol: api.Protocol("tcp"),
+		}, annotations, ports)
+		if test.expectError {
+			if err == nil {
+				t.Errorf("Should error for case %s", test.name)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("Should succeed for case: %s, got %v", test.name, err)
+			} else {
+				var cert *string
+				if test.certID != "" {
+					cert = &test.certID
+				}
+				expected := &elb.Listener{
+					InstancePort:     &test.instancePort,
+					InstanceProtocol: &test.instanceProtocol,
+					LoadBalancerPort: &test.lbPort,
+					Protocol:         &test.lbProtocol,
+					SSLCertificateId: cert,
+				}
+				if !reflect.DeepEqual(l, expected) {
+					t.Errorf("Incorrect listener (%v vs expected %v) for case: %s",
+						l, expected, test.name)
+				}
+			}
+		}
+	}
+}
+
+func TestProxyProtocolEnabled(t *testing.T) {
+	policies := sets.NewString(ProxyProtocolPolicyName, "FooBarFoo")
+	fakeBackend := &elb.BackendServerDescription{
+		InstancePort: aws.Int64(80),
+		PolicyNames:  stringSetToPointers(policies),
+	}
+	result := proxyProtocolEnabled(fakeBackend)
+	assert.True(t, result, "expected to find %s in %s", ProxyProtocolPolicyName, policies)
+
+	policies = sets.NewString("FooBarFoo")
+	fakeBackend = &elb.BackendServerDescription{
+		InstancePort: aws.Int64(80),
+		PolicyNames: []*string{
+			aws.String("FooBarFoo"),
+		},
+	}
+	result = proxyProtocolEnabled(fakeBackend)
+	assert.False(t, result, "did not expect to find %s in %s", ProxyProtocolPolicyName, policies)
+
+	policies = sets.NewString()
+	fakeBackend = &elb.BackendServerDescription{
+		InstancePort: aws.Int64(80),
+	}
+	result = proxyProtocolEnabled(fakeBackend)
+	assert.False(t, result, "did not expect to find %s in %s", ProxyProtocolPolicyName, policies)
 }

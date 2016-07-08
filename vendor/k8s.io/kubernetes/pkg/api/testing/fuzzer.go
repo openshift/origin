@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/fields"
@@ -168,6 +169,10 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 				j.ManualSelector = nil
 			}
 		},
+		func(cp *batch.ConcurrencyPolicy, c fuzz.Continue) {
+			policies := []batch.ConcurrencyPolicy{batch.AllowConcurrent, batch.ForbidConcurrent, batch.ReplaceConcurrent}
+			*cp = policies[c.Rand.Intn(len(policies))]
+		},
 		func(j *api.List, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
 			// TODO: uncomment when round trip starts from a versioned object
@@ -194,6 +199,8 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			randomQuantity := func() resource.Quantity {
 				var q resource.Quantity
 				c.Fuzz(&q)
+				// precalc the string for benchmarking purposes
+				_ = q.String()
 				return q
 			}
 			q.Limits = make(api.ResourceList)
@@ -242,6 +249,7 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 		func(m *api.DownwardAPIVolumeFile, c fuzz.Continue) {
 			m.Path = c.RandString()
 			versions := []string{"v1"}
+			m.FieldRef = &api.ObjectFieldSelector{}
 			m.FieldRef.APIVersion = versions[c.Rand.Intn(len(versions))]
 			m.FieldRef.FieldPath = c.RandString()
 		},
@@ -310,14 +318,13 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			}
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
-			v1beta3GroupVersion := unversioned.GroupVersion{Group: "", Version: "v1beta3"}
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
-			if c.RandBool() || version == v1beta3GroupVersion {
+			if c.RandBool() {
 				priv := c.RandBool()
 				sc.Privileged = &priv
 			}
 
-			if c.RandBool() || version == v1beta3GroupVersion {
+			if c.RandBool() {
 				sc.Capabilities = &api.Capabilities{
 					Add:  make([]api.Capability, 0),
 					Drop: make([]api.Capability, 0),
@@ -330,6 +337,20 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			c.FuzzNoCustom(s) // fuzz self without calling this function again
 			s.Type = api.SecretTypeOpaque
 		},
+		func(r *api.RBDVolumeSource, c fuzz.Continue) {
+			r.RBDPool = c.RandString()
+			if r.RBDPool == "" {
+				r.RBDPool = "rbd"
+			}
+			r.RadosUser = c.RandString()
+			if r.RadosUser == "" {
+				r.RadosUser = "admin"
+			}
+			r.Keyring = c.RandString()
+			if r.Keyring == "" {
+				r.Keyring = "/etc/ceph/keyring"
+			}
+		},
 		func(pv *api.PersistentVolume, c fuzz.Continue) {
 			c.FuzzNoCustom(pv) // fuzz self without calling this function again
 			types := []api.PersistentVolumePhase{api.VolumeAvailable, api.VolumePending, api.VolumeBound, api.VolumeReleased, api.VolumeFailed}
@@ -340,7 +361,7 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 		},
 		func(pvc *api.PersistentVolumeClaim, c fuzz.Continue) {
 			c.FuzzNoCustom(pvc) // fuzz self without calling this function again
-			types := []api.PersistentVolumeClaimPhase{api.ClaimBound, api.ClaimPending}
+			types := []api.PersistentVolumeClaimPhase{api.ClaimBound, api.ClaimPending, api.ClaimLost}
 			pvc.Status.Phase = types[c.Rand.Intn(len(types))]
 		},
 		func(s *api.NamespaceSpec, c fuzz.Continue) {
@@ -378,15 +399,12 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			c.FuzzNoCustom(s)
 			s.Allocatable = s.Capacity
 		},
-		func(s *extensions.HorizontalPodAutoscalerSpec, c fuzz.Continue) {
+		func(s *autoscaling.HorizontalPodAutoscalerSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(s) // fuzz self without calling this function again
 			minReplicas := int32(c.Rand.Int31())
 			s.MinReplicas = &minReplicas
-			s.CPUUtilization = &extensions.CPUTargetUtilization{TargetPercentage: int32(c.RandUint64())}
-		},
-		func(s *extensions.SubresourceReference, c fuzz.Continue) {
-			c.FuzzNoCustom(s) // fuzz self without calling this function again
-			s.Subresource = "scale"
+			targetCpu := int32(c.RandUint64())
+			s.TargetCPUUtilizationPercentage = &targetCpu
 		},
 		func(psp *extensions.PodSecurityPolicySpec, c fuzz.Continue) {
 			c.FuzzNoCustom(psp) // fuzz self without calling this function again
@@ -413,6 +431,37 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 					},
 				}
 			}
+		},
+		func(r *runtime.RawExtension, c fuzz.Continue) {
+			// Pick an arbitrary type and fuzz it
+			types := []runtime.Object{&api.Pod{}, &extensions.Deployment{}, &api.Service{}}
+			obj := types[c.Rand.Intn(len(types))]
+			c.Fuzz(obj)
+
+			// Find a codec for converting the object to raw bytes.  This is necessary for the
+			// api version and kind to be correctly set be serialization.
+			var codec runtime.Codec
+			switch obj.(type) {
+			case *api.Pod:
+				codec = testapi.Default.Codec()
+			case *extensions.Deployment:
+				codec = testapi.Extensions.Codec()
+			case *api.Service:
+				codec = testapi.Default.Codec()
+			default:
+				t.Errorf("Failed to find codec for object type: %T", obj)
+				return
+			}
+
+			// Convert the object to raw bytes
+			bytes, err := runtime.Encode(codec, obj)
+			if err != nil {
+				t.Errorf("Failed to encode object: %v", err)
+				return
+			}
+
+			// Set the bytes field on the RawExtension
+			r.Raw = bytes
 		},
 		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
 			c.FuzzNoCustom(scc) // fuzz self without calling this function again
@@ -446,7 +495,6 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 				api.FSTypeRBD,
 				api.FSTypeSecret}
 			scc.Volumes = []api.FSType{volumeTypes[c.Rand.Intn(len(volumeTypes))]}
-
 		},
 	)
 	return f

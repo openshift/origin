@@ -23,9 +23,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer/recognizer"
-	"k8s.io/kubernetes/pkg/runtime/serializer/versioning"
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
+	storagebackendfactory "k8s.io/kubernetes/pkg/storage/storagebackend/factory"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
@@ -70,7 +70,7 @@ type DefaultStorageFactory struct {
 	newStorageCodecFn func(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, config storagebackend.Config) (codec runtime.Codec, err error)
 
 	// newStorageFn exists to be overwritten for unit testing.
-	newStorageFn func(config storagebackend.Config) (etcdStorage storage.Interface, err error)
+	newStorageFn func(config storagebackend.Config, codec runtime.Codec) (etcdStorage storage.Interface, err error)
 }
 
 type groupResourceOverrides struct {
@@ -212,15 +212,13 @@ func (s *DefaultStorageFactory) New(groupResource unversioned.GroupResource) (st
 		return nil, err
 	}
 
-	config.Codec = codec
-
 	glog.V(3).Infof("storing %v in %v, reading as %v from %v", groupResource, storageEncodingVersion, internalVersion, config)
-	return s.newStorageFn(config)
+	return s.newStorageFn(config, codec)
 }
 
 // newStorage is the default implementation for creating a storage backend.
-func newStorage(config storagebackend.Config) (etcdStorage storage.Interface, err error) {
-	return storagebackend.Create(config)
+func newStorage(config storagebackend.Config, codec runtime.Codec) (etcdStorage storage.Interface, err error) {
+	return storagebackendfactory.Create(config, codec)
 }
 
 // Get all backends for all registered storage destinations.
@@ -256,16 +254,7 @@ func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer, stor
 	}
 
 	ds := recognizer.NewDecoder(s, ns.UniversalDeserializer())
-	encoder := ns.EncoderForVersion(s, storageVersion)
-	decoder := ns.DecoderToVersion(ds, memoryVersion)
-	if memoryVersion.Group != storageVersion.Group {
-		// Allow this codec to translate between groups.
-		if err := versioning.EnableCrossGroupEncoding(encoder, memoryVersion.Group, storageVersion.Group); err != nil {
-			return nil, fmt.Errorf("error setting up encoder from %v to %v: %v", memoryVersion, storageVersion, err)
-		}
-		if err := versioning.EnableCrossGroupDecoding(decoder, storageVersion.Group, memoryVersion.Group); err != nil {
-			return nil, fmt.Errorf("error setting up decoder from %v to %v: %v", storageVersion, memoryVersion, err)
-		}
-	}
+	encoder := ns.EncoderForVersion(s, runtime.NewMultiGroupVersioner(storageVersion, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+	decoder := ns.DecoderToVersion(ds, runtime.NewMultiGroupVersioner(memoryVersion, unversioned.GroupKind{Group: memoryVersion.Group}, unversioned.GroupKind{Group: storageVersion.Group}))
 	return runtime.NewCodec(encoder, decoder), nil
 }

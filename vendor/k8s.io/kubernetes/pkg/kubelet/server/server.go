@@ -175,7 +175,7 @@ type HostInterface interface {
 	GetNode() (*api.Node, error)
 	GetNodeConfig() cm.NodeConfig
 	LatestLoopEntryTime() time.Time
-	DockerImagesFsInfo() (cadvisorapiv2.FsInfo, error)
+	ImagesFsInfo() (cadvisorapiv2.FsInfo, error)
 	RootFsInfo() (cadvisorapiv2.FsInfo, error)
 	ListVolumesForPod(podUID types.UID) (map[string]volume.Volume, bool)
 	PLEGHealthCheck() (bool, error)
@@ -467,6 +467,13 @@ func (s *Server) getContainerLogs(request *restful.Request, response *restful.Re
 	for _, container := range pod.Spec.Containers {
 		if container.Name == containerName {
 			containerExists = true
+		}
+	}
+	if !containerExists {
+		for _, container := range pod.Spec.InitContainers {
+			if container.Name == containerName {
+				containerExists = true
+			}
 		}
 	}
 	if !containerExists {

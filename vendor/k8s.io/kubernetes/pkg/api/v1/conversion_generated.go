@@ -23,7 +23,6 @@ package v1
 import (
 	api "k8s.io/kubernetes/pkg/api"
 	resource "k8s.io/kubernetes/pkg/api/resource"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
 	types "k8s.io/kubernetes/pkg/types"
@@ -35,6 +34,8 @@ func init() {
 		Convert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource,
 		Convert_v1_Affinity_To_api_Affinity,
 		Convert_api_Affinity_To_v1_Affinity,
+		Convert_v1_AttachedVolume_To_api_AttachedVolume,
+		Convert_api_AttachedVolume_To_v1_AttachedVolume,
 		Convert_v1_AzureFileVolumeSource_To_api_AzureFileVolumeSource,
 		Convert_api_AzureFileVolumeSource_To_v1_AzureFileVolumeSource,
 		Convert_v1_Binding_To_api_Binding,
@@ -273,6 +274,8 @@ func init() {
 		Convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec,
 		Convert_v1_ReplicationControllerStatus_To_api_ReplicationControllerStatus,
 		Convert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStatus,
+		Convert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector,
+		Convert_api_ResourceFieldSelector_To_v1_ResourceFieldSelector,
 		Convert_v1_ResourceQuota_To_api_ResourceQuota,
 		Convert_api_ResourceQuota_To_v1_ResourceQuota,
 		Convert_v1_ResourceQuotaList_To_api_ResourceQuotaList,
@@ -325,12 +328,18 @@ func init() {
 		Convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions,
 		Convert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		Convert_api_TCPSocketAction_To_v1_TCPSocketAction,
+		Convert_v1_Taint_To_api_Taint,
+		Convert_api_Taint_To_v1_Taint,
+		Convert_v1_Toleration_To_api_Toleration,
+		Convert_api_Toleration_To_v1_Toleration,
 		Convert_v1_Volume_To_api_Volume,
 		Convert_api_Volume_To_v1_Volume,
 		Convert_v1_VolumeMount_To_api_VolumeMount,
 		Convert_api_VolumeMount_To_v1_VolumeMount,
 		Convert_v1_VolumeSource_To_api_VolumeSource,
 		Convert_api_VolumeSource_To_v1_VolumeSource,
+		Convert_v1_VsphereVirtualDiskVolumeSource_To_api_VsphereVirtualDiskVolumeSource,
+		Convert_api_VsphereVirtualDiskVolumeSource_To_v1_VsphereVirtualDiskVolumeSource,
 		Convert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm,
 		Convert_api_WeightedPodAffinityTerm_To_v1_WeightedPodAffinityTerm,
 	); err != nil {
@@ -431,6 +440,26 @@ func autoConvert_api_Affinity_To_v1_Affinity(in *api.Affinity, out *Affinity, s 
 
 func Convert_api_Affinity_To_v1_Affinity(in *api.Affinity, out *Affinity, s conversion.Scope) error {
 	return autoConvert_api_Affinity_To_v1_Affinity(in, out, s)
+}
+
+func autoConvert_v1_AttachedVolume_To_api_AttachedVolume(in *AttachedVolume, out *api.AttachedVolume, s conversion.Scope) error {
+	out.Name = api.UniqueVolumeName(in.Name)
+	out.DevicePath = in.DevicePath
+	return nil
+}
+
+func Convert_v1_AttachedVolume_To_api_AttachedVolume(in *AttachedVolume, out *api.AttachedVolume, s conversion.Scope) error {
+	return autoConvert_v1_AttachedVolume_To_api_AttachedVolume(in, out, s)
+}
+
+func autoConvert_api_AttachedVolume_To_v1_AttachedVolume(in *api.AttachedVolume, out *AttachedVolume, s conversion.Scope) error {
+	out.Name = UniqueVolumeName(in.Name)
+	out.DevicePath = in.DevicePath
+	return nil
+}
+
+func Convert_api_AttachedVolume_To_v1_AttachedVolume(in *api.AttachedVolume, out *AttachedVolume, s conversion.Scope) error {
+	return autoConvert_api_AttachedVolume_To_v1_AttachedVolume(in, out, s)
 }
 
 func autoConvert_v1_AzureFileVolumeSource_To_api_AzureFileVolumeSource(in *AzureFileVolumeSource, out *api.AzureFileVolumeSource, s conversion.Scope) error {
@@ -542,13 +571,7 @@ func Convert_api_Capabilities_To_v1_Capabilities(in *api.Capabilities, out *Capa
 }
 
 func autoConvert_v1_CephFSVolumeSource_To_api_CephFSVolumeSource(in *CephFSVolumeSource, out *api.CephFSVolumeSource, s conversion.Scope) error {
-	if in.Monitors != nil {
-		in, out := &in.Monitors, &out.Monitors
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Monitors = nil
-	}
+	out.Monitors = in.Monitors
 	out.Path = in.Path
 	out.User = in.User
 	out.SecretFile = in.SecretFile
@@ -570,13 +593,7 @@ func Convert_v1_CephFSVolumeSource_To_api_CephFSVolumeSource(in *CephFSVolumeSou
 }
 
 func autoConvert_api_CephFSVolumeSource_To_v1_CephFSVolumeSource(in *api.CephFSVolumeSource, out *CephFSVolumeSource, s conversion.Scope) error {
-	if in.Monitors != nil {
-		in, out := &in.Monitors, &out.Monitors
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Monitors = nil
-	}
+	out.Monitors = in.Monitors
 	out.Path = in.Path
 	out.User = in.User
 	out.SecretFile = in.SecretFile
@@ -751,15 +768,7 @@ func autoConvert_v1_ConfigMap_To_api_ConfigMap(in *ConfigMap, out *api.ConfigMap
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Data = nil
-	}
+	out.Data = in.Data
 	return nil
 }
 
@@ -774,15 +783,7 @@ func autoConvert_api_ConfigMap_To_v1_ConfigMap(in *api.ConfigMap, out *ConfigMap
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Data = nil
-	}
+	out.Data = in.Data
 	return nil
 }
 
@@ -912,20 +913,8 @@ func autoConvert_v1_Container_To_api_Container(in *Container, out *api.Container
 	SetDefaults_Container(in)
 	out.Name = in.Name
 	out.Image = in.Image
-	if in.Command != nil {
-		in, out := &in.Command, &out.Command
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Command = nil
-	}
-	if in.Args != nil {
-		in, out := &in.Args, &out.Args
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Args = nil
-	}
+	out.Command = in.Command
+	out.Args = in.Args
 	out.WorkingDir = in.WorkingDir
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
@@ -1014,20 +1003,8 @@ func Convert_v1_Container_To_api_Container(in *Container, out *api.Container, s 
 func autoConvert_api_Container_To_v1_Container(in *api.Container, out *Container, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Image = in.Image
-	if in.Command != nil {
-		in, out := &in.Command, &out.Command
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Command = nil
-	}
-	if in.Args != nil {
-		in, out := &in.Args, &out.Args
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Args = nil
-	}
+	out.Command = in.Command
+	out.Args = in.Args
 	out.WorkingDir = in.WorkingDir
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
@@ -1114,13 +1091,7 @@ func Convert_api_Container_To_v1_Container(in *api.Container, out *Container, s 
 }
 
 func autoConvert_v1_ContainerImage_To_api_ContainerImage(in *ContainerImage, out *api.ContainerImage, s conversion.Scope) error {
-	if in.Names != nil {
-		in, out := &in.Names, &out.Names
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Names = nil
-	}
+	out.Names = in.Names
 	out.SizeBytes = in.SizeBytes
 	return nil
 }
@@ -1130,13 +1101,7 @@ func Convert_v1_ContainerImage_To_api_ContainerImage(in *ContainerImage, out *ap
 }
 
 func autoConvert_api_ContainerImage_To_v1_ContainerImage(in *api.ContainerImage, out *ContainerImage, s conversion.Scope) error {
-	if in.Names != nil {
-		in, out := &in.Names, &out.Names
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Names = nil
-	}
+	out.Names = in.Names
 	out.SizeBytes = in.SizeBytes
 	return nil
 }
@@ -1384,13 +1349,7 @@ func autoConvert_v1_DeleteOptions_To_api_DeleteOptions(in *DeleteOptions, out *a
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
-	if in.GracePeriodSeconds != nil {
-		in, out := &in.GracePeriodSeconds, &out.GracePeriodSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.GracePeriodSeconds = nil
-	}
+	out.GracePeriodSeconds = in.GracePeriodSeconds
 	if in.Preconditions != nil {
 		in, out := &in.Preconditions, &out.Preconditions
 		*out = new(api.Preconditions)
@@ -1400,13 +1359,7 @@ func autoConvert_v1_DeleteOptions_To_api_DeleteOptions(in *DeleteOptions, out *a
 	} else {
 		out.Preconditions = nil
 	}
-	if in.OrphanDependents != nil {
-		in, out := &in.OrphanDependents, &out.OrphanDependents
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.OrphanDependents = nil
-	}
+	out.OrphanDependents = in.OrphanDependents
 	return nil
 }
 
@@ -1418,13 +1371,7 @@ func autoConvert_api_DeleteOptions_To_v1_DeleteOptions(in *api.DeleteOptions, ou
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
-	if in.GracePeriodSeconds != nil {
-		in, out := &in.GracePeriodSeconds, &out.GracePeriodSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.GracePeriodSeconds = nil
-	}
+	out.GracePeriodSeconds = in.GracePeriodSeconds
 	if in.Preconditions != nil {
 		in, out := &in.Preconditions, &out.Preconditions
 		*out = new(Preconditions)
@@ -1434,13 +1381,7 @@ func autoConvert_api_DeleteOptions_To_v1_DeleteOptions(in *api.DeleteOptions, ou
 	} else {
 		out.Preconditions = nil
 	}
-	if in.OrphanDependents != nil {
-		in, out := &in.OrphanDependents, &out.OrphanDependents
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.OrphanDependents = nil
-	}
+	out.OrphanDependents = in.OrphanDependents
 	return nil
 }
 
@@ -1450,8 +1391,23 @@ func Convert_api_DeleteOptions_To_v1_DeleteOptions(in *api.DeleteOptions, out *D
 
 func autoConvert_v1_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in *DownwardAPIVolumeFile, out *api.DownwardAPIVolumeFile, s conversion.Scope) error {
 	out.Path = in.Path
-	if err := Convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
+	if in.FieldRef != nil {
+		in, out := &in.FieldRef, &out.FieldRef
+		*out = new(api.ObjectFieldSelector)
+		if err := Convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FieldRef = nil
+	}
+	if in.ResourceFieldRef != nil {
+		in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
+		*out = new(api.ResourceFieldSelector)
+		if err := Convert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ResourceFieldRef = nil
 	}
 	return nil
 }
@@ -1462,8 +1418,23 @@ func Convert_v1_DownwardAPIVolumeFile_To_api_DownwardAPIVolumeFile(in *DownwardA
 
 func autoConvert_api_DownwardAPIVolumeFile_To_v1_DownwardAPIVolumeFile(in *api.DownwardAPIVolumeFile, out *DownwardAPIVolumeFile, s conversion.Scope) error {
 	out.Path = in.Path
-	if err := Convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
+	if in.FieldRef != nil {
+		in, out := &in.FieldRef, &out.FieldRef
+		*out = new(ObjectFieldSelector)
+		if err := Convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FieldRef = nil
+	}
+	if in.ResourceFieldRef != nil {
+		in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
+		*out = new(ResourceFieldSelector)
+		if err := Convert_api_ResourceFieldSelector_To_v1_ResourceFieldSelector(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ResourceFieldRef = nil
 	}
 	return nil
 }
@@ -1820,6 +1791,15 @@ func autoConvert_v1_EnvVarSource_To_api_EnvVarSource(in *EnvVarSource, out *api.
 	} else {
 		out.FieldRef = nil
 	}
+	if in.ResourceFieldRef != nil {
+		in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
+		*out = new(api.ResourceFieldSelector)
+		if err := Convert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ResourceFieldRef = nil
+	}
 	if in.ConfigMapKeyRef != nil {
 		in, out := &in.ConfigMapKeyRef, &out.ConfigMapKeyRef
 		*out = new(api.ConfigMapKeySelector)
@@ -1854,6 +1834,15 @@ func autoConvert_api_EnvVarSource_To_v1_EnvVarSource(in *api.EnvVarSource, out *
 		}
 	} else {
 		out.FieldRef = nil
+	}
+	if in.ResourceFieldRef != nil {
+		in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
+		*out = new(ResourceFieldSelector)
+		if err := Convert_api_ResourceFieldSelector_To_v1_ResourceFieldSelector(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ResourceFieldRef = nil
 	}
 	if in.ConfigMapKeyRef != nil {
 		in, out := &in.ConfigMapKeyRef, &out.ConfigMapKeyRef
@@ -2011,13 +2000,7 @@ func Convert_api_EventSource_To_v1_EventSource(in *api.EventSource, out *EventSo
 }
 
 func autoConvert_v1_ExecAction_To_api_ExecAction(in *ExecAction, out *api.ExecAction, s conversion.Scope) error {
-	if in.Command != nil {
-		in, out := &in.Command, &out.Command
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Command = nil
-	}
+	out.Command = in.Command
 	return nil
 }
 
@@ -2026,13 +2009,7 @@ func Convert_v1_ExecAction_To_api_ExecAction(in *ExecAction, out *api.ExecAction
 }
 
 func autoConvert_api_ExecAction_To_v1_ExecAction(in *api.ExecAction, out *ExecAction, s conversion.Scope) error {
-	if in.Command != nil {
-		in, out := &in.Command, &out.Command
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Command = nil
-	}
+	out.Command = in.Command
 	return nil
 }
 
@@ -2067,20 +2044,8 @@ func Convert_api_ExportOptions_To_v1_ExportOptions(in *api.ExportOptions, out *E
 }
 
 func autoConvert_v1_FCVolumeSource_To_api_FCVolumeSource(in *FCVolumeSource, out *api.FCVolumeSource, s conversion.Scope) error {
-	if in.TargetWWNs != nil {
-		in, out := &in.TargetWWNs, &out.TargetWWNs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.TargetWWNs = nil
-	}
-	if in.Lun != nil {
-		in, out := &in.Lun, &out.Lun
-		*out = new(int32)
-		**out = **in
-	} else {
-		out.Lun = nil
-	}
+	out.TargetWWNs = in.TargetWWNs
+	out.Lun = in.Lun
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -2091,20 +2056,8 @@ func Convert_v1_FCVolumeSource_To_api_FCVolumeSource(in *FCVolumeSource, out *ap
 }
 
 func autoConvert_api_FCVolumeSource_To_v1_FCVolumeSource(in *api.FCVolumeSource, out *FCVolumeSource, s conversion.Scope) error {
-	if in.TargetWWNs != nil {
-		in, out := &in.TargetWWNs, &out.TargetWWNs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.TargetWWNs = nil
-	}
-	if in.Lun != nil {
-		in, out := &in.Lun, &out.Lun
-		*out = new(int32)
-		**out = **in
-	} else {
-		out.Lun = nil
-	}
+	out.TargetWWNs = in.TargetWWNs
+	out.Lun = in.Lun
 	out.FSType = in.FSType
 	out.ReadOnly = in.ReadOnly
 	return nil
@@ -2167,15 +2120,7 @@ func autoConvert_v1_FlexVolumeSource_To_api_FlexVolumeSource(in *FlexVolumeSourc
 		out.SecretRef = nil
 	}
 	out.ReadOnly = in.ReadOnly
-	if in.Options != nil {
-		in, out := &in.Options, &out.Options
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Options = nil
-	}
+	out.Options = in.Options
 	return nil
 }
 
@@ -2196,15 +2141,7 @@ func autoConvert_api_FlexVolumeSource_To_v1_FlexVolumeSource(in *api.FlexVolumeS
 		out.SecretRef = nil
 	}
 	out.ReadOnly = in.ReadOnly
-	if in.Options != nil {
-		in, out := &in.Options, &out.Options
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Options = nil
-	}
+	out.Options = in.Options
 	return nil
 }
 
@@ -2861,13 +2798,7 @@ func autoConvert_v1_ListOptions_To_api_ListOptions(in *ListOptions, out *api.Lis
 	}
 	out.Watch = in.Watch
 	out.ResourceVersion = in.ResourceVersion
-	if in.TimeoutSeconds != nil {
-		in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.TimeoutSeconds = nil
-	}
+	out.TimeoutSeconds = in.TimeoutSeconds
 	return nil
 }
 
@@ -2887,13 +2818,7 @@ func autoConvert_api_ListOptions_To_v1_ListOptions(in *api.ListOptions, out *Lis
 	}
 	out.Watch = in.Watch
 	out.ResourceVersion = in.ResourceVersion
-	if in.TimeoutSeconds != nil {
-		in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.TimeoutSeconds = nil
-	}
+	out.TimeoutSeconds = in.TimeoutSeconds
 	return nil
 }
 
@@ -3432,13 +3357,7 @@ func Convert_api_NodeSelector_To_v1_NodeSelector(in *api.NodeSelector, out *Node
 func autoConvert_v1_NodeSelectorRequirement_To_api_NodeSelectorRequirement(in *NodeSelectorRequirement, out *api.NodeSelectorRequirement, s conversion.Scope) error {
 	out.Key = in.Key
 	out.Operator = api.NodeSelectorOperator(in.Operator)
-	if in.Values != nil {
-		in, out := &in.Values, &out.Values
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Values = nil
-	}
+	out.Values = in.Values
 	return nil
 }
 
@@ -3449,13 +3368,7 @@ func Convert_v1_NodeSelectorRequirement_To_api_NodeSelectorRequirement(in *NodeS
 func autoConvert_api_NodeSelectorRequirement_To_v1_NodeSelectorRequirement(in *api.NodeSelectorRequirement, out *NodeSelectorRequirement, s conversion.Scope) error {
 	out.Key = in.Key
 	out.Operator = NodeSelectorOperator(in.Operator)
-	if in.Values != nil {
-		in, out := &in.Values, &out.Values
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Values = nil
-	}
+	out.Values = in.Values
 	return nil
 }
 
@@ -3573,6 +3486,26 @@ func autoConvert_v1_NodeStatus_To_api_NodeStatus(in *NodeStatus, out *api.NodeSt
 	} else {
 		out.Images = nil
 	}
+	if in.VolumesInUse != nil {
+		in, out := &in.VolumesInUse, &out.VolumesInUse
+		*out = make([]api.UniqueVolumeName, len(*in))
+		for i := range *in {
+			(*out)[i] = api.UniqueVolumeName((*in)[i])
+		}
+	} else {
+		out.VolumesInUse = nil
+	}
+	if in.VolumesAttached != nil {
+		in, out := &in.VolumesAttached, &out.VolumesAttached
+		*out = make([]api.AttachedVolume, len(*in))
+		for i := range *in {
+			if err := Convert_v1_AttachedVolume_To_api_AttachedVolume(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.VolumesAttached = nil
+	}
 	return nil
 }
 
@@ -3647,6 +3580,26 @@ func autoConvert_api_NodeStatus_To_v1_NodeStatus(in *api.NodeStatus, out *NodeSt
 	} else {
 		out.Images = nil
 	}
+	if in.VolumesInUse != nil {
+		in, out := &in.VolumesInUse, &out.VolumesInUse
+		*out = make([]UniqueVolumeName, len(*in))
+		for i := range *in {
+			(*out)[i] = UniqueVolumeName((*in)[i])
+		}
+	} else {
+		out.VolumesInUse = nil
+	}
+	if in.VolumesAttached != nil {
+		in, out := &in.VolumesAttached, &out.VolumesAttached
+		*out = make([]AttachedVolume, len(*in))
+		for i := range *in {
+			if err := Convert_api_AttachedVolume_To_v1_AttachedVolume(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.VolumesAttached = nil
+	}
 	return nil
 }
 
@@ -3663,6 +3616,8 @@ func autoConvert_v1_NodeSystemInfo_To_api_NodeSystemInfo(in *NodeSystemInfo, out
 	out.ContainerRuntimeVersion = in.ContainerRuntimeVersion
 	out.KubeletVersion = in.KubeletVersion
 	out.KubeProxyVersion = in.KubeProxyVersion
+	out.OperatingSystem = in.OperatingSystem
+	out.Architecture = in.Architecture
 	return nil
 }
 
@@ -3679,6 +3634,8 @@ func autoConvert_api_NodeSystemInfo_To_v1_NodeSystemInfo(in *api.NodeSystemInfo,
 	out.ContainerRuntimeVersion = in.ContainerRuntimeVersion
 	out.KubeletVersion = in.KubeletVersion
 	out.KubeProxyVersion = in.KubeProxyVersion
+	out.OperatingSystem = in.OperatingSystem
+	out.Architecture = in.Architecture
 	return nil
 }
 
@@ -3712,46 +3669,16 @@ func autoConvert_v1_ObjectMeta_To_api_ObjectMeta(in *ObjectMeta, out *api.Object
 	out.GenerateName = in.GenerateName
 	out.Namespace = in.Namespace
 	out.SelfLink = in.SelfLink
-	out.UID = in.UID
+	out.UID = types.UID(in.UID)
 	out.ResourceVersion = in.ResourceVersion
 	out.Generation = in.Generation
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.CreationTimestamp, &out.CreationTimestamp, s); err != nil {
 		return err
 	}
-	if in.DeletionTimestamp != nil {
-		in, out := &in.DeletionTimestamp, &out.DeletionTimestamp
-		*out = new(unversioned.Time)
-		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.DeletionTimestamp = nil
-	}
-	if in.DeletionGracePeriodSeconds != nil {
-		in, out := &in.DeletionGracePeriodSeconds, &out.DeletionGracePeriodSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.DeletionGracePeriodSeconds = nil
-	}
-	if in.Labels != nil {
-		in, out := &in.Labels, &out.Labels
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Labels = nil
-	}
-	if in.Annotations != nil {
-		in, out := &in.Annotations, &out.Annotations
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Annotations = nil
-	}
+	out.DeletionTimestamp = in.DeletionTimestamp
+	out.DeletionGracePeriodSeconds = in.DeletionGracePeriodSeconds
+	out.Labels = in.Labels
+	out.Annotations = in.Annotations
 	if in.OwnerReferences != nil {
 		in, out := &in.OwnerReferences, &out.OwnerReferences
 		*out = make([]api.OwnerReference, len(*in))
@@ -3763,13 +3690,7 @@ func autoConvert_v1_ObjectMeta_To_api_ObjectMeta(in *ObjectMeta, out *api.Object
 	} else {
 		out.OwnerReferences = nil
 	}
-	if in.Finalizers != nil {
-		in, out := &in.Finalizers, &out.Finalizers
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Finalizers = nil
-	}
+	out.Finalizers = in.Finalizers
 	return nil
 }
 
@@ -3782,46 +3703,16 @@ func autoConvert_api_ObjectMeta_To_v1_ObjectMeta(in *api.ObjectMeta, out *Object
 	out.GenerateName = in.GenerateName
 	out.Namespace = in.Namespace
 	out.SelfLink = in.SelfLink
-	out.UID = in.UID
+	out.UID = types.UID(in.UID)
 	out.ResourceVersion = in.ResourceVersion
 	out.Generation = in.Generation
 	if err := api.Convert_unversioned_Time_To_unversioned_Time(&in.CreationTimestamp, &out.CreationTimestamp, s); err != nil {
 		return err
 	}
-	if in.DeletionTimestamp != nil {
-		in, out := &in.DeletionTimestamp, &out.DeletionTimestamp
-		*out = new(unversioned.Time)
-		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.DeletionTimestamp = nil
-	}
-	if in.DeletionGracePeriodSeconds != nil {
-		in, out := &in.DeletionGracePeriodSeconds, &out.DeletionGracePeriodSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.DeletionGracePeriodSeconds = nil
-	}
-	if in.Labels != nil {
-		in, out := &in.Labels, &out.Labels
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Labels = nil
-	}
-	if in.Annotations != nil {
-		in, out := &in.Annotations, &out.Annotations
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Annotations = nil
-	}
+	out.DeletionTimestamp = in.DeletionTimestamp
+	out.DeletionGracePeriodSeconds = in.DeletionGracePeriodSeconds
+	out.Labels = in.Labels
+	out.Annotations = in.Annotations
 	if in.OwnerReferences != nil {
 		in, out := &in.OwnerReferences, &out.OwnerReferences
 		*out = make([]OwnerReference, len(*in))
@@ -3833,13 +3724,7 @@ func autoConvert_api_ObjectMeta_To_v1_ObjectMeta(in *api.ObjectMeta, out *Object
 	} else {
 		out.OwnerReferences = nil
 	}
-	if in.Finalizers != nil {
-		in, out := &in.Finalizers, &out.Finalizers
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Finalizers = nil
-	}
+	out.Finalizers = in.Finalizers
 	return nil
 }
 
@@ -3851,7 +3736,7 @@ func autoConvert_v1_ObjectReference_To_api_ObjectReference(in *ObjectReference, 
 	out.Kind = in.Kind
 	out.Namespace = in.Namespace
 	out.Name = in.Name
-	out.UID = in.UID
+	out.UID = types.UID(in.UID)
 	out.APIVersion = in.APIVersion
 	out.ResourceVersion = in.ResourceVersion
 	out.FieldPath = in.FieldPath
@@ -3866,7 +3751,7 @@ func autoConvert_api_ObjectReference_To_v1_ObjectReference(in *api.ObjectReferen
 	out.Kind = in.Kind
 	out.Namespace = in.Namespace
 	out.Name = in.Name
-	out.UID = in.UID
+	out.UID = types.UID(in.UID)
 	out.APIVersion = in.APIVersion
 	out.ResourceVersion = in.ResourceVersion
 	out.FieldPath = in.FieldPath
@@ -3881,7 +3766,8 @@ func autoConvert_v1_OwnerReference_To_api_OwnerReference(in *OwnerReference, out
 	out.APIVersion = in.APIVersion
 	out.Kind = in.Kind
 	out.Name = in.Name
-	out.UID = in.UID
+	out.UID = types.UID(in.UID)
+	out.Controller = in.Controller
 	return nil
 }
 
@@ -3893,7 +3779,8 @@ func autoConvert_api_OwnerReference_To_v1_OwnerReference(in *api.OwnerReference,
 	out.APIVersion = in.APIVersion
 	out.Kind = in.Kind
 	out.Name = in.Name
-	out.UID = in.UID
+	out.UID = types.UID(in.UID)
+	out.Controller = in.Controller
 	return nil
 }
 
@@ -4043,6 +3930,7 @@ func autoConvert_v1_PersistentVolumeClaimSpec_To_api_PersistentVolumeClaimSpec(i
 	} else {
 		out.AccessModes = nil
 	}
+	out.Selector = in.Selector
 	if err := Convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
@@ -4064,6 +3952,7 @@ func autoConvert_api_PersistentVolumeClaimSpec_To_v1_PersistentVolumeClaimSpec(i
 	} else {
 		out.AccessModes = nil
 	}
+	out.Selector = in.Selector
 	if err := Convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
@@ -4315,6 +4204,15 @@ func autoConvert_v1_PersistentVolumeSource_To_api_PersistentVolumeSource(in *Per
 	} else {
 		out.AzureFile = nil
 	}
+	if in.VsphereVolume != nil {
+		in, out := &in.VsphereVolume, &out.VsphereVolume
+		*out = new(api.VsphereVirtualDiskVolumeSource)
+		if err := Convert_v1_VsphereVirtualDiskVolumeSource_To_api_VsphereVirtualDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.VsphereVolume = nil
+	}
 	return nil
 }
 
@@ -4439,6 +4337,15 @@ func autoConvert_api_PersistentVolumeSource_To_v1_PersistentVolumeSource(in *api
 		}
 	} else {
 		out.AzureFile = nil
+	}
+	if in.VsphereVolume != nil {
+		in, out := &in.VsphereVolume, &out.VsphereVolume
+		*out = new(VsphereVirtualDiskVolumeSource)
+		if err := Convert_api_VsphereVirtualDiskVolumeSource_To_v1_VsphereVirtualDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.VsphereVolume = nil
 	}
 	return nil
 }
@@ -4639,23 +4546,8 @@ func Convert_api_PodAffinity_To_v1_PodAffinity(in *api.PodAffinity, out *PodAffi
 }
 
 func autoConvert_v1_PodAffinityTerm_To_api_PodAffinityTerm(in *PodAffinityTerm, out *api.PodAffinityTerm, s conversion.Scope) error {
-	if in.LabelSelector != nil {
-		in, out := &in.LabelSelector, &out.LabelSelector
-		*out = new(unversioned.LabelSelector)
-		// TODO: Inefficient conversion - can we improve it?
-		if err := s.Convert(*in, *out, 0); err != nil {
-			return err
-		}
-	} else {
-		out.LabelSelector = nil
-	}
-	if in.Namespaces != nil {
-		in, out := &in.Namespaces, &out.Namespaces
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Namespaces = nil
-	}
+	out.LabelSelector = in.LabelSelector
+	out.Namespaces = in.Namespaces
 	out.TopologyKey = in.TopologyKey
 	return nil
 }
@@ -4665,23 +4557,8 @@ func Convert_v1_PodAffinityTerm_To_api_PodAffinityTerm(in *PodAffinityTerm, out 
 }
 
 func autoConvert_api_PodAffinityTerm_To_v1_PodAffinityTerm(in *api.PodAffinityTerm, out *PodAffinityTerm, s conversion.Scope) error {
-	if in.LabelSelector != nil {
-		in, out := &in.LabelSelector, &out.LabelSelector
-		*out = new(unversioned.LabelSelector)
-		// TODO: Inefficient conversion - can we improve it?
-		if err := s.Convert(*in, *out, 0); err != nil {
-			return err
-		}
-	} else {
-		out.LabelSelector = nil
-	}
-	if in.Namespaces != nil {
-		in, out := &in.Namespaces, &out.Namespaces
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Namespaces = nil
-	}
+	out.LabelSelector = in.LabelSelector
+	out.Namespaces = in.Namespaces
 	out.TopologyKey = in.TopologyKey
 	return nil
 }
@@ -4829,13 +4706,7 @@ func autoConvert_v1_PodExecOptions_To_api_PodExecOptions(in *PodExecOptions, out
 	out.Stderr = in.Stderr
 	out.TTY = in.TTY
 	out.Container = in.Container
-	if in.Command != nil {
-		in, out := &in.Command, &out.Command
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Command = nil
-	}
+	out.Command = in.Command
 	return nil
 }
 
@@ -4852,13 +4723,7 @@ func autoConvert_api_PodExecOptions_To_v1_PodExecOptions(in *api.PodExecOptions,
 	out.Stderr = in.Stderr
 	out.TTY = in.TTY
 	out.Container = in.Container
-	if in.Command != nil {
-		in, out := &in.Command, &out.Command
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Command = nil
-	}
+	out.Command = in.Command
 	return nil
 }
 
@@ -4923,37 +4788,11 @@ func autoConvert_v1_PodLogOptions_To_api_PodLogOptions(in *PodLogOptions, out *a
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
-	if in.SinceSeconds != nil {
-		in, out := &in.SinceSeconds, &out.SinceSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.SinceSeconds = nil
-	}
-	if in.SinceTime != nil {
-		in, out := &in.SinceTime, &out.SinceTime
-		*out = new(unversioned.Time)
-		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.SinceTime = nil
-	}
+	out.SinceSeconds = in.SinceSeconds
+	out.SinceTime = in.SinceTime
 	out.Timestamps = in.Timestamps
-	if in.TailLines != nil {
-		in, out := &in.TailLines, &out.TailLines
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.TailLines = nil
-	}
-	if in.LimitBytes != nil {
-		in, out := &in.LimitBytes, &out.LimitBytes
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.LimitBytes = nil
-	}
+	out.TailLines = in.TailLines
+	out.LimitBytes = in.LimitBytes
 	return nil
 }
 
@@ -4968,37 +4807,11 @@ func autoConvert_api_PodLogOptions_To_v1_PodLogOptions(in *api.PodLogOptions, ou
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
-	if in.SinceSeconds != nil {
-		in, out := &in.SinceSeconds, &out.SinceSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.SinceSeconds = nil
-	}
-	if in.SinceTime != nil {
-		in, out := &in.SinceTime, &out.SinceTime
-		*out = new(unversioned.Time)
-		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.SinceTime = nil
-	}
+	out.SinceSeconds = in.SinceSeconds
+	out.SinceTime = in.SinceTime
 	out.Timestamps = in.Timestamps
-	if in.TailLines != nil {
-		in, out := &in.TailLines, &out.TailLines
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.TailLines = nil
-	}
-	if in.LimitBytes != nil {
-		in, out := &in.LimitBytes, &out.LimitBytes
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.LimitBytes = nil
-	}
+	out.TailLines = in.TailLines
+	out.LimitBytes = in.LimitBytes
 	return nil
 }
 
@@ -5040,34 +4853,10 @@ func autoConvert_v1_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurity
 	} else {
 		out.SELinuxOptions = nil
 	}
-	if in.RunAsUser != nil {
-		in, out := &in.RunAsUser, &out.RunAsUser
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.RunAsUser = nil
-	}
-	if in.RunAsNonRoot != nil {
-		in, out := &in.RunAsNonRoot, &out.RunAsNonRoot
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.RunAsNonRoot = nil
-	}
-	if in.SupplementalGroups != nil {
-		in, out := &in.SupplementalGroups, &out.SupplementalGroups
-		*out = make([]int64, len(*in))
-		copy(*out, *in)
-	} else {
-		out.SupplementalGroups = nil
-	}
-	if in.FSGroup != nil {
-		in, out := &in.FSGroup, &out.FSGroup
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.FSGroup = nil
-	}
+	out.RunAsUser = in.RunAsUser
+	out.RunAsNonRoot = in.RunAsNonRoot
+	out.SupplementalGroups = in.SupplementalGroups
+	out.FSGroup = in.FSGroup
 	return nil
 }
 
@@ -5083,6 +4872,17 @@ func autoConvert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conv
 	} else {
 		out.Volumes = nil
 	}
+	if in.InitContainers != nil {
+		in, out := &in.InitContainers, &out.InitContainers
+		*out = make([]Container, len(*in))
+		for i := range *in {
+			if err := Convert_api_Container_To_v1_Container(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.InitContainers = nil
+	}
 	if in.Containers != nil {
 		in, out := &in.Containers, &out.Containers
 		*out = make([]Container, len(*in))
@@ -5095,30 +4895,10 @@ func autoConvert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conv
 		out.Containers = nil
 	}
 	out.RestartPolicy = RestartPolicy(in.RestartPolicy)
-	if in.TerminationGracePeriodSeconds != nil {
-		in, out := &in.TerminationGracePeriodSeconds, &out.TerminationGracePeriodSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.TerminationGracePeriodSeconds = nil
-	}
-	if in.ActiveDeadlineSeconds != nil {
-		in, out := &in.ActiveDeadlineSeconds, &out.ActiveDeadlineSeconds
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.ActiveDeadlineSeconds = nil
-	}
+	out.TerminationGracePeriodSeconds = in.TerminationGracePeriodSeconds
+	out.ActiveDeadlineSeconds = in.ActiveDeadlineSeconds
 	out.DNSPolicy = DNSPolicy(in.DNSPolicy)
-	if in.NodeSelector != nil {
-		in, out := &in.NodeSelector, &out.NodeSelector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.NodeSelector = nil
-	}
+	out.NodeSelector = in.NodeSelector
 	out.ServiceAccountName = in.ServiceAccountName
 	out.NodeName = in.NodeName
 	if in.SecurityContext != nil {
@@ -5163,14 +4943,17 @@ func autoConvert_v1_PodStatus_To_api_PodStatus(in *PodStatus, out *api.PodStatus
 	out.Reason = in.Reason
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
-	if in.StartTime != nil {
-		in, out := &in.StartTime, &out.StartTime
-		*out = new(unversioned.Time)
-		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
-			return err
+	out.StartTime = in.StartTime
+	if in.InitContainerStatuses != nil {
+		in, out := &in.InitContainerStatuses, &out.InitContainerStatuses
+		*out = make([]api.ContainerStatus, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ContainerStatus_To_api_ContainerStatus(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.StartTime = nil
+		out.InitContainerStatuses = nil
 	}
 	if in.ContainerStatuses != nil {
 		in, out := &in.ContainerStatuses, &out.ContainerStatuses
@@ -5207,14 +4990,17 @@ func autoConvert_api_PodStatus_To_v1_PodStatus(in *api.PodStatus, out *PodStatus
 	out.Reason = in.Reason
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
-	if in.StartTime != nil {
-		in, out := &in.StartTime, &out.StartTime
-		*out = new(unversioned.Time)
-		if err := api.Convert_unversioned_Time_To_unversioned_Time(*in, *out, s); err != nil {
-			return err
+	out.StartTime = in.StartTime
+	if in.InitContainerStatuses != nil {
+		in, out := &in.InitContainerStatuses, &out.InitContainerStatuses
+		*out = make([]ContainerStatus, len(*in))
+		for i := range *in {
+			if err := Convert_api_ContainerStatus_To_v1_ContainerStatus(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
 		}
 	} else {
-		out.StartTime = nil
+		out.InitContainerStatuses = nil
 	}
 	if in.ContainerStatuses != nil {
 		in, out := &in.ContainerStatuses, &out.ContainerStatuses
@@ -5247,10 +5033,6 @@ func autoConvert_v1_PodStatusResult_To_api_PodStatusResult(in *PodStatusResult, 
 	return nil
 }
 
-func Convert_v1_PodStatusResult_To_api_PodStatusResult(in *PodStatusResult, out *api.PodStatusResult, s conversion.Scope) error {
-	return autoConvert_v1_PodStatusResult_To_api_PodStatusResult(in, out, s)
-}
-
 func autoConvert_api_PodStatusResult_To_v1_PodStatusResult(in *api.PodStatusResult, out *PodStatusResult, s conversion.Scope) error {
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -5262,10 +5044,6 @@ func autoConvert_api_PodStatusResult_To_v1_PodStatusResult(in *api.PodStatusResu
 		return err
 	}
 	return nil
-}
-
-func Convert_api_PodStatusResult_To_v1_PodStatusResult(in *api.PodStatusResult, out *PodStatusResult, s conversion.Scope) error {
-	return autoConvert_api_PodStatusResult_To_v1_PodStatusResult(in, out, s)
 }
 
 func autoConvert_v1_PodTemplate_To_api_PodTemplate(in *PodTemplate, out *api.PodTemplate, s conversion.Scope) error {
@@ -5362,10 +5140,6 @@ func autoConvert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in *PodTemplateSpec, 
 	return nil
 }
 
-func Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in *PodTemplateSpec, out *api.PodTemplateSpec, s conversion.Scope) error {
-	return autoConvert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in, out, s)
-}
-
 func autoConvert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in *api.PodTemplateSpec, out *PodTemplateSpec, s conversion.Scope) error {
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
@@ -5376,18 +5150,8 @@ func autoConvert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in *api.PodTemplateSp
 	return nil
 }
 
-func Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in *api.PodTemplateSpec, out *PodTemplateSpec, s conversion.Scope) error {
-	return autoConvert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, s)
-}
-
 func autoConvert_v1_Preconditions_To_api_Preconditions(in *Preconditions, out *api.Preconditions, s conversion.Scope) error {
-	if in.UID != nil {
-		in, out := &in.UID, &out.UID
-		*out = new(types.UID)
-		**out = **in
-	} else {
-		out.UID = nil
-	}
+	out.UID = in.UID
 	return nil
 }
 
@@ -5396,13 +5160,7 @@ func Convert_v1_Preconditions_To_api_Preconditions(in *Preconditions, out *api.P
 }
 
 func autoConvert_api_Preconditions_To_v1_Preconditions(in *api.Preconditions, out *Preconditions, s conversion.Scope) error {
-	if in.UID != nil {
-		in, out := &in.UID, &out.UID
-		*out = new(types.UID)
-		**out = **in
-	} else {
-		out.UID = nil
-	}
+	out.UID = in.UID
 	return nil
 }
 
@@ -5468,13 +5226,8 @@ func Convert_api_Probe_To_v1_Probe(in *api.Probe, out *Probe, s conversion.Scope
 }
 
 func autoConvert_v1_RBDVolumeSource_To_api_RBDVolumeSource(in *RBDVolumeSource, out *api.RBDVolumeSource, s conversion.Scope) error {
-	if in.CephMonitors != nil {
-		in, out := &in.CephMonitors, &out.CephMonitors
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.CephMonitors = nil
-	}
+	SetDefaults_RBDVolumeSource(in)
+	out.CephMonitors = in.CephMonitors
 	out.RBDImage = in.RBDImage
 	out.FSType = in.FSType
 	out.RBDPool = in.RBDPool
@@ -5498,13 +5251,7 @@ func Convert_v1_RBDVolumeSource_To_api_RBDVolumeSource(in *RBDVolumeSource, out 
 }
 
 func autoConvert_api_RBDVolumeSource_To_v1_RBDVolumeSource(in *api.RBDVolumeSource, out *RBDVolumeSource, s conversion.Scope) error {
-	if in.CephMonitors != nil {
-		in, out := &in.CephMonitors, &out.CephMonitors
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.CephMonitors = nil
-	}
+	out.CephMonitors = in.CephMonitors
 	out.RBDImage = in.RBDImage
 	out.FSType = in.FSType
 	out.RBDPool = in.RBDPool
@@ -5674,6 +5421,32 @@ func autoConvert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStat
 
 func Convert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStatus(in *api.ReplicationControllerStatus, out *ReplicationControllerStatus, s conversion.Scope) error {
 	return autoConvert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStatus(in, out, s)
+}
+
+func autoConvert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector(in *ResourceFieldSelector, out *api.ResourceFieldSelector, s conversion.Scope) error {
+	out.ContainerName = in.ContainerName
+	out.Resource = in.Resource
+	if err := api.Convert_resource_Quantity_To_resource_Quantity(&in.Divisor, &out.Divisor, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector(in *ResourceFieldSelector, out *api.ResourceFieldSelector, s conversion.Scope) error {
+	return autoConvert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector(in, out, s)
+}
+
+func autoConvert_api_ResourceFieldSelector_To_v1_ResourceFieldSelector(in *api.ResourceFieldSelector, out *ResourceFieldSelector, s conversion.Scope) error {
+	out.ContainerName = in.ContainerName
+	out.Resource = in.Resource
+	if err := api.Convert_resource_Quantity_To_resource_Quantity(&in.Divisor, &out.Divisor, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_ResourceFieldSelector_To_v1_ResourceFieldSelector(in *api.ResourceFieldSelector, out *ResourceFieldSelector, s conversion.Scope) error {
+	return autoConvert_api_ResourceFieldSelector_To_v1_ResourceFieldSelector(in, out, s)
 }
 
 func autoConvert_v1_ResourceQuota_To_api_ResourceQuota(in *ResourceQuota, out *api.ResourceQuota, s conversion.Scope) error {
@@ -5914,27 +5687,9 @@ func Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Resourc
 
 func autoConvert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(in *RunAsUserStrategyOptions, out *api.RunAsUserStrategyOptions, s conversion.Scope) error {
 	out.Type = api.RunAsUserStrategyType(in.Type)
-	if in.UID != nil {
-		in, out := &in.UID, &out.UID
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		in, out := &in.UIDRangeMin, &out.UIDRangeMin
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		in, out := &in.UIDRangeMax, &out.UIDRangeMax
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.UIDRangeMax = nil
-	}
+	out.UID = in.UID
+	out.UIDRangeMin = in.UIDRangeMin
+	out.UIDRangeMax = in.UIDRangeMax
 	return nil
 }
 
@@ -5944,27 +5699,9 @@ func Convert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(in *Run
 
 func autoConvert_api_RunAsUserStrategyOptions_To_v1_RunAsUserStrategyOptions(in *api.RunAsUserStrategyOptions, out *RunAsUserStrategyOptions, s conversion.Scope) error {
 	out.Type = RunAsUserStrategyType(in.Type)
-	if in.UID != nil {
-		in, out := &in.UID, &out.UID
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		in, out := &in.UIDRangeMin, &out.UIDRangeMin
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		in, out := &in.UIDRangeMax, &out.UIDRangeMax
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.UIDRangeMax = nil
-	}
+	out.UID = in.UID
+	out.UIDRangeMin = in.UIDRangeMin
+	out.UIDRangeMax = in.UIDRangeMax
 	return nil
 }
 
@@ -6040,19 +5777,7 @@ func autoConvert_v1_Secret_To_api_Secret(in *Secret, out *api.Secret, s conversi
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = make(map[string][]byte, len(*in))
-		for key, val := range *in {
-			newVal := new([]byte)
-			if err := conversion.Convert_Slice_byte_To_Slice_byte(&val, newVal, s); err != nil {
-				return err
-			}
-			(*out)[key] = *newVal
-		}
-	} else {
-		out.Data = nil
-	}
+	out.Data = in.Data
 	out.Type = api.SecretType(in.Type)
 	return nil
 }
@@ -6068,19 +5793,7 @@ func autoConvert_api_Secret_To_v1_Secret(in *api.Secret, out *Secret, s conversi
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if in.Data != nil {
-		in, out := &in.Data, &out.Data
-		*out = make(map[string][]byte, len(*in))
-		for key, val := range *in {
-			newVal := new([]byte)
-			if err := conversion.Convert_Slice_byte_To_Slice_byte(&val, newVal, s); err != nil {
-				return err
-			}
-			(*out)[key] = *newVal
-		}
-	} else {
-		out.Data = nil
-	}
+	out.Data = in.Data
 	out.Type = SecretType(in.Type)
 	return nil
 }
@@ -6165,6 +5878,17 @@ func Convert_api_SecretList_To_v1_SecretList(in *api.SecretList, out *SecretList
 
 func autoConvert_v1_SecretVolumeSource_To_api_SecretVolumeSource(in *SecretVolumeSource, out *api.SecretVolumeSource, s conversion.Scope) error {
 	out.SecretName = in.SecretName
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]api.KeyToPath, len(*in))
+		for i := range *in {
+			if err := Convert_v1_KeyToPath_To_api_KeyToPath(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -6174,6 +5898,17 @@ func Convert_v1_SecretVolumeSource_To_api_SecretVolumeSource(in *SecretVolumeSou
 
 func autoConvert_api_SecretVolumeSource_To_v1_SecretVolumeSource(in *api.SecretVolumeSource, out *SecretVolumeSource, s conversion.Scope) error {
 	out.SecretName = in.SecretName
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]KeyToPath, len(*in))
+		for i := range *in {
+			if err := Convert_api_KeyToPath_To_v1_KeyToPath(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -6191,13 +5926,7 @@ func autoConvert_v1_SecurityContext_To_api_SecurityContext(in *SecurityContext, 
 	} else {
 		out.Capabilities = nil
 	}
-	if in.Privileged != nil {
-		in, out := &in.Privileged, &out.Privileged
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.Privileged = nil
-	}
+	out.Privileged = in.Privileged
 	if in.SELinuxOptions != nil {
 		in, out := &in.SELinuxOptions, &out.SELinuxOptions
 		*out = new(api.SELinuxOptions)
@@ -6207,27 +5936,9 @@ func autoConvert_v1_SecurityContext_To_api_SecurityContext(in *SecurityContext, 
 	} else {
 		out.SELinuxOptions = nil
 	}
-	if in.RunAsUser != nil {
-		in, out := &in.RunAsUser, &out.RunAsUser
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.RunAsUser = nil
-	}
-	if in.RunAsNonRoot != nil {
-		in, out := &in.RunAsNonRoot, &out.RunAsNonRoot
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.RunAsNonRoot = nil
-	}
-	if in.ReadOnlyRootFilesystem != nil {
-		in, out := &in.ReadOnlyRootFilesystem, &out.ReadOnlyRootFilesystem
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.ReadOnlyRootFilesystem = nil
-	}
+	out.RunAsUser = in.RunAsUser
+	out.RunAsNonRoot = in.RunAsNonRoot
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	return nil
 }
 
@@ -6245,13 +5956,7 @@ func autoConvert_api_SecurityContext_To_v1_SecurityContext(in *api.SecurityConte
 	} else {
 		out.Capabilities = nil
 	}
-	if in.Privileged != nil {
-		in, out := &in.Privileged, &out.Privileged
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.Privileged = nil
-	}
+	out.Privileged = in.Privileged
 	if in.SELinuxOptions != nil {
 		in, out := &in.SELinuxOptions, &out.SELinuxOptions
 		*out = new(SELinuxOptions)
@@ -6261,27 +5966,9 @@ func autoConvert_api_SecurityContext_To_v1_SecurityContext(in *api.SecurityConte
 	} else {
 		out.SELinuxOptions = nil
 	}
-	if in.RunAsUser != nil {
-		in, out := &in.RunAsUser, &out.RunAsUser
-		*out = new(int64)
-		**out = **in
-	} else {
-		out.RunAsUser = nil
-	}
-	if in.RunAsNonRoot != nil {
-		in, out := &in.RunAsNonRoot, &out.RunAsNonRoot
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.RunAsNonRoot = nil
-	}
-	if in.ReadOnlyRootFilesystem != nil {
-		in, out := &in.ReadOnlyRootFilesystem, &out.ReadOnlyRootFilesystem
-		*out = new(bool)
-		**out = **in
-	} else {
-		out.ReadOnlyRootFilesystem = nil
-	}
+	out.RunAsUser = in.RunAsUser
+	out.RunAsNonRoot = in.RunAsNonRoot
+	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	return nil
 }
 
@@ -6296,13 +5983,7 @@ func autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints
 	if err := Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if in.Priority != nil {
-		in, out := &in.Priority, &out.Priority
-		*out = new(int32)
-		**out = **in
-	} else {
-		out.Priority = nil
-	}
+	out.Priority = in.Priority
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
 	if in.DefaultAddCapabilities != nil {
 		in, out := &in.DefaultAddCapabilities, &out.DefaultAddCapabilities
@@ -6357,20 +6038,8 @@ func autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints
 		return err
 	}
 	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
-	if in.Users != nil {
-		in, out := &in.Users, &out.Users
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		in, out := &in.Groups, &out.Groups
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Groups = nil
-	}
+	out.Users = in.Users
+	out.Groups = in.Groups
 	return nil
 }
 
@@ -6381,13 +6050,7 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 	if err := Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if in.Priority != nil {
-		in, out := &in.Priority, &out.Priority
-		*out = new(int32)
-		**out = **in
-	} else {
-		out.Priority = nil
-	}
+	out.Priority = in.Priority
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
 	if in.DefaultAddCapabilities != nil {
 		in, out := &in.DefaultAddCapabilities, &out.DefaultAddCapabilities
@@ -6442,20 +6105,8 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 		return err
 	}
 	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
-	if in.Users != nil {
-		in, out := &in.Users, &out.Users
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		in, out := &in.Groups, &out.Groups
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.Groups = nil
-	}
+	out.Users = in.Users
+	out.Groups = in.Groups
 	return nil
 }
 
@@ -6817,26 +6468,13 @@ func autoConvert_v1_ServiceSpec_To_api_ServiceSpec(in *ServiceSpec, out *api.Ser
 	} else {
 		out.Ports = nil
 	}
-	if in.Selector != nil {
-		in, out := &in.Selector, &out.Selector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Selector = nil
-	}
+	out.Selector = in.Selector
 	out.ClusterIP = in.ClusterIP
 	out.Type = api.ServiceType(in.Type)
-	if in.ExternalIPs != nil {
-		in, out := &in.ExternalIPs, &out.ExternalIPs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.ExternalIPs = nil
-	}
+	out.ExternalIPs = in.ExternalIPs
 	out.SessionAffinity = api.ServiceAffinity(in.SessionAffinity)
 	out.LoadBalancerIP = in.LoadBalancerIP
+	out.LoadBalancerSourceRanges = in.LoadBalancerSourceRanges
 	return nil
 }
 
@@ -6853,25 +6491,12 @@ func autoConvert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Ser
 	} else {
 		out.Ports = nil
 	}
-	if in.Selector != nil {
-		in, out := &in.Selector, &out.Selector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	} else {
-		out.Selector = nil
-	}
+	out.Selector = in.Selector
 	out.ClusterIP = in.ClusterIP
-	if in.ExternalIPs != nil {
-		in, out := &in.ExternalIPs, &out.ExternalIPs
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	} else {
-		out.ExternalIPs = nil
-	}
+	out.ExternalIPs = in.ExternalIPs
 	out.LoadBalancerIP = in.LoadBalancerIP
 	out.SessionAffinity = ServiceAffinity(in.SessionAffinity)
+	out.LoadBalancerSourceRanges = in.LoadBalancerSourceRanges
 	return nil
 }
 
@@ -6957,6 +6582,52 @@ func autoConvert_api_TCPSocketAction_To_v1_TCPSocketAction(in *api.TCPSocketActi
 
 func Convert_api_TCPSocketAction_To_v1_TCPSocketAction(in *api.TCPSocketAction, out *TCPSocketAction, s conversion.Scope) error {
 	return autoConvert_api_TCPSocketAction_To_v1_TCPSocketAction(in, out, s)
+}
+
+func autoConvert_v1_Taint_To_api_Taint(in *Taint, out *api.Taint, s conversion.Scope) error {
+	out.Key = in.Key
+	out.Value = in.Value
+	out.Effect = api.TaintEffect(in.Effect)
+	return nil
+}
+
+func Convert_v1_Taint_To_api_Taint(in *Taint, out *api.Taint, s conversion.Scope) error {
+	return autoConvert_v1_Taint_To_api_Taint(in, out, s)
+}
+
+func autoConvert_api_Taint_To_v1_Taint(in *api.Taint, out *Taint, s conversion.Scope) error {
+	out.Key = in.Key
+	out.Value = in.Value
+	out.Effect = TaintEffect(in.Effect)
+	return nil
+}
+
+func Convert_api_Taint_To_v1_Taint(in *api.Taint, out *Taint, s conversion.Scope) error {
+	return autoConvert_api_Taint_To_v1_Taint(in, out, s)
+}
+
+func autoConvert_v1_Toleration_To_api_Toleration(in *Toleration, out *api.Toleration, s conversion.Scope) error {
+	out.Key = in.Key
+	out.Operator = api.TolerationOperator(in.Operator)
+	out.Value = in.Value
+	out.Effect = api.TaintEffect(in.Effect)
+	return nil
+}
+
+func Convert_v1_Toleration_To_api_Toleration(in *Toleration, out *api.Toleration, s conversion.Scope) error {
+	return autoConvert_v1_Toleration_To_api_Toleration(in, out, s)
+}
+
+func autoConvert_api_Toleration_To_v1_Toleration(in *api.Toleration, out *Toleration, s conversion.Scope) error {
+	out.Key = in.Key
+	out.Operator = TolerationOperator(in.Operator)
+	out.Value = in.Value
+	out.Effect = TaintEffect(in.Effect)
+	return nil
+}
+
+func Convert_api_Toleration_To_v1_Toleration(in *api.Toleration, out *Toleration, s conversion.Scope) error {
+	return autoConvert_api_Toleration_To_v1_Toleration(in, out, s)
 }
 
 func autoConvert_v1_Volume_To_api_Volume(in *Volume, out *api.Volume, s conversion.Scope) error {
@@ -7180,6 +6851,15 @@ func autoConvert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.
 	} else {
 		out.ConfigMap = nil
 	}
+	if in.VsphereVolume != nil {
+		in, out := &in.VsphereVolume, &out.VsphereVolume
+		*out = new(api.VsphereVirtualDiskVolumeSource)
+		if err := Convert_v1_VsphereVirtualDiskVolumeSource_To_api_VsphereVirtualDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.VsphereVolume = nil
+	}
 	return nil
 }
 
@@ -7355,7 +7035,36 @@ func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *
 	} else {
 		out.ConfigMap = nil
 	}
+	if in.VsphereVolume != nil {
+		in, out := &in.VsphereVolume, &out.VsphereVolume
+		*out = new(VsphereVirtualDiskVolumeSource)
+		if err := Convert_api_VsphereVirtualDiskVolumeSource_To_v1_VsphereVirtualDiskVolumeSource(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.VsphereVolume = nil
+	}
 	return nil
+}
+
+func autoConvert_v1_VsphereVirtualDiskVolumeSource_To_api_VsphereVirtualDiskVolumeSource(in *VsphereVirtualDiskVolumeSource, out *api.VsphereVirtualDiskVolumeSource, s conversion.Scope) error {
+	out.VolumePath = in.VolumePath
+	out.FSType = in.FSType
+	return nil
+}
+
+func Convert_v1_VsphereVirtualDiskVolumeSource_To_api_VsphereVirtualDiskVolumeSource(in *VsphereVirtualDiskVolumeSource, out *api.VsphereVirtualDiskVolumeSource, s conversion.Scope) error {
+	return autoConvert_v1_VsphereVirtualDiskVolumeSource_To_api_VsphereVirtualDiskVolumeSource(in, out, s)
+}
+
+func autoConvert_api_VsphereVirtualDiskVolumeSource_To_v1_VsphereVirtualDiskVolumeSource(in *api.VsphereVirtualDiskVolumeSource, out *VsphereVirtualDiskVolumeSource, s conversion.Scope) error {
+	out.VolumePath = in.VolumePath
+	out.FSType = in.FSType
+	return nil
+}
+
+func Convert_api_VsphereVirtualDiskVolumeSource_To_v1_VsphereVirtualDiskVolumeSource(in *api.VsphereVirtualDiskVolumeSource, out *VsphereVirtualDiskVolumeSource, s conversion.Scope) error {
+	return autoConvert_api_VsphereVirtualDiskVolumeSource_To_v1_VsphereVirtualDiskVolumeSource(in, out, s)
 }
 
 func autoConvert_v1_WeightedPodAffinityTerm_To_api_WeightedPodAffinityTerm(in *WeightedPodAffinityTerm, out *api.WeightedPodAffinityTerm, s conversion.Scope) error {

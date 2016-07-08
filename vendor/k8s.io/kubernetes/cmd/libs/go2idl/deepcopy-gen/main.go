@@ -31,17 +31,24 @@ import (
 func main() {
 	arguments := args.Default()
 
+	arguments.CustomArgs = generators.Constraints{
+		// Types outside of this package will be inlined.
+		PackageConstraints: []string{"k8s.io/kubernetes/"},
+	}
+
 	// Override defaults. These are Kubernetes specific input locations.
 	arguments.InputDirs = []string{
 		"k8s.io/kubernetes/pkg/api",
 		"k8s.io/kubernetes/pkg/api/v1",
-		"k8s.io/kubernetes/pkg/api/v1beta3",
+		"k8s.io/kubernetes/pkg/apis/authentication.k8s.io",
+		"k8s.io/kubernetes/pkg/apis/authentication.k8s.io/v1beta1",
 		"k8s.io/kubernetes/pkg/apis/authorization",
 		"k8s.io/kubernetes/pkg/apis/authorization/v1beta1",
 		"k8s.io/kubernetes/pkg/apis/autoscaling",
 		"k8s.io/kubernetes/pkg/apis/autoscaling/v1",
 		"k8s.io/kubernetes/pkg/apis/batch",
 		"k8s.io/kubernetes/pkg/apis/batch/v1",
+		"k8s.io/kubernetes/pkg/apis/batch/v2alpha1",
 		"k8s.io/kubernetes/pkg/apis/apps",
 		"k8s.io/kubernetes/pkg/apis/apps/v1alpha1",
 		"k8s.io/kubernetes/pkg/apis/componentconfig",
@@ -50,10 +57,23 @@ func main() {
 		"k8s.io/kubernetes/pkg/apis/policy/v1alpha1",
 		"k8s.io/kubernetes/pkg/apis/extensions",
 		"k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
-		"k8s.io/kubernetes/pkg/apis/metrics",
-		"k8s.io/kubernetes/pkg/apis/metrics/v1alpha1",
+		"k8s.io/kubernetes/pkg/apis/rbac",
+		"k8s.io/kubernetes/pkg/apis/rbac/v1alpha1",
 		"k8s.io/kubernetes/federation/apis/federation",
-		"k8s.io/kubernetes/federation/apis/federation/v1alpha1",
+		"k8s.io/kubernetes/federation/apis/federation/v1beta1",
+
+		// generate all types, but do not register them
+		"+k8s.io/kubernetes/pkg/api/unversioned",
+
+		"-k8s.io/kubernetes/pkg/api/meta",
+		"-k8s.io/kubernetes/pkg/api/meta/metatypes",
+		"-k8s.io/kubernetes/pkg/api/resource",
+		"-k8s.io/kubernetes/pkg/conversion",
+		"-k8s.io/kubernetes/pkg/labels",
+		"-k8s.io/kubernetes/pkg/runtime",
+		"-k8s.io/kubernetes/pkg/runtime/serializer",
+		"-k8s.io/kubernetes/pkg/util/intstr",
+		"-k8s.io/kubernetes/pkg/util/sets",
 	}
 
 	if err := arguments.Execute(

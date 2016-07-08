@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/types"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 	"k8s.io/kubernetes/pkg/volume"
@@ -33,20 +34,14 @@ import (
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 )
 
-func formatMap(m map[string]string) (fmtstr string) {
-	for key, value := range m {
-		fmtstr += fmt.Sprintf("%v=%q\n", key, value)
-	}
-
-	return
-}
+const downwardAPIDir = "..data"
 
 func newTestHost(t *testing.T, clientset clientset.Interface) (string, volume.VolumeHost) {
 	tempDir, err := utiltesting.MkTmpdir("downwardApi_volume_test.")
 	if err != nil {
 		t.Fatalf("can't make a temp rootdir: %v", err)
 	}
-	return tempDir, volumetest.NewFakeVolumeHost(tempDir, clientset, empty_dir.ProbeVolumePlugins())
+	return tempDir, volumetest.NewFakeVolumeHost(tempDir, clientset, empty_dir.ProbeVolumePlugins(), "" /* rootContext */)
 }
 
 func TestCanSupport(t *testing.T) {
@@ -59,8 +54,8 @@ func TestCanSupport(t *testing.T) {
 	if err != nil {
 		t.Errorf("Can't find the plugin by name")
 	}
-	if plugin.Name() != downwardAPIPluginName {
-		t.Errorf("Wrong name: %s", plugin.Name())
+	if plugin.GetPluginName() != downwardAPIPluginName {
+		t.Errorf("Wrong name: %s", plugin.GetPluginName())
 	}
 }
 
@@ -113,7 +108,7 @@ func TestLabels(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "labels", FieldRef: api.ObjectFieldSelector{
+					{Path: "labels", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.labels"}}}},
 		},
 	}
@@ -153,8 +148,8 @@ func TestLabels(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if sortLines(string(data)) != sortLines(formatMap(labels)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(labels))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(labels)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(labels))
 	}
 
 	CleanEverything(plugin, testVolumeName, volumePath, testPodUID, t)
@@ -177,7 +172,7 @@ func TestAnnotations(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "annotations", FieldRef: api.ObjectFieldSelector{
+					{Path: "annotations", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.annotations"}}}},
 		},
 	}
@@ -220,8 +215,8 @@ func TestAnnotations(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	if sortLines(string(data)) != sortLines(formatMap(annotations)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(annotations))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(annotations)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(annotations))
 	}
 	CleanEverything(plugin, testVolumeName, volumePath, testPodUID, t)
 
@@ -240,7 +235,7 @@ func TestName(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "name_file_name", FieldRef: api.ObjectFieldSelector{
+					{Path: "name_file_name", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.name"}}}},
 		},
 	}
@@ -303,7 +298,7 @@ func TestNamespace(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "namespace_file_name", FieldRef: api.ObjectFieldSelector{
+					{Path: "namespace_file_name", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.namespace"}}}},
 		},
 	}
@@ -381,7 +376,7 @@ func TestWriteTwiceNoUpdate(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "labels", FieldRef: api.ObjectFieldSelector{
+					{Path: "labels", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.labels"}}}},
 		},
 	}
@@ -407,7 +402,7 @@ func TestWriteTwiceNoUpdate(t *testing.T) {
 	// get the link of the link
 	var currentTarget string
 	if currentTarget, err = os.Readlink(path.Join(volumePath, downwardAPIDir)); err != nil {
-		t.Errorf(".current should be a link... %s\n", err.Error())
+		t.Errorf(".data should be a link... %s\n", err.Error())
 	}
 
 	err = mounter.SetUp(nil) // now re-run Setup
@@ -418,7 +413,7 @@ func TestWriteTwiceNoUpdate(t *testing.T) {
 	// get the link of the link
 	var currentTarget2 string
 	if currentTarget2, err = os.Readlink(path.Join(volumePath, downwardAPIDir)); err != nil {
-		t.Errorf(".current should be a link... %s\n", err.Error())
+		t.Errorf(".data should be a link... %s\n", err.Error())
 	}
 
 	if currentTarget2 != currentTarget {
@@ -431,8 +426,8 @@ func TestWriteTwiceNoUpdate(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	if sortLines(string(data)) != sortLines(formatMap(labels)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(labels))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(labels)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(labels))
 	}
 	CleanEverything(plugin, testVolumeName, volumePath, testPodUID, t)
 
@@ -467,7 +462,7 @@ func TestWriteTwiceWithUpdate(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "labels", FieldRef: api.ObjectFieldSelector{
+					{Path: "labels", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.labels"}}}},
 		},
 	}
@@ -501,8 +496,8 @@ func TestWriteTwiceWithUpdate(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	if sortLines(string(data)) != sortLines(formatMap(labels)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(labels))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(labels)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(labels))
 	}
 
 	newLabels := map[string]string{
@@ -532,8 +527,8 @@ func TestWriteTwiceWithUpdate(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	if sortLines(string(data)) != sortLines(formatMap(newLabels)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(newLabels))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(newLabels)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(newLabels))
 	}
 	CleanEverything(plugin, testVolumeName, volumePath, testPodUID, t)
 }
@@ -573,9 +568,9 @@ func TestWriteWithUnixPath(t *testing.T) {
 		VolumeSource: api.VolumeSource{
 			DownwardAPI: &api.DownwardAPIVolumeSource{
 				Items: []api.DownwardAPIVolumeFile{
-					{Path: "this/is/mine/labels", FieldRef: api.ObjectFieldSelector{
+					{Path: "this/is/mine/labels", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.labels"}},
-					{Path: "this/is/yours/annotations", FieldRef: api.ObjectFieldSelector{
+					{Path: "this/is/yours/annotations", FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.annotations"}},
 				}}},
 	}
@@ -604,16 +599,16 @@ func TestWriteWithUnixPath(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	if sortLines(string(data)) != sortLines(formatMap(labels)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(labels))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(labels)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(labels))
 	}
 
 	data, err = ioutil.ReadFile(path.Join(volumePath, "this/is/yours/annotations"))
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if sortLines(string(data)) != sortLines(formatMap(annotations)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(annotations))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(annotations)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(annotations))
 	}
 	CleanEverything(plugin, testVolumeName, volumePath, testPodUID, t)
 }
@@ -655,7 +650,7 @@ func TestWriteWithUnixPathBadPath(t *testing.T) {
 				Items: []api.DownwardAPIVolumeFile{
 					{
 						Path: "this//labels",
-						FieldRef: api.ObjectFieldSelector{
+						FieldRef: &api.ObjectFieldSelector{
 							FieldPath: "metadata.labels",
 						},
 					},
@@ -685,7 +680,7 @@ func TestWriteWithUnixPathBadPath(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	if sortLines(string(data)) != sortLines(formatMap(labels)) {
-		t.Errorf("Found `%s` expected %s", data, formatMap(labels))
+	if sortLines(string(data)) != sortLines(fieldpath.FormatMap(labels)) {
+		t.Errorf("Found `%s` expected %s", data, fieldpath.FormatMap(labels))
 	}
 }

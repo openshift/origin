@@ -34,7 +34,7 @@ type ScaleStatus struct {
 	// actual number of observed instances of the scaled object.
 	Replicas int32 `json:"replicas" protobuf:"varint,1,opt,name=replicas"`
 
-	// label query over pods that should match the replicas count. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors
+	// label query over pods that should match the replicas count. More info: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
 	Selector map[string]string `json:"selector,omitempty" protobuf:"bytes,2,rep,name=selector"`
 
 	// label selector for pods that should match the replicas count. This is a serializated
@@ -42,7 +42,7 @@ type ScaleStatus struct {
 	// avoid introspection in the clients. The string will be in the same format as the
 	// query-param syntax. If the target type only supports map-based selectors, both this
 	// field and map-based selector field are populated.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
 	TargetSelector string `json:"targetSelector,omitempty" protobuf:"bytes,3,opt,name=targetSelector"`
 }
 
@@ -51,13 +51,13 @@ type ScaleStatus struct {
 // represents a scaling request for a resource.
 type Scale struct {
 	unversioned.TypeMeta `json:",inline"`
-	// Standard object metadata; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata.
+	// Standard object metadata; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata.
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// defines the behavior of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status.
+	// defines the behavior of the scale. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.
 	Spec ScaleSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
-	// current status of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status. Read-only.
+	// current status of the scale. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status. Read-only.
 	Status ScaleStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -68,9 +68,9 @@ type ReplicationControllerDummy struct {
 
 // SubresourceReference contains enough information to let you inspect or modify the referred subresource.
 type SubresourceReference struct {
-	// Kind of the referent; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+	// Kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds
 	Kind string `json:"kind,omitempty" protobuf:"bytes,1,opt,name=kind"`
-	// Name of the referent; More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names
+	// Name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names
 	Name string `json:"name,omitempty" protobuf:"bytes,2,opt,name=name"`
 	// API version of the referent
 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,3,opt,name=apiVersion"`
@@ -146,10 +146,10 @@ type HorizontalPodAutoscalerStatus struct {
 // configuration of a horizontal pod autoscaler.
 type HorizontalPodAutoscaler struct {
 	unversioned.TypeMeta `json:",inline"`
-	// Standard object metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// Standard object metadata. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// behaviour of autoscaler. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status.
+	// behaviour of autoscaler. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status.
 	Spec HorizontalPodAutoscalerSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// current information about the autoscaler.
@@ -410,14 +410,14 @@ type DaemonSetSpec struct {
 	// Selector is a label query over pods that are managed by the daemon set.
 	// Must match in order to be controlled.
 	// If empty, defaulted to labels on Pod template.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
 	Selector *LabelSelector `json:"selector,omitempty" protobuf:"bytes,1,opt,name=selector"`
 
 	// Template is the object that describes the pod that will be created.
 	// The DaemonSet will create exactly one copy of this pod on every node
 	// that matches the template's node selector (or on every node if no node
 	// selector is specified).
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#pod-template
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/replication-controller.md#pod-template
 	Template v1.PodTemplateSpec `json:"template" protobuf:"bytes,2,opt,name=template"`
 
 	// TODO(madhusudancs): Uncomment while implementing DaemonSet updates.
@@ -447,17 +447,17 @@ const (
 type DaemonSetStatus struct {
 	// CurrentNumberScheduled is the number of nodes that are running at least 1
 	// daemon pod and are supposed to run the daemon pod.
-	// More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+	// More info: http://releases.k8s.io/release-1.3/docs/admin/daemons.md
 	CurrentNumberScheduled int32 `json:"currentNumberScheduled" protobuf:"varint,1,opt,name=currentNumberScheduled"`
 
 	// NumberMisscheduled is the number of nodes that are running the daemon pod, but are
 	// not supposed to run the daemon pod.
-	// More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+	// More info: http://releases.k8s.io/release-1.3/docs/admin/daemons.md
 	NumberMisscheduled int32 `json:"numberMisscheduled" protobuf:"varint,2,opt,name=numberMisscheduled"`
 
 	// DesiredNumberScheduled is the total number of nodes that should be running the daemon
 	// pod (including nodes correctly running the daemon pod).
-	// More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+	// More info: http://releases.k8s.io/release-1.3/docs/admin/daemons.md
 	DesiredNumberScheduled int32 `json:"desiredNumberScheduled" protobuf:"varint,3,opt,name=desiredNumberScheduled"`
 }
 
@@ -467,18 +467,18 @@ type DaemonSetStatus struct {
 type DaemonSet struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the desired behavior of this daemon set.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Spec DaemonSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status is the current status of this daemon set. This data may be
 	// out of date by some window of time.
 	// Populated by the system.
 	// Read-only.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Status DaemonSetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -486,7 +486,7 @@ type DaemonSet struct {
 type DaemonSetList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of daemon sets.
@@ -497,7 +497,7 @@ type DaemonSetList struct {
 type ThirdPartyResourceDataList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is the list of ThirdpartyResourceData.
@@ -510,15 +510,15 @@ type ThirdPartyResourceDataList struct {
 type Job struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec is a structure defining the expected behavior of a job.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Spec JobSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status is a structure describing current status of a job.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Status JobStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -526,7 +526,7 @@ type Job struct {
 type JobList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is the list of Job.
@@ -540,7 +540,7 @@ type JobSpec struct {
 	// run at any given time. The actual number of pods running in steady state will
 	// be less than this number when ((.spec.completions - .status.successful) < .spec.parallelism),
 	// i.e. when the work left to do is less than max parallelism.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/jobs.md
 	Parallelism *int32 `json:"parallelism,omitempty" protobuf:"varint,1,opt,name=parallelism"`
 
 	// Completions specifies the desired number of successfully finished pods the
@@ -548,7 +548,7 @@ type JobSpec struct {
 	// pod signals the success of all pods, and allows parallelism to have any positive
 	// value.  Setting to 1 means that parallelism is limited to 1 and the success of that
 	// pod signals the success of the job.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/jobs.md
 	Completions *int32 `json:"completions,omitempty" protobuf:"varint,2,opt,name=completions"`
 
 	// Optional duration in seconds relative to the startTime that the job may be active
@@ -557,19 +557,19 @@ type JobSpec struct {
 
 	// Selector is a label query over pods that should match the pod count.
 	// Normally, the system sets this field for you.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
 	Selector *LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=selector"`
 
 	// AutoSelector controls generation of pod labels and pod selectors.
 	// It was not present in the original extensions/v1beta1 Job definition, but exists
 	// to allow conversion from batch/v1 Jobs, where it corresponds to, but has the opposite
 	// meaning as, ManualSelector.
-	// More info: http://releases.k8s.io/HEAD/docs/design/selector-generation.md
+	// More info: http://releases.k8s.io/release-1.3/docs/design/selector-generation.md
 	AutoSelector *bool `json:"autoSelector,omitempty" protobuf:"varint,5,opt,name=autoSelector"`
 
 	// Template is the object that describes the pod that will be created when
 	// executing a job.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/jobs.md
 	Template v1.PodTemplateSpec `json:"template" protobuf:"bytes,6,opt,name=template"`
 }
 
@@ -577,7 +577,7 @@ type JobSpec struct {
 type JobStatus struct {
 
 	// Conditions represent the latest available observations of an object's current state.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/jobs.md
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/jobs.md
 	Conditions []JobCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 
 	// StartTime represents time when the job was acknowledged by the Job Manager.
@@ -635,15 +635,15 @@ type JobCondition struct {
 type Ingress struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec is the desired state of the Ingress.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Spec IngressSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status is the current state of the Ingress.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Status IngressStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -651,7 +651,7 @@ type Ingress struct {
 type IngressList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is the list of Ingress.
@@ -852,18 +852,18 @@ type ReplicaSet struct {
 
 	// If the Labels of a ReplicaSet are empty, they are defaulted to
 	// be the same as the Pod(s) that the ReplicaSet manages.
-	// Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// Standard object's metadata. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the specification of the desired behavior of the ReplicaSet.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Spec ReplicaSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status is the most recently observed status of the ReplicaSet.
 	// This data may be out of date by some window of time.
 	// Populated by the system.
 	// Read-only.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status
 	Status ReplicaSetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -871,11 +871,11 @@ type ReplicaSet struct {
 type ReplicaSetList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of ReplicaSets.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/replication-controller.md
 	Items []ReplicaSet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
@@ -884,25 +884,25 @@ type ReplicaSetSpec struct {
 	// Replicas is the number of desired replicas.
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/replication-controller.md#what-is-a-replication-controller
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 
 	// Selector is a label query over pods that should match the replica count.
 	// If the selector is empty, it is defaulted to the labels present on the pod template.
 	// Label keys and values that must match in order to be controlled by this replica set.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md#label-selectors
 	Selector *LabelSelector `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
 
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#pod-template
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/replication-controller.md#pod-template
 	Template v1.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
 }
 
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 type ReplicaSetStatus struct {
 	// Replicas is the most recently oberved number of replicas.
-	// More info: http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#what-is-a-replication-controller
+	// More info: http://releases.k8s.io/release-1.3/docs/user-guide/replication-controller.md#what-is-a-replication-controller
 	Replicas int32 `json:"replicas" protobuf:"varint,1,opt,name=replicas"`
 
 	// The number of pods that have labels matching the labels of the pod template of the replicaset.
@@ -912,12 +912,14 @@ type ReplicaSetStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,3,opt,name=observedGeneration"`
 }
 
+// +genclient=true,nonNamespaced=true
+
 // Pod Security Policy governs the ability to make requests that affect the Security Context
 // that will be applied to a pod and container.
 type PodSecurityPolicy struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec defines the policy enforced.
@@ -928,29 +930,51 @@ type PodSecurityPolicy struct {
 type PodSecurityPolicySpec struct {
 	// privileged determines if a pod can request to be run as privileged.
 	Privileged bool `json:"privileged,omitempty" protobuf:"varint,1,opt,name=privileged"`
-	// capabilities is a list of capabilities that can be added.
-	Capabilities []v1.Capability `json:"capabilities,omitempty" protobuf:"bytes,2,rep,name=capabilities,casttype=k8s.io/kubernetes/pkg/api/v1.Capability"`
+	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
+	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
+	// DefaultAddCapabilities and RequiredDropCapabilities.
+	DefaultAddCapabilities []v1.Capability `json:"defaultAddCapabilities,omitempty" protobuf:"bytes,2,rep,name=defaultAddCapabilities,casttype=k8s.io/kubernetes/pkg/api/v1.Capability"`
+	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
+	// are required to be dropped and cannot be added.
+	RequiredDropCapabilities []v1.Capability `json:"requiredDropCapabilities,omitempty" protobuf:"bytes,3,rep,name=requiredDropCapabilities,casttype=k8s.io/kubernetes/pkg/api/v1.Capability"`
+	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
+	// Capabilities in this field may be added at the pod author's discretion.
+	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
+	AllowedCapabilities []v1.Capability `json:"allowedCapabilities,omitempty" protobuf:"bytes,4,rep,name=allowedCapabilities,casttype=k8s.io/kubernetes/pkg/api/v1.Capability"`
 	// volumes is a white list of allowed volume plugins.  Empty indicates that all plugins
 	// may be used.
-	Volumes []FSType `json:"volumes,omitempty" protobuf:"bytes,3,rep,name=volumes,casttype=FSType"`
+	Volumes []FSType `json:"volumes,omitempty" protobuf:"bytes,5,rep,name=volumes,casttype=FSType"`
 	// hostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	HostNetwork bool `json:"hostNetwork,omitempty" protobuf:"varint,4,opt,name=hostNetwork"`
+	HostNetwork bool `json:"hostNetwork,omitempty" protobuf:"varint,6,opt,name=hostNetwork"`
 	// hostPorts determines which host port ranges are allowed to be exposed.
-	HostPorts []HostPortRange `json:"hostPorts,omitempty" protobuf:"bytes,5,rep,name=hostPorts"`
+	HostPorts []HostPortRange `json:"hostPorts,omitempty" protobuf:"bytes,7,rep,name=hostPorts"`
 	// hostPID determines if the policy allows the use of HostPID in the pod spec.
-	HostPID bool `json:"hostPID,omitempty" protobuf:"varint,6,opt,name=hostPID"`
+	HostPID bool `json:"hostPID,omitempty" protobuf:"varint,8,opt,name=hostPID"`
 	// hostIPC determines if the policy allows the use of HostIPC in the pod spec.
-	HostIPC bool `json:"hostIPC,omitempty" protobuf:"varint,7,opt,name=hostIPC"`
+	HostIPC bool `json:"hostIPC,omitempty" protobuf:"varint,9,opt,name=hostIPC"`
 	// seLinux is the strategy that will dictate the allowable labels that may be set.
-	SELinux SELinuxStrategyOptions `json:"seLinux,omitempty" protobuf:"bytes,8,opt,name=seLinux"`
+	SELinux SELinuxStrategyOptions `json:"seLinux" protobuf:"bytes,10,opt,name=seLinux"`
 	// runAsUser is the strategy that will dictate the allowable RunAsUser values that may be set.
-	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" protobuf:"bytes,9,opt,name=runAsUser"`
+	RunAsUser RunAsUserStrategyOptions `json:"runAsUser" protobuf:"bytes,11,opt,name=runAsUser"`
+	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+	SupplementalGroups SupplementalGroupsStrategyOptions `json:"supplementalGroups" protobuf:"bytes,12,opt,name=supplementalGroups"`
+	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+	FSGroup FSGroupStrategyOptions `json:"fsGroup" protobuf:"bytes,13,opt,name=fsGroup"`
+	// ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file
+	// system.  If the container specifically requests to run with a non-read only root file system
+	// the PSP should deny the pod.
+	// If set to false the container may run with a read only root file system if it wishes but it
+	// will not be forced to.
+	ReadOnlyRootFilesystem bool `json:"readOnlyRootFilesystem,omitempty" protobuf:"varint,14,opt,name=readOnlyRootFilesystem"`
 }
 
 // FS Type gives strong typing to different file systems that are used by volumes.
 type FSType string
 
 var (
+	AzureFile             FSType = "azureFile"
+	Flocker               FSType = "flocker"
+	FlexVolume            FSType = "flexVolume"
 	HostPath              FSType = "hostPath"
 	EmptyDir              FSType = "emptyDir"
 	GCEPersistentDisk     FSType = "gcePersistentDisk"
@@ -966,6 +990,8 @@ var (
 	CephFS                FSType = "cephFS"
 	DownwardAPI           FSType = "downwardAPI"
 	FC                    FSType = "fc"
+	ConfigMap             FSType = "configMap"
+	All                   FSType = "*"
 )
 
 // Host Port Range defines a range of host ports that will be enabled by a policy
@@ -982,7 +1008,7 @@ type SELinuxStrategyOptions struct {
 	// type is the strategy that will dictate the allowable labels that may be set.
 	Rule SELinuxStrategy `json:"rule" protobuf:"bytes,1,opt,name=rule,casttype=SELinuxStrategy"`
 	// seLinuxOptions required to run as; required for MustRunAs
-	// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+	// More info: http://releases.k8s.io/release-1.3/docs/design/security_context.md#security-context
 	SELinuxOptions *v1.SELinuxOptions `json:"seLinuxOptions,omitempty" protobuf:"bytes,2,opt,name=seLinuxOptions"`
 }
 
@@ -1026,13 +1052,144 @@ const (
 	RunAsUserStrategyRunAsAny RunAsUserStrategy = "RunAsAny"
 )
 
+// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
+type FSGroupStrategyOptions struct {
+	// Rule is the strategy that will dictate what FSGroup is used in the SecurityContext.
+	Rule FSGroupStrategyType `json:"rule,omitempty" protobuf:"bytes,1,opt,name=rule,casttype=FSGroupStrategyType"`
+	// Ranges are the allowed ranges of fs groups.  If you would like to force a single
+	// fs group then supply a single range with the same start and end.
+	Ranges []IDRange `json:"ranges,omitempty" protobuf:"bytes,2,rep,name=ranges"`
+}
+
+// FSGroupStrategyType denotes strategy types for generating FSGroup values for a
+// SecurityContext
+type FSGroupStrategyType string
+
+const (
+	// container must have FSGroup of X applied.
+	FSGroupStrategyMustRunAs FSGroupStrategyType = "MustRunAs"
+	// container may make requests for any FSGroup labels.
+	FSGroupStrategyRunAsAny FSGroupStrategyType = "RunAsAny"
+)
+
+// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
+type SupplementalGroupsStrategyOptions struct {
+	// Rule is the strategy that will dictate what supplemental groups is used in the SecurityContext.
+	Rule SupplementalGroupsStrategyType `json:"rule,omitempty" protobuf:"bytes,1,opt,name=rule,casttype=SupplementalGroupsStrategyType"`
+	// Ranges are the allowed ranges of supplemental groups.  If you would like to force a single
+	// supplemental group then supply a single range with the same start and end.
+	Ranges []IDRange `json:"ranges,omitempty" protobuf:"bytes,2,rep,name=ranges"`
+}
+
+// SupplementalGroupsStrategyType denotes strategy types for determining valid supplemental
+// groups for a SecurityContext.
+type SupplementalGroupsStrategyType string
+
+const (
+	// container must run as a particular gid.
+	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
+	// container may make requests for any gid.
+	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
+)
+
 // Pod Security Policy List is a list of PodSecurityPolicy objects.
 type PodSecurityPolicyList struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
 	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is a list of schema objects.
 	Items []PodSecurityPolicy `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+type NetworkPolicy struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+	v1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Specification of the desired behavior for this NetworkPolicy.
+	Spec NetworkPolicySpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+}
+
+type NetworkPolicySpec struct {
+	// Selects the pods to which this NetworkPolicy object applies.  The array of ingress rules
+	// is applied to any pods selected by this field. Multiple network policies can select the
+	// same set of pods.  In this case, the ingress rules for each are combined additively.
+	// This field is NOT optional and follows standard label selector semantics.
+	// An empty podSelector matches all pods in this namespace.
+	PodSelector LabelSelector `json:"podSelector" protobuf:"bytes,1,opt,name=podSelector"`
+
+	// List of ingress rules to be applied to the selected pods.
+	// Traffic is allowed to a pod if namespace.networkPolicy.ingress.isolation is undefined and cluster policy allows it,
+	// OR if the traffic source is the pod's local node,
+	// OR if the traffic matches at least one ingress rule across all of the NetworkPolicy
+	// objects whose podSelector matches the pod.
+	// If this field is empty then this NetworkPolicy does not affect ingress isolation.
+	// If this field is present and contains at least one rule, this policy allows any traffic
+	// which matches at least one of the ingress rules in this list.
+	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty" protobuf:"bytes,2,rep,name=ingress"`
+}
+
+// This NetworkPolicyIngressRule matches traffic if and only if the traffic matches both ports AND from.
+type NetworkPolicyIngressRule struct {
+	// List of ports which should be made accessible on the pods selected for this rule.
+	// Each item in this list is combined using a logical OR.
+	// If this field is not provided, this rule matches all ports (traffic not restricted by port).
+	// If this field is empty, this rule matches no ports (no traffic matches).
+	// If this field is present and contains at least one item, then this rule allows traffic
+	// only if the traffic matches at least one port in the list.
+	// TODO: Update this to be a pointer to slice as soon as auto-generation supports it.
+	Ports []NetworkPolicyPort `json:"ports,omitempty" protobuf:"bytes,1,rep,name=ports"`
+
+	// List of sources which should be able to access the pods selected for this rule.
+	// Items in this list are combined using a logical OR operation.
+	// If this field is not provided, this rule matches all sources (traffic not restricted by source).
+	// If this field is empty, this rule matches no sources (no traffic matches).
+	// If this field is present and contains at least on item, this rule allows traffic only if the
+	// traffic matches at least one item in the from list.
+	// TODO: Update this to be a pointer to slice as soon as auto-generation supports it.
+	From []NetworkPolicyPeer `json:"from,omitempty" protobuf:"bytes,2,rep,name=from"`
+}
+
+type NetworkPolicyPort struct {
+	// Optional.  The protocol (TCP or UDP) which traffic must match.
+	// If not specified, this field defaults to TCP.
+	Protocol *v1.Protocol `json:"protocol,omitempty" protobuf:"bytes,1,opt,name=protocol,casttype=k8s.io/kubernetes/pkg/api/v1.Protocol"`
+
+	// If specified, the port on the given protocol.  This can
+	// either be a numerical or named port on a pod.  If this field is not provided,
+	// this matches all port names and numbers.
+	// If present, only traffic on the specified protocol AND port
+	// will be matched.
+	Port *intstr.IntOrString `json:"port,omitempty" protobuf:"bytes,2,opt,name=port"`
+}
+
+type NetworkPolicyPeer struct {
+	// Exactly one of the following must be specified.
+
+	// This is a label selector which selects Pods in this namespace.
+	// This field follows standard label selector semantics.
+	// If not provided, this selector selects no pods.
+	// If present but empty, this selector selects all pods in this namespace.
+	PodSelector *LabelSelector `json:"podSelector,omitempty" protobuf:"bytes,1,opt,name=podSelector"`
+
+	// Selects Namespaces using cluster scoped-labels.  This
+	// matches all pods in all namespaces selected by this label selector.
+	// This field follows standard label selector semantics.
+	// If omitted, this selector selects no namespaces.
+	// If present but empty, this selector selects all namespaces.
+	NamespaceSelector *LabelSelector `json:"namespaceSelector,omitempty" protobuf:"bytes,2,opt,name=namespaceSelector"`
+}
+
+// Network Policy List is a list of NetworkPolicy objects.
+type NetworkPolicyList struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard list metadata.
+	// More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Items is a list of schema objects.
+	Items []NetworkPolicy `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

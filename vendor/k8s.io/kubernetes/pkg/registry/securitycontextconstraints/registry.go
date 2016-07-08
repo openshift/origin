@@ -75,7 +75,7 @@ func (s *storage) CreateSecurityContextConstraint(ctx api.Context, scc *api.Secu
 }
 
 func (s *storage) UpdateSecurityContextConstraint(ctx api.Context, scc *api.SecurityContextConstraints) error {
-	_, _, err := s.Update(ctx, scc)
+	_, _, err := s.Update(ctx, scc.Name, rest.DefaultUpdatedObjectInfo(scc, api.Scheme))
 	return err
 }
 

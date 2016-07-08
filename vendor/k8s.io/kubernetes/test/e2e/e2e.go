@@ -40,10 +40,11 @@ import (
 )
 
 const (
-	// podStartupTimeout is the time to allow all pods in the cluster to become
-	// running and ready before any e2e tests run. It includes pulling all of
-	// the pods (as of 5/18/15 this is 8 pods).
-	podStartupTimeout = 10 * time.Minute
+	// imagePrePullingTimeout is the time we wait for the e2e-image-puller
+	// static pods to pull the list of seeded images. If they don't pull
+	// images within this time we simply log their output and carry on
+	// with the tests.
+	imagePrePullingTimeout = 5 * time.Minute
 )
 
 var (
@@ -72,7 +73,7 @@ func setupProviderConfig() error {
 			return fmt.Errorf("error parsing GCE/GKE region from zone %q: %v", zone, err)
 		}
 		managedZones := []string{zone} // Only single-zone for now
-		cloudConfig.Provider, err = gcecloud.CreateGCECloud(framework.TestContext.CloudConfig.ProjectID, region, zone, managedZones, "" /* networkUrl */, nil /* nodeTags */, tokenSource, false /* useMetadataServer */)
+		cloudConfig.Provider, err = gcecloud.CreateGCECloud(framework.TestContext.CloudConfig.ProjectID, region, zone, managedZones, "" /* networkUrl */, nil /* nodeTags */, "" /* nodeInstancePerfix */, tokenSource, false /* useMetadataServer */)
 		if err != nil {
 			return fmt.Errorf("Error building GCE/GKE provider: %v", err)
 		}
@@ -81,7 +82,6 @@ func setupProviderConfig() error {
 		if cloudConfig.Zone == "" {
 			return fmt.Errorf("gce-zone must be specified for AWS")
 		}
-
 	}
 
 	return nil
@@ -98,14 +98,18 @@ func setupProviderConfig() error {
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only on Ginkgo node 1
 
+	if err := setupProviderConfig(); err != nil {
+		framework.Failf("Failed to setup provider config: %v", err)
+	}
+
+	c, err := framework.LoadClient()
+	if err != nil {
+		glog.Fatal("Error loading client: ", err)
+	}
+
 	// Delete any namespaces except default and kube-system. This ensures no
 	// lingering resources are left over from a previous test run.
 	if framework.TestContext.CleanStart {
-		c, err := framework.LoadClient()
-		if err != nil {
-			glog.Fatal("Error loading client: ", err)
-		}
-
 		deleted, err := framework.DeleteNamespaces(c, nil /* deleteFilter */, []string{api.NamespaceSystem, api.NamespaceDefault})
 		if err != nil {
 			framework.Failf("Error deleting orphaned namespaces: %v", err)
@@ -120,15 +124,26 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// cluster infrastructure pods that are being pulled or started can block
 	// test pods from running, and tests that ensure all pods are running and
 	// ready will fail).
-	if err := framework.WaitForPodsRunningReady(api.NamespaceSystem, int32(framework.TestContext.MinStartupPods), podStartupTimeout); err != nil {
-		if c, errClient := framework.LoadClient(); errClient != nil {
-			framework.Logf("Unable to dump cluster information because: %v", errClient)
-		} else {
-			framework.DumpAllNamespaceInfo(c, api.NamespaceSystem)
-		}
-		framework.LogFailedContainers(api.NamespaceSystem)
-		framework.RunKubernetesServiceTestContainer(framework.TestContext.RepoRoot, api.NamespaceDefault)
+	podStartupTimeout := framework.TestContext.SystemPodsStartupTimeout
+	if err := framework.WaitForPodsRunningReady(c, api.NamespaceSystem, int32(framework.TestContext.MinStartupPods), podStartupTimeout, framework.ImagePullerLabels, true); err != nil {
+		framework.DumpAllNamespaceInfo(c, api.NamespaceSystem)
+		framework.LogFailedContainers(c, api.NamespaceSystem)
+		framework.RunKubernetesServiceTestContainer(c, framework.TestContext.RepoRoot, api.NamespaceDefault)
 		framework.Failf("Error waiting for all pods to be running and ready: %v", err)
+	}
+
+	if err := framework.WaitForPodsSuccess(c, api.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingTimeout); err != nil {
+		// There is no guarantee that the image pulling will succeed in 3 minutes
+		// and we don't even run the image puller on all platforms (including GKE).
+		// We wait for it so we get an indication of failures in the logs, and to
+		// maximize benefit of image pre-pulling.
+		framework.Logf("WARNING: Image pulling pods failed to enter success in %v: %v", imagePrePullingTimeout, err)
+	}
+
+	// Dump the output of the nethealth containers only once per run
+	if framework.TestContext.DumpLogsOnFailure {
+		framework.Logf("Dumping network health container logs from all nodes")
+		framework.LogContainersInPodsWithLabels(c, api.NamespaceSystem, framework.ImagePullerLabels, "nethealth")
 	}
 
 	return nil
@@ -136,6 +151,11 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 }, func(data []byte) {
 	// Run on all Ginkgo nodes
 
+	if cloudConfig.Provider == nil {
+		if err := setupProviderConfig(); err != nil {
+			framework.Failf("Failed to setup provider config: %v", err)
+		}
+	}
 })
 
 type CleanupActionHandle *int
@@ -203,12 +223,6 @@ func RunE2ETests(t *testing.T) {
 	util.InitLogs()
 	defer util.FlushLogs()
 
-	// We must call setupProviderConfig first since SynchronizedBeforeSuite needs
-	// cloudConfig to be set up already.
-	if err := setupProviderConfig(); err != nil {
-		glog.Fatalf(err.Error())
-	}
-
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	// Disable skipped tests unless they are explicitly requested.
 	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
@@ -227,5 +241,6 @@ func RunE2ETests(t *testing.T) {
 		}
 	}
 	glog.Infof("Starting e2e run %q on Ginkgo node %d", framework.RunId, config.GinkgoConfig.ParallelNode)
+
 	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Kubernetes e2e suite", r)
 }

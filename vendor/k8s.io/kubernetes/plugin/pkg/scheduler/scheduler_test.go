@@ -19,7 +19,6 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"sync"
 	"testing"
@@ -42,6 +41,12 @@ type fakeBinder struct {
 }
 
 func (fb fakeBinder) Bind(binding *api.Binding) error { return fb.b(binding) }
+
+type fakePodConditionUpdater struct{}
+
+func (fc fakePodConditionUpdater) Update(pod *api.Pod, podCondition *api.PodCondition) error {
+	return nil
+}
 
 func podWithID(id, desiredHost string) *api.Pod {
 	return &api.Pod{
@@ -128,6 +133,7 @@ func TestScheduler(t *testing.T) {
 				gotBinding = b
 				return item.injectBindError
 			}},
+			PodConditionUpdater: fakePodConditionUpdater{},
 			Error: func(p *api.Pod, err error) {
 				gotPod = p
 				gotError = err
@@ -211,8 +217,7 @@ func TestSchedulerForgetAssumedPodAfterDelete(t *testing.T) {
 		cache,
 		map[string]algorithm.FitPredicate{"PodFitsHostPorts": predicates.PodFitsHostPorts},
 		[]algorithm.PriorityConfig{},
-		[]algorithm.SchedulerExtender{},
-		rand.New(rand.NewSource(time.Now().UnixNano())))
+		[]algorithm.SchedulerExtender{})
 
 	var gotBinding *api.Binding
 	c := &Config{

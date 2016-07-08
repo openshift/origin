@@ -47,6 +47,7 @@ type Interface interface {
 	Autoscaling() AutoscalingInterface
 	Batch() BatchInterface
 	Extensions() ExtensionsInterface
+	Rbac() RbacInterface
 	Discovery() discovery.DiscoveryInterface
 
 	SecurityContextConstraintsInterface
@@ -126,6 +127,8 @@ type Client struct {
 	*BatchClient
 	*ExtensionsClient
 	*AppsClient
+	*PolicyClient
+	*RbacClient
 	*discovery.DiscoveryClient
 }
 
@@ -165,6 +168,10 @@ func (c *Client) Extensions() ExtensionsInterface {
 
 func (c *Client) Apps() AppsInterface {
 	return c.AppsClient
+}
+
+func (c *Client) Rbac() RbacInterface {
+	return c.RbacClient
 }
 
 func (c *Client) Discovery() discovery.DiscoveryInterface {

@@ -838,6 +838,21 @@ func TestBackoffLifecycle(t *testing.T) {
 	}
 }
 
+type testBackoffManager struct {
+	sleeps []time.Duration
+}
+
+func (b *testBackoffManager) UpdateBackoff(actualUrl *url.URL, err error, responseCode int) {
+}
+
+func (b *testBackoffManager) CalculateBackoff(actualUrl *url.URL) time.Duration {
+	return time.Duration(0)
+}
+
+func (b *testBackoffManager) Sleep(d time.Duration) {
+	b.sleeps = append(b.sleeps, d)
+}
+
 func TestCheckRetryClosesBody(t *testing.T) {
 	count := 0
 	ch := make(chan struct{})
@@ -849,12 +864,16 @@ func TestCheckRetryClosesBody(t *testing.T) {
 			close(ch)
 			return
 		}
-		w.Header().Set("Retry-After", "0")
-		w.WriteHeader(apierrors.StatusTooManyRequests)
+		w.Header().Set("Retry-After", "1")
+		http.Error(w, "Too many requests, please try again later.", apierrors.StatusTooManyRequests)
 	}))
 	defer testServer.Close()
 
+	backoffMgr := &testBackoffManager{}
+	expectedSleeps := []time.Duration{0, time.Second, 0, time.Second, 0, time.Second, 0, time.Second, 0}
+
 	c := testRESTClient(t, testServer)
+	c.createBackoffMgr = func() BackoffManager { return backoffMgr }
 	_, err := c.Verb("POST").
 		Prefix("foo", "bar").
 		Suffix("baz").
@@ -868,12 +887,22 @@ func TestCheckRetryClosesBody(t *testing.T) {
 	if count != 5 {
 		t.Errorf("unexpected retries: %d", count)
 	}
+	if !reflect.DeepEqual(backoffMgr.sleeps, expectedSleeps) {
+		t.Errorf("unexpected sleeps, expected: %v, got: %v", expectedSleeps, backoffMgr.sleeps)
+	}
 }
 
 func TestCheckRetryHandles429And5xx(t *testing.T) {
 	count := 0
 	ch := make(chan struct{})
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		data, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			t.Fatalf("unable to read request body: %v", err)
+		}
+		if !bytes.Equal(data, []byte(strings.Repeat("abcd", 1000))) {
+			t.Fatalf("retry did not send a complete body: %s", data)
+		}
 		t.Logf("attempt %d", count)
 		if count >= 4 {
 			w.WriteHeader(http.StatusOK)
