@@ -1,0 +1,65 @@
+{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890a",
+                "labels": {
+                    "name": "12345678901234567890123456789012345678901234567890123456789012a"
+                }
+            },
+            "spec": {
+                "triggers": [],
+                "source": {
+                    "type": "Git",
+                    "git": {
+                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                    }
+                },
+                "strategy": {
+                    "type": "Source",
+                    "env": [],
+                    "sourceStrategy": {
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "centos/ruby-22-centos7"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890b",
+                "labels": {
+                    "name": "12345678901234567890123456789012345678901234567890123456789012b"
+                }
+            },
+            "spec": {
+                "triggers": [],
+                "source": {
+                    "type": "Git",
+                    "git": {
+                        "uri": "git://github.com/openshift/ruby-hello-world.git"
+                    }
+                },
+                "strategy": {
+                    "type": "Source",
+                    "env": [],
+                    "sourceStrategy": {
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "centos/ruby-22-centos7"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
