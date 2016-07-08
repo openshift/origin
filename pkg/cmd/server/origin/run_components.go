@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -47,12 +48,13 @@ import (
 	"github.com/openshift/origin/pkg/security/uidallocator"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
 
-	"github.com/openshift/openshift-sdn/plugins/osdn"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
+	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -156,16 +158,17 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
 	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
 
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{DefaultDockerURL: serviceaccountcontrollers.DefaultOpenshiftDockerURL})
+	dockerURLsIntialized := make(chan struct{})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
-		RegistryNamespace:   "default",
-		RegistryServiceName: "docker-registry",
-		DockercfgController: dockercfgController,
-		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
+		RegistryNamespace:    "default",
+		RegistryServiceName:  "docker-registry",
+		DockercfgController:  dockercfgController,
+		DockerURLsIntialized: dockerURLsIntialized,
 	}
-	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
@@ -380,7 +383,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	oClient, kClient := c.SDNControllerClients()
-	if err := osdn.StartMaster(c.Options.NetworkConfig, oClient, kClient); err != nil {
+	if err := sdnplugin.StartMaster(c.Options.NetworkConfig, oClient, kClient); err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 }
@@ -506,4 +509,32 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 	initClusterQuotaMapping.Do(func() {
 		go c.ClusterQuotaMappingController.Run(5, utilwait.NeverStop)
 	})
+}
+
+func (c *MasterConfig) RunClusterQuotaReconciliationController() {
+	osClient, kClient := c.ResourceQuotaManagerClients()
+	resourceQuotaRegistry := quotainstall.NewRegistry(kClient)
+	groupKindsToReplenish := []unversioned.GroupKind{
+		kapi.Kind("Pod"),
+		kapi.Kind("Service"),
+		kapi.Kind("ReplicationController"),
+		kapi.Kind("PersistentVolumeClaim"),
+		kapi.Kind("Secret"),
+		kapi.Kind("ConfigMap"),
+	}
+
+	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
+		ClusterQuotaInformer: c.Informers.ClusterResourceQuotas(),
+		ClusterQuotaMapper:   c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
+		ClusterQuotaClient:   osClient,
+
+		Registry:                  resourceQuotaRegistry,
+		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
+		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactory(c.Informers.Pods().Informer(), kClient),
+		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
+		GroupKindsToReplenish:     groupKindsToReplenish,
+	}
+	controller := clusterquotareconciliation.NewClusterQuotaReconcilationController(options)
+	c.ClusterQuotaMappingController.GetClusterQuotaMapper().AddListener(controller)
+	go controller.Run(5, utilwait.NeverStop)
 }

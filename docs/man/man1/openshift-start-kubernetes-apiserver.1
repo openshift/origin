@@ -41,16 +41,8 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     If true, allow privileged containers.
 
 .PP
-\fB\-\-alsologtostderr\fP=false
-    log to standard error as well as files
-
-.PP
 \fB\-\-apiserver\-count\fP=1
     The number of apiservers running in the cluster
-
-.PP
-\fB\-\-application\-metrics\-count\-limit\fP=100
-    Max number of application metrics to store (per container)
 
 .PP
 \fB\-\-authorization\-mode\fP="AlwaysAllow"
@@ -73,10 +65,6 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     The IP address on which to listen for the \-\-secure\-port port. The associated interface(s) must be reachable by the rest of the cluster, and by CLI/web clients. If blank, all interfaces will be used (0.0.0.0).
 
 .PP
-\fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
-    Comma\-separated list of files to check for boot\-id. Use the first one that exists.
-
-.PP
 \fB\-\-cert\-dir\fP="/var/run/kubernetes"
     The directory where the TLS certs are located (by default /var/run/kubernetes). If \-\-tls\-cert\-file and \-\-tls\-private\-key\-file are provided, this flag will be ignored.
 
@@ -93,10 +81,6 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     The provider for cloud services.  Empty string for no provider.
 
 .PP
-\fB\-\-container\-hints\fP="/etc/cadvisor/container\_hints.json"
-    location of the container hints file
-
-.PP
 \fB\-\-cors\-allowed\-origins\fP=[]
     List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.
 
@@ -107,30 +91,6 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 .PP
 \fB\-\-deserialization\-cache\-size\fP=50000
     Number of deserialized json objects to cache in memory.
-
-.PP
-\fB\-\-docker\fP="unix:///var/run/docker.sock"
-    docker endpoint
-
-.PP
-\fB\-\-docker\-env\-metadata\-whitelist\fP=""
-    a comma\-separated list of environment variable keys that needs to be collected for docker containers
-
-.PP
-\fB\-\-docker\-only\fP=false
-    Only report docker containers in addition to root stats
-
-.PP
-\fB\-\-docker\-root\fP="/var/lib/docker"
-    Absolute path to the Docker state root directory (default: /var/lib/docker)
-
-.PP
-\fB\-\-docker\-run\fP="/var/run/docker"
-    Absolute path to the Docker run directory (default: /var/run/docker)
-
-.PP
-\fB\-\-enable\-load\-reader\fP=false
-    Whether to enable cpu load reader
 
 .PP
 \fB\-\-enable\-swagger\-ui\fP=false
@@ -167,14 +127,6 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 \[la]http://ip:port\[ra], semicolon separated.
 
 .PP
-\fB\-\-event\-storage\-age\-limit\fP="default=24h"
-    Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
-
-.PP
-\fB\-\-event\-storage\-event\-limit\fP="default=100000"
-    Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
-
-.PP
 \fB\-\-event\-ttl\fP=0
     Amount of time to retain events. Default 1 hour.
 
@@ -187,56 +139,12 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     The hostname to use when generating externalized URLs for this master (e.g. Swagger API Docs.)
 
 .PP
-\fB\-\-global\-housekeeping\-interval\fP=0
-    Interval between global housekeepings
-
-.PP
-\fB\-\-housekeeping\-interval\fP=0
-    Interval between container housekeepings
-
-.PP
-\fB\-\-httptest.serve\fP=""
-    if non\-empty, httptest.NewServer serves on this address and blocks
-
-.PP
 \fB\-\-insecure\-bind\-address\fP=127.0.0.1
     The IP address on which to serve the \-\-insecure\-port (set to 0.0.0.0 for all interfaces). Defaults to localhost.
 
 .PP
 \fB\-\-insecure\-port\fP=8080
     The port on which to serve unsecured, unauthenticated access. Default 8080. It is assumed that firewall rules are set up such that this port is not reachable from outside of the cluster and that port 443 on the cluster's public address is proxied to this port. This is performed by nginx in the default setup.
-
-.PP
-\fB\-\-ir\-data\-source\fP="influxdb"
-    Data source used by InitialResources. Supported options: influxdb, gcm.
-
-.PP
-\fB\-\-ir\-dbname\fP="k8s"
-    InfluxDB database name which contains metrics requred by InitialResources
-
-.PP
-\fB\-\-ir\-hawkular\fP=""
-    Hawkular configuration URL
-
-.PP
-\fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
-    Address of InfluxDB which contains metrics requred by InitialResources
-
-.PP
-\fB\-\-ir\-namespace\-only\fP=false
-    Whether the estimation should be made only based on data from the same namespace.
-
-.PP
-\fB\-\-ir\-password\fP="root"
-    Password used for connecting to InfluxDB
-
-.PP
-\fB\-\-ir\-percentile\fP=90
-    Which percentile of samples should InitialResources use when estimating resources. For experiment purposes.
-
-.PP
-\fB\-\-ir\-user\fP="root"
-    User used for connecting to InfluxDB
 
 .PP
 \fB\-\-kubelet\-certificate\-authority\fP=""
@@ -267,28 +175,8 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     If non\-zero, the Kubernetes master service (which apiserver creates/maintains) will be of type NodePort, using this as the value of the port. If zero, the Kubernetes master service will be of type ClusterIP.
 
 .PP
-\fB\-\-log\-backtrace\-at\fP=:0
-    when logging hits line file:N, emit a stack trace
-
-.PP
-\fB\-\-log\-cadvisor\-usage\fP=false
-    Whether to log the usage of the cAdvisor container
-
-.PP
-\fB\-\-log\-dir\fP=""
-    If non\-empty, write log files in this directory
-
-.PP
-\fB\-\-logtostderr\fP=true
-    log to standard error instead of files
-
-.PP
 \fB\-\-long\-running\-request\-regexp\fP="(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)"
     A regular expression matching long running requests which should be excluded from maximum inflight request handling.
-
-.PP
-\fB\-\-machine\-id\-file\fP="/etc/machine\-id,/var/lib/dbus/machine\-id"
-    Comma\-separated list of files to check for machine\-id. Use the first one that exists.
 
 .PP
 \fB\-\-master\-service\-namespace\fP="default"
@@ -383,40 +271,8 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     If non\-empty, use secure SSH proxy to the nodes, using this user name
 
 .PP
-\fB\-\-stderrthreshold\fP=2
-    logs at or above this threshold go to stderr
-
-.PP
 \fB\-\-storage\-backend\fP=""
     The storage backend for persistence. Options: 'etcd2' (default), 'etcd3'.
-
-.PP
-\fB\-\-storage\-driver\-buffer\-duration\fP=0
-    Writes in the storage driver will be buffered for this duration, and committed to the non memory backends as a single transaction
-
-.PP
-\fB\-\-storage\-driver\-db\fP="cadvisor"
-    database name
-
-.PP
-\fB\-\-storage\-driver\-host\fP="localhost:8086"
-    database host:port
-
-.PP
-\fB\-\-storage\-driver\-password\fP="root"
-    database password
-
-.PP
-\fB\-\-storage\-driver\-secure\fP=false
-    use secure connection with database
-
-.PP
-\fB\-\-storage\-driver\-table\fP="stats"
-    table name
-
-.PP
-\fB\-\-storage\-driver\-user\fP="root"
-    database username
 
 .PP
 \fB\-\-storage\-media\-type\fP="application/json"
@@ -441,14 +297,6 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 .PP
 \fB\-\-token\-auth\-file\fP=""
     If set, the file that will be used to secure the secure port of the API server via token authentication.
-
-.PP
-\fB\-\-v\fP=0
-    log level for V logs
-
-.PP
-\fB\-\-vmodule\fP=
-    comma\-separated list of pattern=N settings for file\-filtered logging
 
 .PP
 \fB\-\-watch\-cache\fP=true

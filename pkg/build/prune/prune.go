@@ -3,37 +3,58 @@ package prune
 import (
 	"time"
 
+	"github.com/golang/glog"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
 )
 
-// PruneFunc is a function that is invoked for each item during Prune
-type PruneFunc func(build *buildapi.Build) error
-
-type PruneTasker interface {
-	// PruneTask is an object that knows how to execute a single iteration of a Prune
-	PruneTask() error
+type Pruner interface {
+	// Prune is responsible for actual removal of builds identified as candidates
+	// for pruning based on pruning algorithm.
+	Prune(deleter BuildDeleter) error
 }
 
-// pruneTask is an object that knows how to prune a data set
-type pruneTask struct {
+// BuildDeleter knows how to delete builds from OpenShift.
+type BuildDeleter interface {
+	// DeleteBuild removes the build from OpenShift's storage.
+	DeleteBuild(build *buildapi.Build) error
+}
+
+// pruner is an object that knows how to prune a data set
+type pruner struct {
 	resolver Resolver
-	handler  PruneFunc
 }
 
-// NewPruneTasker returns a PruneTasker over specified data using specified flags
-// keepYoungerThan will filter out all objects from prune data set that are younger than the specified time duration
-// orphans if true will include inactive orphan builds in candidate prune set
-// keepComplete is per BuildConfig how many of the most recent builds should be preserved
-// keepFailed is per BuildConfig how many of the most recent failed builds should be preserved
-func NewPruneTasker(buildConfigs []*buildapi.BuildConfig, builds []*buildapi.Build, keepYoungerThan time.Duration, orphans bool, keepComplete int, keepFailed int, handler PruneFunc) PruneTasker {
+var _ Pruner = &pruner{}
+
+// PrunerOptions contains the fields used to initialize a new Pruner.
+type PrunerOptions struct {
+	// KeepYoungerThan indicates the minimum age a BuildConfig must be to be a
+	// candidate for pruning.
+	KeepYoungerThan time.Duration
+	// Orphans if true will include inactive orphan builds in candidate prune set
+	Orphans bool
+	// KeepComplete is per BuildConfig how many of the most recent builds should be preserved
+	KeepComplete int
+	// KeepFailed is per BuildConfig how many of the most recent failed builds should be preserved
+	KeepFailed int
+	// BuildConfigs is the entire list of buildconfigs across all namespaces in the cluster.
+	BuildConfigs []*buildapi.BuildConfig
+	// Builds is the entire list of builds across all namespaces in the cluster.
+	Builds []*buildapi.Build
+}
+
+// NewPruner returns a Pruner over specified data using specified options.
+func NewPruner(options PrunerOptions) Pruner {
 	filter := &andFilter{
-		filterPredicates: []FilterPredicate{NewFilterBeforePredicate(keepYoungerThan)},
+		filterPredicates: []FilterPredicate{NewFilterBeforePredicate(options.KeepYoungerThan)},
 	}
-	builds = filter.Filter(builds)
-	dataSet := NewDataSet(buildConfigs, builds)
+	builds := filter.Filter(options.Builds)
+	dataSet := NewDataSet(options.BuildConfigs, builds)
 
 	resolvers := []Resolver{}
-	if orphans {
+	if options.Orphans {
 		inactiveBuildStatus := []buildapi.BuildPhase{
 			buildapi.BuildPhaseCancelled,
 			buildapi.BuildPhaseComplete,
@@ -42,24 +63,42 @@ func NewPruneTasker(buildConfigs []*buildapi.BuildConfig, builds []*buildapi.Bui
 		}
 		resolvers = append(resolvers, NewOrphanBuildResolver(dataSet, inactiveBuildStatus))
 	}
-	resolvers = append(resolvers, NewPerBuildConfigResolver(dataSet, keepComplete, keepFailed))
-	return &pruneTask{
+	resolvers = append(resolvers, NewPerBuildConfigResolver(dataSet, options.KeepComplete, options.KeepFailed))
+
+	return &pruner{
 		resolver: &mergeResolver{resolvers: resolvers},
-		handler:  handler,
 	}
 }
 
-// PruneTask will visit each item in the prunable set and invoke the associated handler
-func (t *pruneTask) PruneTask() error {
-	builds, err := t.resolver.Resolve()
+// Prune will visit each item in the prunable set and invoke the associated BuildDeleter.
+func (p *pruner) Prune(deleter BuildDeleter) error {
+	builds, err := p.resolver.Resolve()
 	if err != nil {
 		return err
 	}
 	for _, build := range builds {
-		err = t.handler(build)
-		if err != nil {
+		if err := deleter.DeleteBuild(build); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// buildDeleter removes a build from OpenShift.
+type buildDeleter struct {
+	builds client.BuildsNamespacer
+}
+
+var _ BuildDeleter = &buildDeleter{}
+
+// NewBuildDeleter creates a new buildDeleter.
+func NewBuildDeleter(builds client.BuildsNamespacer) BuildDeleter {
+	return &buildDeleter{
+		builds: builds,
+	}
+}
+
+func (p *buildDeleter) DeleteBuild(build *buildapi.Build) error {
+	glog.V(4).Infof("Deleting build %q", build.Name)
+	return p.builds.Builds(build.Namespace).Delete(build.Name)
 }

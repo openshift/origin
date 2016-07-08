@@ -1,9 +1,8 @@
 package cache
 
 import (
-	"fmt"
-
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -40,7 +39,7 @@ func (s storeImageStreamsNamespacer) Get(name string) (*imageapi.ImageStream, er
 		return nil, err
 	}
 	if !exists {
-		return nil, fmt.Errorf("image stream %q not found", name)
+		return nil, kapierrors.NewNotFound(imageapi.Resource("imagestream"), name)
 	}
 	return obj.(*imageapi.ImageStream), nil
 }

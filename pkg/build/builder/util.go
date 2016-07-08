@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	docker "github.com/fsouza/go-dockerclient"
+
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 )
 
@@ -174,4 +176,19 @@ func MergeEnv(oldEnv, newEnv []string) []string {
 		result = append(result, e)
 	}
 	return result
+}
+
+func reportPushFailure(err error, authPresent bool, pushAuthConfig docker.AuthConfiguration) error {
+	// write extended error message to assist in problem resolution
+	if authPresent {
+		glog.V(0).Infof("Registry server Address: %s", pushAuthConfig.ServerAddress)
+		glog.V(0).Infof("Registry server User Name: %s", pushAuthConfig.Username)
+		glog.V(0).Infof("Registry server Email: %s", pushAuthConfig.Email)
+		passwordPresent := "<<empty>>"
+		if len(pushAuthConfig.Password) > 0 {
+			passwordPresent = "<<non-empty>>"
+		}
+		glog.V(0).Infof("Registry server Password: %s", passwordPresent)
+	}
+	return fmt.Errorf("Failed to push image: %v", err)
 }

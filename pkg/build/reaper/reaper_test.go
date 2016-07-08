@@ -12,6 +12,7 @@ import (
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	ktypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -21,10 +22,12 @@ import (
 )
 
 var (
-	configName = strings.Repeat("a", validation.DNS1123LabelMaxLength)
+	configName      = strings.Repeat("a", validation.DNS1123LabelMaxLength)
+	longConfigNameA = strings.Repeat("0", 250) + "a"
+	longConfigNameB = strings.Repeat("0", 250) + "b"
 )
 
-func makeBuildConfig(version int64, deleting bool) *buildapi.BuildConfig {
+func makeBuildConfig(configName string, version int64, deleting bool) *buildapi.BuildConfig {
 	ret := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:        configName,
@@ -42,10 +45,11 @@ func makeBuildConfig(version int64, deleting bool) *buildapi.BuildConfig {
 	return ret
 }
 
-func makeBuild(version int) buildapi.Build {
+func makeBuild(configName string, version int) buildapi.Build {
 	return buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:        fmt.Sprintf("build-%d", version),
+			UID:         ktypes.UID(fmt.Sprintf("build-%d", version)),
 			Namespace:   "default",
 			Labels:      map[string]string{buildapi.BuildConfigLabel: buildapi.LabelValue(configName)},
 			Annotations: map[string]string{buildapi.BuildConfigAnnotation: configName},
@@ -53,10 +57,11 @@ func makeBuild(version int) buildapi.Build {
 	}
 }
 
-func makeDeprecatedBuild(version int) buildapi.Build {
+func makeDeprecatedBuild(configName string, version int) buildapi.Build {
 	return buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:        fmt.Sprintf("build-%d", version),
+			UID:         ktypes.UID(fmt.Sprintf("build-%d", version)),
 			Namespace:   "default",
 			Labels:      map[string]string{buildapi.BuildConfigLabelDeprecated: buildapi.LabelValue(configName)},
 			Annotations: map[string]string{buildapi.BuildConfigAnnotation: configName},
@@ -64,15 +69,15 @@ func makeDeprecatedBuild(version int) buildapi.Build {
 	}
 }
 
-func makeBuildList(version int) *buildapi.BuildList {
+func makeBuildList(configName string, version int) *buildapi.BuildList {
 	if version%2 != 0 {
 		panic("version needs be even")
 	}
 	list := &buildapi.BuildList{}
 
 	for i := 1; i <= version; i += 2 {
-		list.Items = append(list.Items, makeBuild(i))
-		list.Items = append(list.Items, makeDeprecatedBuild(i+1))
+		list.Items = append(list.Items, makeBuild(configName, i))
+		list.Items = append(list.Items, makeDeprecatedBuild(configName, i+1))
 	}
 	return list
 }
@@ -119,15 +124,17 @@ func TestStop(t *testing.T) {
 	}
 
 	tests := map[string]struct {
+		targetBC string
 		oc       *testclient.Fake
 		expected []ktestclient.Action
 		err      bool
 	}{
 		"simple stop": {
-			oc: newBuildListFake(makeBuildConfig(0, false)),
+			targetBC: configName,
+			oc:       newBuildListFake(makeBuildConfig(configName, 0, false)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", configName),
-				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(0, true)),
+				// Since there are no builds associated with this build config, do not expect an update
 				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
 				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
 				ktestclient.NewDeleteAction("buildconfigs", "default", configName),
@@ -135,32 +142,52 @@ func TestStop(t *testing.T) {
 			err: false,
 		},
 		"multiple builds": {
-			oc: newBuildListFake(makeBuildConfig(4, false), makeBuildList(4)),
+			targetBC: configName,
+			oc:       newBuildListFake(makeBuildConfig(configName, 4, false), makeBuildList(configName, 4)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", configName),
-				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(4, true)),
 				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				ktestclient.NewDeleteAction("builds", "default", "build-1"),
-				ktestclient.NewDeleteAction("builds", "default", "build-3"),
 				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				ktestclient.NewGetAction("buildconfigs", "default", configName),                              // Second GET to enable conflict retry logic
+				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(configName, 4, true)), // Because this bc has builds, it is paused
+				ktestclient.NewDeleteAction("builds", "default", "build-1"),
 				ktestclient.NewDeleteAction("builds", "default", "build-2"),
+				ktestclient.NewDeleteAction("builds", "default", "build-3"),
 				ktestclient.NewDeleteAction("builds", "default", "build-4"),
 				ktestclient.NewDeleteAction("buildconfigs", "default", configName),
 			},
 			err: false,
 		},
+		"long name builds": {
+			targetBC: longConfigNameA,
+			oc:       newBuildListFake(makeBuildConfig(longConfigNameA, 4, false), makeBuildList(longConfigNameA, 4), makeBuildList(longConfigNameB, 4)),
+			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("buildconfigs", "default", longConfigNameA),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA)}),
+				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA)}),
+				ktestclient.NewGetAction("buildconfigs", "default", longConfigNameA),                              // Second GET to enable conflict retry logic
+				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(longConfigNameA, 4, true)), // Because this bc has builds, it is paused
+				ktestclient.NewDeleteAction("builds", "default", "build-1"),
+				ktestclient.NewDeleteAction("builds", "default", "build-2"),
+				ktestclient.NewDeleteAction("builds", "default", "build-3"),
+				ktestclient.NewDeleteAction("builds", "default", "build-4"),
+				ktestclient.NewDeleteAction("buildconfigs", "default", longConfigNameA),
+			},
+			err: false,
+		},
 		"no config, no or some builds": {
-			oc: testclient.NewSimpleFake(notFound(), makeBuildList(2)),
+			targetBC: configName,
+			oc:       testclient.NewSimpleFake(notFound(), makeBuildList(configName, 2)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", configName),
 			},
 			err: true,
 		},
 		"config, no builds": {
-			oc: testclient.NewSimpleFake(makeBuildConfig(0, false)),
+			targetBC: configName,
+			oc:       testclient.NewSimpleFake(makeBuildConfig(configName, 0, false)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("buildconfigs", "default", configName),
-				ktestclient.NewUpdateAction("buildconfigs", "default", makeBuildConfig(0, true)),
 				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
 				ktestclient.NewListAction("builds", "default", kapi.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
 				ktestclient.NewDeleteAction("buildconfigs", "default", configName),
@@ -171,7 +198,7 @@ func TestStop(t *testing.T) {
 
 	for testName, test := range tests {
 		reaper := &BuildConfigReaper{oc: test.oc, pollInterval: time.Millisecond, timeout: time.Millisecond}
-		err := reaper.Stop("default", configName, 1*time.Second, nil)
+		err := reaper.Stop("default", test.targetBC, 1*time.Second, nil)
 
 		if !test.err && err != nil {
 			t.Errorf("%s: unexpected error: %v", testName, err)

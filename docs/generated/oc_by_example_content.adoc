@@ -523,6 +523,13 @@ Remove unreferenced images
 
   # To actually perform the prune operation, the confirm flag must be appended
   oc adm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+
+  # See, what the prune command would delete if we're interested in removing images
+  # exceeding currently set LimitRanges ('openshift.io/Image')
+  oc adm prune images --prune-over-size-limit
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oc adm prune images --prune-over-size-limit --confirm
 ----
 ====
 
@@ -854,15 +861,15 @@ Convert config files between different API versions
 
 [options="nowrap"]
 ----
-# Convert 'pod.yaml' to latest version and print to stdout.
-oc convert -f pod.yaml
+  # Convert 'pod.yaml' to latest version and print to stdout.
+  oc convert -f pod.yaml
 
-# Convert the live state of the resource specified by 'pod.yaml' to the latest version
-# and print to stdout in json format.
-oc convert -f pod.yaml --local -o json
+  # Convert the live state of the resource specified by 'pod.yaml' to the latest version
+  # and print to stdout in json format.
+  oc convert -f pod.yaml --local -o json
 
-# Convert all files under current directory to latest version and create them all.
-oc convert -f . | kubectl create -f -
+  # Convert all files under current directory to latest version and create them all.
+  oc convert -f . | oc create -f -
 
 ----
 ====

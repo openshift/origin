@@ -29,18 +29,22 @@ you cannot change a pod's volumes once it has been created.
 
 .PP
 Volume types include:
-.IP \n+[step]
+.IP 
 
-\item emptydir (empty directory) \fIdefault\fP
+.IP
+\(bu emptydir (empty directory) \fIdefault\fP
 A directory allocated when the pod is created on a local host, is removed when
 the pod is deleted and is not copied across servers
-\item hostdir (host directory)
+.IP
+\(bu hostdir (host directory)
 A directory with specific path on any host (requires elevated privileges)
-\item persistentvolumeclaim or pvc (persistent volume claim)
+.IP
+\(bu persistentvolumeclaim or pvc (persistent volume claim)
 Link the volume directory in the container to a persistent volume claim you have
 allocated by name \- a persistent volume claim is a request to allocate storage.
 Note that if your claim hasn't been bound, your pods will not start.
-\item secret (mounted secret)
+.IP
+\(bu secret (mounted secret)
 Secret volumes mount a named secret to the provided directory.
 .PP
 For descriptions on other volume types, see 

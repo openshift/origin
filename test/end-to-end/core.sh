@@ -13,8 +13,6 @@ os::log::stacktrace::install
 os::util::environment::setup_time_vars
 trap os::test::junit::reconcile_output EXIT
 
-TEST_ASSETS="${TEST_ASSETS:-false}"
-
 export VERBOSE=true
 
 function wait_for_app() {
@@ -25,7 +23,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for database service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'database' "$(( 2 * TIME_MIN ))"
-  DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+  DB_IP=$(oc get -n "$1" --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
   os::cmd::try_until_text "oc get -n $1 pods" 'frontend.+Running' "$(( 2 * TIME_MIN ))"
@@ -33,7 +31,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for frontend service to start"
   os::cmd::try_until_text "oc get -n $1 services" 'frontend' "$(( 2 * TIME_MIN ))"
-  FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+  FRONTEND_IP=$(oc get -n "$1" --template="{{ .spec.portalIP }}" service frontend)
 
   echo "[INFO] Waiting for database to start..."
   wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -42,22 +40,14 @@ function wait_for_app() {
   wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
   echo "[INFO] Testing app"
-  set -x
-  set +u
-  OLD=$OS_USE_STACK_TRACE
-  OS_USE_STACK_TRACE=""
-  wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
-  wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
-  OS_USE_STACK_TRACE=$OLD
-  set -u
-  set +x
-
+  os::cmd::try_until_text "curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337" "Key created"
+  os::cmd::try_until_text "curl -s http://${FRONTEND_IP}:5432/keys/foo" "1337"
 }
 
 os::test::junit::declare_suite_start "end-to-end/core"
 # service dns entry is visible via master service
 # find the IP of the master service by asking the API_HOST to verify DNS is running there
-MASTER_SERVICE_IP="$(dig @${API_HOST} "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
+MASTER_SERVICE_IP="$(dig "@${API_HOST}" "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
 # find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service
 os::cmd::expect_success_and_text "dig +tcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
 os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
@@ -100,10 +90,9 @@ os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "500
 os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --template="{{ .spec.portalIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
-registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
-[[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]
+os::cmd::expect_success_and_text "dig @${API_HOST} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 wait_for_url_timed "http://${DOCKER_REGISTRY}/" "[INFO] Docker registry says: " $((2*TIME_MIN))
@@ -143,6 +132,51 @@ os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 echo "[INFO] Docker start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
 
+# verify we can pull from tagged image (using tag)
+imageid=$(docker images | grep centos/ruby-22-centos7 | awk '{ print $3 }')
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7:latest to the same image stream and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7:latest ruby-22-centos7:new-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-tag"
+echo "[INFO] The same image stream pull successful"
+
+imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7:latest to cross repository and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7:latest cross:repo-pull"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
+echo "[INFO] Cross repository pull successful"
+
+imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7:latest to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/ruby-22-centos7:latest cross:namespace-pull -n custom"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+echo "[INFO] Cross namespace pull successful"
+
+# verify we can pull from tagged image (using imageid)
+imageid=$(docker images | grep custom/cross | awk '{ print $3 }')
+os::cmd::expect_success "docker rmi -f ${imageid}"
+tagid=$(oc get istag ruby-22-centos7:latest --template={{.image.metadata.name}})
+echo "[INFO] Tagging ruby-22-centos7@${tagid} to the same image stream and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} ruby-22-centos7:new-id-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-id-tag"
+echo "[INFO] The same image stream pull successful"
+
+imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross repository and pulling it"
+os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} cross:repo-pull-id"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
+echo "[INFO] Cross repository pull successful"
+
+imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
+os::cmd::expect_success "docker rmi -f ${imageid}"
+echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/ruby-22-centos7@${tagid} cross:namespace-pull-id -n custom"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+echo "[INFO] Cross namespace pull successful"
+
 # check to make sure an image-pusher can push an image
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher'
 os::cmd::expect_success 'oc login -u pusher -p pass'
@@ -181,15 +215,14 @@ os::cmd::expect_success 'oc whoami'
 
 echo "[INFO] Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
-oc run cli-with-token --attach --image=openshift/origin:${TAG} --restart=Never -- cli status --loglevel=4 > ${LOG_DIR}/cli-with-token.log 2>&1
+oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
 os::cmd::expect_success 'oc delete pod cli-with-token'
-oc run cli-with-token-2 --attach --image=openshift/origin:${TAG} --restart=Never -- cli whoami --loglevel=4 > ${LOG_DIR}/cli-with-token2.log 2>&1
+oc run cli-with-token-2 --attach --image="openshift/origin:${TAG}" --restart=Never -- cli whoami --loglevel=4 > "${LOG_DIR}/cli-with-token2.log" 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
 os::cmd::expect_success 'oc delete pod cli-with-token-2'
-oc run kubectl-with-token --attach --image=openshift/origin:${TAG} --restart=Never --command -- kubectl get pods --loglevel=4 > ${LOG_DIR}/kubectl-with-token.log 2>&1
-cat ${LOG_DIR}/kubectl-with-token.log
+oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=Never --command -- kubectl get pods --loglevel=4 > "${LOG_DIR}/kubectl-with-token.log" 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
 
@@ -200,23 +233,23 @@ os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre 
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-mid  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 # test the pre hook on a rolling deployment
-oc create -f test/testdata/failing-dc.yaml
-tryuntil oc get rc/failing-dc-1
-oc logs -f dc/failing-dc
-wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
+os::cmd::expect_success 'oc create -f test/testdata/failing-dc.yaml'
+os::cmd::try_until_success 'oc get rc/failing-dc-1'
+os::cmd::expect_success 'oc logs -f dc/failing-dc'
+os::cmd::try_until_text "oc get rc/failing-dc-1 --template={{.metadata.annotations}}" 'openshift.io/deployment.phase:Failed'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
-oc deploy failing-dc --latest
+os::cmd::expect_success 'oc deploy failing-dc --latest'
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc' 'test pre hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc'  'test pre hook executed'
 # Make sure --since-time adds the right query param, and actually returns logs
 os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:34:56Z --loglevel=6 dc/failing-dc 2>&1' 'sinceTime=2000\-01\-01T12%3A34%3A56Z'
 os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:34:56Z --loglevel=6 dc/failing-dc 2>&1' 'test pre hook executed'
-oc delete dc/failing-dc
+os::cmd::expect_success 'oc delete dc/failing-dc'
 # test the mid hook on a recreate deployment and the health check
-oc create -f test/testdata/failing-dc-mid.yaml
-tryuntil oc get rc/failing-dc-mid-1
-oc logs -f dc/failing-dc-mid
-wait_for_command "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((60*TIME_SEC))
+os::cmd::expect_success 'oc create -f test/testdata/failing-dc-mid.yaml'
+os::cmd::try_until_success 'oc get rc/failing-dc-mid-1'
+os::cmd::expect_success 'oc logs -f dc/failing-dc-mid'
+os::cmd::try_until_text "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}}" 'openshift.io/deployment.phase:Failed'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc-mid' 'test mid hook executed'
 # The following command is the equivalent of 'oc deploy --latest' on old clients
 # Ensures we won't break those while removing the dc status update from oc
@@ -236,7 +269,7 @@ echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #oc start-build -n test ruby-sample-build --follow
 os::build:wait_for_start "test"
 # Ensure that the build pod doesn't allow exec
-[ "$(oc rsh ${BUILD_ID}-build 2>&1 | grep 'forbidden')" ]
+os::cmd::expect_failure_and_text "oc rsh ${BUILD_ID}-build" 'forbidden'
 os::build:wait_for_end "test"
 wait_for_app "test"
 
@@ -262,7 +295,7 @@ os::cmd::try_until_text 'oc get rc/test-deployment-config-1 -o yaml' 'Complete'
 os::cmd::expect_success 'oc scale dc/test-deployment-config --replicas=3 --timeout=1m'
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 # expect the post deployment action to set a tag
-oc get istag/origin-ruby-sample:deployed
+os::cmd::expect_success 'oc get istag/origin-ruby-sample:deployed'
 echo "scale: ok"
 
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
@@ -309,7 +342,7 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-os::cmd::try_until_text "oc get endpoints router --output-version=v1beta3 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
+os::cmd::try_until_text "oc get endpoints router --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
 echo "[INFO] Waiting for router to start..."
 router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"
@@ -331,19 +364,18 @@ router_ip=$(oc get pod "${router_pod}" --template='{{.status.podIP}}')
 CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-${router_ip}}"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 # Validate that oc create route edge will create an edge terminated route.
-oc delete route/route-edge -n test
-oc create route edge --service=frontend --cert=${MASTER_CONFIG_DIR}/ca.crt \
-                        --key=${MASTER_CONFIG_DIR}/ca.key \
-                        --ca-cert=${MASTER_CONFIG_DIR}/ca.crt \
-                        --hostname=www.example.com -n test
+os::cmd::expect_success 'oc delete route/route-edge -n test'
+os::cmd::expect_success "oc create route edge --service=frontend --cert=${MASTER_CONFIG_DIR}/ca.crt \
+                                              --key=${MASTER_CONFIG_DIR}/ca.key                     \
+                                              --ca-cert=${MASTER_CONFIG_DIR}/ca.crt                 \
+                                              --hostname=www.example.com -n test"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Pod node selection
 echo "[INFO] Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
 os::cmd::expect_success "openshift admin new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
-NODE_NAME=`oc get node --no-headers | awk '{print $1}'`
-os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='${NODE_NAME}' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
+os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='$(oc get node -o jsonpath='{.items[0].metadata.name}')' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
 # The pod without a node name should fail to schedule
 os::cmd::try_until_text 'oc get events -n node-selector' 'pod-without-node-name.+FailedScheduling' $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet
@@ -391,24 +423,3 @@ os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-i
 
 os::test::junit::declare_suite_end
 unset VERBOSE
-
-# UI e2e tests can be found in assets/test/e2e
-if [[ "$TEST_ASSETS" == "true" ]]; then
-
-  if [[ "$TEST_ASSETS_HEADLESS" == "true" ]]; then
-    echo "[INFO] Starting virtual framebuffer for headless tests..."
-    export DISPLAY=:10
-    Xvfb :10 -screen 0 1024x768x24 -ac &
-  fi
-
-  echo "[INFO] Running UI e2e tests at time..."
-  echo `date`
-  pushd ${OS_ROOT}/assets > /dev/null
-    grunt test-integration
-  tput sgr0
-  echo "UI  e2e done at time "
-  echo `date`
-
-  popd > /dev/null
-
-fi
