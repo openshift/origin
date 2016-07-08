@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"reflect"
+	"sync"
 	"testing"
 )
 
@@ -123,9 +124,32 @@ func TestErrorOnCopy(t *testing.T) {
 	}
 }
 
+type syncedReport struct {
+	r report
+	m *sync.Mutex
+}
+
+func newSyncedReport() *syncedReport {
+	return &syncedReport{
+		m: &sync.Mutex{},
+	}
+}
+
+func (s *syncedReport) set(r report) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.r = r
+}
+
+func (s *syncedReport) get() report {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.r
+}
+
 func TestStableLayerCount(t *testing.T) {
-	var result report
-	w := newWriter(func(r report) { result = r }, func(a, b report) bool { return true })
+	result := newSyncedReport()
+	w := newWriter(func(r report) { result.set(r) }, func(a, b report) bool { return true })
 	w.(*imageProgressWriter).stableThreshhold = 3 // This means that the number of layers must be stable for at least 3 lines
 	p := newProgressGenerator(w)
 
@@ -133,7 +157,7 @@ func TestStableLayerCount(t *testing.T) {
 	p.status("1", "one")
 	p.status("2", "two")
 	p.status("3", "three")
-	if result != nil {
+	if result.get() != nil {
 		t.Errorf("do not expect any reports at this point")
 		return
 	}
@@ -146,7 +170,7 @@ func TestStableLayerCount(t *testing.T) {
 	expected := report{
 		statusPending: &layerDetail{Count: 3},
 	}
-	if !compareReport(result, expected) {
+	if !compareReport(result.get(), expected) {
 		t.Errorf("did not get expected report")
 	}
 }
