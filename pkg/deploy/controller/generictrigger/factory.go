@@ -23,6 +23,9 @@ const (
 	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
 	StoreSyncedPollPeriod = 100 * time.Millisecond
+	// MaxRetries is the number of times a deployment config will be retried before it is dropped
+	// out of the queue.
+	MaxRetries = 5
 )
 
 // NewDeploymentTriggerController returns a new DeploymentTriggerController.
@@ -160,15 +163,9 @@ func (c *DeploymentTriggerController) work() bool {
 		return false
 	}
 
-	if err := c.Handle(dc); err != nil {
-		utilruntime.HandleError(err)
+	err = c.Handle(dc)
+	c.handleErr(err, key)
 
-		if c.queue.NumRequeues(key) < 2 {
-			c.queue.AddRateLimited(key)
-			return false
-		}
-	}
-	c.queue.Forget(key)
 	return false
 }
 

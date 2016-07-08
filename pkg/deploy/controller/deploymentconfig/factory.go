@@ -25,6 +25,9 @@ const (
 	// controller stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
 	StoreSyncedPollPeriod = 100 * time.Millisecond
+	// MaxRetries is the number of times a deployment config will be retried before it is dropped out
+	// of the queue.
+	MaxRetries = 5
 )
 
 // NewDeploymentConfigController creates a new DeploymentConfigController.
