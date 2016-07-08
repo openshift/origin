@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 52723dccf6f0ed174ec9ee98ddcdaec5bad52d72
+%global commit c16fed6083c908ddf9028e177725bd0c4420511d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.1-81-g52723dc -X github.com/openshift/origin/pkg/version.commitFromGit=52723dc -X k8s.io/kubernetes/pkg/version.gitCommit=52723dc -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.2-688-gc16fed6 -X github.com/openshift/origin/pkg/version.commitFromGit=c16fed6 -X k8s.io/kubernetes/pkg/version.gitCommit=c16fed6 -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.2
+Version:        3.3.0.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,549 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Jul 08 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.3
+- Bump origin-web-console (e29729b) (jforrest@redhat.com)
+- Ensure binary is built before completions are updated (jvallejo@redhat.com)
+- Added tagged pull e2e tests (maszulik@redhat.com)
+- Ensure client can delete a buildconfig with no associated builds, even if
+  user lacks build strategy permission (jupierce@redhat.com)
+- Fixes oc convert examples (ffranz@redhat.com)
+- Remove v1beta3 from end-to-end tests (maszulik@redhat.com)
+- cache: return api errors on not found imagestreams/deploymentconfigs
+  (mkargaki@redhat.com)
+- add clusterquota reconciliation controller (deads@redhat.com)
+- Bump origin-web-console (ccd995f) (jforrest@redhat.com)
+- Remove global flags from 'openshift start kubernetes *' (ffranz@redhat.com)
+- allow roundrobin algorithm as a choice in passthrough/reencrypt
+  (rchopra@redhat.com)
+- Fixes oc convert examples (ffranz@redhat.com)
+- Add krb5-devel to build environments (jliggitt@redhat.com)
+-  Backporting dist-git Dockerfile to Dockerfile.product (tdawson@redhat.com)
+- Issue 9702 - consider schema v2 layers when pruning (maszulik@redhat.com)
+- UPSTREAM: 28353: refactor quota calculation for re-use (deads@redhat.com)
+- extended: refactor deployment test to be more debuggable
+  (mkargaki@redhat.com)
+- track updated manpages (jvallejo@redhat.com)
+- update manpage list parsing (jvallejo@redhat.com)
+- Cleaned up test/end-to-end/core script (skuznets@redhat.com)
+- Add debug logging to ldap search bind errors (jliggitt@redhat.com)
+- align s2i and docker push image error messages (bparees@redhat.com)
+- Removed environment variable substitution step from stacktrace
+  (skuznets@redhat.com)
+- Make former openshift-sdn code pass govet (danw@redhat.com)
+- Update for import/reorg of openshift-sdn code (danw@redhat.com)
+- Drop imported openshift-sdn code (danw@redhat.com)
+- handle multiple names for docker registry (deads@redhat.com)
+- UPSTREAM: 28379: allow handler to join after the informer has started
+  (deads@redhat.com)
+- Generated changes for oadm prune images --prune-over-size-limit
+  (maszulik@redhat.com)
+- Add --prune-over-size-limit flag for pruning images (maszulik@redhat.com)
+- Move files to the right places for the origin tree (danw@redhat.com)
+- Drop pkg/exec, port pkg/ipcmd and pkg/ovs to kexec (danw@redhat.com)
+- Refactor pruning images to follow one common flow with other pruners
+  (maszulik@redhat.com)
+- Refactor pruning deployment to follow one common flow with other pruners
+  (maszulik@redhat.com)
+- Refactor pruning builds to follow one common flow with other pruners
+  (maszulik@redhat.com)
+- haproxy-router delete service endpoint problem (pcameron@redhat.com)
+- Remove build files, Godeps, docs, etc (danw@redhat.com)
+- Oops, branch got broken by a last-minute change (danw@redhat.com)
+- Unexport names that don't need to be exported. (danw@redhat.com)
+- Reorganize and split out node API (danw@redhat.com)
+- Simplify and split out master API (danw@redhat.com)
+- Split OsdnController into OsdnMaster and OsdnNode (danw@redhat.com)
+- Add vnidMap type (danw@redhat.com)
+- Merge ovsPlugin into OsdnController (danw@redhat.com)
+- Merge plugins/osdn/factory into plugins/odsn (danw@redhat.com)
+- Merge plugins/osdn/ovs into plugins/osdn (danw@redhat.com)
+- Updated `os::cmd' internals to reflect new script location
+  (skuznets@redhat.com)
+- Migrated `os::text' utilities into `hack/lib/util' (skuznets@redhat.com)
+- Migrated `os::cmd' utilities into `hack/lib' (skuznets@redhat.com)
+- Adjust types for rebase, add stub Status method (jliggitt@redhat.com)
+- we are already production ready (akostadi@redhat.com)
+- Use osapi.ClusterNetworkDefault instead of hard coding to 'default'
+  (rpenta@redhat.com)
+- Added IsOpenShiftNetworkPlugin and IsOpenShiftMultitenantNetworkPlugin
+  methods (rpenta@redhat.com)
+- Log created/updated ClusterNetwork resource (rpenta@redhat.com)
+- Persist network plugin name as part of cluster network creation
+  (rpenta@redhat.com)
+- Simplify caching and fetching network information (rpenta@redhat.com)
+- debug.sh: Fix fetching config file for service (rpenta@redhat.com)
+- Force a rebuild after ./hack/sync-to-origin.sh (danw@redhat.com)
+- Fix naming typo in sync-to-origin.sh (danw@redhat.com)
+- debug: log master config and master api/controllers journal and service
+  (dcbw@redhat.com)
+- Enable SDN StartNode() to call node iptables setup (rpenta@redhat.com)
+- Periodically sync openshift node iptables rules (rpenta@redhat.com)
+- Fail more cleanly on script errors (danw@redhat.com)
+- Add logging for SDN watch events (rpenta@redhat.com)
+- Update subnet when host IP changes instead of delete-old + create-new subnet.
+  (rpenta@redhat.com)
+- Remove prompts from commented examples (rhcarvalho@gmail.com)
+- Add tc state to the debug tar (bbennett@redhat.com)
+- Split plugin creation into NewMasterPlugin and NewNodePlugin
+  (dcbw@redhat.com)
+- Split proxy endpoint filtering out into separate object (dcbw@redhat.com)
+- Ignore malformed IP in Node object (danw@redhat.com)
+- SDN watch will try to fix transient errors (rpenta@redhat.com)
+- Return errors from plugin hooks (rpenta@redhat.com)
+- Run Watch resources forever! (rpenta@redhat.com)
+- Simplify Watch resource in SDN (rpenta@redhat.com)
+- Refer resource names by constants (rpenta@redhat.com)
+- Refer SDN plugin names and annotations by constants (rpenta@redhat.com)
+- Update for origin kubernetes rebase (dcbw@redhat.com)
+- Add more HostSubnet logging (dcbw@redhat.com)
+- Synchronize access to vnid map (rpenta@redhat.com)
+- Controlled access to vnid map (rpenta@redhat.com)
+- Delete NetID from VNID map before deleting NetNamespace object
+  (rpenta@redhat.com)
+- Fix updating VNID map (rpenta@redhat.com)
+- debug.sh: don't do DNS check if node "name" is an IP address
+  (danw@redhat.com)
+- debug.sh: fix incoming remote test packet traces (danw@redhat.com)
+- debug.sh: comment fix (danw@redhat.com)
+- debug.sh: check for systemd unit files in /etc too (danw@redhat.com)
+- Return better errors from SetUpPod/TearDownPod (danw@redhat.com)
+- Fix AddHostSubnetRules() and DeleteHostSubnetRules() (rpenta@redhat.com)
+- Removed the cookies from the remote node rules. (bbennett@redhat.com)
+- Add a mutex to registry.podsByIP (danw@redhat.com)
+- Prepopulate pod info map so that proxy can filter endpoints
+  (rpenta@redhat.com)
+- Remove unused GetServicesNetwork() and GetHostSubnetLength()
+  (rpenta@redhat.com)
+- Existing items in the event queue will be reported as Modified event, so
+  handle approriately during watching resources(services,namespaces,etc.)
+  (rpenta@redhat.com)
+- OsdnController.services is only needed in watch services, make it local
+  (rpenta@redhat.com)
+- Minor cleanup in watchServices() (rpenta@redhat.com)
+- Prepopulate VNIDMap for VnidStartMaster/VnidStartNode methods
+  (rpenta@redhat.com)
+- Do not need to pre-populate nodeAddressMap in WatchNodes (rpenta@redhat.com)
+- Don't return resource version for methods GetSubnets, GetNetNamespaces and
+  GetServices. No longer needed. (rpenta@redhat.com)
+- Remove unused stop channels in sdn (rpenta@redhat.com)
+- Remove Get and Watch resource behavior in sdn (rpenta@redhat.com)
+- Don't resync/repopulate the event queue for sdn events (rpenta@redhat.com)
+- Use NewListWatchFromClient() instead of ListFunc/WatchFunc
+  (rpenta@redhat.com)
+- Add more logging, to help debug problems (danw@redhat.com)
+- Fixes the ip address to namespace cache when pods reuse addresses
+  (bbennett@redhat.com)
+- Changed the debug script to capture the arp cache (bbennett@redhat.com)
+- Added 'docker ps -a' to the node debug items (bbennett@redhat.com)
+- Do not throw spurious error msgs in watch network namespaces
+  (rpenta@redhat.com)
+- Fix watch services for multitenant plugin (rpenta@redhat.com)
+- Fix broken VnidStartMaster() (rpenta@redhat.com)
+- Fix watch services for multitenant plugin (rpenta@redhat.com)
+- Implement "pod.network.openshift.io/assign-macvlan" annotation
+  (danw@redhat.com)
+- Fix network pod teardown (rpenta@redhat.com)
+- Added endpoints to the list of things we add to the debug tar.
+  (bbennett@redhat.com)
+- Make plugin event-handling methods take objects rather than multiple args
+  (danw@redhat.com)
+- Move remaining internal-only types from osdn/api to osdn (danw@redhat.com)
+- Drop kubernetes/OpenShift wrapper types (danw@redhat.com)
+- Merge FlowController into PluginHooks (danw@redhat.com)
+- Rename OvsController to OsdnController (danw@redhat.com)
+- Fix qos check in del_ovs_flows() (rpenta@redhat.com)
+- Improved the debug script to grab the docker unit file. (bbennett@redhat.com)
+- Remove unused MTU stuff from bandwidth code (danw@redhat.com)
+- Implement better OVS flow rule versioning (dcbw@redhat.com)
+- Enforce ingress/egress bandwidth limits (dcbw@redhat.com)
+- Validate cluster/service network only when there is a config change
+  (rpenta@redhat.com)
+- Add pod annotations to osdn Pod API object (dcbw@redhat.com)
+- Ensure NodeIP doesn't overlap with the cluster network (dcbw@redhat.com)
+- Simplify passing ClusterNetwork through master start functions
+  (dcbw@redhat.com)
+- Consolidate cluster network validation (dcbw@redhat.com)
+- Cache ClusterNetwork details in the Registry (dcbw@redhat.com)
+- Fixes to danwinship/arp-fixes (danw@redhat.com)
+- Add explicit "actions=drop" OVS rules (danw@redhat.com)
+- Add some more OVS anti-spoofing checks (danw@redhat.com)
+- Redo OVS rules to avoid ARP caching problems (danw@redhat.com)
+- Re-fix reconnect-pods-on-restart code (danw@redhat.com)
+- Sync more rebase-related changes back from origin (danw@redhat.com)
+- Set the right MTU on tun0 too (dcbw@redhat.com)
+- debug.sh: fix typo that messed up our journal output (danw@redhat.com)
+- debug.sh: make this work even if renamed (danw@redhat.com)
+- Only UpdatePod on startup if the network actually changed (danw@redhat.com)
+- Call UpdatePod on all running pods at startup (danw@redhat.com)
+- Make "openshift-sdn-ovs update" fix up network connectivity (danw@redhat.com)
+- openshift-sdn-ovs: reorganize, deduplicate (danw@redhat.com)
+- openshift-sdn-ovs: remove unused Init and Status methods (danw@redhat.com)
+- Set MTU on vovsbr/vlinuxbr (danw@redhat.com)
+- Resync from origin for kubernetes rebase (danw@redhat.com)
+- If NodeIP and NodeName are unsuitable, fallback to default interface IP
+  address (dcbw@redhat.com)
+- Update to new ListOptions client APIs - missing piece of puzzle
+  (maszulik@redhat.com)
+- Update to new ListOptions client APIs (jliggitt@redhat.com)
+- Minor update to previous commit; use log.Fatalf() (danw@redhat.com)
+- Put the network-already-set-up check in the right place (danw@redhat.com)
+- Don't set registry.clusterNetwork/.serviceNetwork until needed
+  (danw@redhat.com)
+- Revert "Fail early on a node if we can't fetch the ClusterNetwork record"
+  (danw@redhat.com)
+- Fix alreadySetUp() check by using correct address string (dcbw@redhat.com)
+- Add setup debug log output (dcbw@redhat.com)
+- Fail early on a node if we can't fetch the ClusterNetwork record
+  (danw@redhat.com)
+- Revert "Don't crash on endpoints with invalid/empty IP addresses"
+  (danw@redhat.com)
+- Don't crash on endpoints with invalid/empty IP addresses (danw@redhat.com)
+- debug.sh: add "sysctl -a" output (danw@redhat.com)
+- debug.sh: don't try to run "oc" on the nodes (danw@redhat.com)
+- debug.sh: fix up master-as-node case (danw@redhat.com)
+- debug.sh: bail out correctly if "run_self_via_ssh --master" fails
+  (danw@redhat.com)
+- debug.sh: remove some unused code (danw@redhat.com)
+- debug.sh: belatedly update for merged OVS rules (danw@redhat.com)
+- debug.sh: belatedly update environment filtering for json->yaml change
+  (danw@redhat.com)
+- fix connectivity from docker containers (me@ibotty.net)
+- Add a missing 'ovs-ofctl del-flows' on pod teardown (danw@redhat.com)
+- Add a route to fix up service IP usage from the node. (danw@redhat.com)
+- Fix a bug with services in multitenant (danw@redhat.com)
+- Make pkg/ipcmd and pkg/ovs not panic if their binaries are missing
+  (danw@redhat.com)
+- Tweak SubnetAllocator behavior when hostBits%%8 != 0 (danw@redhat.com)
+- Add some caching to SubnetAllocator (danw@redhat.com)
+- Extend TestAllocateReleaseSubnet() to test subnet exhaustion
+  (danw@redhat.com)
+- Improve subnet_allocator_test debugging (danw@redhat.com)
+- trivial: rename SubnetAllocator.capacity to .hostBits (danw@redhat.com)
+- Minor: move 'ovsPluginName' to project_options.go, used by join-projects
+  /isolate-projects/make-projects-global        rename adminVNID to globalVNID
+  (rpenta@redhat.com)
+- Admin commands should not depend on OVS code (ccoleman@redhat.com)
+- Update kube and multitenant to use pkg/ovs and pkg/ipcmp (danw@redhat.com)
+- Move config.env handling to go and rename the file (danw@redhat.com)
+- Port setup_required check to go (danw@redhat.com)
+- Move docker network configuration into its own setup script (danw@redhat.com)
+- Move setup sysctl calls to controller.go (danw@redhat.com)
+- Remove locking from openshift-sdn-ovs-setup.sh (danw@redhat.com)
+- Add pkg/ipcmd, a wrapper for /sbin/ip (danw@redhat.com)
+- Add pkg/ovs, a wrapper for ovs-ofctl and ovs-vsctl (danw@redhat.com)
+- Bump node subnet wait to 30 seconds (from 10) (dcbw@redhat.com)
+- Add an os.exec wrapper that can be used for test programs (danw@redhat.com)
+- Don't redundantly validate the ClusterNetwork (danw@redhat.com)
+- Move FilteringEndpointsConfigHandler into openshift-sdn (dcbw@redhat.com)
+- Remove unused openshift-sdn-ovs script parameters (dcbw@redhat.com)
+- Consolidate pod setup/teardown and update operations (dcbw@redhat.com)
+- Log message when pod is waiting for sdn initialization (rpenta@redhat.com)
+- Move pod network readiness check to pod setup instead of network plugin init
+  (rpenta@redhat.com)
+- Filter VXLAN packets from outside the cluster (danw@redhat.com)
+- trivial: renumber ovs tables (danw@redhat.com)
+- Use the multitenant OVS flows even for the single tenant case
+  (danw@redhat.com)
+- Properly prioritize all multitenant openflow rules (danw@redhat.com)
+- Fix sdn GetHostIPNetworks() and GetNodeIP() (rpenta@redhat.com)
+- Make kubelet to block on network plugin initialization until OpenShift is
+  done with it's SDN setup. (rpenta@redhat.com)
+- Recognize go v1.5 in hack/verify-gofmt.sh (dcbw@redhat.com)
+- Merge flatsdn and multitenant plugins (danw@redhat.com)
+- Make openshift-ovs-subnet and openshift-ovs-multitenant identical
+  (danw@redhat.com)
+- Make openshift-sdn-kube-subnet-setup.sh and openshift-sdn-multitenant-
+  setup.sh identical (danw@redhat.com)
+- Move kube controller base OVS flow setup into setup.sh (danw@redhat.com)
+- osdn: Fix out of range panic (mkargaki@redhat.com)
+- Trivial build fix (dcbw@redhat.com)
+- Don't return an error if the plugin is unknown (dcbw@redhat.com)
+- Remove unused/stale files from sdn repo (rpenta@redhat.com)
+- Allowing running single tests via "WHAT=pkg/foo ./hack/test.sh"
+  (danw@redhat.com)
+- Shuffle things around in node start to fix a hang (danw@redhat.com)
+- Simplify Origin/openshift-sdn interfaces (dcbw@redhat.com)
+- Export oc.Registry for plugins (dcbw@redhat.com)
+- Consolidate plugins/osdn and pkg/ovssubnet (dcbw@redhat.com)
+- Split subnet-specific startup into separate file (dcbw@redhat.com)
+- Split multitenant-specific startup into separate file (dcbw@redhat.com)
+- Genericize watchAndGetResource() (dcbw@redhat.com)
+- Consolidate hostname lookup (dcbw@redhat.com)
+- Trivial multitenant cleanups (dcbw@redhat.com)
+- Drop the SubnetRegistry type (danw@redhat.com)
+- Move GetNodeIP() to netutils (danw@redhat.com)
+- Rename osdn.go to registry.go, OsdnRegistryInterface to Registry
+  (danw@redhat.com)
+- Remove unused lookup of VNID for TearDownPod (dcbw@redhat.com)
+- Fixed comment typo (bbennett@redhat.com)
+- Updated with the review comments:  - Fixed stupid errors  - Moved the ssh
+  options into the ssh function  - Changed the nsenter commands to make them
+  use -- before the subsidiary command  - Changed the output format to yaml
+  (bbennett@redhat.com)
+- Copy in kubernetes/pkg/util/errors for netutils tests (danw@redhat.com)
+- Detect host network conflict with sdn cluster/service network
+  (rpenta@redhat.com)
+- Made a few small changes:  - Got the 'oc routes' output  - Supressed the host
+  check in ssh  - Unified common code between host and node  - Cleaned up the
+  formatting to make the commands being run a little more obvious
+  (bbennett@redhat.com)
+- Tolerate missing routes for lbr0 too (sdodson@redhat.com)
+- Isolate restarting docker (sdodson@redhat.com)
+- Fix for go-fmt (danw@redhat.com)
+- Don't loop forever if subnet not found for the node (rpenta@redhat.com)
+- Track Service modifications and update OVS rules (danw@redhat.com)
+- Change representation of multi-port services (danw@redhat.com)
+- Fix a few log.Error()s that should have been log.Errorf() (danw@redhat.com)
+- debug.sh: skip ready=false pods, which won't have podIP set (danw@redhat.com)
+- debug.sh: protect a bit against unexpected command output (danw@redhat.com)
+- debug.sh: fix a hack (danw@redhat.com)
+- Rename pod-network subcommand unisolate-projects to make-projects-global
+  (rpenta@redhat.com)
+- Allow traffic from VNID 0 pods to all services (danw@redhat.com)
+- Tolerate error for tun0 redundant route but not for lbr0 route
+  (rpenta@redhat.com)
+- Remove support for supervisord-managed docker (marun@redhat.com)
+- debug.sh: comment and error message fixes (danw@redhat.com)
+- debug.sh: filter out some potentially-sensitive data (danw@redhat.com)
+- debug.sh: ignore --net=host containers (danw@redhat.com)
+- debug.sh: try to find node config file from 'ps' output (danw@redhat.com)
+- debug.sh: include resolv.conf in output (danw@redhat.com)
+- debug.sh: explicitly run remote script via bash (danw@redhat.com)
+- Validate SDN cluster/service network (rpenta@redhat.com)
+- Fix GetClusterNetworkCIDR() (rpenta@redhat.com)
+- Minor nit: change valid service IP check to use kapi.IsServiceIPSet
+  (rpenta@redhat.com)
+- Remove redundant tun0 route (rpenta@redhat.com)
+- Fix multitenant flow cleanup again (danw@redhat.com)
+- Fix cleanup of service OpenFlow rules (danw@redhat.com)
+- Unconditionally use kubernetes iptables pkg to add iptables rules
+  (danw@redhat.com)
+- Backport changes from origin for kubernetes rebase (danw@redhat.com)
+- Clean up stale OVS flows correctly / don't error out of TearDown early
+  (danw@redhat.com)
+- Fix non-multitenant pod routing (danw@redhat.com)
+- Misc debug.sh fixes (danw@redhat.com)
+- Detect SDN setup requirement when user switches between flat and multitenant
+  plugins (rpenta@redhat.com)
+- Minor: pod-network CLI examples to use # for comments (rpenta@redhat.com)
+- Track PodIP->Namespace mappings, implement endpoint filtering
+  (danw@redhat.com)
+- Make plugins take osdn.OsdnRegistryInterface rather than creating it
+  themselves (danw@redhat.com)
+- Admin command to manage project network (rpenta@redhat.com)
+- Fix SDN GetServices() (rpenta@redhat.com)
+- Fix SDN status hook (rpenta@redhat.com)
+- Use kubernetes/pkg/util/iptables for iptables manipulation (danw@redhat.com)
+- Move firewall/iptables setup to common.go (danw@redhat.com)
+- Updated debug.sh to handle origin vs OSE vs atomic naming conventions
+  (danw@redhat.com)
+- Change deprecated "oc get -t" to "oc get --template" in debug.sh
+  (danw@redhat.com)
+- Indicate if debug.sh fails because KUBECONFIG isn't set. (danw@redhat.com)
+- Simplify service tracking by using kapi.NamespaceAll (danw@redhat.com)
+- let Status call not do docker inspect, as an empty output defaults to that
+  only within kubelet (rajatchopra@gmail.com)
+- Replace hostname -f with unmae -n (nakayamakenjiro@gmail.com)
+- Remove unused import/method (rpenta@redhat.com)
+- plugins: Update Kube client imports (mkargaki@redhat.com)
+- More code cleanup (no new changes) (rpenta@redhat.com)
+- Fix gofmt in previous commit (rpenta@redhat.com)
+- Fix imports in openshift-sdn plugins (rpenta@redhat.com)
+- Sync openshift-sdn/plugins to origin/Godeps/.../openshift-sdn/plugins
+  (rpenta@redhat.com)
+- IP/network-related variable naming consistency/clarify (danw@redhat.com)
+- Fix up setup.sh args (danw@redhat.com)
+- Remove dead code from kube plugin (that was already removed from multitenant)
+  (danw@redhat.com)
+- Update setup_required to do the correct check for docker-in-docker
+  (danw@redhat.com)
+- Fix hack/test.sh (rpenta@redhat.com)
+- Remove hack/build.sh from travis.yml (rpenta@redhat.com)
+- Update README.md (rpenta@redhat.com)
+- sync-to-origin.sh - Program to sync openshift-sdn changes to origin
+  repository (rpenta@redhat.com)
+- Remove Makefile (rpenta@redhat.com)
+- Flat and Multitenant plugins for openshift sdn (rpenta@redhat.com)
+- Move ovssubnet to pkg dir (rpenta@redhat.com)
+- Remove standalone openshift-sdn binary (rpenta@redhat.com)
+- Remove etcd registry (rpenta@redhat.com)
+- cleanup lbr (rpenta@redhat.com)
+- debug.sh: improve progress output a bit (danw@redhat.com)
+- debug.sh: test services (danw@redhat.com)
+- debug.sh: test default namespace in connectivity check (danw@redhat.com)
+- Move vovsbr to br0 port 3 rather than 9 (danw@redhat.com)
+- debug.sh: add some missing quotes (danw@redhat.com)
+- Add a tool for gathering data to debug networking problems (danw@redhat.com)
+- Cleanup docker0 interface before restarting docker, since it won't do so
+  itself. (eric.mountain@amadeus.com)
+- Fix SDN race conditions during master/node setup (rpenta@redhat.com)
+- Use firewalld D-Bus API to configure firewall rules (danw@redhat.com)
+- Add godbus dep (danw@redhat.com)
+- Fix race condition in pkg/netutils/server/server_test.go (danw@redhat.com)
+- Fix error messages in server_test.go (danw@redhat.com)
+- Status hook for multitenant plugin (rpenta@redhat.com)
+- Remove some testing cruft from the multitenant plugin (danw@redhat.com)
+- Implement kubernetes status hook in kube plugin (danw@redhat.com)
+- Update README.md (ccoleman@redhat.com)
+- Make SDN MTU configurable (rpenta@redhat.com)
+- Expose method for getting node IP in osdn api (rpenta@redhat.com)
+- Revoke VNID for admin namespaces (rpenta@redhat.com)
+- For multitenant plugin, handle both existing and admin namespaces
+  (rpenta@redhat.com)
+- Add GOPATH setup to hack/test.sh (danw@redhat.com)
+- Improve error messages in pkg/netutils/server/server_test (danw@redhat.com)
+- Make Get/Watch interfaces for nodes/subnets/namespaces consistent
+  (rpenta@redhat.com)
+- Consistent error logging in standalone registry/IP allocator
+  (rpenta@redhat.com)
+- Multi-tenant service isolation (danw@redhat.com)
+- Get node IP from GetNodes() instead of net.Lookup() (rpenta@redhat.com)
+- Renamed some field names to remove confusion (rpenta@redhat.com)
+- VNID fixes (rpenta@redhat.com)
+- Revert "Merge pull request #115 from danwinship/service-isolation"
+  (danw@redhat.com)
+- Add support for dind in multitenant plugin (marun@redhat.com)
+- Fix veth host discovery for multitenant plugin (marun@redhat.com)
+- In openshift-sdn standalone mode, trigger node event when node ip changes
+  (rpenta@redhat.com)
+- Pass updated node IP in the NodeEvent to avoid cache/stale lookup by
+  net.LookupIP() (rpenta@redhat.com)
+- Replace 'minion' with 'node' or 'nodeIP' based on context (rpenta@redhat.com)
+- Update subnet openflow rules in case of host ip change (rpenta@redhat.com)
+- Add install-dev target to makefile. (marun@redhat.com)
+- Add support for docker-in-docker deployment (marun@redhat.com)
+- Enable IP forwarding during openshift sdn setup (rpenta@redhat.com)
+- Fix veth lookup for kernels with interface suffix (marun@redhat.com)
+- service isolation support (danw@redhat.com)
+- Add basic plugin migration script (dcbw@redhat.com)
+- Remove some dead code (dcbw@redhat.com)
+- Add some documentation about our isolation implementation (dcbw@redhat.com)
+- add a few more comments to the multitenant OVS setup (danw@redhat.com)
+- simplify the incoming-from-docker-bridge rule (danw@redhat.com)
+- drop an unnecessary multitenant ovs rule (danw@redhat.com)
+- fix a comment in openshift-sdn-multitenant-setup.sh (danw@redhat.com)
+- make cross node services work (make the gateway a special exit); add priority
+  to overlapping rules (rchopra@redhat.com)
+- Let docker-only container global traffic through the vSwitch to tun0
+  (dcbw@redhat.com)
+- Allow vnid=x to send to vnid=0 on the same host (dcbw@redhat.com)
+- distribute vnids from 10 (rchopra@redhat.com)
+- Initialise VnidMap (rchopra@redhat.com)
+- Don't install multitenant plugin for now (dcbw@redhat.com)
+- Fix shell syntax error in openshift-ovs-multitenant (dcbw@redhat.com)
+- Make the multitenant controller work (danw@redhat.com)
+- multitenancy: logic to create and manage netIds for new namespaces
+  (rchopra@redhat.com)
+- multitenant mode call from 'main'; its just a copy of the kube functionality
+  - no real multitenancy feature added (rchopra@redhat.com)
+- move api,types,bin files to respective controllers (rchopra@redhat.com)
+- fix error in bash script (rchopra@redhat.com)
+- ignore the SDN setup/teardown if the NetworkMode of the container is 'host'
+  (rchopra@redhat.com)
+- fix issue#88 - generate unique cookie based on vtep (rchopra@redhat.com)
+- install docker systemd conf file (rchopra@redhat.com)
+- sdn should not re-configure docker/ovs if it appears to be a harmless restart
+  (rchopra@redhat.com)
+- Make docker-network configuration only happen when sdn is running
+  (sdodson@redhat.com)
+- Signal when the SDN is ready (ccoleman@redhat.com)
+- Fix origin issue#2834; submit existing subnets as in-use (rchopra@redhat.com)
+- doc: fix spelling error in example (thaller@redhat.com)
+- kube-subnet-setup: fix setup iptables FORWARD rule (thaller@redhat.com)
+- add sysctl flag to kube-setup (rchopra@redhat.com)
+- Update the comments that go into /etc/sysconfig/docker-network
+  (sdodson@redhat.com)
+- lockwrap shell utils; add support for internet connectivity to containers
+  spun directly through docker (rchopra@redhat.com)
+- Forward packages to/from cluster_network (sdodson@redhat.com)
+- Update /etc/sysconfig/docker-network rather than /etc/sysconfig/docker
+  (sdodson@redhat.com)
+- disallow 127.0.0.1 as vtep resolution (rchopra@redhat.com)
+- state file no more with docker 1.6, use ethtool instead. Credit: Dan Winship
+  (rchopra@redhat.com)
+- fixed the default to kubernetes minion path (rchopra@redhat.com)
+- Install files under %%{_buildroot}, fixes rpm build (sdodson@redhat.com)
+- add option for etcd path to watched for minions (rajatchopra@gmail.com)
+- remove revision arg from api as it is an etcd abstraction
+  (rchopra@redhat.com)
+- first set of reorg for api-fication of openshift-sdn (rchopra@redhat.com)
+- fix bz1215107. Use the lbr gateway as the tun device address.
+  (rchopra@redhat.com)
+- kube plugin (rchopra@redhat.com)
+- Adds network diagram. (mrunalp@gmail.com)
+- Set DOCKER_NETWORK_OPTIONS via /etc/sysconfig/docker-network
+  (sdodson@redhat.com)
+- Add ip route description. (mrunal@me.com)
+- Add router instructions. (mrunal@me.com)
+- Add node instructions (mrunal@me.com)
+- Add introduction (mrunal@me.com)
+- Add README for native container networking. (mrunalp@gmail.com)
+- Add SyslogIdentifier=openshift-sdn-{master,node} respectively
+  (sdodson@redhat.com)
+- add error checking to netutils/server; move ipam interface up
+  (rchopra@redhat.com)
+- netutils server (rchopra@redhat.com)
+- Add service dependency triggering on enablement (sdodson@redhat.com)
+- Adds a test for IP release. (mrunalp@gmail.com)
+- Fix typo. (mrunalp@gmail.com)
+- Add tests for IP Allocator. (mrunalp@gmail.com)
+- Add IP Allocator. (mrunalp@gmail.com)
+- Make SDN service dependencies more strict (sdodson@redhat.com)
+- Document -container-network & -container-subnet-length in master sysconfig
+  (sdodson@redhat.com)
+- return if error is a stop by user event (rchopra@redhat.com)
+- error handling, cleanup, formatting and bugfix in generating default gateway
+  for a subnet (rchopra@redhat.com)
+- store network config in etcd (rchopra@redhat.com)
+- Makes subnets configurable. (mrunalp@gmail.com)
+- Improve output formatting (miciah.masters@gmail.com)
+- remove unnecessary for loop and handle client create error
+  (rchopra@redhat.com)
+- Add Restart=on-failure to unit files (miciah.masters@gmail.com)
+- Remove unncessary print (nakayamakenjiro@gmail.com)
+- Fixed error handling to catch error from newNetworkManager
+  (nakayamakenjiro@gmail.com)
+- WatchMinions: Correctly handle errors (miciah.masters@gmail.com)
+- Add travis build file. (mrunalp@gmail.com)
+- Add gofmt verifier script from Openshift. (mrunalp@gmail.com)
+- Add starter test script. (mrunalp@gmail.com)
+- Revert to hostname -f as go builtin doesn't return FQDN. (mrunalp@gmail.com)
+- Always treat -etcd-path as a directory (miciah.masters@gmail.com)
+- openshift-sdn-master does not require openvswitch or bridge-utils
+  (sdodson@redhat.com)
+- Update commit to a commit that exists upstream (sdodson@redhat.com)
+- Require systemd in subpackages, update setup for tarball format
+  (sdodson@redhat.com)
+- Remove DOCKER_OPTIONS references from master sysconfig (sdodson@redhat.com)
+- Push packaging work into the upstream repo (sdodson@redhat.com)
+- Fix comment. (mrunalp@gmail.com)
+- Rename refactor in the controller. (mrunalp@gmail.com)
+- Use library function to get hostname. (mrunalp@gmail.com)
+- Add a LICENSE file. (mrunalp@gmail.com)
+- Just use Error when no formatting is needed (rchopra@redhat.com)
+- fix issue#12. Give some slack for etcd to come alive. (rchopra@redhat.com)
+- fix iptables rules for traffic from docker (rchopra@redhat.com)
+- Fixed misspellings in output (jolamb@redhat.com)
+- Update README.md (rchopra@redhat.com)
+- Document DOCKER_OPTIONS variable (jolamb@redhat.com)
+- Add helpful comment at start of docker sysconfig (jolamb@redhat.com)
+- Use $DOCKER_OPTIONS env var for docker settings if present
+  (jolamb@redhat.com)
+- iptables modifications for vxlan (rchopra@redhat.com)
+- non-permanence for linux bridge, so that we do not need restart network
+  service (rchopra@redhat.com)
+- init minion registry for sync mode, updated README for sync mode
+  (rchopra@redhat.com)
+- Sync mode for running independently of PaaS to register nodes
+  (rchopra@redhat.com)
+- burnish that spot (rchopra@redhat.com)
+- README enhancements, specified requirements (rchopra@redhat.com)
+- GetMinions fix on key (rchopra@redhat.com)
+- gofmt fixes. (mrunalp@gmail.com)
+- Update README.md (rchopra@redhat.com)
+- initial commit (rchopra@redhat.com)
+
 * Tue Jul 05 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.2
 - clarify makefile (li.guangxu@zte.com.cn)
 - Remove deprecated man pages (ffranz@redhat.com)
