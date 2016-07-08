@@ -13,8 +13,9 @@ os::test::junit::declare_suite_start "cmd/quota"
 
 os::cmd::expect_success 'oc new-project foo --as=deads'
 os::cmd::expect_success 'oc label namespace/foo owner=deads'
-os::cmd::expect_success 'oc create clusterquota for-deads --project-selector=owner=deads --hard=pods=10'
+os::cmd::expect_success 'oc create clusterquota for-deads --project-selector=owner=deads --hard=secrets=10'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o name' "for-deads"
+os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads -n foo --as deads' "secrets.*9"
 os::cmd::expect_success 'oc delete project foo'
 
 echo "quota: ok"

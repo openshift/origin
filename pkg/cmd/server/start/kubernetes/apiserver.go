@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -43,7 +42,6 @@ func NewAPIServerCommand(name, fullName string, out io.Writer) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
-	flags.AddGoFlagSet(flag.CommandLine)
 	apiServerOptions.AddFlags(flags)
 
 	return cmd

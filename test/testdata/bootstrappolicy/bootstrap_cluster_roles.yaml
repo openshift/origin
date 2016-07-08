@@ -1430,6 +1430,13 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - limitranges
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - buildconfigs
     - builds
     verbs:

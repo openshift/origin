@@ -161,6 +161,10 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 		if commit {
 			p.Router.Commit()
 		}
+	case watch.Deleted:
+		glog.V(4).Infof("Deleting endpoints for %s", key)
+		p.Router.DeleteEndpoints(key)
+		p.Router.Commit()
 	}
 
 	return nil

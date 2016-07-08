@@ -95,6 +95,9 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 
 	if bindDN, bindPassword := a.options.ClientConfig.GetBindCredentials(); len(bindDN) > 0 {
 		if err := l.Bind(bindDN, bindPassword); err != nil {
+			// If the configured bindDN/bindPassword encounters errors, that blocks all logins
+			// Handle as a severe error in addition to returning an error to fail this particular login
+			utilruntime.HandleError(fmt.Errorf("error binding to %s for search phase: %v", bindDN, err))
 			return nil, false, err
 		}
 	}

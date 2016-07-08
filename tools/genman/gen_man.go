@@ -25,10 +25,10 @@ import (
 	"os"
 	"strings"
 
-	mangen "github.com/cpuguy83/go-md2man/md2man"
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/openshift"
+	mangen "github.com/openshift/origin/tools/genman/md2man"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/cmd/genutils"
@@ -84,6 +84,7 @@ func preamble(out *bytes.Buffer, cmdName, name, short, long string) {
 % June 2016
 # NAME
 `)
+
 	fmt.Fprintf(out, "%s \\- %s\n\n", name, short)
 	fmt.Fprintf(out, "# SYNOPSIS\n")
 	fmt.Fprintf(out, "**%s** [OPTIONS]\n\n", name)

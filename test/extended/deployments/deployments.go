@@ -33,20 +33,20 @@ var _ = g.Describe("deploymentconfigs", func() {
 	)
 
 	g.Describe("when run iteratively", func() {
-		g.It("should only deploy the last deployment [Conformance]", func() {
-			// print some debugging output if the deploymeent fails
-			defer func() {
-				if !g.CurrentGinkgoTestDescription().Failed {
-					return
-				}
-				if dc, rcs, pods, err := deploymentInfo(oc, "deployment-simple"); err == nil {
-					e2e.Logf("DC: %#v", dc)
-					e2e.Logf("  RCs: %#v", rcs)
-					p, _ := deploymentPods(pods)
-					e2e.Logf("  Deployers: %#v", p)
-				}
-			}()
+		g.AfterEach(func() {
+			if !g.CurrentGinkgoTestDescription().Failed {
+				return
+			}
 
+			if dc, rcs, pods, err := deploymentInfo(oc, "deployment-simple"); err == nil {
+				e2e.Logf("DC: %#v", dc)
+				e2e.Logf("  RCs: %#v", rcs)
+				p, _ := deploymentPods(pods)
+				e2e.Logf("  Deployers: %#v", p)
+			}
+		})
+
+		g.It("should only deploy the last deployment [Conformance]", func() {
 			_, err := oc.Run("create").Args("-f", simpleDeploymentFixture).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -132,24 +132,29 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 
 		g.It("should immediately start a new deployment [Conformance]", func() {
-			resource, name, err := createFixture(oc, generationFixture)
+			resource, name, err := createFixture(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			_, err = oc.Run("set", "env").Args(resource, "TRY=ONCE").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			condition := func() (bool, error) {
-				dc, rcs, pods, err := deploymentInfo(oc, name)
+			g.By(fmt.Sprintf("by checking that the deployment config has the correct version"))
+			err = wait.PollImmediate(500*time.Millisecond, 5*time.Second, func() (bool, error) {
+				dc, _, _, err := deploymentInfo(oc, name)
+				if err != nil {
+					return false, nil
+				}
+				return dc.Status.LatestVersion == 2, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("by checking that the second deployment exists"))
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				_, rcs, _, err := deploymentInfo(oc, name)
 				if err != nil {
 					return false, nil
 				}
 
-				// Check that the deployment config has latestVersion=2
-				g.By(fmt.Sprintf("by checking that the deployment config has the correct version"))
-				hasCorrectLatestVersion := dc.Status.LatestVersion == 2
-
-				// Check that the second deployment exists.
-				g.By(fmt.Sprintf("by checking that the second deployment exists"))
 				secondDeploymentExists := false
 				for _, rc := range rcs {
 					if rc.Name == deployutil.DeploymentNameForConfigVersion(name, 2) {
@@ -158,8 +163,17 @@ var _ = g.Describe("deploymentconfigs", func() {
 					}
 				}
 
-				// Check that the first deployer is deleted and the second deployer exists.
-				g.By(fmt.Sprintf("by checking that the first deployer was deleted and the second deployer exists"))
+				return secondDeploymentExists, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("by checking that the first deployer was deleted and the second deployer exists"))
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				_, _, pods, err := deploymentInfo(oc, name)
+				if err != nil {
+					return false, nil
+				}
+
 				deploymentNamesToDeployers, err := deploymentPods(pods)
 				if err != nil {
 					return false, nil
@@ -171,12 +185,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 				secondDeploymentName := deployutil.DeploymentNameForConfigVersion(name, 2)
 				secondDeployerExists := len(deploymentNamesToDeployers[secondDeploymentName]) == 1
 
-				return hasCorrectLatestVersion &&
-					secondDeploymentExists &&
-					firstDeployerRemoved && secondDeployerExists, nil
-			}
-
-			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition)
+				return firstDeployerRemoved && secondDeployerExists, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
