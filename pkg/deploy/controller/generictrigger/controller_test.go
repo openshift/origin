@@ -149,6 +149,19 @@ func TestHandle_changeWithTemplateDiff(t *testing.T) {
 		config := testapi.OkDeploymentConfig(1)
 		config.Namespace = kapi.NamespaceDefault
 		config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{testapi.OkConfigChangeTrigger()}
+
+		versioned, err := kapi.Scheme.ConvertToVersion(config, deployv1.SchemeGroupVersion)
+		if err != nil {
+			t.Errorf("unexpected conversion error: %v", err)
+			continue
+		}
+		defaulted, err := kapi.Scheme.ConvertToVersion(versioned, deployapi.SchemeGroupVersion)
+		if err != nil {
+			t.Errorf("unexpected conversion error: %v", err)
+			continue
+		}
+		config = defaulted.(*deployapi.DeploymentConfig)
+
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		var updated *deployapi.DeploymentConfig
 
