@@ -19,6 +19,7 @@ type SampleRepoConfig struct {
 	expectedString         string
 	appPath                string
 	dbDeploymentConfigName string
+	dbServiceName          string
 }
 
 // NewSampleRepoTest creates a function for a new ginkgo test case that will instantiate a template
@@ -62,14 +63,23 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 					g.By("expecting the db deployment to be complete")
 					err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), c.dbDeploymentConfigName, oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("expecting the db service is available")
+					serviceIP, err := oc.Run("get").Args("service", c.dbServiceName).Template("{{ .spec.clusterIP }}").Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(serviceIP).ShouldNot(o.Equal(""))
+
+					g.By("expecting a db endpoint is available")
+					err = oc.KubeFramework().WaitForAnEndpoint(c.dbServiceName)
+					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
-				g.By("expecting the service is available")
+				g.By("expecting the app service is available")
 				serviceIP, err := oc.Run("get").Args("service", c.serviceName).Template("{{ .spec.clusterIP }}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
-				g.By("expecting an endpoint is available")
+				g.By("expecting an app endpoint is available")
 				err = oc.KubeFramework().WaitForAnEndpoint(c.serviceName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -94,6 +104,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"Listing articles",
 			"/articles",
 			"postgresql",
+			"postgresql",
 		},
 	))
 
@@ -106,6 +117,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"django-psql-example",
 			"Page views: 1",
 			"",
+			"postgresql",
 			"postgresql",
 		},
 	))
@@ -120,6 +132,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"<span class=\"code\" id=\"count-value\">1</span>",
 			"",
 			"mongodb",
+			"mongodb",
 		},
 	))
 
@@ -133,6 +146,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"<span class=\"code\" id=\"count-value\">1</span>",
 			"",
 			"mysql",
+			"mysql",
 		},
 	))
 
@@ -145,6 +159,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"dancer-mysql-example",
 			"<span class=\"code\" id=\"count-value\">1</span>",
 			"",
+			"database",
 			"database",
 		},
 	))
@@ -160,6 +175,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"Welcome",
 			"",
 			"",
+			"",
 		},
 	))
 
@@ -171,6 +187,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"nodejs-example",
 			"nodejs-example",
 			"Welcome",
+			"",
 			"",
 			"",
 		},
@@ -186,6 +203,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"Welcome",
 			"",
 			"",
+			"",
 		},
 	))
 
@@ -197,6 +215,7 @@ var _ = g.Describe("[images][Slow] openshift sample application repositories", f
 			"dancer-example",
 			"dancer-example",
 			"Welcome",
+			"",
 			"",
 			"",
 		},
