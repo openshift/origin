@@ -476,7 +476,7 @@ func NewPodWatch(client kclient.PodsNamespacer, namespace, name, resourceVersion
 	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).RunUntil(stopChannel)
 
 	return func() *kapi.Pod {
-		obj := cache.Pop(queue)
+		obj := queue.Pop()
 		return obj.(*kapi.Pod)
 	}
 }

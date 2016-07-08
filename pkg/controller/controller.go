@@ -41,21 +41,6 @@ type Queue interface {
 	Pop() interface{}
 }
 
-func NewQueueWrapper(queue kcache.Queue) ReQueue {
-	return queueWrapper{queue: queue}
-}
-
-type queueWrapper struct {
-	queue kcache.Queue
-}
-
-func (q queueWrapper) Pop() interface{} {
-	return kcache.Pop(q.queue)
-}
-func (q queueWrapper) AddIfNotPresent(item interface{}) error {
-	return q.queue.AddIfNotPresent(item)
-}
-
 // Run begins processing resources from Queue asynchronously.
 func (c *RetryController) Run() {
 	go utilwait.Forever(func() { c.handleOne(c.Queue.Pop()) }, 0)

@@ -42,9 +42,9 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 	}
 
 	return &controller.RetryController{
-		Queue: controller.NewQueueWrapper(queue),
+		Queue: queue,
 		RetryManager: controller.NewQueueRetryManager(
-			controller.NewQueueWrapper(queue),
+			queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				utilruntime.HandleError(err)
