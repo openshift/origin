@@ -84,7 +84,13 @@
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "ruby:2.2"
-            }
+            },
+            "env": [
+              {
+                  "name": "RUBYGEM_MIRROR",
+                  "value": "${RUBYGEM_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -394,24 +400,28 @@
     {
       "name": "NAMESPACE",
       "displayName": "Namespace",
+      "required": true,
       "description": "The OpenShift Namespace where the ImageStream resides.",
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
+      "required": true,
       "description": "Maximum amount of memory the Rails container can use.",
       "value": "512Mi"
     },
     {
       "name": "MEMORY_POSTGRESQL_LIMIT",
       "displayName": "Memory Limit (PostgreSQL)",
+      "required": true,
       "description": "Maximum amount of memory the PostgreSQL container can use.",
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
+      "required": true,
       "description": "The URL of the repository with your application source code.",
       "value": "https://github.com/openshift/rails-ex.git"
     },
@@ -448,23 +458,27 @@
     {
       "name": "APPLICATION_USER",
       "displayName": "Application Username",
+      "required": true,
       "description": "The application user that is used within the sample application to authorize access on pages.",
       "value": "openshift"
     },
     {
       "name": "APPLICATION_PASSWORD",
       "displayName": "Application Password",
+      "required": true,
       "description": "The application password that is used within the sample application to authorize access on pages.",
       "value": "secret"
     },
     {
       "name": "RAILS_ENV",
       "displayName": "Rails Environment",
+      "required": true,
       "description": "Environment under which the sample application will run. Could be set to production, development or test.",
       "value": "production"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
+      "required": true,
       "displayName": "Database Service Name",
       "value": "postgresql"
     },
@@ -482,6 +496,7 @@
     },
     {
       "name": "DATABASE_NAME",
+      "required": true,
       "displayName": "Database Name",
       "value": "root"
     },
@@ -494,6 +509,12 @@
       "name": "POSTGRESQL_SHARED_BUFFERS",
       "displayName": "Shared Buffer Amount",
       "value": "12MB"
+    },
+    {
+      "name": "RUBYGEM_MIRROR",
+      "displayName": "Custom RubyGems Mirror URL",
+      "description": "The custom RubyGems mirror URL",
+      "value": ""
     }
   ]
 }
