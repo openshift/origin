@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -268,26 +269,39 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	if c.TLS {
+		extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
+		if err != nil {
+			glog.Fatal(err)
+		}
+		server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
+			// Populate PeerCertificates in requests, but don't reject connections without certificates
+			// This allows certificates to be validated by authenticators, while still allowing other auth types
+			ClientAuth: tls.RequestClientCert,
+			ClientCAs:  c.ClientCAs,
+			// Set SNI certificate func
+			GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+		})
+		if err := cmdutil.AddCertKeyToTLSConfig(server.TLSConfig, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile); err != nil {
+			glog.Fatal(err)
+		}
+	}
+
+	var loopback []string
+	if loopbackURL, err := url.Parse(c.PrivilegedLoopbackClientConfig.Host); err == nil {
+		loopback = append(loopback, loopbackURL.Host)
+	} else {
+		loopback = append(loopback, c.PrivilegedLoopbackClientConfig.Host)
+	}
+
 	go utilwait.Forever(func() {
 		for _, s := range extra {
 			glog.Infof(s, c.Options.ServingInfo.BindAddress)
 		}
 		if c.TLS {
-			extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
-			if err != nil {
-				glog.Fatal(err)
-			}
-			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  c.ClientCAs,
-				// Set SNI certificate func
-				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			})
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
+			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, loopback...))
 		} else {
-			glog.Fatal(server.ListenAndServe())
+			glog.Fatal(cmdutil.ListenAndServe(server, c.Options.ServingInfo.BindNetwork, loopback...))
 		}
 	}, 0)
 }

@@ -236,9 +236,11 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 	haveWAL := wal.Exist(cfg.WALDir())
 	ss := snap.New(cfg.SnapDir())
 
-	prt, err := rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.peerDialTimeout())
-	if err != nil {
-		return nil, err
+	prt := cfg.PeerTransport
+	if prt == nil {
+		if prt, err = rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.PeerDialTimeout()); err != nil {
+			return nil, err
+		}
 	}
 	var remotes []*membership.Member
 	switch {
@@ -386,7 +388,7 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 	// TODO: move transport initialization near the definition of remote
 	tr := &rafthttp.Transport{
 		TLSInfo:     cfg.PeerTLSInfo,
-		DialTimeout: cfg.peerDialTimeout(),
+		DialTimeout: cfg.PeerDialTimeout(),
 		ID:          id,
 		URLs:        cfg.PeerURLs,
 		ClusterID:   cl.ID(),

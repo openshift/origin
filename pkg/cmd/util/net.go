@@ -9,9 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/util/loopback"
 )
 
 // TryListen tries to open a connection on the given port and returns true if it succeeded.
@@ -45,7 +47,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 
 // ListenAndServe starts a server that listens on the provided TCP mode (as supported
 // by net.Listen)
-func ListenAndServe(srv *http.Server, network string) error {
+func ListenAndServe(srv *http.Server, network string, addrs ...string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":http"
@@ -54,37 +56,48 @@ func ListenAndServe(srv *http.Server, network string) error {
 	if err != nil {
 		return err
 	}
-	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+	ln = tcpKeepAliveListener{ln.(*net.TCPListener)}
+
+	all, err := loopback.NewListener(ln, addrs...)
+	if err != nil {
+		return err
+	}
+	return srv.Serve(all)
+}
+
+// AddCertKeyToTLSConfig loads an X509 certificate into the provided tls config.
+func AddCertKeyToTLSConfig(config *tls.Config, certFile, keyFile string) error {
+	if config.NextProtos == nil {
+		config.NextProtos = []string{"http/1.1"}
+	}
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return err
+	}
+	config.Certificates = []tls.Certificate{cert}
+	return nil
 }
 
 // ListenAndServeTLS starts a server that listens on the provided TCP mode (as supported
 // by net.Listen).
-func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile string) error {
+func ListenAndServeTLS(srv *http.Server, network string, addrs ...string) error {
 	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"
-	}
-	config := &tls.Config{}
-	if srv.TLSConfig != nil {
-		config = srv.TLSConfig
-	}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
-	}
-
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return err
 	}
 
 	ln, err := net.Listen(network, addr)
 	if err != nil {
 		return err
 	}
+	ln = tcpKeepAliveListener{ln.(*net.TCPListener)}
 
-	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+	all, err := loopback.NewListener(ln, addrs...)
+	if err != nil {
+		return err
+	}
+
+	tlsListener := tls.NewListener(all, srv.TLSConfig)
 	return srv.Serve(tlsListener)
 }
 
