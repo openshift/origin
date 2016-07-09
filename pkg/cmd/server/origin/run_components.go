@@ -511,6 +511,7 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 	})
 }
 
+//InitClusterQuotaReconciliationController returns a start function
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	osClient, kClient := c.ResourceQuotaManagerClients()
 	resourceQuotaRegistry := quotainstall.NewRegistry(kClient)
