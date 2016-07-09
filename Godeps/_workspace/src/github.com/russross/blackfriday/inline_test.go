@@ -15,9 +15,8 @@ package blackfriday
 
 import (
 	"regexp"
-	"testing"
-
 	"strings"
+	"testing"
 )
 
 func runMarkdownInline(input string, opts Options, htmlFlags int, params HtmlRendererParameters) string {
@@ -153,8 +152,36 @@ func TestEmphasis(t *testing.T) {
 
 		"mix of *markers_\n",
 		"<p>mix of *markers_</p>\n",
+
+		"*What is A\\* algorithm?*\n",
+		"<p><em>What is A* algorithm?</em></p>\n",
+
+		"some para_graph with _emphasised_ text.\n",
+		"<p>some para_graph with <em>emphasised</em> text.</p>\n",
+
+		"some paragraph with _emphasised_ te_xt.\n",
+		"<p>some paragraph with <em>emphasised</em> te_xt.</p>\n",
+
+		"some paragraph with t_wo bi_ts of _emphasised_ text.\n",
+		"<p>some paragraph with t<em>wo bi</em>ts of <em>emphasised</em> text.</p>\n",
+
+		"un*frigging*believable\n",
+		"<p>un<em>frigging</em>believable</p>\n",
 	}
 	doTestsInline(t, tests)
+}
+
+func TestNoIntraEmphasis(t *testing.T) {
+	tests := []string{
+		"some para_graph with _emphasised_ text.\n",
+		"<p>some para_graph with <em>emphasised</em> text.</p>\n",
+
+		"un*frigging*believable\n",
+		"<p>un*frigging*believable</p>\n",
+	}
+	doTestsInlineParam(t, tests, Options{
+		Extensions: EXTENSION_NO_INTRA_EMPHASIS},
+		0, HtmlRendererParameters{})
 }
 
 func TestReferenceOverride(t *testing.T) {
@@ -263,6 +290,12 @@ func TestStrong(t *testing.T) {
 
 		"mix of **markers__\n",
 		"<p>mix of **markers__</p>\n",
+
+		"**`/usr`** : this folder is named `usr`\n",
+		"<p><strong><code>/usr</code></strong> : this folder is named <code>usr</code></p>\n",
+
+		"**`/usr`** :\n\n this folder is named `usr`\n",
+		"<p><strong><code>/usr</code></strong> :</p>\n\n<p>this folder is named <code>usr</code></p>\n",
 	}
 	doTestsInline(t, tests)
 }
@@ -291,7 +324,7 @@ func TestEmphasisMix(t *testing.T) {
 		"<p><strong>improper *nesting</strong> is* bad</p>\n",
 
 		"*improper **nesting* is** bad\n",
-		"<p><em>improper **nesting</em> is** bad</p>\n",
+		"<p>*improper <strong>nesting* is</strong> bad</p>\n",
 	}
 	doTestsInline(t, tests)
 }
@@ -532,6 +565,20 @@ func TestInlineLink(t *testing.T) {
 
 		"[link](<../>)\n",
 		"<p><a href=\"../\">link</a></p>\n",
+
+		// Issue 116 in blackfriday
+		"![](http://www.broadgate.co.uk/Content/Upload/DetailImages/Cyclus700(1).jpg)",
+		"<p><img src=\"http://www.broadgate.co.uk/Content/Upload/DetailImages/Cyclus700(1).jpg\" alt=\"\" /></p>\n",
+
+		// no closing ), autolinking detects the url next
+		"[disambiguation](http://en.wikipedia.org/wiki/Disambiguation_(disambiguation) is the",
+		"<p>[disambiguation](<a href=\"http://en.wikipedia.org/wiki/Disambiguation_(disambiguation\">http://en.wikipedia.org/wiki/Disambiguation_(disambiguation</a>) is the</p>\n",
+
+		"[disambiguation](http://en.wikipedia.org/wiki/Disambiguation_(disambiguation)) is the",
+		"<p><a href=\"http://en.wikipedia.org/wiki/Disambiguation_(disambiguation)\">disambiguation</a> is the</p>\n",
+
+		"[disambiguation](http://en.wikipedia.org/wiki/Disambiguation_(disambiguation))",
+		"<p><a href=\"http://en.wikipedia.org/wiki/Disambiguation_(disambiguation)\">disambiguation</a></p>\n",
 	}
 	doLinkTestsInline(t, tests)
 
@@ -672,6 +719,13 @@ func TestReferenceLink(t *testing.T) {
 
 		"[ref]\n   [ref]: ../url/ \"title\"\n",
 		"<p><a href=\"../url/\" title=\"title\">ref</a></p>\n",
+
+		"[link][ref]\n   [ref]: /url/",
+		"<p><a href=\"/url/\">link</a></p>\n",
+
+		// Issue 172 in blackfriday
+		"[]:<",
+		"<p>[]:&lt;</p>\n",
 	}
 	doLinkTestsInline(t, tests)
 }
@@ -942,6 +996,40 @@ what happens here
 
 	"Some text.[^note1][^note2]\n\n[^note1]: fn1\n[^note2]: fn2\n",
 	"<p>Some text.<sup class=\"footnote-ref\" id=\"fnref:note1\"><a rel=\"footnote\" href=\"#fn:note1\">1</a></sup><sup class=\"footnote-ref\" id=\"fnref:note2\"><a rel=\"footnote\" href=\"#fn:note2\">2</a></sup></p>\n<div class=\"footnotes\">\n\n<hr />\n\n<ol>\n<li id=\"fn:note1\">fn1\n</li>\n<li id=\"fn:note2\">fn2\n</li>\n</ol>\n</div>\n",
+
+	`Bla bla [^1] [WWW][w3]
+
+[^1]: This is a footnote
+
+[w3]: http://www.w3.org/
+`,
+	`<p>Bla bla <sup class="footnote-ref" id="fnref:1"><a rel="footnote" href="#fn:1">1</a></sup> <a href="http://www.w3.org/">WWW</a></p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:1">This is a footnote
+</li>
+</ol>
+</div>
+`,
+
+	`This is exciting![^fn1]
+
+[^fn1]: Fine print
+`,
+	`<p>This is exciting!<sup class="footnote-ref" id="fnref:fn1"><a rel="footnote" href="#fn:fn1">1</a></sup></p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:fn1">Fine print
+</li>
+</ol>
+</div>
+`,
 }
 
 func TestFootnotes(t *testing.T) {
@@ -971,6 +1059,62 @@ func TestFootnotesWithParameters(t *testing.T) {
 	}
 
 	doTestsInlineParam(t, tests, Options{Extensions: EXTENSION_FOOTNOTES}, HTML_FOOTNOTE_RETURN_LINKS, params)
+}
+
+func TestNestedFootnotes(t *testing.T) {
+	var tests = []string{
+		`Paragraph.[^fn1]
+
+[^fn1]:
+  Asterisk[^fn2]
+
+[^fn2]:
+  Obelisk`,
+		`<p>Paragraph.<sup class="footnote-ref" id="fnref:fn1"><a rel="footnote" href="#fn:fn1">1</a></sup></p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:fn1">Asterisk<sup class="footnote-ref" id="fnref:fn2"><a rel="footnote" href="#fn:fn2">2</a></sup>
+</li>
+<li id="fn:fn2">Obelisk
+</li>
+</ol>
+</div>
+`,
+	}
+	doTestsInlineParam(t, tests, Options{Extensions: EXTENSION_FOOTNOTES}, 0,
+		HtmlRendererParameters{})
+}
+
+func TestInlineComments(t *testing.T) {
+	var tests = []string{
+		"Hello <!-- there ->\n",
+		"<p>Hello &lt;!&mdash; there &ndash;&gt;</p>\n",
+
+		"Hello <!-- there -->\n",
+		"<p>Hello <!-- there --></p>\n",
+
+		"Hello <!-- there -->",
+		"<p>Hello <!-- there --></p>\n",
+
+		"Hello <!---->\n",
+		"<p>Hello <!----></p>\n",
+
+		"Hello <!-- there -->\na",
+		"<p>Hello <!-- there -->\na</p>\n",
+
+		"* list <!-- item -->\n",
+		"<ul>\n<li>list <!-- item --></li>\n</ul>\n",
+
+		"<!-- Front --> comment\n",
+		"<p><!-- Front --> comment</p>\n",
+
+		"blahblah\n<!--- foo -->\nrhubarb\n",
+		"<p>blahblah\n<!--- foo -->\nrhubarb</p>\n",
+	}
+	doTestsInlineParam(t, tests, Options{}, HTML_USE_SMARTYPANTS|HTML_SMARTYPANTS_DASHES, HtmlRendererParameters{})
 }
 
 func TestSmartDoubleQuotes(t *testing.T) {
@@ -1013,4 +1157,42 @@ func TestSmartFractions(t *testing.T) {
 		"<p>1/2/2015, 1/4/2015, 3/4/2015; 2015/1/2, 2015/1/4, 2015/3/4.</p>\n"}
 
 	doTestsInlineParam(t, tests, Options{}, HTML_USE_SMARTYPANTS|HTML_SMARTYPANTS_FRACTIONS, HtmlRendererParameters{})
+}
+
+func TestDisableSmartDashes(t *testing.T) {
+	doTestsInlineParam(t, []string{
+		"foo - bar\n",
+		"<p>foo - bar</p>\n",
+		"foo -- bar\n",
+		"<p>foo -- bar</p>\n",
+		"foo --- bar\n",
+		"<p>foo --- bar</p>\n",
+	}, Options{}, 0, HtmlRendererParameters{})
+	doTestsInlineParam(t, []string{
+		"foo - bar\n",
+		"<p>foo &ndash; bar</p>\n",
+		"foo -- bar\n",
+		"<p>foo &mdash; bar</p>\n",
+		"foo --- bar\n",
+		"<p>foo &mdash;&ndash; bar</p>\n",
+	}, Options{}, HTML_USE_SMARTYPANTS|HTML_SMARTYPANTS_DASHES, HtmlRendererParameters{})
+	doTestsInlineParam(t, []string{
+		"foo - bar\n",
+		"<p>foo - bar</p>\n",
+		"foo -- bar\n",
+		"<p>foo &ndash; bar</p>\n",
+		"foo --- bar\n",
+		"<p>foo &mdash; bar</p>\n",
+	}, Options{}, HTML_USE_SMARTYPANTS|HTML_SMARTYPANTS_LATEX_DASHES|HTML_SMARTYPANTS_DASHES,
+		HtmlRendererParameters{})
+	doTestsInlineParam(t, []string{
+		"foo - bar\n",
+		"<p>foo - bar</p>\n",
+		"foo -- bar\n",
+		"<p>foo -- bar</p>\n",
+		"foo --- bar\n",
+		"<p>foo --- bar</p>\n",
+	}, Options{},
+		HTML_USE_SMARTYPANTS|HTML_SMARTYPANTS_LATEX_DASHES,
+		HtmlRendererParameters{})
 }

@@ -14,6 +14,7 @@
 package blackfriday
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -656,6 +657,9 @@ func TestUnorderedList(t *testing.T) {
 		"Paragraph\n\n* Linebreak\n",
 		"<p>Paragraph</p>\n\n<ul>\n<li>Linebreak</li>\n</ul>\n",
 
+		"*   List\n\n1. Spacer Mixed listing\n",
+		"<ul>\n<li>List</li>\n</ul>\n\n<ol>\n<li>Spacer Mixed listing</li>\n</ol>\n",
+
 		"*   List\n    * Nested list\n",
 		"<ul>\n<li>List\n\n<ul>\n<li>Nested list</li>\n</ul></li>\n</ul>\n",
 
@@ -701,8 +705,39 @@ func TestUnorderedList(t *testing.T) {
 
 		"* List\n\n    * sublist\n\n    normal text\n\n    * another sublist\n",
 		"<ul>\n<li><p>List</p>\n\n<ul>\n<li>sublist</li>\n</ul>\n\n<p>normal text</p>\n\n<ul>\n<li>another sublist</li>\n</ul></li>\n</ul>\n",
+
+		`* Foo
+
+        bar
+
+        qux
+`,
+		`<ul>
+<li><p>Foo</p>
+
+<pre><code>bar
+
+qux
+</code></pre></li>
+</ul>
+`,
 	}
 	doTestsBlock(t, tests, 0)
+}
+
+func TestFencedCodeBlockWithinList(t *testing.T) {
+	doTestsBlock(t, []string{
+		"* Foo\n\n    ```\n    bar\n\n    qux\n    ```\n",
+		`<ul>
+<li><p>Foo</p>
+
+<pre><code>bar
+
+qux
+</code></pre></li>
+</ul>
+`,
+	}, EXTENSION_FENCED_CODE)
 }
 
 func TestOrderedList(t *testing.T) {
@@ -783,6 +818,12 @@ func TestOrderedList(t *testing.T) {
 		"1. List\n\n          code block with spaces\n",
 		"<ol>\n<li><p>List</p>\n\n<pre><code>  code block with spaces\n</code></pre></li>\n</ol>\n",
 
+		"1. List\n\n* Spacer Mixed listing\n",
+		"<ol>\n<li>List</li>\n</ol>\n\n<ul>\n<li>Spacer Mixed listing</li>\n</ul>\n",
+
+		"1. List\n* Mixed listing\n",
+		"<ol>\n<li>List</li>\n<li>Mixed listing</li>\n</ol>\n",
+
 		"1. List\n    * Mixted list\n",
 		"<ol>\n<li>List\n\n<ul>\n<li>Mixted list</li>\n</ul></li>\n</ol>\n",
 
@@ -797,6 +838,26 @@ func TestOrderedList(t *testing.T) {
 
 		"1. numbers\n1. are ignored\n",
 		"<ol>\n<li>numbers</li>\n<li>are ignored</li>\n</ol>\n",
+
+		`1. Foo
+
+        bar
+
+
+
+        qux
+`,
+		`<ol>
+<li><p>Foo</p>
+
+<pre><code>bar
+
+
+
+qux
+</code></pre></li>
+</ol>
+`,
 	}
 	doTestsBlock(t, tests, 0)
 }
@@ -899,6 +960,14 @@ func TestDefinitionList(t *testing.T) {
 			"<dd><p>Definition b</p></dd>\n" +
 			"</dl>\n" +
 			"\n<p>Text 2</p>\n",
+
+		"Term 1\n:   Definition a\n\n    Text 1\n\n    1. First\n    2. Second",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd><p>Definition a</p>\n\n" +
+			"<p>Text 1</p>\n\n" +
+			"<ol>\n<li>First</li>\n<li>Second</li>\n</ol></dd>\n" +
+			"</dl>\n",
 	}
 	doTestsBlock(t, tests, EXTENSION_DEFINITION_LISTS)
 }
@@ -1062,6 +1131,118 @@ func TestFencedCodeBlock(t *testing.T) {
 		"Some text before a fenced code block\n``` oz\ncode blocks breakup paragraphs\n```\nSome text in between\n``` oz\nmultiple code blocks work okay\n```\nAnd some text after a fenced code block",
 		"<p>Some text before a fenced code block</p>\n\n<pre><code class=\"language-oz\">code blocks breakup paragraphs\n</code></pre>\n\n<p>Some text in between</p>\n\n<pre><code class=\"language-oz\">multiple code blocks work okay\n</code></pre>\n\n<p>And some text after a fenced code block</p>\n",
 	}
+	doTestsBlock(t, tests, EXTENSION_FENCED_CODE)
+}
+
+func TestFencedCodeInsideBlockquotes(t *testing.T) {
+	cat := func(s ...string) string { return strings.Join(s, "\n") }
+	var tests = []string{
+		cat("> ```go",
+			"package moo",
+			"",
+			"```",
+			""),
+		`<blockquote>
+<pre><code class="language-go">package moo
+
+</code></pre>
+</blockquote>
+`,
+		// -------------------------------------------
+		cat("> foo",
+			"> ",
+			"> ```go",
+			"package moo",
+			"```",
+			"> ",
+			"> goo.",
+			""),
+		`<blockquote>
+<p>foo</p>
+
+<pre><code class="language-go">package moo
+</code></pre>
+
+<p>goo.</p>
+</blockquote>
+`,
+		// -------------------------------------------
+		cat("> foo",
+			"> ",
+			"> quote",
+			"continues",
+			"```",
+			""),
+		`<blockquote>
+<p>foo</p>
+
+<p>quote
+continues
+` + "```" + `</p>
+</blockquote>
+`,
+		// -------------------------------------------
+		cat("> foo",
+			"> ",
+			"> ```go",
+			"package moo",
+			"```",
+			"> ",
+			"> goo.",
+			"> ",
+			"> ```go",
+			"package zoo",
+			"```",
+			"> ",
+			"> woo.",
+			""),
+		`<blockquote>
+<p>foo</p>
+
+<pre><code class="language-go">package moo
+</code></pre>
+
+<p>goo.</p>
+
+<pre><code class="language-go">package zoo
+</code></pre>
+
+<p>woo.</p>
+</blockquote>
+`,
+	}
+
+	// These 2 alternative forms of blockquoted fenced code blocks should produce same output.
+	forms := [2]string{
+		cat("> plain quoted text",
+			"> ```fenced",
+			"code",
+			" with leading single space correctly preserved",
+			"okay",
+			"```",
+			"> rest of quoted text"),
+		cat("> plain quoted text",
+			"> ```fenced",
+			"> code",
+			">  with leading single space correctly preserved",
+			"> okay",
+			"> ```",
+			"> rest of quoted text"),
+	}
+	want := `<blockquote>
+<p>plain quoted text</p>
+
+<pre><code class="language-fenced">code
+ with leading single space correctly preserved
+okay
+</code></pre>
+
+<p>rest of quoted text</p>
+</blockquote>
+`
+	tests = append(tests, forms[0], want)
+	tests = append(tests, forms[1], want)
+
 	doTestsBlock(t, tests, EXTENSION_FENCED_CODE)
 }
 
@@ -1401,7 +1582,57 @@ func TestTitleBlock_EXTENSION_TITLEBLOCK(t *testing.T) {
 			"Yep, more here too\n" +
 			"</h1>",
 	}
-
 	doTestsBlock(t, tests, EXTENSION_TITLEBLOCK)
+}
 
+func TestBlockComments(t *testing.T) {
+	var tests = []string{
+		"Some text\n\n<!-- comment -->\n",
+		"<p>Some text</p>\n\n<!-- comment -->\n",
+
+		"Some text\n\n<!--\n\nmultiline\ncomment\n-->\n",
+		"<p>Some text</p>\n\n<!--\n\nmultiline\ncomment\n-->\n",
+
+		"Some text\n\n<!--\n\n<div><p>Commented</p>\n<span>html</span></div>\n-->\n",
+		"<p>Some text</p>\n\n<!--\n\n<div><p>Commented</p>\n<span>html</span></div>\n-->\n",
+	}
+	doTestsBlock(t, tests, 0)
+}
+
+func TestCDATA(t *testing.T) {
+	var tests = []string{
+		"Some text\n\n<![CDATA[foo]]>\n",
+		"<p>Some text</p>\n\n<![CDATA[foo]]>\n",
+
+		"CDATA ]]\n\n<![CDATA[]]]]>\n",
+		"<p>CDATA ]]</p>\n\n<![CDATA[]]]]>\n",
+
+		"CDATA >\n\n<![CDATA[>]]>\n",
+		"<p>CDATA &gt;</p>\n\n<![CDATA[>]]>\n",
+
+		"Lots of text\n\n<![CDATA[lots of te><t\non\nseveral\nlines]]>\n",
+		"<p>Lots of text</p>\n\n<![CDATA[lots of te><t\non\nseveral\nlines]]>\n",
+
+		"<![CDATA[>]]>\n",
+		"<![CDATA[>]]>\n",
+	}
+	doTestsBlock(t, tests, 0)
+	doTestsBlock(t, []string{
+		"``` html\n<![CDATA[foo]]>\n```\n",
+		"<pre><code class=\"language-html\">&lt;![CDATA[foo]]&gt;\n</code></pre>\n",
+
+		"<![CDATA[\n``` python\ndef func():\n    pass\n```\n]]>\n",
+		"<![CDATA[\n``` python\ndef func():\n    pass\n```\n]]>\n",
+
+		`<![CDATA[
+> def func():
+>     pass
+]]>
+`,
+		`<![CDATA[
+> def func():
+>     pass
+]]>
+`,
+	}, EXTENSION_FENCED_CODE)
 }

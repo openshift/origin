@@ -3,6 +3,8 @@
 	"GoVersion": "go1.6",
 	"GodepVersion": "v63",
 	"Packages": [
+		"github.com/elazarl/goproxy",
+		"github.com/golang/mock/gomock",
 		"./..."
 	],
 	"Deps": [
@@ -18,18 +20,6 @@
 		{
 			"ImportPath": "github.com/AaronO/go-git-http/auth",
 			"Rev": "0ebecedc64b67a3a8674c56724082660be48216e"
-		},
-		{
-			"ImportPath": "github.com/AdRoll/goamz/aws",
-			"Rev": "aa6e716d710a0c7941cb2075cfbb9661f16d21f1"
-		},
-		{
-			"ImportPath": "github.com/AdRoll/goamz/cloudfront",
-			"Rev": "aa6e716d710a0c7941cb2075cfbb9661f16d21f1"
-		},
-		{
-			"ImportPath": "github.com/AdRoll/goamz/s3",
-			"Rev": "aa6e716d710a0c7941cb2075cfbb9661f16d21f1"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
@@ -200,6 +190,11 @@
 			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/private/protocol/restxml",
+			"Comment": "v1.0.7",
+			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"Comment": "v1.0.7",
 			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
@@ -220,6 +215,11 @@
 			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudfront/sign",
+			"Comment": "v1.0.7",
+			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/ec2",
 			"Comment": "v1.0.7",
 			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
@@ -231,6 +231,11 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/elb",
+			"Comment": "v1.0.7",
+			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/s3",
 			"Comment": "v1.0.7",
 			"Rev": "bf2f8fe7f45e68017086d069498638893feddf64"
 		},
@@ -315,11 +320,6 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/etcdserver/auth",
-			"Comment": "v2.3.0-282-g8b320e7",
-			"Rev": "8b320e7c550067b1dfb37bd1682e8067023e0751"
-		},
-		{
-			"ImportPath": "github.com/coreos/etcd/etcdserver/etcdhttp",
 			"Comment": "v2.3.0-282-g8b320e7",
 			"Rev": "8b320e7c550067b1dfb37bd1682e8067023e0751"
 		},
@@ -584,24 +584,17 @@
 			"Rev": "f5b69782d120a7ae5ada8f2ebad97a014a98ebd5"
 		},
 		{
+			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
+			"Comment": "v1.0.5",
+			"Rev": "2724a9c9051aa62e9cca11304e7dd518e9e41599"
+		},
+		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
 		{
 			"ImportPath": "github.com/daviddengcn/go-colortext",
 			"Rev": "b5c0891944c2f150ccc9d02aecf51b76c14c2948"
-		},
-		{
-			"ImportPath": "github.com/denverdino/aliyungo/common",
-			"Rev": "554da7ebe31b6172a8f15a0b1cf8c628145bed6a"
-		},
-		{
-			"ImportPath": "github.com/denverdino/aliyungo/oss",
-			"Rev": "554da7ebe31b6172a8f15a0b1cf8c628145bed6a"
-		},
-		{
-			"ImportPath": "github.com/denverdino/aliyungo/util",
-			"Rev": "554da7ebe31b6172a8f15a0b1cf8c628145bed6a"
 		},
 		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
@@ -799,11 +792,6 @@
 			"Rev": "596ca8b86acd3feebedae6bc08abf2a48d403a14"
 		},
 		{
-			"ImportPath": "github.com/docker/distribution/registry/storage/driver/oss",
-			"Comment": "v2.4.0-rc.1-106-g596ca8b",
-			"Rev": "596ca8b86acd3feebedae6bc08abf2a48d403a14"
-		},
-		{
 			"ImportPath": "github.com/docker/distribution/registry/storage/driver/s3-aws",
 			"Comment": "v2.4.0-rc.1-106-g596ca8b",
 			"Rev": "596ca8b86acd3feebedae6bc08abf2a48d403a14"
@@ -855,11 +843,6 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/symlink",
-			"Comment": "v1.4.1-4831-g0f5c9d3",
-			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/tarsum",
 			"Comment": "v1.4.1-4831-g0f5c9d3",
 			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
 		},
@@ -986,6 +969,16 @@
 		},
 		{
 			"ImportPath": "github.com/elazarl/goproxy",
+			"Comment": "v1.0-66-g07b16b6",
+			"Rev": "07b16b6e30fcac0ad8c0435548e743bcf2ca7e92"
+		},
+		{
+			"ImportPath": "github.com/elazarl/goproxy/ext/image",
+			"Comment": "v1.0-66-g07b16b6",
+			"Rev": "07b16b6e30fcac0ad8c0435548e743bcf2ca7e92"
+		},
+		{
+			"ImportPath": "github.com/elazarl/goproxy/regretable",
 			"Comment": "v1.0-66-g07b16b6",
 			"Rev": "07b16b6e30fcac0ad8c0435548e743bcf2ca7e92"
 		},
@@ -1130,6 +1123,10 @@
 		},
 		{
 			"ImportPath": "github.com/golang/mock/gomock",
+			"Rev": "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
+		},
+		{
+			"ImportPath": "github.com/golang/mock/gomock/mock_matcher",
 			"Rev": "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
 		},
 		{
@@ -1848,6 +1845,16 @@
 			"Rev": "ebd41a8b24bd95716b90a05fe0fda540c69fc119"
 		},
 		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/util/glog",
+			"Comment": "v1.0.9-49-g69a0d96",
+			"Rev": "69a0d96663b775c5e8fa942401c7bb9ca495e8f0"
+		},
+		{
+			"ImportPath": "github.com/openshift/source-to-image/pkg/util/interrupt",
+			"Comment": "v1.0.9-49-g69a0d96",
+			"Rev": "69a0d96663b775c5e8fa942401c7bb9ca495e8f0"
+		},
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/user",
 			"Comment": "v1.0.8",
 			"Rev": "ebd41a8b24bd95716b90a05fe0fda540c69fc119"
@@ -2018,6 +2025,11 @@
 			"Rev": "8992d7483a06748dea706e4716d042a4a9e73918"
 		},
 		{
+			"ImportPath": "github.com/russross/blackfriday",
+			"Comment": "v1.4-33-g1d6b8e9",
+			"Rev": "1d6b8e9301e720b08a8938b8c25c018285885438"
+		},
+		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
 			"Rev": "177002e16a0061912f02377e2dd8951a8b3551bc"
 		},
@@ -2026,9 +2038,8 @@
 			"Rev": "1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1"
 		},
 		{
-			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
-			"Comment": "2.5.2d",
-			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
+			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
+			"Rev": "10ef21a441db47d8b13ebcc5fd2310f636973c77"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/cache",
@@ -2197,6 +2208,10 @@
 			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		},
 		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		},
+		{
 			"ImportPath": "google.golang.org/api/cloudmonitoring/v2beta2",
 			"Rev": "77e7d383beb96054547729f49c372b3d01e196ff"
 		},
@@ -2318,6 +2333,11 @@
 			"ImportPath": "k8s.io/heapster/metrics/api/v1/types",
 			"Comment": "v1.1.0-beta1-15-gde510e4",
 			"Rev": "de510e4bdcdea96722b5bde19ff0b7a142939485"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/cmd/genutils",
+			"Comment": "v1.3.0-alpha.3-617-g686fe38",
+			"Rev": "686fe3889ed652b3907579c9e46f247484f52e8d"
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/cmd/kube-apiserver/app",
@@ -3491,11 +3511,6 @@
 		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/registry/generic",
-			"Comment": "v1.3.0-alpha.3-599-g2746284",
-			"Rev": "686fe3889ed652b3907579c9e46f247484f52e8d"
-		},
-		{
-			"ImportPath": "k8s.io/kubernetes/pkg/registry/generic/etcd",
 			"Comment": "v1.3.0-alpha.3-599-g2746284",
 			"Rev": "686fe3889ed652b3907579c9e46f247484f52e8d"
 		},
