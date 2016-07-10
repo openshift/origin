@@ -111,10 +111,10 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 	}
 
 	if anyFailed {
-		return fatalError(fmt.Sprintf("couldn't update some deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream)))
+		return fmt.Errorf("couldn't update some deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream))
 	}
 
-	glog.V(5).Infof("Updated all deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream))
+	glog.V(5).Infof("Updated %d deployment configs for trigger on image stream %q", len(configsToUpdate), imageapi.LabelForStream(stream))
 	return nil
 }
 

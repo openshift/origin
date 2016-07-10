@@ -285,7 +285,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	var newConfig *deployapi.DeploymentConfig
 	t.Log("Waiting for the initial deploymentconfig update in response to the imagestream update")
 
-	timeout := time.After(2 * time.Minute)
+	timeout := time.After(30 * time.Second)
 
 	// This is the initial deployment with automatic=false in its ICT - it should be updated to pullSpec
 out:
