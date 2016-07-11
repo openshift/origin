@@ -7,16 +7,15 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -118,6 +117,25 @@ func assertLinesExist(lines sets.String, expect int, r io.Reader) error {
 	return nil
 }
 
+// PodSucceeded returns true if the pod has succeeded, false if the pod has not yet
+// reached running state, or an error in any other case.
+func PodSucceeded(event watch.Event) (bool, error) {
+	switch event.Type {
+	case watch.Deleted:
+		return false, errors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, "")
+	}
+	switch t := event.Object.(type) {
+	case *api.Pod:
+		switch t.Status.Phase {
+		case api.PodSucceeded:
+			return true, nil
+		case api.PodFailed:
+			return false, fmt.Errorf("pod failed: %#v", t)
+		}
+	}
+	return false, nil
+}
+
 func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, expect int) {
 	By("submitting the pod to kubernetes")
 	podClient := f.Client.Pods(f.Namespace.Name)
@@ -126,25 +144,18 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 		defer GinkgoRecover()
 		podClient.Delete(pod.Name, api.NewDeleteOptions(0))
 	}()
-	if _, err := podClient.Create(pod); err != nil {
+	updated, err := podClient.Create(pod)
+	if err != nil {
 		e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	Expect(f.WaitForPodRunning(pod.Name)).To(BeNil())
-	Expect(wait.Poll(2*time.Second, 5*time.Minute, func() (bool, error) {
-		pod, err := podClient.Get(pod.Name)
-		if err != nil {
-			return false, err
-		}
-		switch pod.Status.Phase {
-		case api.PodSucceeded:
-			return true, nil
-		case api.PodFailed:
-			return false, fmt.Errorf("pod failed")
-		default:
-			return false, nil
-		}
-	})).To(BeNil())
+	w, err := f.Client.Pods(f.Namespace.Name).Watch(api.SingleObject(api.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+	if err != nil {
+		e2e.Failf("Failed: %v", err)
+	}
+	if _, err = watch.Until(e2e.PodStartTimeout, w, PodSucceeded); err != nil {
+		e2e.Failf("Failed: %v", err)
+	}
 
 	By("retrieving the pod logs")
 	r, err := podClient.GetLogs(pod.Name, &api.PodLogOptions{Container: "querier"}).Stream()
