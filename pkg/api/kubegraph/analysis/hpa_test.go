@@ -29,7 +29,7 @@ func TestHPAMissingCPUTargetError(t *testing.T) {
 		t.Errorf("expected marker type %v, got %v", expected, actual)
 	}
 
-	patchString := `-p '{"spec":{"cpuUtilization":{"targetPercentage": 80}}}'`
+	patchString := `-p '{"spec":{"targetCPUUtilizationPercentage": 80}}'`
 	if !strings.HasSuffix(string(markers[0].Suggestion), patchString) {
 		t.Errorf("expected suggestion to end with patch JSON path, got %q", markers[0].Suggestion)
 	}

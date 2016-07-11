@@ -10,9 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
-	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 )
 
 var admissionPluginsNotUsedByKube = sets.NewString(
@@ -23,6 +22,8 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"SecurityContextDeny",    // from kube, it denies pods that want to use SCC capabilities.  We have different rules to allow this in openshift.
 	"DenyExecOnPrivileged",   // from kube (deprecated, see below), it denies exec to pods that have certain privileges.  This is superseded in origin by SCCExecRestrictions that checks against SCC rules.
 	"DenyEscalatingExec",     // from kube, it denies exec to pods that have certain privileges.  This is superseded in origin by SCCExecRestrictions that checks against SCC rules.
+	"PodSecurityPolicy",      // from kube, this will eventually replace SecurityContextConstraints but for now origin does not use it.
+	"ResourceQuota",          // from kube, we replace this with quotaadmission.PluginName
 
 	"BuildByStrategy",          // from origin, only needed for managing builds, not kubernetes resources
 	"BuildDefaults",            // from origin, only needed for managing builds, not kubernetes resources
@@ -32,7 +33,6 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"OriginNamespaceLifecycle", // from origin, only needed for rejecting openshift resources, so not needed by kube
 	"ProjectRequestLimit",      // from origin, used for limiting project requests by user (online use case)
 	"RunOnceDuration",          // from origin, used for overriding the ActiveDeadlineSeconds for run-once pods
-	quotaadmission.PluginName,  // from origin, used for quota abuse checks of openshift resources
 
 	"NamespaceExists",  // superseded by NamespaceLifecycle
 	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
@@ -43,7 +43,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 func TestKubeAdmissionControllerUsage(t *testing.T) {
 	registeredKubePlugins := sets.NewString(admission.GetPlugins()...)
 
-	usedAdmissionPlugins := sets.NewString(kubernetes.AdmissionPlugins...)
+	usedAdmissionPlugins := sets.NewString(origin.KubeAdmissionPlugins...)
 
 	if missingPlugins := usedAdmissionPlugins.Difference(registeredKubePlugins); len(missingPlugins) != 0 {
 		t.Errorf("%v not found", missingPlugins.List())

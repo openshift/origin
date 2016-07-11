@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"reflect"
 	"sort"
 
 	"k8s.io/kubernetes/pkg/conversion"
@@ -9,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/extension"
 	newer "github.com/openshift/origin/pkg/authorization/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -132,14 +132,9 @@ func Convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse
 }
 
 func Convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*PolicyRule))(in)
-	}
-	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, out.AttributeRestrictions, s); err != nil {
+	SetDefaults_PolicyRule(in)
+	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
-	}
-	if in.AttributeRestrictions.Object != nil {
-		out.AttributeRestrictions = in.AttributeRestrictions.Object
 	}
 
 	out.APIGroups = in.APIGroups
@@ -158,7 +153,7 @@ func Convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRu
 }
 
 func Convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
+	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 
@@ -479,4 +474,197 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	); err != nil {
 		panic(err)
 	}
+}
+
+var _ runtime.NestedObjectDecoder = &PolicyRule{}
+var _ runtime.NestedObjectEncoder = &PolicyRule{}
+
+func (c *PolicyRule) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	extension.DecodeNestedRawExtensionOrUnknown(d, &c.AttributeRestrictions)
+	return nil
+}
+func (c *PolicyRule) EncodeNestedObjects(e runtime.Encoder) error {
+	return extension.EncodeNestedRawExtension(e, &c.AttributeRestrictions)
+}
+
+var _ runtime.NestedObjectDecoder = &SelfSubjectRulesReview{}
+var _ runtime.NestedObjectEncoder = &SelfSubjectRulesReview{}
+
+func (c *SelfSubjectRulesReview) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Status.Rules {
+		c.Status.Rules[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *SelfSubjectRulesReview) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Status.Rules {
+		if err := c.Status.Rules[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &ClusterRole{}
+var _ runtime.NestedObjectEncoder = &ClusterRole{}
+
+func (c *ClusterRole) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Rules {
+		c.Rules[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *ClusterRole) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Rules {
+		if err := c.Rules[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &Role{}
+var _ runtime.NestedObjectEncoder = &Role{}
+
+func (c *Role) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Rules {
+		c.Rules[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *Role) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Rules {
+		if err := c.Rules[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &ClusterRoleList{}
+var _ runtime.NestedObjectEncoder = &ClusterRoleList{}
+
+func (c *ClusterRoleList) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Items {
+		c.Items[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *ClusterRoleList) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Items {
+		if err := c.Items[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &RoleList{}
+var _ runtime.NestedObjectEncoder = &RoleList{}
+
+func (c *RoleList) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Items {
+		c.Items[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *RoleList) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Items {
+		if err := c.Items[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &ClusterPolicy{}
+var _ runtime.NestedObjectEncoder = &ClusterPolicy{}
+
+func (c *ClusterPolicy) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Roles {
+		c.Roles[i].Role.DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *ClusterPolicy) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Roles {
+		if err := c.Roles[i].Role.EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &Policy{}
+var _ runtime.NestedObjectEncoder = &Policy{}
+
+func (c *Policy) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Roles {
+		c.Roles[i].Role.DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *Policy) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Roles {
+		if err := c.Roles[i].Role.EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &ClusterPolicyList{}
+var _ runtime.NestedObjectEncoder = &ClusterPolicyList{}
+
+func (c *ClusterPolicyList) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Items {
+		c.Items[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *ClusterPolicyList) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Items {
+		if err := c.Items[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ runtime.NestedObjectDecoder = &PolicyList{}
+var _ runtime.NestedObjectEncoder = &PolicyList{}
+
+func (c *PolicyList) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Items {
+		c.Items[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *PolicyList) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Items {
+		if err := c.Items[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
 }

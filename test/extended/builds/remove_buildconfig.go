@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"fmt"
 	"time"
 
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -35,6 +36,7 @@ var _ = g.Describe("[builds][Conformance] remove all builds when build configura
 			g.By("starting multiple builds")
 			for i := range builds {
 				builds[i], err = oc.Run("start-build").Args("sample-build").Output()
+				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, builds[i])
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 

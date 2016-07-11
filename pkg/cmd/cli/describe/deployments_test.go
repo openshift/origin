@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -27,8 +27,8 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	})
 	kFake := &ktestclient.Fake{}
 	kFake.PrependReactor("list", "horizontalpodautoscalers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &extensions.HorizontalPodAutoscalerList{
-			Items: []extensions.HorizontalPodAutoscaler{
+		return true, &autoscaling.HorizontalPodAutoscalerList{
+			Items: []autoscaling.HorizontalPodAutoscaler{
 				*deployapitest.OkHPAForDeploymentConfig(config, 1, 3),
 			}}, nil
 	})

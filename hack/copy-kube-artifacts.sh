@@ -12,8 +12,9 @@ source "${OS_ROOT}/hack/lib/init.sh"
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+GODEP_ROOT="${OS_ROOT}/vendor"
 KUBE_ROOT=${1:-""}
-KUBE_GODEP_ROOT="${OS_ROOT}/Godeps/_workspace/src/k8s.io/kubernetes"
+KUBE_GODEP_ROOT="${GODEP_ROOT}/k8s.io/kubernetes"
 
 if [ -z "$KUBE_ROOT" ]; then
   echo "usage: copy-kube-artifacts.sh <kubernetes root dir>"
@@ -44,6 +45,7 @@ rsync -av \
 /docs/user-guide/simple-yaml.md
 /docs/user-guide/walkthrough/README.md
 /examples/***
+/federation/client/clientset_generated/**.go
 /pkg/***
 /plugin/***
 /test/e2e/***
@@ -51,4 +53,17 @@ rsync -av \
 /test/integration/***
 /third_party/golang/***
 /README.md
+EOF
+
+# Copy extra vendored files that aren't direct dependencies of any package
+rsync -av \
+  --exclude='examples/blog-logging/diagrams/***' \
+  --exclude='pkg/ui/data/swagger/datafile.go' \
+  --include-from=- \
+  --include='*/' \
+  --exclude='*' \
+  --prune-empty-dirs \
+  $KUBE_ROOT/vendor/ $GODEP_ROOT <<EOF
+/github.com/golang/mock/gomock/**.go
+/github.com/google/cadvisor/info/v1/test/**.go
 EOF

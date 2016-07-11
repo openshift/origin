@@ -122,6 +122,7 @@ items:
     - ingresses/status
     - jobs
     - jobs/status
+    - networkpolicies
     - podsecuritypolicies
     - replicasets
     - replicasets/scale
@@ -2470,6 +2471,32 @@ items:
     resources:
     - persistentvolumeclaims/status
     verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
     - update
 - apiVersion: v1
   kind: ClusterRole

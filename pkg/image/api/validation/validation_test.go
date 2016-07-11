@@ -377,7 +377,7 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "!$",
 			name:      "foo",
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `must be a DNS label (at most 63 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?): e.g. "my-name"`),
+				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])? (e.g. 'my-name' or '123-abc')`),
 			},
 		},
 		"invalid dockerImageRepository": {
@@ -682,7 +682,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 		"invalid namespace": {
 			isi: &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Namespace: "!$", Name: "foo"}, Spec: validSpec},
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `must be a DNS label (at most 63 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?): e.g. "my-name"`),
+				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])? (e.g. 'my-name' or '123-abc')`),
 			},
 		},
 		"invalid dockerImageRepository": {

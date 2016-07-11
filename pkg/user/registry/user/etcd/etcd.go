@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"errors"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
@@ -73,8 +74,8 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		contextGroups := sets.NewString(user.GetGroups()...)
 		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
 
-		if ok, _ := validation.ValidateUserName(name, false); !ok {
-			// The user the authentication layer has identified cannot possibly be a persisted user
+		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
+			// The user the authentication layer has identified cannot be a valid persisted user
 			// Return an API representation of the virtual user
 			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 		}
@@ -91,8 +92,8 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 	}
 
-	if ok, details := validation.ValidateUserName(name, false); !ok {
-		return nil, field.Invalid(field.NewPath("metadata", "name"), name, details)
+	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
+		return nil, field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
 	}
 
 	return r.Store.Get(ctx, name)

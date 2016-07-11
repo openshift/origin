@@ -278,7 +278,7 @@ func validateSecrets(secrets []buildapi.SecretBuildSource, isDockerStrategy bool
 		if len(s.Secret.Name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("secret"), ""))
 		}
-		if ok, _ := validation.ValidateSecretName(s.Secret.Name, false); !ok {
+		if reasons := validation.ValidateSecretName(s.Secret.Name, false); len(reasons) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Index(i).Child("secret"), s, "must be valid secret name"))
 		}
 		if strings.HasPrefix(path.Clean(s.DestinationDir), "..") {
@@ -349,7 +349,7 @@ func validateToImageReference(reference *kapi.ObjectReference, fldPath *field.Pa
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
 		}
-		if len(namespace) != 0 && !kvalidation.IsDNS1123Subdomain(namespace) {
+		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
 		}
 
@@ -380,7 +380,7 @@ func validateFromImageReference(reference *kapi.ObjectReference, fldPath *field.
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
 		}
 
-		if len(namespace) != 0 && !kvalidation.IsDNS1123Subdomain(namespace) {
+		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
 		}
 
@@ -397,7 +397,7 @@ func validateFromImageReference(reference *kapi.ObjectReference, fldPath *field.
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		}
-		if len(namespace) != 0 && !kvalidation.IsDNS1123Subdomain(namespace) {
+		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
 		}
 	case "":

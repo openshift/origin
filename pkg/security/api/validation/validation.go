@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"strings"
+
 	kapivalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -55,8 +57,8 @@ func validateServiceAccountNames(serviceAccountNames []string, fldPath *field.Pa
 		case len(sa) == 0:
 			allErrs = append(allErrs, field.Invalid(idxPath, sa, ""))
 		case len(sa) > 0:
-			if ok, msg := kapivalidation.ValidateServiceAccountName(sa, false); !ok {
-				allErrs = append(allErrs, field.Invalid(idxPath, sa, msg))
+			if reasons := kapivalidation.ValidateServiceAccountName(sa, false); len(reasons) != 0 {
+				allErrs = append(allErrs, field.Invalid(idxPath, sa, strings.Join(reasons, ", ")))
 			}
 		}
 	}

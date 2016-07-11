@@ -234,7 +234,7 @@ func TestProjectStatus(t *testing.T) {
 				"sinatra-app-example-b deploys",
 				"on docker.io/centos/ruby-22-centos7:latest",
 				"build #1 running for about a minute",
-				"- 7a4f354: Prepare v1beta3 Template types (Roy Programmer <someguy@outhere.com>)",
+				"- 7a4f354: Prepare v1 Template types (Roy Programmer <someguy@outhere.com>)",
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
 			},
 			Time: mustParseTime("2015-04-06T21:20:03Z"),

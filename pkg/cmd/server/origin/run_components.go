@@ -19,7 +19,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -34,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployerpodcontroller "github.com/openshift/origin/pkg/deploy/controller/deployerpod"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
@@ -50,7 +48,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
@@ -333,18 +330,6 @@ func (c *MasterConfig) RunDeploymentController() {
 	go controller.Run(5, stopCh)
 }
 
-// RunDeployerPodController starts the deployer pod controller process.
-func (c *MasterConfig) RunDeployerPodController() {
-	kclient := c.DeployerPodControllerClient()
-	factory := deployerpodcontroller.DeployerPodControllerFactory{
-		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec(),
-	}
-
-	controller := factory.Create()
-	controller.Run()
-}
-
 // RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
@@ -491,13 +476,13 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(osClient)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
 		KubeClient:                kClient,
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:                  resourceQuotaRegistry,
-		GroupKindsToReplenish:     []unversioned.GroupKind{imageapi.Kind("ImageStream")},
-		ControllerFactory:         quotacontroller.NewReplenishmentControllerFactory(osClient),
+		GroupKindsToReplenish:     quota.AllEvaluatedGroupKinds,
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClient),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
@@ -513,15 +498,8 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quotainstall.NewRegistry(kClient)
-	groupKindsToReplenish := []unversioned.GroupKind{
-		kapi.Kind("Pod"),
-		kapi.Kind("Service"),
-		kapi.Kind("ReplicationController"),
-		kapi.Kind("PersistentVolumeClaim"),
-		kapi.Kind("Secret"),
-		kapi.Kind("ConfigMap"),
-	}
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(osClient, kClient)
+	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
 		ClusterQuotaInformer: c.Informers.ClusterResourceQuotas(),
@@ -530,7 +508,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 
 		Registry:                  resourceQuotaRegistry,
 		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
-		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactory(c.Informers.Pods().Informer(), kClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClient),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}

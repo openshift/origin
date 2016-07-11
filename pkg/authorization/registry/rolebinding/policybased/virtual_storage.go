@@ -150,22 +150,27 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 	return roleBinding, nil
 }
 
-func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return m.updateRoleBinding(ctx, obj, false)
+func (m *VirtualStorage) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return m.updateRoleBinding(ctx, name, objInfo, false)
 }
 func (m *VirtualStorage) UpdateRoleBindingWithEscalation(ctx kapi.Context, obj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
-	return m.updateRoleBinding(ctx, obj, true)
+	return m.updateRoleBinding(ctx, obj.Name, rest.DefaultUpdatedObjectInfo(obj, kapi.Scheme), true)
 }
 
-func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.RoleBinding, bool, error) {
+func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo, allowEscalation bool) (*authorizationapi.RoleBinding, bool, error) {
+	old, err := m.Get(ctx, name)
+	if err != nil {
+		return nil, false, err
+	}
+
+	obj, err := objInfo.UpdatedObject(ctx, old)
+	if err != nil {
+		return nil, false, err
+	}
+
 	roleBinding, ok := obj.(*authorizationapi.RoleBinding)
 	if !ok {
 		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not a role: %#v", obj))
-	}
-
-	old, err := m.Get(ctx, roleBinding.Name)
-	if err != nil {
-		return nil, false, err
 	}
 
 	if err := rest.BeforeUpdate(m.UpdateStrategy, ctx, obj, old); err != nil {

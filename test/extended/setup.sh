@@ -26,7 +26,7 @@ function os::test::extended::setup {
 
   # build binaries
   if [[ -z $(os::build::find-binary ginkgo) ]]; then
-    hack/build-go.sh Godeps/_workspace/src/github.com/onsi/ginkgo/ginkgo
+    hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
   fi
   if [[ -z $(os::build::find-binary extended.test) ]]; then
     hack/build-go.sh test/extended/extended.test
@@ -43,7 +43,7 @@ function os::test::extended::setup {
   export EXTENDEDTEST="$(os::build::find-binary extended.test)"
   export TMPDIR=${BASETMPDIR:-/tmp}
   export EXTENDED_TEST_PATH="$(pwd)/test/extended"
-  export KUBE_REPO_ROOT="$(pwd)/Godeps/_workspace/src/k8s.io/kubernetes"
+  export KUBE_REPO_ROOT="$(pwd)/vendor/k8s.io/kubernetes"
 
   # output tests instead of running
   if [[ -n "${SHOW_ALL:-}" ]]; then
@@ -101,9 +101,9 @@ function os::test::extended::setup {
     # Similar to above check, if the XFS volume dir mount point exists enable
     # local storage quota in node-config.yaml so these tests can pass:
     if [ -d "/mnt/openshift-xfs-vol-dir" ]; then
-	# The ec2 images have have 1Gi of space defined; want to give /registry a good chunk of that
+	# The ec2 images usually have ~5Gi of space defined for the xfs vol for the registry; want to give /registry a good chunk of that
 	# to store the images created when the extended tests run
-      sed -i 's/perFSGroup: null/perFSGroup: 896Mi/' $NODE_CONFIG_DIR/node-config.yaml
+      sed -i 's/perFSGroup: null/perFSGroup: 4480Mi/' $NODE_CONFIG_DIR/node-config.yaml
     fi
     echo "[INFO] Using VOLUME_DIR=${VOLUME_DIR}"
 
@@ -155,11 +155,11 @@ readonly EXCLUDED_TESTS=(
   "RollingUpdateDeployment should delete old pods and create new ones"
   "RecreateDeployment should delete old pods and create new ones"
 
-  "\[Feature:PodAffinity\]" # feature is disabled
-  Ingress                 # Not enabled yet
-  "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
-  "Cinder"                # requires an OpenStack cluster
-  "should support r/w"    # hostPath: This test  expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
+  "\[Feature:Federation\]"   # Not enabled yet
+  "\[Feature:PodAffinity\]"  # Not enabled yet
+  Ingress                    # Not enabled yet
+  "Cinder"                   # requires an OpenStack cluster
+  "should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
   "should check that the kubernetes-dashboard instance is alive" # we don't create this
   "\[Feature:ManualPerformance\]" # requires /resetMetrics which we don't expose
 
@@ -177,13 +177,14 @@ readonly EXCLUDED_TESTS=(
   "mount an API token into pods" # We add 6 secrets, not 1
   "ServiceAccounts should ensure a single API token exists" # We create lots of secrets
   "Networking should function for intra-pod" # Needs two nodes, add equiv test for 1 node, then use networking suite
-  "should test kube-proxy"   # needs 2 nodes
-  "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
+  "should test kube-proxy"     # needs 2 nodes
+  "authentication: OpenLDAP"   # needs separate setup and bucketing for openldap bootstrapping
   "should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
   "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
   "\[Feature:Example\]"      # may need to pre-pull images
   "should serve a basic image on each replica with a public image" # is failing to create pods, the test is broken
   "ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
+  "NodeProblemDetector"        # requires a non-master node to run on
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE
@@ -193,6 +194,9 @@ readonly EXCLUDED_TESTS=(
   "schedule jobs on pod slaves use of jenkins with kubernetes plugin by creating slave from existing builder and adding it to Jenkins master" # https://github.com/openshift/origin/issues/7619
   "openshift mongodb replication creating from a template" # flaking on deployment
   "Update Demo should do a rolling update of a replication controller" # this is flaky and needs triaging
+
+  # Test will never work
+  "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
 
   # Inordinately slow tests
   "should create and stop a working application"

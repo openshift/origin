@@ -28,19 +28,19 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 		errFn  func(err error) bool
 	}{
 		{
-			status: errors.NewNotFound(api.Resource(""), "").(errors.APIStatus).Status(),
+			status: errors.NewNotFound(api.Resource(""), "").ErrStatus,
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 		{
-			status: errors.NewNotFound(api.Resource("ImageStreamImport"), "").(errors.APIStatus).Status(),
+			status: errors.NewNotFound(api.Resource("ImageStreamImport"), "").ErrStatus,
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsNotFound(err) },
 		},
 		{
-			status: errors.NewConflict(api.Resource("ImageStreamImport"), "", nil).(errors.APIStatus).Status(),
+			status: errors.NewConflict(api.Resource("ImageStreamImport"), "", nil).ErrStatus,
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsConflict(err) },
 		},
 		{
-			status: errors.NewForbidden(api.Resource("ImageStreamImport"), "", nil).(errors.APIStatus).Status(),
+			status: errors.NewForbidden(api.Resource("ImageStreamImport"), "", nil).ErrStatus,
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 	}

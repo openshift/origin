@@ -328,7 +328,7 @@ func (KubeletConnectionInfo) SwaggerDoc() map[string]string {
 
 var map_KubernetesMasterConfig = map[string]string{
 	"":                         "KubernetesMasterConfig holds the necessary configuration options for the Kubernetes master",
-	"apiLevels":                "APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples",
+	"apiLevels":                "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
 	"disabledAPIGroupVersions": "DisabledAPIGroupVersions is a map of groups to the versions (or *) that should be disabled.",
 	"masterIP":                 "MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.",
 	"masterCount":              "MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer, or if set to -1, indicates this is part of a cluster.",
@@ -427,7 +427,7 @@ var map_MasterConfig = map[string]string{
 	"":                       "MasterConfig holds the necessary configuration options for the OpenShift master",
 	"servingInfo":            "ServingInfo describes how to start serving",
 	"corsAllowedOrigins":     "CORSAllowedOrigins",
-	"apiLevels":              "APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples",
+	"apiLevels":              "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
 	"masterPublicURL":        "MasterPublicURL is how clients can access the OpenShift API server",
 	"controllers":            "Controllers is a list of the controllers that should be started. If set to \"none\", no controllers will start automatically. The default value is \"*\" which will start all controllers. When using \"*\", you may exclude controllers by prepending a \"-\" in front of their name. No other values are recognized at this time.",
 	"pauseControllers":       "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them.",

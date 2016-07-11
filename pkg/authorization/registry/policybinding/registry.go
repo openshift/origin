@@ -59,7 +59,7 @@ func (s *storage) CreatePolicyBinding(ctx kapi.Context, policyBinding *authoriza
 }
 
 func (s *storage) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
-	_, _, err := s.Update(ctx, policyBinding)
+	_, _, err := s.Update(ctx, policyBinding.Name, rest.DefaultUpdatedObjectInfo(policyBinding, kapi.Scheme))
 	return err
 }
 

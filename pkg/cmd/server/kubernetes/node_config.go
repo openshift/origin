@@ -165,7 +165,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 	server.MaxPods = 110
-	server.SerializeImagePulls = false // disable serial image pulls by default
+	server.SerializeImagePulls = false          // disable serialized image pulls by default
+	server.EnableControllerAttachDetach = false // stay consistent with existing config, but admins should enable it
 	if enableDNS {
 		// if we are running local DNS, skydns will load the default recursive nameservers for us
 		server.ResolverConfig = ""
@@ -261,15 +262,19 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		cfg.TLSOptions = nil
 	}
 
-	// Prepare cloud provider
-	cloud, err := cloudprovider.InitCloudProvider(server.CloudProvider, server.CloudConfigFile)
-	if err != nil {
-		return nil, err
+	if server.CloudProvider == kubeletoptions.AutoDetectCloudProvider {
+		cfg.AutoDetectCloudProvider = true
+	} else {
+		// Prepare cloud provider
+		cloud, err := cloudprovider.InitCloudProvider(server.CloudProvider, server.CloudConfigFile)
+		if err != nil {
+			return nil, err
+		}
+		if cloud != nil {
+			glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
+		}
+		cfg.Cloud = cloud
 	}
-	if cloud != nil {
-		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
-	}
-	cfg.Cloud = cloud
 
 	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
 	if err != nil {

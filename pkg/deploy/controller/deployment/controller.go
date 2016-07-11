@@ -81,6 +81,9 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 	deployer, deployerErr := c.getPod(deployment.Namespace, deployerPodName)
+	if deployerErr == nil {
+		nextStatus = c.nextStatus(deployer, deployment)
+	}
 
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
@@ -120,9 +123,9 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod since another pod with the same name (%q) exists", deployer.Name))
 				glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), deployer.Name)
 			} else {
-				// Update to pending relative to the existing validated deployer pod.
+				// Update to pending or to the appropriate status relative to the existing validated deployer pod.
 				deployment.Annotations[deployapi.DeploymentPodAnnotation] = deployer.Name
-				nextStatus = deployapi.DeploymentStatusPending
+				nextStatus = nextStatusComp(nextStatus, deployapi.DeploymentStatusPending)
 				glog.V(4).Infof("Detected existing deployer pod %s for deployment %s", deployer.Name, deployutil.LabelForDeployment(deployment))
 			}
 			// Don't try and re-create the deployer pod.
@@ -213,6 +216,42 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
 	}
 	return nil
+}
+
+func (c *DeploymentController) nextStatus(pod *kapi.Pod, deployment *kapi.ReplicationController) deployapi.DeploymentStatus {
+	switch pod.Status.Phase {
+	case kapi.PodPending:
+		return deployapi.DeploymentStatusPending
+
+	case kapi.PodRunning:
+		return deployapi.DeploymentStatusRunning
+
+	case kapi.PodSucceeded:
+		// If the deployment was cancelled just prior to the deployer pod succeeding
+		// then we need to remove the cancel annotations from the complete deployment
+		// and emit an event letting users know their cancellation failed.
+		if deployutil.IsDeploymentCancelled(deployment) {
+			delete(deployment.Annotations, deployapi.DeploymentCancelledAnnotation)
+			delete(deployment.Annotations, deployapi.DeploymentStatusReasonAnnotation)
+			c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedCancellation", "Succeeded before cancel recorded")
+		}
+		// Sync the internal replica annotation with the target so that we can
+		// distinguish deployer updates from other scaling events.
+		deployment.Annotations[deployapi.DeploymentReplicasAnnotation] = deployment.Annotations[deployapi.DesiredReplicasAnnotation]
+		delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
+		return deployapi.DeploymentStatusComplete
+
+	case kapi.PodFailed:
+		return deployapi.DeploymentStatusFailed
+	}
+	return deployapi.DeploymentStatusNew
+}
+
+func nextStatusComp(fromDeployer, fromPath deployapi.DeploymentStatus) deployapi.DeploymentStatus {
+	if deployutil.CanTransitionPhase(fromPath, fromDeployer) {
+		return fromDeployer
+	}
+	return fromPath
 }
 
 // makeDeployerPod creates a pod which implements deployment behavior. The pod is correlated to

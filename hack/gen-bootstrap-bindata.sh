@@ -12,15 +12,12 @@ os::log::stacktrace::install
 EXAMPLES=examples
 OUTPUT_PARENT=${OUTPUT_ROOT:-$OS_ROOT}
 
-pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
-  godep_path=$(pwd)
-  pushd src/github.com/jteeuwen/go-bindata > /dev/null
-    GOPATH=$godep_path go install ./...
-  popd > /dev/null
+pushd vendor/github.com/jteeuwen/go-bindata > /dev/null
+  go install ./...
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  Godeps/_workspace/bin/go-bindata -nocompress -nometadata -prefix "bootstrap" -pkg "bootstrap" \
+  "${GOPATH}/bin/go-bindata" -nocompress -nometadata -prefix "bootstrap" -pkg "bootstrap" \
                                    -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" -ignore "README.md" \
                                    ${EXAMPLES}/image-streams/... \
                                    ${EXAMPLES}/db-templates/... \

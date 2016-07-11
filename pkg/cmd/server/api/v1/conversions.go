@@ -4,9 +4,9 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/api/extension"
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -178,6 +178,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
+		convert_runtime_Object_To_runtime_RawExtension,
+		convert_runtime_RawExtension_To_runtime_Object,
+
 		func(in *NodeConfig, out *internal.NodeConfig, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
@@ -277,54 +280,6 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			out.KeyFile = in.ClientCert.KeyFile
 			return nil
 		},
-		func(in *internal.IdentityProvider, out *IdentityProvider, s conversion.Scope) error {
-			if err := convert_runtime_Object_To_runtime_RawExtension(in.Provider, &out.Provider, s); err != nil {
-				return err
-			}
-			out.Name = in.Name
-			out.UseAsChallenger = in.UseAsChallenger
-			out.UseAsLogin = in.UseAsLogin
-			out.MappingMethod = in.MappingMethod
-			return nil
-		},
-		func(in *IdentityProvider, out *internal.IdentityProvider, s conversion.Scope) error {
-			if err := convert_runtime_RawExtension_To_runtime_Object(&in.Provider, out.Provider, s); err != nil {
-				return err
-			}
-			if in.Provider.Object != nil {
-				var err error
-				out.Provider, err = internal.Scheme.ConvertToVersion(in.Provider.Object, internal.SchemeGroupVersion.String())
-				if err != nil {
-					return err
-				}
-			}
-			out.Name = in.Name
-			out.UseAsChallenger = in.UseAsChallenger
-			out.UseAsLogin = in.UseAsLogin
-			out.MappingMethod = in.MappingMethod
-			return nil
-		},
-		func(in *internal.AdmissionPluginConfig, out *AdmissionPluginConfig, s conversion.Scope) error {
-			if err := convert_runtime_Object_To_runtime_RawExtension(in.Configuration, &out.Configuration, s); err != nil {
-				return err
-			}
-			out.Location = in.Location
-			return nil
-		},
-		func(in *AdmissionPluginConfig, out *internal.AdmissionPluginConfig, s conversion.Scope) error {
-			if err := convert_runtime_RawExtension_To_runtime_Object(&in.Configuration, out.Configuration, s); err != nil {
-				return err
-			}
-			if in.Configuration.Object != nil {
-				var err error
-				out.Configuration, err = internal.Scheme.ConvertToVersion(in.Configuration.Object, internal.SchemeGroupVersion.String())
-				if err != nil {
-					return err
-				}
-			}
-			out.Location = in.Location
-			return nil
-		},
 		func(in *MasterVolumeConfig, out *internal.MasterVolumeConfig, s conversion.Scope) error {
 			out.DynamicProvisioningEnabled = (in.DynamicProvisioningEnabled == nil) || (*in.DynamicProvisioningEnabled)
 			return nil
@@ -334,6 +289,7 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 			out.DynamicProvisioningEnabled = &enabled
 			return nil
 		},
+
 		api.Convert_resource_Quantity_To_resource_Quantity,
 	)
 	if err != nil {
@@ -342,67 +298,67 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	}
 }
 
-var codec = serializer.NewCodecFactory(internal.Scheme).LegacyCodec(SchemeGroupVersion)
+// convert_runtime_Object_To_runtime_RawExtension attempts to convert runtime.Objects to the appropriate target.
+func convert_runtime_Object_To_runtime_RawExtension(in *runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {
+	return extension.Convert_runtime_Object_To_runtime_RawExtension(internal.Scheme, in, out, s)
+}
 
-// Convert_runtime_Object_To_runtime_RawExtension is conversion function that assumes that the runtime.Object you've embedded is in
-// the same GroupVersion that your containing type is in.  This is significantly better than simply breaking.
-// Given an ordered list of preferred external versions for a given encode or conversion call, the behavior of this function could be
-// made generic, predictable, and controllable.
-func convert_runtime_Object_To_runtime_RawExtension(in runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {
-	if in == nil {
-		return nil
+// convert_runtime_RawExtension_To_runtime_Object attempts to convert an incoming object into the
+// appropriate output type.
+func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out *runtime.Object, s conversion.Scope) error {
+	return extension.Convert_runtime_RawExtension_To_runtime_Object(internal.Scheme, in, out, s)
+}
+
+var _ runtime.NestedObjectDecoder = &MasterConfig{}
+
+// DecodeNestedObjects handles encoding RawExtensions on the MasterConfig, ensuring the
+// objects are decoded with the provided decoder.
+func (c *MasterConfig) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for k, v := range c.AdmissionConfig.PluginConfig {
+		extension.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
+		c.AdmissionConfig.PluginConfig[k] = v
 	}
-
-	externalObject, err := internal.Scheme.ConvertToVersion(in, s.Meta().DestVersion)
-	if runtime.IsNotRegisteredError(err) {
-		switch cast := in.(type) {
-		case *runtime.Unknown:
-			out.Raw = cast.Raw
-			return nil
-		case *runtime.Unstructured:
-			bytes, err := runtime.Encode(runtime.UnstructuredJSONScheme, externalObject)
-			if err != nil {
-				return err
-			}
-			out.Raw = bytes
-			return nil
+	if c.KubernetesMasterConfig != nil {
+		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
+			extension.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
+			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
 		}
 	}
-	if err != nil {
-		return err
+	if c.OAuthConfig != nil {
+		for i := range c.OAuthConfig.IdentityProviders {
+			extension.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
+		}
 	}
-
-	bytes, err := runtime.Encode(codec, externalObject)
-	if err != nil {
-		return err
-	}
-
-	out.Raw = bytes
-	out.Object = externalObject
-
 	return nil
 }
 
-// Convert_runtime_RawExtension_To_runtime_Object well, this is the reason why there was runtime.Embedded.  The `out` here is hopeless.
-// The caller doesn't know the type ahead of time and that means this method can't communicate the return value.  This sucks really badly.
-// I'm going to set the `in.Object` field can have callers to this function do magic to pull it back out.  I'm also going to bitch about it.
-func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out runtime.Object, s conversion.Scope) error {
-	if in == nil || len(in.Raw) == 0 || in.Object != nil {
-		return nil
+var _ runtime.NestedObjectEncoder = &MasterConfig{}
+
+// EncodeNestedObjects handles encoding RawExtensions on the MasterConfig, ensuring the
+// objects are encoded with the provided encoder.
+func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
+	for k, v := range c.AdmissionConfig.PluginConfig {
+		if err := extension.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
+			return err
+		}
+		c.AdmissionConfig.PluginConfig[k] = v
 	}
-
-	decodedObject, err := runtime.Decode(codec, in.Raw)
-	if err != nil {
-		in.Object = &runtime.Unknown{Raw: in.Raw}
-		return nil
+	if c.KubernetesMasterConfig != nil {
+		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
+			if err := extension.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
+				return err
+			}
+			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
+		}
 	}
-
-	internalObject, err := internal.Scheme.ConvertToVersion(decodedObject, s.Meta().DestVersion)
-	if err != nil {
-		return err
+	if c.OAuthConfig != nil {
+		for i := range c.OAuthConfig.IdentityProviders {
+			if err := extension.EncodeNestedRawExtension(e, &c.OAuthConfig.IdentityProviders[i].Provider); err != nil {
+				return err
+			}
+		}
 	}
-
-	in.Object = internalObject
-
 	return nil
 }

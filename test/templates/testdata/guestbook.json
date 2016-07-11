@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "guestbook-example",
     "creationTimestamp": null,
@@ -11,7 +11,7 @@
   "objects": [
     {
       "kind": "Route",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend-route",
         "creationTimestamp": null
@@ -27,7 +27,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend-service",
         "creationTimestamp": null
@@ -54,7 +54,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "redis-master",
         "creationTimestamp": null
@@ -81,7 +81,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${SLAVE_SERVICE_NAME}",
         "creationTimestamp": null
@@ -108,7 +108,7 @@
     },
     {
       "kind": "Pod",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "redis-master",
         "creationTimestamp": null,
@@ -151,7 +151,7 @@
     },
     {
       "kind": "ReplicationController",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "guestbook",
         "creationTimestamp": null,
@@ -219,7 +219,7 @@
     },
     {
       "kind": "ReplicationController",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${SLAVE_SERVICE_NAME}",
         "creationTimestamp": null,

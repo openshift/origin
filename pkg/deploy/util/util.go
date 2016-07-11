@@ -165,7 +165,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	deploymentName := LatestDeploymentNameForConfig(config)
 
 	podSpec := api.PodSpec{}
-	if err := api.Scheme.Convert(&config.Spec.Template.Spec, &podSpec); err != nil {
+	if err := api.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
 		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 

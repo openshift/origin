@@ -54,16 +54,16 @@ func (s *storage) ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) 
 	return obj.(*authorizationapi.RoleBindingList), nil
 }
 
-func (s *storage) CreateRoleBinding(ctx kapi.Context, node *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
-	obj, err := s.Create(ctx, node)
+func (s *storage) CreateRoleBinding(ctx kapi.Context, binding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
+	obj, err := s.Create(ctx, binding)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
-func (s *storage) UpdateRoleBinding(ctx kapi.Context, node *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
-	obj, created, err := s.Update(ctx, node)
+func (s *storage) UpdateRoleBinding(ctx kapi.Context, binding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
+	obj, created, err := s.Update(ctx, binding.Name, rest.DefaultUpdatedObjectInfo(binding, kapi.Scheme))
 	if err != nil {
 		return nil, created, err
 	}

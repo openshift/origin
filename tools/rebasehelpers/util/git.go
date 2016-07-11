@@ -98,28 +98,46 @@ func (c Commit) GodepsReposChanged() ([]string, error) {
 type File string
 
 func (f File) HasGodepsChanges() bool {
-	return strings.HasPrefix(string(f), "Godeps")
+	return strings.HasPrefix(string(f), "Godeps/_workspace") || strings.HasPrefix(string(f), "vendor")
 }
 
 func (f File) GodepsRepoChanged() (string, error) {
 	if !f.HasGodepsChanges() {
-		return "", fmt.Errorf("file doesn't appear to be a Godeps change")
+		return "", fmt.Errorf("file doesn't appear to be a Godeps or vendor change")
 	}
-	// Find the _workspace path segment index.
-	workspaceIdx := -1
+	// Find the _workspace or vendor path segment index.
+	workspaceIdx, vendorIdx := -1, -1
 	parts := strings.Split(string(f), string(os.PathSeparator))
 	for i, part := range parts {
 		if part == "_workspace" {
 			workspaceIdx = i
 			break
 		}
+		if part == "vendor" {
+			vendorIdx = i
+			break
+		}
 	}
-	// Godeps path struture assumption: Godeps/_workspace/src/...
-	if workspaceIdx == -1 || len(parts) < (workspaceIdx+3) {
-		return "", fmt.Errorf("file doesn't appear to be a Godeps workspace path")
+	var nextIdx int
+	switch {
+	case workspaceIdx != -1:
+		// Godeps path struture assumption: Godeps/_workspace/src/...
+		if len(parts) < (workspaceIdx + 3) {
+			return "", fmt.Errorf("file doesn't appear to be a Godeps workspace path")
+		}
+		nextIdx = workspaceIdx + 2
+	case vendorIdx != -1:
+		// Godeps path struture assumption: vendor/...
+		if len(parts) < (vendorIdx + 1) {
+			return "", fmt.Errorf("file doesn't appear to be a vendor path")
+		}
+		nextIdx = vendorIdx + 1
+	default:
+		return "", fmt.Errorf("file doesn't appear to be a Godeps workspace path or vendor path")
 	}
+
 	// Deal with repos which could be identified by either 2 or 3 path segments.
-	host := parts[workspaceIdx+2]
+	host := parts[nextIdx]
 	segments := -1
 	for supportedHost, count := range SupportedHosts {
 		if host == supportedHost {
@@ -132,17 +150,29 @@ func (f File) GodepsRepoChanged() (string, error) {
 	}
 	switch segments {
 	case 2:
-		return fmt.Sprintf("%s/%s", host, parts[workspaceIdx+3]), nil
+		return fmt.Sprintf("%s/%s", host, parts[nextIdx+1]), nil
 	case 3:
-		return fmt.Sprintf("%s/%s/%s", host, parts[workspaceIdx+3], parts[workspaceIdx+4]), nil
+		return fmt.Sprintf("%s/%s/%s", host, parts[nextIdx+1], parts[nextIdx+2]), nil
 	}
 	return "", fmt.Errorf("file modifies an unsupported repo host %q", host)
 }
+
+func IsCommit(a string) bool {
+	if _, _, err := run("git", "rev-parse", a); err != nil {
+		return false
+	}
+	return true
+}
+
+var ErrNotCommit = fmt.Errorf("one or both of the provided commits was not a valid commit")
 
 func CommitsBetween(a, b string) ([]Commit, error) {
 	commits := []Commit{}
 	stdout, stderr, err := run("git", "log", "--oneline", fmt.Sprintf("%s..%s", a, b))
 	if err != nil {
+		if !IsCommit(a) || !IsCommit(b) {
+			return nil, ErrNotCommit
+		}
 		return nil, fmt.Errorf("error executing git log: %s: %s", stderr, err)
 	}
 	for _, log := range strings.Split(stdout, "\n") {

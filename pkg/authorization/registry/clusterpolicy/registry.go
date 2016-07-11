@@ -59,13 +59,13 @@ func (s *storage) ListClusterPolicies(ctx kapi.Context, options *kapi.ListOption
 	return obj.(*authorizationapi.ClusterPolicyList), nil
 }
 
-func (s *storage) CreateClusterPolicy(ctx kapi.Context, node *authorizationapi.ClusterPolicy) error {
-	_, err := s.Create(ctx, node)
+func (s *storage) CreateClusterPolicy(ctx kapi.Context, policy *authorizationapi.ClusterPolicy) error {
+	_, err := s.Create(ctx, policy)
 	return err
 }
 
-func (s *storage) UpdateClusterPolicy(ctx kapi.Context, node *authorizationapi.ClusterPolicy) error {
-	_, _, err := s.Update(ctx, node)
+func (s *storage) UpdateClusterPolicy(ctx kapi.Context, policy *authorizationapi.ClusterPolicy) error {
+	_, _, err := s.Update(ctx, policy.Name, rest.DefaultUpdatedObjectInfo(policy, kapi.Scheme))
 	return err
 }
 

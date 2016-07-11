@@ -87,7 +87,7 @@ To enable running the kubernetes unit tests:
 
 To run unit test for an individual kubernetes package:
 
-    $ hack/test-go.sh Godeps/_workspace/src/k8s.io/kubernetes/examples
+    $ hack/test-go.sh vendor/k8s.io/kubernetes/examples
 
 To change the coverage mode, which is `-cover -covermode=atomic` by default, use:
 
@@ -108,9 +108,9 @@ report should be stored. For example:
 
 After that you can open `/path/to/dir/coverage.html` in the browser.
 
-To generate a jUnit XML report from the output of the tests, and see a summary of the test output 
+To generate a jUnit XML report from the output of the tests, and see a summary of the test output
 instead of the full test output, use:
-    
+
     $ JUNIT_REPORT=true hack/test-go.sh
 
 `hack/test-go.sh` cannot generate jUnit XML and a coverage report for all packages at once. If you
@@ -217,7 +217,7 @@ Docker. More information about running extended tests can be found in [test/exte
 
 OpenShift and Kubernetes use [Godep](https://github.com/tools/godep) for dependency management.
 Godep allows versions of dependent packages to be locked at a specific commit by *vendoring* them
-(checking a copy of them into `Godeps/_workspace/`).  This means that everything you need for
+(checking a copy of them into `vendor/`).  This means that everything you need for
 OpenShift is checked into this repository.  To install `godep` locally run:
 
     $ go get github.com/tools/godep
@@ -374,7 +374,7 @@ of Origin to your GOPATH.
 of Kubernetes to your GOPATH.
 5. `$ cd $GOPATH/src/github.com/openshift/origin`.
 6. `$ make clean ; godep save ./...` will save a list of the checked-out dependencies to the file
-`Godeps/Godeps.json`, and copy their source code into `Godeps/_workspace`.
+`Godeps/Godeps.json`, and copy their source code into `vendor`.
 7. If in the previous step godep complaints about the checked out revision of a package being different
 than the wanted revision, this probably means there are new packages in Kubernetes that we need to add.
 Do a `godep save <pkgname>` with the package specified by the error message and then `$ godep save ./...`
@@ -448,7 +448,7 @@ A typical pull request for your Kubernetes rebase will contain:
 
 To update to a new version of a dependency that's not already included in Kubernetes, checkout the
 correct version in your GOPATH and then run `godep save <pkgname>`.  This should create a new
-version of `Godeps/Godeps.json`, and update `Godeps/_workspace/src`.  Create a commit that includes
+version of `Godeps/Godeps.json`, and update `vendor`.  Create a commit that includes
 both of these changes with message `bump(<pkgname>): <pkgcommit>`.
 
 ## Updating external examples
@@ -470,13 +470,36 @@ Version, %commit, and %ldflags values on your own or you may use
 [tito](https://github.com/dgoodwin/tito) to build
 and tag releases.
 
+## GSSAPI-enabled builds
+
+When built with GSSAPI support, the `oc` client supports logging in with Kerberos credentials on Linux and OS X.
+GSSAPI-enabled builds of `oc` cannot be cross-compiled, but must be built on the target platform with the GSSAPI header files available.
+
+On Linux, ensure the `krb5-devel` package is installed:
+
+    $ sudo yum install -y krb5-devel
+
+On OS X, you can obtain header files via Homebrew:
+
+    $ brew install homebrew/dupes/heimdal --without-x11
+
+Once dependencies are in place, build with the `gssapi` tag:
+
+    $ hack/build-go.sh cmd/oc -tags=gssapi
+
+Verify that the GSSAPI feature is enabled with `oc version`: 
+
+    $ oc version
+    ...
+    features: Basic-Auth GSSAPI Kerberos SPNEGO
+
 ## Swagger API Documentation
 
 OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `https://localhost:8443/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
 
     $ openshift start --cors-allowed-origins=.*
 
-and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta3 to see the schemas (and to try the API directly).
+and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1 to see the schemas (and to try the API directly).
 
 Note: Hosted API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
 

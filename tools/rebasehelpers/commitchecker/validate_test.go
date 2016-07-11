@@ -23,7 +23,7 @@ func TestValidateUpstreamCommitsWithoutGodepsChanges(t *testing.T) {
 				{
 					Sha:     "aaa0001",
 					Summary: "commit 2",
-					Files:   []util.File{"Godeps/file1", "pkg/file2"},
+					Files:   []util.File{"Godeps/_workspace/src/file1", "pkg/file2"},
 				},
 			},
 			errorExpected: true,
@@ -39,7 +39,7 @@ func TestValidateUpstreamCommitsWithoutGodepsChanges(t *testing.T) {
 				{
 					Sha:     "aaa0001",
 					Summary: "UPSTREAM: commit 2",
-					Files:   []util.File{"Godeps/file1", "pkg/file2"},
+					Files:   []util.File{"Godeps/_workspace/src/file1", "pkg/file2"},
 				},
 			},
 			errorExpected: false,
@@ -89,6 +89,25 @@ func TestValidateUpstreamCommitModifiesSingleGodepsRepo(t *testing.T) {
 			errorExpected: false,
 		},
 		{
+			name: "test 1 - vendor",
+			commits: []util.Commit{
+				{
+					Sha:     "aaa0000",
+					Summary: "commit 1",
+					Files:   []util.File{"file1", "pkg/file2"},
+				},
+				{
+					Sha:     "aaa0001",
+					Summary: "commit 2",
+					Files: []util.File{
+						"vendor/k8s.io/kubernetes/file1",
+						"vendor/k8s.io/kubernetes/file2",
+					},
+				},
+			},
+			errorExpected: false,
+		},
+		{
 			name: "test 2",
 			commits: []util.Commit{
 				{
@@ -111,6 +130,34 @@ func TestValidateUpstreamCommitModifiesSingleGodepsRepo(t *testing.T) {
 					Files: []util.File{
 						"Godeps/_workspace/src/k8s.io/heapster/file1",
 						"Godeps/_workspace/src/github.com/coreos/etcd/file1",
+					},
+				},
+			},
+			errorExpected: true,
+		},
+		{
+			name: "test 2 - vendor",
+			commits: []util.Commit{
+				{
+					Sha:     "aaa0000",
+					Summary: "commit 1",
+					Files:   []util.File{"file1", "pkg/file2"},
+				},
+				{
+					Sha:     "aaa0001",
+					Summary: "UPSTREAM: commit 2",
+					Files: []util.File{
+						"vendor/k8s.io/kubernetes/file1",
+						"vendor/k8s.io/kubernetes/file2",
+						"vendor/github.com/coreos/etcd/file",
+					},
+				},
+				{
+					Sha:     "aaa0002",
+					Summary: "UPSTREAM: commit 3",
+					Files: []util.File{
+						"vendor/k8s.io/heapster/file1",
+						"vendor/github.com/coreos/etcd/file1",
 					},
 				},
 			},
@@ -162,6 +209,26 @@ func TestValidateUpstreamCommitModifiesOnlyGodeps(t *testing.T) {
 			errorExpected: true,
 		},
 		{
+			name: "test 1 - vendor",
+			commits: []util.Commit{
+				{
+					Sha:     "aaa0000",
+					Summary: "commit 1",
+					Files:   []util.File{"file1", "pkg/file2"},
+				},
+				{
+					Sha:     "aaa0001",
+					Summary: "UPSTREAM: commit 2",
+					Files: []util.File{
+						"vendor/k8s.io/kubernetes/file1",
+						"vendor/k8s.io/kubernetes/file2",
+						"pkg/some_file",
+					},
+				},
+			},
+			errorExpected: true,
+		},
+		{
 			name: "test 2",
 			commits: []util.Commit{
 				{
@@ -175,6 +242,25 @@ func TestValidateUpstreamCommitModifiesOnlyGodeps(t *testing.T) {
 					Files: []util.File{
 						"Godeps/_workspace/src/k8s.io/kubernetes/file1",
 						"Godeps/_workspace/src/k8s.io/kubernetes/file2",
+					},
+				},
+			},
+			errorExpected: false,
+		},
+		{
+			name: "test 2 - vendor",
+			commits: []util.Commit{
+				{
+					Sha:     "aaa0000",
+					Summary: "commit 1",
+					Files:   []util.File{"file1", "pkg/file2"},
+				},
+				{
+					Sha:     "aaa0001",
+					Summary: "UPSTREAM: commit 2",
+					Files: []util.File{
+						"vendor/k8s.io/kubernetes/file1",
+						"vendor/k8s.io/kubernetes/file2",
 					},
 				},
 			},

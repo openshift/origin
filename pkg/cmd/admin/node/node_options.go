@@ -158,11 +158,11 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 }
 
 func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {
-	gvk, err := kapi.Scheme.ObjectKind(obj)
+	gvk, _, err := kapi.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return nil, nil, err
 	}
-	return n.GetPrinters(gvk)
+	return n.GetPrinters(gvk[0])
 }
 
 func (n *NodeOptions) GetPrintersByResource(resource unversioned.GroupVersionResource) (kubectl.ResourcePrinter, kubectl.ResourcePrinter, error) {

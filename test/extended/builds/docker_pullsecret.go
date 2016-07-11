@@ -36,7 +36,8 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			_, err = oc.Run("start-build").Args("docker-build").Output()
+			out, err := oc.Run("start-build").Args("docker-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build succeeds")
@@ -47,7 +48,8 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a second build that pulls the image from the first build")
-			_, err = oc.Run("start-build").Args("docker-build-pull").Output()
+			out, err = oc.Run("start-build").Args("docker-build-pull").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build succeeds")

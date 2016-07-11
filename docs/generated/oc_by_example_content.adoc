@@ -179,6 +179,37 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
 ====
 
 
+== oc adm cordon
+Mark node as unschedulable
+
+====
+
+[options="nowrap"]
+----
+# Mark node "foo" as unschedulable.
+oc adm cordon foo
+
+----
+====
+
+
+== oc adm drain
+Drain node in preparation for maintenance
+
+====
+
+[options="nowrap"]
+----
+# Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+$ oc adm drain foo --force
+
+# As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+$ oc adm drain foo --grace-period=900
+
+----
+====
+
+
 == oc adm groups add-users
 Add users to a group
 
@@ -581,6 +612,36 @@ Install a router
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
   oc adm router router-west --stats-port=0
   
+----
+====
+
+
+== oc adm taint
+Update the taints on one or more nodes
+
+====
+
+[options="nowrap"]
+----
+# Update node 'foo' with a taint with key 'dedicated' and value 'special-user' and effect 'NoSchedule'.
+# If a taint with that key already exists, its value and effect are replaced as specified.
+oc adm taint nodes foo dedicated=special-user:NoSchedule
+# Remove from node 'foo' the taint with key 'dedicated' if one exists.
+oc adm taint nodes foo dedicated-
+----
+====
+
+
+== oc adm uncordon
+Mark node as schedulable
+
+====
+
+[options="nowrap"]
+----
+# Mark node "foo" as schedulable.
+$ oc adm uncordon foo
+
 ----
 ====
 
@@ -1047,7 +1108,7 @@ Create a secret for use with a Docker registry.
 [options="nowrap"]
 ----
   # If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
-  $ oc create secret docker-registry my-secret --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+  oc create secret docker-registry my-secret --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 ----
 ====
 
@@ -1067,6 +1128,19 @@ Create a secret from a local file, directory or literal value.
   
   # Create a new secret named my-secret with key1=supersecret and key2=topsecret
   oc create secret generic my-secret --from-literal=key1=supersecret --from-literal=key2=topsecret
+----
+====
+
+
+== oc create secret tls
+Create a TLS secret.
+
+====
+
+[options="nowrap"]
+----
+  # Create a new TLS secret named tls-secret with the given key pair:
+  oc create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key
 ----
 ====
 
@@ -1218,8 +1292,8 @@ Edit a resource on the server
   # Use an alternative editor
   OC_EDITOR="nano" oc edit dc/my-deployment
 
-  # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
-  oc edit svc/docker-registry --output-version=v1beta3 -o json
+  # Edit the service 'docker-registry' in JSON using the v1 API format:
+  oc edit svc/docker-registry --output-version=v1 -o json
 ----
 ====
 
@@ -1325,9 +1399,6 @@ Export resources so they can be used elsewhere
 
   # export to JSON
   oc export service -o json
-
-  # convert a file on disk to the latest API version (in YAML, the default)
-  oc export -f a_v1beta3_service.json --output-version=v1 --exact
 ----
 ====
 

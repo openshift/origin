@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample-with-resources",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -41,7 +41,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
         "creationTimestamp": null
@@ -63,7 +63,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "origin-ruby-sample",
         "creationTimestamp": null
@@ -75,7 +75,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-20-centos7",
         "creationTimestamp": null
@@ -89,11 +89,11 @@
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
         "namespace": "quota-demo",
-        "selfLink": "/osapi/v1beta3/namespaces/quota-demo/buildconfigs/ruby-sample-build",
+        "selfLink": "/osapi/v1/namespaces/quota-demo/buildconfigs/ruby-sample-build",
         "uid": "bf2174b3-fe5e-11e4-8f83-080027893417",
         "creationTimestamp": "2015-05-19T19:39:21Z",
         "labels": {
@@ -157,7 +157,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "namespace": "test",
@@ -292,7 +292,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -320,7 +320,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "namespace": "test",

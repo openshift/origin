@@ -93,7 +93,18 @@ func (r *ScaleREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
-func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+func (r *ScaleREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name)
+	if err != nil {
+		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
+	}
+
+	old := api.ScaleFromConfig(deploymentConfig)
+	obj, err := objInfo.UpdatedObject(ctx, old)
+	if err != nil {
+		return nil, false, err
+	}
+
 	scale, ok := obj.(*extensions.Scale)
 	if !ok {
 		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
@@ -103,17 +114,12 @@ func (r *ScaleREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object
 		return nil, false, errors.NewInvalid(extensions.Kind("Scale"), scale.Name, errs)
 	}
 
-	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, scale.Name)
-	if err != nil {
-		return nil, false, errors.NewNotFound(extensions.Resource("scale"), scale.Name)
-	}
-
 	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
 	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
 		return nil, false, err
 	}
 
-	return api.ScaleFromConfig(deploymentConfig), false, nil
+	return scale, false, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of a DeploymentConfig.
@@ -129,6 +135,6 @@ func (r *StatusREST) New() runtime.Object {
 }
 
 // Update alters the status subset of an deploymentConfig.
-func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
+func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }

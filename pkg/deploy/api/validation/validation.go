@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
@@ -150,7 +151,7 @@ func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollba
 
 	if len(rollback.Name) == 0 {
 		result = append(result, field.Required(field.NewPath("name"), "name of the deployment config is missing"))
-	} else if !kvalidation.IsDNS1123Subdomain(rollback.Name) {
+	} else if len(kvalidation.IsDNS1123Subdomain(rollback.Name)) != 0 {
 		result = append(result, field.Invalid(field.NewPath("name"), rollback.Name, "name of the deployment config is invalid"))
 	}
 
@@ -417,7 +418,7 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 		if err := validateImageStreamTagName(params.From.Name); err != nil {
 			errs = append(errs, field.Invalid(fromPath.Child("name"), params.From.Name, err.Error()))
 		}
-		if len(params.From.Namespace) != 0 && !kvalidation.IsDNS1123Subdomain(params.From.Namespace) {
+		if len(params.From.Namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(params.From.Namespace)) != 0 {
 			errs = append(errs, field.Invalid(fromPath.Child("namespace"), params.From.Namespace, "namespace must be a valid subdomain"))
 		}
 	}
@@ -434,9 +435,8 @@ func validateImageStreamTagName(istag string) error {
 	if !ok {
 		return fmt.Errorf("invalid ImageStreamTag: %s", istag)
 	}
-	ok, reason := imageval.ValidateImageStreamName(name, false)
-	if !ok {
-		return errors.New(reason)
+	if reasons := imageval.ValidateImageStreamName(name, false); len(reasons) != 0 {
+		return errors.New(strings.Join(reasons, ", "))
 	}
 	return nil
 }

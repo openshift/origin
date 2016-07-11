@@ -88,7 +88,7 @@ wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${
 oc login -u system:admin -n openldap
 
 
-LDAP_SERVICE_IP=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}" service openldap-server)
+LDAP_SERVICE_IP=$(oc get --output-version=v1 --template="{{ .spec.portalIP }}" service openldap-server)
 
 function compare_and_cleanup() {
 	validation_file=$1
@@ -238,7 +238,7 @@ grep 'For group "cn=group1,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", 
 grep 'For group "cn=group2,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
 grep 'For group "cn=group3,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
 grep 'For group "cn=group3,ou=groups,ou=incomplete\-rfc2307,dc=example,dc=com", ignoring member "cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com"' "${LOG_DIR}/tolerated-output.txt"
-compare_and_cleanup valid_all_ldap_sync_tolerating.yaml		
+compare_and_cleanup valid_all_ldap_sync_tolerating.yaml
 popd > /dev/null
 
 # special test for augmented-ad
@@ -247,5 +247,5 @@ echo -e "\tTEST: Sync all LDAP groups from LDAP server, remove LDAP group metada
 oadm groups sync --sync-config=sync-config.yaml --confirm
 ldapdelete -x -h $LDAP_SERVICE_IP -p 389 -D cn=Manager,dc=example,dc=com -w admin "${group1_ldapuid}"
 oadm groups prune --sync-config=sync-config.yaml --confirm
-compare_and_cleanup valid_all_ldap_sync_delete_prune.yaml		
+compare_and_cleanup valid_all_ldap_sync_delete_prune.yaml
 popd > /dev/null

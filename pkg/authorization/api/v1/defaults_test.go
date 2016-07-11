@@ -20,7 +20,7 @@ func TestDefaults(t *testing.T) {
 		Resources: []string{api.ResourceAll},
 	}
 	out := &api.PolicyRule{}
-	if err := kapi.Scheme.Convert(obj, out); err != nil {
+	if err := kapi.Scheme.Convert(obj, out, nil); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(out.APIGroups, []string{api.APIGroupAll}) {

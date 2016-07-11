@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
@@ -42,7 +43,9 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 		glog.V(4).Infof("Detecting image changes for deployment config %q", deployutil.LabelForDeploymentConfig(config))
 		hasImageChange := false
 
-		for _, trigger := range config.Spec.Triggers {
+		for j := range config.Spec.Triggers {
+			// because config can be copied during this loop, make sure we load from config for subsequent loops
+			trigger := config.Spec.Triggers[j]
 			params := trigger.ImageChangeParams
 
 			// Only automatic image change triggers should fire
@@ -88,6 +91,19 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 				if !names.Has(container.Name) {
 					continue
 				}
+
+				if !hasImageChange {
+					// create a copy prior to mutation
+					result, err := deployutil.DeploymentConfigDeepCopy(config)
+					if err != nil {
+						utilruntime.HandleError(err)
+						continue
+					}
+					config = result
+					container = &config.Spec.Template.Spec.Containers[i]
+					params = config.Spec.Triggers[j].ImageChangeParams
+				}
+
 				// Update the image
 				container.Image = latestEvent.DockerImageReference
 				// Log the last triggered image ID
@@ -111,10 +127,10 @@ func (c *ImageChangeController) Handle(stream *imageapi.ImageStream) error {
 	}
 
 	if anyFailed {
-		return fatalError(fmt.Sprintf("couldn't update some deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream)))
+		return fmt.Errorf("couldn't update some deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream))
 	}
 
-	glog.V(5).Infof("Updated all deployment configs for trigger on image stream %q", imageapi.LabelForStream(stream))
+	glog.V(5).Infof("Updated %d deployment configs for trigger on image stream %q", len(configsToUpdate), imageapi.LabelForStream(stream))
 	return nil
 }
 

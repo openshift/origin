@@ -60,7 +60,7 @@ func (s *storage) CreateBuildConfig(ctx kapi.Context, build *api.BuildConfig) er
 }
 
 func (s *storage) UpdateBuildConfig(ctx kapi.Context, build *api.BuildConfig) error {
-	_, _, err := s.Update(ctx, build)
+	_, _, err := s.Update(ctx, build.Name, rest.DefaultUpdatedObjectInfo(build, kapi.Scheme))
 	return err
 }
 

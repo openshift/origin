@@ -480,14 +480,14 @@ func importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetri
 func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepository, limiter flowcontrol.RateLimiter) {
 	value := ctx.Value(ContextKeyV1RegistryClient)
 	if value == nil {
-		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)
+		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
 		err.ErrStatus.Reason = "NotV2Registry"
 		applyErrorToRepository(repository, err)
 		return
 	}
 	client, ok := value.(dockerregistry.Client)
 	if !ok {
-		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host)).(*kapierrors.StatusError)
+		err := kapierrors.NewForbidden(api.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
 		err.ErrStatus.Reason = "NotV2Registry"
 		return
 	}
@@ -616,9 +616,9 @@ func imageImportStatus(err error, kind, position string) unversioned.Status {
 	case kapierrors.APIStatus:
 		return t.Status()
 	case *field.Error:
-		return kapierrors.NewInvalid(api.Kind(kind), position, field.ErrorList{t}).(kapierrors.APIStatus).Status()
+		return kapierrors.NewInvalid(api.Kind(kind), position, field.ErrorList{t}).ErrStatus
 	default:
-		return kapierrors.NewInternalError(err).(kapierrors.APIStatus).Status()
+		return kapierrors.NewInternalError(err).ErrStatus
 	}
 }
 
@@ -628,5 +628,5 @@ func setImageImportStatus(images *api.ImageStreamImport, i int, tag string, err 
 }
 
 func invalidStatus(position string, errs ...*field.Error) unversioned.Status {
-	return kapierrors.NewInvalid(api.Kind(""), position, errs).(kapierrors.APIStatus).Status()
+	return kapierrors.NewInvalid(api.Kind(""), position, errs).ErrStatus
 }

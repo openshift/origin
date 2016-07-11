@@ -1,4 +1,4 @@
-// +build integration,docker
+// +build integration
 
 package integration
 
@@ -22,7 +22,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -30,6 +29,7 @@ import (
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/route/api/v1"
 	tr "github.com/openshift/origin/test/integration/router"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -325,10 +325,11 @@ func TestRouter(t *testing.T) {
 			routeEvent.Object.(*routeapi.Route).Spec.Port = tc.preferredPort
 		}
 
-		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+		sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+		sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 		// Now verify the route with an HTTP client.
+		t.Logf("TC %s: url %s alias %s protocol %s", tc.name, tc.routerUrl, tc.routeAlias, tc.protocol)
 		if err := waitForRoute(tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse); err != nil {
 			t.Errorf("TC %s failed: %v", tc.name, err)
 
@@ -338,6 +339,9 @@ func TestRouter(t *testing.T) {
 					" hostname of the router (%s) resolves its the IP address, (%s).",
 					tc.routeAlias, routeAddress)
 			}
+			if strings.Contains(err.Error(), "unavailable the entire time") {
+				break
+			}
 		}
 
 		//clean up
@@ -346,8 +350,8 @@ func TestRouter(t *testing.T) {
 		endpoints := endpointEvent.Object.(*kapi.Endpoints)
 		endpoints.Subsets = []kapi.EndpointSubset{}
 
-		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-		fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+		sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+		sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 	}
 }
 
@@ -465,8 +469,8 @@ func TestRouterPathSpecificity(t *testing.T) {
 	routeAddress := getRouteAddress()
 	routeTestAddress := fmt.Sprintf("%s/test", routeAddress)
 
-	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 	for _, proto := range protocols {
 		//ensure you can curl path but not main host
@@ -517,8 +521,9 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 	for _, proto := range protocols {
 		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
@@ -553,7 +558,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 	for _, proto := range protocols {
 		//ensure you can curl path and host
@@ -592,7 +597,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 	// Ensure you can still curl path and host.  The host-based route should now
 	// handle requests to / as well as requests to /test (or any other path).
@@ -636,7 +641,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 	for _, proto := range protocols {
 		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodPath); err != nil {
@@ -674,7 +679,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 
 	for _, proto := range protocols {
 		if err := waitForRoute(routeTestAddress, "www.example.com", proto.name, nil, tr.HelloPodAlternate); err != nil {
@@ -711,7 +716,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 	endpointEvent = &watch.Event{
 		Type: watch.Modified,
 		Object: &kapi.Endpoints{
@@ -722,7 +727,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 			Subsets: []kapi.EndpointSubset{},
 		},
 	}
-	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
 }
 
 // TestRouterDuplications ensures that the router implementation is keying correctly and resolving routes that may be
@@ -797,9 +802,9 @@ func TestRouterDuplications(t *testing.T) {
 		},
 	}
 
-	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-	fakeMasterAndPod.RouteChannel <- eventString(exampleRouteEvent)
-	fakeMasterAndPod.RouteChannel <- eventString(example2RouteEvent)
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(exampleRouteEvent), 30*time.Second)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(example2RouteEvent), 30*time.Second)
 
 	routeAddress := getRouteAddress()
 
@@ -827,7 +832,7 @@ func TestRouterDuplications(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(example2RouteCleanupEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(example2RouteCleanupEvent), 30*time.Second)
 	exampleRouteCleanupEvent := &watch.Event{
 		Type: watch.Deleted,
 		Object: &routeapi.Route{
@@ -843,7 +848,7 @@ func TestRouterDuplications(t *testing.T) {
 			},
 		},
 	}
-	fakeMasterAndPod.RouteChannel <- eventString(exampleRouteCleanupEvent)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(exampleRouteCleanupEvent), 30*time.Second)
 	endpointCleanupEvent := &watch.Event{
 		Type: watch.Modified,
 		Object: &kapi.Endpoints{
@@ -854,7 +859,7 @@ func TestRouterDuplications(t *testing.T) {
 			Subsets: []kapi.EndpointSubset{},
 		},
 	}
-	fakeMasterAndPod.EndpointChannel <- eventString(endpointCleanupEvent)
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointCleanupEvent), 30*time.Second)
 }
 
 // TestRouterStatsPort tests that the router is listening on and
@@ -1189,6 +1194,7 @@ func waitForRoute(routerUrl string, hostName string, protocol string, headers ma
 		}
 		if err == ErrUnavailable || strings.Contains(err.Error(), "connection refused") ||
 			strings.Contains(err.Error(), "use of closed network connection") {
+			lastErr = fmt.Errorf("unavailable the entire time: %v", err)
 			return false, nil
 		}
 		return false, err
@@ -1199,9 +1205,17 @@ func waitForRoute(routerUrl string, hostName string, protocol string, headers ma
 	return err
 }
 
+func sendTimeout(t *testing.T, ch chan string, s string, timeout time.Duration) {
+	select {
+	case ch <- s:
+	case <-time.After(timeout):
+		t.Fatalf("timed out attempting to send to channel: %s", s)
+	}
+}
+
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1beta3.SchemeGroupVersion), e)
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }
@@ -1378,7 +1392,7 @@ func getRouteAddress() string {
 }
 
 // generateTestEvents generates endpoint and route added test events.
-func generateTestEvents(fakeMasterAndPod *tr.TestHttpService, flag bool, serviceName, routeName, routeAlias string, endpoints []kapi.EndpointSubset) {
+func generateTestEvents(t *testing.T, fakeMasterAndPod *tr.TestHttpService, flag bool, serviceName, routeName, routeAlias string, endpoints []kapi.EndpointSubset) {
 	endpointEvent := &watch.Event{
 		Type: watch.Added,
 
@@ -1417,8 +1431,8 @@ func generateTestEvents(fakeMasterAndPod *tr.TestHttpService, flag bool, service
 		endpoints.Subsets = []kapi.EndpointSubset{}
 	}
 
-	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
-	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 }
 
 // TestRouterReloadCoalesce tests that router reloads are coalesced.
@@ -1477,7 +1491,7 @@ func TestRouterReloadCoalesce(t *testing.T) {
 		routeAlias = fmt.Sprintf("www.example-coalesce-%v.test", i)
 
 		// Send the add events.
-		generateTestEvents(fakeMasterAndPod, false, serviceName, routeName, routeAlias, endpoints)
+		generateTestEvents(t, fakeMasterAndPod, false, serviceName, routeName, routeAlias, endpoints)
 	}
 
 	// Wait for the last routeAlias to become available.
@@ -1498,7 +1512,7 @@ func TestRouterReloadCoalesce(t *testing.T) {
 		routeAlias = fmt.Sprintf("www.example-coalesce-%v.test", i)
 
 		// Send the cleanup events.
-		generateTestEvents(fakeMasterAndPod, true, serviceName, routeName, routeAlias, endpoints)
+		generateTestEvents(t, fakeMasterAndPod, true, serviceName, routeName, routeAlias, endpoints)
 	}
 
 	// Wait for the first routeAlias to become unavailable.

@@ -69,9 +69,12 @@ var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
 	kapi.Resource("podtemplates"):                               kapi.Kind("PodTemplate"),
 	kapi.Resource("replicationcontrollers"):                     kapi.Kind("ReplicationController"),
 	batch.Resource("jobs"):                                      batch.Kind("Job"),
+	batch.Resource("jobtemplates"):                              batch.Kind("JobTemplate"),
+	batch.Resource("scheduledjobs"):                             batch.Kind("ScheduledJob"),
 	extensions.Resource("deployments"):                          extensions.Kind("Deployment"),
 	extensions.Resource("replicasets"):                          extensions.Kind("ReplicaSet"),
 	extensions.Resource("jobs"):                                 extensions.Kind("Job"),
+	extensions.Resource("jobtemplates"):                         extensions.Kind("JobTemplate"),
 	apps.Resource("petsets"):                                    apps.Kind("PetSet"),
 	deployapi.Resource("deploymentconfigs"):                     deployapi.Kind("DeploymentConfig"),
 	securityapi.Resource("podsecuritypolicysubjectreviews"):     securityapi.Kind("PodSecurityPolicySubjectReview"),
@@ -157,6 +160,10 @@ func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec
 		return r.Spec.Template.Spec, nil
 	case *batch.Job:
 		return r.Spec.Template.Spec, nil
+	case *batch.ScheduledJob:
+		return r.Spec.JobTemplate.Spec.Template.Spec, nil
+	case *batch.JobTemplate:
+		return r.Template.Spec.Template.Spec, nil
 	case *deployapi.DeploymentConfig:
 		return r.Spec.Template.Spec, nil
 	case *securityapi.PodSecurityPolicySubjectReview:

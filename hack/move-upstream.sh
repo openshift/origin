@@ -47,8 +47,8 @@ fi
 
 echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
 index=0
-for commit in $(git log --no-merges --format="%H" --reverse "${selector}" -- "Godeps/_workspace/src/${repo}/"); do
-  git format-patch --raw --start-number=${index} --relative="Godeps/_workspace/src/${repo}/" "${commit}^..${commit}" -o "${patch}"
+for commit in $(git log --no-merges --format="%H" --reverse "${selector}" -- "vendor/${repo}/"); do
+  git format-patch --raw --start-number=${index} --relative="vendor/${repo}/" "${commit}^..${commit}" -o "${patch}"
   let index+=10
 done
 

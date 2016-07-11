@@ -641,11 +641,11 @@ func getPort(theURL url.URL) int {
 
 // applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
 func applyDefaults(config runtime.Object, version unversioned.GroupVersion) (runtime.Object, error) {
-	ext, err := configapi.Scheme.ConvertToVersion(config, version.String())
+	ext, err := configapi.Scheme.ConvertToVersion(config, version)
 	if err != nil {
 		return nil, err
 	}
-	return configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion.String())
+	return configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion)
 }
 
 func servingInfoForAddr(addr *flagtypes.Addr) configapi.ServingInfo {

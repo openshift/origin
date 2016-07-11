@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kapirest "k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 
@@ -409,7 +410,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
+	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -440,7 +441,7 @@ func TestUpdateMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error: %v", err)
@@ -473,7 +474,7 @@ func TestUpdateMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error: %v", err)
@@ -500,7 +501,7 @@ func TestUpdateOldUserMatches(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
+	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -531,7 +532,7 @@ func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -562,7 +563,7 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -604,7 +605,7 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	userRegistry.UpdateErr[unassociatedUser1.Name] = expectedErr
-	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping)
+	createdMapping, created, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	// An error cleaning up the old user shouldn't manifest as an update failure, since the mapping was successfully updated
 	if err != nil {
@@ -644,7 +645,7 @@ func TestUpdateUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	userRegistry.UpdateErr[associatedUser2.Name] = expectedErr
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")
@@ -684,7 +685,7 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity1User1, associatedUser1, unassociatedUser2)
 	identityRegistry.UpdateErr = expectedErr
-	_, _, err := rest.Update(kapi.NewContext(), mapping)
+	_, _, err := rest.Update(kapi.NewContext(), mapping.Name, kapirest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 
 	if err == nil {
 		t.Errorf("Expected error")

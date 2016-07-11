@@ -19,6 +19,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	namer "github.com/openshift/origin/pkg/util/namer"
 
@@ -33,7 +34,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
 	executor := &HookExecutor{
 		podClient: &HookExecutorPodClientImpl{
@@ -64,7 +65,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	podLogs := &bytes.Buffer{}
@@ -118,7 +119,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
 	var createdPod *kapi.Pod
 	executor := &HookExecutor{
@@ -156,7 +157,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
 	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook")
 
@@ -412,7 +413,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
 	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook")
 	if err != nil {
@@ -513,7 +514,7 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 			acceptedPods: acceptedPods,
 		}
 
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		deployment.Spec.Replicas = 1
 
 		acceptor.out = &bytes.Buffer{}
@@ -610,7 +611,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Namespace = namespace
 	return config, deployment
 }

@@ -3,7 +3,6 @@ package emptydir
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -12,8 +11,9 @@ var _ volume.Mounter = &emptyDirQuotaMounter{}
 
 // EmptyDirQuotaPlugin is a simple wrapper for the k8s empty dir plugin mounter.
 type EmptyDirQuotaPlugin struct {
-	// wrapped is the actual k8s emptyDir volume plugin we will pass method calls to.
-	Wrapped volume.VolumePlugin
+	// the actual k8s emptyDir volume plugin we will pass method calls to.
+	// TODO: do we need to implement unmount
+	volume.VolumePlugin
 
 	// The default quota to apply to each node:
 	Quota resource.Quantity
@@ -24,7 +24,7 @@ type EmptyDirQuotaPlugin struct {
 }
 
 func (plugin *EmptyDirQuotaPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Mounter, error) {
-	volMounter, err := plugin.Wrapped.NewMounter(spec, pod, opts)
+	volMounter, err := plugin.VolumePlugin.NewMounter(spec, pod, opts)
 	if err != nil {
 		return volMounter, err
 	}
@@ -47,22 +47,6 @@ func (plugin *EmptyDirQuotaPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, o
 		quotaApplicator: plugin.QuotaApplicator,
 	}
 	return wrapperEmptyDir, err
-}
-
-func (plugin *EmptyDirQuotaPlugin) Init(host volume.VolumeHost) error {
-	return plugin.Wrapped.Init(host)
-}
-
-func (plugin *EmptyDirQuotaPlugin) Name() string {
-	return plugin.Wrapped.Name()
-}
-
-func (plugin *EmptyDirQuotaPlugin) CanSupport(spec *volume.Spec) bool {
-	return plugin.Wrapped.CanSupport(spec)
-}
-
-func (plugin *EmptyDirQuotaPlugin) NewUnmounter(volName string, podUID types.UID) (volume.Unmounter, error) {
-	return plugin.Wrapped.NewUnmounter(volName, podUID)
 }
 
 // emptyDirQuotaMounter is a wrapper plugin mounter for the k8s empty dir mounter itself.

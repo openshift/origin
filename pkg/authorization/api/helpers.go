@@ -165,7 +165,7 @@ func BuildSubjects(users, groups []string, userNameValidator, groupNameValidator
 		}
 
 		kind := UserKind
-		if valid, _ := userNameValidator(user, false); !valid {
+		if len(userNameValidator(user, false)) != 0 {
 			kind = SystemUserKind
 		}
 
@@ -174,7 +174,7 @@ func BuildSubjects(users, groups []string, userNameValidator, groupNameValidator
 
 	for _, group := range groups {
 		kind := GroupKind
-		if valid, _ := groupNameValidator(group, false); !valid {
+		if len(groupNameValidator(group, false)) != 0 {
 			kind = SystemGroupKind
 		}
 

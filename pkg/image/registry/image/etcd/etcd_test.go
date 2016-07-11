@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -387,7 +388,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Copy the resource version into our update object
 		test.image.ResourceVersion = created.(*api.Image).ResourceVersion
-		obj, _, err := storage.Update(kapi.NewDefaultContext(), test.image)
+		obj, _, err := storage.Update(kapi.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue

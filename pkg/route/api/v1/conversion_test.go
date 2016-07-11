@@ -30,7 +30,7 @@ func TestSupportingCamelConstants(t *testing.T) {
 	} {
 		obj := &v1.TLSConfig{Termination: k}
 		out := &api.TLSConfig{}
-		if err := kapi.Scheme.Convert(obj, out); err != nil {
+		if err := kapi.Scheme.Convert(obj, out, nil); err != nil {
 			t.Errorf("%s: did not convert: %v", k, err)
 			continue
 		}
@@ -48,7 +48,7 @@ func TestDefaults(t *testing.T) {
 		},
 	}
 	out := &api.Route{}
-	if err := kapi.Scheme.Convert(obj, out); err != nil {
+	if err := kapi.Scheme.Convert(obj, out, nil); err != nil {
 		t.Fatal(err)
 	}
 	if out.Spec.TLS.Termination != api.TLSTerminationEdge {

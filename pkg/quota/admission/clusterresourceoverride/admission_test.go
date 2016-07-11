@@ -220,20 +220,20 @@ func TestLimitRequestAdmission(t *testing.T) {
 			continue
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
-		attrs := admission.NewAttributesRecord(test.pod, unversioned.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
+		attrs := admission.NewAttributesRecord(test.pod, nil, unversioned.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
 		if err = c.Admit(attrs); err != nil {
 			t.Errorf("%s: admission controller returned error: %v", test.name, err)
 			continue
 		}
 		resources := test.pod.Spec.Containers[0].Resources // only test one container
 		if actual := resources.Requests[kapi.ResourceMemory]; test.expectedMemRequest.Cmp(actual) != 0 {
-			t.Errorf("%s: memory requests do not match; %s should be %s", test.name, actual, test.expectedMemRequest)
+			t.Errorf("%s: memory requests do not match; %v should be %v", test.name, actual, test.expectedMemRequest)
 		}
 		if actual := resources.Requests[kapi.ResourceCPU]; test.expectedCpuRequest.Cmp(actual) != 0 {
-			t.Errorf("%s: cpu requests do not match; %s should be %s", test.name, actual, test.expectedCpuRequest)
+			t.Errorf("%s: cpu requests do not match; %v should be %v", test.name, actual, test.expectedCpuRequest)
 		}
 		if actual := resources.Limits[kapi.ResourceCPU]; test.expectedCpuLimit.Cmp(actual) != 0 {
-			t.Errorf("%s: cpu limits do not match; %s should be %s", test.name, actual, test.expectedCpuLimit)
+			t.Errorf("%s: cpu limits do not match; %v should be %v", test.name, actual, test.expectedCpuLimit)
 		}
 	}
 }

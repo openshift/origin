@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/validation"
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -16,8 +13,11 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
-	"github.com/golang/glog"
-	"speter.net/go/exp/math/dec/inf"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/validation"
 )
 
 const (
@@ -26,8 +26,6 @@ const (
 )
 
 var (
-	zeroDec  = inf.NewDec(0, 0)
-	miDec    = inf.NewDec(1024*1024, 0)
 	cpuFloor = resource.MustParse("1m")
 	memFloor = resource.MustParse("1Mi")
 )
@@ -47,9 +45,9 @@ func init() {
 }
 
 type internalConfig struct {
-	limitCPUToMemoryRatio     *inf.Dec
-	cpuRequestToLimitRatio    *inf.Dec
-	memoryRequestToLimitRatio *inf.Dec
+	limitCPUToMemoryRatio     float64
+	cpuRequestToLimitRatio    float64
+	memoryRequestToLimitRatio float64
 }
 type clusterResourceOverridePlugin struct {
 	*admission.Handler
@@ -70,9 +68,9 @@ func newClusterResourceOverride(client clientset.Interface, config *api.ClusterR
 	var internal *internalConfig
 	if config != nil {
 		internal = &internalConfig{
-			limitCPUToMemoryRatio:     inf.NewDec(config.LimitCPUToMemoryPercent, 2),
-			cpuRequestToLimitRatio:    inf.NewDec(config.CPURequestToLimitPercent, 2),
-			memoryRequestToLimitRatio: inf.NewDec(config.MemoryRequestToLimitPercent, 2),
+			limitCPUToMemoryRatio:     float64(config.LimitCPUToMemoryPercent) / 100,
+			cpuRequestToLimitRatio:    float64(config.CPURequestToLimitPercent) / 100,
+			memoryRequestToLimitRatio: float64(config.MemoryRequestToLimitPercent) / 100,
 		}
 	}
 
@@ -165,48 +163,46 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	for _, container := range pod.Spec.Containers {
 		resources := container.Resources
 		memLimit, memFound := resources.Limits[kapi.ResourceMemory]
-		if memFound && a.config.memoryRequestToLimitRatio.Cmp(zeroDec) != 0 {
+		if memFound && a.config.memoryRequestToLimitRatio != 0 {
 			// memory is measured in whole bytes.
 			// the plugin rounds down to the nearest MiB rather than bytes to improve ease of use for end-users.
-			amount := multiply(memLimit.Amount, a.config.memoryRequestToLimitRatio)
-			roundDownToNearestMi := multiply(divide(amount, miDec, 0, inf.RoundDown), miDec)
-			value := resource.Quantity{Amount: roundDownToNearestMi, Format: resource.BinarySI}
-			if memFloor.Cmp(value) > 0 {
-				value = *(memFloor.Copy())
+			amount := memLimit.Value() * int64(a.config.memoryRequestToLimitRatio*100) / 100
+			// TODO: move into resource.Quantity
+			var mod int64
+			switch memLimit.Format {
+			case resource.BinarySI:
+				mod = 1024 * 1024
+			default:
+				mod = 1000 * 1000
 			}
-			resources.Requests[kapi.ResourceMemory] = value
-		}
-		if memFound && a.config.limitCPUToMemoryRatio.Cmp(zeroDec) != 0 {
-			// float math is necessary here as there is no way to create an inf.Dec to represent cpuBaseScaleFactor < 0.001
-			// cpu is measured in millicores, so we need to scale and round down the value to nearest millicore scale
-			amount := multiply(inf.NewDec(int64(float64(memLimit.Value())*cpuBaseScaleFactor), 3), a.config.limitCPUToMemoryRatio)
-			amount.Round(amount, 3, inf.RoundDown)
-			value := resource.Quantity{Amount: amount, Format: resource.DecimalSI}
-			if cpuFloor.Cmp(value) > 0 {
-				value = *(cpuFloor.Copy())
+			if rem := amount % mod; rem != 0 {
+				amount = amount - rem
 			}
-			resources.Limits[kapi.ResourceCPU] = value
+			q := resource.NewQuantity(int64(amount), memLimit.Format)
+			if memFloor.Cmp(*q) > 0 {
+				q = memFloor.Copy()
+			}
+			resources.Requests[kapi.ResourceMemory] = *q
 		}
+		if memFound && a.config.limitCPUToMemoryRatio != 0 {
+			amount := float64(memLimit.Value()) * a.config.limitCPUToMemoryRatio * cpuBaseScaleFactor
+			q := resource.NewMilliQuantity(int64(amount), resource.DecimalSI)
+			if cpuFloor.Cmp(*q) > 0 {
+				q = cpuFloor.Copy()
+			}
+			resources.Limits[kapi.ResourceCPU] = *q
+		}
+
 		cpuLimit, cpuFound := resources.Limits[kapi.ResourceCPU]
-		if cpuFound && a.config.cpuRequestToLimitRatio.Cmp(zeroDec) != 0 {
-			// cpu is measured in millicores, so we need to scale and round down the value to nearest millicore scale
-			amount := multiply(cpuLimit.Amount, a.config.cpuRequestToLimitRatio)
-			amount.Round(amount, 3, inf.RoundDown)
-			value := resource.Quantity{Amount: amount, Format: resource.DecimalSI}
-			if cpuFloor.Cmp(value) > 0 {
-				value = *(cpuFloor.Copy())
+		if cpuFound && a.config.cpuRequestToLimitRatio != 0 {
+			amount := float64(cpuLimit.MilliValue()) * a.config.cpuRequestToLimitRatio
+			q := resource.NewMilliQuantity(int64(amount), cpuLimit.Format)
+			if cpuFloor.Cmp(*q) > 0 {
+				q = cpuFloor.Copy()
 			}
-			resources.Requests[kapi.ResourceCPU] = value
+			resources.Requests[kapi.ResourceCPU] = *q
 		}
 	}
 	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec.Containers[0].Resources)
 	return nil
-}
-
-func multiply(x *inf.Dec, y *inf.Dec) *inf.Dec {
-	return inf.NewDec(0, 0).Mul(x, y)
-}
-
-func divide(x *inf.Dec, y *inf.Dec, s inf.Scale, r inf.Rounder) *inf.Dec {
-	return inf.NewDec(0, 0).QuoRound(x, y, s, r)
 }

@@ -284,7 +284,7 @@ func (o *TriggersOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

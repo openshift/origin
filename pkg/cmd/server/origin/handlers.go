@@ -128,7 +128,7 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 	// We don't have direct access to kind or name (not that those apply either in the general case)
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
 	// that makes sense when a human reads it.
-	forbiddenError, _ := kapierrors.NewForbidden(unversioned.GroupResource{Group: group, Resource: resource}, name, errors.New("") /*discarded*/).(*kapierrors.StatusError)
+	forbiddenError := kapierrors.NewForbidden(unversioned.GroupResource{Group: group, Resource: resource}, name, errors.New("") /*discarded*/)
 	forbiddenError.ErrStatus.Message = reason
 
 	formatted := &bytes.Buffer{}

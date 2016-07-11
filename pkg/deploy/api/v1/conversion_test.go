@@ -43,7 +43,7 @@ func TestTriggerRoundTrip(t *testing.T) {
 			},
 		}
 		out := &newer.DeploymentTriggerImageChangeParams{}
-		if err := kapi.Scheme.Convert(&p, out); err != nil {
+		if err := kapi.Scheme.Convert(&p, out, nil); err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
 		}
 		if out.From.Name != "golang:latest" {
@@ -124,7 +124,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 
 	for _, test := range tests {
 		out := &newer.RollingDeploymentStrategyParams{}
-		if err := kapi.Scheme.Convert(test.in, out); err != nil {
+		if err := kapi.Scheme.Convert(test.in, out, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {
@@ -194,7 +194,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 
 	for _, test := range tests {
 		out := &RollingDeploymentStrategyParams{}
-		if err := kapi.Scheme.Convert(test.in, out); err != nil {
+		if err := kapi.Scheme.Convert(test.in, out, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {

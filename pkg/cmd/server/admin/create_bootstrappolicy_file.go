@@ -82,7 +82,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 
 	clusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
 	for i := range clusterRoles {
-		versionedObject, err := kapi.Scheme.ConvertToVersion(&clusterRoles[i], latest.Version.String())
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&clusterRoles[i], latest.Version)
 		if err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 
 	clusterRoleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
 	for i := range clusterRoleBindings {
-		versionedObject, err := kapi.Scheme.ConvertToVersion(&clusterRoleBindings[i], latest.Version.String())
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&clusterRoleBindings[i], latest.Version)
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 
 	openshiftRoles := bootstrappolicy.GetBootstrapOpenshiftRoles(o.OpenShiftSharedResourcesNamespace)
 	for i := range openshiftRoles {
-		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoles[i], latest.Version.String())
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoles[i], latest.Version)
 		if err != nil {
 			return err
 		}
@@ -109,14 +109,14 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 
 	openshiftRoleBindings := bootstrappolicy.GetBootstrapOpenshiftRoleBindings(o.OpenShiftSharedResourcesNamespace)
 	for i := range openshiftRoleBindings {
-		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoleBindings[i], latest.Version.String())
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoleBindings[i], latest.Version)
 		if err != nil {
 			return err
 		}
 		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
 	}
 
-	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version.String())
+	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version)
 	if err != nil {
 		return err
 	}

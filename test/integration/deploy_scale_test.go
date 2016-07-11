@@ -20,15 +20,25 @@ func TestDeployScale(t *testing.T) {
 
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	osClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
