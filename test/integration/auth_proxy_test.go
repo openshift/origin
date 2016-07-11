@@ -36,15 +36,23 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	masterConfig.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{idp}
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// set up a front proxy guarding the oauth server
 	proxyHTTPHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(clusterAdminClientConfig.Host))
@@ -54,7 +62,9 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 
 	// need to prime clients so that we can get back a code.  the client must be valid
 	result := clusterAdminClient.RESTClient.Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
-	checkErr(t, result.Error())
+	if result.Error() != nil {
+		t.Fatal(result.Error())
+	}
 
 	// our simple URL to get back a code.  We want to go through the front proxy
 	rawAuthorizeRequest := proxyServer.URL + origin.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
