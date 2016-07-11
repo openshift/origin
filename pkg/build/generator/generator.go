@@ -233,6 +233,9 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 
 	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision, request.Binary)
 	if err != nil {
+		if _, ok := err.(errors.APIStatus); ok {
+			return nil, err
+		}
 		return nil, errors.NewInternalError(err)
 	}
 
