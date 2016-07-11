@@ -8,6 +8,7 @@
       "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
     }
   },
+  "message": "Your admin credentials are ${ADMIN_USERNAME}:${ADMIN_PASSWORD}",
   "objects": [
     {
       "kind": "Route",
