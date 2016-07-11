@@ -4,7 +4,7 @@
 #
 # The standard name for this image is openshift/dind
 #
-FROM fedora:23
+FROM fedora:24
 
 ## Configure systemd to run in a container
 ENV container=docker
@@ -32,7 +32,7 @@ VOLUME ["/run", "/tmp"]
 
 ## Install packages
 RUN dnf -y update && dnf -y install git golang hg tar make findutils \
-  hostname bind-utils iproute iputils which procps-ng openssh-server \
+  gcc hostname bind-utils iproute iputils which procps-ng openssh-server \
   # Node-specific packages
   docker openvswitch bridge-utils ethtool iptables-services \
   && dnf clean all
