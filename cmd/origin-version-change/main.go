@@ -16,14 +16,17 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/runtime/serializer"
 	kflag "k8s.io/kubernetes/pkg/util/flag"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/restmapper"
+	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
@@ -48,22 +51,29 @@ func isYAML(data []byte) bool {
 }
 
 func changeObjectsVersion(items []kruntime.Object) {
-	if errs := kruntime.DecodeList(items, api.Scheme); len(errs) > 0 {
+	codec := api.Codecs.UniversalDecoder()
+	if errs := kruntime.DecodeList(items, codec); len(errs) > 0 {
 		log.Fatalf("Unable to decode Template objects: %v", errs)
 	}
+
 	for i, obj := range items {
 		groupVersionKind, err := api.Scheme.ObjectKind(obj)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to determine version and kind: %v", i, err)
 			continue
 		}
-		mapping, err := latest.RESTMapper.RESTMapping(groupVersionKind.GroupKind(), *outputVersion)
+
+		mapper := restmapper.NewDiscoveryRESTMapper(client.NewDiscoveryClient(new(restclient.RESTClient)))
+		mapping, err := mapper.RESTMapping(groupVersionKind.GroupKind(), *outputVersion)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to get REST mappings: %v", err)
 			continue
 		}
+
 		info := resource.Info{Object: obj, Mapping: mapping}
-		outputObj, err := resource.AsVersionedObject([]*resource.Info{&info}, false, *outputVersion)
+
+		encoder := new(kruntime.Encoder)
+		outputObj, err := resource.AsVersionedObject([]*resource.Info{&info}, false, *outputVersion, *encoder)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to convert: %v", err)
 			continue
@@ -76,7 +86,6 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.CommandLine.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
 	flag.Parse()
-
 	if *rewrite != "" {
 		*inputSource = *rewrite
 		*outputDest = *rewrite
@@ -98,6 +107,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Couldn't read from input: %q", err)
 	}
+
 	isYAML := isYAML(data)
 
 	if isYAML {
@@ -106,7 +116,9 @@ func main() {
 			log.Fatalf("Failed to convert YAML to JSON: %q", err)
 		}
 	}
-	obj, err := api.Scheme.Decode(data)
+
+	codec := api.Codecs.UniversalDecoder()
+	obj, err := kruntime.Decode(codec, data)
 	if err != nil {
 		log.Fatalf("Couldn't decode input: %q", err)
 	}
@@ -118,7 +130,14 @@ func main() {
 		changeObjectsVersion(list.Items)
 	}
 
-	outData, err := api.Scheme.EncodeToVersion(obj, *outputVersion)
+	var Scheme = kruntime.NewScheme()
+	var Codecs = serializer.NewCodecFactory(Scheme)
+	serializer, ok := Codecs.SerializerForFileExtension("json")
+	if !ok {
+		log.Fatalf("Failed to get serializer")
+	}
+
+	outData, err := kruntime.Encode(serializer, obj, unversioned.GroupVersion{Version: *outputVersion})
 	if err != nil {
 		log.Fatalf("Failed to encode to version %q: %q", *outputVersion, err)
 	}
