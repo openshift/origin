@@ -17,7 +17,7 @@ dockerregistry="$( os::build::find-binary dockerregistry )"
 
 url="${DOCKER_REGISTRY_URL:-localhost:5000}"
 # find the first builder service account token
-token="$(oc get $(oc get secrets -o name | grep builder-token | head -n 1) --template '{{ .data.token }}' | base64 -D)"
+token="$(oc get $(oc get secrets -o name | grep builder-token | head -n 1) --template '{{ .data.token }}' | os::util::base64decode)"
 echo
 echo "Login with:"
 echo "  docker login -p \"${token}\" -u user ${url}"
