@@ -46,8 +46,8 @@ build-tests:
 #
 # Example:
 #   make check
-check: | build verify
-	$(MAKE) test-unit test-cmd -o build -o verify
+check: | build
+	$(MAKE) test-cmd -o build -o verify
 .PHONY: check
 
 
@@ -114,7 +114,7 @@ test-integration:
 # Example:
 #   make test-cmd
 test-cmd: build
-	hack/test-cmd.sh
+	hack/test-cmd.sh test/cmd/builds.sh
 .PHONY: test-cmd
 
 # Run end to end tests. Uses whatever binaries are currently built.
@@ -215,4 +215,3 @@ build-cross: clean
 install-travis:
 	hack/install-tools.sh
 .PHONY: install-travis
-

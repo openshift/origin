@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -17,6 +18,16 @@ var (
 	ErrUnknownBuildPhase = fmt.Errorf("unknown build phase")
 	ErrBuildDeleted      = fmt.Errorf("build was deleted")
 )
+
+// UnknownObjectError is returned when WaitForRunningBuild encounters an
+// unexpected object.
+type UnknownObjectError struct {
+	runtime.Object
+}
+
+func (e *UnknownObjectError) Error() string {
+	return fmt.Sprintf("received unknown object while watching for builds: %#v", e.Object)
+}
 
 // WaitForRunningBuild waits until the specified build is no longer New or Pending. Returns true if
 // the build ran within timeout, false if it did not, and an error if any other error state occurred.
@@ -38,7 +49,7 @@ func WaitForRunningBuild(watcher rest.Watcher, ctx kapi.Context, build *api.Buil
 		case event := <-ch:
 			obj, ok := event.Object.(*api.Build)
 			if !ok {
-				return observed, false, fmt.Errorf("received unknown object while watching for builds")
+				return observed, false, &UnknownObjectError{event.Object}
 			}
 			observed = obj
 
