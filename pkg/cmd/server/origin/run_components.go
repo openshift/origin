@@ -34,7 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployerpodcontroller "github.com/openshift/origin/pkg/deploy/controller/deployerpod"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
@@ -331,18 +330,6 @@ func (c *MasterConfig) RunDeploymentController() {
 	stopCh := make(chan struct{})
 	// TODO: Make the number of workers configurable.
 	go controller.Run(5, stopCh)
-}
-
-// RunDeployerPodController starts the deployer pod controller process.
-func (c *MasterConfig) RunDeployerPodController() {
-	kclient := c.DeployerPodControllerClient()
-	factory := deployerpodcontroller.DeployerPodControllerFactory{
-		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec(),
-	}
-
-	controller := factory.Create()
-	controller.Run()
 }
 
 // RunDeploymentConfigController starts the deployment config controller process.
