@@ -137,8 +137,12 @@ else
 fi
 
 # Check openshift version
-out=$(openshift version)
-echo openshift: $out
+echo "openshift version:"
+openshift version
+
+# Check oc version
+echo "oc version:"
+oc version
 
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"

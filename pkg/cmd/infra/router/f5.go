@@ -129,7 +129,7 @@ func NewCommandF5Router(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, false))
+	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)

@@ -29,7 +29,7 @@ export OS_OUTPUT_GOPATH
 #   make all
 #   make all WHAT=cmd/oc GOFLAGS=-v
 all build:
-	hack/build-go.sh $(WHAT)
+	hack/build-go.sh $(WHAT) $(GOFLAGS)
 .PHONY: all build
 
 # Build the test binaries.

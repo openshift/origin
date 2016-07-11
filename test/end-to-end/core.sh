@@ -45,6 +45,10 @@ function wait_for_app() {
 }
 
 os::test::junit::declare_suite_start "end-to-end/core"
+
+echo "[INFO] openshift version: `openshift version`"
+echo "[INFO] oc version:        `oc version`"
+
 # service dns entry is visible via master service
 # find the IP of the master service by asking the API_HOST to verify DNS is running there
 MASTER_SERVICE_IP="$(dig "@${API_HOST}" "kubernetes.default.svc.cluster.local." +short A | head -n 1)"

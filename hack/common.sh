@@ -317,8 +317,13 @@ os::build::internal::build_binaries() {
       fi
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
+        # allow per-os/arch build flags like OS_GOFLAGS_LINUX_AMD64
+        local platform_goflags_envvar=OS_GOFLAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+        local platform_goflags
+        eval "platform_goflags=(${!platform_goflags_envvar:-})"
+
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
-          "${goflags[@]:+${goflags[@]}}" \
+          "${goflags[@]:+${goflags[@]}}" "${platform_goflags[@]:+${platform_goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "${nonstatics[@]}"
 
