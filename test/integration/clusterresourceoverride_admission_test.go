@@ -99,6 +99,7 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 }
 
 func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) kclient.Interface {
+	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
