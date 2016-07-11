@@ -59,7 +59,7 @@ pin-godep() {
   popd > /dev/null
 }
 
-ORIGIN_ROOT=$(dirname "${BASH_SOURCE}")/..
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 # build the godep tool
 # Again go get stinks, hence || true
@@ -72,31 +72,28 @@ pin-godep 'v63'
 # preload any odd-ball remotes
 preload-remote "github.com/openshift" "origin" "github.com/openshift" "origin" # this looks goofy, but if you are not in GOPATH you need to pull origin explicitly
 preload-remote "k8s.io" "kubernetes" "github.com/openshift" "kubernetes"
+preload-remote "github.com/docker" "distribution" "github.com/openshift" "docker-distribution"
+preload-remote "github.com/skynetservices" "skydns" "github.com/openshift" "skydns"
+preload-remote "github.com/coreos" "etcd" "github.com/openshift" "etcd"
+preload-remote "github.com/emicklei" "go-restful" "github.com/openshift" "go-restful"
+preload-remote "github.com/golang" "glog" "github.com/openshift" "glog"
+preload-remote "github.com/RangelReale" "osin" "github.com/openshift" "osin"
+preload-remote "github.com/google" "cadvisor" "github.com/openshift" "cadvisor"
 
 # preload any odd-ball commits
 # kube e2e test dep
-preload-dep "github.com/elazarl" "goproxy" "07b16b6e30fcac0ad8c0435548e743bcf2ca7e92"
+preload-dep "github.com/elazarl"     "goproxy" "$( go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/elazarl/goproxy" )"
 # rkt test dep
-preload-dep "github.com/golang/mock" "gomock" "bd3c8e81be01eef76d4b503f5e687d2d1354d2d9"
-
-# HACK. PLEASE REMOVE WHEN THIS DEPENDENCY IS FIXED.
-OLDINFPATH=${GOPATH}/src/speter.net/go/exp/math/dec
-mkdir -p "${OLDINFPATH}"
-pushd "${OLDINFPATH}" > /dev/null
-  git clone https://github.com/go-inf/inf.git || true
-  pushd inf > /dev/null
-    git checkout 42ca6cd68aa922bc3f32f1e056e61b65945d9ad7
-  popd > /dev/null
-popd > /dev/null
+preload-dep "github.com/golang/mock" "gomock"  "$( go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/golang/mock/gomock" )"
 
 # fill out that nice clean place with the origin godeps
 echo "Starting to download all godeps. This takes a while"
 
-pushd "${ORIGIN_ROOT}" > /dev/null
+pushd "${GOPATH}/src/github.com/openshift/origin" > /dev/null
 "${GODEP}" restore
 popd > /dev/null
 
-echo "Download finished"
+echo "Download finished into ${GOPATH}"
 echo "######## REMEMBER ########"
 echo "You cannot just godep save ./..."
 echo "You should use hack/godep-save.sh"
