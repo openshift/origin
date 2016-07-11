@@ -62,6 +62,7 @@ func runFuzzer(t *testing.T) {
 	controller := NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
 	go controller.Run(5, stopCh)
 	informerFactory.Start(stopCh)
+	informerFactory.StartCore(stopCh)
 
 	finalNamespaces := map[string]*kapi.Namespace{}
 	finalQuotas := map[string]*quotaapi.ClusterResourceQuota{}

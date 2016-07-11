@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -23,7 +22,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
@@ -36,38 +34,12 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
-	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
-	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/controller/shared"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
-
-// AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
-var AdmissionPlugins = []string{
-	"RunOnceDuration",
-	lifecycle.PluginName,
-	"PodNodeConstraints",
-	"OriginPodNodeEnvironment",
-	overrideapi.PluginName,
-	serviceadmit.ExternalIPPluginName,
-	"LimitRanger",
-	"ServiceAccount",
-	"SecurityContextConstraint",
-	"BuildDefaults",
-	"BuildOverrides",
-	"AlwaysPullImages",
-	"LimitPodHardAntiAffinityTopology",
-	"ResourceQuota",
-	"SCCExecRestrictions",
-}
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -81,7 +53,7 @@ type MasterConfig struct {
 	Informers shared.InformerFactory
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers shared.InformerFactory, pluginInitializer oadmission.PluginInitializer) (*MasterConfig, error) {
+func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers shared.InformerFactory, admissionControl admission.Interface) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}
@@ -120,7 +92,6 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
-	server.AdmissionControl = strings.Join(AdmissionPlugins, ",")
 	server.EnableLogsSupport = false // don't expose server logs
 	server.EnableProfiling = false
 	server.APIPrefix = KubeAPIPrefix
@@ -133,10 +104,6 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// proper errors
 	if err := cmdflags.Resolve(options.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
-	}
-
-	if len(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride) > 0 {
-		server.AdmissionControl = strings.Join(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride, ",")
 	}
 
 	// Defaults are tested in TestCMServerDefaults
@@ -161,54 +128,6 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	if cloud != nil {
 		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
 	}
-
-	plugins := []admission.Interface{}
-	for _, pluginName := range strings.Split(server.AdmissionControl, ",") {
-		switch pluginName {
-		case lifecycle.PluginName:
-			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
-			immortalNamespaces := sets.NewString(kapi.NamespaceDefault)
-			if len(options.PolicyConfig.OpenShiftSharedResourcesNamespace) > 0 {
-				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftSharedResourcesNamespace)
-			}
-			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
-				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
-			}
-			plugins = append(plugins, lifecycle.NewLifecycle(clientadapter.FromUnversionedClient(kubeClient), immortalNamespaces))
-
-		case serviceadmit.ExternalIPPluginName:
-			// this needs to be moved upstream to be part of core config
-			reject, admit, err := serviceadmit.ParseCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
-			if err != nil {
-				// should have been caught with validation
-				return nil, err
-			}
-			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
-		case saadmit.PluginName:
-			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount(clientadapter.FromUnversionedClient(kubeClient))
-			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
-			saAdmitter.Run()
-			plugins = append(plugins, saAdmitter)
-
-		default:
-			configFile, err := pluginconfig.GetPluginConfigFile(options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, pluginName, server.AdmissionControlConfigFile)
-			if err != nil {
-				return nil, err
-			}
-			plugin := admission.InitPlugin(pluginName, clientadapter.FromUnversionedClient(kubeClient), configFile)
-			if plugin != nil {
-				plugins = append(plugins, plugin)
-			}
-
-		}
-	}
-	pluginInitializer.Initialize(plugins)
-	// ensure that plugins have been properly initialized
-	if err := oadmission.Validate(plugins); err != nil {
-		return nil, err
-	}
-	admissionController := admission.NewChainHandler(plugins...)
 
 	var proxyClientCerts []tls.Certificate
 	if len(options.KubernetesMasterConfig.ProxyClientInfo.CertFile) > 0 {
@@ -279,7 +198,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 			ReadWritePort: port,
 
 			Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
-			AdmissionControl: admissionController,
+			AdmissionControl: admissionControl,
 
 			StorageFactory: storageFactory,
 

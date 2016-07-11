@@ -23,19 +23,13 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/master"
-	quotainstall "k8s.io/kubernetes/pkg/quota/install"
-	"k8s.io/kubernetes/pkg/registry/endpoint"
-	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
-	"k8s.io/kubernetes/pkg/controller"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/daemon"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
 	gccontroller "k8s.io/kubernetes/pkg/controller/gc"
@@ -46,10 +40,13 @@ import (
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
-	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	volumecontroller "k8s.io/kubernetes/pkg/controller/volume"
 
+	"k8s.io/kubernetes/pkg/registry/endpoint"
+	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
+	"k8s.io/kubernetes/pkg/util/flowcontrol"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/cinder"
@@ -301,29 +298,6 @@ func (c *MasterConfig) RunScheduler() {
 
 	s := scheduler.New(config)
 	s.Run()
-}
-
-// RunResourceQuotaManager starts the resource quota manager
-func (c *MasterConfig) RunResourceQuotaManager() {
-	client := clientadapter.FromUnversionedClient(c.KubeClient)
-	resourceQuotaRegistry := quotainstall.NewRegistry(client)
-	groupKindsToReplenish := []unversioned.GroupKind{
-		kapi.Kind("Pod"),
-		kapi.Kind("Service"),
-		kapi.Kind("ReplicationController"),
-		kapi.Kind("PersistentVolumeClaim"),
-		kapi.Kind("Secret"),
-		kapi.Kind("ConfigMap"),
-	}
-	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		KubeClient:                client,
-		ResyncPeriod:              controller.StaticResyncPeriodFunc(c.ControllerManager.ResourceQuotaSyncPeriod.Duration),
-		Registry:                  resourceQuotaRegistry,
-		GroupKindsToReplenish:     groupKindsToReplenish,
-		ControllerFactory:         kresourcequota.NewReplenishmentControllerFactory(c.Informers.Pods().Informer(), client),
-		ReplenishmentResyncPeriod: kctrlmgr.ResyncPeriod(c.ControllerManager),
-	}
-	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(int(c.ControllerManager.ConcurrentResourceQuotaSyncs), utilwait.NeverStop)
 }
 
 func (c *MasterConfig) RunGCController(client *client.Client) {

@@ -16,6 +16,7 @@ import (
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
 	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
+	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourcequota"
 	_ "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
 	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
@@ -39,6 +40,7 @@ var (
 
 func init() {
 	defaultOffPlugins.Insert("AlwaysPullImages")
+	defaultOnPlugins.Insert("ClusterResourceQuota")
 	admission.PluginEnabledFn = IsAdmissionPluginActivated
 }
 
