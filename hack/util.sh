@@ -74,7 +74,7 @@ function configure_os_server() {
 	openshift start \
 	--write-config=${SERVER_CONFIG_DIR} \
 	--create-certs=false \
-	--dns="tcp://${API_HOST}:53" \
+	--dns="tcp://${API_HOST}:8053" \
 	--listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	--master="${MASTER_ADDR}" \
 	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
