@@ -367,18 +367,22 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 
 func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 	if err == nil {
+		c.queue.Forget(key)
 		return
 	}
+
 	if _, isFatal := err.(fatalError); isFatal {
 		utilruntime.HandleError(err)
 		c.queue.Forget(key)
 		return
 	}
 
-	if c.queue.NumRequeues(key) < 10 {
+	if c.queue.NumRequeues(key) < MaxRetries {
+		glog.V(2).Infof("Error syncing deployment config %v: %v", key, err)
 		c.queue.AddRateLimited(key)
-	} else {
-		glog.V(2).Infof(err.Error())
-		c.queue.Forget(key)
+		return
 	}
+
+	utilruntime.HandleError(err)
+	c.queue.Forget(key)
 }

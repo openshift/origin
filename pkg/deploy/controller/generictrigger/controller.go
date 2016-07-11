@@ -6,8 +6,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 
+	"github.com/golang/glog"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -212,4 +214,20 @@ func (c *DeploymentTriggerController) update(config *deployapi.DeploymentConfig,
 	}
 	_, err := c.dn.DeploymentConfigs(config.Namespace).UpdateStatus(config)
 	return err
+}
+
+func (c *DeploymentTriggerController) handleErr(err error, key interface{}) {
+	if err == nil {
+		c.queue.Forget(key)
+		return
+	}
+
+	if c.queue.NumRequeues(key) < MaxRetries {
+		glog.V(2).Infof("Error instantiating deployment config %v: %v", key, err)
+		c.queue.AddRateLimited(key)
+		return
+	}
+
+	utilruntime.HandleError(err)
+	c.queue.Forget(key)
 }
