@@ -331,7 +331,7 @@ out:
 			}
 
 			if e, a := updated, newConfig.Spec.Template.Spec.Containers[0].Image; e == a {
-				t.Fatalf("unexpected image update, expected initial image to be the same")
+				t.Fatalf("unexpected image update, expected initial image to be the same: %#v", newConfig)
 			}
 		case <-timeout:
 			return

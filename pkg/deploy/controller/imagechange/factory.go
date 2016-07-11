@@ -69,7 +69,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}
-				if retries.Count > 0 {
+				if retries.Count > 2 {
 					return false
 				}
 				return true
