@@ -257,7 +257,7 @@ func (g PipelineGroup) String() string {
 var invalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
 
 func makeValidServiceName(name string) (string, string) {
-	if ok, _ := validation.ValidateServiceName(name, false); ok {
+	if len(validation.ValidateServiceName(name, false)) == 0 {
 		return name, ""
 	}
 	name = strings.ToLower(name)
@@ -420,11 +420,11 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	gvk, err := a.typer.ObjectKind(obj)
+	gvk, _, err := a.typer.ObjectKinds(obj)
 	if err != nil {
 		return false
 	}
-	key := fmt.Sprintf("%s/%s/%s", gvk.Kind, meta.Namespace, meta.Name)
+	key := fmt.Sprintf("%s/%s/%s", gvk[0].Kind, meta.Namespace, meta.Name)
 	_, exists := a.objects[key]
 	if exists {
 		return false
@@ -464,11 +464,11 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	gvk, err := a.typer.ObjectKind(obj)
+	gvk, _, err := a.typer.ObjectKinds(obj)
 	if err != nil {
 		return false
 	}
-	return gvk.GroupKind() == build.Kind("BuildConfig") || gvk.GroupKind() == image.Kind("ImageStream")
+	return gvk[0].GroupKind() == build.Kind("BuildConfig") || gvk[0].GroupKind() == image.Kind("ImageStream")
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

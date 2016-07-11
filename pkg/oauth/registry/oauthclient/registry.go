@@ -63,7 +63,7 @@ func (s *storage) CreateClient(ctx kapi.Context, client *api.OAuthClient) (*api.
 }
 
 func (s *storage) UpdateClient(ctx kapi.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
-	obj, _, err := s.Update(ctx, client)
+	obj, _, err := s.Update(ctx, client.Name, rest.DefaultUpdatedObjectInfo(client, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}

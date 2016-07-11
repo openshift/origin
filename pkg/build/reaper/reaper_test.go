@@ -120,7 +120,7 @@ func actionsAreEqual(a, b ktestclient.Action) bool {
 
 func TestStop(t *testing.T) {
 	notFound := func() runtime.Object {
-		return &(kerrors.NewNotFound(buildapi.Resource("BuildConfig"), configName).(*kerrors.StatusError).ErrStatus)
+		return &(kerrors.NewNotFound(buildapi.Resource("BuildConfig"), configName).ErrStatus)
 	}
 
 	tests := map[string]struct {

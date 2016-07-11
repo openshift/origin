@@ -355,6 +355,30 @@ func (eq *EventQueue) ListConsumed() bool {
 	return eq.lastReplaceKey == ""
 }
 
+// Resync will touch all objects to put them into the processing queue
+func (eq *EventQueue) Resync() error {
+	eq.lock.Lock()
+	defer eq.lock.Unlock()
+
+	inQueue := sets.NewString()
+	for _, id := range eq.queue {
+		inQueue.Insert(id)
+	}
+
+	for _, id := range eq.store.ListKeys() {
+		if !inQueue.Has(id) {
+			eq.queue = append(eq.queue, id)
+		}
+	}
+
+	if len(eq.queue) > 0 {
+		eq.cond.Broadcast()
+	} else {
+		eq.lastReplaceKey = ""
+	}
+	return nil
+}
+
 // NewEventQueue returns a new EventQueue.
 func NewEventQueue(keyFn kcache.KeyFunc) *EventQueue {
 	q := &EventQueue{

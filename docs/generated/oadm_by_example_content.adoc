@@ -179,6 +179,37 @@ Displays merged kubeconfig settings or a specified kubeconfig file.
 ====
 
 
+== oadm cordon
+Mark node as unschedulable
+
+====
+
+[options="nowrap"]
+----
+# Mark node "foo" as unschedulable.
+oadm cordon foo
+
+----
+====
+
+
+== oadm drain
+Drain node in preparation for maintenance
+
+====
+
+[options="nowrap"]
+----
+# Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+$ oadm drain foo --force
+
+# As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+$ oadm drain foo --grace-period=900
+
+----
+====
+
+
 == oadm groups add-users
 Add users to a group
 
@@ -581,6 +612,36 @@ Install a router
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
   oadm router router-west --stats-port=0
   
+----
+====
+
+
+== oadm taint
+Update the taints on one or more nodes
+
+====
+
+[options="nowrap"]
+----
+# Update node 'foo' with a taint with key 'dedicated' and value 'special-user' and effect 'NoSchedule'.
+# If a taint with that key already exists, its value and effect are replaced as specified.
+oadm taint nodes foo dedicated=special-user:NoSchedule
+# Remove from node 'foo' the taint with key 'dedicated' if one exists.
+oadm taint nodes foo dedicated-
+----
+====
+
+
+== oadm uncordon
+Mark node as schedulable
+
+====
+
+[options="nowrap"]
+----
+# Mark node "foo" as schedulable.
+$ oadm uncordon foo
+
 ----
 ====
 

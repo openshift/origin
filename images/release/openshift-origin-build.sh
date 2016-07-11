@@ -8,7 +8,7 @@ cat <<EOF > ${build_script_path}
 
 function chown_output {
     if [ ! -z "$OWNER_GROUP" ]; then
-        chown -R "$OWNER_GROUP" Godeps/_workspace/pkg _output
+        chown -R "$OWNER_GROUP" _output
     fi
 }
 

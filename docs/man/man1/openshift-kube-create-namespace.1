@@ -33,7 +33,7 @@ Create a namespace with the specified name.
 \fB\-o\fP, \fB\-\-output\fP=""
     Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/HEAD/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -132,22 +132,18 @@ Create a namespace with the specified name.
 
 .PP
 \fB\-\-docker\-root\fP="/var/lib/docker"
-    Absolute path to the Docker state root directory (default: /var/lib/docker)
-
-.PP
-\fB\-\-docker\-run\fP="/var/run/docker"
-    Absolute path to the Docker run directory (default: /var/run/docker)
+    DEPRECATED: docker root is read from docker info (this is a fallback, default: /var/lib/docker)
 
 .PP
 \fB\-\-enable\-load\-reader\fP=false
     Whether to enable cpu load reader
 
 .PP
-\fB\-\-event\-storage\-age\-limit\fP="default=24h"
+\fB\-\-event\-storage\-age\-limit\fP="default=0"
     Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
 
 .PP
-\fB\-\-event\-storage\-event\-limit\fP="default=100000"
+\fB\-\-event\-storage\-event\-limit\fP="default=0"
     Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
 
 .PP

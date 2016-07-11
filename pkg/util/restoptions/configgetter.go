@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -108,7 +108,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 		// TODO: choose destination group/version based on input group/resource
 		// TODO: Tune the cache size
 		groupVersion := unversioned.GroupVersion{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion}
-		g.etcdHelper = etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupVersion), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericapiserver.DefaultDeserializationCacheSize)
+		g.etcdHelper = etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupVersion), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericserveroptions.DefaultDeserializationCacheSize)
 	}
 
 	configuredCacheSize, specified := g.cacheSizes[resource]

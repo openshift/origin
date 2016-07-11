@@ -34,7 +34,7 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 		return
 	}
 	(*seen)[objType] = true
-	if !strings.Contains(objType.PkgPath(), "openshift/origin") {
+	if !strings.Contains(objType.PkgPath(), "github.com/openshift/origin/pkg") {
 		return
 	}
 
@@ -79,7 +79,7 @@ func checkJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing
 		return
 	}
 	(*seen)[objType] = true
-	if !strings.Contains(objType.PkgPath(), "openshift/origin") {
+	if !strings.Contains(objType.PkgPath(), "github.com/openshift/origin/pkg") {
 		return
 	}
 	if internalTypesWithAllowedJsonTags.Has(objType.Name()) {

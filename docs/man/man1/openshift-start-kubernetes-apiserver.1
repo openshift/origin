@@ -26,7 +26,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-admission\-control\fP="AlwaysAdmit"
-    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, BuildDefaults, BuildOverrides, ClusterResourceOverride, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImageLimitRange, InitialResources, JenkinsBootstrapper, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, OriginResourceQuota, PersistentVolumeLabel, PodNodeConstraints, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount
+    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, BuildDefaults, BuildOverrides, ClusterResourceOverride, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImageLimitRange, InitialResources, JenkinsBootstrapper, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, OriginResourceQuota, PersistentVolumeLabel, PodNodeConstraints, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount
 
 .PP
 \fB\-\-admission\-control\-config\-file\fP=""
@@ -45,12 +45,32 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     The number of apiservers running in the cluster
 
 .PP
+\fB\-\-authentication\-token\-webhook\-cache\-ttl\fP=0
+    The duration to cache responses from the webhook token authenticator. Default is 2m
+
+.PP
+\fB\-\-authentication\-token\-webhook\-config\-file\fP=""
+    File with webhook configuration for token authentication in kubeconfig format. The API server will query the remote service to determine authentication for bearer tokens.
+
+.PP
 \fB\-\-authorization\-mode\fP="AlwaysAllow"
-    Ordered list of plug\-ins to do authorization on secure port. Comma\-delimited list of: AlwaysAllow,AlwaysDeny,ABAC,Webhook
+    Ordered list of plug\-ins to do authorization on secure port. Comma\-delimited list of: AlwaysAllow,AlwaysDeny,ABAC,Webhook,RBAC
 
 .PP
 \fB\-\-authorization\-policy\-file\fP=""
     File with authorization policy in csv format, used with \-\-authorization\-mode=ABAC, on the secure port.
+
+.PP
+\fB\-\-authorization\-rbac\-super\-user\fP=""
+    If specified, a username which avoids RBAC authorization checks and role binding privilege escalation checks, to be used with \-\-authorization\-mode=RBAC.
+
+.PP
+\fB\-\-authorization\-webhook\-cache\-authorized\-ttl\fP=0
+    The duration to cache 'authorized' responses from the webhook authorizer. Default is 5m.
+
+.PP
+\fB\-\-authorization\-webhook\-cache\-unauthorized\-ttl\fP=0
+    The duration to cache 'unauthorized' responses from the webhook authorizer. Default is 30s.
 
 .PP
 \fB\-\-authorization\-webhook\-config\-file\fP=""
@@ -91,6 +111,10 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 .PP
 \fB\-\-deserialization\-cache\-size\fP=50000
     Number of deserialized json objects to cache in memory.
+
+.PP
+\fB\-\-enable\-garbage\-collector\fP=false
+    Enables the generic garbage collector. MUST be synced with the corresponding flag of the kube\-controller\-manager.
 
 .PP
 \fB\-\-enable\-swagger\-ui\fP=false
@@ -283,7 +307,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     The version to store the legacy v1 resources with. Defaults to server preferred
 
 .PP
-\fB\-\-storage\-versions\fP="apps/v1alpha1,authorization.k8s.io/v1beta1,autoscaling/v1,batch/v1,componentconfig/v1alpha1,extensions/v1beta1,metrics/v1alpha1,policy/v1alpha1,v1"
+\fB\-\-storage\-versions\fP="apps/v1alpha1,authentication.k8s.io/v1beta1,authorization.k8s.io/v1beta1,autoscaling/v1,batch/v1,componentconfig/v1alpha1,extensions/v1beta1,federation/v1beta1,policy/v1alpha1,rbac.authorization.k8s.io/v1alpha1,v1"
     The per\-group version to store resources in. Specified in the format "group1/version1,group2/version2,...". In the case where objects are moved from one group to the other, you may specify the format "group1=group2/v1beta1,group3/v1beta1,...". You only need to pass the groups you wish to change from the defaults. It defaults to a list of preferred versions of all registered groups, which is derived from the KUBE\_API\_VERSIONS environment variable.
 
 .PP

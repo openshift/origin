@@ -140,22 +140,27 @@ func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowE
 	return role, nil
 }
 
-func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return m.updateRole(ctx, obj, false)
+func (m *VirtualStorage) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return m.updateRole(ctx, name, objInfo, false)
 }
 func (m *VirtualStorage) UpdateRoleWithEscalation(ctx kapi.Context, obj *authorizationapi.Role) (*authorizationapi.Role, bool, error) {
-	return m.updateRole(ctx, obj, true)
+	return m.updateRole(ctx, obj.Name, rest.DefaultUpdatedObjectInfo(obj, kapi.Scheme), true)
 }
 
-func (m *VirtualStorage) updateRole(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.Role, bool, error) {
+func (m *VirtualStorage) updateRole(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo, allowEscalation bool) (*authorizationapi.Role, bool, error) {
+	old, err := m.Get(ctx, name)
+	if err != nil {
+		return nil, false, err
+	}
+
+	obj, err := objInfo.UpdatedObject(ctx, old)
+	if err != nil {
+		return nil, false, err
+	}
+
 	role, ok := obj.(*authorizationapi.Role)
 	if !ok {
 		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not a role: %#v", obj))
-	}
-
-	old, err := m.Get(ctx, role.Name)
-	if err != nil {
-		return nil, false, err
 	}
 
 	if err := rest.BeforeUpdate(m.UpdateStrategy, ctx, obj, old); err != nil {

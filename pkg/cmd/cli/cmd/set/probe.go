@@ -316,7 +316,7 @@ func (o *ProbeOptions) Run() error {
 	}
 
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion.String(), kapi.Codecs.LegacyCodec(o.OutputVersion))
+		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/coreos/go-etcd/etcd"
+	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -33,7 +33,7 @@ type ServiceResolver struct {
 var _ server.Backend = &ServiceResolver{}
 
 // TODO: abstract in upstream SkyDNS
-var errNoSuchName = &etcd.EtcdError{ErrorCode: 100}
+var errNoSuchName = etcd.Error{Code: etcd.ErrorCodeKeyNotFound}
 
 type FallbackFunc func(name string, exact bool) (string, bool)
 

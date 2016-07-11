@@ -14,6 +14,7 @@ openshift kube cluster\-info \- Display cluster info
 .SH DESCRIPTION
 .PP
 Display addresses of the master and services with label kubernetes.io/cluster\-service=true
+To further debug and diagnose cluster problems, use 'kubectl cluster\-info dump'.
 
 
 .SH OPTIONS
@@ -85,22 +86,18 @@ Display addresses of the master and services with label kubernetes.io/cluster\-s
 
 .PP
 \fB\-\-docker\-root\fP="/var/lib/docker"
-    Absolute path to the Docker state root directory (default: /var/lib/docker)
-
-.PP
-\fB\-\-docker\-run\fP="/var/run/docker"
-    Absolute path to the Docker run directory (default: /var/run/docker)
+    DEPRECATED: docker root is read from docker info (this is a fallback, default: /var/lib/docker)
 
 .PP
 \fB\-\-enable\-load\-reader\fP=false
     Whether to enable cpu load reader
 
 .PP
-\fB\-\-event\-storage\-age\-limit\fP="default=24h"
+\fB\-\-event\-storage\-age\-limit\fP="default=0"
     Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
 
 .PP
-\fB\-\-event\-storage\-event\-limit\fP="default=100000"
+\fB\-\-event\-storage\-event\-limit\fP="default=0"
     Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
 
 .PP
@@ -246,7 +243,7 @@ Display addresses of the master and services with label kubernetes.io/cluster\-s
 
 .SH SEE ALSO
 .PP
-\fBopenshift\-kube(1)\fP,
+\fBopenshift\-kube(1)\fP, \fBopenshift\-kube\-cluster\-info\-dump(1)\fP,
 
 
 .SH HISTORY

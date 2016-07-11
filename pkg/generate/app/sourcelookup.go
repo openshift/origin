@@ -345,7 +345,7 @@ func (r *SourceRepository) AddBuildSecrets(secrets []string, isDockerBuild bool)
 		if isDockerBuild && filepath.IsAbs(in.Destination) {
 			return fmt.Errorf("for the docker strategy, the secret destination directory %q must be a relative path", in.Destination)
 		}
-		if ok, _ := validation.ValidateSecretName(in.Source, false); !ok {
+		if len(validation.ValidateSecretName(in.Source, false)) != 0 {
 			return fmt.Errorf("the %q must be valid secret name", in.Source)
 		}
 		if secretExists(in.Source) {

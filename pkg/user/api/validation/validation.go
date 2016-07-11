@@ -11,64 +11,64 @@ import (
 	"github.com/openshift/origin/pkg/user/api"
 )
 
-func ValidateUserName(name string, _ bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
-		return ok, reason
+func ValidateUserName(name string, _ bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+		return reasons
 	}
 
 	if strings.Contains(name, ":") {
-		return false, `may not contain ":"`
+		return []string{`may not contain ":"`}
 	}
 	if name == "~" {
-		return false, `may not equal "~"`
+		return []string{`may not equal "~"`}
 	}
-	return true, ""
+	return nil
 }
 
-func ValidateIdentityName(name string, _ bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
-		return ok, reason
+func ValidateIdentityName(name string, _ bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+		return reasons
 	}
 
 	parts := strings.Split(name, ":")
 	if len(parts) != 2 {
-		return false, `must be in the format <providerName>:<providerUserName>`
+		return []string{`must be in the format <providerName>:<providerUserName>`}
 	}
 	if len(parts[0]) == 0 {
-		return false, `must be in the format <providerName>:<providerUserName> with a non-empty providerName`
+		return []string{`must be in the format <providerName>:<providerUserName> with a non-empty providerName`}
 	}
 	if len(parts[1]) == 0 {
-		return false, `must be in the format <providerName>:<providerUserName> with a non-empty providerUserName`
+		return []string{`must be in the format <providerName>:<providerUserName> with a non-empty providerUserName`}
 	}
-	return true, ""
+	return nil
 }
 
-func ValidateGroupName(name string, _ bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
-		return ok, reason
+func ValidateGroupName(name string, _ bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+		return reasons
 	}
 
 	if strings.Contains(name, ":") {
-		return false, `may not contain ":"`
+		return []string{`may not contain ":"`}
 	}
 	if name == "~" {
-		return false, `may not equal "~"`
+		return []string{`may not equal "~"`}
 	}
-	return true, ""
+	return nil
 }
 
-func ValidateIdentityProviderName(name string) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
-		return ok, reason
+func ValidateIdentityProviderName(name string) []string {
+	if reasons := oapi.MinimalNameRequirements(name, false); len(reasons) != 0 {
+		return reasons
 	}
 
 	if strings.Contains(name, ":") {
-		return false, `may not contain ":"`
+		return []string{`may not contain ":"`}
 	}
-	return true, ""
+	return nil
 }
 
-func ValidateIdentityProviderUserName(name string) (bool, string) {
+func ValidateIdentityProviderUserName(name string) []string {
 	// Any provider user name must be a valid user name
 	return ValidateUserName(name, false)
 }
@@ -83,8 +83,8 @@ func ValidateGroup(group *api.Group) field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(idxPath, user, "may not be empty"))
 			continue
 		}
-		if ok, msg := ValidateUserName(user, false); !ok {
-			allErrs = append(allErrs, field.Invalid(idxPath, user, msg))
+		if reasons := ValidateUserName(user, false); len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(idxPath, user, strings.Join(reasons, ", ")))
 		}
 	}
 
@@ -102,8 +102,8 @@ func ValidateUser(user *api.User) field.ErrorList {
 	identitiesPath := field.NewPath("identities")
 	for index, identity := range user.Identities {
 		idxPath := identitiesPath.Index(index)
-		if ok, msg := ValidateIdentityName(identity, false); !ok {
-			allErrs = append(allErrs, field.Invalid(idxPath, identity, msg))
+		if reasons := ValidateIdentityName(identity, false); len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(idxPath, identity, strings.Join(reasons, ", ")))
 		}
 	}
 
@@ -114,8 +114,8 @@ func ValidateUser(user *api.User) field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(idxPath, group, "may not be empty"))
 			continue
 		}
-		if ok, msg := ValidateGroupName(group, false); !ok {
-			allErrs = append(allErrs, field.Invalid(idxPath, group, msg))
+		if reasons := ValidateGroupName(group, false); len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(idxPath, group, strings.Join(reasons, ", ")))
 		}
 	}
 
@@ -133,14 +133,14 @@ func ValidateIdentity(identity *api.Identity) field.ErrorList {
 
 	if len(identity.ProviderName) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("providerName"), ""))
-	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderName); !ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("providerName"), identity.ProviderName, msg))
+	} else if reasons := ValidateIdentityProviderName(identity.ProviderName); len(reasons) != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("providerName"), identity.ProviderName, strings.Join(reasons, ", ")))
 	}
 
 	if len(identity.ProviderUserName) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("providerUserName"), ""))
-	} else if ok, msg := ValidateIdentityProviderName(identity.ProviderUserName); !ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, msg))
+	} else if reasons := ValidateIdentityProviderName(identity.ProviderUserName); len(reasons) != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, strings.Join(reasons, ", ")))
 	}
 
 	userPath := field.NewPath("user")
@@ -151,8 +151,8 @@ func ValidateIdentity(identity *api.Identity) field.ErrorList {
 		}
 	}
 
-	if ok, msg := ValidateUserName(identity.User.Name, false); !ok {
-		allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, msg))
+	if reasons := ValidateUserName(identity.User.Name, false); len(reasons) != 0 {
+		allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, strings.Join(reasons, ", ")))
 	}
 	if len(identity.User.Name) == 0 && len(identity.User.UID) != 0 {
 		allErrs = append(allErrs, field.Invalid(userPath.Child("uid"), identity.User.UID, "may not be set if user.name is empty"))

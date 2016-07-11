@@ -16,6 +16,7 @@ openshift-admin-config-unset.1
 openshift-admin-config-use-context.1
 openshift-admin-config-view.1
 openshift-admin-config.1
+openshift-admin-cordon.1
 openshift-admin-create-api-client-config.1
 openshift-admin-create-bootstrap-policy-file.1
 openshift-admin-create-bootstrap-project-template.1
@@ -29,6 +30,7 @@ openshift-admin-create-provider-selection-template.1
 openshift-admin-create-server-cert.1
 openshift-admin-create-signer-cert.1
 openshift-admin-diagnostics.1
+openshift-admin-drain.1
 openshift-admin-groups-add-users.1
 openshift-admin-groups-new.1
 openshift-admin-groups-prune.1
@@ -69,6 +71,8 @@ openshift-admin-prune-images.1
 openshift-admin-prune.1
 openshift-admin-registry.1
 openshift-admin-router.1
+openshift-admin-taint.1
+openshift-admin-uncordon.1
 openshift-admin.1
 openshift-cli-adm-build-chain.1
 openshift-cli-adm-ca-create-key-pair.1
@@ -88,6 +92,7 @@ openshift-cli-adm-config-unset.1
 openshift-cli-adm-config-use-context.1
 openshift-cli-adm-config-view.1
 openshift-cli-adm-config.1
+openshift-cli-adm-cordon.1
 openshift-cli-adm-create-api-client-config.1
 openshift-cli-adm-create-bootstrap-policy-file.1
 openshift-cli-adm-create-bootstrap-project-template.1
@@ -101,6 +106,7 @@ openshift-cli-adm-create-provider-selection-template.1
 openshift-cli-adm-create-server-cert.1
 openshift-cli-adm-create-signer-cert.1
 openshift-cli-adm-diagnostics.1
+openshift-cli-adm-drain.1
 openshift-cli-adm-groups-add-users.1
 openshift-cli-adm-groups-new.1
 openshift-cli-adm-groups-prune.1
@@ -141,6 +147,8 @@ openshift-cli-adm-prune-images.1
 openshift-cli-adm-prune.1
 openshift-cli-adm-registry.1
 openshift-cli-adm-router.1
+openshift-cli-adm-taint.1
+openshift-cli-adm-uncordon.1
 openshift-cli-adm.1
 openshift-cli-annotate.1
 openshift-cli-apply.1
@@ -175,6 +183,7 @@ openshift-cli-create-route-reencrypt.1
 openshift-cli-create-route.1
 openshift-cli-create-secret-docker-registry.1
 openshift-cli-create-secret-generic.1
+openshift-cli-create-secret-tls.1
 openshift-cli-create-secret.1
 openshift-cli-create-serviceaccount.1
 openshift-cli-create-user.1
@@ -285,7 +294,9 @@ openshift-kube-api-versions.1
 openshift-kube-apply.1
 openshift-kube-attach.1
 openshift-kube-autoscale.1
+openshift-kube-cluster-info-dump.1
 openshift-kube-cluster-info.1
+openshift-kube-completion.1
 openshift-kube-config-current-context.1
 openshift-kube-config-set-cluster.1
 openshift-kube-config-set-context.1
@@ -301,6 +312,7 @@ openshift-kube-create-configmap.1
 openshift-kube-create-namespace.1
 openshift-kube-create-secret-docker-registry.1
 openshift-kube-create-secret-generic.1
+openshift-kube-create-secret-tls.1
 openshift-kube-create-secret.1
 openshift-kube-create-serviceaccount.1
 openshift-kube-create.1
@@ -324,11 +336,15 @@ openshift-kube-rolling-update.1
 openshift-kube-rollout-history.1
 openshift-kube-rollout-pause.1
 openshift-kube-rollout-resume.1
+openshift-kube-rollout-status.1
 openshift-kube-rollout-undo.1
 openshift-kube-rollout.1
 openshift-kube-run.1
 openshift-kube-scale.1
+openshift-kube-set-image.1
+openshift-kube-set.1
 openshift-kube-stop.1
+openshift-kube-taint.1
 openshift-kube-uncordon.1
 openshift-kube-version.1
 openshift-kube.1

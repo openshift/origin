@@ -45,14 +45,17 @@ var (
 	APIGroupBatch       = "batch"
 	APIGroupPolicy      = "policy"
 	APIGroupApps        = "apps"
+	APIGroupFederation  = "federation"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
 		APIGroupKube:        {"v1"},
 		APIGroupExtensions:  {"v1beta1"},
 		APIGroupAutoscaling: {"v1"},
-		APIGroupBatch:       {"v1"},
+		APIGroupBatch:       {"v1", "v2alpha1"},
 		APIGroupApps:        {"v1alpha1"},
+		// TODO: enable as part of a separate binary
+		//APIGroupFederation:  {"v1beta1"},
 	}
 	// Map of group names to known, but disallowed REST API versions
 	KubeAPIGroupsToDeadVersions = map[string][]string{

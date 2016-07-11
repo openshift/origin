@@ -63,7 +63,7 @@ func (s *storage) CreateClientAuthorization(ctx kapi.Context, client *api.OAuthC
 }
 
 func (s *storage) UpdateClientAuthorization(ctx kapi.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
-	obj, _, err := s.Update(ctx, client)
+	obj, _, err := s.Update(ctx, client.Name, rest.DefaultUpdatedObjectInfo(client, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}

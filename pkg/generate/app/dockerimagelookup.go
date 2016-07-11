@@ -125,7 +125,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				continue
 			}
 			dockerImage := &imageapi.DockerImage{}
-			if err := kapi.Scheme.Convert(image, dockerImage); err != nil {
+			if err := kapi.Scheme.Convert(image, dockerImage, nil); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -293,7 +293,7 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 		glog.V(4).Infof("found image: %#v", image)
 
 		dockerImage := &imageapi.DockerImage{}
-		if err = kapi.Scheme.Convert(&image.Image, dockerImage); err != nil {
+		if err = kapi.Scheme.Convert(&image.Image, dockerImage, nil); err != nil {
 			errs = append(errs, err)
 			continue
 		}

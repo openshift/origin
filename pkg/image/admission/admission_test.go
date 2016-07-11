@@ -55,7 +55,7 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 			continue
 		}
 
-		attrs := kadmission.NewAttributesRecord(v.imageStreamMapping,
+		attrs := kadmission.NewAttributesRecord(v.imageStreamMapping, nil,
 			imageapi.Kind("ImageStreamMapping").WithVersion("version"),
 			v.imageStreamMapping.Namespace,
 			v.imageStreamMapping.Name,
@@ -214,7 +214,7 @@ func TestSupports(t *testing.T) {
 	}
 	ilr := plugin.(*imageLimitRangerPlugin)
 	for _, r := range resources {
-		attr := kadmission.NewAttributesRecord(nil, unversioned.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.Resource(r).WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.Resource(r).WithVersion("version"), "", kadmission.Create, nil)
 		if !ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is expected to support %s", r)
 		}
@@ -222,7 +222,7 @@ func TestSupports(t *testing.T) {
 
 	badKinds := []string{"ImageStream", "Image", "Pod", "foo"}
 	for _, k := range badKinds {
-		attr := kadmission.NewAttributesRecord(nil, unversioned.Kind(k).WithVersion("version"), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind(k).WithVersion("version"), "ns", "name", imageapi.Resource("bar").WithVersion("version"), "", kadmission.Create, nil)
 		if ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is not expected to support %s", k)
 		}

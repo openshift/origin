@@ -11,6 +11,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	scalertest "github.com/openshift/origin/pkg/deploy/scaler/test"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -121,7 +122,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	scaler := &scalertest.FakeScaler{}
 
 	hookExecuted := false
@@ -156,7 +157,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 func TestRecreate_deploymentMidHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	scaler := &scalertest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{

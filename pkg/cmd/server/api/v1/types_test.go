@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
-	"speter.net/go/exp/math/dec/inf"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -532,7 +531,7 @@ volumeConfig:
   localQuota:
     perFSGroup: 200000
 `,
-			expected: "200000",
+			expected: "200k",
 		},
 		"Kb quota": {
 			config: `
@@ -541,7 +540,7 @@ volumeConfig:
   localQuota:
     perFSGroup: 200Ki
 `,
-			expected: "204800",
+			expected: "200Ki",
 		},
 		"Mb quota": {
 			config: `
@@ -550,7 +549,7 @@ volumeConfig:
   localQuota:
     perFSGroup: 512Mi
 `,
-			expected: "536870912",
+			expected: "512Mi",
 		},
 		"Gb quota": {
 			config: `
@@ -559,7 +558,7 @@ volumeConfig:
   localQuota:
     perFSGroup: 2Gi
 `,
-			expected: "2147483648",
+			expected: "2Gi",
 		},
 		"Tb quota": {
 			config: `
@@ -568,7 +567,7 @@ volumeConfig:
   localQuota:
     perFSGroup: 2Ti
 `,
-			expected: "2199023255552",
+			expected: "2Ti",
 		},
 		// This is invalid config, would be caught by validation but just
 		// testing it parses ok:
@@ -579,7 +578,7 @@ volumeConfig:
   localQuota:
     perFSGroup: -512Mi
 `,
-			expected: "-536870912",
+			expected: "-512Mi",
 		},
 		"zero quota": {
 			config: `
@@ -599,19 +598,16 @@ volumeConfig:
 			t.Errorf("Error reading yaml: %s", err.Error())
 		}
 		if test.expected == "" && nodeConfig.VolumeConfig.LocalQuota.PerFSGroup != nil {
-			t.Errorf("Expected empty quota but got: %s", *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup)
+			t.Errorf("Expected empty quota but got: %v", nodeConfig.VolumeConfig.LocalQuota.PerFSGroup)
 		}
 		if test.expected != "" {
 			if nodeConfig.VolumeConfig.LocalQuota.PerFSGroup == nil {
 				t.Errorf("Expected quota: %s, got: nil", test.expected)
 			} else {
-				amount := nodeConfig.VolumeConfig.LocalQuota.PerFSGroup.Amount
+				amount := nodeConfig.VolumeConfig.LocalQuota.PerFSGroup
 				t.Logf("%s", amount.String())
-				rounded := new(inf.Dec)
-				rounded.Round(amount, 0, inf.RoundUp)
-				t.Logf("%s", rounded.String())
-				if test.expected != rounded.String() {
-					t.Errorf("Expected quota: %s, got: %s", test.expected, rounded.String())
+				if test.expected != amount.String() {
+					t.Errorf("Expected quota: %s, got: %s", test.expected, amount.String())
 				}
 			}
 		}

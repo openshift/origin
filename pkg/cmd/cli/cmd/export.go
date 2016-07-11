@@ -44,10 +44,7 @@ to generate the API structure for a template to which you can add parameters and
   %[1]s export service --as-template=test
 
   # export to JSON
-  %[1]s export service -o json
-
-  # convert a file on disk to the latest API version (in YAML, the default)
-  %[1]s export -f a_v1beta3_service.json --output-version=v1 --exact`
+  %[1]s export service -o json`
 )
 
 func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
@@ -141,7 +138,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	var result runtime.Object
 	if len(asTemplate) > 0 {
-		objects, err := resource.AsVersionedObjects(infos, outputVersion.String(), kapi.Codecs.LegacyCodec(outputVersion))
+		objects, err := resource.AsVersionedObjects(infos, outputVersion, kapi.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
 		}
@@ -149,12 +146,12 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			Objects: objects,
 		}
 		template.Name = asTemplate
-		result, err = kapi.Scheme.ConvertToVersion(template, outputVersion.String())
+		result, err = kapi.Scheme.ConvertToVersion(template, outputVersion)
 		if err != nil {
 			return err
 		}
 	} else {
-		object, err := resource.AsVersionedObject(infos, !one, outputVersion.String(), kapi.Codecs.LegacyCodec(outputVersion))
+		object, err := resource.AsVersionedObject(infos, !one, outputVersion, kapi.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
 		}

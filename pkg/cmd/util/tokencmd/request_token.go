@@ -76,7 +76,7 @@ func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsernam
 			unauthorizedError := apierrs.NewUnauthorized("")
 			// Attempt to read body content and include as an error detail
 			if details, err := ioutil.ReadAll(resp.Body); err == nil && len(details) > 0 {
-				unauthorizedError.(*apierrs.StatusError).ErrStatus.Details = &unversioned.StatusDetails{
+				unauthorizedError.ErrStatus.Details = &unversioned.StatusDetails{
 					Causes: []unversioned.StatusCause{
 						{Message: string(details)},
 					},

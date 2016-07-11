@@ -10,7 +10,7 @@ import (
 )
 
 func TestKnownAPIGroups(t *testing.T) {
-	unexposedGroups := sets.NewString("authorization.k8s.io", "componentconfig", "metrics", "policy")
+	unexposedGroups := sets.NewString("authorization.k8s.io", "componentconfig", "metrics", "policy", "federation", "authentication.k8s.io", "rbac.authorization.k8s.io")
 
 	enabledGroups := sets.NewString()
 	for _, enabledVersion := range registered.EnabledVersions() {

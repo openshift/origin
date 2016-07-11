@@ -14,9 +14,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -36,6 +38,29 @@ func TestStorageVersionsUnified(t *testing.T) {
 		extensions_v1beta1.SchemeGroupVersion,
 		extensions_v1beta1.SchemeGroupVersion,
 	)
+}
+
+type legacyExtensionsAutoscaling struct {
+	kclient.HorizontalPodAutoscalerInterface
+	client    *restclient.RESTClient
+	namespace string
+}
+
+// List takes label and field selectors, and returns the list of horizontalPodAutoscalers that match those selectors.
+func (c legacyExtensionsAutoscaling) List(opts kapi.ListOptions) (result *autoscaling.HorizontalPodAutoscalerList, err error) {
+	result = &autoscaling.HorizontalPodAutoscalerList{}
+	err = c.client.Get().Namespace(c.namespace).Resource("horizontalPodAutoscalers").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
+	return
+}
+
+func (c legacyExtensionsAutoscaling) Create(hpa *autoscaling.HorizontalPodAutoscaler) (*autoscaling.HorizontalPodAutoscaler, error) {
+	var result autoscaling.HorizontalPodAutoscaler
+	return &result, c.client.Post().Resource("horizontalpodautoscalers").Namespace(c.namespace).Body(hpa).Do().Into(&result)
+}
+
+func (c legacyExtensionsAutoscaling) Get(name string) (*autoscaling.HorizontalPodAutoscaler, error) {
+	var result autoscaling.HorizontalPodAutoscaler
+	return &result, c.client.Get().Resource("horizontalpodautoscalers").Namespace(c.namespace).Name(name).Do().Into(&result)
 }
 
 func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, extensionsVersion unversioned.GroupVersion) {
@@ -126,18 +151,25 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 		}
 	}
 
+	legacyClient := legacyExtensionsAutoscaling{
+		projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(ns),
+		projectAdminKubeClient.AutoscalingClient.RESTClient,
+		ns,
+	}
 	hpaTestcases := map[string]struct {
 		creator kclient.HorizontalPodAutoscalerInterface
 	}{
 		"autoscaling": {creator: projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(ns)},
-		"extensions":  {creator: projectAdminKubeClient.Extensions().HorizontalPodAutoscalers(ns)},
+		"extensions": {
+			creator: legacyClient,
+		},
 	}
 	for name, testcase := range hpaTestcases {
-		hpa := extensions.HorizontalPodAutoscaler{
+		hpa := autoscaling.HorizontalPodAutoscaler{
 			ObjectMeta: kapi.ObjectMeta{Name: name + "-hpa"},
-			Spec: extensions.HorizontalPodAutoscalerSpec{
-				MaxReplicas: 1,
-				ScaleRef:    extensions.SubresourceReference{Kind: "ReplicationController", Name: "myrc", Subresource: "scale"},
+			Spec: autoscaling.HorizontalPodAutoscalerSpec{
+				MaxReplicas:    1,
+				ScaleTargetRef: autoscaling.CrossVersionObjectReference{Kind: "ReplicationController", Name: "myrc"},
 			},
 		}
 
@@ -153,12 +185,12 @@ func runStorageTest(t *testing.T, ns string, autoscalingVersion, batchVersion, e
 			t.Fatalf("%s: expected api version %s in etcd, got %s reading HPA", name, autoscalingVersion, gvk)
 		}
 
-		// Make sure it is available from both APIs
+		// Make sure it is available from the api
 		if _, err := projectAdminKubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Get(hpa.Name); err != nil {
 			t.Errorf("%s: Error reading HPA.autoscaling from the autoscaling/v1 API: %#v", name, err)
 		}
-		if _, err := projectAdminKubeClient.Extensions().HorizontalPodAutoscalers(ns).Get(hpa.Name); err != nil {
-			t.Errorf("%s: Error reading HPA.extensions from the extensions/v1beta1 API: %#v", name, err)
+		if _, err := legacyClient.Get(hpa.Name); err != nil {
+			t.Errorf("%s: Error reading HPA.autoscaling from the extensions/v1beta1 API: %#v", name, err)
 		}
 	}
 }

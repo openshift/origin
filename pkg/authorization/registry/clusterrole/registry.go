@@ -64,7 +64,7 @@ func (s *storage) CreateClusterRole(ctx kapi.Context, node *authorizationapi.Clu
 }
 
 func (s *storage) UpdateClusterRole(ctx kapi.Context, node *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, bool, error) {
-	obj, created, err := s.Update(ctx, node)
+	obj, created, err := s.Update(ctx, node.Name, rest.DefaultUpdatedObjectInfo(node, kapi.Scheme))
 	if err != nil {
 		return nil, created, err
 	}

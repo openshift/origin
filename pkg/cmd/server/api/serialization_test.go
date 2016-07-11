@@ -68,6 +68,39 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				// The final value of OAuthConfig.MasterCA should never be nil
 				obj.OAuthConfig.MasterCA = &s
 			}
+
+			// test an admission plugin nested for round tripping
+			if c.RandBool() {
+				obj.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+					"abc": {
+						Location: "test",
+						Configuration: &configapi.LDAPSyncConfig{
+							URL: "ldap://some:other@server:8080/test",
+						},
+					},
+				}
+			}
+			// test a Kubernetes admission plugin nested for round tripping
+			if obj.KubernetesMasterConfig != nil && c.RandBool() {
+				obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+					"abc": {
+						Location: "test",
+						Configuration: &configapi.LDAPSyncConfig{
+							URL: "ldap://some:other@server:8080/test",
+						},
+					},
+				}
+			}
+			if obj.OAuthConfig != nil && c.RandBool() {
+				obj.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{
+					{
+						MappingMethod: "claim",
+						Provider: &configapi.LDAPSyncConfig{
+							URL: "ldap://some:other@server:8080/test",
+						},
+					},
+				}
+			}
 		},
 		func(obj *configapi.KubernetesMasterConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
@@ -250,7 +283,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
 		obj2conv := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-		if err := configapi.Scheme.Convert(obj2, obj2conv); err != nil {
+		if err := configapi.Scheme.Convert(obj2, obj2conv, nil); err != nil {
 			t.Errorf("0X: no conversion from %v to %v: %v", reflect.TypeOf(item), reflect.TypeOf(obj2), err)
 			return
 		}
@@ -258,7 +291,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 
 	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, diff.ObjectDiff(originalItem, obj2), codec, string(data), diff.ObjectGoPrintSideBySide(originalItem, obj2))
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s", name, diff.ObjectReflectDiff(originalItem, obj2), codec, string(data))
 		return
 	}
 
@@ -268,7 +301,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		return
 	}
 	if !kapi.Semantic.DeepEqual(originalItem, obj3) {
-		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectDiff(originalItem, obj3), codec)
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectReflectDiff(originalItem, obj3), codec)
 		return
 	}
 }
@@ -280,7 +313,7 @@ func TestSpecificKind(t *testing.T) {
 	configapi.Scheme.Log(t)
 	defer configapi.Scheme.Log(nil)
 
-	kind := "LDAPSyncConfig"
+	kind := "MasterConfig"
 	item, err := configapi.Scheme.New(configapi.SchemeGroupVersion.WithKind(kind))
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
@@ -288,7 +321,6 @@ func TestSpecificKind(t *testing.T) {
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
 	for i := 0; i < fuzzIters; i++ {
-		t.Logf(`About to test %v with "v1"`, kind)
 		fuzzInternalObject(t, configapiv1.SchemeGroupVersion, item, seed)
 		roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.SchemeGroupVersion), item)
 	}
@@ -309,12 +341,81 @@ func TestTypes(t *testing.T) {
 			}
 			seed := rand.Int63()
 
-			t.Logf(`About to test %v with "v1"`, kind)
 			fuzzInternalObject(t, configapiv1.SchemeGroupVersion, item, seed)
 			roundTrip(t, serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(configapiv1.SchemeGroupVersion), item)
 		}
 	}
+}
 
+func TestSpecificRoundTrips(t *testing.T) {
+	boolFalse := false
+	testCases := []struct {
+		mediaType string
+		in, out   runtime.Object
+		to, from  unversioned.GroupVersion
+	}{
+		{
+			in: &configapi.MasterConfig{
+				AdmissionConfig: configapi.AdmissionConfig{
+					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						"test1": {Configuration: &configapi.LDAPSyncConfig{BindDN: "first"}},
+						"test2": {Configuration: &runtime.Unknown{Raw: []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","bindDN":"second"}`)}},
+						"test3": {Configuration: &runtime.Unknown{Raw: []byte(`{"kind":"Unknown","apiVersion":"some/version"}`)}},
+						"test4": {Configuration: nil},
+					},
+				},
+			},
+			to: configapiv1.SchemeGroupVersion,
+			out: &configapiv1.MasterConfig{
+				TypeMeta: unversioned.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
+				AdmissionConfig: configapiv1.AdmissionConfig{
+					PluginConfig: map[string]configapiv1.AdmissionPluginConfig{
+						"test1": {Configuration: runtime.RawExtension{
+							Object: &configapiv1.LDAPSyncConfig{BindDN: "first"},
+							Raw:    []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","url":"","bindDN":"first","bindPassword":"","insecure":false,"ca":"","groupUIDNameMapping":null}`),
+						}},
+						"test2": {Configuration: runtime.RawExtension{
+							Object: &configapiv1.LDAPSyncConfig{BindDN: "second"},
+							Raw:    []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","bindDN":"second"}`),
+						}},
+						"test3": {Configuration: runtime.RawExtension{
+							Object: &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Unknown", APIVersion: "some/version"}, Raw: []byte(`{"kind":"Unknown","apiVersion":"some/version"}`)},
+							Raw:    []byte(`{"kind":"Unknown","apiVersion":"some/version"}`),
+						}},
+						"test4": {},
+					},
+				},
+				VolumeConfig: configapiv1.MasterVolumeConfig{DynamicProvisioningEnabled: &boolFalse},
+			},
+			from: configapiv1.SchemeGroupVersion,
+		},
+	}
+
+	f := serializer.NewCodecFactory(configapi.Scheme)
+	for i, test := range testCases {
+		var s runtime.Serializer
+		if len(test.mediaType) != 0 {
+			info, _ := f.SerializerForMediaType(test.mediaType, nil)
+			s = info.Serializer
+		} else {
+			info, _ := f.SerializerForMediaType(f.SupportedMediaTypes()[0], nil)
+			s = info.Serializer
+		}
+		data, err := runtime.Encode(f.LegacyCodec(test.to), test.in)
+		if err != nil {
+			t.Errorf("%d: unable to encode: %v", i, err)
+			continue
+		}
+		result, err := runtime.Decode(f.DecoderToVersion(s, test.from), data)
+		if err != nil {
+			t.Errorf("%d: unable to decode: %v", i, err)
+			continue
+		}
+		if !reflect.DeepEqual(test.out, result) {
+			t.Errorf("%d: result did not match: %s", i, diff.ObjectReflectDiff(test.out, result))
+			continue
+		}
+	}
 }
 
 func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) *fuzz.Fuzzer {
@@ -331,7 +432,10 @@ func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 		},
 		func(j *runtime.Object, c fuzz.Continue) {
 			*j = &runtime.Unknown{
-				// We do not set TypeMeta here because it is not carried through a round trip
+				TypeMeta: runtime.TypeMeta{
+					APIVersion: "unknown.group/unknown",
+					Kind:       "Something",
+				},
 				Raw: []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
 			}
 		},

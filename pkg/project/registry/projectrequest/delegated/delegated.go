@@ -218,7 +218,7 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 	}
 
-	forbiddenError, _ := kapierror.NewForbidden(projectapi.Resource("projectrequest"), "", errors.New("you may not request a new project via this API.")).(*kapierror.StatusError)
+	forbiddenError := kapierror.NewForbidden(projectapi.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
 		forbiddenError.ErrStatus.Details = &unversioned.StatusDetails{

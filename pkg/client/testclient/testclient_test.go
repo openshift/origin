@@ -41,8 +41,8 @@ func TestErrors(t *testing.T) {
 	o := testclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
 	o.Add(&kapi.List{
 		Items: []runtime.Object{
-			&(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), "").(*errors.StatusError).ErrStatus),
-			&(errors.NewForbidden(deployapi.Resource("DeploymentConfigList"), "", nil).(*errors.StatusError).ErrStatus),
+			&(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), "").ErrStatus),
+			&(errors.NewForbidden(deployapi.Resource("DeploymentConfigList"), "", nil).ErrStatus),
 		},
 	})
 	oc, _ := NewFixtureClients(o)

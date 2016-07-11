@@ -149,8 +149,8 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider, fldPath *fi
 	if len(identityProvider.Name) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("name"), ""))
 	}
-	if ok, err := validation.ValidateIdentityProviderName(identityProvider.Name); !ok {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("name"), identityProvider.Name, err))
+	if reasons := validation.ValidateIdentityProviderName(identityProvider.Name); len(reasons) != 0 {
+		validationResults.AddErrors(field.Invalid(fldPath.Child("name"), identityProvider.Name, strings.Join(reasons, ", ")))
 	}
 
 	if len(identityProvider.MappingMethod) == 0 {

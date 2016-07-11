@@ -72,7 +72,7 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 func (t *PipelineTemplate) HasJenkinsService(items *kapi.List) bool {
 	accessor := meta.NewAccessor()
 	for _, item := range items.Items {
-		kind, err := kapi.Scheme.ObjectKind(item)
+		kind, _, err := kapi.Scheme.ObjectKind(item)
 		if err != nil {
 			glog.Infof("Error checking Jenkins service kind: %v", err)
 			return false

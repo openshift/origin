@@ -38,7 +38,7 @@ func (c *fakeCodec) Decode([]byte, *unversioned.GroupVersionKind, runtime.Object
 	return nil, nil, nil
 }
 
-func (c *fakeCodec) EncodeToStream(obj runtime.Object, stream io.Writer, overrides ...unversioned.GroupVersion) error {
+func (c *fakeCodec) Encode(obj runtime.Object, stream io.Writer) error {
 	return nil
 }
 
@@ -70,11 +70,11 @@ func (n *fakeNegotiatedSerializer) StreamingSerializerForMediaType(mediaType str
 	return runtime.StreamSerializerInfo{}, true
 }
 
-func (n *fakeNegotiatedSerializer) EncoderForVersion(serializer runtime.Encoder, gv unversioned.GroupVersion) runtime.Encoder {
+func (n *fakeNegotiatedSerializer) EncoderForVersion(serializer runtime.Encoder, gv runtime.GroupVersioner) runtime.Encoder {
 	return &fakeCodec{}
 }
 
-func (n *fakeNegotiatedSerializer) DecoderToVersion(serializer runtime.Decoder, gv unversioned.GroupVersion) runtime.Decoder {
+func (n *fakeNegotiatedSerializer) DecoderToVersion(serializer runtime.Decoder, gv runtime.GroupVersioner) runtime.Decoder {
 	return &fakeCodec{}
 }
 

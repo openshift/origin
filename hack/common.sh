@@ -30,11 +30,6 @@ readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
 readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
-readonly OS_GOPATH=$(
-  unset CDPATH
-  cd ${OS_ROOT}/../../../..
-  pwd
-)
 
 readonly OS_IMAGE_COMPILE_PLATFORMS=(
   linux/amd64
@@ -191,23 +186,30 @@ EOF
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.4" ]]; then
+    if [[ "${go_version[2]}" < "go1.5" ]]; then
       cat <<EOF
 
 Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.4 or greater.
+Origin builds require Go version 1.6 or greater.
 
 EOF
       exit 2
     fi
   fi
+  # For any tools that expect this to be set (it is default in golang 1.6),
+  # force vendor experiment.
+  export GO15VENDOREXPERIMENT=1
 
   unset GOBIN
 
+  # default to OS_OUTPUT_GOPATH if no GOPATH set
+  if [[ -z "${GOPATH:-}" ]]; then
+    export OS_OUTPUT_GOPATH=1
+  fi
+
   # use the regular gopath for building
   if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
-    export GOPATH=${OS_ROOT}/Godeps/_workspace:${OS_GOPATH}
-    export OS_TARGET_BIN=${OS_GOPATH}/bin
+    export OS_TARGET_BIN=${GOPATH}/bin
     return
   fi
 
@@ -223,17 +225,14 @@ EOF
   # TODO: This symlink should be relative.
   ln -s "${OS_ROOT}" "${go_pkg_dir}"
 
+  # lots of tools "just don't work" unless we're in the GOPATH
+  cd "${go_pkg_dir}"
+
   # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
   if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
     GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
     # TODO: needs to handle multiple directories
     OS_TARGET_BIN=${OS_EXTRA_GOPATH}/bin
-  fi
-  # Append the tree maintained by `godep` to the GOPATH unless OS_NO_GODEPS
-  # is defined.
-  if [[ -z ${OS_NO_GODEPS:-} ]]; then
-    GOPATH="${GOPATH}:${OS_ROOT}/Godeps/_workspace"
-    OS_TARGET_BIN=${OS_ROOT}/Godeps/_workspace/bin
   fi
   export GOPATH
   export OS_TARGET_BIN
@@ -262,7 +261,7 @@ readonly -f os::build::build_static_binaries
 function os::build::build_binaries() {
   local -a binaries=( "$@" )
   # Create a sub-shell so that we don't pollute the outer environment
-  ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )  
+  ( os::build::internal::build_binaries "${binaries[@]+"${binaries[@]}"}" )
 }
 
 # Build binary targets specified. Should always be run in a sub-shell so we don't leak GOBIN
@@ -657,7 +656,14 @@ function os::build::os_version_vars() {
     OS_GIT_SHORT_VERSION="${OS_GIT_COMMIT}"
 
     # Use git describe to find the version based on annotated tags.
-    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+      # This translates the "git describe" to an actual semver.org
+      # compatible semantic version that looks something like this:
+      #   v1.1.0-alpha.0.6+84c76d1142ea4d
+      #
+      # TODO: We continue calling this "git version" because so many
+      # downstream consumers are expecting it there.
+      OS_GIT_VERSION=$(echo "${OS_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7\}\)$/\+\2/")
       if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
         # git describe --dirty only considers changes to existing files, but
         # that is problematic since new untracked .go files affect the build,
@@ -669,10 +675,10 @@ function os::build::os_version_vars() {
       # Try to match the "git describe" output to a regex to try to extract
       # the "major" and "minor" versions and whether this is the exact tagged
       # version or whether the tree is between two tagged versions.
-      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)([.-].*)?$ ]]; then
+      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
         OS_GIT_MAJOR=${BASH_REMATCH[1]}
         OS_GIT_MINOR=${BASH_REMATCH[2]}
-        if [[ -n "${BASH_REMATCH[3]}" ]]; then
+        if [[ -n "${BASH_REMATCH[4]}" ]]; then
           OS_GIT_MINOR+="+"
         fi
       fi
@@ -686,6 +692,25 @@ readonly -f os::build::os_version_vars
 function os::build::kube_version_vars() {
   KUBE_GIT_VERSION=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api" "comment")
   KUBE_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "k8s.io/kubernetes/pkg/api")
+
+  # This translates the "git describe" to an actual semver.org
+  # compatible semantic version that looks something like this:
+  #   v1.1.0-alpha.0.6+84c76d1142ea4d
+  #
+  # TODO: We continue calling this "git version" because so many
+  # downstream consumers are expecting it there.
+  KUBE_GIT_VERSION=$(echo "${KUBE_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7\}\)$/\+\2/")
+
+  # Try to match the "git describe" output to a regex to try to extract
+  # the "major" and "minor" versions and whether this is the exact tagged
+  # version or whether the tree is between two tagged versions.
+  if [[ "${KUBE_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
+    KUBE_GIT_MAJOR=${BASH_REMATCH[1]}
+    KUBE_GIT_MINOR=${BASH_REMATCH[2]}
+    if [[ -n "${BASH_REMATCH[4]}" ]]; then
+      KUBE_GIT_MINOR+="+"
+    fi
+  fi
 }
 readonly -f os::build::kube_version_vars
 
@@ -734,14 +759,19 @@ function os::build::ldflags() {
 
   os::build::get_version_vars
 
+  local buildDate="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
   declare -a ldflags=()
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "k8s.io/kubernetes/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.buildDate" "${buildDate}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitTreeState" "clean"))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"

@@ -22,7 +22,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -343,7 +343,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
 		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, genericapiserver.DefaultDeserializationCacheSize)
+		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, genericapiserveroptions.DefaultDeserializationCacheSize)
 		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
@@ -734,7 +734,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 
 // NewEtcdStorage returns a storage interface for the provided storage version.
 func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, genericapiserver.DefaultDeserializationCacheSize), nil
+	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, genericapiserveroptions.DefaultDeserializationCacheSize), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the

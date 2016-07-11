@@ -3,6 +3,7 @@ package dns
 import (
 	"github.com/golang/glog"
 
+	"github.com/skynetservices/skydns/metrics"
 	"github.com/skynetservices/skydns/server"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -44,7 +45,7 @@ func (s *Server) ListenAndServe() error {
 	resolver := NewServiceResolver(s.Config, s.Services, s.Endpoints, openshiftFallback)
 	resolvers := server.FirstBackend{resolver}
 	if len(s.MetricsName) > 0 {
-		server.RegisterMetrics(s.MetricsName, "")
+		metrics.RegisterPrometheusMetrics(s.MetricsName, "")
 	}
 	dns := server.New(resolvers, s.Config)
 	if s.Stop != nil {

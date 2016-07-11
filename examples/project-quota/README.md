@@ -19,7 +19,7 @@ at most to a single host.
 
 ```shell
 $ cat pod-with-resources.yaml
-apiVersion: v1beta3
+apiVersion: v1
 kind: Pod
 metadata:
   name: pod-with-resources
@@ -106,7 +106,7 @@ cpu and memory.
 
 ```shell
 $ cat pod-without-resources.yaml
-apiVersion: v1beta3
+apiVersion: v1
 kind: Pod
 metadata:
   name: pod-without-resources
@@ -144,7 +144,7 @@ So let's set some default limits for this project:
 
 ```shell
 $ cat limits.yaml
-apiVersion: v1beta3
+apiVersion: v1
 kind: LimitRange
 metadata:
   name: limits
@@ -259,7 +259,7 @@ Labels:   <none>
 Description:  This example shows how to create a simple ruby application in openshift origin v3
 Annotations:  iconClass=icon-ruby,tags=instant-app,ruby,mysql
 
-Parameters:    
+Parameters:
     Name:   ADMIN_USERNAME
     Description:  administrator username
     Generated:    expression
@@ -316,7 +316,7 @@ Parameters:
 
 Object Labels:  template=application-template-stibuild
 
-Objects:   
+Objects:
     Service frontend
     Route route-edge
     ImageStream origin-ruby-sample

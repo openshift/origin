@@ -16,6 +16,7 @@ oadm-config-unset.1
 oadm-config-use-context.1
 oadm-config-view.1
 oadm-config.1
+oadm-cordon.1
 oadm-create-api-client-config.1
 oadm-create-bootstrap-policy-file.1
 oadm-create-bootstrap-project-template.1
@@ -29,6 +30,7 @@ oadm-create-provider-selection-template.1
 oadm-create-server-cert.1
 oadm-create-signer-cert.1
 oadm-diagnostics.1
+oadm-drain.1
 oadm-groups-add-users.1
 oadm-groups-new.1
 oadm-groups-prune.1
@@ -69,5 +71,7 @@ oadm-prune-images.1
 oadm-prune.1
 oadm-registry.1
 oadm-router.1
+oadm-taint.1
+oadm-uncordon.1
 oadm-version.1
 oadm.1

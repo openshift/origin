@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -69,16 +70,16 @@ func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAcc
 	return allErrs
 }
 
-func ValidatePolicyName(name string, prefix bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
-		return ok, reason
+func ValidatePolicyName(name string, prefix bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		return reasons
 	}
 
 	if name != authorizationapi.PolicyName {
-		return false, "name must be " + authorizationapi.PolicyName
+		return []string{"name must be " + authorizationapi.PolicyName}
 	}
 
-	return true, ""
+	return nil
 }
 
 func ValidateLocalPolicy(policy *authorizationapi.Policy) field.ErrorList {
@@ -125,16 +126,16 @@ func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizat
 }
 
 func PolicyBindingNameValidator(policyRefNamespace string) validation.ValidateNameFunc {
-	return func(name string, prefix bool) (bool, string) {
-		if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
-			return ok, reason
+	return func(name string, prefix bool) []string {
+		if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+			return reasons
 		}
 
 		if name != authorizationapi.GetPolicyBindingName(policyRefNamespace) {
-			return false, "name must be " + authorizationapi.GetPolicyBindingName(policyRefNamespace)
+			return []string{"name must be " + authorizationapi.GetPolicyBindingName(policyRefNamespace)}
 		}
 
-		return true, ""
+		return nil
 	}
 }
 
@@ -251,15 +252,15 @@ func validateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements, fldPath.Child("metadata"))...)
 
 	// roleRef namespace is empty when referring to global policy.
-	if (len(roleBinding.RoleRef.Namespace) > 0) && !kvalidation.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace) {
+	if (len(roleBinding.RoleRef.Namespace) > 0) && len(kvalidation.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace)) != 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("roleRef", "namespace"), roleBinding.RoleRef.Namespace, "roleRef.namespace must be a valid subdomain"))
 	}
 
 	if len(roleBinding.RoleRef.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("roleRef", "name"), ""))
 	} else {
-		if valid, err := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); !valid {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("roleRef", "name"), roleBinding.RoleRef.Name, err))
+		if reasons := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("roleRef", "name"), roleBinding.RoleRef.Name, strings.Join(reasons, ", ")))
 		}
 	}
 
@@ -292,32 +293,32 @@ func validateRoleBindingSubject(subject kapi.ObjectReference, isNamespaced bool,
 
 	switch subject.Kind {
 	case authorizationapi.ServiceAccountKind:
-		if valid, reason := validation.ValidateServiceAccountName(subject.Name, false); len(subject.Name) > 0 && !valid {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, reason))
+		if reasons := validation.ValidateServiceAccountName(subject.Name, false); len(subject.Name) > 0 && len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, strings.Join(reasons, ", ")))
 		}
 		if !isNamespaced && len(subject.Namespace) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("namespace"), ""))
 		}
 
 	case authorizationapi.UserKind:
-		if valid, reason := uservalidation.ValidateUserName(subject.Name, false); len(subject.Name) > 0 && !valid {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, reason))
+		if reasons := uservalidation.ValidateUserName(subject.Name, false); len(subject.Name) > 0 && len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, strings.Join(reasons, ", ")))
 		}
 
 	case authorizationapi.GroupKind:
-		if valid, reason := uservalidation.ValidateGroupName(subject.Name, false); len(subject.Name) > 0 && !valid {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, reason))
+		if reasons := uservalidation.ValidateGroupName(subject.Name, false); len(subject.Name) > 0 && len(reasons) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, strings.Join(reasons, ", ")))
 		}
 
 	case authorizationapi.SystemUserKind:
-		isValidSAName, _ := validation.ValidateServiceAccountName(subject.Name, false)
-		isValidUserName, _ := uservalidation.ValidateUserName(subject.Name, false)
+		isValidSAName := len(validation.ValidateServiceAccountName(subject.Name, false)) == 0
+		isValidUserName := len(uservalidation.ValidateUserName(subject.Name, false)) == 0
 		if isValidSAName || isValidUserName {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, "conforms to User.name or ServiceAccount.name restrictions"))
 		}
 
 	case authorizationapi.SystemGroupKind:
-		if valid, _ := uservalidation.ValidateGroupName(subject.Name, false); len(subject.Name) > 0 && valid {
+		if reasons := uservalidation.ValidateGroupName(subject.Name, false); len(subject.Name) > 0 && len(reasons) == 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, "conforms to Group.name restrictions"))
 		}
 

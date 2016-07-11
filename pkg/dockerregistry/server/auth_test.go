@@ -383,8 +383,8 @@ func simulateOpenShiftMaster(responses []response) (*httptest.Server, *[]string)
 			response = responses[i]
 		}
 		i++
-		w.WriteHeader(response.code)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(response.code)
 		fmt.Fprintln(w, response.body)
 		actions = append(actions, r.Method+" "+r.URL.Path)
 	}))

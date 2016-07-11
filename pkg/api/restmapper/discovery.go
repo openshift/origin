@@ -151,6 +151,14 @@ func (d *discoveryRESTMapper) RESTMapping(gk unversioned.GroupKind, versions ...
 	return delegate.RESTMapping(gk, versions...)
 }
 
+func (d *discoveryRESTMapper) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMapping, error) {
+	delegate, err := d.getDelegate()
+	if err != nil {
+		return nil, err
+	}
+	return delegate.RESTMappings(gk)
+}
+
 func (d *discoveryRESTMapper) AliasesForResource(resource string) ([]string, bool) {
 	delegate, err := d.getDelegate()
 	if err != nil {

@@ -281,6 +281,7 @@ func TestAdmit(t *testing.T) {
 		}
 		err = reqLimit.Admit(admission.NewAttributesRecord(
 			&projectapi.ProjectRequest{},
+			nil,
 			projectapi.Kind("ProjectRequest").WithVersion("version"),
 			"foo",
 			"name",

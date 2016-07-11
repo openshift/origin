@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -39,6 +40,8 @@ func TestNilPath(t *testing.T) {
 }
 
 func TestNameFunc(t *testing.T) {
+	const nameRulesMessage = `must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`
+
 	for apiType, validationInfo := range Validator.typeToValidator {
 		if !validationInfo.HasObjectMeta {
 			continue
@@ -52,7 +55,8 @@ func TestNameFunc(t *testing.T) {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: illegalName}))
 
 			errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
-			_, requiredMessage := api.MinimalNameRequirements(illegalName, false)
+			reasons := api.MinimalNameRequirements(illegalName, false)
+			requiredMessage := strings.Join(reasons, ", ")
 
 			if len(errList) == 0 {
 				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add api.MinimalNameRequirements to your name validator..", illegalName, apiType.Elem(), errList)
@@ -65,13 +69,12 @@ func TestNameFunc(t *testing.T) {
 				if validationError.Type != field.ErrorTypeInvalid || validationError.Field != "metadata.name" {
 					continue
 				}
-
 				if validationError.Detail == requiredMessage {
 					foundExpectedError = true
 					break
 				}
 				// this message is from a stock name validation method in kube that covers our requirements in MinimalNameRequirements
-				if validationError.Detail == validation.DNSSubdomainErrorMsg {
+				if validationError.Detail == nameRulesMessage {
 					foundExpectedError = true
 					break
 				}
@@ -89,7 +92,8 @@ func TestNameFunc(t *testing.T) {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: illegalName}))
 
 			errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
-			_, requiredMessage := api.MinimalNameRequirements(illegalName, false)
+			reasons := api.MinimalNameRequirements(illegalName, false)
+			requiredMessage := strings.Join(reasons, ", ")
 
 			if len(errList) == 0 {
 				t.Errorf("expected error for %v in %v not found amongst %v.  You probably need to add api.MinimalNameRequirements to your name validator.", illegalName, apiType.Elem(), errList)
@@ -107,7 +111,8 @@ func TestNameFunc(t *testing.T) {
 					foundExpectedError = true
 					break
 				}
-				if validationError.Detail == validation.DNSSubdomainErrorMsg {
+				// this message is from a stock name validation method in kube that covers our requirements in MinimalNameRequirements
+				if validationError.Detail == nameRulesMessage {
 					foundExpectedError = true
 					break
 				}

@@ -10,9 +10,10 @@ source "${OS_ROOT}/hack/lib/init.sh"
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+# Do not allow a synthetic GOPATH for these checks
 os::build::setup_env
 
-hack/build-go.sh tools/gendeepcopy
+"${OS_ROOT}/hack/build-go.sh" tools/gendeepcopy
 gendeepcopy="$( os::build::find-binary gendeepcopy )"
 
 if [[ -z "${gendeepcopy}" ]]; then
@@ -23,4 +24,4 @@ if [[ -z "${gendeepcopy}" ]]; then
 	exit 1
 fi
 
-${gendeepcopy} --output-base="${OS_GOPATH}/src" "$@"
+${gendeepcopy} --output-base="${GOPATH}/src" "$@"

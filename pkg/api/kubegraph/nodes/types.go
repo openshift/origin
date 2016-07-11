@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 )
@@ -19,7 +19,7 @@ var (
 	ReplicationControllerSpecNodeKind = reflect.TypeOf(kapi.ReplicationControllerSpec{}).Name()
 	ServiceAccountNodeKind            = reflect.TypeOf(kapi.ServiceAccount{}).Name()
 	SecretNodeKind                    = reflect.TypeOf(kapi.Secret{}).Name()
-	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(extensions.HorizontalPodAutoscaler{}).Name()
+	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscaling.HorizontalPodAutoscaler{}).Name()
 )
 
 func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
@@ -243,13 +243,13 @@ func (*SecretNode) Kind() string {
 	return SecretNodeKind
 }
 
-func HorizontalPodAutoscalerNodeName(o *extensions.HorizontalPodAutoscaler) osgraph.UniqueName {
+func HorizontalPodAutoscalerNodeName(o *autoscaling.HorizontalPodAutoscaler) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(HorizontalPodAutoscalerNodeKind, o)
 }
 
 type HorizontalPodAutoscalerNode struct {
 	osgraph.Node
-	HorizontalPodAutoscaler *extensions.HorizontalPodAutoscaler
+	HorizontalPodAutoscaler *autoscaling.HorizontalPodAutoscaler
 }
 
 func (n HorizontalPodAutoscalerNode) Object() interface{} {

@@ -8,8 +8,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -152,24 +154,27 @@ func TestUpdate(t *testing.T) {
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
+		ObjectMeta: original.ObjectMeta,
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 		Subjects:   []kapi.ObjectReference{{Name: "bob", Kind: "User"}},
 	}
 
-	obj, created, err := storage.Update(ctx, roleBinding)
+	obj, created, err := storage.Update(ctx, roleBinding.Name, rest.DefaultUpdatedObjectInfo(roleBinding, kapi.Scheme))
 	if err != nil || created {
 		t.Errorf("Unexpected error %v", err)
 	}
 
-	switch obj.(type) {
+	switch actual := obj.(type) {
 	case *unversioned.Status:
 		t.Errorf("Unexpected operation error: %v", obj)
 
 	case *authorizationapi.RoleBinding:
+		if original.ResourceVersion == actual.ResourceVersion {
+			t.Errorf("Expected change to role binding. Expected: %s, Got: %s", original.ResourceVersion, actual.ResourceVersion)
+		}
+		roleBinding.ResourceVersion = actual.ResourceVersion
 		if !reflect.DeepEqual(roleBinding, obj) {
-			t.Errorf("Updated roleBinding does not match input roleBinding."+
-				" Expected: %v, Got: %v", roleBinding, obj)
+			t.Errorf("Updated roleBinding does not match input roleBinding. %s", diff.ObjectReflectDiff(roleBinding, obj))
 		}
 	default:
 		t.Errorf("Unexpected result type: %v", obj)
@@ -191,11 +196,11 @@ func TestUpdateNoOp(t *testing.T) {
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
+		ObjectMeta: original.ObjectMeta,
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
-	obj, created, err := storage.Update(ctx, roleBinding)
+	obj, created, err := storage.Update(ctx, roleBinding.Name, rest.DefaultUpdatedObjectInfo(roleBinding, kapi.Scheme))
 	if err != nil || created {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -209,8 +214,7 @@ func TestUpdateNoOp(t *testing.T) {
 			t.Errorf("Expected no change to role binding. Expected: %s, Got: %s", original.ResourceVersion, o.ResourceVersion)
 		}
 		if !reflect.DeepEqual(roleBinding, obj) {
-			t.Errorf("Updated roleBinding does not match input roleBinding."+
-				" Expected: %v, Got: %v", roleBinding, obj)
+			t.Errorf("Updated roleBinding does not match input roleBinding. %s", diff.ObjectReflectDiff(roleBinding, obj))
 		}
 	default:
 		t.Errorf("Unexpected result type: %v", obj)
@@ -236,7 +240,7 @@ func TestUpdateError(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
-	_, _, err = storage.Update(ctx, roleBinding)
+	_, _, err = storage.Update(ctx, roleBinding.Name, rest.DefaultUpdatedObjectInfo(roleBinding, kapi.Scheme))
 	if err == nil {
 		t.Errorf("Missing expected error")
 		return
@@ -265,7 +269,7 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Name: "cluster-admin"},
 	}
 
-	_, _, err = storage.Update(ctx, roleBinding)
+	_, _, err = storage.Update(ctx, roleBinding.Name, rest.DefaultUpdatedObjectInfo(roleBinding, kapi.Scheme))
 	if err == nil {
 		t.Errorf("Missing expected error")
 		return

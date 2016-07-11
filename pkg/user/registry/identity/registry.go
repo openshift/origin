@@ -32,7 +32,7 @@ type Storage interface {
 	rest.Getter
 
 	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
-	Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)
+	Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -62,16 +62,16 @@ func (s *storage) GetIdentity(ctx kapi.Context, name string) (*api.Identity, err
 	return obj.(*api.Identity), nil
 }
 
-func (s *storage) CreateIdentity(ctx kapi.Context, Identity *api.Identity) (*api.Identity, error) {
-	obj, err := s.Create(ctx, Identity)
+func (s *storage) CreateIdentity(ctx kapi.Context, identity *api.Identity) (*api.Identity, error) {
+	obj, err := s.Create(ctx, identity)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.Identity), nil
 }
 
-func (s *storage) UpdateIdentity(ctx kapi.Context, Identity *api.Identity) (*api.Identity, error) {
-	obj, _, err := s.Update(ctx, Identity)
+func (s *storage) UpdateIdentity(ctx kapi.Context, identity *api.Identity) (*api.Identity, error) {
+	obj, _, err := s.Update(ctx, identity.Name, rest.DefaultUpdatedObjectInfo(identity, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}

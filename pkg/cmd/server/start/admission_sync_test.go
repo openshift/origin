@@ -23,6 +23,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"SecurityContextDeny",    // from kube, it denies pods that want to use SCC capabilities.  We have different rules to allow this in openshift.
 	"DenyExecOnPrivileged",   // from kube (deprecated, see below), it denies exec to pods that have certain privileges.  This is superseded in origin by SCCExecRestrictions that checks against SCC rules.
 	"DenyEscalatingExec",     // from kube, it denies exec to pods that have certain privileges.  This is superseded in origin by SCCExecRestrictions that checks against SCC rules.
+	"PodSecurityPolicy",      // from kube, this will eventually replace SecurityContextConstraints but for now origin does not use it.
 
 	"BuildByStrategy",          // from origin, only needed for managing builds, not kubernetes resources
 	"BuildDefaults",            // from origin, only needed for managing builds, not kubernetes resources

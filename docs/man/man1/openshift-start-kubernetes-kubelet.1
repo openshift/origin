@@ -62,8 +62,8 @@ starting from a configuration file.
     The path to the cloud provider configuration file.  Empty string for no configuration file.
 
 .PP
-\fB\-\-cloud\-provider\fP=""
-    The provider for cloud services.  Empty string for no provider.
+\fB\-\-cloud\-provider\fP="auto\-detect"
+    The provider for cloud services. By default, kubelet will attempt to auto\-detect the cloud provider. Specify empty string for running with no cloud provider. [default=auto\-detect]
 
 .PP
 \fB\-\-cluster\-dns\fP=""
@@ -102,6 +102,10 @@ starting from a configuration file.
     Handler to use when executing a command in a container. Valid values are 'native' and 'nsenter'. Defaults to 'native'.
 
 .PP
+\fB\-\-enable\-controller\-attach\-detach\fP=true
+    Enables the Attach/Detach controller to manage attachment/detachment of volumes scheduled to this node, and disables kubelet from executing any attach/detach operations
+
+.PP
 \fB\-\-enable\-custom\-metrics\fP=false
     Support for gathering custom metrics.
 
@@ -126,6 +130,14 @@ starting from a configuration file.
     A set of eviction thresholds (e.g. memory.available<1Gi) that if met would trigger a pod eviction.
 
 .PP
+\fB\-\-eviction\-max\-pod\-grace\-period\fP=0
+    Maximum allowed grace period (in seconds) to use when terminating pods in response to a soft eviction threshold being met.  If negative, defer to pod specified value.
+
+.PP
+\fB\-\-eviction\-pressure\-transition\-period\fP=0
+    Duration for which the kubelet has to wait before transitioning out of an eviction pressure condition.
+
+.PP
 \fB\-\-eviction\-soft\fP=""
     A set of eviction thresholds (e.g. memory.available<1.5Gi) that if met over a corresponding grace period would trigger a pod eviction.
 
@@ -134,8 +146,16 @@ starting from a configuration file.
     A set of eviction grace periods (e.g. memory.available=1m30s) that correspond to how long a soft eviction threshold must hold before triggering a pod eviction.
 
 .PP
+\fB\-\-exit\-on\-lock\-contention\fP=false
+    Whether kubelet should exit upon lock\-file contention.
+
+.PP
 \fB\-\-experimental\-flannel\-overlay\fP=false
     Experimental support for starting the kubelet with the default overlay network (flannel). Assumes flanneld is already running in client mode. [default=false]
+
+.PP
+\fB\-\-experimental\-nvidia\-gpus\fP=0
+    Number of NVIDIA GPU devices on this node. Only 0 (default) and 1 are currently supported.
 
 .PP
 \fB\-\-file\-check\-frequency\fP=0
@@ -186,8 +206,8 @@ starting from a configuration file.
     Burst to use while talking with kubernetes apiserver
 
 .PP
-\fB\-\-kube\-api\-content\-type\fP=""
-    ContentType of requests sent to apiserver. Passing application/vnd.kubernetes.protobuf is an experimental feature now.
+\fB\-\-kube\-api\-content\-type\fP="application/vnd.kubernetes.protobuf"
+    Content type of requests sent to apiserver.
 
 .PP
 \fB\-\-kube\-api\-qps\fP=5
@@ -291,6 +311,10 @@ starting from a configuration file.
     The image whose network/ipc namespaces containers in each pod will use.
 
 .PP
+\fB\-\-pods\-per\-core\fP=0
+    Number of Pods per core that can run on this Kubelet. The total number of Pods on this Kubelet cannot exceed max\-pods, so max\-pods will be used if this calculation results in a larger number of Pods allowed on the Kubelet. A value of 0 disables this limit.
+
+.PP
 \fB\-\-port\fP=10250
     The port for the Kubelet to serve on.
 
@@ -353,6 +377,14 @@ starting from a configuration file.
 .PP
 \fB\-\-runtime\-cgroups\fP=""
     Optional absolute name of cgroups to create and run the runtime in.
+
+.PP
+\fB\-\-runtime\-request\-timeout\fP=0
+    Timeout of all runtime requests except long running request \- pull, logs, exec and attach. When timeout exceeded, kubelet will cancel the request, throw out an error and retry later. Default: 2m0s
+
+.PP
+\fB\-\-seccomp\-profile\-root\fP="/var/lib/kubelet/seccomp"
+    Directory path for seccomp profiles.
 
 .PP
 \fB\-\-serialize\-image\-pulls\fP=true
