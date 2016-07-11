@@ -411,6 +411,21 @@ func init() {
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("persistentvolumeclaims/status"),
 				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("get", "create", "delete"),
+					Resources: sets.NewString("pods"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
 			},
 		},
 	)

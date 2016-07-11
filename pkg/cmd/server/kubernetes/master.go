@@ -153,7 +153,7 @@ func (c *MasterConfig) RunNamespaceController(kubeClient internalclientset.Inter
 	go namespaceController.Run(int(c.ControllerManager.ConcurrentNamespaceSyncs), utilwait.NeverStop)
 }
 
-func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, namespace, recyclerImageName string) {
+func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, namespace, recyclerImageName, recyclerServiceAccountName string) {
 	s := c.ControllerManager
 	provisioner, err := kctrlmgr.NewVolumeProvisioner(c.CloudProvider, s.VolumeConfiguration)
 	if err != nil {
@@ -164,7 +164,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 		clientadapter.FromUnversionedClient(client),
 		s.PVClaimBinderSyncPeriod.Duration,
 		provisioner,
-		probeRecyclableVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName),
+		probeRecyclableVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName),
 		c.CloudProvider,
 		s.ClusterName,
 		nil, nil, nil,
@@ -189,10 +189,11 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 }
 
 // probeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
-func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, namespace, recyclerImageName string) []volume.VolumePlugin {
+func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName string) []volume.VolumePlugin {
 	uid := int64(0)
 	defaultScrubPod := volume.NewPersistentVolumeRecyclerPodTemplate()
 	defaultScrubPod.Namespace = namespace
+	defaultScrubPod.Spec.ServiceAccountName = recyclerServiceAccountName
 	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
 	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/bin/recycle"}
 	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
@@ -339,6 +340,7 @@ func (c *MasterConfig) RunNodeController() {
 
 	// this cidr has been validated already
 	_, clusterCIDR, _ := net.ParseCIDR(s.ClusterCIDR)
+	_, serviceCIDR, _ := net.ParseCIDR(s.ServiceCIDR)
 
 	controller := nodecontroller.NewNodeController(
 		c.CloudProvider,
@@ -354,8 +356,8 @@ func (c *MasterConfig) RunNodeController() {
 
 		clusterCIDR,
 
-		nil,
-		0,
+		serviceCIDR,
+		int(s.NodeCIDRMaskSize),
 
 		s.AllocateNodeCIDRs,
 	)
