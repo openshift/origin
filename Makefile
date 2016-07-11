@@ -120,7 +120,7 @@ test-cmd: build
 # Run end to end tests. Uses whatever binaries are currently built.
 #
 # Example:
-#   make test-cmd
+#   make test-end-to-end
 test-end-to-end: build
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
