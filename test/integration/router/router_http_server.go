@@ -1,5 +1,3 @@
-// +build integration,docker
-
 package router
 
 import (
