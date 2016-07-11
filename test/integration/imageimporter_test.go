@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -465,7 +463,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		}
 		tag, ok := is.Spec.Tags["latest"]
 		if !ok {
-			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
+			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation, is)
 		}
 		tagGen := tag.Generation
 		if is.Generation != expectedGen || tagGen == nil || *tagGen != expectedGen {
@@ -560,7 +558,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 			}
 			expectedTags := []string{"latest", "v2"}[i]
 			if image.Tag != expectedTags {
-				t.Errorf("unexpected tag at position %d (%s != %s)", i, image.Tag, expectedTags[i])
+				t.Errorf("unexpected tag at position %d (%s != %s)", i, image.Tag, expectedTags)
 			}
 		}
 	}
@@ -706,14 +704,14 @@ func TestImageStreamImportScheduled(t *testing.T) {
 
 	tag, ok := change.Spec.Tags["latest"]
 	if !ok {
-		t.Fatalf("object at generation %d did not have tag latest: %#v", change.Generation)
+		t.Fatalf("object at generation %d did not have tag latest: %#v", change.Generation, change)
 	}
 	if gen := tag.Generation; gen == nil || *gen != 2 {
 		t.Fatalf("object at generation %d had spec tag: %#v", change.Generation, tag)
 	}
 	items := change.Status.Tags["latest"].Items
 	if len(items) != 2 {
-		t.Fatalf("object at generation %d should have two tagged images", change.Generation, change.Status.Tags["latest"])
+		t.Fatalf("object at generation %d should have two tagged images: %#v", change.Generation, change.Status.Tags["latest"])
 	}
 	if items[0].Image != phpDigest || items[0].DockerImageReference != url.Host+"/test/image@"+phpDigest {
 		t.Fatalf("expected tagged image: %#v", items[0])
