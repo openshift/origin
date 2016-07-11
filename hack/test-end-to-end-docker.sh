@@ -84,6 +84,7 @@ out=$(
 )
 
 # Setup
+${OS_ROOT}/hack/test-pre-pull-images.sh
 echo "[INFO] `openshift version`"
 echo "[INFO] Using images:							${USE_IMAGES}"
 
