@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c16fed6083c908ddf9028e177725bd0c4420511d
+%global commit 95152edba2d368b248137ca697dda1eed6732a61
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.2-688-gc16fed6 -X github.com/openshift/origin/pkg/version.commitFromGit=c16fed6 -X k8s.io/kubernetes/pkg/version.gitCommit=c16fed6 -X k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0-alpha.3-599-g2746284
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.3+95152ed -X github.com/openshift/origin/pkg/version.commitFromGit=95152ed -X github.com/openshift/origin/pkg/version.buildDate=2016-07-11T19:57:52Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-11T19:57:52Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.3
+Version:        3.3.0.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -55,6 +55,7 @@ ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  golang = %{golang_version}
+BuildRequires:  krb5-devel
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
 Obsoletes:      openshift < %{package_refector_version}
@@ -182,15 +183,14 @@ popd
 mkdir _thirdpartyhacks
 pushd _thirdpartyhacks
     ln -s \
-        $(dirs +1 -l)/Godeps/_workspace/src/ \
+        $(dirs +1 -l)/vendor/ \
             src
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in oc openshift dockerregistry
-do
-        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
-done
+go install -ldflags "%{ldflags}" %{import_path}/cmd/dockerregistry
+go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/openshift
+go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/oc
 go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test/extended
 
 %if 0%{?make_redistributable}
@@ -474,6 +474,65 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Jul 11 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.4
+- OSE Fix: Revert OS_GIT_VERSION regex back (tdawson@redhat.com)
+- Fix a DNS flake by watching for pod succeeded (ccoleman@redhat.com)
+- Avoid mutating the cached deployment config in image change controller
+  (ccoleman@redhat.com)
+- combine quota registries (deads@redhat.com)
+- UPSTREAM: 28611: add union registry for quota (deads@redhat.com)
+- UPSTREAM: <carry>: make namespace lifecycle access review aware
+  (deads@redhat.com)
+- collapse admission chains (deads@redhat.com)
+- lock clusterquota admission to avoid conflicts (deads@redhat.com)
+- add clusterquota admission (deads@redhat.com)
+- UPSTREAM: 28504: shared informer cleanup (deads@redhat.com)
+- Remove all checkErr() flags and retry conflict on BuildController
+  (ccoleman@redhat.com)
+- test-local-registry.sh works on *nix as well (miminar@redhat.com)
+- deploy: pin retries to a const and forget correctly in the dc loop
+  (mkargaki@redhat.com)
+- deploy: remove deployer pod controller (mkargaki@redhat.com)
+- deploy: collapse deployer into deployments controller (mkargaki@redhat.com)
+- Add gssapi build flags (jliggitt@redhat.com)
+- Limit gssapi auth to specified principal (jliggitt@redhat.com)
+- Add gssapi negotiate support (jliggitt@redhat.com)
+- bump(github.com/apcera/gssapi): b28cfdd5220f7ebe15d8372ac81a7f41cc35ab32
+  (jliggitt@redhat.com)
+- Use recycler service account for the recycler pod (ccoleman@redhat.com)
+- modify example in Makefile (li.guangxu@zte.com.cn)
+- Failing to update deployment config should requeue on image change
+  (ccoleman@redhat.com)
+- Print more info in router tests (ccoleman@redhat.com)
+- generated: API, completions, man pages, conversion, copy
+  (ccoleman@redhat.com)
+- Deployment test does not round trip (ccoleman@redhat.com)
+- Disable extended tests that won't work on OpenShift (ccoleman@redhat.com)
+- Update master startup and admission to reflect changes in upstream
+  (ccoleman@redhat.com)
+- Alter generation to properly reuse upstream types (ccoleman@redhat.com)
+- Make conversion and encoding handle nested runtime.Objects
+  (ccoleman@redhat.com)
+- Refactors from upstream Kube changes (ccoleman@redhat.com)
+- Revert "react to 27341: this does not fix races in our code"
+  (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Distribution dependencies
+  (ccoleman@redhat.com)
+- bump(k8s.io/kubernetes):v1.3.0+ (ccoleman@redhat.com)
+- bump(*): rename Godeps/_workspace/src -> vendor/ (ccoleman@redhat.com)
+- Track upstream versions more precisely (ccoleman@redhat.com)
+- Use vendor instead of Godeps/_workspace in builds (ccoleman@redhat.com)
+- Update commit checker to handle vendor (ccoleman@redhat.com)
+- Remove v1beta3 (ccoleman@redhat.com)
+- bump registry xfs quota; re-enable disk usage diag; add docker info
+  (gmontero@redhat.com)
+- make sure the db has an endpoint before testing the app (bparees@redhat.com)
+- Adding dumplogs pattern to extended build tests (jupierce@redhat.com)
+- allow cni as one of the plugins (rchopra@redhat.com)
+- fix bz1353489 (rchopra@redhat.com)
+- Fix incorrect master leases ttl setting (agoldste@redhat.com)
+- Fix race in imageprogress test (cewong@redhat.com)
+
 * Fri Jul 08 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.3
 - Bump origin-web-console (e29729b) (jforrest@redhat.com)
 - Ensure binary is built before completions are updated (jvallejo@redhat.com)

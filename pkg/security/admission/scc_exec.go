@@ -42,7 +42,7 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 
 	// TODO, if we want to actually limit who can use which service account, then we'll need to add logic here to make sure that
 	// we're allowed to use the SA the pod is using.  Otherwise, user-A creates pod and user-B (who can't use the SA) can exec into it.
-	createAttributes := admission.NewAttributesRecord(pod, kapi.Kind("Pod").WithVersion(""), a.GetNamespace(), a.GetName(), a.GetResource(), "", admission.Create, a.GetUserInfo())
+	createAttributes := admission.NewAttributesRecord(pod, pod, kapi.Kind("Pod").WithVersion(""), a.GetNamespace(), a.GetName(), a.GetResource(), "", admission.Create, a.GetUserInfo())
 	if err := d.constraintAdmission.Admit(createAttributes); err != nil {
 		return admission.NewForbidden(a, err)
 	}

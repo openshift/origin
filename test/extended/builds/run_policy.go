@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"fmt"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -46,6 +47,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 			// Start first build
 			out, err := oc.Run("start-build").Args(bcName).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nfirst start-build output:\n%s\n", out)
+
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(strings.TrimSpace(out)).ShouldNot(o.HaveLen(0))
 			startedBuilds = append(startedBuilds, strings.TrimSpace(out))
@@ -62,6 +65,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 			for i := 0; i < 2; i++ {
 				out, err := oc.Run("start-build").Args(bcName).Output()
+				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, out)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(strings.TrimSpace(out)).ShouldNot(o.HaveLen(0))
 				startedBuilds = append(startedBuilds, strings.TrimSpace(out))
@@ -120,6 +124,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 			for i := 0; i < 3; i++ {
 				out, err := oc.Run("start-build").Args(bcName).Output()
+				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, out)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				startedBuilds = append(startedBuilds, strings.TrimSpace(out))
 			}
@@ -185,6 +190,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			out, err := oc.Run("start-build").Args(bcName).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nfirst start-build output:\n%s\n", out)
+
 			o.Expect(err).NotTo(o.HaveOccurred())
 			startedBuilds = append(startedBuilds, strings.TrimSpace(out))
 			// Wait for the first build to become running
@@ -205,6 +212,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			// Trigger two more builds
 			for i := 0; i < 2; i++ {
 				out, err := oc.Run("start-build").Args(bcName).Output()
+				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, out)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				startedBuilds = append(startedBuilds, strings.TrimSpace(out))
 			}

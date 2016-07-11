@@ -13,20 +13,20 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
-func ValidateProjectName(name string, prefix bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
-		return ok, reason
+func ValidateProjectName(name string, prefix bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		return reasons
 	}
 
 	if len(name) < 2 {
-		return false, "must be at least 2 characters long"
+		return []string{"must be at least 2 characters long"}
 	}
 
-	if ok, msg := validation.ValidateNamespaceName(name, false); !ok {
-		return ok, msg
+	if reasons := validation.ValidateNamespaceName(name, false); len(reasons) != 0 {
+		return reasons
 	}
 
-	return true, ""
+	return nil
 }
 
 // ValidateProject tests required fields for a Project.

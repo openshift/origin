@@ -55,7 +55,7 @@ func (s *storage) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *dep
 }
 
 func (s *storage) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error {
-	_, _, err := s.Update(ctx, deploymentConfig)
+	_, _, err := s.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig, kapi.Scheme))
 	return err
 }
 

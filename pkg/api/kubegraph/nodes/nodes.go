@@ -4,7 +4,7 @@ import (
 	"github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 )
@@ -146,7 +146,7 @@ func EnsurePodTemplateSpecNode(g osgraph.MutableUniqueGraph, ptSpec *kapi.PodTem
 	return ptSpecNode
 }
 
-func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *extensions.HorizontalPodAutoscaler) *HorizontalPodAutoscalerNode {
+func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *autoscaling.HorizontalPodAutoscaler) *HorizontalPodAutoscalerNode {
 	return osgraph.EnsureUnique(g,
 		HorizontalPodAutoscalerNodeName(hpa),
 		func(node osgraph.Node) graph.Node {

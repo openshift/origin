@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/conversion"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -243,6 +244,9 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 	return rules, nil
 }
 
+// TODO: direct deep copy needing a cloner is something that should be fixed upstream
+var localCloner = conversion.NewCloner()
+
 // removeEscalatingResources inspects a PolicyRule and removes any references to escalating resources.
 // It has coarse logic for now.  It is possible to rewrite one rule into many for the finest grain control
 // but removing the entire matching resource regardless of verb or secondary group is cheaper, easier, and errs on the side removing
@@ -260,7 +264,7 @@ func removeEscalatingResources(in authorizationapi.PolicyRule) authorizationapi.
 			// we're using a cache of cache of an object that uses pointers to data.  I'm pretty sure we need to do a copy to avoid
 			// muddying the cache
 			ruleCopy = &authorizationapi.PolicyRule{}
-			authorizationapi.DeepCopy_api_PolicyRule(in, ruleCopy, nil)
+			authorizationapi.DeepCopy_api_PolicyRule(in, ruleCopy, localCloner)
 		}
 
 		ruleCopy.Resources.Delete(resource.Resource)

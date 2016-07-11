@@ -23,7 +23,7 @@ Rollback to a previous rollout.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
-    If true, process directory recursively.
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-to\-revision\fP=0
@@ -93,22 +93,18 @@ Rollback to a previous rollout.
 
 .PP
 \fB\-\-docker\-root\fP="/var/lib/docker"
-    Absolute path to the Docker state root directory (default: /var/lib/docker)
-
-.PP
-\fB\-\-docker\-run\fP="/var/run/docker"
-    Absolute path to the Docker run directory (default: /var/run/docker)
+    DEPRECATED: docker root is read from docker info (this is a fallback, default: /var/lib/docker)
 
 .PP
 \fB\-\-enable\-load\-reader\fP=false
     Whether to enable cpu load reader
 
 .PP
-\fB\-\-event\-storage\-age\-limit\fP="default=24h"
+\fB\-\-event\-storage\-age\-limit\fP="default=0"
     Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
 
 .PP
-\fB\-\-event\-storage\-event\-limit\fP="default=100000"
+\fB\-\-event\-storage\-event\-limit\fP="default=0"
     Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
 
 .PP

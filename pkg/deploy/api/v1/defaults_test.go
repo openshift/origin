@@ -264,7 +264,7 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 		return nil
 	}
 	obj3 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
-	err = kapi.Scheme.Convert(obj2, obj3)
+	err = kapi.Scheme.Convert(obj2, obj3, nil)
 	if err != nil {
 		t.Errorf("%v\nSource: %#v", err, obj2)
 		return nil
@@ -438,7 +438,7 @@ func TestDeepDefaults(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		if err := kapi.Scheme.Convert(test.External, test.Internal); err != nil {
+		if err := kapi.Scheme.Convert(test.External, test.Internal, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !test.Ok(test.Internal) {

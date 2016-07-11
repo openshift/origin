@@ -9,7 +9,6 @@
 #   clean: Clean up.
 
 OUT_DIR = _output
-OUT_PKG_DIR = Godeps/_workspace/pkg
 OS_OUTPUT_GOPATH ?= 1
 
 export GOFLAGS
@@ -30,8 +29,18 @@ export OS_OUTPUT_GOPATH
 #   make all
 #   make all WHAT=cmd/oc GOFLAGS=-v
 all build:
-	hack/build-go.sh $(WHAT)
+	hack/build-go.sh $(WHAT) $(GOFLAGS)
 .PHONY: all build
+
+# Build the test binaries.
+#
+# Example:
+#   make build-tests
+build-tests:
+	hack/build-go.sh test/extended/extended.test
+	hack/build-go.sh test/extended/networking/extended.test
+	hack/build-go.sh test/integration/integration.test -tags='integration docker'
+.PHONY: build-tests
 
 # Run core verification and all self contained tests.
 #
@@ -47,7 +56,7 @@ check: | build verify
 # Example:
 #   make verify
 verify: build
-	hack/build-go.sh test/extended/extended.test test/extended/networking/extended.test test/integration/integration.test -tags='integration docker'
+	# build-tests is disabled until we can determine why memory usage is so high
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
@@ -111,7 +120,7 @@ test-cmd: build
 # Run end to end tests. Uses whatever binaries are currently built.
 #
 # Example:
-#   make test-cmd
+#   make test-end-to-end
 test-end-to-end: build
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
@@ -154,7 +163,7 @@ run: build
 # Example:
 #   make clean
 clean:
-	rm -rf $(OUT_DIR) $(OUT_PKG_DIR)
+	rm -rf $(OUT_DIR)
 .PHONY: clean
 
 # Build an official release of OpenShift, including the official images.

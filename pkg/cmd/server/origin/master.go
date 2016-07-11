@@ -116,20 +116,17 @@ import (
 )
 
 const (
-	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
-	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
-	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
-	KubernetesAPIGroupPrefix  = "/apis"  // TODO: make configurable
-	OpenShiftAPIV1Beta3       = "v1beta3"
-	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
-	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
-	swaggerAPIPrefix          = "/swaggerapi/"
+	LegacyOpenShiftAPIPrefix = "/osapi" // TODO: make configurable
+	OpenShiftAPIPrefix       = "/oapi"  // TODO: make configurable
+	KubernetesAPIPrefix      = "/api"   // TODO: make configurable
+	KubernetesAPIGroupPrefix = "/apis"  // TODO: make configurable
+	OpenShiftAPIV1           = "v1"
+	OpenShiftAPIPrefixV1     = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
+	swaggerAPIPrefix         = "/swaggerapi/"
 )
 
 var (
-	excludedV1Beta3Types = sets.NewString()
-	excludedV1Types      = excludedV1Beta3Types
+	excludedV1Types = sets.NewString()
 
 	// TODO: correctly solve identifying requests by type
 	longRunningRE = regexp.MustCompile("watch|proxy|logs?|exec|portforward|attach")
@@ -328,8 +325,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]stri
 		switch service.RootPath() {
 		case "/":
 			root = service
-		case OpenShiftAPIPrefixV1Beta3:
-			service.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
 		case OpenShiftAPIPrefixV1:
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
@@ -721,6 +716,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Creater:   kapi.Scheme,
 		Typer:     kapi.Scheme,
 		Convertor: kapi.Scheme,
+		Copier:    kapi.Scheme,
 		Linker:    registered.GroupOrDie("").SelfLinker,
 
 		Admit:                       c.AdmissionControl,

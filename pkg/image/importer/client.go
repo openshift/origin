@@ -221,7 +221,7 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 
 func schema0ToImage(dockerImage *dockerregistry.Image, id string) (*api.Image, error) {
 	var baseImage api.DockerImage
-	if err := kapi.Scheme.Convert(&dockerImage.Image, &baseImage); err != nil {
+	if err := kapi.Scheme.Convert(&dockerImage.Image, &baseImage, nil); err != nil {
 		return nil, fmt.Errorf("could not convert image: %#v", err)
 	}
 
@@ -242,7 +242,7 @@ func unmarshalDockerImage(body []byte) (*api.DockerImage, error) {
 		return nil, err
 	}
 	dockerImage := &api.DockerImage{}
-	if err := kapi.Scheme.Convert(&image, dockerImage); err != nil {
+	if err := kapi.Scheme.Convert(&image, dockerImage, nil); err != nil {
 		return nil, err
 	}
 	return dockerImage, nil

@@ -27,15 +27,25 @@ func TestTriggers_manual(t *testing.T) {
 
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	osClient, kubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace
@@ -285,7 +295,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	var newConfig *deployapi.DeploymentConfig
 	t.Log("Waiting for the initial deploymentconfig update in response to the imagestream update")
 
-	timeout := time.After(2 * time.Minute)
+	timeout := time.After(30 * time.Second)
 
 	// This is the initial deployment with automatic=false in its ICT - it should be updated to pullSpec
 out:
@@ -331,7 +341,7 @@ out:
 			}
 
 			if e, a := updated, newConfig.Spec.Template.Spec.Containers[0].Image; e == a {
-				t.Fatalf("unexpected image update, expected initial image to be the same")
+				t.Fatalf("unexpected image update, expected initial image to be the same: %#v", newConfig)
 			}
 		case <-timeout:
 			return
@@ -346,15 +356,25 @@ func TestTriggers_configChange(t *testing.T) {
 
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	osClient, kubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace

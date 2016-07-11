@@ -346,7 +346,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 
 	// Inherit resources from the base container
 	resources := kapi.ResourceRequirements{}
-	if err := kapi.Scheme.Convert(&baseContainer.Resources, &resources); err != nil {
+	if err := kapi.Scheme.Convert(&baseContainer.Resources, &resources, nil); err != nil {
 		return nil, fmt.Errorf("couldn't clone ResourceRequirements: %v", err)
 	}
 

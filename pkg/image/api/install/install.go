@@ -17,7 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/image/api/docker10"
 	"github.com/openshift/origin/pkg/image/api/dockerpre012"
 	"github.com/openshift/origin/pkg/image/api/v1"
-	"github.com/openshift/origin/pkg/image/api/v1beta3"
 )
 
 const importPrefix = "github.com/openshift/origin/pkg/image/api"
@@ -25,7 +24,7 @@ const importPrefix = "github.com/openshift/origin/pkg/image/api"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion, docker10.SchemeGroupVersion, dockerpre012.SchemeGroupVersion, v1beta3.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion, docker10.SchemeGroupVersion, dockerpre012.SchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
@@ -83,8 +82,6 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 		switch v {
 		case v1.SchemeGroupVersion:
 			v1.AddToScheme(kapi.Scheme)
-		case v1beta3.SchemeGroupVersion:
-			v1beta3.AddToScheme(kapi.Scheme)
 		case docker10.SchemeGroupVersion:
 			docker10.AddToScheme(kapi.Scheme)
 		case dockerpre012.SchemeGroupVersion:
@@ -106,12 +103,6 @@ func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper 
 func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
 	case v1.SchemeGroupVersion:
-		return &meta.VersionInterfaces{
-			ObjectConvertor:  kapi.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-
-	case v1beta3.SchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,

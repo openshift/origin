@@ -1,0 +1,24 @@
+language: go
+
+go:
+  - 1.4
+  - 1.5
+  - tip
+
+sudo: required
+services:
+  - docker
+
+before_install:
+  - sudo apt-get update -q
+  - sudo apt-get install -y gcc libkrb5-dev       
+
+install:
+  - go get golang.org/x/tools/cmd/vet
+
+script:   
+  - go vet ./...
+  - go fmt ./...
+  - go test -v ./...
+  - cd test/ 
+  - ./run-heimdal.sh

@@ -1,5 +1,3 @@
-// +build integration,docker
-
 package router
 
 import (
@@ -9,8 +7,10 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/golang/glog"
 	"golang.org/x/net/websocket"
+
+	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 // GetDefaultLocalAddress returns an address at which the local host can
@@ -129,26 +129,31 @@ func (s *TestHttpService) handleHelloPodTestSecure(w http.ResponseWriter, r *htt
 
 // handleRouteWatch handles calls to /osapi/v1beta1/watch/routes and uses the route channel to simulate watch events
 func (s *TestHttpService) handleRouteWatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, <-s.RouteChannel)
 }
 
 // handleRouteList handles calls to /osapi/v1beta1/routes and always returns empty data
 func (s *TestHttpService) handleRouteList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
 
 // handleRouteCalls handles calls to /osapi/v1/routes/* and returns whatever the client sent
 func (s *TestHttpService) handleRouteCalls(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
 
 // handleEndpointWatch handles calls to /api/v1beta1/watch/endpoints and uses the endpoint channel to simulate watch events
 func (s *TestHttpService) handleEndpointWatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, <-s.EndpointChannel)
 }
 
 // handleEndpointList handles calls to /api/v1beta1/endpoints and always returns empty data
 func (s *TestHttpService) handleEndpointList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
 
@@ -166,7 +171,7 @@ func (s *TestHttpService) Stop() {
 	if s.listeners != nil && len(s.listeners) > 0 {
 		for _, l := range s.listeners {
 			if l != nil {
-				fmt.Printf("Stopping listener at %s\n", l.Addr().String())
+				glog.Infof("Stopping listener at %s\n", l.Addr().String())
 				l.Close()
 			}
 		}
@@ -191,8 +196,7 @@ func (s *TestHttpService) Start() error {
 
 func (s *TestHttpService) startMaster() error {
 	masterServer := http.NewServeMux()
-	// TODO: this is incorrect
-	apis := []string{"v1beta3", "v1"}
+	apis := []string{"v1"}
 
 	for _, version := range apis {
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/endpoints", version), s.handleEndpointList)
@@ -258,14 +262,13 @@ func (s *TestHttpService) startServing(addr string, handler http.Handler) error 
 
 	s.listeners = append(s.listeners, listener)
 
-	fmt.Printf("Started, serving at %s\n", listener.Addr().String())
+	glog.Infof("Started, serving at %s\n", listener.Addr().String())
 
 	go func() {
 		err := http.Serve(listener, handler)
 
 		if err != nil {
-			fmt.Printf("Server message: %v", err)
-			s.Stop()
+			glog.Errorf("HTTP server failed: %v", err)
 		}
 	}()
 
@@ -291,13 +294,11 @@ func (s *TestHttpService) startServingTLS(addr string, cert []byte, key []byte, 
 	}
 
 	s.listeners = append(s.listeners, listener)
-	fmt.Printf("Started, serving TLS at %s\n", listener.Addr().String())
+	glog.Infof("Started, serving TLS at %s\n", listener.Addr().String())
 
 	go func() {
-		err := http.Serve(listener, handler)
-
-		if err != nil {
-			fmt.Printf("Server message: %v", err)
+		if err := http.Serve(listener, handler); err != nil {
+			glog.Errorf("HTTPS server failed: %v", err)
 		}
 	}()
 

@@ -197,7 +197,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.AddCommand(experimental)
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName, false))
+		cmds.AddCommand(version.NewVersionCommand(fullName, version.Options{PrintClientFeatures: true}))
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 

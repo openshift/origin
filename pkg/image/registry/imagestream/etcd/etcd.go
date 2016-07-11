@@ -2,6 +2,7 @@ package etcd
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -89,8 +90,8 @@ func (r *StatusREST) New() runtime.Object {
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
+func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }
 
 // InternalREST implements the REST endpoint for changing both the spec and status of an image stream.
@@ -108,6 +109,6 @@ func (r *InternalREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Obj
 }
 
 // Update alters both the spec and status of the object.
-func (r *InternalREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, obj)
+func (r *InternalREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }

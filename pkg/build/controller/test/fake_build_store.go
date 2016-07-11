@@ -26,6 +26,10 @@ func (s FakeBuildStore) Delete(obj interface{}) error {
 	return s.Err
 }
 
+func (s FakeBuildStore) Resync() error {
+	return s.Err
+}
+
 func (s FakeBuildStore) List() []interface{} {
 	return []interface{}{s.Build}
 }

@@ -133,7 +133,7 @@ pod.json
 
     {
       "kind": "Pod",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "hello-pod",
         "labels": {
@@ -170,7 +170,7 @@ service.json
 
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "hello-openshift"
       },
@@ -196,7 +196,7 @@ route.json
 
     {
       "kind": "Route",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "hello-route"
       },

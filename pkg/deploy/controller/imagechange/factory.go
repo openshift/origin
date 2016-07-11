@@ -60,16 +60,16 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	}
 
 	return &controller.RetryController{
-		Queue: controller.NewQueueWrapper(queue),
+		Queue: queue,
 		RetryManager: controller.NewQueueRetryManager(
-			controller.NewQueueWrapper(queue),
+			queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				utilruntime.HandleError(err)
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}
-				if retries.Count > 0 {
+				if retries.Count > 2 {
 					return false
 				}
 				return true

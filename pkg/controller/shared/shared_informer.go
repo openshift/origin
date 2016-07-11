@@ -21,6 +21,9 @@ type InformerFactory interface {
 
 	Pods() PodInformer
 	Namespaces() NamespaceInformer
+	Nodes() NodeInformer
+	PersistentVolumes() PersistentVolumeInformer
+	PersistentVolumeClaims() PersistentVolumeClaimInformer
 	ReplicationControllers() ReplicationControllerInformer
 
 	ClusterPolicies() ClusterPolicyInformer
@@ -55,8 +58,10 @@ func NewInformerFactory(kubeClient kclient.Interface, originClient oclient.Inter
 		customListerWatchers: customListerWatchers,
 		defaultResync:        defaultResync,
 
-		informers:     map[reflect.Type]framework.SharedIndexInformer{},
-		coreInformers: map[reflect.Type]framework.SharedIndexInformer{},
+		informers:            map[reflect.Type]framework.SharedIndexInformer{},
+		coreInformers:        map[reflect.Type]framework.SharedIndexInformer{},
+		startedInformers:     map[reflect.Type]bool{},
+		startedCoreInformers: map[reflect.Type]bool{},
 	}
 }
 
@@ -66,25 +71,51 @@ type sharedInformerFactory struct {
 	customListerWatchers ListerWatcherOverrides
 	defaultResync        time.Duration
 
-	informers     map[reflect.Type]framework.SharedIndexInformer
-	coreInformers map[reflect.Type]framework.SharedIndexInformer
-	lock          sync.Mutex
+	informers            map[reflect.Type]framework.SharedIndexInformer
+	coreInformers        map[reflect.Type]framework.SharedIndexInformer
+	startedInformers     map[reflect.Type]bool
+	startedCoreInformers map[reflect.Type]bool
+	lock                 sync.Mutex
 }
 
 func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
-	for _, informer := range f.informers {
-		go informer.Run(stopCh)
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	for informerType, informer := range f.informers {
+		if !f.startedInformers[informerType] {
+			go informer.Run(stopCh)
+			f.startedInformers[informerType] = true
+		}
 	}
 }
 
 func (f *sharedInformerFactory) StartCore(stopCh <-chan struct{}) {
-	for _, informer := range f.coreInformers {
-		go informer.Run(stopCh)
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	for informerType, informer := range f.coreInformers {
+		if !f.startedCoreInformers[informerType] {
+			go informer.Run(stopCh)
+			f.startedCoreInformers[informerType] = true
+		}
 	}
 }
 
 func (f *sharedInformerFactory) Pods() PodInformer {
 	return &podInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) Nodes() NodeInformer {
+	return &nodeInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) PersistentVolumes() PersistentVolumeInformer {
+	return &persistentVolumeInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) PersistentVolumeClaims() PersistentVolumeClaimInformer {
+	return &persistentVolumeClaimInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerInformer {

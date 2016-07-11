@@ -33,6 +33,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 		g.It("should start a build and wait for the build to complete", func() {
 			g.By("starting the build with --wait flag")
 			out, err := oc.Run("start-build").Args("sample-build", "--wait").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("verifying the build %q status", out))
@@ -48,6 +49,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			out, err := oc.Run("start-build").
 				Args("sample-build", "--wait", "--commit", "fffffff").
 				Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).Should(o.ContainSubstring(`status is "Failed"`))
 		})
@@ -55,15 +57,31 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 	g.Describe("override environment", func() {
 		g.It("should accept environment variables", func() {
-			g.By("starting the build with -e FOO=bar")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", "-e", "FOO=bar,VAR=test").Output()
+			g.By("starting the build with -e FOO=bar,VAR=test")
+			out, err := oc.Run("start-build").Args("sample-build", "-e", "FOO=bar,VAR=test").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("verifying the build output contains the env var"))
+
+			g.By("waiting for the build to complete")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-build", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the build output")
+			out, err = oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\n: build logs: %s\n", out)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build output contains the env vars"))
 			o.Expect(out).To(o.ContainSubstring("FOO=bar"))
-			// This variable is not set and thus inherited from the original build
-			// config
-			o.Expect(out).To(o.ContainSubstring("BAR=test"))
 			o.Expect(out).To(o.ContainSubstring("VAR=test"))
+
+			g.By(fmt.Sprintf("verifying the build output contains inherited env vars"))
+			// This variable is not set and thus inherited from the original build config
+			o.Expect(out).To(o.ContainSubstring("BAR=test"))
+
 			g.By(fmt.Sprintf("verifying the build %q status", out))
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
@@ -74,86 +92,122 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 		g.It("should allow to change build log level", func() {
 			g.By("starting the build with --build-loglevel=1")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", "--build-loglevel=1").Output()
+			out, err := oc.Run("start-build").Args("sample-build", "--build-loglevel=1").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("verifying the build output is not verbose"))
-			o.Expect(out).NotTo(o.ContainSubstring("Creating a new S2I builder"))
-			g.By(fmt.Sprintf("verifying the build %q status", out))
+
+			g.By("waiting for the build to complete")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}
+
+			g.By("verifying the build output")
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build output is not verbose"))
+			o.Expect(buildLog).NotTo(o.ContainSubstring("Creating a new S2I builder"))
 		})
 	})
 
 	g.Describe("binary builds", func() {
 		g.It("should accept --from-file as input", func() {
 			g.By("starting the build with a Dockerfile")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-file=%s", exampleGemfile)).Output()
-			g.By(fmt.Sprintf("verifying the build %q status", out))
+			out, err := oc.Run("start-build").Args("sample-build", fmt.Sprintf("--from-file=%s", exampleGemfile)).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Uploading file"))
-			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
-			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(out).To(o.ContainSubstring("Uploading file"))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+
 		})
 
 		g.It("should accept --from-dir as input", func() {
 			g.By("starting the build with a directory")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-dir=%s", exampleBuild)).Output()
-			g.By(fmt.Sprintf("verifying the build %q status", out))
+			out, err := oc.Run("start-build").Args("sample-build", fmt.Sprintf("--from-dir=%s", exampleBuild)).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Uploading directory"))
-			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
-			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
+			g.By("waiting for the build to complete")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build %q output", out))
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nbuild logs:\n%s\n", buildLog)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(out).To(o.ContainSubstring("Uploading directory"))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
 		})
 
 		g.It("should accept --from-repo as input", func() {
 			g.By("starting the build with a Git repository")
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
-			g.By(fmt.Sprintf("verifying the build %q status", out))
+			out, err := oc.Run("start-build").Args("sample-build", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Uploading"))
-			o.Expect(out).To(o.ContainSubstring(`at commit "HEAD"`))
-			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
-			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
+			g.By("waiting for the build to complete")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build %q output", out))
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(out).To(o.ContainSubstring("Uploading"))
+			o.Expect(out).To(o.ContainSubstring(`at commit "HEAD"`))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
 		})
 
 		g.It("should accept --from-repo with --commit as input", func() {
 			g.By("starting the build with a Git repository")
 			// NOTE: This actually takes the commit from the origin repository. If the
 			// test-build-app changes, this commit has to be bumped.
-			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--commit=f0f3834", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
-			g.By(fmt.Sprintf("verifying the build %q status", out))
+			out, err := oc.Run("start-build").Args("sample-build", "--commit=f0f3834", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("Uploading"))
-			o.Expect(out).To(o.ContainSubstring(`at commit "f0f3834"`))
-			o.Expect(out).To(o.ContainSubstring(`"commit":"f0f38342e53eac2a6995acca81d06bd9dd6d4964"`))
-			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
-			o.Expect(out).To(o.ContainSubstring("Your bundle is complete"))
 
+			g.By("waiting for the build to complete")
 			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
 				exutil.DumpBuildLogs("sample-build", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build %q output", out))
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			o.Expect(out).To(o.ContainSubstring("Uploading"))
+			o.Expect(out).To(o.ContainSubstring(`at commit "f0f3834"`))
+			o.Expect(buildLog).To(o.ContainSubstring(`"commit":"f0f38342e53eac2a6995acca81d06bd9dd6d4964"`))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
 		})
 	})
 
@@ -165,6 +219,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			go func() {
 				defer g.GinkgoRecover()
 				out, err := oc.Run("start-build").Args("sample-build", "--wait").Output()
+				fmt.Fprintf(g.GinkgoWriter, "\ngo routine start-build output:\n%s\n", out)
 				defer wg.Done()
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(out).Should(o.ContainSubstring(`status is "Cancelled"`))

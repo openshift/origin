@@ -68,10 +68,7 @@ var _ = Describe("[networking] services", func() {
 })
 
 func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, numNodes int) error {
-	nodes, err := e2e.GetReadyNodes(serverFramework)
-	if err != nil {
-		e2e.Failf("Failed to list nodes: %v", err)
-	}
+	nodes := e2e.GetReadySchedulableNodesOrDie(serverFramework.Client)
 	var serverNode, clientNode *api.Node
 	serverNode = &nodes.Items[0]
 	if numNodes == 2 {

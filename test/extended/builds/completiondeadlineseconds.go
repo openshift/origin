@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"fmt"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	g "github.com/onsi/ginkgo"
@@ -32,7 +34,8 @@ var _ = g.Describe("[builds][Slow] builds should have deadlines", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting the build with --wait flag")
-			_, err = oc.Run("start-build").Args("source-build", "--wait").Output()
+			out, err := oc.Run("start-build").Args("source-build", "--wait").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("verifying the build status")
@@ -59,7 +62,8 @@ var _ = g.Describe("[builds][Slow] builds should have deadlines", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting the build with --wait flag")
-			_, err = oc.Run("start-build").Args("docker-build", "--wait").Output()
+			out, err := oc.Run("start-build").Args("docker-build", "--wait").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("verifying the build status")

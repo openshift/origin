@@ -232,7 +232,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 		// Can't really do type checking or use a constant here as they are not exported:
 		if plugin.CanSupport(emptyDirSpec) {
 			wrapper := emptydir.EmptyDirQuotaPlugin{
-				Wrapped:         plugin,
+				VolumePlugin:    plugin,
 				Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
 				QuotaApplicator: quotaApplicator,
 			}

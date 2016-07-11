@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/docker/distribution/reference"
 	"github.com/golang/glog"
@@ -32,15 +33,15 @@ var RepositoryNameComponentAnchoredRegexp = regexp.MustCompile(`^` + RepositoryN
 // Copied from github.com/docker/distribution/registry/api/v2/names.go v2.1.1
 var RepositoryNameRegexp = regexp.MustCompile(`(?:` + RepositoryNameComponentRegexp.String() + `/)*` + RepositoryNameComponentRegexp.String())
 
-func ValidateImageStreamName(name string, prefix bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
-		return ok, reason
+func ValidateImageStreamName(name string, prefix bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		return reasons
 	}
 
 	if !RepositoryNameComponentAnchoredRegexp.MatchString(name) {
-		return false, fmt.Sprintf("must match %q", RepositoryNameComponentRegexp.String())
+		return []string{fmt.Sprintf("must match %q", RepositoryNameComponentRegexp.String())}
 	}
-	return true, ""
+	return nil
 }
 
 // ValidateImage tests required fields for an Image.
@@ -209,8 +210,8 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) field.ErrorList
 		result = append(result, field.Required(field.NewPath("dockerImageRepository"), ""))
 	}
 
-	if ok, msg := validation.ValidateNamespaceName(mapping.Namespace, false); !ok {
-		result = append(result, field.Invalid(field.NewPath("metadata", "namespace"), mapping.Namespace, msg))
+	if reasons := validation.ValidateNamespaceName(mapping.Namespace, false); len(reasons) != 0 {
+		result = append(result, field.Invalid(field.NewPath("metadata", "namespace"), mapping.Namespace, strings.Join(reasons, ", ")))
 	}
 	if len(mapping.Tag) == 0 {
 		result = append(result, field.Required(field.NewPath("tag"), ""))

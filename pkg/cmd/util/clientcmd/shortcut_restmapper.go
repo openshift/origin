@@ -73,6 +73,10 @@ func (e ShortcutExpander) RESTMapping(gk unversioned.GroupKind, versions ...stri
 	return e.RESTMapper.RESTMapping(gk, versions...)
 }
 
+func (e ShortcutExpander) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMapping, error) {
+	return e.RESTMapper.RESTMappings(gk)
+}
+
 // userResources are the resource names that apply to the primary, user facing resources used by
 // client tools. They are in deletion-first order - dependent resources should be last.
 var userResources = []string{

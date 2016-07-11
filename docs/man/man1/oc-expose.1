@@ -32,7 +32,7 @@ labels from the object it exposes.
 
 .PP
 \fB\-\-dry\-run\fP=false
-    If true, only print the object that would be sent, without creating it.
+    If true, only print the object that would be sent, without sending it.
 
 .PP
 \fB\-\-external\-ip\fP=""
@@ -70,7 +70,7 @@ labels from the object it exposes.
 \fB\-o\fP, \fB\-\-output\fP=""
     Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/HEAD/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -90,7 +90,7 @@ labels from the object it exposes.
 
 .PP
 \fB\-\-protocol\fP=""
-    The network protocol for the service to be created. Default is 'tcp'.
+    The network protocol for the service to be created. Default is 'TCP'.
 
 .PP
 \fB\-\-record\fP=false
@@ -98,7 +98,7 @@ labels from the object it exposes.
 
 .PP
 \fB\-R\fP, \fB\-\-recursive\fP=false
-    If true, process directory recursively.
+    Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
 \fB\-\-save\-config\fP=false

@@ -14,10 +14,11 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-var codec = kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion)
+var codec = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 type terribleGenerator struct{}
 
@@ -99,7 +100,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		generator: &terribleGenerator{},
 		dn:        oc,
 		rn:        kc,
-		codec:     kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion),
+		codec:     kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{

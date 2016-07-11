@@ -58,7 +58,7 @@ items:
           name: Roy Programmer
         commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
         committer: {}
-        message: Prepare v1beta3 Template types
+        message: Prepare v1 Template types
       type: git
     source:
       git:

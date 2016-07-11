@@ -7,7 +7,9 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/controller/shared"
 	"github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
 // WantsOpenshiftClient should be implemented by admission plugins that need
@@ -48,4 +50,15 @@ type WantsJenkinsPipelineConfig interface {
 // WantsRESTClientConfig gives access to a RESTClientConfig.  It's useful for doing unusual things with transports.
 type WantsRESTClientConfig interface {
 	SetRESTClientConfig(restclient.Config)
+}
+
+// WantsInformers should be implemented by admission plugins that will select its own informer
+type WantsInformers interface {
+	SetInformers(shared.InformerFactory)
+}
+
+// WantsClusterQuotaMapper should be implemented by admission plugins that need to know how to map between
+// cluster quota and namespaces
+type WantsClusterQuotaMapper interface {
+	SetClusterQuotaMapper(clusterquotamapping.ClusterQuotaMapper)
 }

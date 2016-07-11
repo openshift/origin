@@ -17,15 +17,15 @@ import (
 
 const MinTokenLength = 32
 
-func ValidateTokenName(name string, prefix bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
-		return ok, reason
+func ValidateTokenName(name string, prefix bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		return reasons
 	}
 
 	if len(name) < MinTokenLength {
-		return false, fmt.Sprintf("must be at least %d characters long", MinTokenLength)
+		return []string{fmt.Sprintf("must be at least %d characters long", MinTokenLength)}
 	}
-	return true, ""
+	return nil
 }
 
 func ValidateRedirectURI(redirect string) (bool, string) {
@@ -156,17 +156,17 @@ func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) f
 	return allErrs
 }
 
-func ValidateClientAuthorizationName(name string, prefix bool) (bool, string) {
-	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
-		return ok, reason
+func ValidateClientAuthorizationName(name string, prefix bool) []string {
+	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
+		return reasons
 	}
 
 	lastColon := strings.Index(name, ":")
 	if lastColon <= 0 || lastColon >= len(name)-1 {
-		return false, "must be in the format <userName>:<clientName>"
+		return []string{"must be in the format <userName>:<clientName>"}
 	}
 
-	return true, ""
+	return nil
 }
 
 func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) field.ErrorList {
@@ -214,11 +214,11 @@ func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList 
 	if len(value) == 0 {
 		return field.ErrorList{field.Required(fldPath, "")}
 	} else if _, saName, err := serviceaccount.SplitUsername(value); err == nil {
-		if ok, errString := validation.ValidateServiceAccountName(saName, false); !ok {
-			return field.ErrorList{field.Invalid(fldPath, value, errString)}
+		if reasons := validation.ValidateServiceAccountName(saName, false); len(reasons) != 0 {
+			return field.ErrorList{field.Invalid(fldPath, value, strings.Join(reasons, ", "))}
 		}
-	} else if ok, msg := validation.NameIsDNSSubdomain(value, false); !ok {
-		return field.ErrorList{field.Invalid(fldPath, value, msg)}
+	} else if reasons := validation.NameIsDNSSubdomain(value, false); len(reasons) != 0 {
+		return field.ErrorList{field.Invalid(fldPath, value, strings.Join(reasons, ", "))}
 	}
 	return field.ErrorList{}
 }
@@ -226,8 +226,8 @@ func ValidateClientNameField(value string, fldPath *field.Path) field.ErrorList 
 func ValidateUserNameField(value string, fldPath *field.Path) field.ErrorList {
 	if len(value) == 0 {
 		return field.ErrorList{field.Required(fldPath, "")}
-	} else if ok, msg := uservalidation.ValidateUserName(value, false); !ok {
-		return field.ErrorList{field.Invalid(fldPath, value, msg)}
+	} else if reasons := uservalidation.ValidateUserName(value, false); len(reasons) != 0 {
+		return field.ErrorList{field.Invalid(fldPath, value, strings.Join(reasons, ", "))}
 	}
 	return field.ErrorList{}
 }

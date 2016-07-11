@@ -65,7 +65,7 @@ func (s *storage) CreateGroup(ctx kapi.Context, group *api.Group) (*api.Group, e
 }
 
 func (s *storage) UpdateGroup(ctx kapi.Context, group *api.Group) (*api.Group, error) {
-	obj, _, err := s.Update(ctx, group)
+	obj, _, err := s.Update(ctx, group.Name, rest.DefaultUpdatedObjectInfo(group, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}

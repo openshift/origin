@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -66,7 +66,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&secretLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
-		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Extensions()},
+		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.C},
@@ -1188,7 +1188,7 @@ func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 type horizontalPodAutoscalerLoader struct {
 	namespace string
 	lister    kclient.HorizontalPodAutoscalersNamespacer
-	items     []extensions.HorizontalPodAutoscaler
+	items     []autoscaling.HorizontalPodAutoscaler
 }
 
 func (l *horizontalPodAutoscalerLoader) Load() error {

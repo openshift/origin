@@ -125,7 +125,7 @@ func (r *REST) isAllowed(ctx kapi.Context, sar *authorizationapi.SubjectAccessRe
 		return kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetResourceName(), err)
 	}
 	if !allowed {
-		forbiddenError, _ := kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetResourceName(), errors.New("") /*discarded*/).(*kapierrors.StatusError)
+		forbiddenError := kapierrors.NewForbidden(authorizationapi.Resource(localSARAttributes.GetResource()), localSARAttributes.GetResourceName(), errors.New("") /*discarded*/)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError
 	}

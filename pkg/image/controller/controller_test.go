@@ -396,7 +396,7 @@ func TestScheduledImport(t *testing.T) {
 	}
 
 	// encountering a not found error for image streams should drop the controller
-	status := apierrs.NewNotFound(api.Resource("imagestream"), "test").(*apierrs.StatusError).ErrStatus
+	status := apierrs.NewNotFound(api.Resource("imagestream"), "test").ErrStatus
 	fake = client.NewSimpleFake(&status)
 	b.controller.streams = fake
 	b.scheduler.RunOnce()

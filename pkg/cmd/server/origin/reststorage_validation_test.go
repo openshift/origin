@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/genericapiserver"
+	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
@@ -72,7 +72,7 @@ func TestValidationRegistration(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, genericapiserver.DefaultDeserializationCacheSize)
+	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, genericapiserveroptions.DefaultDeserializationCacheSize)
 
 	informerFactory := shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	return &MasterConfig{

@@ -55,9 +55,9 @@ func (f *ImportControllerFactory) Create() (controller.RunnableController, contr
 
 	// instantiate an importer for changes that happen to the image stream
 	changed := &controller.RetryController{
-		Queue: controller.NewQueueWrapper(q),
+		Queue: q,
 		RetryManager: controller.NewQueueRetryManager(
-			controller.NewQueueWrapper(q),
+			q,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				utilruntime.HandleError(err)

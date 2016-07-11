@@ -61,7 +61,7 @@ func (s *storage) CreateBuild(ctx kapi.Context, build *api.Build) error {
 }
 
 func (s *storage) UpdateBuild(ctx kapi.Context, build *api.Build) error {
-	_, _, err := s.Update(ctx, build)
+	_, _, err := s.Update(ctx, build.Name, rest.DefaultUpdatedObjectInfo(build, kapi.Scheme))
 	return err
 }
 

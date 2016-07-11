@@ -100,7 +100,7 @@ func TestDefaults(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		if err := kapi.Scheme.Convert(test.External, test.Internal); err != nil {
+		if err := kapi.Scheme.Convert(test.External, test.Internal, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !test.Ok(test.Internal) {

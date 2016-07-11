@@ -20,6 +20,8 @@ type ClusterResourceQuotaInformer interface {
 	Lister() *ocache.IndexerToClusterResourceQuotaLister
 }
 
+// clusterResourceQuotaInformer is a core informer because quota needs to be working before the "ensure"
+// steps in the API server can complete
 type clusterResourceQuotaInformer struct {
 	*sharedInformerFactory
 }
@@ -30,7 +32,7 @@ func (f *clusterResourceQuotaInformer) Informer() framework.SharedIndexInformer 
 
 	informerObj := &quotaapi.ClusterResourceQuota{}
 	informerType := reflect.TypeOf(informerObj)
-	informer, exists := f.informers[informerType]
+	informer, exists := f.coreInformers[informerType]
 	if exists {
 		return informer
 	}
@@ -53,7 +55,7 @@ func (f *clusterResourceQuotaInformer) Informer() framework.SharedIndexInformer 
 		f.defaultResync,
 		cache.Indexers{},
 	)
-	f.informers[informerType] = informer
+	f.coreInformers[informerType] = informer
 
 	return informer
 }

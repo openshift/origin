@@ -54,13 +54,13 @@ func (s *storage) ListRoles(ctx kapi.Context, options *kapi.ListOptions) (*autho
 	return obj.(*authorizationapi.RoleList), nil
 }
 
-func (s *storage) CreateRole(ctx kapi.Context, node *authorizationapi.Role) (*authorizationapi.Role, error) {
-	obj, err := s.Create(ctx, node)
+func (s *storage) CreateRole(ctx kapi.Context, role *authorizationapi.Role) (*authorizationapi.Role, error) {
+	obj, err := s.Create(ctx, role)
 	return obj.(*authorizationapi.Role), err
 }
 
-func (s *storage) UpdateRole(ctx kapi.Context, node *authorizationapi.Role) (*authorizationapi.Role, bool, error) {
-	obj, created, err := s.Update(ctx, node)
+func (s *storage) UpdateRole(ctx kapi.Context, role *authorizationapi.Role) (*authorizationapi.Role, bool, error) {
+	obj, created, err := s.Update(ctx, role.Name, rest.DefaultUpdatedObjectInfo(role, kapi.Scheme))
 	return obj.(*authorizationapi.Role), created, err
 }
 

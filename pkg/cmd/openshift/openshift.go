@@ -116,7 +116,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
-	root.AddCommand(version.NewVersionCommand(name, true))
+	root.AddCommand(version.NewVersionCommand(name, version.Options{PrintEtcdVersion: true}))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly

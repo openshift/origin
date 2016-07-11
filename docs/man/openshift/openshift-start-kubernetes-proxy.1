@@ -1,0 +1,277 @@
+.TH "OPENSHIFT START KUBERNETES" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift start kubernetes proxy \- Launch Kubernetes proxy (kube\-proxy)
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift start kubernetes proxy\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Start Kubernetes Proxy
+
+.PP
+This command launches an instance of the Kubernetes proxy (kube\-proxy).
+
+
+.SH OPTIONS
+.PP
+\fB\-\-alsologtostderr\fP=false
+    log to standard error as well as files
+
+.PP
+\fB\-\-application\-metrics\-count\-limit\fP=100
+    Max number of application metrics to store (per container)
+
+.PP
+\fB\-\-bind\-address\fP=0.0.0.0
+    The IP address for the proxy server to serve on (set to 0.0.0.0 for all interfaces)
+
+.PP
+\fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
+    Comma\-separated list of files to check for boot\-id. Use the first one that exists.
+
+.PP
+\fB\-\-cleanup\-iptables\fP=false
+    If true cleanup iptables rules and exit.
+
+.PP
+\fB\-\-cluster\-cidr\fP=""
+    The CIDR range of pods in the cluster. It is used to bridge traffic coming from outside of the cluster. If not provided, no off\-cluster bridging will be performed.
+
+.PP
+\fB\-\-config\-sync\-period\fP=0
+    How often configuration from the apiserver is refreshed.  Must be greater than 0.
+
+.PP
+\fB\-\-conntrack\-max\fP=262144
+    Maximum number of NAT connections to track (0 to leave as\-is)
+
+.PP
+\fB\-\-conntrack\-tcp\-timeout\-established\fP=0
+    Idle timeout for established TCP connections (0 to leave as\-is)
+
+.PP
+\fB\-\-container\-hints\fP="/etc/cadvisor/container\_hints.json"
+    location of the container hints file
+
+.PP
+\fB\-\-docker\fP="unix:///var/run/docker.sock"
+    docker endpoint
+
+.PP
+\fB\-\-docker\-env\-metadata\-whitelist\fP=""
+    a comma\-separated list of environment variable keys that needs to be collected for docker containers
+
+.PP
+\fB\-\-docker\-only\fP=false
+    Only report docker containers in addition to root stats
+
+.PP
+\fB\-\-docker\-root\fP="/var/lib/docker"
+    DEPRECATED: docker root is read from docker info (this is a fallback, default: /var/lib/docker)
+
+.PP
+\fB\-\-enable\-load\-reader\fP=false
+    Whether to enable cpu load reader
+
+.PP
+\fB\-\-event\-storage\-age\-limit\fP="default=0"
+    Max length of time for which to store events (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is a duration. Default is applied to all non\-specified event types
+
+.PP
+\fB\-\-event\-storage\-event\-limit\fP="default=0"
+    Max number of events to store (per type). Value is a comma separated list of key values, where the keys are event types (e.g.: creation, oom) or "default" and the value is an integer. Default is applied to all non\-specified event types
+
+.PP
+\fB\-\-global\-housekeeping\-interval\fP=0
+    Interval between global housekeepings
+
+.PP
+\fB\-\-healthz\-bind\-address\fP=127.0.0.1
+    The IP address for the health check server to serve on, defaulting to 127.0.0.1 (set to 0.0.0.0 for all interfaces)
+
+.PP
+\fB\-\-healthz\-port\fP=10249
+    The port to bind the health check server. Use 0 to disable.
+
+.PP
+\fB\-\-hostname\-override\fP=""
+    If non\-empty, will use this string as identification instead of the actual hostname.
+
+.PP
+\fB\-\-housekeeping\-interval\fP=0
+    Interval between container housekeepings
+
+.PP
+\fB\-\-httptest.serve\fP=""
+    if non\-empty, httptest.NewServer serves on this address and blocks
+
+.PP
+\fB\-\-iptables\-masquerade\-bit\fP=14
+    If using the pure iptables proxy, the bit of the fwmark space to mark packets requiring SNAT with.  Must be within the range [0, 31].
+
+.PP
+\fB\-\-iptables\-sync\-period\fP=0
+    How often iptables rules are refreshed (e.g. '5s', '1m', '2h22m').  Must be greater than 0.
+
+.PP
+\fB\-\-ir\-data\-source\fP="influxdb"
+    Data source used by InitialResources. Supported options: influxdb, gcm.
+
+.PP
+\fB\-\-ir\-dbname\fP="k8s"
+    InfluxDB database name which contains metrics requred by InitialResources
+
+.PP
+\fB\-\-ir\-hawkular\fP=""
+    Hawkular configuration URL
+
+.PP
+\fB\-\-ir\-influxdb\-host\fP="localhost:8080/api/v1/proxy/namespaces/kube\-system/services/monitoring\-influxdb:api"
+    Address of InfluxDB which contains metrics requred by InitialResources
+
+.PP
+\fB\-\-ir\-namespace\-only\fP=false
+    Whether the estimation should be made only based on data from the same namespace.
+
+.PP
+\fB\-\-ir\-password\fP="root"
+    Password used for connecting to InfluxDB
+
+.PP
+\fB\-\-ir\-percentile\fP=90
+    Which percentile of samples should InitialResources use when estimating resources. For experiment purposes.
+
+.PP
+\fB\-\-ir\-user\fP="root"
+    User used for connecting to InfluxDB
+
+.PP
+\fB\-\-kube\-api\-burst\fP=10
+    Burst to use while talking with kubernetes apiserver
+
+.PP
+\fB\-\-kube\-api\-content\-type\fP="application/vnd.kubernetes.protobuf"
+    Content type of requests sent to apiserver.
+
+.PP
+\fB\-\-kube\-api\-qps\fP=5
+    QPS to use while talking with kubernetes apiserver
+
+.PP
+\fB\-\-kubeconfig\fP=""
+    Path to kubeconfig file with authorization information (the master location is set by the master flag).
+
+.PP
+\fB\-\-log\-backtrace\-at\fP=:0
+    when logging hits line file:N, emit a stack trace
+
+.PP
+\fB\-\-log\-cadvisor\-usage\fP=false
+    Whether to log the usage of the cAdvisor container
+
+.PP
+\fB\-\-log\-dir\fP=""
+    If non\-empty, write log files in this directory
+
+.PP
+\fB\-\-logtostderr\fP=true
+    log to standard error instead of files
+
+.PP
+\fB\-\-machine\-id\-file\fP="/etc/machine\-id,/var/lib/dbus/machine\-id"
+    Comma\-separated list of files to check for machine\-id. Use the first one that exists.
+
+.PP
+\fB\-\-masquerade\-all\fP=false
+    If using the pure iptables proxy, SNAT everything
+
+.PP
+\fB\-\-master\fP=""
+    The address of the Kubernetes API server (overrides any value in kubeconfig)
+
+.PP
+\fB\-\-oom\-score\-adj\fP=\-999
+    The oom\-score\-adj value for kube\-proxy process. Values must be within the range [\-1000, 1000]
+
+.PP
+\fB\-\-proxy\-mode\fP=
+    Which proxy mode to use: 'userspace' (older) or 'iptables' (faster). If blank, look at the Node object on the Kubernetes API and respect the 'net.experimental.kubernetes.io/proxy\-mode' annotation if provided.  Otherwise use the best\-available proxy (currently iptables).  If the iptables proxy is selected, regardless of how, but the system's kernel or iptables versions are insufficient, this always falls back to the userspace proxy.
+
+.PP
+\fB\-\-proxy\-port\-range\fP=
+    Range of host ports (beginPort\-endPort, inclusive) that may be consumed in order to proxy service traffic. If unspecified (0\-0) then ports will be randomly chosen.
+
+.PP
+\fB\-\-resource\-container\fP=""
+    Absolute name of the resource\-only container to create and run the Kube\-proxy in (Default: /kube\-proxy).
+
+.PP
+\fB\-\-stderrthreshold\fP=2
+    logs at or above this threshold go to stderr
+
+.PP
+\fB\-\-storage\-driver\-buffer\-duration\fP=0
+    Writes in the storage driver will be buffered for this duration, and committed to the non memory backends as a single transaction
+
+.PP
+\fB\-\-storage\-driver\-db\fP="cadvisor"
+    database name
+
+.PP
+\fB\-\-storage\-driver\-host\fP="localhost:8086"
+    database host:port
+
+.PP
+\fB\-\-storage\-driver\-password\fP="root"
+    database password
+
+.PP
+\fB\-\-storage\-driver\-secure\fP=false
+    use secure connection with database
+
+.PP
+\fB\-\-storage\-driver\-table\fP="stats"
+    table name
+
+.PP
+\fB\-\-storage\-driver\-user\fP="root"
+    database username
+
+.PP
+\fB\-\-udp\-timeout\fP=0
+    How long an idle UDP connection will be kept open (e.g. '250ms', '2s').  Must be greater than 0. Only applicable for proxy\-mode=userspace
+
+.PP
+\fB\-\-v\fP=0
+    log level for V logs
+
+.PP
+\fB\-\-vmodule\fP=
+    comma\-separated list of pattern=N settings for file\-filtered logging
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-start\-kubernetes(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

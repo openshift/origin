@@ -54,9 +54,8 @@ func parsePathSpec(path string) (*pathSpec, error) {
 			Path: path,
 		}, nil
 	}
-	valid, msg := kvalidation.ValidatePodName(parts[0], false)
-	if !valid {
-		return nil, fmt.Errorf("invalid pod name %s: %s", parts[0], msg)
+	if reasons := kvalidation.ValidatePodName(parts[0], false); len(reasons) != 0 {
+		return nil, fmt.Errorf("invalid pod name %s: %s", parts[0], strings.Join(reasons, ", "))
 	}
 	return &pathSpec{
 		PodName: parts[0],

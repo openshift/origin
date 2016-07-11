@@ -38,7 +38,7 @@ type Storage interface {
 	rest.Watcher
 
 	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
-	Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)
+	Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -79,7 +79,7 @@ func (s *storage) CreateImageStream(ctx kapi.Context, imageStream *api.ImageStre
 }
 
 func (s *storage) UpdateImageStream(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
-	obj, _, err := s.internal.Update(ctx, imageStream)
+	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (s *storage) UpdateImageStream(ctx kapi.Context, imageStream *api.ImageStre
 }
 
 func (s *storage) UpdateImageStreamSpec(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
-	obj, _, err := s.Update(ctx, imageStream)
+	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (s *storage) UpdateImageStreamSpec(ctx kapi.Context, imageStream *api.Image
 }
 
 func (s *storage) UpdateImageStreamStatus(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
-	obj, _, err := s.status.Update(ctx, imageStream)
+	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}

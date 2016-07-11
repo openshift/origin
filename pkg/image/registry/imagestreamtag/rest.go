@@ -99,20 +99,16 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	return newISTag(tag, imageStream, image, false)
 }
 
-func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	istag, ok := obj.(*api.ImageStreamTag)
-	if !ok {
-		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
-	}
-
-	name, tag, err := nameAndTag(istag.Name)
+func (r *REST) Update(ctx kapi.Context, tagName string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	name, tag, err := nameAndTag(tagName)
 	if err != nil {
 		return nil, false, err
 	}
 
+	create := false
 	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
 	if err != nil {
-		if !kapierrors.IsNotFound(err) || len(istag.ResourceVersion) != 0 {
+		if !kapierrors.IsNotFound(err) {
 			return nil, false, err
 		}
 		namespace, ok := kapi.NamespaceFrom(ctx)
@@ -120,16 +116,13 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 			return nil, false, kapierrors.NewBadRequest("namespace is required on ImageStreamTags")
 		}
 		imageStream = &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name},
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: namespace,
+				Name:      name,
+			},
 		}
-	}
-
-	// check for conflict
-	if len(istag.ResourceVersion) == 0 {
-		istag.ResourceVersion = imageStream.ResourceVersion
-	}
-	if imageStream.ResourceVersion != istag.ResourceVersion {
-		return nil, false, kapierrors.NewConflict(api.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
+		kapi.FillObjectMetaSystemFields(ctx, &imageStream.ObjectMeta)
+		create = true
 	}
 
 	// create the synthetic old istag
@@ -138,7 +131,30 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 		return nil, false, err
 	}
 
-	if len(istag.ResourceVersion) == 0 {
+	obj, err := objInfo.UpdatedObject(ctx, old)
+	if err != nil {
+		return nil, false, err
+	}
+
+	istag, ok := obj.(*api.ImageStreamTag)
+	if !ok {
+		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
+	}
+
+	// check for conflict
+	switch {
+	case len(istag.ResourceVersion) == 0:
+		// should disallow blind PUT, but this was previously supported
+		istag.ResourceVersion = imageStream.ResourceVersion
+	case len(imageStream.ResourceVersion) == 0:
+		// image stream did not exist, cannot update
+		return nil, false, kapierrors.NewNotFound(api.Resource("imagestreamtags"), tagName)
+	case imageStream.ResourceVersion != istag.ResourceVersion:
+		// conflicting input and output
+		return nil, false, kapierrors.NewConflict(api.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
+	}
+
+	if create {
 		if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 			return nil, false, err
 		}
@@ -163,7 +179,7 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 
 	// mutate the image stream
 	var newImageStream *api.ImageStream
-	if imageStream.CreationTimestamp.IsZero() {
+	if create {
 		newImageStream, err = r.imageStreamRegistry.CreateImageStream(ctx, imageStream)
 	} else {
 		newImageStream, err = r.imageStreamRegistry.UpdateImageStream(ctx, imageStream)
@@ -254,6 +270,7 @@ func newISTag(tag string, imageStream *api.ImageStream, image *api.Image, allowE
 			CreationTimestamp: event.Created,
 			Annotations:       map[string]string{},
 			ResourceVersion:   imageStream.ResourceVersion,
+			UID:               imageStream.UID,
 		},
 		Generation: event.Generation,
 		Conditions: imageStream.Status.Tags[tag].Conditions,

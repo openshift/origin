@@ -32,7 +32,7 @@ func mkdeploymentlist(versions ...int64) *kapi.ReplicationControllerList {
 
 func TestStop(t *testing.T) {
 	notfound := func() runtime.Object {
-		return &(kerrors.NewNotFound(kapi.Resource("DeploymentConfig"), "config").(*kerrors.StatusError).ErrStatus)
+		return &(kerrors.NewNotFound(kapi.Resource("DeploymentConfig"), "config").ErrStatus)
 	}
 
 	tests := []struct {

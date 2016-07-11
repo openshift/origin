@@ -73,6 +73,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     The number of service account token objects that are allowed to sync concurrently. Larger number = more responsive token generation, but more CPU (and network) load
 
 .PP
+\fB\-\-configure\-cloud\-routes\fP=true
+    Should CIDRs allocated by allocate\-node\-cidrs be configured on the cloud provider.
+
+.PP
 \fB\-\-controller\-start\-interval\fP=0
     Interval between starting controller managers.
 
@@ -81,7 +85,7 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     The the size of lookup cache for daemonsets. Larger number = more responsive daemonsets, but more MEM load.
 
 .PP
-\fB\-\-deleting\-pods\-burst\fP=10
+\fB\-\-deleting\-pods\-burst\fP=1
     Number of nodes on which pods are bursty deleted in case of node failure. For more details look into RateLimiter.
 
 .PP
@@ -93,8 +97,20 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Period for syncing the deployments.
 
 .PP
+\fB\-\-enable\-dynamic\-provisioning\fP=true
+    Enable dynamic provisioning for environments that support it.
+
+.PP
+\fB\-\-enable\-garbage\-collector\fP=false
+    Enables the generic garbage collector. MUST be synced with the corresponding flag of the kube\-apiserver. WARNING: the generic garbage collector is an alpha feature.
+
+.PP
 \fB\-\-enable\-hostpath\-provisioner\fP=false
     Enable HostPath PV provisioning when running without a cloud provider. This allows testing and development of provisioning features.  HostPath provisioning is not supported in any way, won't work in a multi\-node cluster, and should not be used for anything other than testing or development.
+
+.PP
+\fB\-\-flex\-volume\-plugin\-dir\fP="/usr/libexec/kubernetes/kubelet\-plugins/volume/exec/"
+    Full path of the directory in which the flex volume plugin should search for additional third party volume plugins.
 
 .PP
 \fB\-\-horizontal\-pod\-autoscaler\-sync\-period\fP=0
@@ -105,8 +121,8 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Burst to use while talking with kubernetes apiserver
 
 .PP
-\fB\-\-kube\-api\-content\-type\fP=""
-    ContentType of requests sent to apiserver. Passing application/vnd.kubernetes.protobuf is an experimental feature now.
+\fB\-\-kube\-api\-content\-type\fP="application/vnd.kubernetes.protobuf"
+    Content type of requests sent to apiserver.
 
 .PP
 \fB\-\-kube\-api\-qps\fP=20
@@ -143,6 +159,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 .PP
 \fB\-\-namespace\-sync\-period\fP=0
     The period for syncing namespace life\-cycle updates
+
+.PP
+\fB\-\-node\-cidr\-mask\-size\fP=24
+    Mask size for node cidr in cluster.
 
 .PP
 \fB\-\-node\-monitor\-grace\-period\fP=0
@@ -223,6 +243,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 .PP
 \fB\-\-service\-account\-private\-key\-file\fP=""
     Filename containing a PEM\-encoded private RSA key used to sign service account tokens.
+
+.PP
+\fB\-\-service\-cluster\-ip\-range\fP=""
+    CIDR Range for Services in cluster.
 
 .PP
 \fB\-\-service\-sync\-period\fP=0

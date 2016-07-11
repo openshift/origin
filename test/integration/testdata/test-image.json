@@ -1,6 +1,6 @@
 {
   "kind": "Image",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "test",
     "creationTimestamp": null

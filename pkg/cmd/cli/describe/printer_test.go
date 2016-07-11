@@ -65,7 +65,7 @@ func TestPrinterCoverage(t *testing.T) {
 
 main:
 	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
-		if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
+		if !strings.Contains(apiType.PkgPath(), "github.com/openshift/origin") || strings.Contains(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}
 

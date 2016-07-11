@@ -14,6 +14,7 @@ import (
 	"time"
 
 	dockerclient "github.com/fsouza/go-dockerclient"
+	g "github.com/onsi/ginkgo"
 
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -144,9 +145,11 @@ func BuildAndPushImageOfSizeWithBuilder(
 		return err
 	}
 
-	err = oc.Run("start-build").Args(name, "--from-dir", tempDir, "--wait").Execute()
-	out, logsErr := oc.Run("logs").Args("bc/" + name).Output()
-	if match := reSuccessfulBuild.FindStringSubmatch(out); len(match) > 1 {
+	out, err := oc.Run("start-build").Args(name, "--from-dir", tempDir, "--wait").Output()
+	fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
+
+	buildLog, logsErr := oc.Run("logs").Args("bc/" + name).Output()
+	if match := reSuccessfulBuild.FindStringSubmatch(buildLog); len(match) > 1 {
 		defer dClient.RemoveImageExtended(match[1], dockerclient.RemoveImageOptions{Force: true})
 	}
 
@@ -161,8 +164,8 @@ func BuildAndPushImageOfSizeWithBuilder(
 		if logsErr != nil {
 			return fmt.Errorf("Failed to show log of build config %s: %v", name, err)
 		}
-		if !reExpectedDeniedError.MatchString(out) {
-			return fmt.Errorf("Failed to match expected %q in: %q", reExpectedDeniedError.String(), out)
+		if !reExpectedDeniedError.MatchString(buildLog) {
+			return fmt.Errorf("Failed to match expected %q in: %q", reExpectedDeniedError.String(), buildLog)
 		}
 	}
 

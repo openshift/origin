@@ -30,7 +30,9 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 	// test with no limits object present
 
 	podCreated, err := podHandler.Create(testClusterResourceOverridePod("limitless", "2Gi", "1"))
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if memory := podCreated.Spec.Containers[0].Resources.Requests.Memory(); memory.Cmp(resource.MustParse("1Gi")) != 0 {
 		t.Errorf("limitlesspod: Memory did not match expected 1Gi: %#v", memory)
 	}
@@ -69,9 +71,13 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 		Spec:       kapi.LimitRangeSpec{Limits: []kapi.LimitRangeItem{limitItem}},
 	}
 	_, err := limitHandler.Create(limit)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	podCreated, err := podHandler.Create(testClusterResourceOverridePod("limit-with-default", "", "1"))
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if memory := podCreated.Spec.Containers[0].Resources.Limits.Memory(); memory.Cmp(resource.MustParse("512Mi")) != 0 {
 		t.Errorf("limit-with-default: Memory limit did not match default 512Mi: %v", memory)
 	}
@@ -96,7 +102,9 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 
 func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) kclient.Interface {
 	masterConfig, err := testserver.DefaultMasterOptions()
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// fill in possibly-empty config values
 	if masterConfig.KubernetesMasterConfig == nil {
 		masterConfig.KubernetesMasterConfig = &api.KubernetesMasterConfig{}
@@ -111,16 +119,26 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 
 	// start up a server and return useful clients to that server
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// need to create a project and return client for project admin
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), "peon")
-	checkErr(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	checkErr(t, testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}))
 	return clusterAdminKubeClient
 }

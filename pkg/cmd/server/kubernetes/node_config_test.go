@@ -99,11 +99,18 @@ func TestKubeletDefaults(t *testing.T) {
 			OutOfDiskTransitionFrequency:   unversioned.Duration{Duration: 5 * time.Minute},
 			HairpinMode:                    "promiscuous-bridge",
 			BabysitDaemons:                 false,
+			SeccompProfileRoot:             "/var/lib/kubelet/seccomp",
+			CloudProvider:                  "auto-detect",
+			RuntimeRequestTimeout:          unversioned.Duration{Duration: 2 * time.Minute},
+			ContentType:                    "application/vnd.kubernetes.protobuf",
+			EnableControllerAttachDetach:   true,
+
+			EvictionPressureTransitionPeriod: unversioned.Duration{Duration: 5 * time.Minute},
 		},
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
-		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectGoPrintDiff(expectedDefaults, defaults))
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesNodeConfig and update expectedDefaults")
 	}
 }
@@ -133,14 +140,14 @@ func TestProxyConfig(t *testing.T) {
 		ConfigSyncPeriod: 15 * time.Minute,
 		KubeAPIQPS:       5.0,
 		KubeAPIBurst:     10,
+		ContentType:      "application/vnd.kubernetes.protobuf",
 	}
 
 	actualDefaultConfig := proxyoptions.NewProxyConfig()
 
 	if !reflect.DeepEqual(expectedDefaultConfig, actualDefaultConfig) {
 		t.Errorf("Default kube proxy config has changed. Adjust buildKubeProxyConfig() as needed to disable or make use of additions.")
-		t.Logf("Expected default config:\n%#v\n\n", expectedDefaultConfig)
-		t.Logf("Actual default config:\n%#v\n\n", actualDefaultConfig)
+		t.Logf("Difference %s", diff.ObjectReflectDiff(expectedDefaultConfig, actualDefaultConfig))
 	}
 
 }
