@@ -419,7 +419,7 @@ fi
 %post node
 %systemd_post %{name}-node.service
 # If accounting is not currently enabled systemd reexec
-if [[ `systemctl show docker %{name}-node | grep -q -e CPUAccounting=no -e MemoryAccounting=no` == 0 ]]; then
+if [[ `systemctl show docker %{name}-node | grep -q -e CPUAccounting=no -e MemoryAccounting=no; echo $?` == 0 ]]; then
   systemctl daemon-reexec
 fi
 
