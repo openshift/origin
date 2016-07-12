@@ -163,6 +163,9 @@ started=$(oc start-build ruby-sample-build-invalidtag)
 os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
 frombuild=$(oc start-build --from-build="${started}")
 os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 echo "start-build: ok"
 os::test::junit::declare_suite_end
 
