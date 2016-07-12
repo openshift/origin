@@ -21,7 +21,7 @@ function cleanup()
     set +e
     kill_all_processes
 
-    # pull information out of the server log so that we can get failure management in jenkins to highlight it and 
+    # pull information out of the server log so that we can get failure management in jenkins to highlight it and
     # really have it smack people in their logs.  This is a severe correctness problem
     grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
@@ -79,7 +79,7 @@ function cleanup()
                            --roots github.com/openshift/origin \
                            --output "${ARTIFACT_DIR}/report.xml"
       cat "${ARTIFACT_DIR}/report.xml" | "${junitreport}" summarize
-    fi 
+    fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
     exit $out
@@ -184,7 +184,7 @@ openshift start \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
 
-# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
+# Set deconflicted etcd ports in the config
 cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
 openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
 openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
