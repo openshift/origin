@@ -6,6 +6,7 @@ import (
 
 	// we have a strong dependency on kube objects for deployments and scale
 	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/authentication/install"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
