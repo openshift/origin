@@ -117,7 +117,7 @@ type NodeNetworkConfig struct {
 	// Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
 	NetworkPluginName string `json:"networkPluginName,omitempty"`
 	// Maximum transmission unit for the network packets
-	MTU uint `json:"mtu"`
+	MTU uint32 `json:"mtu"`
 }
 
 // DockerConfig holds Docker related configuration options.
@@ -390,7 +390,7 @@ type MasterNetworkConfig struct {
 	// ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space
 	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
 	// HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host
-	HostSubnetLength uint `json:"hostSubnetLength"`
+	HostSubnetLength uint32 `json:"hostSubnetLength"`
 	// ServiceNetwork is the CIDR string to specify the service networks
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
 	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP

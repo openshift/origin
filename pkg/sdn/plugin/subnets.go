@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
-func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint) error {
+func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
 	subrange := make([]string, 0)
 	subnets, err := master.registry.GetSubnets()
 	if err != nil {
@@ -155,7 +155,7 @@ func (master *OsdnMaster) watchNodes() {
 	}
 }
 
-func (node *OsdnNode) SubnetStartNode(mtu uint) (bool, error) {
+func (node *OsdnNode) SubnetStartNode(mtu uint32) (bool, error) {
 	err := node.initSelfSubnet()
 	if err != nil {
 		return false, err
