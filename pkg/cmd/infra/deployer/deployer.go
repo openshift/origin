@@ -115,26 +115,26 @@ func (cfg *config) RunDeployer() error {
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclient.Interface, oclient client.Interface, out, errOut io.Writer, until string) *Deployer {
-	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
+func NewDeployer(kc kclient.Interface, oc client.Interface, out, errOut io.Writer, until string) *Deployer {
+	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), kc)
 	return &Deployer{
 		out:    out,
 		errOut: errOut,
 		until:  until,
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.ReplicationControllers(namespace).Get(name)
+			return kc.ReplicationControllers(namespace).Get(name)
 		},
 		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			return client.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)})
+			return kc.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)})
 		},
 		scaler: scaler,
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, oclient, client.Events(""), kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(oc, kc, kc.Events(""), kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, client.Events(""), kapi.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, client.Events(""), kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(oc, kc, kc.Events(""), kapi.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, oc, kc, kc.Events(""), kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}

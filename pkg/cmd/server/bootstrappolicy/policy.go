@@ -468,6 +468,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(kapiGroup).Resources("events").RuleOrDie(),
 
+				authorizationapi.NewRule("get").Groups(deployGroup).Resources("deploymentconfigs").RuleOrDie(),
 				authorizationapi.NewRule("update").Groups(imageGroup).Resources("imagestreamtags").RuleOrDie(),
 			},
 		},

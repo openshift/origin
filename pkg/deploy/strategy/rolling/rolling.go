@@ -51,9 +51,11 @@ type RollingDeploymentStrategy struct {
 	until string
 	// initialStrategy is used when there are no prior deployments.
 	initialStrategy acceptingDeploymentStrategy
-	// client is used to deal with ReplicationControllers.
-	client kclient.Interface
-	// client is used to perform tag actions
+	// rn is used to deal with ReplicationControllers.
+	rn kclient.ReplicationControllersNamespacer
+	// dn is used to check for ready DeploymentConfigs.
+	dn client.DeploymentConfigsNamespacer
+	// tags is used to perform tag actions
 	tags client.ImageStreamTagsNamespacer
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
@@ -84,7 +86,7 @@ type acceptingDeploymentStrategy interface {
 const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, tags client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, oc client.Interface, kc kclient.Interface, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -97,17 +99,18 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
-		client:          client,
-		tags:            tags,
+		rn:              kc,
+		dn:              oc,
+		tags:            oc,
 		apiRetryPeriod:  DefaultApiRetryPeriod,
 		apiRetryTimeout: DefaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
-			updater := kubectl.NewRollingUpdater(namespace, client)
+			updater := kubectl.NewRollingUpdater(namespace, kc)
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client, tags, events, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(kc, oc, events, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, kc, timeout, AcceptorInterval, minReadySeconds)
 		},
 	}
 }
@@ -173,7 +176,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Related upstream issue:
 	// https://github.com/kubernetes/kubernetes/pull/7183
 	err = wait.Poll(s.apiRetryPeriod, s.apiRetryTimeout, func() (done bool, err error) {
-		existing, err := s.client.ReplicationControllers(to.Namespace).Get(to.Name)
+		existing, err := s.rn.ReplicationControllers(to.Namespace).Get(to.Name)
 		if err != nil {
 			msg := fmt.Sprintf("couldn't look up deployment %s: %s", to.Name, err)
 			if kerrors.IsNotFound(err) {
@@ -185,7 +188,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		}
 		if _, hasSourceId := existing.Annotations[sourceIdAnnotation]; !hasSourceId {
 			existing.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
-			if _, err := s.client.ReplicationControllers(existing.Namespace).Update(existing); err != nil {
+			if _, err := s.rn.ReplicationControllers(existing.Namespace).Update(existing); err != nil {
 				msg := fmt.Sprintf("couldn't assign source annotation to deployment %s: %v", existing.Name, err)
 				if kerrors.IsNotFound(err) {
 					return false, fmt.Errorf("%s", msg)
@@ -200,7 +203,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if err != nil {
 		return err
 	}
-	to, err = s.client.ReplicationControllers(to.Namespace).Get(to.Name)
+	to, err = s.rn.ReplicationControllers(to.Namespace).Get(to.Name)
 	if err != nil {
 		return err
 	}
@@ -215,7 +218,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	to.Spec.Replicas = 1
 
 	// Perform a rolling update.
-	rollingConfig := &kubectl.RollingUpdaterConfig{
+	c := &kubectl.RollingUpdaterConfig{
 		Out:             &rollingUpdaterWriter{w: s.out},
 		OldRc:           from,
 		NewRc:           to,
@@ -233,7 +236,12 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 			return nil
 		},
 	}
-	if err := s.rollingUpdate(rollingConfig); err != nil {
+	if err := s.rollingUpdate(c); err != nil {
+		return err
+	}
+
+	// Ignore forbidden errors to stay backwards compatible with older servers.
+	if err := stratsupport.WaitForReadyConfig(config, s.dn, c.Interval, c.Timeout); err != nil && !kerrors.IsForbidden(err) {
 		return err
 	}
 

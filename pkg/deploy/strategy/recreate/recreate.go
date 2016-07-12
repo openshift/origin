@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -42,6 +43,8 @@ type RecreateDeploymentStrategy struct {
 	tagClient client.ImageStreamTagsNamespacer
 	// codec is used to decode DeploymentConfigs contained in deployments.
 	decoder runtime.Decoder
+	// dn is used to check for ready DeploymentConfigs.
+	dn client.DeploymentConfigsNamespacer
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor hookExecutor
 	// retryTimeout is how long to wait for the replica count update to succeed
@@ -57,27 +60,28 @@ const AcceptorInterval = 1 * time.Second
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(oc client.Interface, kc kclient.Interface, events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
 	if errOut == nil {
 		errOut = ioutil.Discard
 	}
-	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
+	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), kc)
 	return &RecreateDeploymentStrategy{
 		out:    out,
 		errOut: errOut,
 		until:  until,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.ReplicationControllers(namespace).Get(name)
+			return kc.ReplicationControllers(namespace).Get(name)
 		},
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, kc, timeout, AcceptorInterval, minReadySeconds)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, events, os.Stdout, decoder),
+		dn:           oc,
+		hookExecutor: stratsupport.NewHookExecutor(kc, oc, events, os.Stdout, decoder),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}
@@ -185,6 +189,11 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	if (from == nil && strat.PercentageBetween(s.until, 1, 100)) || (from != nil && s.until == "100%") {
 		return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s", s.until))
+	}
+
+	// Ignore forbidden errors to stay backwards compatible with older servers.
+	if err := stratsupport.WaitForReadyConfig(config, s.dn, s.retryPeriod, s.retryTimeout); err != nil && !kerrors.IsForbidden(err) {
+		return err
 	}
 
 	// Execute any post-hook.

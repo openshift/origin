@@ -350,6 +350,28 @@ func IsFailedDeployment(deployment *api.ReplicationController) bool {
 	return current == deployapi.DeploymentStatusFailed
 }
 
+// IsReady ensures that the latest deployment for a config is complete and has minimum availability.
+func IsReady(config *deployapi.DeploymentConfig) bool {
+	return config.Status.ObservedGeneration >= config.Generation &&
+		config.Status.UpdatedReplicas == config.Spec.Replicas &&
+		config.Status.AvailableReplicas >= config.Spec.Replicas-maxUnavailable(config)
+}
+
+func maxUnavailable(config *deployapi.DeploymentConfig) int32 {
+	if config.Spec.Strategy.Type != deployapi.DeploymentStrategyTypeRolling {
+		return int32(0)
+	}
+
+	// Error caught by validation
+	_, maxUnavailable, _ := kdeplutil.ResolveFenceposts(
+		&config.Spec.Strategy.RollingParams.MaxSurge,
+		&config.Spec.Strategy.RollingParams.MaxUnavailable,
+		config.Spec.Replicas,
+	)
+
+	return maxUnavailable
+}
+
 // CanTransitionPhase returns whether it is allowed to go from the current to the next phase.
 func CanTransitionPhase(current, next deployapi.DeploymentStatus) bool {
 	switch current {
