@@ -219,18 +219,41 @@ backend be_edge_http_{{$cfgIdx}}
   mode http
   option redispatch
   option forwardfor
-    {{ with $balanceAlgo := index $cfg.Annotations "router.openshift.io/haproxy.balance" }}
+    {{ with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
       {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
   balance leastconn
     {{ end }}
-    {{ with $value := index $cfg.Annotations "router.openshift.io/haproxy.timeout"}}
+    {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout server  {{$value}}
       {{ end }}
     {{ end }}
+
+{{ if index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections" }}
+  stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
+  tcp-request content track-sc2 src
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }} 
+  tcp-request content reject if { src_conn_cur ge  {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" }} }
+  {{ else }}
+  # concurrent TCP connections not restricted
+  {{ end }}
+
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp")) }} 
+  tcp-request content reject if { src_conn_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" }} }
+  {{ else }}
+  #TCP connection rate not restricted
+  {{ end }}
+
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http")) }} 
+  tcp-request content reject if { src_http_req_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http" }} }
+  {{ else }}
+  #HTTP request rate not restricted
+  {{ end }}
+{{ end }}
+
   timeout check 5000ms
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
   http-request set-header X-Forwarded-Port %[dst_port]
@@ -257,14 +280,14 @@ backend be_tcp_{{$cfgIdx}}
 {{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
 {{ end }}
-    {{ with $balanceAlgo := index $cfg.Annotations "router.openshift.io/haproxy.balance" }}
+    {{ with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
       {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
   balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source" }}
     {{ end }}
-    {{ with $value := index $cfg.Annotations "router.openshift.io/haproxy.timeout"}}
+    {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout server  {{$value}}
       {{ end }}
@@ -285,14 +308,14 @@ backend be_tcp_{{$cfgIdx}}
 backend be_secure_{{$cfgIdx}}
   mode http
   option redispatch
-    {{ with $balanceAlgo := index $cfg.Annotations "router.openshift.io/haproxy.balance" }}
+    {{ with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
       {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
   balance {{ $balanceAlgo }}
       {{ end }}
     {{ else }}
   balance leastconn
     {{ end }}
-    {{ with $value := index $cfg.Annotations "router.openshift.io/haproxy.timeout"}}
+    {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout server  {{$value}}
       {{ end }}
