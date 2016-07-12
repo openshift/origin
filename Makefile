@@ -128,7 +128,7 @@ test-end-to-end: build
 # Run tools tests.
 #
 # Example:
-#   make test-cmd
+#   make test-tools
 test-tools:
 	hack/test-tools.sh
 .PHONY: test-tools
