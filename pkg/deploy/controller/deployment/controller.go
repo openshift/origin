@@ -369,8 +369,9 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 	}
 
 	cleanedAll := true
+	gracePeriod := int64(10)
 	for _, deployerPod := range deployerList.Items {
-		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
+		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{GracePeriodSeconds: &gracePeriod}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later
 			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for deployment %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
