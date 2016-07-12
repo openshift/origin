@@ -39,7 +39,7 @@ import (
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/persistentvolume"
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
-	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
+	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	volumecontroller "k8s.io/kubernetes/pkg/controller/volume"
 
@@ -237,16 +237,15 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	return allPlugins
 }
 
-// RunReplicationController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(
-		c.Informers.Pods().Informer(),
+// RunReplicaSetController starts the Kubernetes replica set controller sync loop
+func (c *MasterConfig) RunReplicaSetController(client *client.Client) {
+	controllerManager := replicasetcontroller.NewReplicaSetController(
 		clientadapter.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
-		replicationcontroller.BurstReplicas,
-		int(c.ControllerManager.LookupCacheSizeForRC),
+		replicasetcontroller.BurstReplicas,
+		int(c.ControllerManager.LookupCacheSizeForRS),
 	)
-	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
+	go controllerManager.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop
