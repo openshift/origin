@@ -31,7 +31,7 @@ type Template struct {
 
 	// labels is a optional set of labels that are applied to every
 	// object during the Template to Config transformation.
-	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,5,rep,name=labels"`
+	ObjectLabels map[string]string `json:"labels,omitempty" protobuf:"bytes,5,rep,name=labels"`
 }
 
 // TemplateList is a list of Template objects.
