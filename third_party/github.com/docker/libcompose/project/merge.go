@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -166,6 +167,9 @@ func resolveBuild(inFile string, serviceData rawService) (rawService, error) {
 		if strings.HasPrefix(build, remote) {
 			return serviceData, nil
 		}
+	}
+	if filepath.IsAbs(build) {
+		return serviceData, nil
 	}
 
 	current := path.Dir(inFile)
