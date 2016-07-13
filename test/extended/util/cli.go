@@ -174,7 +174,7 @@ func (c *CLI) Verbose() *CLI {
 // REST provides an OpenShift REST client for the current user. If the user is not
 // set, then it provides REST client for the cluster admin user
 func (c *CLI) REST() *client.Client {
-	_, clientConfig, err := configapi.GetKubeClient(c.configPath)
+	_, clientConfig, err := configapi.GetKubeClient(c.configPath, nil)
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
@@ -184,7 +184,7 @@ func (c *CLI) REST() *client.Client {
 
 // AdminREST provides an OpenShift REST client for the cluster admin user.
 func (c *CLI) AdminREST() *client.Client {
-	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath)
+	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath, nil)
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
@@ -194,7 +194,7 @@ func (c *CLI) AdminREST() *client.Client {
 
 // KubeREST provides a Kubernetes REST client for the current namespace
 func (c *CLI) KubeREST() *kclient.Client {
-	kubeClient, _, err := configapi.GetKubeClient(c.configPath)
+	kubeClient, _, err := configapi.GetKubeClient(c.configPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -203,7 +203,7 @@ func (c *CLI) KubeREST() *kclient.Client {
 
 // AdminKubeREST provides a Kubernetes REST client for the cluster admin user.
 func (c *CLI) AdminKubeREST() *kclient.Client {
-	kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath)
+	kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}

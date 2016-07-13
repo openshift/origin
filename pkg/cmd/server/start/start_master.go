@@ -497,7 +497,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	if kc != nil {
 		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
 	} else {
-		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig)
+		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return err
 		}

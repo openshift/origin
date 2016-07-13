@@ -40,6 +40,7 @@ imageConfig:
   latest: false
 iptablesSyncPeriod: ""
 kind: NodeConfig
+masterClientConnectionOverrides: null
 masterKubeConfig: ""
 networkConfig:
   mtu: 0
@@ -188,7 +189,9 @@ kubernetesMasterConfig:
   servicesSubnet: ""
   staticNodeNames: null
 masterClients:
+  externalKubernetesClientConnectionOverrides: null
   externalKubernetesKubeConfig: ""
+  openshiftLoopbackClientConnectionOverrides: null
   openshiftLoopbackKubeConfig: ""
 masterPublicURL: ""
 networkConfig:

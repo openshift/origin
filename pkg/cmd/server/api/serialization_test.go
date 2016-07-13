@@ -50,6 +50,35 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
 
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &configapi.ClientConnectionOverrides{
+					QPS:                2.0,
+					Burst:              2,
+					AcceptContentTypes: "test/second",
+					ContentType:        "test/first",
+				}
+			}
+			if len(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.AcceptContentTypes) == 0 {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.AcceptContentTypes = "test/fourth"
+			}
+			if len(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType) == 0 {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.ContentType = "test/fifth"
+			}
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &configapi.ClientConnectionOverrides{
+					QPS:                1.0,
+					Burst:              1,
+					AcceptContentTypes: "test/other",
+					ContentType:        "test/third",
+				}
+			}
+			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes) == 0 {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes = "test/fourth"
+			}
+			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.ContentType) == 0 {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.ContentType = "test/fifth"
+			}
+
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
 				if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
@@ -141,6 +170,21 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			}
 			if len(obj.IPTablesSyncPeriod) == 0 {
 				obj.IPTablesSyncPeriod = "5s"
+			}
+
+			if obj.MasterClientConnectionOverrides == nil {
+				obj.MasterClientConnectionOverrides = &configapi.ClientConnectionOverrides{
+					QPS:                1.0,
+					Burst:              1,
+					AcceptContentTypes: "test/other",
+					ContentType:        "test/third",
+				}
+			}
+			if len(obj.MasterClientConnectionOverrides.AcceptContentTypes) == 0 {
+				obj.MasterClientConnectionOverrides.AcceptContentTypes = "test/fourth"
+			}
+			if len(obj.MasterClientConnectionOverrides.ContentType) == 0 {
+				obj.MasterClientConnectionOverrides.ContentType = "test/fifth"
 			}
 
 			// Auth cache defaults
