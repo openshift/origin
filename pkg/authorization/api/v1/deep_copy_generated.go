@@ -77,7 +77,7 @@ func DeepCopy_v1_ClusterPolicy(in ClusterPolicy, out *ClusterPolicy, c *conversi
 	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
-		*out = make([]NamedClusterRole, len(in))
+		*out = make(NamedClusterRoles, len(in))
 		for i := range in {
 			if err := DeepCopy_v1_NamedClusterRole(in[i], &(*out)[i], c); err != nil {
 				return err
@@ -104,7 +104,7 @@ func DeepCopy_v1_ClusterPolicyBinding(in ClusterPolicyBinding, out *ClusterPolic
 	}
 	if in.RoleBindings != nil {
 		in, out := in.RoleBindings, &out.RoleBindings
-		*out = make([]NamedClusterRoleBinding, len(in))
+		*out = make(NamedClusterRoleBindings, len(in))
 		for i := range in {
 			if err := DeepCopy_v1_NamedClusterRoleBinding(in[i], &(*out)[i], c); err != nil {
 				return err
@@ -188,14 +188,14 @@ func DeepCopy_v1_ClusterRoleBinding(in ClusterRoleBinding, out *ClusterRoleBindi
 	}
 	if in.UserNames != nil {
 		in, out := in.UserNames, &out.UserNames
-		*out = make([]string, len(in))
+		*out = make(OptionalNames, len(in))
 		copy(*out, in)
 	} else {
 		out.UserNames = nil
 	}
 	if in.GroupNames != nil {
 		in, out := in.GroupNames, &out.GroupNames
-		*out = make([]string, len(in))
+		*out = make(OptionalNames, len(in))
 		copy(*out, in)
 	} else {
 		out.GroupNames = nil
@@ -293,7 +293,7 @@ func DeepCopy_v1_LocalSubjectAccessReview(in LocalSubjectAccessReview, out *Loca
 	}
 	if in.Scopes != nil {
 		in, out := in.Scopes, &out.Scopes
-		*out = make([]string, len(in))
+		*out = make(OptionalScopes, len(in))
 		copy(*out, in)
 	} else {
 		out.Scopes = nil
@@ -345,7 +345,7 @@ func DeepCopy_v1_Policy(in Policy, out *Policy, c *conversion.Cloner) error {
 	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
-		*out = make([]NamedRole, len(in))
+		*out = make(NamedRoles, len(in))
 		for i := range in {
 			if err := DeepCopy_v1_NamedRole(in[i], &(*out)[i], c); err != nil {
 				return err
@@ -372,7 +372,7 @@ func DeepCopy_v1_PolicyBinding(in PolicyBinding, out *PolicyBinding, c *conversi
 	}
 	if in.RoleBindings != nil {
 		in, out := in.RoleBindings, &out.RoleBindings
-		*out = make([]NamedRoleBinding, len(in))
+		*out = make(NamedRoleBindings, len(in))
 		for i := range in {
 			if err := DeepCopy_v1_NamedRoleBinding(in[i], &(*out)[i], c); err != nil {
 				return err
@@ -531,14 +531,14 @@ func DeepCopy_v1_RoleBinding(in RoleBinding, out *RoleBinding, c *conversion.Clo
 	}
 	if in.UserNames != nil {
 		in, out := in.UserNames, &out.UserNames
-		*out = make([]string, len(in))
+		*out = make(OptionalNames, len(in))
 		copy(*out, in)
 	} else {
 		out.UserNames = nil
 	}
 	if in.GroupNames != nil {
 		in, out := in.GroupNames, &out.GroupNames
-		*out = make([]string, len(in))
+		*out = make(OptionalNames, len(in))
 		copy(*out, in)
 	} else {
 		out.GroupNames = nil
@@ -618,7 +618,7 @@ func DeepCopy_v1_SelfSubjectRulesReview(in SelfSubjectRulesReview, out *SelfSubj
 func DeepCopy_v1_SelfSubjectRulesReviewSpec(in SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, c *conversion.Cloner) error {
 	if in.Scopes != nil {
 		in, out := in.Scopes, &out.Scopes
-		*out = make([]string, len(in))
+		*out = make(OptionalScopes, len(in))
 		copy(*out, in)
 	} else {
 		out.Scopes = nil
@@ -643,7 +643,7 @@ func DeepCopy_v1_SubjectAccessReview(in SubjectAccessReview, out *SubjectAccessR
 	}
 	if in.Scopes != nil {
 		in, out := in.Scopes, &out.Scopes
-		*out = make([]string, len(in))
+		*out = make(OptionalScopes, len(in))
 		copy(*out, in)
 	} else {
 		out.Scopes = nil

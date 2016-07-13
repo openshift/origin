@@ -77,7 +77,7 @@ func DeepCopy_api_ClusterPolicy(in ClusterPolicy, out *ClusterPolicy, c *convers
 	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
-		*out = make(map[string]*ClusterRole)
+		*out = make(ClusterRolesByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -106,7 +106,7 @@ func DeepCopy_api_ClusterPolicyBinding(in ClusterPolicyBinding, out *ClusterPoli
 	}
 	if in.RoleBindings != nil {
 		in, out := in.RoleBindings, &out.RoleBindings
-		*out = make(map[string]*ClusterRoleBinding)
+		*out = make(ClusterRoleBindingsByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -309,7 +309,7 @@ func DeepCopy_api_Policy(in Policy, out *Policy, c *conversion.Cloner) error {
 	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
-		*out = make(map[string]*Role)
+		*out = make(RolesByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -338,7 +338,7 @@ func DeepCopy_api_PolicyBinding(in PolicyBinding, out *PolicyBinding, c *convers
 	}
 	if in.RoleBindings != nil {
 		in, out := in.RoleBindings, &out.RoleBindings
-		*out = make(map[string]*RoleBinding)
+		*out = make(RoleBindingsByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
