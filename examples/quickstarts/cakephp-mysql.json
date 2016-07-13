@@ -84,7 +84,13 @@
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "php:5.6"
-            }
+            },
+            "env":  [
+              {
+                  "name": "COMPOSER_MIRROR",
+                  "value": "${COMPOSER_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -376,24 +382,28 @@
       "name": "NAMESPACE",
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the CakePHP container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "MEMORY_MYSQL_LIMIT",
       "displayName": "Memory Limit (MySQL)",
       "description": "Maximum amount of memory the MySQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/cakephp-ex.git"
     },
     {
@@ -422,22 +432,26 @@
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "mysql"
     },
     {
       "name": "DATABASE_ENGINE",
       "displayName": "Database Engine",
       "description": "Database engine: postgresql, mysql or sqlite (default).",
+      "required": true,
       "value": "mysql"
     },
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "default"
     },
     {
       "name": "DATABASE_USER",
       "displayName": "Database User",
+      "required": true,
       "value": "cakephp"
     },
     {
@@ -472,6 +486,12 @@
       "displayName": "OPcache Revalidation Frequency",
       "description": "How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.",
       "value": "2"
+    },
+    {
+      "name": "COMPOSER_MIRROR",
+      "displayName": "Custom Composer Mirror URL",
+      "description": "The custom Composer mirror URL",
+      "value": ""
     }
   ]
 }
