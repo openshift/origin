@@ -165,6 +165,15 @@ TIP: To ensure you get the latest image first run `vagrant box remove fedora_ins
         $ sudo `which openshift` start --public-master=localhost &> openshift.log &
 
 +
+NOTE: The `openshift start` command will not write a configuration file to disk,
+instead using defaults.  If you want to https://docs.openshift.org/latest/install_config/master_node_configuration.html#creating-new-configuration-files[generate configuration files], add the `--write-config` flag:
+
+        # generate the yaml files
+        $ sudo `which openshift` start --write-config=openshift.local.config --public-master=localhost
+        # then run with the yaml files
+        $ sudo `which openshift` start --master-config=openshift.local.config/master/master-config.yaml --node-config=openshift.local.config/node-localhost.localdomain/node-config.yaml &> openshift.log & 		
+
++
 NOTE: This will generate three directories in /home/vagrant (openshift.local.config, openshift.local.etcd, openshift.local.volumes) as well as create the openshift.log file.
 
 +
