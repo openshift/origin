@@ -380,7 +380,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 							Raw:    []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","bindDN":"second"}`),
 						}},
 						"test3": {Configuration: runtime.RawExtension{
-							Object: &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Unknown", APIVersion: "some/version"}, Raw: []byte(`{"kind":"Unknown","apiVersion":"some/version"}`)},
+							Object: &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Unknown", APIVersion: "some/version"}, ContentType: "application/json", Raw: []byte(`{"kind":"Unknown","apiVersion":"some/version"}`)},
 							Raw:    []byte(`{"kind":"Unknown","apiVersion":"some/version"}`),
 						}},
 						"test4": {},
@@ -437,7 +437,8 @@ func fuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 					APIVersion: "unknown.group/unknown",
 					Kind:       "Something",
 				},
-				Raw: []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
+				ContentType: "application/json",
+				Raw:         []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
 			}
 		},
 		func(j *unversioned.TypeMeta, c fuzz.Continue) {

@@ -144,7 +144,7 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			case 0:
 				j.AttributeRestrictions = &authorizationapi.IsPersonalSubjectAccessReview{}
 			case 1:
-				j.AttributeRestrictions = &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Type", APIVersion: "other"}, Raw: []byte(`{"apiVersion":"other","kind":"Type"}`)}
+				j.AttributeRestrictions = &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Type", APIVersion: "other"}, ContentType: "application/json", Raw: []byte(`{"apiVersion":"other","kind":"Type"}`)}
 			default:
 				j.AttributeRestrictions = nil
 			}
