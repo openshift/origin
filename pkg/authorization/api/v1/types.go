@@ -173,8 +173,8 @@ type ResourceAccessReviewResponse struct {
 type ResourceAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
@@ -197,8 +197,8 @@ type OptionalScopes []string
 type SubjectAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 	// User is optional. If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" protobuf:"bytes,2,opt,name=user"`
 	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
@@ -214,16 +214,16 @@ type SubjectAccessReview struct {
 type LocalResourceAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 }
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" protobuf:"bytes,2,opt,name=user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
@@ -235,8 +235,8 @@ type LocalSubjectAccessReview struct {
 	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
 }
 
-// AuthorizationAttributes describes a request to the API server
-type AuthorizationAttributes struct {
+// Action describes a request to the API server
+type Action struct {
 	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
 	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
 	// Verb is one of: get, list, watch, create, update, delete
