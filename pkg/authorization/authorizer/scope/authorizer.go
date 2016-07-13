@@ -23,7 +23,7 @@ func NewAuthorizer(delegate defaultauthorizer.Authorizer, clusterPolicyGetter cl
 	return &scopeAuthorizer{delegate: delegate, clusterPolicyGetter: clusterPolicyGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 
-func (a *scopeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.AuthorizationAttributes) (bool, string, error) {
+func (a *scopeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
 	user, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return false, "", fmt.Errorf("user missing from context")
@@ -67,6 +67,6 @@ func (a *scopeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultau
 
 // TODO remove this. We don't logically need it, but it requires splitting our interface
 // GetAllowedSubjects returns the subjects it knows can perform the action.
-func (a *scopeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *scopeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
 	return a.delegate.GetAllowedSubjects(ctx, attributes)
 }

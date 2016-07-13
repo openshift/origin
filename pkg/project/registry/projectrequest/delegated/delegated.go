@@ -204,7 +204,7 @@ func (r *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	// So we'll escalate for the subject access review to determine rights
 	accessReview := authorizationapi.AddUserToSAR(userInfo,
 		&authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Verb:     "create",
 				Group:    projectapi.GroupName,
 				Resource: "projectrequests",

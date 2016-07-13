@@ -189,7 +189,7 @@ type ResourceAccessReview struct {
 	unversioned.TypeMeta
 
 	// Action describes the action being tested
-	Action AuthorizationAttributes
+	Action
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
@@ -209,7 +209,7 @@ type SubjectAccessReview struct {
 	unversioned.TypeMeta
 
 	// Action describes the action being tested
-	Action AuthorizationAttributes
+	Action
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
@@ -226,7 +226,7 @@ type LocalResourceAccessReview struct {
 	unversioned.TypeMeta
 
 	// Action describes the action being tested
-	Action AuthorizationAttributes
+	Action
 }
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
@@ -234,7 +234,7 @@ type LocalSubjectAccessReview struct {
 	unversioned.TypeMeta
 
 	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	Action AuthorizationAttributes
+	Action
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
@@ -246,8 +246,8 @@ type LocalSubjectAccessReview struct {
 	Scopes []string
 }
 
-// AuthorizationAttributes describes a request to be authorized
-type AuthorizationAttributes struct {
+// Action describes a request to be authorized
+type Action struct {
 	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
 	Namespace string
 	// Verb is one of: get, list, watch, create, update, delete

@@ -113,7 +113,7 @@ func TestAttributeIntersection(t *testing.T) {
 	)
 
 	kattributesType := reflect.TypeOf((*kauthorizer.Attributes)(nil)).Elem()
-	oattributesType := reflect.TypeOf((*oauthorizer.AuthorizationAttributes)(nil)).Elem()
+	oattributesType := reflect.TypeOf((*oauthorizer.Action)(nil)).Elem()
 
 	kattributesMethods := sets.NewString()
 	for i := 0; i < kattributesType.NumMethod(); i++ {

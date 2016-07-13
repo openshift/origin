@@ -21,9 +21,9 @@ type DefaultAuthorizationAttributes struct {
 	URL               string
 }
 
-// ToDefaultAuthorizationAttributes coerces AuthorizationAttributes to DefaultAuthorizationAttributes.  Namespace is not included
+// ToDefaultAuthorizationAttributes coerces Action to DefaultAuthorizationAttributes.  Namespace is not included
 // because the authorizer takes that information on the context
-func ToDefaultAuthorizationAttributes(in authorizationapi.AuthorizationAttributes) DefaultAuthorizationAttributes {
+func ToDefaultAuthorizationAttributes(in authorizationapi.Action) DefaultAuthorizationAttributes {
 	return DefaultAuthorizationAttributes{
 		Verb:         in.Verb,
 		APIGroup:     in.Group,
@@ -136,8 +136,8 @@ func splitPath(thePath string) []string {
 	return strings.Split(thePath, "/")
 }
 
-// DefaultAuthorizationAttributes satisfies the AuthorizationAttributes interface
-var _ AuthorizationAttributes = DefaultAuthorizationAttributes{}
+// DefaultAuthorizationAttributes satisfies the Action interface
+var _ Action = DefaultAuthorizationAttributes{}
 
 func (a DefaultAuthorizationAttributes) GetAPIVersion() string {
 	return a.APIVersion
