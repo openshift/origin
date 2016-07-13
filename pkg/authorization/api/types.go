@@ -105,6 +105,8 @@ type RoleBinding struct {
 	RoleRef kapi.ObjectReference
 }
 
+type RolesByName map[string]*Role
+
 // +genclient=true
 
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
@@ -117,8 +119,10 @@ type Policy struct {
 	LastModified unversioned.Time
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles map[string]*Role
+	Roles RolesByName
 }
+
+type RoleBindingsByName map[string]*RoleBinding
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
@@ -133,7 +137,7 @@ type PolicyBinding struct {
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings map[string]*RoleBinding
+	RoleBindings RoleBindingsByName
 }
 
 // SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
@@ -331,6 +335,8 @@ type ClusterRoleBinding struct {
 	RoleRef kapi.ObjectReference
 }
 
+type ClusterRolesByName map[string]*ClusterRole
+
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
 type ClusterPolicy struct {
@@ -342,8 +348,10 @@ type ClusterPolicy struct {
 	LastModified unversioned.Time
 
 	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by Role.Name
-	Roles map[string]*ClusterRole
+	Roles ClusterRolesByName
 }
+
+type ClusterRoleBindingsByName map[string]*ClusterRoleBinding
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
@@ -358,7 +366,7 @@ type ClusterPolicyBinding struct {
 	// ClusterPolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
 	// RoleBindings holds all the RoleBindings held by this ClusterPolicyBinding, mapped by RoleBinding.Name
-	RoleBindings map[string]*ClusterRoleBinding
+	RoleBindings ClusterRoleBindingsByName
 }
 
 // ClusterPolicyList is a collection of ClusterPolicies

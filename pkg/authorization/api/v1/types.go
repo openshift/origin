@@ -62,8 +62,10 @@ type RoleBinding struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role
+	// +genconversion=false
 	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role
+	// +genconversion=false
 	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule
 	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
@@ -73,6 +75,8 @@ type RoleBinding struct {
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
 }
+
+type NamedRoles []NamedRole
 
 // +genclient=true
 
@@ -87,8 +91,10 @@ type Policy struct {
 	LastModified unversioned.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles []NamedRole `json:"roles" protobuf:"bytes,3,rep,name=roles"`
+	Roles NamedRoles `json:"roles" protobuf:"bytes,3,rep,name=roles"`
 }
+
+type NamedRoleBindings []NamedRoleBinding
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
@@ -103,7 +109,7 @@ type PolicyBinding struct {
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings []NamedRoleBinding `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
+	RoleBindings NamedRoleBindings `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
 }
 
 // NamedRole relates a Role with a name
@@ -314,8 +320,10 @@ type ClusterRoleBinding struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role
+	// +genconversion=false
 	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role
+	// +genconversion=false
 	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule
 	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
@@ -325,6 +333,8 @@ type ClusterRoleBinding struct {
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
 }
+
+type NamedClusterRoles []NamedClusterRole
 
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
@@ -337,8 +347,10 @@ type ClusterPolicy struct {
 	LastModified unversioned.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
 
 	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
-	Roles []NamedClusterRole `json:"roles" protobuf:"bytes,3,rep,name=roles"`
+	Roles NamedClusterRoles `json:"roles" protobuf:"bytes,3,rep,name=roles"`
 }
+
+type NamedClusterRoleBindings []NamedClusterRoleBinding
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
@@ -353,7 +365,7 @@ type ClusterPolicyBinding struct {
 	// PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
 	// RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name
-	RoleBindings []NamedClusterRoleBinding `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
+	RoleBindings NamedClusterRoleBindings `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
 }
 
 // NamedClusterRole relates a name with a cluster role
