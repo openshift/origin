@@ -132,7 +132,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) (bool, error) {
+func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint32) (bool, error) {
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -358,7 +358,7 @@ func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 	return nil
 }
 
-func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint) error {
+func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) error {
 	if !plugin.multitenant {
 		return nil
 	}
@@ -398,7 +398,7 @@ func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string
 	return fmt.Sprintf("table=4, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
 }
 
-func generateAddServiceRule(netID uint, IP string, protocol kapi.Protocol, port int) string {
+func generateAddServiceRule(netID uint32, IP string, protocol kapi.Protocol, port int) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
 	if netID == 0 {
 		return fmt.Sprintf("%s, priority=100, actions=output:2", baseRule)

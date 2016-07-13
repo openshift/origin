@@ -280,8 +280,8 @@ func (c *MasterConfig) RunDaemonSetsController(client *client.Client) {
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointController(c.Informers.Pods().Informer(), clientadapter.FromUnversionedClient(c.KubeClient))
+func (c *MasterConfig) RunEndpointController(client *client.Client) {
+	endpoints := endpointcontroller.NewEndpointController(c.Informers.Pods().Informer(), clientadapter.FromUnversionedClient(client))
 	go endpoints.Run(int(c.ControllerManager.ConcurrentEndpointSyncs), utilwait.NeverStop)
 
 }

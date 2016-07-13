@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
@@ -30,7 +31,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
-	"github.com/openshift/origin/pkg/util/errors"
+	oerrors "github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
 
@@ -165,6 +166,11 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
 	}
 
+	if len(buildName) != 0 && (len(fromFile) != 0 || len(fromDir) != 0 || len(fromRepo) != 0) {
+		// TODO: we should support this, it should be possible to clone a build to run again with new uploaded artifacts.
+		// Doing so requires introducing a new clonebinary endpoint.
+		return kcmdutil.UsageError(cmd, "Cannot use '--from-build' flag with binary builds")
+	}
 	o.AsBinary = len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0
 
 	namespace, _, err := f.DefaultNamespace()
@@ -282,10 +288,16 @@ func (o *StartBuildOptions) Run() error {
 		}
 	case len(o.FromBuild) > 0:
 		if newBuild, err = o.Client.Builds(o.Namespace).Clone(request); err != nil {
+			if isInvalidSourceInputsError(err) {
+				return fmt.Errorf("Build %s/%s has no valid source inputs and '--from-build' cannot be used for binary builds", o.Namespace, o.Name)
+			}
 			return err
 		}
 	default:
 		if newBuild, err = o.Client.BuildConfigs(o.Namespace).Instantiate(request); err != nil {
+			if isInvalidSourceInputsError(err) {
+				return fmt.Errorf("Build configuration %s/%s has no valid source inputs, if this is a binary build you must specify one of '--from-dir', '--from-repo', or '--from-file'", o.Namespace, o.Name)
+			}
 			return err
 		}
 	}
@@ -327,7 +339,7 @@ func (o *StartBuildOptions) Run() error {
 				if err != nil {
 					// if --wait options is set, then retry the connection to build logs
 					// when we hit the timeout.
-					if o.WaitForComplete && errors.IsTimeoutErr(err) {
+					if o.WaitForComplete && oerrors.IsTimeoutErr(err) {
 						continue
 					}
 					fmt.Fprintf(o.ErrOut, "error getting logs: %v\n", err)
@@ -716,4 +728,19 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 			}
 		}
 	}
+}
+
+func isInvalidSourceInputsError(err error) bool {
+	if err != nil {
+		if statusErr, ok := err.(*kerrors.StatusError); ok {
+			if kerrors.IsInvalid(statusErr) {
+				for _, cause := range statusErr.ErrStatus.Details.Causes {
+					if cause.Field == "spec.source" {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }

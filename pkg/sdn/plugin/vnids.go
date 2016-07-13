@@ -22,21 +22,21 @@ import (
 
 const (
 	// Maximum VXLAN Network Identifier as per RFC#7348
-	MaxVNID = ((1 << 24) - 1)
+	MaxVNID = uint32((1 << 24) - 1)
 	// VNID for the admin namespaces
-	AdminVNID = uint(0)
+	AdminVNID = uint32(0)
 )
 
 type vnidMap struct {
-	ids  map[string]uint
+	ids  map[string]uint32
 	lock sync.Mutex
 }
 
 func newVnidMap() *vnidMap {
-	return &vnidMap{ids: make(map[string]uint)}
+	return &vnidMap{ids: make(map[string]uint32)}
 }
 
-func (vmap *vnidMap) GetVNID(name string) (uint, error) {
+func (vmap *vnidMap) GetVNID(name string) (uint32, error) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -44,7 +44,7 @@ func (vmap *vnidMap) GetVNID(name string) (uint, error) {
 		return id, nil
 	}
 	// In case of error, return some value which is not a valid VNID
-	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+	return uint32(MaxVNID + 1), fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
 // Nodes asynchronously watch for both NetNamespaces and services
@@ -53,7 +53,7 @@ func (vmap *vnidMap) GetVNID(name string) (uint, error) {
 // and if service/pod-setup tries to lookup vnid map then it may fail.
 // So, use this method to alleviate this problem. This method will
 // retry vnid lookup before giving up.
-func (vmap *vnidMap) WaitAndGetVNID(name string) (uint, error) {
+func (vmap *vnidMap) WaitAndGetVNID(name string) (uint32, error) {
 	// Try few times up to 2 seconds
 	retries := 20
 	retryInterval := 100 * time.Millisecond
@@ -68,7 +68,7 @@ func (vmap *vnidMap) WaitAndGetVNID(name string) (uint, error) {
 	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
-func (vmap *vnidMap) SetVNID(name string, id uint) {
+func (vmap *vnidMap) SetVNID(name string, id uint32) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -76,7 +76,7 @@ func (vmap *vnidMap) SetVNID(name string, id uint) {
 	log.Infof("Associate netid %d to namespace %q", id, name)
 }
 
-func (vmap *vnidMap) UnsetVNID(name string) (id uint, err error) {
+func (vmap *vnidMap) UnsetVNID(name string) (id uint32, err error) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -90,7 +90,7 @@ func (vmap *vnidMap) UnsetVNID(name string) (id uint, err error) {
 	return id, nil
 }
 
-func (vmap *vnidMap) CheckVNID(id uint) bool {
+func (vmap *vnidMap) CheckVNID(id uint32) bool {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -102,11 +102,11 @@ func (vmap *vnidMap) CheckVNID(id uint) bool {
 	return false
 }
 
-func (vmap *vnidMap) GetAllocatedVNIDs() []uint {
+func (vmap *vnidMap) GetAllocatedVNIDs() []uint32 {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
-	ids := []uint{}
+	ids := []uint32{}
 	idSet := sets.Int{}
 	for _, id := range vmap.ids {
 		if id != AdminVNID {
@@ -174,7 +174,7 @@ func (master *OsdnMaster) assignVNID(namespaceName string) error {
 	}
 
 	// NetNamespace not found, so allocate new NetID
-	var netid uint
+	var netid uint32
 	if master.isAdminNamespace(namespaceName) {
 		netid = AdminVNID
 	} else {
@@ -275,7 +275,7 @@ func (node *OsdnNode) VnidStartNode() error {
 	return nil
 }
 
-func (node *OsdnNode) updatePodNetwork(namespace string, netID uint) error {
+func (node *OsdnNode) updatePodNetwork(namespace string, netID uint32) error {
 	// Update OF rules for the existing/old pods in the namespace
 	pods, err := node.GetLocalPods(namespace)
 	if err != nil {
@@ -320,7 +320,7 @@ func (node *OsdnNode) watchNetNamespaces() {
 		switch eventType {
 		case watch.Added, watch.Modified:
 			// Skip this event if the old and new network ids are same
-			var oldNetID uint
+			var oldNetID uint32
 			oldNetID, err = node.vnids.GetVNID(netns.NetName)
 			if (err == nil) && (oldNetID == netns.NetID) {
 				continue
@@ -387,7 +387,7 @@ func (node *OsdnNode) watchServices() {
 				}
 			}
 
-			var netid uint
+			var netid uint32
 			netid, err = node.vnids.WaitAndGetVNID(serv.Namespace)
 			if err != nil {
 				log.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)

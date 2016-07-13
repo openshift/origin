@@ -84,7 +84,13 @@
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "perl:5.20"
-            }
+            },
+            "env":  [
+              {
+                  "name": "CPAN_MIRROR",
+                  "value": "${CPAN_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -350,24 +356,28 @@
       "name": "NAMESPACE",
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the Perl Dancer container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "MEMORY_MYSQL_LIMIT",
       "displayName": "Memory Limit (MySQL)",
       "description": "Maximum amount of memory the MySQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/dancer-ex.git"
     },
     {
@@ -408,6 +418,7 @@
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "database"
     },
     {
@@ -425,6 +436,7 @@
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "sampledb"
     },
     {
@@ -439,6 +451,12 @@
       "description": "Your secret key for verifying the integrity of signed cookies.",
       "generate": "expression",
       "from": "[a-z0-9]{127}"
+    },
+    {
+      "name": "CPAN_MIRROR",
+      "displayName": "Custom CPAN Mirror URL",
+      "description": "The custom CPAN mirror URL",
+      "value": ""
     }
   ]
 }

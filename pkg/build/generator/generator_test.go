@@ -48,6 +48,25 @@ func TestInstantiate(t *testing.T) {
 	}
 }
 
+func TestInstantiateBinary(t *testing.T) {
+	generator := mockBuildGenerator()
+	build, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if build.Spec.Source.Binary == nil {
+		t.Errorf("build should have a binary source value, has nil")
+	}
+	build, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	// TODO: we should enable this flow.
+	if build.Spec.Source.Binary != nil {
+		t.Errorf("build should not have a binary source value, has %v", build.Spec.Source.Binary)
+	}
+}
+
 // TODO(agoldste): I'm not sure the intent of this test. Using the previous logic for
 // the generator, which would try to update the build config before creating
 // the build, I can see why the UpdateBuildConfigFunc is set up to return an
@@ -83,6 +102,7 @@ func TestInstantiateRetry(t *testing.T) {
 */
 
 func TestInstantiateDeletingError(t *testing.T) {
+	source := mocks.MockSource()
 	generator := BuildGenerator{Client: Client{
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 			bc := &buildapi.BuildConfig{
@@ -91,11 +111,31 @@ func TestInstantiateDeletingError(t *testing.T) {
 						buildapi.BuildConfigPausedAnnotation: "true",
 					},
 				},
+				Spec: buildapi.BuildConfigSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: source,
+						Revision: &buildapi.SourceRevision{
+							Git: &buildapi.GitSourceRevision{
+								Commit: "1234",
+							},
+						},
+					},
+				},
 			}
 			return bc, nil
 		},
 		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
 			build := &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: source,
+						Revision: &buildapi.SourceRevision{
+							Git: &buildapi.GitSourceRevision{
+								Commit: "1234",
+							},
+						},
+					},
+				},
 				Status: buildapi.BuildStatus{
 					Config: &kapi.ObjectReference{
 						Name: "buildconfig",
@@ -112,6 +152,61 @@ func TestInstantiateDeletingError(t *testing.T) {
 	_, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "BuildConfig is paused") {
 		t.Errorf("Expected error, got different %v", err)
+	}
+}
+
+// TestInstantiateBinaryClear ensures that when instantiating or cloning from a buildconfig/build
+// that has a binary source value, the resulting build does not have a binary source value
+// (because the request did not include one)
+func TestInstantiateBinaryRemoved(t *testing.T) {
+	generator := mockBuildGenerator()
+	client := generator.Client.(Client)
+	client.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+		bc := &buildapi.BuildConfig{
+			ObjectMeta: kapi.ObjectMeta{
+				Annotations: map[string]string{},
+			},
+			Spec: buildapi.BuildConfigSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Binary: &buildapi.BinaryBuildSource{},
+					},
+				},
+			},
+		}
+		return bc, nil
+	}
+	client.GetBuildFunc = func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+		build := &buildapi.Build{
+			Spec: buildapi.BuildSpec{
+				CommonSpec: buildapi.CommonSpec{
+					Source: buildapi.BuildSource{
+						Binary: &buildapi.BinaryBuildSource{},
+					},
+				},
+			},
+			Status: buildapi.BuildStatus{
+				Config: &kapi.ObjectReference{
+					Name: "buildconfig",
+				},
+			},
+		}
+		return build, nil
+	}
+
+	build, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if build.Spec.Source.Binary != nil {
+		t.Errorf("build should not have a binary source value, has %v", build.Spec.Source.Binary)
+	}
+	build, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if build.Spec.Source.Binary != nil {
+		t.Errorf("build should not have a binary source value, has %v", build.Spec.Source.Binary)
 	}
 }
 
@@ -240,6 +335,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 		},
 	}
 
+	source := mocks.MockSource()
 	for _, tc := range tests {
 		bc := &buildapi.BuildConfig{
 			Spec: buildapi.BuildConfigSpec{
@@ -250,6 +346,12 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 								Name: "image3:tag3",
 								Kind: "ImageStreamTag",
 							},
+						},
+					},
+					Source: source,
+					Revision: &buildapi.SourceRevision{
+						Git: &buildapi.GitSourceRevision{
+							Commit: "1234",
 						},
 					},
 				},

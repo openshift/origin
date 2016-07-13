@@ -86,11 +86,29 @@ type OAuthClient struct {
 	// RedirectURIs is the valid redirection URIs associated with a client
 	RedirectURIs []string `json:"redirectURIs,omitempty"`
 
+	// GrantMethod determines how to handle grants for this client. If no method is provided, the
+	// cluster default grant handling method will be used. Valid grant handling methods are:
+	//  - auto:   always approves grant requests, useful for trusted clients
+	//  - prompt: prompts the end user for approval of grant requests, useful for third-party clients
+	//  - deny:   always denies grant requests, useful for black-listed clients
+	GrantMethod GrantHandlerType `json:"grantMethod,omitempty"`
+
 	// ScopeRestrictions describes which scopes this client can request.  Each requested scope
 	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
 	// If no restriction matches, then the scope is denied.
 	ScopeRestrictions []ScopeRestriction `json:"scopeRestrictions,omitempty"`
 }
+
+type GrantHandlerType string
+
+const (
+	// GrantHandlerAuto auto-approves client authorization grant requests
+	GrantHandlerAuto GrantHandlerType = "auto"
+	// GrantHandlerPrompt prompts the user to approve new client authorization grant requests
+	GrantHandlerPrompt GrantHandlerType = "prompt"
+	// GrantHandlerDeny auto-denies client authorization grant requests
+	GrantHandlerDeny GrantHandlerType = "deny"
+)
 
 // ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.
 type ScopeRestriction struct {

@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 95152edba2d368b248137ca697dda1eed6732a61
+%global commit 9253ce6fd173f87c311526ccc6b7d28aa7f51bd1
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.3+95152ed -X github.com/openshift/origin/pkg/version.commitFromGit=95152ed -X github.com/openshift/origin/pkg/version.buildDate=2016-07-11T19:57:52Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-11T19:57:52Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.4+9253ce6 -X github.com/openshift/origin/pkg/version.commitFromGit=9253ce6 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-13T13:45:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-13T13:45:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.4
+Version:        3.3.0.5
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,34 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Jul 13 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.5
+- Add an admission controller to block illegal service endpoints
+  (danw@redhat.com)
+- Limit the amount of output of a faulty new-build (rymurphy@redhat.com)
+- Parameter validation for new-app strategy (jupierce@redhat.com)
+- Add option to handle OAuth grants at a per-client granularity
+  (sgallagh@redhat.com)
+- Add mirror env var options and fix required parameters to templates
+  (vdinh@redhat.com)
+- Add a service account for the endpoints controller (danw@redhat.com)
+- Remove unused code (li.guangxu@zte.com.cn)
+- no need to build networking pkg in build-tests session
+  (li.guangxu@zte.com.cn)
+- SDN types should used fixed width integers (ccoleman@redhat.com)
+- reject build requests for binary builds if not providing binary inputs
+  (bparees@redhat.com)
+- dind: update to f24 (and go 1.6) (marun@redhat.com)
+- Bump origin-web-console (563e73a) (jforrest@redhat.com)
+- return notfound errors w/o wrappering them (bparees@redhat.com)
+- No info about deployer pods logged (ccoleman@redhat.com)
+- Update godep-restore (ccoleman@redhat.com)
+- Adding a field to templates to allow them to deliver a user message with
+  parameters substituted (jupierce@redhat.com)
+- UPSTREAM: 28500: don't migrate files you can't access (deads@redhat.com)
+- Update comment (rhcarvalho@gmail.com)
+- Refactored test/cmd/authentication.sh to use proper strings and literals
+  (skuznets@redhat.com)
+
 * Mon Jul 11 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.4
 - OSE Fix: Revert OS_GIT_VERSION regex back (tdawson@redhat.com)
 - Fix a DNS flake by watching for pod succeeded (ccoleman@redhat.com)

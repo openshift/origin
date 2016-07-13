@@ -97,6 +97,7 @@ func TestGetClient(t *testing.T) {
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"anywhere"},
+				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
 			expectedActions: []ktestclient.Action{
 				ktestclient.NewGetAction("serviceaccounts", "ns-01", "default"),
@@ -107,29 +108,29 @@ func TestGetClient(t *testing.T) {
 
 	for _, tc := range testCases {
 		delegate := &fakeDelegate{}
-		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient, tc.kubeClient, delegate)
+		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient, tc.kubeClient, delegate, oauthapi.GrantHandlerPrompt)
 		client, err := getter.GetClient(kapi.NewContext(), tc.clientName)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil,
 			len(tc.expectedErr) > 0 && err == nil,
 			len(tc.expectedErr) > 0 && err != nil && !strings.Contains(err.Error(), tc.expectedErr):
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedErr, err)
+			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedErr, err)
 			continue
 		}
 
 		if tc.expectedDelegation != delegate.called {
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedDelegation, delegate.called)
+			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedDelegation, delegate.called)
 			continue
 		}
 
 		if !kapi.Semantic.DeepEqual(tc.expectedClient, client) {
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedClient, client)
+			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedClient, client)
 			continue
 		}
 
 		if !reflect.DeepEqual(tc.expectedActions, tc.kubeClient.Actions()) {
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedActions, tc.kubeClient.Actions())
+			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedActions, tc.kubeClient.Actions())
 			continue
 		}
 	}

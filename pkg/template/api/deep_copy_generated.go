@@ -40,6 +40,7 @@ func DeepCopy_api_Template(in Template, out *Template, c *conversion.Cloner) err
 	if err := api.DeepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
 		return err
 	}
+	out.Message = in.Message
 	if in.Parameters != nil {
 		in, out := in.Parameters, &out.Parameters
 		*out = make([]Parameter, len(in))

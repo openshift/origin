@@ -169,7 +169,7 @@ type NodeNetworkConfig struct {
 	// Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
 	NetworkPluginName string
 	// Maximum transmission unit for the network packets
-	MTU uint
+	MTU uint32
 }
 
 // NodeAuthConfig holds authn/authz configuration options
@@ -438,7 +438,7 @@ type UserAgentDenyRule struct {
 type MasterNetworkConfig struct {
 	NetworkPluginName  string
 	ClusterNetworkCIDR string
-	HostSubnetLength   uint
+	HostSubnetLength   uint32
 	ServiceNetworkCIDR string
 	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
 	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that

@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/RangelReale/osin"
 
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/auth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
 // GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
@@ -126,23 +127,46 @@ func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.Res
 	return false, true, nil
 }
 
-type serviceAccountAwareGrant struct {
-	standardGrantHandler GrantHandler
-	// saClientGrantHandler allows an autogrant handler to do something else when the client is a service account.
-	// TODO: I think this can be removed once we can set granthandler overrides per-client, but we need something for safety now.
-	saClientGrantHandler GrantHandler
+type perClientGrant struct {
+	auto          GrantHandler
+	prompt        GrantHandler
+	deny          GrantHandler
+	defaultMethod oauthapi.GrantHandlerType
 }
 
-// NewAutoGrant returns a grant handler that automatically approves client authorizations
-func NewServiceAccountAwareGrant(standardGrantHandler, saClientGrantHandler GrantHandler) GrantHandler {
-	return &serviceAccountAwareGrant{standardGrantHandler: standardGrantHandler, saClientGrantHandler: saClientGrantHandler}
+// NewPerClientGrant returns a grant handler that determines what to do based on the grant method in the client
+func NewPerClientGrant(prompt GrantHandler, defaultMethod oauthapi.GrantHandlerType) GrantHandler {
+	return &perClientGrant{
+		auto:          NewAutoGrant(),
+		prompt:        prompt,
+		deny:          NewEmptyGrant(),
+		defaultMethod: defaultMethod,
+	}
 }
 
-// GrantNeeded implements the GrantHandler interface
-func (g *serviceAccountAwareGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
-	if _, _, err := serviceaccount.SplitUsername(grant.Client.GetId()); err == nil {
-		return g.saClientGrantHandler.GrantNeeded(user, grant, w, req)
+func (g *perClientGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
+	client, ok := grant.Client.GetUserData().(*oauthapi.OAuthClient)
+	if !ok {
+		return false, false, errors.New("unrecognized OAuth client type")
 	}
 
-	return g.standardGrantHandler.GrantNeeded(user, grant, w, req)
+	method := client.GrantMethod
+	if len(method) == 0 {
+		// Use the global default
+		method = g.defaultMethod
+	}
+
+	switch method {
+	case oauthapi.GrantHandlerAuto:
+		return g.auto.GrantNeeded(user, grant, w, req)
+
+	case oauthapi.GrantHandlerPrompt:
+		return g.prompt.GrantNeeded(user, grant, w, req)
+
+	case oauthapi.GrantHandlerDeny:
+		return g.deny.GrantNeeded(user, grant, w, req)
+
+	default:
+		return false, false, fmt.Errorf("OAuth client grant method %q unrecognized", method)
+	}
 }

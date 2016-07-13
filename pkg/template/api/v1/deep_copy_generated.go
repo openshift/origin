@@ -41,6 +41,7 @@ func DeepCopy_v1_Template(in Template, out *Template, c *conversion.Cloner) erro
 	if err := api_v1.DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
 		return err
 	}
+	out.Message = in.Message
 	if in.Objects != nil {
 		in, out := in.Objects, &out.Objects
 		*out = make([]runtime.RawExtension, len(in))

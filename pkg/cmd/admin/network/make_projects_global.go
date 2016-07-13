@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	globalVNID = uint(0)
+	globalVNID = uint32(0)
 
 	MakeGlobalProjectsNetworkCommandName = "make-projects-global"
 
