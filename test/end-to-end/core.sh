@@ -44,6 +44,14 @@ function wait_for_app() {
   os::cmd::try_until_text "curl -s http://${FRONTEND_IP}:5432/keys/foo" "1337"
 }
 
+function remove_docker_images() {
+    local name="$1"
+    local tag="${2:-\S\+}"
+    local imageids=$(docker images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
+    os::cmd::expect_success_and_text "echo '${imageids}' | wc -w" '^[1-9][0-9]*$'
+    os::cmd::expect_success "docker rmi -f ${imageids}"
+}
+
 os::test::junit::declare_suite_start "end-to-end/core"
 
 echo "[INFO] openshift version: `openshift version`"
@@ -133,51 +141,57 @@ echo "[INFO] Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 
-echo "[INFO] Docker start with GCS"
+echo "[INFO] Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
 
+echo "[INFO] Docker pull from istag"
+os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
+os::cmd::expect_success "docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/hello-world:latest"
+
 # verify we can pull from tagged image (using tag)
-imageid=$(docker images | grep centos/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to the same image stream and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7:latest ruby-22-centos7:new-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-tag"
+remove_docker_images 'cache/hello-world'
+echo "[INFO] Tagging hello-world:latest to the same image stream and pulling it"
+os::cmd::expect_success "oc tag hello-world:latest hello-world:new-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-tag"
 echo "[INFO] The same image stream pull successful"
 
-imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to cross repository and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7:latest cross:repo-pull"
+remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-tag
+echo "[INFO] Tagging hello-world:latest to cross repository and pulling it"
+os::cmd::expect_success "oc tag hello-world:latest cross:repo-pull"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
 echo "[INFO] Cross repository pull successful"
 
-imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to cross namespace and pulling it"
-os::cmd::expect_success "oc tag cache/ruby-22-centos7:latest cross:namespace-pull -n custom"
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross" "repo-pull"
+echo "[INFO] Tagging hello-world:latest to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/hello-world:latest cross:namespace-pull -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 echo "[INFO] Cross namespace pull successful"
 
-# verify we can pull from tagged image (using imageid)
-imageid=$(docker images | grep custom/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-tagid=$(oc get istag ruby-22-centos7:latest --template={{.image.metadata.name}})
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to the same image stream and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} ruby-22-centos7:new-id-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-id-tag"
+# verify we can pull from tagged image (using image digest)
+remove_docker_images "${DOCKER_REGISTRY}/custom/cross"  namespace-pull
+imagedigest=$(oc get istag hello-world:latest --template={{.image.metadata.name}})
+echo "[INFO] Tagging hello-world@${imagedigest} to the same image stream and pulling it"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} hello-world:new-id-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-id-tag"
 echo "[INFO] The same image stream pull successful"
 
-imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross repository and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} cross:repo-pull-id"
+remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-id-tag
+echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
 echo "[INFO] Cross repository pull successful"
 
-imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross namespace and pulling it"
-os::cmd::expect_success "oc tag cache/ruby-22-centos7@${tagid} cross:namespace-pull-id -n custom"
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross" repo-pull-id
+echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it by id"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross@${imagedigest}"
+echo "[INFO] Cross repository pull successful"
+
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross"
+echo "[INFO] Tagging hello-world@${imagedigest} to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/hello-world@${imagedigest} cross:namespace-pull-id -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 echo "[INFO] Cross namespace pull successful"
 
