@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"reflect"
-	"sync"
+	"strconv"
 	"testing"
 )
 
@@ -124,54 +124,55 @@ func TestErrorOnCopy(t *testing.T) {
 	}
 }
 
-type syncedReport struct {
-	r report
-	m *sync.Mutex
-}
-
-func newSyncedReport() *syncedReport {
-	return &syncedReport{
-		m: &sync.Mutex{},
-	}
-}
-
-func (s *syncedReport) set(r report) {
-	s.m.Lock()
-	defer s.m.Unlock()
-	s.r = r
-}
-
-func (s *syncedReport) get() report {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return s.r
-}
-
 func TestStableLayerCount(t *testing.T) {
-	result := newSyncedReport()
-	w := newWriter(func(r report) { result.set(r) }, func(a, b report) bool { return true })
-	w.(*imageProgressWriter).stableThreshhold = 3 // This means that the number of layers must be stable for at least 3 lines
-	p := newProgressGenerator(w)
 
-	// Increase number of layers by one each time
-	p.status("1", "one")
-	p.status("2", "two")
-	p.status("3", "three")
-	if result.get() != nil {
-		t.Errorf("do not expect any reports at this point")
-		return
+	tests := []struct {
+		name             string
+		lastLayerCount   int
+		layerStatusCount int
+		stableThreshhold int
+		callCount        int
+		expectStable     bool
+	}{
+		{
+			name:             "increasing layer count",
+			lastLayerCount:   3,
+			layerStatusCount: 4,
+			callCount:        1,
+			expectStable:     false,
+		},
+		{
+			name:             "has not met stable threshhold",
+			lastLayerCount:   3,
+			layerStatusCount: 3,
+			callCount:        2,
+			stableThreshhold: 3,
+			expectStable:     false,
+		},
+		{
+			name:             "met stable threshhold",
+			lastLayerCount:   3,
+			layerStatusCount: 3,
+			callCount:        4,
+			stableThreshhold: 3,
+			expectStable:     true,
+		},
 	}
-
-	// Report on the same layers as before, keeping the
-	// the number stable
-	p.status("1", "one-a")
-	p.status("2", "two-a")
-	p.status("3", "three-a")
-	expected := report{
-		statusPending: &layerDetail{Count: 3},
-	}
-	if !compareReport(result.get(), expected) {
-		t.Errorf("did not get expected report")
+	for _, test := range tests {
+		w := newWriter(func(report) {}, func(a, b report) bool { return true }).(*imageProgressWriter)
+		w.lastLayerCount = test.lastLayerCount
+		w.layerStatus = map[string]progressLine{}
+		w.stableThreshhold = test.stableThreshhold
+		for i := 0; i < test.layerStatusCount; i++ {
+			w.layerStatus[strconv.Itoa(i)] = progressLine{}
+		}
+		var result bool
+		for i := 0; i < test.callCount; i++ {
+			result = w.isStableLayerCount()
+		}
+		if result != test.expectStable {
+			t.Errorf("%s: expected %v, got %v", test.name, test.expectStable, result)
+		}
 	}
 }
 
