@@ -28,9 +28,9 @@ type externalIPRanger struct {
 
 var _ kadmission.Interface = &externalIPRanger{}
 
-// ParseCIDRRules calculates a blacklist and whitelist from a list of string CIDR rules (treating
+// ParseRejectAdmitCIDRRules calculates a blacklist and whitelist from a list of string CIDR rules (treating
 // a leading ! as a negation). Returns an error if any rule is invalid.
-func ParseCIDRRules(rules []string) (reject, admit []*net.IPNet, err error) {
+func ParseRejectAdmitCIDRRules(rules []string) (reject, admit []*net.IPNet, err error) {
 	for _, s := range rules {
 		negate := false
 		if strings.HasPrefix(s, "!") {

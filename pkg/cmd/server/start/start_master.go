@@ -597,6 +597,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		namespaceControllerClientSet := clientadapter.FromUnversionedClient(namespaceControllerKubeClient)
 		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, dynamic.LegacyAPIPathResolverFunc)
 
+		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for endpoint controller: %v", err)
+		}
+
 		// no special order
 		kc.RunNodeController()
 		kc.RunScheduler()
@@ -618,7 +623,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			kc.RunDaemonSetsController(daemonSetClient)
 		}
 
-		kc.RunEndpointController()
+		kc.RunEndpointController(endpointControllerClient)
 		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		kc.RunGCController(gcClient)
