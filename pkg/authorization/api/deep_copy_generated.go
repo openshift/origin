@@ -14,7 +14,7 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
-		DeepCopy_api_AuthorizationAttributes,
+		DeepCopy_api_Action,
 		DeepCopy_api_ClusterPolicy,
 		DeepCopy_api_ClusterPolicyBinding,
 		DeepCopy_api_ClusterPolicyBindingList,
@@ -48,7 +48,7 @@ func init() {
 	}
 }
 
-func DeepCopy_api_AuthorizationAttributes(in AuthorizationAttributes, out *AuthorizationAttributes, c *conversion.Cloner) error {
+func DeepCopy_api_Action(in Action, out *Action, c *conversion.Cloner) error {
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -260,7 +260,7 @@ func DeepCopy_api_LocalResourceAccessReview(in LocalResourceAccessReview, out *L
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	return nil
@@ -270,7 +270,7 @@ func DeepCopy_api_LocalSubjectAccessReview(in LocalSubjectAccessReview, out *Loc
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -468,7 +468,7 @@ func DeepCopy_api_ResourceAccessReview(in ResourceAccessReview, out *ResourceAcc
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	return nil
@@ -624,7 +624,7 @@ func DeepCopy_api_SubjectAccessReview(in SubjectAccessReview, out *SubjectAccess
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	out.User = in.User

@@ -139,7 +139,7 @@ func (o *canIOptions) Run() (bool, error) {
 	}
 
 	sar := &authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Namespace:    o.Namespace,
 			Verb:         o.Verb,
 			Group:        o.Resource.Group,

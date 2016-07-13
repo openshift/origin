@@ -117,7 +117,7 @@ func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, c
 		o.Logger.Debug("CED1006", fmt.Sprintf("Error creating client for context '%s':\n%v", contextName, err))
 		return nil, nil, false, "", nil
 	} else {
-		subjectAccessReview := authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{
+		subjectAccessReview := authorizationapi.SubjectAccessReview{Action: authorizationapi.Action{
 			// if you can do everything, you're the cluster admin.
 			Verb:     "*",
 			Group:    "*",

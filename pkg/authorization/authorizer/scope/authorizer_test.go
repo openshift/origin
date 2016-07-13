@@ -113,11 +113,11 @@ type fakeAuthorizer struct {
 	called  bool
 }
 
-func (a *fakeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.AuthorizationAttributes) (bool, string, error) {
+func (a *fakeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
 	a.called = true
 	return a.allowed, "", nil
 }
 
-func (a *fakeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *fakeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }

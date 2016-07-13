@@ -62,7 +62,7 @@ func NewReviewer(resourceAccessReviewsNamespacer client.LocalResourceAccessRevie
 // Review performs a resource access review for the given resource by name
 func (r *reviewer) Review(name string) (Review, error) {
 	resourceAccessReview := &authorizationapi.LocalResourceAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Verb:         "get",
 			Group:        kapi.GroupName,
 			Resource:     "namespaces",

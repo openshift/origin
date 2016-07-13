@@ -32,7 +32,7 @@ type testAuthorizer struct {
 	actualUserInfo   user.Info
 }
 
-func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.Action) (allowed bool, reason string, err error) {
 	a.actualUserInfo, _ = kapi.UserFrom(ctx)
 
 	// allow the initial check for "can I run this SAR at all"
@@ -52,7 +52,7 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer
 	}
 	return a.allowed, a.reason, errors.New(a.err)
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.Action) (sets.String, sets.String, error) {
 	return sets.String{}, sets.String{}, nil
 }
 
@@ -63,7 +63,7 @@ func TestNoNamespace(t *testing.T) {
 			err:     "namespace is required on this type: ",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "",
 				Verb:      "get",
 				Resource:  "pods",
@@ -81,7 +81,7 @@ func TestConflictingNamespace(t *testing.T) {
 		allowed: false,
 	}
 	reviewRequest := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Namespace: "foo",
 			Verb:      "get",
 			Resource:  "pods",
@@ -108,7 +108,7 @@ func TestEmptyReturn(t *testing.T) {
 			reason:  "because reasons",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "unittest",
 				Verb:      "get",
 				Resource:  "pods",
@@ -133,7 +133,7 @@ func TestNoErrors(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "unittest",
 				Verb:      "delete",
 				Resource:  "deploymentConfigs",
@@ -156,7 +156,7 @@ func TestErrors(t *testing.T) {
 			err: "some-random-failure",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "unittest",
 				Verb:      "get",
 				Resource:  "pods",
@@ -176,7 +176,7 @@ func TestRegularWithScopes(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "unittest",
 				Verb:      "delete",
 				Resource:  "deploymentConfigs",
@@ -205,7 +205,7 @@ func TestSelfWithDefaultScopes(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "unittest",
 				Verb:      "delete",
 				Resource:  "deploymentConfigs",
@@ -233,7 +233,7 @@ func TestSelfWithClearedScopes(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "unittest",
 				Verb:      "delete",
 				Resource:  "deploymentConfigs",
