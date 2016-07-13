@@ -305,7 +305,7 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 		}
 
 		if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
-			failMessage = fmt.Sprintf("%s: %#v: expected %v, got %v", test.description, test.review, test.response, actualResponse)
+			failMessage = fmt.Sprintf("%s: %#v: expected %#v, got %#v", test.description, test.review, test.response, actualResponse)
 			return false, nil
 		}
 
@@ -355,7 +355,7 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 		}
 
 		if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
-			failMessage = fmt.Sprintf("%s: %#v: expected %v, got %v", test.description, test.review, test.response, actualResponse)
+			failMessage = fmt.Sprintf("%s: %#v: expected %#v, got %#v", test.description, test.review, test.response, actualResponse)
 			return false, nil
 		}
 
@@ -373,6 +373,8 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 
 func TestAuthorizationResourceAccessReview(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t, "TestAuthorizationResourceAccessReview")
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
