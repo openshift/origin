@@ -375,8 +375,16 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kLogsForObjectFunc(object, options)
 		}
 	}
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, showLabels, absoluteTimestamps bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, showLabels, absoluteTimestamps, columnLabels), nil
+	// Saves current resource name (or alias if any) in PrintOptions. Once saved, it will not be overwritten by the
+	// kubernetes resource alias look-up, as it will notice a non-empty value in `options.Kind`
+	w.Printer = func(mapping *meta.RESTMapping, options *kubectl.PrintOptions) (kubectl.ResourcePrinter, error) {
+		if mapping != nil && options != nil {
+			options.Kind = mapping.Resource
+			if alias, ok := resourceShortFormFor(mapping.Resource); ok {
+				options.Kind = alias
+			}
+		}
+		return describe.NewHumanReadablePrinter(options), nil
 	}
 	kCanBeExposed := w.Factory.CanBeExposed
 	w.CanBeExposed = func(kind unversioned.GroupKind) error {
