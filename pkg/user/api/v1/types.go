@@ -76,6 +76,10 @@ type UserIdentityMapping struct {
 	User kapi.ObjectReference `json:"user,omitempty" protobuf:"bytes,3,opt,name=user"`
 }
 
+// OptionalNames is an array that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+type OptionalNames []string
+
 // Group represents a referenceable set of Users
 type Group struct {
 	unversioned.TypeMeta `json:",inline"`
@@ -83,7 +87,7 @@ type Group struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Users is the list of users in this group.
-	Users []string `json:"users" protobuf:"bytes,2,rep,name=users"`
+	Users OptionalNames `json:"users" protobuf:"bytes,2,rep,name=users"`
 }
 
 // GroupList is a collection of Groups
