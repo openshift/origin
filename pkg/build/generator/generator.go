@@ -218,9 +218,8 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	if err != nil {
 		return nil, err
 	}
-
 	if buildutil.IsPaused(bc) {
-		return nil, errors.NewInternalError(&GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)})
+		return nil, errors.NewBadRequest(fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name))
 	}
 
 	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {
@@ -233,6 +232,9 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 
 	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision, request.Binary)
 	if err != nil {
+		if _, ok := err.(errors.APIStatus); ok {
+			return nil, err
+		}
 		return nil, errors.NewInternalError(err)
 	}
 
@@ -333,7 +335,6 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
-
 		if buildutil.IsPaused(buildConfig) {
 			return nil, errors.NewInternalError(&GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", buildConfig.Namespace, buildConfig.Name)})
 		}
@@ -366,7 +367,6 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 		return nil, errors.NewConflict(buildapi.Resource("build"), build.Namespace, fmt.Errorf("Build.Namespace does not match the provided context"))
 	}
 	kapi.FillObjectMetaSystemFields(ctx, &build.ObjectMeta)
-
 	err := g.Client.CreateBuild(ctx, build)
 	if err != nil {
 		return nil, err
@@ -416,13 +416,15 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 			},
 		},
 	}
-
 	if binary != nil {
 		build.Spec.Source.Git = nil
 		build.Spec.Source.Binary = binary
 		if build.Spec.Source.Dockerfile != nil && binary.AsFile == "Dockerfile" {
 			build.Spec.Source.Dockerfile = nil
 		}
+	} else {
+		// must explicitly set this because we copied the source values from the buildconfig.
+		build.Spec.Source.Binary = nil
 	}
 
 	build.Name = getNextBuildName(bc)
@@ -698,6 +700,8 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 			Config: buildCopy.Status.Config,
 		},
 	}
+	// TODO remove/update this when we support cloning binary builds
+	newBuild.Spec.Source.Binary = nil
 	if newBuild.Annotations == nil {
 		newBuild.Annotations = make(map[string]string)
 	}

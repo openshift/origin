@@ -38,6 +38,16 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 		return append(templateErrors, fieldError)
 	}
 
+	// Place parameters into a map for efficient lookup
+	paramMap := make(map[string]api.Parameter)
+	for _, param := range template.Parameters {
+		paramMap[param.Name] = param
+	}
+
+	// Perform parameter substitution on the template's user message. This can be used to
+	// instruct a user on next steps for the template.
+	template.Message = p.EvaluateParameterSubstitution(paramMap, template.Message)
+
 	itemPath := field.NewPath("item")
 	for i, item := range template.Objects {
 		idxPath := itemPath.Index(i)
@@ -51,7 +61,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 			item = decodedObj
 		}
 
-		newItem, err := p.SubstituteParameters(template.Parameters, item)
+		newItem, err := p.SubstituteParameters(paramMap, item)
 		if err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("parameters"), template.Parameters, err.Error()))
 		}
@@ -114,30 +124,29 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 	return nil
 }
 
+// EvaluateParameterSubstitution replaces escaped parameters in a string with values from the
+// provided map.
+func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Parameter, in string) string {
+	for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
+		if len(match) > 1 {
+			if paramValue, found := params[match[1]]; found {
+				in = strings.Replace(in, match[0], paramValue.Value, 1)
+			}
+		}
+	}
+	return in
+}
+
 // SubstituteParameters loops over all values defined in structured
 // and unstructured types that are children of item.
 //
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
 //
-func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
-	// Make searching for given parameter name/value more effective
-	paramMap := make(map[string]string, len(params))
-	for _, param := range params {
-		paramMap[param.Name] = param.Value
-	}
-
+func (p *Processor) SubstituteParameters(params map[string]api.Parameter, item runtime.Object) (runtime.Object, error) {
 	stringreplace.VisitObjectStrings(item, func(in string) string {
-		for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
-			if len(match) > 1 {
-				if paramValue, found := paramMap[match[1]]; found {
-					in = strings.Replace(in, match[0], paramValue, 1)
-				}
-			}
-		}
-		return in
+		return p.EvaluateParameterSubstitution(params, in)
 	})
-
 	return item, nil
 }
 

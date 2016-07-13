@@ -3593,7 +3593,13 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "php:5.6"
-            }
+            },
+            "env":  [
+              {
+                  "name": "COMPOSER_MIRROR",
+                  "value": "${COMPOSER_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -3885,24 +3891,28 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
       "name": "NAMESPACE",
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the CakePHP container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "MEMORY_MYSQL_LIMIT",
       "displayName": "Memory Limit (MySQL)",
       "description": "Maximum amount of memory the MySQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/cakephp-ex.git"
     },
     {
@@ -3931,22 +3941,26 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "mysql"
     },
     {
       "name": "DATABASE_ENGINE",
       "displayName": "Database Engine",
       "description": "Database engine: postgresql, mysql or sqlite (default).",
+      "required": true,
       "value": "mysql"
     },
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "default"
     },
     {
       "name": "DATABASE_USER",
       "displayName": "Database User",
+      "required": true,
       "value": "cakephp"
     },
     {
@@ -3981,6 +3995,12 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
       "displayName": "OPcache Revalidation Frequency",
       "description": "How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.",
       "value": "2"
+    },
+    {
+      "name": "COMPOSER_MIRROR",
+      "displayName": "Custom Composer Mirror URL",
+      "description": "The custom Composer mirror URL",
+      "value": ""
     }
   ]
 }
@@ -4087,7 +4107,13 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "perl:5.20"
-            }
+            },
+            "env":  [
+              {
+                  "name": "CPAN_MIRROR",
+                  "value": "${CPAN_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -4353,24 +4379,28 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
       "name": "NAMESPACE",
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the Perl Dancer container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "MEMORY_MYSQL_LIMIT",
       "displayName": "Memory Limit (MySQL)",
       "description": "Maximum amount of memory the MySQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/dancer-ex.git"
     },
     {
@@ -4411,6 +4441,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "database"
     },
     {
@@ -4428,6 +4459,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "sampledb"
     },
     {
@@ -4442,6 +4474,12 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
       "description": "Your secret key for verifying the integrity of signed cookies.",
       "generate": "expression",
       "from": "[a-z0-9]{127}"
+    },
+    {
+      "name": "CPAN_MIRROR",
+      "displayName": "Custom CPAN Mirror URL",
+      "description": "The custom CPAN mirror URL",
+      "value": ""
     }
   ]
 }
@@ -4548,7 +4586,13 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "python:3.4"
-            }
+            },
+            "env": [
+              {
+                  "name": "PIP_INDEX_URL",
+                  "value": "${PIP_INDEX_URL}"
+              }
+            ]
           }
         },
         "output": {
@@ -4823,24 +4867,28 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
     {
       "name": "NAMESPACE",
       "displayName": "Namespace",
+      "required": true,
       "description": "The OpenShift Namespace where the ImageStream resides.",
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
+      "required": true,
       "description": "Maximum amount of memory the Django container can use.",
       "value": "512Mi"
     },
     {
       "name": "MEMORY_POSTGRESQL_LIMIT",
       "displayName": "Memory Limit (PostgreSQL)",
+      "required": true,
       "description": "Maximum amount of memory the PostgreSQL container can use.",
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
+      "required": true,
       "description": "The URL of the repository with your application source code.",
       "value": "https://github.com/openshift/django-ex.git"
     },
@@ -4870,22 +4918,26 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "postgresql"
     },
     {
       "name": "DATABASE_ENGINE",
       "displayName": "Database Engine",
+      "required": true,
       "description": "Database engine: postgresql, mysql or sqlite (default).",
       "value": "postgresql"
     },
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "default"
     },
     {
       "name": "DATABASE_USER",
       "displayName": "Database Username",
+      "required": true,
       "value": "django"
     },
     {
@@ -4905,6 +4957,12 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
       "description": "Set this to a long random string.",
       "generate": "expression",
       "from": "[\\w]{50}"
+    },
+    {
+      "name": "PIP_INDEX_URL",
+      "displayName": "Custom PyPi Index URL",
+      "description": "The custom PyPi index URL",
+      "value": ""
     }
   ]
 }
@@ -5011,7 +5069,13 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "nodejs:0.10"
-            }
+            },
+            "env":  [
+              {
+                  "name": "NPM_MIRROR",
+                  "value": "${NPM_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -5291,24 +5355,28 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
       "name": "NAMESPACE",
       "displayName": "Namespace",
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the Node.js container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "MEMORY_MONGODB_LIMIT",
       "displayName": "Memory Limit (MongoDB)",
       "description": "Maximum amount of memory the MongoDB container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/nodejs-ex.git"
     },
     {
@@ -5344,6 +5412,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
     {
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
+      "required": true,
       "value": "mongodb"
     },
     {
@@ -5363,6 +5432,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
     {
       "name": "DATABASE_NAME",
       "displayName": "Database Name",
+      "required": true,
       "value": "sampledb"
     },
     {
@@ -5371,6 +5441,12 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
       "description": "Password for the database admin user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}"
+    },
+    {
+      "name": "NPM_MIRROR",
+      "displayName": "Custom NPM Mirror URL",
+      "description": "The custom NPM mirror URL",
+      "value": ""
     }
   ]
 }
@@ -5477,7 +5553,13 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
               "name": "ruby:2.2"
-            }
+            },
+            "env": [
+              {
+                  "name": "RUBYGEM_MIRROR",
+                  "value": "${RUBYGEM_MIRROR}"
+              }
+            ]
           }
         },
         "output": {
@@ -5787,24 +5869,28 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
     {
       "name": "NAMESPACE",
       "displayName": "Namespace",
+      "required": true,
       "description": "The OpenShift Namespace where the ImageStream resides.",
       "value": "openshift"
     },
     {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
+      "required": true,
       "description": "Maximum amount of memory the Rails container can use.",
       "value": "512Mi"
     },
     {
       "name": "MEMORY_POSTGRESQL_LIMIT",
       "displayName": "Memory Limit (PostgreSQL)",
+      "required": true,
       "description": "Maximum amount of memory the PostgreSQL container can use.",
       "value": "512Mi"
     },
     {
       "name": "SOURCE_REPOSITORY_URL",
       "displayName": "Git Repository URL",
+      "required": true,
       "description": "The URL of the repository with your application source code.",
       "value": "https://github.com/openshift/rails-ex.git"
     },
@@ -5841,23 +5927,27 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
     {
       "name": "APPLICATION_USER",
       "displayName": "Application Username",
+      "required": true,
       "description": "The application user that is used within the sample application to authorize access on pages.",
       "value": "openshift"
     },
     {
       "name": "APPLICATION_PASSWORD",
       "displayName": "Application Password",
+      "required": true,
       "description": "The application password that is used within the sample application to authorize access on pages.",
       "value": "secret"
     },
     {
       "name": "RAILS_ENV",
       "displayName": "Rails Environment",
+      "required": true,
       "description": "Environment under which the sample application will run. Could be set to production, development or test.",
       "value": "production"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
+      "required": true,
       "displayName": "Database Service Name",
       "value": "postgresql"
     },
@@ -5875,6 +5965,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
     },
     {
       "name": "DATABASE_NAME",
+      "required": true,
       "displayName": "Database Name",
       "value": "root"
     },
@@ -5887,6 +5978,12 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
       "name": "POSTGRESQL_SHARED_BUFFERS",
       "displayName": "Shared Buffer Amount",
       "value": "12MB"
+    },
+    {
+      "name": "RUBYGEM_MIRROR",
+      "displayName": "Custom RubyGems Mirror URL",
+      "description": "The custom RubyGems mirror URL",
+      "value": ""
     }
   ]
 }

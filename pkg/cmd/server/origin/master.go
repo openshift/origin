@@ -64,6 +64,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimport"
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -536,7 +537,15 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	clientRegistry := clientregistry.NewRegistry(clientStorage)
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient(), c.KubeClient(), clientRegistry)
+
+	// If OAuth is disabled, set the strategy to Deny
+	saAccountGrantMethod := oauthapi.GrantHandlerDeny
+	if c.Options.OAuthConfig != nil {
+		// Otherwise, take the value provided in master-config.yaml
+		saAccountGrantMethod = oauthapi.GrantHandlerType(c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod)
+	}
+
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient(), c.KubeClient(), clientRegistry, saAccountGrantMethod)
 	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	checkStorageErr(err)
 	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)

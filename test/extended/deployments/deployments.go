@@ -42,7 +42,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 				e2e.Logf("DC: %#v", dc)
 				e2e.Logf("  RCs: %#v", rcs)
 				p, _ := deploymentPods(pods)
-				e2e.Logf("  Deployers: %#v", p)
+				for k, v := range p {
+					for _, pod := range v {
+						e2e.Logf("  Deployer: %s %#v", k, pod)
+					}
+				}
 			}
 		})
 

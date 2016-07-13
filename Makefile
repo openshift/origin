@@ -38,7 +38,6 @@ all build:
 #   make build-tests
 build-tests:
 	hack/build-go.sh test/extended/extended.test
-	hack/build-go.sh test/extended/networking/extended.test
 	hack/build-go.sh test/integration/integration.test -tags='integration docker'
 .PHONY: build-tests
 

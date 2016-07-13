@@ -20974,7 +20974,6 @@
      },
      "hostsubnetlength": {
       "type": "integer",
-      "format": "int32",
       "description": "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"
      },
      "serviceNetwork": {
@@ -24290,7 +24289,6 @@
      },
      "netid": {
       "type": "integer",
-      "format": "integer",
       "description": "NetID is the network identifier of the network namespace assigned to each overlay network packet"
      }
     }
@@ -24585,6 +24583,10 @@
        "type": "string"
       },
       "description": "RedirectURIs is the valid redirection URIs associated with a client"
+     },
+     "grantMethod": {
+      "type": "string",
+      "description": "GrantMethod determines how to handle grants for this client. If no method is provided, the cluster default grant handling method will be used. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients"
      },
      "scopeRestrictions": {
       "type": "array",
@@ -24900,23 +24902,27 @@
       "$ref": "v1.ObjectMeta",
       "description": "Standard object's metadata."
      },
+     "message": {
+      "type": "string",
+      "description": "message is an optional instructional message that will be displayed when this template is instantiated. This field should inform the user how to utilize the newly created resources. Parameter substitution will be performed on the message before being displayed so that generated credentials and other parameters can be included in the output."
+     },
      "objects": {
       "type": "array",
       "items": {
        "$ref": "runtime.RawExtension"
       },
-      "description": "Objects is an array of objects to include in this template. Required."
+      "description": "objects is an array of resources to include in this template."
      },
      "parameters": {
       "type": "array",
       "items": {
        "$ref": "v1.Parameter"
       },
-      "description": "Optional: Parameters is an array of Parameters used during the Template to Config transformation."
+      "description": "parameters is an optional array of Parameters used during the Template to Config transformation."
      },
      "labels": {
       "type": "object",
-      "description": "Labels is a set of labels that are applied to every object during the Template to Config transformation. Optional"
+      "description": "labels is a optional set of labels that are applied to every object during the Template to Config transformation."
      }
     }
    },

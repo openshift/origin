@@ -7,26 +7,26 @@ import (
 
 type SubnetAllocator struct {
 	network    *net.IPNet
-	hostBits   uint
-	leftShift  uint
+	hostBits   uint32
+	leftShift  uint32
 	leftMask   uint32
-	rightShift uint
+	rightShift uint32
 	rightMask  uint32
 	next       uint32
 	allocMap   map[string]bool
 }
 
-func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetAllocator, error) {
+func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*SubnetAllocator, error) {
 	_, netIP, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse network address: %q", network)
 	}
 
 	netMaskSize, _ := netIP.Mask.Size()
-	if hostBits > (32 - uint(netMaskSize)) {
+	if hostBits > (32 - uint32(netMaskSize)) {
 		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available.")
 	}
-	subnetBits := 32 - uint(netMaskSize) - hostBits
+	subnetBits := 32 - uint32(netMaskSize) - hostBits
 
 	// In the simple case, the subnet part of the 32-bit IP address is just the subnet
 	// number shifted hostBits to the left. However, if hostBits isn't a multiple of
@@ -41,11 +41,11 @@ func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetA
 	// 10.1.255.0/26 (just like we would with /24s in the hostBits=8 case), and only
 	// if we use up all of those subnets do we start allocating 10.1.0.64/26,
 	// 10.1.1.64/26, etc.
-	var leftShift, rightShift uint
+	var leftShift, rightShift uint32
 	var leftMask, rightMask uint32
 	if hostBits%8 != 0 && ((hostBits-1)/8 != (hostBits+subnetBits-1)/8) {
 		leftShift = 8 - (hostBits % 8)
-		leftMask = uint32(1)<<(32-uint(netMaskSize)) - 1
+		leftMask = uint32(1)<<(32-uint32(netMaskSize)) - 1
 		rightShift = subnetBits - leftShift
 		rightMask = (uint32(1)<<leftShift - 1) << hostBits
 	} else {
@@ -83,11 +83,11 @@ func NewSubnetAllocator(network string, hostBits uint, inUse []string) (*SubnetA
 func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 	var (
 		numSubnets    uint32
-		numSubnetBits uint
+		numSubnetBits uint32
 	)
 	baseipu := IPToUint32(sna.network.IP)
 	netMaskSize, _ := sna.network.Mask.Size()
-	numSubnetBits = 32 - uint(netMaskSize) - sna.hostBits
+	numSubnetBits = 32 - uint32(netMaskSize) - sna.hostBits
 	numSubnets = 1 << numSubnetBits
 
 	var i uint32

@@ -29,11 +29,11 @@ type OsdnNode struct {
 	podNetworkReady    chan struct{}
 	vnids              *vnidMap
 	iptablesSyncPeriod time.Duration
-	mtu                uint
+	mtu                uint32
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint) (api.OsdnNodePlugin, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (api.OsdnNodePlugin, error) {
 	if !IsOpenShiftNetworkPlugin(pluginName) {
 		return nil, nil
 	}

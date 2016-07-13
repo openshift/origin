@@ -23,7 +23,7 @@ import (
 type NetworkInfo struct {
 	ClusterNetwork   *net.IPNet
 	ServiceNetwork   *net.IPNet
-	HostSubnetLength int
+	HostSubnetLength uint32
 	PluginName       string
 }
 
@@ -167,7 +167,7 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	return err
 }
 
-func validateClusterNetwork(network string, hostSubnetLength int, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
+func validateClusterNetwork(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
@@ -220,7 +220,7 @@ func (registry *Registry) GetNetNamespace(name string) (*osapi.NetNamespace, err
 	return registry.oClient.NetNamespaces().Get(name)
 }
 
-func (registry *Registry) WriteNetNamespace(name string, id uint) error {
+func (registry *Registry) WriteNetNamespace(name string, id uint32) error {
 	netns := &osapi.NetNamespace{
 		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},

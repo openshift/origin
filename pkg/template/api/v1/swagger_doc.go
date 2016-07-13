@@ -23,9 +23,10 @@ func (Parameter) SwaggerDoc() map[string]string {
 var map_Template = map[string]string{
 	"":           "Template contains the inputs needed to produce a Config.",
 	"metadata":   "Standard object's metadata.",
-	"objects":    "Objects is an array of objects to include in this template. Required.",
-	"parameters": "Optional: Parameters is an array of Parameters used during the Template to Config transformation.",
-	"labels":     "Labels is a set of labels that are applied to every object during the Template to Config transformation. Optional",
+	"message":    "message is an optional instructional message that will be displayed when this template is instantiated. This field should inform the user how to utilize the newly created resources. Parameter substitution will be performed on the message before being displayed so that generated credentials and other parameters can be included in the output.",
+	"objects":    "objects is an array of resources to include in this template.",
+	"parameters": "parameters is an optional array of Parameters used during the Template to Config transformation.",
+	"labels":     "labels is a optional set of labels that are applied to every object during the Template to Config transformation.",
 }
 
 func (Template) SwaggerDoc() map[string]string {

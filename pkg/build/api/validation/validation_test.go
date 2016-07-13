@@ -46,7 +46,7 @@ func TestBuildValidationSuccess(t *testing.T) {
 
 func checkDockerStrategyEmptySourceError(result field.ErrorList) bool {
 	for _, err := range result {
-		if err.Type == field.ErrorTypeInvalid && strings.Contains(err.Field, "spec.source") && strings.Contains(err.Detail, "must provide a value for at least one of source, binary, images, or dockerfile") {
+		if err.Type == field.ErrorTypeInvalid && strings.Contains(err.Field, "spec.source") && strings.Contains(err.Detail, "must provide a value for at least one source input(git, binary, dockerfile, images).") {
 			return true
 		}
 	}
@@ -1632,7 +1632,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 17
+		// 18
 		// dockerfilePath can't equal ..
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
@@ -1656,7 +1656,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 18
+		// 19
 		{
 			string(field.ErrorTypeInvalid) + "postCommit",
 			buildapi.CommonSpec{
@@ -1674,7 +1674,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 19
+		// 20
 		{
 			string(field.ErrorTypeInvalid) + "source.git",
 			buildapi.CommonSpec{
@@ -1683,7 +1683,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 20
+		// 21
 		{
 			string(field.ErrorTypeInvalid) + "source.git",
 			buildapi.CommonSpec{
@@ -1694,7 +1694,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 21
+		// 22
 		// jenkinsfilePath can't be an absolute path
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1711,7 +1711,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 22
+		// 23
 		// jenkinsfilePath can't start with ../
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1728,7 +1728,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 23
+		// 24
 		// jenkinsfilePath can't be a reference a path outside of the dir
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1745,7 +1745,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 24
+		// 25
 		// jenkinsfilePath can't be equal to ..
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1762,7 +1762,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 25
+		// 26
 		// path must be shorter than 100k
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",

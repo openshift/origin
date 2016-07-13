@@ -53,6 +53,43 @@
       "status": {
         "lastVersion": 0
       }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-binary",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Binary",
+          "binary": {}
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
     }
   ]
 }

@@ -258,6 +258,7 @@ func autoConvert_v1_OAuthClient_To_api_OAuthClient(in *OAuthClient, out *oauth_a
 	out.AdditionalSecrets = in.AdditionalSecrets
 	out.RespondWithChallenges = in.RespondWithChallenges
 	out.RedirectURIs = in.RedirectURIs
+	out.GrantMethod = oauth_api.GrantHandlerType(in.GrantMethod)
 	if in.ScopeRestrictions != nil {
 		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
 		*out = make([]oauth_api.ScopeRestriction, len(*in))
@@ -287,6 +288,7 @@ func autoConvert_api_OAuthClient_To_v1_OAuthClient(in *oauth_api.OAuthClient, ou
 	out.AdditionalSecrets = in.AdditionalSecrets
 	out.RespondWithChallenges = in.RespondWithChallenges
 	out.RedirectURIs = in.RedirectURIs
+	out.GrantMethod = GrantHandlerType(in.GrantMethod)
 	if in.ScopeRestrictions != nil {
 		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
 		*out = make([]ScopeRestriction, len(*in))

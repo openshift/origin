@@ -160,6 +160,7 @@ func DeepCopy_v1_OAuthClient(in OAuthClient, out *OAuthClient, c *conversion.Clo
 	} else {
 		out.RedirectURIs = nil
 	}
+	out.GrantMethod = in.GrantMethod
 	if in.ScopeRestrictions != nil {
 		in, out := in.ScopeRestrictions, &out.ScopeRestrictions
 		*out = make([]ScopeRestriction, len(in))

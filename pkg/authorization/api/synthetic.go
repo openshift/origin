@@ -10,4 +10,6 @@ const (
 	NodeMetricsResource = "nodes/metrics"
 	NodeStatsResource   = "nodes/stats"
 	NodeLogResource     = "nodes/log"
+
+	RestrictedEndpointsResource = "endpoints/restricted"
 )

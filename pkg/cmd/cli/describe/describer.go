@@ -870,6 +870,15 @@ type TemplateDescriber struct {
 	kctl.ObjectDescriber
 }
 
+// DescribeMessage prints the message that will be parameter substituted and displayed to the
+// user when this template is processed.
+func (d *TemplateDescriber) DescribeMessage(msg string, out *tabwriter.Writer) {
+	if len(msg) == 0 {
+		msg = "<none>"
+	}
+	formatString(out, "Message", msg)
+}
+
 // DescribeParameters prints out information about the parameters of a template
 func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, out *tabwriter.Writer) {
 	formatString(out, "Parameters", " ")
@@ -953,6 +962,8 @@ func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (st
 		d.DescribeParameters(template.Parameters, out)
 		out.Write([]byte("\n"))
 		formatString(out, "Object Labels", formatLabels(template.ObjectLabels))
+		out.Write([]byte("\n"))
+		d.DescribeMessage(template.Message, out)
 		out.Write([]byte("\n"))
 		out.Flush()
 		d.describeObjects(template.Objects, out)
