@@ -28,7 +28,7 @@ Create a cluster resource quota that controls certain resources.
 Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.`
 
 	clusterQuotaExample = `  # Create an cluster resource quota limited to 10 pods
-  %[1]s limit-bob --project-selector=openshift.io/requester=user-bob --hard=pods=10`
+  %[1]s limit-bob --project-label-selector=openshift.io/requester=user-bob --hard=pods=10`
 )
 
 type CreateClusterQuotaOptions struct {
@@ -46,7 +46,7 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 	o := &CreateClusterQuotaOptions{Out: out}
 
 	cmd := &cobra.Command{
-		Use:     name + " NAME --project-selector=key=value [--hard=RESOURCE=QUANTITY]...",
+		Use:     name + " NAME --project-label-selector=key=value [--hard=RESOURCE=QUANTITY]...",
 		Short:   "Create cluster resource quota resource.",
 		Long:    clusterQuotaLong,
 		Example: fmt.Sprintf(clusterQuotaExample, fullName),
@@ -58,8 +58,8 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 		Aliases: []string{"clusterquota"},
 	}
 
-	cmd.Flags().String("project-selector", "", "The project selector for the cluster resource quota")
-	cmd.MarkFlagRequired("project-selector")
+	cmd.Flags().String("project-label-selector", "", "The project label selector for the cluster resource quota")
+	cmd.Flags().String("project-annotation-selector", "", "The project annotation selector for the cluster resource quota")
 	cmd.Flags().StringSlice("hard", []string{}, "The resource to constrain: RESOURCE=QUANTITY (pods=10)")
 	cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
@@ -70,15 +70,31 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 		return fmt.Errorf("NAME is required: %v", args)
 	}
 
-	selector, err := unversioned.ParseToLabelSelector(cmdutil.GetFlagString(cmd, "project-selector"))
+	var labelSelector *unversioned.LabelSelector
+	labelSelectorString := cmdutil.GetFlagString(cmd, "project-label-selector")
+	if len(labelSelectorString) > 0 {
+		var err error
+		labelSelector, err = unversioned.ParseToLabelSelector(labelSelectorString)
+		if err != nil {
+			return err
+		}
+	}
+
+	annotationSelector, err := unversioned.ParseToLabelSelector(cmdutil.GetFlagString(cmd, "project-annotation-selector"))
 	if err != nil {
 		return err
+	}
+	if len(annotationSelector.MatchExpressions) > 0 {
+		return fmt.Errorf("only simple equality selection predicates are allowed for annotation selectors")
 	}
 
 	o.ClusterQuota = &quotaapi.ClusterResourceQuota{
 		ObjectMeta: kapi.ObjectMeta{Name: args[0]},
 		Spec: quotaapi.ClusterResourceQuotaSpec{
-			Selector: selector,
+			Selector: quotaapi.ClusterResourceQuotaSelector{
+				LabelSelector:      labelSelector,
+				AnnotationSelector: annotationSelector.MatchLabels,
+			},
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{},
 			},

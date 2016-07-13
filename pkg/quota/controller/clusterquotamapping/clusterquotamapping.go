@@ -8,11 +8,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
-	"k8s.io/kubernetes/pkg/labels"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -117,7 +115,7 @@ func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{})
 }
 
 func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourceQuota) error {
-	selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
+	matcherFunc, err := quotaapi.GetMatcher(quota.Spec.Selector)
 	if err != nil {
 		return err
 	}
@@ -132,14 +130,16 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 		// attempt to set the mapping. The quotas never collide with each other (same quota is never processed twice in parallel)
 		// so this means that the project we have is out of date, pull a more recent copy from the cache and retest
 		for {
-			matches := namespace != nil
-			if namespace != nil {
-				matches = selector.Matches(labels.Set(namespace.Labels))
+			matches, err := matcherFunc(namespace)
+			if err != nil {
+				utilruntime.HandleError(err)
+				break
 			}
 			success, quotaMatches, _ := c.clusterQuotaMapper.setMapping(quota, namespace, !matches)
 			if success {
 				break
 			}
+
 			// if the quota is mismatched, then someone has updated the quota or has deleted the entry entirely.
 			// if we've been updated, we'll be rekicked, if we've been deleted we should stop.  Either way, this
 			// execution is finished
@@ -172,7 +172,7 @@ func (c *ClusterQuotaMappingController) syncNamespace(namespace *kapi.Namespace)
 		quota := allQuotas[i]
 
 		for {
-			selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
+			matcherFunc, err := quotaapi.GetMatcher(quota.Spec.Selector)
 			if err != nil {
 				utilruntime.HandleError(err)
 				break
@@ -180,14 +180,16 @@ func (c *ClusterQuotaMappingController) syncNamespace(namespace *kapi.Namespace)
 
 			// attempt to set the mapping. The namespaces never collide with each other (same namespace is never processed twice in parallel)
 			// so this means that the quota we have is out of date, pull a more recent copy from the cache and retest
-			matches := namespace != nil
-			if namespace != nil {
-				matches = selector.Matches(labels.Set(namespace.Labels))
+			matches, err := matcherFunc(namespace)
+			if err != nil {
+				utilruntime.HandleError(err)
+				break
 			}
 			success, _, namespaceMatches := c.clusterQuotaMapper.setMapping(quota, namespace, !matches)
 			if success {
 				break
 			}
+
 			// if the namespace is mismatched, then someone has updated the namespace or has deleted the entry entirely.
 			// if we've been updated, we'll be rekicked, if we've been deleted we should stop.  Either way, this
 			// execution is finished
