@@ -103,17 +103,8 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %v %#v %#v", err, isi, isi.Status.Import)
 	}
 
-	if isi.Status.Images[0].Image == nil || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
+	if isi.Status.Images[0].Image == nil || isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 || len(isi.Status.Images[0].Image.DockerImageLayers) == 0 {
 		t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
-	}
-	if isi.Status.Images[0].Image.DockerImageMetadata.Size == 0 {
-		image, err := c.Images().Get(isi.Status.Images[0].Image.Name)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !strings.Contains(image.DockerImageManifest, `"schemaVersion": 1,`) {
-			t.Fatalf("image has zero size, but schema version was not 1: %#v\n%s", isi.Status.Images[0].Image, image.DockerImageManifest)
-		}
 	}
 
 	stream := isi.Status.Import
@@ -190,6 +181,139 @@ func mockRegistryHandler(t *testing.T, requireAuth bool, count *int) http.Handle
 			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
 		}
 	})
+}
+
+func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
+	imageDigest := "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d"
+	descriptors := map[string]int64{
+		"sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4": 3000,
+		"sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa": 200,
+		"sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4": 10,
+	}
+
+	imageSize := int64(0)
+	for _, size := range descriptors {
+		imageSize += size
+	}
+
+	testutil.RequireEtcd(t)
+
+	// start regular HTTP servers
+	requireAuth := false
+	count := 0
+	countStat := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count++
+		t.Logf("%d got %s %s", count, r.Method, r.URL.Path)
+
+		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
+		if requireAuth {
+			if len(r.Header.Get("Authorization")) == 0 {
+				w.Header().Set("WWW-Authenticate", "BASIC")
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		}
+
+		switch r.URL.Path {
+		case "/v2/":
+			w.Write([]byte(`{}`))
+		case "/v2/test/image/tags/list":
+			w.Write([]byte("{\"name\": \"test/image\", \"tags\": [\"testtag\"]}"))
+		case "/v2/test/image/manifests/testtag", "/v2/test/image/manifests/" + imageDigest:
+			if r.Method == "HEAD" {
+				w.Header().Set("Content-Length", fmt.Sprintf("%d", len(convertedManifest)))
+				w.Header().Set("Docker-Content-Digest", imageDigest)
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.Write([]byte(convertedManifest))
+			}
+		default:
+			if strings.HasPrefix(r.URL.Path, "/v2/test/image/blobs/") {
+				for dgst, size := range descriptors {
+					if r.URL.Path != "/v2/test/image/blobs/"+dgst {
+						continue
+					}
+					if r.Method == "HEAD" {
+						w.Header().Set("Content-Length", fmt.Sprintf("%d", size))
+						w.Header().Set("Docker-Content-Digest", dgst)
+						w.WriteHeader(http.StatusOK)
+						countStat++
+						return
+					}
+				}
+			}
+			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
+		}
+	}))
+
+	url, _ := url.Parse(server.URL)
+
+	// start a master
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	imageStreams := c.ImageStreams(testutil.Namespace())
+
+	isi, err := imageStreams.Import(&api.ImageStreamImport{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test",
+		},
+		Spec: api.ImageStreamImportSpec{
+			Import: true,
+			Images: []api.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/test/image:testtag"},
+					To:           &kapi.LocalObjectReference{Name: "other"},
+					ImportPolicy: api.TagImportPolicy{Insecure: true},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(isi.Status.Images) != 1 {
+		t.Errorf("imported unexpected number of images (%d != 1)", len(isi.Status.Images))
+	}
+
+	for i, image := range isi.Status.Images {
+		if image.Status.Status != unversioned.StatusSuccess {
+			t.Errorf("unexpected status %d: %#v", i, image.Status)
+		}
+
+		if image.Image == nil {
+			t.Errorf("unexpected empty image %d", i)
+		}
+
+		// the image name is always the sha256, and size is calculated
+		if image.Image.Name != convertedDigest {
+			t.Errorf("unexpected image %d: %#v (expect %q)", i, image.Image.Name, convertedDigest)
+		}
+
+		// the image size is calculated
+		if image.Image.DockerImageMetadata.Size == 0 {
+			t.Errorf("unexpected image size %d: %#v", i, image.Image.DockerImageMetadata.Size)
+		}
+
+		if image.Image.DockerImageMetadata.Size != imageSize {
+			t.Errorf("unexpected image size %d: %#v (expect %d)", i, image.Image.DockerImageMetadata.Size, imageSize)
+		}
+	}
 }
 
 func TestImageStreamImportAuthenticated(t *testing.T) {
@@ -1002,3 +1126,68 @@ const phpManifest = `{
 }`
 
 const danglingDigest = `sha256:f374c0d9b59e6fdf9f8922d59e946b05fbeabaed70b0639d7b6b524f3299e87b`
+
+// This manifest obtained by conversion of manifest v2 -> v1.
+const convertedDigest = `sha256:2a3b2f1a74f4351d1faf7ca48ea7f0ca97fad0801053fcf16df8474af6b89229`
+const convertedManifest = `{
+   "schemaVersion": 1,
+   "name": "testrepo",
+   "tag": "testtag",
+   "architecture": "amd64",
+   "fsLayers": [
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      },
+      {
+         "blobSum": "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa"
+      },
+      {
+         "blobSum": "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
+      }
+   ],
+   "history": [
+      {
+         "v1Compatibility": "{\"architecture\":\"amd64\",\"config\":{\"AttachStderr\":false,\"AttachStdin\":false,\"AttachStdout\":false,\"Cmd\":[\"/bin/sh\",\"-c\",\"echo hi\"],\"Domainname\":\"\",\"Entrypoint\":null,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"derived=true\",\"asdf=true\"],\"Hostname\":\"23304fc829f9\",\"Image\":\"sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246\",\"Labels\":{},\"OnBuild\":[],\"OpenStdin\":false,\"StdinOnce\":false,\"Tty\":false,\"User\":\"\",\"Volumes\":null,\"WorkingDir\":\"\"},\"container\":\"e91032eb0403a61bfe085ff5a5a48e3659e5a6deae9f4d678daa2ae399d5a001\",\"container_config\":{\"AttachStderr\":false,\"AttachStdin\":false,\"AttachStdout\":false,\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) CMD [\\\"/bin/sh\\\" \\\"-c\\\" \\\"echo hi\\\"]\"],\"Domainname\":\"\",\"Entrypoint\":null,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"derived=true\",\"asdf=true\"],\"Hostname\":\"23304fc829f9\",\"Image\":\"sha256:4ab15c48b859c2920dd5224f92aabcd39a52794c5b3cf088fb3bbb438756c246\",\"Labels\":{},\"OnBuild\":[],\"OpenStdin\":false,\"StdinOnce\":false,\"Tty\":false,\"User\":\"\",\"Volumes\":null,\"WorkingDir\":\"\"},\"created\":\"2015-02-21T02:11:06.735146646Z\",\"docker_version\":\"1.9.0-dev\",\"id\":\"cbd3d33071cb117ec9a5fb93474252564645a524c235c2ccd4c7307fce2797a0\",\"os\":\"linux\",\"parent\":\"74cf9c92699240efdba1903c2748ef57105d5bedc588084c4e88f3bb1c3ef0b0\",\"throwaway\":true}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"74cf9c92699240efdba1903c2748ef57105d5bedc588084c4e88f3bb1c3ef0b0\",\"parent\":\"178be37afc7c49e951abd75525dbe0871b62ad49402f037164ee6314f754599d\",\"created\":\"2015-11-04T23:06:32.083868454Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c dd if=/dev/zero of=/file bs=1024 count=1024\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"178be37afc7c49e951abd75525dbe0871b62ad49402f037164ee6314f754599d\",\"parent\":\"b449305a55a283538c4574856a8b701f2a3d5ec08ef8aec47f385f20339a4866\",\"created\":\"2015-11-04T23:06:31.192097572Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) ENV asdf=true\"]},\"throwaway\":true}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"b449305a55a283538c4574856a8b701f2a3d5ec08ef8aec47f385f20339a4866\",\"parent\":\"9e3447ca24cb96d86ebd5960cb34d1299b07e0a0e03801d90b9969a2c187dd6e\",\"created\":\"2015-11-04T23:06:30.934316144Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) ENV derived=true\"]},\"throwaway\":true}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"9e3447ca24cb96d86ebd5960cb34d1299b07e0a0e03801d90b9969a2c187dd6e\",\"parent\":\"3690474eb5b4b26fdfbd89c6e159e8cc376ca76ef48032a30fa6aafd56337880\",\"created\":\"2015-10-31T22:22:55.613815829Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) CMD [\\\"sh\\\"]\"]}}"
+      },
+      {
+         "v1Compatibility": "{\"id\":\"3690474eb5b4b26fdfbd89c6e159e8cc376ca76ef48032a30fa6aafd56337880\",\"created\":\"2015-10-31T22:22:54.690851953Z\",\"container_config\":{\"Cmd\":[\"/bin/sh -c #(nop) ADD file:a3bc1e842b69636f9df5256c49c5374fb4eef1e281fe3f282c65fb853ee171c5 in /\"]}}"
+      }
+   ],
+   "signatures": [
+      {
+         "header": {
+            "jwk": {
+               "crv": "P-256",
+               "kid": "TIOP:AA2T:3IBK:KFN7:7QHD:K6WD:B4AI:VPLM:WLSQ:42FK:EVFE:MCZX",
+               "kty": "EC",
+               "x": "uCM0GNdYDKESot2imey-klB8XVBrK1hK4qFRkknbob0",
+               "y": "hQ6HVG870LIx3nC_H08lg6rWT6Qc90rPLuFAq1_p5ms"
+            },
+            "alg": "ES256"
+         },
+         "signature": "fNLStdEXg7gDEFMxUcMgVx1gojZKOsm1Vm5dVpCSqH3yMPlGyxrITigFJrQwXRXmQoLM30-3TDdFFZ59T94ZLA",
+         "protected": "eyJmb3JtYXRMZW5ndGgiOjM5OTYsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNi0wNy0wOFQwOTo1OTo0NloifQ"
+      }
+   ]
+}`
