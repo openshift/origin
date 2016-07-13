@@ -38,9 +38,9 @@ type Exporter interface {
 	Export(obj runtime.Object, exact bool) error
 }
 
-type defaultExporter struct{}
+type DefaultExporter struct{}
 
-func (e *defaultExporter) AddExportOptions(flags *pflag.FlagSet) {
+func (e *DefaultExporter) AddExportOptions(flags *pflag.FlagSet) {
 }
 
 func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
@@ -57,7 +57,7 @@ func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
 	}
 }
 
-func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
+func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 	if meta, err := kapi.ObjectMetaFor(obj); err == nil {
 		exportObjectMeta(meta, exact)
 	} else {
