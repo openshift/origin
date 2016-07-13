@@ -1,7 +1,6 @@
 package clientcmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -54,16 +53,9 @@ func negotiateVersion(client *kclient.Client, config *restclient.Config, request
 // serverAPIVersions fetches the server versions available from the groupless API at the given prefix
 func serverAPIVersions(c *kclient.Client, grouplessPrefix string) ([]unversioned.GroupVersion, error) {
 	// Get versions doc
-	body, err := c.Get().AbsPath(grouplessPrefix).Do().Raw()
-	if err != nil {
-		return []unversioned.GroupVersion{}, err
-	}
-
-	// Unmarshal
 	var v unversioned.APIVersions
-	err = json.Unmarshal(body, &v)
-	if err != nil {
-		return []unversioned.GroupVersion{}, fmt.Errorf("got '%s': %v", string(body), err)
+	if err := c.Get().AbsPath(grouplessPrefix).Do().Into(&v); err != nil {
+		return []unversioned.GroupVersion{}, err
 	}
 
 	// Convert to GroupVersion structs
