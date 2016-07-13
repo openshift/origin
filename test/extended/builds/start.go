@@ -90,26 +90,48 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should allow to change build log level", func() {
-			g.By("starting the build with --build-loglevel=1")
-			out, err := oc.Run("start-build").Args("sample-build", "--build-loglevel=1").Output()
+		g.It("BUILD_LOGLEVEL in buildconfig should create verbose output", func() {
+			g.By("starting the build with buildconfig strategy env BUILD_LOGLEVEL=5")
+			out, err := oc.Run("start-build").Args("sample-verbose-build").Output()
 			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-verbose-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				exutil.DumpBuildLogs("sample-build", oc)
+				exutil.DumpBuildLogs("sample-verbose-build", oc)
 			}
 
 			g.By("verifying the build output")
-			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-build").Output()
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-verbose-build").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("verifying the build output is verbose"))
+			o.Expect(buildLog).To(o.ContainSubstring("Creating a new S2I builder"))
+		})
+
+		g.It("BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel", func() {
+			g.By("starting the build with buildconfig strategy env BUILD_LOGLEVEL=5 but build-loglevel=1")
+			out, err := oc.Run("start-build").Args("sample-verbose-build", "--build-loglevel=1").Output()
+			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the build to complete")
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-verbose-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			if err != nil {
+				exutil.DumpBuildLogs("sample-verbose-build", oc)
+			}
+
+			g.By("verifying the build output")
+			buildLog, err := oc.Run("logs").Args("-f", "bc/sample-verbose-build").Output()
 			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("verifying the build output is not verbose"))
 			o.Expect(buildLog).NotTo(o.ContainSubstring("Creating a new S2I builder"))
 		})
+
 	})
 
 	g.Describe("binary builds", func() {

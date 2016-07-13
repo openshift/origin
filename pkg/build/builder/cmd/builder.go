@@ -215,7 +215,7 @@ func RunDockerBuild(out io.Writer) error {
 	return runBuild(out, dockerBuilder{})
 }
 
-// RunSTIBuild creates a STI builder and runs its build
-func RunSTIBuild(out io.Writer) error {
+// RunS2IBuild creates a S2I builder and runs its build
+func RunS2IBuild(out io.Writer) error {
 	return runBuild(out, s2iBuilder{})
 }

@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // SourceBuildStrategy creates STI(source to image) builds
@@ -43,7 +42,6 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: string(data)},
-		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)
@@ -82,7 +80,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &privileged,
 					},
-					Args: []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
+					Args: []string{},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
