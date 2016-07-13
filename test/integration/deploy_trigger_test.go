@@ -349,6 +349,159 @@ out:
 	}
 }
 
+// TestTriggers_MultipleICTs ensures that a deployment config with more than one ImageChange trigger
+// will start a new deployment iff all images are resolved.
+func TestTriggers_MultipleICTs(t *testing.T) {
+	testutil.RequireEtcd(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("error starting master: %v", err)
+	}
+	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("error getting cluster admin client: %v", err)
+	}
+	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("error getting cluster admin client config: %v", err)
+	}
+	openshiftProjectAdminClient, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	if err != nil {
+		t.Fatalf("error creating project: %v", err)
+	}
+
+	imageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: deploytest.ImageStreamName}}
+	secondImageStream := &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "sample"}}
+
+	config := deploytest.OkDeploymentConfig(0)
+	config.Namespace = testutil.Namespace()
+	firstTrigger := deploytest.OkImageChangeTrigger()
+	secondTrigger := deploytest.OkImageChangeTrigger()
+	secondTrigger.ImageChangeParams.ContainerNames = []string{"container2"}
+	secondTrigger.ImageChangeParams.From.Name = imageapi.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
+	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
+
+	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(kapi.ListOptions{})
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
+	}
+	defer configWatch.Stop()
+
+	if imageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+		t.Fatalf("Couldn't create imagestream %q: %v", imageStream.Name, err)
+	}
+	if secondImageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(secondImageStream); err != nil {
+		t.Fatalf("Couldn't create imagestream %q: %v", secondImageStream.Name, err)
+	}
+
+	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(kapi.ListOptions{})
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
+	}
+	defer imageWatch.Stop()
+
+	updatedImage := fmt.Sprintf("sha256:%s", deploytest.ImageID)
+	updatedPullSpec := fmt.Sprintf("registry:8080/%s/%s@%s", testutil.Namespace(), deploytest.ImageStreamName, updatedImage)
+
+	// Make a function which can create a new tag event for the image stream and
+	// then wait for the stream status to be asynchronously updated.
+	createTagEvent := func(name, tag, image, pullSpec string) {
+		mapping := &imageapi.ImageStreamMapping{
+			ObjectMeta: kapi.ObjectMeta{Name: name},
+			Tag:        tag,
+			Image: imageapi.Image{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: image,
+				},
+				DockerImageReference: pullSpec,
+			},
+		}
+		if err := openshiftProjectAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		t.Log("Waiting for image stream mapping to be reflected in the image stream status...")
+	statusLoop:
+		for {
+			select {
+			case event := <-imageWatch.ResultChan():
+				stream := event.Object.(*imageapi.ImageStream)
+				if stream.Name != name {
+					continue
+				}
+				if _, ok := stream.Status.Tags[tag]; ok {
+					t.Logf("imagestream %q now has status with tags: %#v", stream.Name, stream.Status.Tags)
+					break statusLoop
+				}
+				t.Logf("Still waiting for latest tag status on imagestream %q", stream.Name)
+			}
+		}
+	}
+
+	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+		t.Fatalf("Couldn't create deploymentconfig: %v", err)
+	}
+
+	timeout := time.After(30 * time.Second)
+
+	t.Log("Should not trigger a new deployment in response to the first imagestream update")
+	createTagEvent(imageStream.Name, imageapi.DefaultImageTag, updatedImage, updatedPullSpec)
+out:
+	for {
+		select {
+		case event := <-configWatch.ResultChan():
+			if event.Type != watchapi.Modified {
+				continue
+			}
+
+			newConfig := event.Object.(*deployapi.DeploymentConfig)
+			if newConfig.Status.LatestVersion > 0 {
+				t.Fatalf("unexpected latestVersion update: %#v", newConfig)
+			}
+			container := newConfig.Spec.Template.Spec.Containers[0]
+			if e, a := updatedPullSpec, container.Image; e == a {
+				break out
+			}
+
+		case <-timeout:
+			t.Fatalf("timed out waiting for the first image update to happen")
+		}
+	}
+
+	t.Log("Should trigger a new deployment in response to the second imagestream update")
+	updatedImage = "sampleImage"
+	updatedPullSpec = "samplePullSpec"
+	createTagEvent(secondImageStream.Name, imageapi.DefaultImageTag, updatedImage, updatedPullSpec)
+	for {
+	inner:
+		select {
+		case event := <-configWatch.ResultChan():
+			if event.Type != watchapi.Modified {
+				continue
+			}
+
+			newConfig := event.Object.(*deployapi.DeploymentConfig)
+			switch {
+			case newConfig.Status.LatestVersion == 0:
+				t.Logf("Wating for latestVersion to update to 1")
+				break inner
+			case newConfig.Status.LatestVersion > 1:
+				t.Fatalf("unexpected latestVersion %d for %#v", newConfig.Status.LatestVersion, newConfig)
+			}
+
+			container := newConfig.Spec.Template.Spec.Containers[1]
+			if e, a := updatedPullSpec, container.Image; e != a {
+				t.Fatalf("unexpected image for pod template container %q; expected %q, got %q", container.Name, e, a)
+			}
+
+			return
+
+		case <-timeout:
+			t.Fatalf("timed out waiting for the second image update to happen")
+		}
+	}
+}
+
 // TestTriggers_configChange ensures that a change in the template of a deployment config with
 // a config change trigger will start a new deployment.
 func TestTriggers_configChange(t *testing.T) {
