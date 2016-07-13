@@ -359,15 +359,18 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 		}
 		match := &ComponentMatch{}
 		ok, score := partialScorer(name, iRef.Name, true, 0.5, 1.0)
+		// If the name doesn't match, don't consider this image as a match
 		if !ok {
 			continue
 		}
+
+		// Add up the score, then get the average
 		match.Score += score
 		_, score = partialScorer(namespace, iRef.Namespace, false, 0.5, 1.0)
 		match.Score += score
 		_, score = partialScorer(registry, iRef.Registry, false, 0.5, 1.0)
 		match.Score += score
-		_, score = partialScorer(tag, iRef.Tag, false, 0.5, 1.0)
+		_, score = partialScorer(tag, iRef.Tag, true, 0.5, 1.0)
 		match.Score += score
 
 		if match.Score >= 4.0 {
