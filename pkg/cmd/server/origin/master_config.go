@@ -541,6 +541,13 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Request{}
+	// proxyTokenAuthenticators consume the PROXY_AUTHORIZATION header instead of the Authorization header
+	// these must be checked first so that if we're requesting a proxy URL and these are used we strip the proxy
+	// header and not the authorize header.
+	// if the user isn't actually calling a proxy API, we can still consume these.  They put it in the wrong field, but they
+	// knew the secret so its definitely that user.  We aren't allowing an escalation attack.
+	// Not removing an invalid oauth token isn't a leak either.
+	proxyTokenAuthenticators := []authenticator.Request{}
 
 	// ServiceAccount token
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
@@ -554,6 +561,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
 		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator, true))
+		proxyTokenAuthenticators = append(proxyTokenAuthenticators, bearertoken.NewForProxy(serviceAccountTokenAuthenticator, true))
 	}
 
 	// OAuth token
@@ -567,11 +575,18 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			// Allow token as access_token param for WebSockets
 			paramtoken.New("access_token", oauthTokenAuthenticator, true),
 		}
+		proxyOAuthTokenRequestAuthenticator := bearertoken.NewForProxy(oauthTokenAuthenticator, true)
 
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
 			group.NewGroupAdder(unionrequest.NewUnionAuthentication(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+		proxyTokenAuthenticators = append(proxyTokenAuthenticators,
+			group.NewGroupAdder(proxyOAuthTokenRequestAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+	}
+
+	if len(proxyTokenAuthenticators) > 0 {
+		authenticators = append(authenticators, unionrequest.NewUnionAuthentication(proxyTokenAuthenticators...))
 	}
 
 	if len(tokenAuthenticators) > 0 {
