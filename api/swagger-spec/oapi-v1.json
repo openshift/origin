@@ -20331,18 +20331,18 @@
     "properties": {
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled"
+      "description": "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled."
      },
      "pullSecret": {
       "$ref": "v1.LocalObjectReference",
-      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries"
+      "description": "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries."
      },
      "env": {
       "type": "array",
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container"
+      "description": "env contains additional environment variables you want to pass into a builder container."
      },
      "scripts": {
       "type": "string",
@@ -20355,6 +20355,21 @@
      "forcePull": {
       "type": "boolean",
       "description": "forcePull describes if the builder should pull the images from registry prior to building."
+     },
+     "runtimeImage": {
+      "$ref": "v1.ObjectReference",
+      "description": "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed."
+     },
+     "runtimeArtifacts": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ImageSourcePath"
+      },
+      "description": "runtimeArtifacts holds the mapping between the artifacts paths in the builder image and the paths in the runtime image where they should be copied."
+     },
+     "runtimePullSecret": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "runtimePullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker runtime images from private Docker registries."
      }
     }
    },

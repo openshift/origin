@@ -413,13 +413,16 @@ func (SecretSpec) SwaggerDoc() map[string]string {
 }
 
 var map_SourceBuildStrategy = map[string]string{
-	"":            "SourceBuildStrategy defines input parameters specific to an Source build.",
-	"from":        "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled",
-	"pullSecret":  "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries",
-	"env":         "env contains additional environment variables you want to pass into a builder container",
-	"scripts":     "scripts is the location of Source scripts",
-	"incremental": "incremental flag forces the Source build to do incremental builds if true.",
-	"forcePull":   "forcePull describes if the builder should pull the images from registry prior to building.",
+	"":                  "SourceBuildStrategy defines input parameters specific to an Source build.",
+	"from":              "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled.",
+	"pullSecret":        "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries.",
+	"env":               "env contains additional environment variables you want to pass into a builder container.",
+	"scripts":           "scripts is the location of Source scripts",
+	"incremental":       "incremental flag forces the Source build to do incremental builds if true.",
+	"forcePull":         "forcePull describes if the builder should pull the images from registry prior to building.",
+	"runtimeImage":      "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed.",
+	"runtimeArtifacts":  "runtimeArtifacts holds the mapping between the artifacts paths in the builder image and the paths in the runtime image where they should be copied.",
+	"runtimePullSecret": "runtimePullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker runtime images from private Docker registries.",
 }
 
 func (SourceBuildStrategy) SwaggerDoc() map[string]string {

@@ -459,16 +459,17 @@ type DockerBuildStrategy struct {
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
-	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage
+	// from which the docker image should be pulled.
 	From kapi.ObjectReference `json:"from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
-	// registries
+	// registries.
 	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty"`
 
-	// env contains additional environment variables you want to pass into a builder container
+	// env contains additional environment variables you want to pass into a
+	// builder container.
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
 	// scripts is the location of Source scripts
@@ -477,8 +478,23 @@ type SourceBuildStrategy struct {
 	// incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool `json:"incremental,omitempty"`
 
-	// forcePull describes if the builder should pull the images from registry prior to building.
+	// forcePull describes if the builder should pull the images from registry
+	// prior to building.
 	ForcePull bool `json:"forcePull,omitempty"`
+
+	// runtimeImage is an optional image that is used to run an application
+	// without unneeded dependencies installed.
+	RuntimeImage *kapi.ObjectReference `json:"runtimeImage,omitempty"`
+
+	// runtimeArtifacts holds the mapping between the artifacts paths in the
+	// builder image and the paths in the runtime image where they should be
+	// copied.
+	RuntimeArtifacts []ImageSourcePath `json:"runtimeArtifacts,omitempty"`
+
+	// runtimePullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker runtime images from private
+	// Docker registries.
+	RuntimePullSecret *kapi.LocalObjectReference `json:"runtimePullSecret,omitempty"`
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.

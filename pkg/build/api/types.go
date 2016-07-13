@@ -496,26 +496,42 @@ type DockerBuildStrategy struct {
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
-	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or
+	// ImageStreamImage from which the docker image should be pulled.
 	From kapi.ObjectReference
 
-	// PullSecret is the name of a Secret that would be used for setting up
-	// the authentication for pulling the Docker images from the private Docker
-	// registries
+	// PullSecret is the name of a Secret that would be used for setting up the
+	// authentication for pulling the Docker images from private Docker
+	// registries.
 	PullSecret *kapi.LocalObjectReference
 
-	// Env contains additional environment variables you want to pass into a builder container
+	// Env contains additional environment variables you want to pass into a
+	// builder container.
 	Env []kapi.EnvVar
 
-	// Scripts is the location of Source scripts
+	// Scripts is the location of Source scripts.
 	Scripts string
 
 	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool
 
-	// ForcePull describes if the builder should pull the images from registry prior to building.
+	// ForcePull describes if the builder should pull the images from registry
+	// prior to building.
 	ForcePull bool
+
+	// RuntimeImage is an optional image that is used to run an application
+	// without build-time dependencies installed.
+	RuntimeImage *kapi.ObjectReference
+
+	// RuntimeArtifacts holds the mapping between the artifacts paths in the
+	// builder image and the paths in the runtime image where they should be
+	// copied.
+	RuntimeArtifacts []ImageSourcePath
+
+	// RuntimePullSecret is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker runtime images from private
+	// Docker registries.
+	RuntimePullSecret *kapi.LocalObjectReference
 }
 
 // JenkinsPipelineStrategy holds parameters specific to a Jenkins Pipeline build.
