@@ -269,6 +269,13 @@ func validateEnforcedName(name string) error {
 	return nil
 }
 
+func validateStrategyName(name string) error {
+	if name != "docker" && name != "source" {
+		return fmt.Errorf("invalid strategy: %s. Must be 'docker' or 'source'.", name)
+	}
+	return nil
+}
+
 func validateOutputImageReference(ref string) error {
 	if _, err := imageapi.ParseDockerImageReference(ref); err != nil {
 		return fmt.Errorf("invalid output image reference: %s", ref)
@@ -593,6 +600,12 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	if len(c.Name) > 0 {
 		if err := validateEnforcedName(c.Name); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(c.Strategy) > 0 {
+		if err := validateStrategyName(c.Strategy); err != nil {
 			return nil, err
 		}
 	}
