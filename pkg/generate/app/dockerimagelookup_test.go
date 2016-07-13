@@ -4,23 +4,8 @@ import (
 	"testing"
 
 	docker "github.com/fsouza/go-dockerclient"
+	apptest "github.com/openshift/origin/pkg/generate/app/test"
 )
-
-type fakeDockerClient struct {
-	// list result
-	images []docker.APIImages
-	// inspect result
-	image      *docker.Image
-	listErr    error
-	inspectErr error
-}
-
-func (f fakeDockerClient) ListImages(opts docker.ListImagesOptions) ([]docker.APIImages, error) {
-	return f.images, f.listErr
-}
-func (f fakeDockerClient) InspectImage(name string) (*docker.Image, error) {
-	return f.image, f.inspectErr
-}
 
 type fakeRegistrySearcher struct {
 	matches ComponentMatches
@@ -53,9 +38,9 @@ func TestDockerImageLookup(t *testing.T) {
 
 	// found in remote registry, local docker client defined
 	searcher := DockerClientSearcher{
-		Client: &fakeDockerClient{
-			images: images,
-			image:  image,
+		Client: &apptest.FakeDockerClient{
+			Images: images,
+			Image:  image,
 		},
 		RegistrySearcher: fakeRegistrySearcher{
 			matches: matches,
@@ -88,9 +73,9 @@ func TestDockerImageLookup(t *testing.T) {
 
 	// found in local docker client
 	searcher = DockerClientSearcher{
-		Client: &fakeDockerClient{
-			images: images,
-			image:  image,
+		Client: &apptest.FakeDockerClient{
+			Images: images,
+			Image:  image,
 		},
 		RegistrySearcher: fakeRegistrySearcher{
 			matches: ComponentMatches{},
