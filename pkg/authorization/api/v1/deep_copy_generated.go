@@ -14,7 +14,7 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
-		DeepCopy_v1_AuthorizationAttributes,
+		DeepCopy_v1_Action,
 		DeepCopy_v1_ClusterPolicy,
 		DeepCopy_v1_ClusterPolicyBinding,
 		DeepCopy_v1_ClusterPolicyBindingList,
@@ -52,7 +52,7 @@ func init() {
 	}
 }
 
-func DeepCopy_v1_AuthorizationAttributes(in AuthorizationAttributes, out *AuthorizationAttributes, c *conversion.Cloner) error {
+func DeepCopy_v1_Action(in Action, out *Action, c *conversion.Cloner) error {
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -270,7 +270,7 @@ func DeepCopy_v1_LocalResourceAccessReview(in LocalResourceAccessReview, out *Lo
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_v1_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+	if err := DeepCopy_v1_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	return nil
@@ -280,7 +280,7 @@ func DeepCopy_v1_LocalSubjectAccessReview(in LocalSubjectAccessReview, out *Loca
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_v1_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+	if err := DeepCopy_v1_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -472,7 +472,7 @@ func DeepCopy_v1_ResourceAccessReview(in ResourceAccessReview, out *ResourceAcce
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_v1_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+	if err := DeepCopy_v1_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	return nil
@@ -629,7 +629,7 @@ func DeepCopy_v1_SubjectAccessReview(in SubjectAccessReview, out *SubjectAccessR
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_v1_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+	if err := DeepCopy_v1_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	out.User = in.User

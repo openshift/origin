@@ -17,12 +17,12 @@ type AdapterAttributes struct {
 	namespace               string
 	userName                string
 	groups                  []string
-	authorizationAttributes oauthorizer.AuthorizationAttributes
+	authorizationAttributes oauthorizer.Action
 }
 
 // OriginAuthorizerAttributes adapts Kubernetes authorization attributes to Origin authorization attributes
 // Note that some info (like resourceName, apiVersion, apiGroup) is not available from the Kubernetes attributes
-func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oauthorizer.AuthorizationAttributes) {
+func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oauthorizer.Action) {
 	// Build a context to hold the namespace and user info
 	ctx := kapi.NewContext()
 	ctx = kapi.WithNamespace(ctx, kattrs.GetNamespace())
@@ -59,7 +59,7 @@ func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oa
 
 // KubernetesAuthorizerAttributes adapts Origin authorization attributes to Kubernetes authorization attributes
 // The returned attributes can be passed to OriginAuthorizerAttributes to access extra information from the Origin attributes interface
-func KubernetesAuthorizerAttributes(namespace string, userName string, groups []string, oattrs oauthorizer.AuthorizationAttributes) kauthorizer.Attributes {
+func KubernetesAuthorizerAttributes(namespace string, userName string, groups []string, oattrs oauthorizer.Action) kauthorizer.Attributes {
 	return AdapterAttributes{
 		namespace:               namespace,
 		userName:                userName,

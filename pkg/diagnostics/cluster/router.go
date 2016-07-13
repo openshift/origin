@@ -94,7 +94,7 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 	if d.KubeClient == nil || d.OsClient == nil {
 		return false, errors.New("must have kube and os client")
 	}
-	can, err := userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
+	can, err := userCan(d.OsClient, authorizationapi.Action{
 		Namespace:    kapi.NamespaceDefault,
 		Verb:         "get",
 		Group:        deployapi.GroupName,

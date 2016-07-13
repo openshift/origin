@@ -430,7 +430,7 @@ func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 	}
 }
 
-func (a *fakeTestAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (bool, string, error) {
+func (a *fakeTestAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.Action) (bool, string, error) {
 	a.t.Logf("Authorize: ctx: %#v", ctx)
 	ui, ok := kapi.UserFrom(ctx)
 	if !ok {
@@ -444,7 +444,7 @@ func (a *fakeTestAuthorizer) Authorize(ctx kapi.Context, passedAttributes author
 	return false, "", nil
 }
 
-func (a *fakeTestAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *fakeTestAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }
 

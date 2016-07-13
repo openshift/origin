@@ -18,7 +18,7 @@ func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbid
 	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
 }
 
-func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
+func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Action) (bool, string, error) {
 	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	// keep track of errors in case we are unable to authorize the action.
@@ -63,7 +63,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 // If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
 // This is done because policy rules are purely additive and policy determinations
 // can be made on the basis of those rules that are found.
-func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Action) (sets.String, sets.String, error) {
 	errs := []error{}
 
 	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
@@ -87,7 +87,7 @@ func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Au
 	return users, groups, kerrors.NewAggregate(errs)
 }
 
-func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes Action) (sets.String, sets.String, error) {
 	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	errs := []error{}
@@ -129,7 +129,7 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 // authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
 // but errors are not always fatal to the authorization process.  It is entirely possible to get an error and be able to continue determine authorization
 // status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
-func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
+func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, passedAttributes Action) (bool, string, error) {
 	attributes := CoerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	allRules, ruleRetrievalError := a.ruleResolver.GetEffectivePolicyRules(ctx)
@@ -153,7 +153,7 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, pass
 
 // TODO this may or may not be the behavior we want for managing rules.  As a for instance, a verb might be specified
 // that our attributes builder will never satisfy.  For now, I think gets us close.  Maybe a warning message of some kind?
-func CoerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttributes) *DefaultAuthorizationAttributes {
+func CoerceToDefaultAuthorizationAttributes(passedAttributes Action) *DefaultAuthorizationAttributes {
 	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
 	if !ok {
 		attributes = &DefaultAuthorizationAttributes{

@@ -65,7 +65,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 	if d.KubeClient == nil || d.OsClient == nil {
 		return false, errors.New("must have kube and os client")
 	}
-	can, err := userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
+	can, err := userCan(d.OsClient, authorizationapi.Action{
 		Verb:     "list",
 		Group:    kapi.GroupName,
 		Resource: "nodes",
