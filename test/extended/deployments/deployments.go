@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -31,6 +32,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		failedHookFixture               = exutil.FixturePath("testdata", "failing-pre-hook.yaml")
 		brokenDeploymentFixture         = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployment-history-limit.yaml")
+		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -316,6 +318,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			one := int64(1)
 			config.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
 			_, err = oc.REST().DeploymentConfigs(oc.Namespace()).Update(config)
+			// TODO: Retry on update conflicts
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
@@ -549,6 +552,52 @@ var _ = g.Describe("deploymentconfigs", func() {
 			for _, deployment := range oldDeployments {
 				o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">", iterations-revisionHistoryLimit))
 			}
+		})
+	})
+
+	g.Describe("with minimum ready seconds set", func() {
+		g.It("should include various info in status [Conformance]", func() {
+			_, name, err := createFixture(oc, minReadySecondsFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked running")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+
+			g.By("verifying that all pods are ready")
+			config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			selector := labels.Set(config.Spec.Selector).AsSelector()
+			opts := kapi.ListOptions{LabelSelector: selector}
+			ready := 0
+			if err := wait.PollImmediate(500*time.Millisecond, 1*time.Minute, func() (bool, error) {
+				pods, err := oc.KubeREST().Pods(oc.Namespace()).List(opts)
+				if err != nil {
+					return false, nil
+				}
+
+				ready = 0
+				for i := range pods.Items {
+					pod := pods.Items[i]
+					if kapi.IsPodReady(&pod) {
+						ready++
+					}
+				}
+
+				return len(pods.Items) == ready, nil
+			}); err != nil {
+				o.Expect(fmt.Errorf("deployment config %q never became ready (ready: %d, desired: %d)",
+					config.Name, ready, config.Spec.Replicas)).NotTo(o.HaveOccurred())
+			}
+
+			g.By("verifying that the deployment is still running")
+			latestName := deployutil.DeploymentNameForConfigVersion(name, config.Status.LatestVersion)
+			latest, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).Get(latestName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if deployutil.IsTerminatedDeployment(latest) {
+				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", latest.Name)).NotTo(o.HaveOccurred())
+			}
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 		})
 	})
 })

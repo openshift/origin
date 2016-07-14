@@ -385,7 +385,7 @@ func (t *testControllerClient) updateReplicationController(namespace string, ctr
 	return t.updateReplicationControllerFunc(namespace, ctrl)
 }
 
-func getUpdateAcceptor(timeout time.Duration) strategy.UpdateAcceptor {
+func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strategy.UpdateAcceptor {
 	return &testAcceptor{
 		acceptFn: func(deployment *kapi.ReplicationController) error {
 			return nil
