@@ -145,7 +145,7 @@ func DumpDeploymentLogs(dc string, oc *CLI) {
 					podName := pod.ObjectMeta.Name
 
 					fmt.Fprintf(g.GinkgoWriter, "\n\n dumping logs for pod %s \n\n", podName)
-					depOuput, err := oc.Run("logs").Args("-f", "pod/"+podName).Output()
+					depOuput, err := oc.Run("logs").Args("pod/" + podName).Output()
 					if err == nil {
 						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOuput)
 					} else {
