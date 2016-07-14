@@ -87,6 +87,9 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 
 	f := clientcmd.New(cmds.PersistentFlags())
 
+	deprecatedApplyCmd := cmd.NewCmdApply(fullName, f, out)
+	deprecatedApplyCmd.Deprecated = fmt.Sprintf(`use "oc %[1]s" to apply the configuration in pod.json to a pod.`, "create")
+
 	loginCmd := cmd.NewCmdLogin(fullName, f, in, out)
 	groups := templates.CommandGroups{
 		{
@@ -153,7 +156,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				admin.NewCommandAdmin("adm", fullName+" "+"adm", out, errout),
 				cmd.NewCmdCreate(fullName, f, out),
 				cmd.NewCmdReplace(fullName, f, out),
-				cmd.NewCmdApply(fullName, f, out),
+				deprecatedApplyCmd,
 				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
 				cmd.NewCmdExport(fullName, f, in, out),
