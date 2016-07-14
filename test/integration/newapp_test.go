@@ -2,11 +2,6 @@
 
 package integration
 
-/*
-
-// FIXME: This test is disabled because kubernetes switched to engine-api which
-// will require significant refactor.
-
 import (
 	"bytes"
 	"fmt"
@@ -27,7 +22,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -38,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/app/cmd"
+	apptest "github.com/openshift/origin/pkg/generate/app/test"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -471,7 +466,7 @@ func TestNewAppRunAll(t *testing.T) {
 
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
-						Client: &dockertools.FakeDockerClient{
+						Client: &apptest.FakeDockerClient{
 							Images: []docker.APIImages{{RepoTags: []string{"myrepo:5000/myco/example"}}},
 							Image:  dockerBuilderImage(),
 						},
@@ -560,7 +555,7 @@ func TestNewAppRunAll(t *testing.T) {
 
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
-						Client: &dockertools.FakeDockerClient{
+						Client: &apptest.FakeDockerClient{
 							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 							Image:  dockerBuilderImage(),
 						},
@@ -605,7 +600,7 @@ func TestNewAppRunAll(t *testing.T) {
 
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
-						Client: &dockertools.FakeDockerClient{
+						Client: &apptest.FakeDockerClient{
 							Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 							Image:  dockerBuilderImage(),
 						},
@@ -651,7 +646,7 @@ func TestNewAppRunAll(t *testing.T) {
 				},
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: app.DockerClientSearcher{
-						Client: &dockertools.FakeDockerClient{
+						Client: &apptest.FakeDockerClient{
 							Images: []docker.APIImages{{RepoTags: []string{"mysql"}}},
 							Image: &docker.Image{
 								Config: &docker.Config{
@@ -773,7 +768,7 @@ func TestNewAppRunAll(t *testing.T) {
 						break
 					}
 					expectedPort, _ := strconv.Atoi(test.checkPort)
-					if tp.Spec.Ports[0].Port != expectedPort {
+					if tp.Spec.Ports[0].Port != int32(expectedPort) {
 						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n",
 							test.name, expectedPort, tp.Spec.Ports[0].Port)
 					}
@@ -1643,7 +1638,7 @@ func templateList() *templateapi.TemplateList {
 
 func fakeDockerSearcher() app.Searcher {
 	return app.DockerClientSearcher{
-		Client: &dockertools.FakeDockerClient{
+		Client: &apptest.FakeDockerClient{
 			Images: []docker.APIImages{{RepoTags: []string{"library/ruby:latest"}}},
 			Image:  dockerBuilderImage(),
 		},
@@ -1654,7 +1649,7 @@ func fakeDockerSearcher() app.Searcher {
 
 func fakeSimpleDockerSearcher() app.Searcher {
 	return app.DockerClientSearcher{
-		Client: &dockertools.FakeDockerClient{
+		Client: &apptest.FakeDockerClient{
 			Images: []docker.APIImages{{RepoTags: []string{"centos/ruby-22-centos7"}}},
 			Image: &docker.Image{
 				ID: "ruby",
@@ -1719,5 +1714,3 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 	config.Typer = kapi.Scheme
 	return
 }
-
-*/
