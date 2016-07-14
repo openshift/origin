@@ -316,6 +316,9 @@ var (
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
+		"PersistentVolumeLabel",
+		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
+		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
 		"ClusterResourceQuota",
 	}
@@ -345,6 +348,9 @@ var (
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
+		"PersistentVolumeLabel",
+		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
+		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
 		"ClusterResourceQuota",
 	}
