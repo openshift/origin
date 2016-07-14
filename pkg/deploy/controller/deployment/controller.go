@@ -210,6 +210,15 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 	if deployutil.CanTransitionPhase(currentStatus, nextStatus) || deploymentScaled {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
+
+		// if we are going to transition to failed or complete and scale is non-zero, we'll check one more
+		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
+		if deployment.Spec.Replicas != 0 && deployutil.IsTerminatedDeployment(deployment) {
+			if config, err := deployutil.DecodeDeploymentConfig(deployment, c.codec); err == nil && config.Spec.Test {
+				deployment.Spec.Replicas = 0
+			}
+		}
+
 		if _, err := c.rn.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
 			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
