@@ -77,7 +77,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 		}
 	}
 
-	can, err := userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
+	can, err := userCan(d.OsClient, authorizationapi.Action{
 		Verb:     "list",
 		Group:    kapi.GroupName,
 		Resource: "nodes",

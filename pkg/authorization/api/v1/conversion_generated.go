@@ -14,8 +14,8 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedConversionFuncs(
-		Convert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes,
-		Convert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes,
+		Convert_v1_Action_To_api_Action,
+		Convert_api_Action_To_v1_Action,
 		Convert_v1_ClusterPolicy_To_api_ClusterPolicy,
 		Convert_api_ClusterPolicy_To_v1_ClusterPolicy,
 		Convert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding,
@@ -76,7 +76,7 @@ func init() {
 	}
 }
 
-func autoConvert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes(in *AuthorizationAttributes, out *authorization_api.AuthorizationAttributes, s conversion.Scope) error {
+func autoConvert_v1_Action_To_api_Action(in *Action, out *authorization_api.Action, s conversion.Scope) error {
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -89,11 +89,11 @@ func autoConvert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes(in *A
 	return nil
 }
 
-func Convert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes(in *AuthorizationAttributes, out *authorization_api.AuthorizationAttributes, s conversion.Scope) error {
-	return autoConvert_v1_AuthorizationAttributes_To_api_AuthorizationAttributes(in, out, s)
+func Convert_v1_Action_To_api_Action(in *Action, out *authorization_api.Action, s conversion.Scope) error {
+	return autoConvert_v1_Action_To_api_Action(in, out, s)
 }
 
-func autoConvert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes(in *authorization_api.AuthorizationAttributes, out *AuthorizationAttributes, s conversion.Scope) error {
+func autoConvert_api_Action_To_v1_Action(in *authorization_api.Action, out *Action, s conversion.Scope) error {
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -106,8 +106,8 @@ func autoConvert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes(in *a
 	return nil
 }
 
-func Convert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes(in *authorization_api.AuthorizationAttributes, out *AuthorizationAttributes, s conversion.Scope) error {
-	return autoConvert_api_AuthorizationAttributes_To_v1_AuthorizationAttributes(in, out, s)
+func Convert_api_Action_To_v1_Action(in *authorization_api.Action, out *Action, s conversion.Scope) error {
+	return autoConvert_api_Action_To_v1_Action(in, out, s)
 }
 
 func autoConvert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *ClusterPolicyBindingList, out *authorization_api.ClusterPolicyBindingList, s conversion.Scope) error {
@@ -406,6 +406,34 @@ func Convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessRevi
 	return autoConvert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview(in, out, s)
 }
 
+func autoConvert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *authorization_api.LocalResourceAccessReview, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_Action_To_api_Action(&in.Action, &out.Action, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *authorization_api.LocalResourceAccessReview, s conversion.Scope) error {
+	return autoConvert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in, out, s)
+}
+
+func autoConvert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview(in *authorization_api.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_Action_To_v1_Action(&in.Action, &out.Action, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview(in *authorization_api.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
+	return autoConvert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview(in, out, s)
+}
+
 func autoConvert_v1_PolicyBindingList_To_api_PolicyBindingList(in *PolicyBindingList, out *authorization_api.PolicyBindingList, s conversion.Scope) error {
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -504,6 +532,34 @@ func autoConvert_api_PolicyList_To_v1_PolicyList(in *authorization_api.PolicyLis
 
 func Convert_api_PolicyList_To_v1_PolicyList(in *authorization_api.PolicyList, out *PolicyList, s conversion.Scope) error {
 	return autoConvert_api_PolicyList_To_v1_PolicyList(in, out, s)
+}
+
+func autoConvert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *authorization_api.ResourceAccessReview, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_Action_To_api_Action(&in.Action, &out.Action, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *authorization_api.ResourceAccessReview, s conversion.Scope) error {
+	return autoConvert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in, out, s)
+}
+
+func autoConvert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *authorization_api.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_Action_To_v1_Action(&in.Action, &out.Action, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *authorization_api.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
+	return autoConvert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in, out, s)
 }
 
 func autoConvert_v1_Role_To_api_Role(in *Role, out *authorization_api.Role, s conversion.Scope) error {

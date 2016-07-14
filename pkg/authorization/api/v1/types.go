@@ -162,8 +162,8 @@ type ResourceAccessReviewResponse struct {
 type ResourceAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.
-	AuthorizationAttributes `json:",inline"`
+	// Action describes the action being tested.
+	Action `json:",inline"`
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
@@ -182,8 +182,8 @@ type SubjectAccessReviewResponse struct {
 type SubjectAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.
-	AuthorizationAttributes `json:",inline"`
+	// Action describes the action being tested.
+	Action `json:",inline"`
 	// User is optional. If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user"`
 	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
@@ -198,16 +198,16 @@ type SubjectAccessReview struct {
 type LocalResourceAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	AuthorizationAttributes `json:",inline"`
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action `json:",inline"`
 }
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	AuthorizationAttributes `json:",inline"`
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action `json:",inline"`
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
@@ -218,8 +218,8 @@ type LocalSubjectAccessReview struct {
 	Scopes []string `json:"scopes"`
 }
 
-// AuthorizationAttributes describes a request to the API server
-type AuthorizationAttributes struct {
+// Action describes a request to the API server
+type Action struct {
 	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
 	Namespace string `json:"namespace"`
 	// Verb is one of: get, list, watch, create, update, delete

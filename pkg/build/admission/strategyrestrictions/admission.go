@@ -104,7 +104,7 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 	}
 	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
 		&authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Verb:         "create",
 				Group:        resource.Group,
 				Resource:     resource.Resource,
@@ -123,7 +123,7 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 	}
 	subjectAccessReview := authorizationapi.AddUserToLSAR(attr.GetUserInfo(),
 		&authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Verb:         "create",
 				Group:        resource.Group,
 				Resource:     resource.Resource,

@@ -30,7 +30,7 @@ func NewAuthorizer(client RemoteAuthorizerClient) (authorizer.Authorizer, error)
 	return &RemoteAuthorizer{client}, nil
 }
 
-func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.AuthorizationAttributes) (bool, string, error) {
+func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (bool, string, error) {
 	var (
 		result *authzapi.SubjectAccessReviewResponse
 		err    error
@@ -70,7 +70,7 @@ func (r *RemoteAuthorizer) Authorize(ctx kapi.Context, a authorizer.Authorizatio
 	return result.Allowed, result.Reason, nil
 }
 
-func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	var (
 		result *authzapi.ResourceAccessReviewResponse
 		err    error
@@ -92,8 +92,8 @@ func (r *RemoteAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes autho
 	return result.Users, result.Groups, nil
 }
 
-func getAction(namespace string, attributes authorizer.AuthorizationAttributes) authzapi.AuthorizationAttributes {
-	return authzapi.AuthorizationAttributes{
+func getAction(namespace string, attributes authorizer.Action) authzapi.Action {
+	return authzapi.Action{
 		Namespace:    namespace,
 		Verb:         attributes.GetVerb(),
 		Group:        attributes.GetAPIGroup(),
@@ -101,10 +101,10 @@ func getAction(namespace string, attributes authorizer.AuthorizationAttributes) 
 		Resource:     attributes.GetResource(),
 		ResourceName: attributes.GetResourceName(),
 
-		// TODO: missing from authorizer.AuthorizationAttributes:
+		// TODO: missing from authorizer.Action:
 		// Content
 
-		// TODO: missing from authzapi.AuthorizationAttributes
+		// TODO: missing from authzapi.Action
 		// RequestAttributes (unserializable?)
 		// IsNonResourceURL
 		// URL (doesn't make sense for remote authz?)

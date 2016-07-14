@@ -13,115 +13,54 @@ import (
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
-func Convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *newer.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *newer.LocalResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview(in *newer.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
-
 	return nil
 }
 
 func Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.GroupsSlice = in.Groups.List()
-
 	return nil
 }
 
 func Convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *LocalSubjectAccessReview, out *newer.LocalSubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
-
 	return nil
 }
 
 func Convert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in *newer.LocalSubjectAccessReview, out *LocalSubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.GroupsSlice = in.Groups.List()
-
 	return nil
 }
 
 func Convert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in, out, s); err != nil {
 		return err
 	}
 
 	out.Users = sets.NewString(in.UsersSlice...)
 	out.Groups = sets.NewString(in.GroupsSlice...)
-
 	return nil
 }
 
 func Convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse(in, out, s); err != nil {
 		return err
 	}
 
