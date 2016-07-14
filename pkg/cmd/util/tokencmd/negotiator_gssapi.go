@@ -5,6 +5,7 @@ package tokencmd
 import (
 	"net"
 	"net/url"
+	"runtime"
 	"sync"
 	"time"
 
@@ -158,10 +159,35 @@ func (g *gssapiNegotiator) Release() error {
 func (g *gssapiNegotiator) loadLib() (*gssapi.Lib, error) {
 	g.loadOnce.Do(func() {
 		glog.V(5).Infof("loading gssapi")
-		g.lib, g.loadError = gssapi.Load(nil)
-		if g.loadError != nil {
-			glog.V(5).Infof("could not load gssapi: %v", g.loadError)
+
+		var libPaths []string
+		switch runtime.GOOS {
+		case "darwin":
+			libPaths = []string{"libgssapi_krb5.dylib"}
+		case "linux":
+			// MIT, Heimdal
+			libPaths = []string{"libgssapi_krb5.so.2", "libgssapi.so.3"}
+		default:
+			// Default search path
+			libPaths = []string{""}
 		}
+
+		var loadErrors []error
+		for _, libPath := range libPaths {
+			lib, loadError := gssapi.Load(&gssapi.Options{LibPath: libPath})
+
+			// If we successfully loaded from this path, return early
+			if loadError == nil {
+				glog.V(5).Infof("loaded gssapi %s", libPath)
+				g.lib = lib
+				return
+			}
+
+			// Otherwise, log and aggregate
+			glog.V(5).Infof("%v", loadError)
+			loadErrors = append(loadErrors, loadError)
+		}
+		g.loadError = utilerrors.NewAggregate(loadErrors)
 	})
 	return g.lib, g.loadError
 }
