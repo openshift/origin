@@ -99,17 +99,19 @@ func (h *Helper) Version() (*semver.Version, error) {
 }
 
 // CheckAndPull checks whether a Docker image exists. If not, it pulls it.
-func (h *Helper) CheckAndPull(image string, out io.Writer) error {
-	glog.V(5).Infof("Inspecting Docker image %q", image)
-	imageMeta, err := h.client.InspectImage(image)
-	if err == nil {
-		glog.V(5).Infof("Image %q found: %#v", image, imageMeta)
-		return nil
+func (h *Helper) CheckAndPull(image string, always bool, out io.Writer) error {
+	if !always {
+		glog.V(5).Infof("Inspecting Docker image %q", image)
+		imageMeta, err := h.client.InspectImage(image)
+		if err == nil {
+			glog.V(5).Infof("Image %q found: %#v", image, imageMeta)
+			return nil
+		}
+		if err != docker.ErrNoSuchImage {
+			return starterrors.NewError("unexpected error inspecting image %s", image).WithCause(err)
+		}
+		glog.V(5).Infof("Image %q not found. Pulling", image)
 	}
-	if err != docker.ErrNoSuchImage {
-		return starterrors.NewError("unexpected error inspecting image %s", image).WithCause(err)
-	}
-	glog.V(5).Infof("Image %q not found. Pulling", image)
 	fmt.Fprintf(out, "Pulling image %s\n", image)
 	logProgress := func(s string) {
 		fmt.Fprintf(out, "%s\n", s)
@@ -118,7 +120,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	if glog.V(5) {
 		outputStream = out
 	}
-	err = h.client.PullImage(docker.PullImageOptions{
+	err := h.client.PullImage(docker.PullImageOptions{
 		Repository:    image,
 		RawJSONStream: bool(!glog.V(5)),
 		OutputStream:  outputStream,
