@@ -152,7 +152,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "0.10"
+              "name": "4"
             }
           },
           {
@@ -168,6 +168,21 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "openshift/nodejs-010-centos7:latest"
+            }
+          },
+          {
+            "name": "4",
+            "annotations": {
+              "description": "Build and run NodeJS 4 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:4,nodejs",
+              "version": "4",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/nodejs-4-centos7:latest"
             }
           }
         ]
@@ -4585,7 +4600,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "python:3.4"
+              "name": "python:3.5"
             },
             "env": [
               {
@@ -4775,7 +4790,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "postgresql:9.4"
+                "name": "postgresql:9.5"
               }
             }
           },
@@ -5068,7 +5083,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "nodejs:0.10"
+              "name": "nodejs:4"
             },
             "env":  [
               {
@@ -5256,7 +5271,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mongodb:2.6"
+                "name": "mongodb:3.2"
               }
             }
           },
@@ -5307,7 +5322,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p ${DATABASE_ADMIN_PASSWORD} -n 1 --noheaders"]
+                    "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
                   }
                 },
                 "livenessProbe": {
@@ -5552,7 +5567,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "ruby:2.2"
+              "name": "ruby:2.3"
             },
             "env": [
               {
@@ -5769,7 +5784,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "postgresql:9.4"
+                "name": "postgresql:9.5"
               }
             }
           },
