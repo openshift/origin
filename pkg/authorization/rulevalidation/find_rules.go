@@ -129,7 +129,7 @@ func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]autho
 	errs := []error{}
 	rules := make([]authorizationapi.PolicyRule, 0, len(roleBindings))
 	for _, roleBinding := range roleBindings {
-		if !appliesToUser(roleBinding.Users(), roleBinding.Groups(), user) {
+		if !roleBinding.AppliesToUser(user) {
 			continue
 		}
 
