@@ -141,7 +141,7 @@ export GOPATH=$HOME/go
 +
 TIP: To ensure you get the latest image first run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
 
-6.  SSH in:
+6.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.  SSH in:
 
         $ vagrant ssh
 
@@ -150,46 +150,42 @@ TIP: To ensure you get the latest image first run `vagrant box remove fedora_ins
         $ cd /data/src/github.com/openshift/origin
         $ make clean build
 
-8.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.  At this point you may want to update your $PATH:
+8.  Now start the OpenShift server:
 
-        # back to /home/vagrant
-        $ cd
-        # update path to include binaries for oc, oadm, etc
-        # this is temporary, to make it persistent add it to .bash_profile
-        $ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
+        $ sudo systemctl start openshift
 
+    Or:
 
-9.  Now start the OpenShift server:
-
-        # redirect the logs to  /home/vagrant/openshift.log for easier debugging
-        $ sudo `which openshift` start --public-master=localhost &> openshift.log &
+        # must cd / to use prepopulated $KUBECONFIG
+        $ cd /
+        # redirect the logs to /home/vagrant/openshift.log for easier debugging
+        $ sudo `which openshift` start --public-master=localhost &> $HOME/openshift.log &
 
 +
-NOTE: This will generate three directories in /home/vagrant (openshift.local.config, openshift.local.etcd, openshift.local.volumes) as well as create the openshift.log file.
+NOTE: This will generate three directories in / (openshift.local.config, openshift.local.etcd, openshift.local.volumes) as well as create the /home/vagrant/openshift.log file.
 
 +
 NOTE: By default your origin directory (on your host machine) will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`.
 
 
-10.  Deploy the private docker registry within OpenShift with the following commands:
+9.  Deploy the private docker registry within OpenShift with the following command:
 
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm registry
 
 
-11.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
+10.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
 
-        # load image stream
-        $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
+        # load image streams
+        $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.json -n openshift
         # load templates
-        $ oc create -f /data/src/github.com/openshift/origin/examples/sample-app/application-template-stibuild.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
-        $ oc create -f /data/src/github.com/openshift/origin/examples/db-templates --config=openshift.local.config/master/admin.kubeconfig
+        $ oc create -f /data/src/github.com/openshift/origin/examples/sample-app/application-template-stibuild.json -n openshift
+        $ oc create -f /data/src/github.com/openshift/origin/examples/db-templates -n openshift
 
 
-12. At this point you can open a browser on your host system and navigate to https://localhost:8443/console to view the web console.
+11. At this point you can open a browser on your host system and navigate to https://localhost:8443/console to view the web console.  You can log in with any username and password combination.
 
 
-13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+12.  NOTE: to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
 	# shut down openshift
 	$ sudo pkill openshift
