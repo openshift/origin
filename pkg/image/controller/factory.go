@@ -36,7 +36,7 @@ func (f *ImportControllerFactory) Create() (controller.RunnableController, contr
 			return f.Client.ImageStreams(kapi.NamespaceAll).Watch(options)
 		},
 	}
-	q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	q := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(lw, &api.ImageStream{}, q, f.ResyncInterval).Run()
 
 	// instantiate a scheduled importer using a number of buckets

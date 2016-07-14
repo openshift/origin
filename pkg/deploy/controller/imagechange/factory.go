@@ -33,7 +33,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 			return factory.Client.ImageStreams(kapi.NamespaceAll).Watch(options)
 		},
 	}
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(imageStreamLW, &imageapi.ImageStream{}, queue, 2*time.Minute).Run()
 
 	deploymentConfigLW := &cache.ListWatch{
