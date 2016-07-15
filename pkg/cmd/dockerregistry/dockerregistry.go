@@ -91,7 +91,25 @@ func Execute(configFile io.Reader) {
 	handler = panicHandler(handler)
 	handler = gorillahandlers.CombinedLoggingHandler(os.Stdout, handler)
 
+	noAuthAddr := ""
+	if config.Auth.Type() != "" {
+		authParams := config.Auth.Parameters()
+
+		if v, ok := authParams["noauthaddr"]; ok {
+			noAuthAddr = v.(string)
+		}
+	}
+
 	if config.HTTP.TLS.Certificate == "" {
+		if noAuthAddr != "" {
+			context.GetLogger(app).Infof("listening on %v, noauth", noAuthAddr)
+			go func() {
+				if err := http.ListenAndServe(noAuthAddr, noAuthHandler(handler)); err != nil {
+					context.GetLogger(app).Fatalln(err)
+				}
+			}()
+		}
+
 		context.GetLogger(app).Infof("listening on %v", config.HTTP.Addr)
 		if err := http.ListenAndServe(config.HTTP.Addr, handler); err != nil {
 			context.GetLogger(app).Fatalln(err)
@@ -119,6 +137,20 @@ func Execute(configFile io.Reader) {
 
 			tlsConf.ClientAuth = tls.RequireAndVerifyClientCert
 			tlsConf.ClientCAs = pool
+		}
+
+		if noAuthAddr != "" {
+			context.GetLogger(app).Infof("listening on %v, tls, noauth", noAuthAddr)
+			go func() {
+				noAuthServer := &http.Server{
+					Addr:      noAuthAddr,
+					Handler:   noAuthHandler(handler),
+					TLSConfig: tlsConf,
+				}
+				if err := noAuthServer.ListenAndServeTLS(config.HTTP.TLS.Certificate, config.HTTP.TLS.Key); err != nil {
+					context.GetLogger(app).Fatalln(err)
+				}
+			}()
 		}
 
 		context.GetLogger(app).Infof("listening on %v, tls", config.HTTP.Addr)
@@ -226,6 +258,13 @@ func panicHandler(handler http.Handler) http.Handler {
 				log.Panic(fmt.Sprintf("%v", err))
 			}
 		}()
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func noAuthHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Header.Set(server.RegisrtyNoAuthHeader, "true")
 		handler.ServeHTTP(w, r)
 	})
 }

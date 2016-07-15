@@ -245,10 +245,12 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 
 	hasPortalIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
 	if hasPortalIP && len(service.Spec.Ports) > 0 {
-		return []string{
-			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
-			net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
+		var loc []string
+		for _, e := range service.Spec.Ports {
+			loc = append(loc, net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", e.Port)))
+			loc = append(loc, net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", e.Port)))
 		}
+		return loc
 	}
 
 	return []string{}

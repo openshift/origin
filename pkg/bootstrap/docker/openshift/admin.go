@@ -44,7 +44,7 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 			Name:           "registry",
 			Type:           "docker-registry",
 			ImageTemplate:  imageTemplate,
-			Ports:          "5000",
+			Ports:          "5000,5001",
 			Replicas:       1,
 			Labels:         "docker-registry=default",
 			Volume:         "/registry",

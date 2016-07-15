@@ -13,6 +13,7 @@ storage:
 auth:
   openshift:
     realm: openshift
+    noauthaddr: :5001
 middleware:
   registry:
     - name: openshift

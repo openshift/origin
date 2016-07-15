@@ -21,6 +21,10 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+const (
+	RegisrtyNoAuthHeader = "Openshift-Registry-No-Auth"
+)
+
 type deferredErrors map[string]error
 
 func (d deferredErrors) Add(namespace string, name string, err error) {
@@ -112,6 +116,7 @@ var _ registryauth.Challenge = &authChallenge{}
 // Errors used and exported by this package.
 var (
 	// Challenging errors
+	ErrAuthorizationNotFound  = errors.New("authorization header not found")
 	ErrTokenRequired          = errors.New("authorization header with basic token required")
 	ErrTokenInvalid           = errors.New("failed to decode basic token")
 	ErrOpenShiftTokenRequired = errors.New("expected bearer token as password for basic token to registry")
@@ -152,7 +157,7 @@ func (ac *authChallenge) SetHeaders(w http.ResponseWriter) {
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
 func (ac *AccessController) wrapErr(err error) error {
 	switch err {
-	case ErrTokenRequired, ErrTokenInvalid, ErrOpenShiftTokenRequired, ErrOpenShiftAccessDenied:
+	case ErrTokenRequired, ErrTokenInvalid, ErrOpenShiftTokenRequired, ErrOpenShiftAccessDenied, ErrAuthorizationNotFound:
 		// Challenge for errors that involve tokens or access denied
 		return &authChallenge{realm: ac.realm, err: err}
 	case ErrNamespaceRequired, ErrUnsupportedAction, ErrUnsupportedResource:
@@ -174,10 +179,16 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}
+	noAuthHeader := req.Header.Get(RegisrtyNoAuthHeader)
 
 	bearerToken, err := getToken(ctx, req)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		if err != ErrAuthorizationNotFound {
+			return nil, ac.wrapErr(err)
+		}
+		if len(noAuthHeader) == 0 {
+			return nil, ac.wrapErr(err)
+		}
 	}
 
 	copied := ac.config
@@ -188,7 +199,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 
 	// In case of docker login, hits endpoint /v2
-	if len(accessRecords) == 0 {
+	if len(accessRecords) == 0 && len(bearerToken) > 0 {
 		if err := verifyOpenShiftUser(ctx, osClient); err != nil {
 			return nil, ac.wrapErr(err)
 		}
@@ -302,7 +313,12 @@ func getNamespaceName(resourceName string) (string, string, error) {
 }
 
 func getToken(ctx context.Context, req *http.Request) (string, error) {
-	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		return "", ErrAuthorizationNotFound
+	}
+
+	authParts := strings.SplitN(authHeader, " ", 2)
 	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
 		return "", ErrTokenRequired
 	}
