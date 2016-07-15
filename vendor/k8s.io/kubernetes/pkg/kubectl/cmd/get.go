@@ -76,7 +76,7 @@ func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 	// retrieve a list of handled resources from printer as valid args
 	validArgs, argAliases := []string{}, []string{}
-	p, err := f.Printer(nil, false, false, false, false, false, false, []string{})
+	p, err := f.Printer(nil, nil)
 	cmdutil.CheckErr(err)
 	if p != nil {
 		validArgs = p.HandledResources()
@@ -101,6 +101,7 @@ func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().BoolP("watch", "w", false, "After listing/getting the requested object, watch for changes.")
 	cmd.Flags().Bool("watch-only", false, "Watch for changes to the requested object(s), without listing/getting first.")
 	cmd.Flags().Bool("all-namespaces", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
+	cmd.Flags().Bool("show-kind", false, "If present, list the kind of each requested resource.")
 	cmd.Flags().StringSliceP("label-columns", "L", []string{}, "Accepts a comma separated list of labels that are going to be presented as columns. Names are case-sensitive. You can also use multiple flag statements like -L label1 -L label2...")
 	cmd.Flags().Bool("export", false, "If true, use 'export' for the resources.  Exported resources are stripped of cluster-specific information.")
 	usage := "Filename, directory, or URL to a file identifying the resource to get from a server."
@@ -115,6 +116,7 @@ func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, options *GetOptions) error {
 	selector := cmdutil.GetFlagString(cmd, "selector")
 	allNamespaces := cmdutil.GetFlagBool(cmd, "all-namespaces")
+	showKind := cmdutil.GetFlagBool(cmd, "show-kind")
 	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
 
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
@@ -294,6 +296,10 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 	w := kubectl.GetNewTabWriter(out)
 	defer w.Flush()
 
+	if mustPrintWithKinds(objs, infos, sorter) {
+		showKind = true
+	}
+
 	for ix := range objs {
 		var mapping *meta.RESTMapping
 		var original runtime.Object
@@ -312,7 +318,25 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 			}
 			lastMapping = mapping
 		}
-		if _, found := printer.(*kubectl.HumanReadablePrinter); found {
+		if resourcePrinter, found := printer.(*kubectl.HumanReadablePrinter); found {
+			resourceName := resourcePrinter.GetResourceName()
+			if mapping != nil {
+				if resourceName == "" {
+					resourceName = mapping.Resource
+				}
+				if alias, ok := kubectl.ResourceShortFormFor(mapping.Resource); ok {
+					resourceName = alias
+				} else if resourceName == "" {
+					resourceName = "none"
+				}
+			} else {
+				resourceName = "none"
+			}
+
+			if showKind {
+				resourcePrinter.EnsurePrintWithKind(resourceName)
+			}
+
 			if err := printer.PrintObj(original, w); err != nil {
 				allErrs = append(allErrs, err)
 			}
@@ -324,4 +348,29 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 		}
 	}
 	return utilerrors.NewAggregate(allErrs)
+}
+
+// mustPrintWithKinds determines if printer is dealing
+// with multiple resource kinds, in which case it will
+// return true, indicating resource kind will be
+// included as part of printer output
+func mustPrintWithKinds(objs []runtime.Object, infos []*resource.Info, sorter *kubectl.RuntimeSort) bool {
+	var lastMap *meta.RESTMapping
+
+	for ix := range objs {
+		var mapping *meta.RESTMapping
+		if sorter != nil {
+			mapping = infos[sorter.OriginalPosition(ix)].Mapping
+		} else {
+			mapping = infos[ix].Mapping
+		}
+
+		// display "kind" only if we have mixed resources
+		if lastMap != nil && mapping.Resource != lastMap.Resource {
+			return true
+		}
+		lastMap = mapping
+	}
+
+	return false
 }

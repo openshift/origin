@@ -350,7 +350,8 @@ func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
 
 	otx := ovs.NewTransaction(kexec.New(), BR)
 	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
-	otx.DeleteFlows("table=8, nw_dst=%s", subnet.Subnet)
+	otx.DeleteFlows("table=8, ip, nw_dst=%s", subnet.Subnet)
+	otx.DeleteFlows("table=8, arp, nw_dst=%s", subnet.Subnet)
 	err := otx.EndTransaction()
 	if err != nil {
 		return fmt.Errorf("Error deleting OVS flows for subnet: %v, %v", subnet, err)

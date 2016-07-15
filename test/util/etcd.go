@@ -3,6 +3,7 @@ package util
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -81,4 +82,22 @@ func withEtcdKey(f func(string)) {
 	prefix := fmt.Sprintf("/test-%d", rand.Int63())
 	defer NewEtcdClient().Delete(prefix, true)
 	f(prefix)
+}
+
+func DumpEtcdOnFailure(t *testing.T, name string) {
+	if !t.Failed() {
+		return
+	}
+
+	client := NewEtcdClient()
+	etcdResponse, err := client.RawGet("/", false, true)
+	if err != nil {
+		t.Logf("error dumping etcd: %v", err)
+		return
+	}
+
+	if err := ioutil.WriteFile(GetBaseDir()+"/etcd-dump-"+name+".json", etcdResponse.Body, os.FileMode(0444)); err != nil {
+		t.Logf("error dumping etcd: %v", err)
+		return
+	}
 }

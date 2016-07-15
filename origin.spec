@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9253ce6fd173f87c311526ccc6b7d28aa7f51bd1
+%global commit ffc7392361f29db492a5423ff5367c072f0552a4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.4+9253ce6 -X github.com/openshift/origin/pkg/version.commitFromGit=9253ce6 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-13T13:45:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-13T13:45:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.5+ffc7392 -X github.com/openshift/origin/pkg/version.commitFromGit=ffc7392 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-15T14:48:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-15T14:48:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.5
+Version:        3.3.0.6
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,50 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Jul 15 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.6
+- Cleanup OSE directories no longer in origin, or used (tdawson@redhat.com)
+- Add jobs to conformance run (maszulik@redhat.com)
+- deploy: set gracePeriod on deployer creation rather than on deletion
+  (mkargaki@redhat.com)
+- UPSTREAM: 28966: Fix watch cache filtering (jliggitt@redhat.com)
+- Fully specify DeleteHostSubnet() rules (danw@redhat.com)
+- Ensure the test deployment invariant is maintained (ccoleman@redhat.com)
+- Bump origin-web-console (38099da) (jforrest@redhat.com)
+- Added debugging information to os::cmd output content test
+  (skuznets@redhat.com)
+- Fix SA OAuth test flake (jliggitt@redhat.com)
+- Load versioned gssapi libs (jliggitt@redhat.com)
+- Re-enable new-app integration tests (cewong@redhat.com)
+- treat notfound and badrequest instantiate errors as fatal
+  (bparees@redhat.com)
+- docs: remove openshift_model.md (lmeyer@redhat.com)
+- add nodejs 4 imagestream and bump templates to use latest imagestreams
+  (bparees@redhat.com)
+- Update CONTRIBUTING.adoc (jminter@redhat.com)
+- Enable PersistentVolumeLabel admission plugin (agoldste@redhat.com)
+- add etcd dump for integration test (deads@redhat.com)
+- UPSTREAM: 28626: update resource builder error message to be more clear
+  (jvallejo@redhat.com)
+- display resource type as part of its name (jvallejo@redhat.com)
+- UPSTREAM: 28509: Update HumanResourcePrinter signature w single PrintOptions
+  param (jvallejo@redhat.com)
+- extended: update deployment test timeout (mkargaki@redhat.com)
+- deploy: set gracePeriodSeconds on deployer deletion (mkargaki@redhat.com)
+- integration: add multiple ict deployment test (mkargaki@redhat.com)
+- Added a clean-up policy for deployments (skuznets@redhat.com)
+- add project annotation selectors to cluster quota (deads@redhat.com)
+- Refactor stable layer count unit test (cewong@redhat.com)
+- Add test for image import and conversion v2 schema to v1 schema
+  (agladkov@redhat.com)
+- UPSTREAM: 27379: display resouce type as part of resource name
+  (jvallejo@redhat.com)
+- Added tests for pod-network CLI command (rpenta@redhat.com)
+- Some reorg/cleanup for enabling pod-network cli tests (rpenta@redhat.com)
+- use maven image for slave pods in sample pipeline (bparees@redhat.com)
+- Revert "Allow size of image to be zero when schema1 from Hub"
+  (legion@altlinux.org)
+- Fix image size calculation in importer (agladkov@redhat.com)
+
 * Wed Jul 13 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.5
 - Add an admission controller to block illegal service endpoints
   (danw@redhat.com)

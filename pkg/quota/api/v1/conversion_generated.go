@@ -21,6 +21,8 @@ func init() {
 		Convert_api_ClusterResourceQuota_To_v1_ClusterResourceQuota,
 		Convert_v1_ClusterResourceQuotaList_To_api_ClusterResourceQuotaList,
 		Convert_api_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList,
+		Convert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector,
+		Convert_api_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector,
 		Convert_v1_ClusterResourceQuotaSpec_To_api_ClusterResourceQuotaSpec,
 		Convert_api_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec,
 		Convert_v1_ClusterResourceQuotaStatus_To_api_ClusterResourceQuotaStatus,
@@ -211,8 +213,30 @@ func Convert_api_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList(in *quo
 	return autoConvert_api_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList(in, out, s)
 }
 
+func autoConvert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector(in *ClusterResourceQuotaSelector, out *quota_api.ClusterResourceQuotaSelector, s conversion.Scope) error {
+	out.LabelSelector = in.LabelSelector
+	out.AnnotationSelector = in.AnnotationSelector
+	return nil
+}
+
+func Convert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector(in *ClusterResourceQuotaSelector, out *quota_api.ClusterResourceQuotaSelector, s conversion.Scope) error {
+	return autoConvert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector(in, out, s)
+}
+
+func autoConvert_api_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector(in *quota_api.ClusterResourceQuotaSelector, out *ClusterResourceQuotaSelector, s conversion.Scope) error {
+	out.LabelSelector = in.LabelSelector
+	out.AnnotationSelector = in.AnnotationSelector
+	return nil
+}
+
+func Convert_api_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector(in *quota_api.ClusterResourceQuotaSelector, out *ClusterResourceQuotaSelector, s conversion.Scope) error {
+	return autoConvert_api_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector(in, out, s)
+}
+
 func autoConvert_v1_ClusterResourceQuotaSpec_To_api_ClusterResourceQuotaSpec(in *ClusterResourceQuotaSpec, out *quota_api.ClusterResourceQuotaSpec, s conversion.Scope) error {
-	out.Selector = in.Selector
+	if err := Convert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector(&in.Selector, &out.Selector, s); err != nil {
+		return err
+	}
 	if err := api_v1.Convert_v1_ResourceQuotaSpec_To_api_ResourceQuotaSpec(&in.Quota, &out.Quota, s); err != nil {
 		return err
 	}
@@ -224,7 +248,9 @@ func Convert_v1_ClusterResourceQuotaSpec_To_api_ClusterResourceQuotaSpec(in *Clu
 }
 
 func autoConvert_api_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec(in *quota_api.ClusterResourceQuotaSpec, out *ClusterResourceQuotaSpec, s conversion.Scope) error {
-	out.Selector = in.Selector
+	if err := Convert_api_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector(&in.Selector, &out.Selector, s); err != nil {
+		return err
+	}
 	if err := api_v1.Convert_api_ResourceQuotaSpec_To_v1_ResourceQuotaSpec(&in.Quota, &out.Quota, s); err != nil {
 		return err
 	}

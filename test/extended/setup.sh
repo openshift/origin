@@ -34,8 +34,7 @@ function os::test::extended::setup {
   if [[ -z $(os::build::find-binary openshift) ]]; then
     hack/build-go.sh
   fi
-
-  source "${OS_ROOT}/hack/lib/util/environment.sh"
+  
   os::util::environment::setup_time_vars
 
   # ensure proper relative directories are set

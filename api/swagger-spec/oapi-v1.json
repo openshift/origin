@@ -19476,7 +19476,7 @@
    },
    "v1.AppliedClusterResourceQuota": {
     "id": "v1.AppliedClusterResourceQuota",
-    "description": "AppliedClusterResourceQuota mirrors ClusterResourceQuota at a namespace scope, for projection into a namespace.  It allows a project-admin to know which ClusterResourceQuotas are applied to his project and their associated usage.",
+    "description": "AppliedClusterResourceQuota mirrors ClusterResourceQuota at a project scope, for projection into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to his project and their associated usage.",
     "required": [
      "metadata",
      "spec"
@@ -19615,12 +19615,30 @@
     ],
     "properties": {
      "selector": {
-      "$ref": "unversioned.LabelSelector",
-      "description": "Selector is the label selector used to match projects.  It is not allowed to be empty and should only select active projects on the scale of dozens (though it can select many more less active projects).  These projects will contend on object creation through this resource."
+      "$ref": "v1.ClusterResourceQuotaSelector",
+      "description": "Selector is the selector used to match projects. It should only select active projects on the scale of dozens (though it can select many more less active projects).  These projects will contend on object creation through this resource."
      },
      "quota": {
       "$ref": "v1.ResourceQuotaSpec",
       "description": "Quota defines the desired quota"
+     }
+    }
+   },
+   "v1.ClusterResourceQuotaSelector": {
+    "id": "v1.ClusterResourceQuotaSelector",
+    "description": "ClusterResourceQuotaSelector is used to select projects.  At least one of LabelSelector or AnnotationSelector must present.  If only one is present, it is the only selection criteria.  If both are specified, the project must match both restrictions.",
+    "required": [
+     "labels",
+     "annotations"
+    ],
+    "properties": {
+     "labels": {
+      "$ref": "unversioned.LabelSelector",
+      "description": "LabelSelector is used to select projects by label."
+     },
+     "annotations": {
+      "type": "object",
+      "description": "AnnotationSelector is used to select projects by annotation."
      }
     }
    },
@@ -19697,14 +19715,14 @@
     "properties": {
      "total": {
       "$ref": "v1.ResourceQuotaStatus",
-      "description": "Total defines the actual enforced quota and its current usage across all namespaces"
+      "description": "Total defines the actual enforced quota and its current usage across all projects"
      },
      "namespaces": {
       "type": "array",
       "items": {
        "$ref": "v1.ResourceQuotaStatusByNamespace"
       },
-      "description": "Namespaces slices the usage by namespace.  This division allows for quick resolution of deletion reconcilation inside of a single namespace without requiring a recalculation across all namespaces.  This can be used to pull the deltas for a given namespace."
+      "description": "Namespaces slices the usage by project.  This division allows for quick resolution of deletion reconcilation inside of a single project without requiring a recalculation across all projects.  This can be used to pull the deltas for a given project."
      }
     }
    },
@@ -19724,7 +19742,7 @@
    },
    "v1.ResourceQuotaStatusByNamespace": {
     "id": "v1.ResourceQuotaStatusByNamespace",
-    "description": "ResourceQuotaStatusByNamespace gives status for a particular namespace",
+    "description": "ResourceQuotaStatusByNamespace gives status for a particular project",
     "required": [
      "namespace",
      "status"
@@ -19732,11 +19750,11 @@
     "properties": {
      "namespace": {
       "type": "string",
-      "description": "Namespace the namespace this status applies to"
+      "description": "Namespace the project this status applies to"
      },
      "status": {
       "$ref": "v1.ResourceQuotaStatus",
-      "description": "Status indicates how many resources have been consumed by this namespace"
+      "description": "Status indicates how many resources have been consumed by this project"
      }
     }
    },
@@ -21541,6 +21559,11 @@
       "type": "integer",
       "format": "int32",
       "description": "Replicas is the number of desired replicas."
+     },
+     "revisionHistoryLimit": {
+      "type": "integer",
+      "format": "int32",
+      "description": "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified."
      },
      "test": {
       "type": "boolean",

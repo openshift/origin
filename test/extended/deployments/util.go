@@ -288,3 +288,7 @@ func createFixture(oc *exutil.CLI, fixture string) (string, string, error) {
 	}
 	return resource, parts[1], nil
 }
+
+func checkDeploymentConfigHasSynced(dc *deployapi.DeploymentConfig, _ []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
+	return deployutil.HasSynced(dc), nil
+}

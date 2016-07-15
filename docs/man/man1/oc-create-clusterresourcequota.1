@@ -29,8 +29,12 @@ Cluster resource quota objects defined quota restrictions that span multiple pro
     Output mode. Use "\-o name" for shorter output (resource/name).
 
 .PP
-\fB\-\-project\-selector\fP=""
-    The project selector for the cluster resource quota
+\fB\-\-project\-annotation\-selector\fP=""
+    The project annotation selector for the cluster resource quota
+
+.PP
+\fB\-\-project\-label\-selector\fP=""
+    The project label selector for the cluster resource quota
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -105,7 +109,7 @@ Cluster resource quota objects defined quota restrictions that span multiple pro
 
 .nf
   # Create an cluster resource quota limited to 10 pods
-  oc create clusterresourcequota limit\-bob \-\-project\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
+  oc create clusterresourcequota limit\-bob \-\-project\-label\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
 
 .fi
 .RE

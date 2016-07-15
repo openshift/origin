@@ -11,7 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -192,12 +191,12 @@ func checkState(controller *ClusterQuotaMappingController, finalNamespaces map[s
 		namespacesToQuota[namespaceName] = sets.String{}
 	}
 	for _, quota := range finalQuotas {
-		selector, err := unversioned.LabelSelectorAsSelector(quota.Spec.Selector)
+		matcherFunc, err := quotaapi.GetMatcher(quota.Spec.Selector)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, namespace := range finalNamespaces {
-			if selector.Matches(labels.Set(namespace.Labels)) {
+			if matches, _ := matcherFunc(namespace); matches {
 				quotaToNamespaces[quota.Name].Insert(namespace.Name)
 				namespacesToQuota[namespace.Name].Insert(quota.Name)
 			}
@@ -217,14 +216,14 @@ func checkState(controller *ClusterQuotaMappingController, finalNamespaces map[s
 	}
 
 	for _, namespaceName := range namespaceNames {
-		quotas, labels := controller.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
+		quotas, selectionFields := controller.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
 		quotaSet := sets.NewString(quotas...)
 		if !quotaSet.Equal(namespacesToQuota[namespaceName]) {
 			failures = append(failures, fmt.Sprintf("namespace %v, expected %v, got %v", namespaceName, namespacesToQuota[namespaceName].List(), quotaSet.List()))
 			failures = append(failures, namespaceActions[namespaceName]...)
 		}
-		if namespace, ok := finalNamespaces[namespaceName]; ok && !reflect.DeepEqual(namespace.Labels, labels) {
-			failures = append(failures, fmt.Sprintf("namespace %v, expected %v, got %v", namespaceName, namespace.Labels, labels))
+		if namespace, ok := finalNamespaces[namespaceName]; ok && !reflect.DeepEqual(GetSelectionFields(namespace), selectionFields) {
+			failures = append(failures, fmt.Sprintf("namespace %v, expected %v, got %v", namespaceName, GetSelectionFields(namespace), selectionFields))
 		}
 	}
 
@@ -272,12 +271,12 @@ func NewQuota(name string) *quotaapi.ClusterResourceQuota {
 		return ret
 	}
 
-	ret.Spec.Selector = &unversioned.LabelSelector{MatchLabels: map[string]string{}}
+	ret.Spec.Selector.LabelSelector = &unversioned.LabelSelector{MatchLabels: map[string]string{}}
 	for i := 0; i < numSelectorKeys; i++ {
 		key := keys[rand.Intn(len(keys))]
 		value := values[rand.Intn(len(values))]
 
-		ret.Spec.Selector.MatchLabels[key] = value
+		ret.Spec.Selector.LabelSelector.MatchLabels[key] = value
 	}
 
 	return ret

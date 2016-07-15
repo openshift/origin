@@ -474,6 +474,8 @@ func ImageWithMetadata(image *Image) error {
 			image.DockerImageLayers[i].Name = layer.DockerBlobSum
 		}
 		if len(manifest.History) == len(image.DockerImageLayers) {
+			// This code does not work for images converted from v2 to v1, since V1Compatibility does not
+			// contain size information in this case.
 			image.DockerImageLayers[0].LayerSize = v1Metadata.Size
 			var size = DockerV1CompatibilityImageSize{}
 			for i, obj := range manifest.History[1:] {

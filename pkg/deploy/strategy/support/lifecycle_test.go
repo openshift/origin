@@ -171,6 +171,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	deploymentName := "deployment-1"
 	deploymentNamespace := "test"
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+	gracePeriod := int64(10)
 
 	tests := []struct {
 		name                string
@@ -256,6 +257,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							},
 						},
 					},
+					TerminationGracePeriodSeconds: &gracePeriod,
 					ImagePullSecrets: []kapi.LocalObjectReference{
 						{
 							Name: "secret-1",
@@ -312,6 +314,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							},
 						},
 					},
+					TerminationGracePeriodSeconds: &gracePeriod,
 					ImagePullSecrets: []kapi.LocalObjectReference{
 						{
 							Name: "secret-1",
@@ -370,6 +373,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							},
 						},
 					},
+					TerminationGracePeriodSeconds: &gracePeriod,
 					ImagePullSecrets: []kapi.LocalObjectReference{
 						{
 							Name: "secret-1",

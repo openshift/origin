@@ -331,6 +331,7 @@ func autoConvert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *Deploym
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.RevisionHistoryLimit = in.RevisionHistoryLimit
 	out.Test = in.Test
 	out.Paused = in.Paused
 	out.Selector = in.Selector
@@ -366,6 +367,7 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.RevisionHistoryLimit = in.RevisionHistoryLimit
 	out.Test = in.Test
 	out.Paused = in.Paused
 	out.Selector = in.Selector
