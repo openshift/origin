@@ -85,16 +85,20 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 // TestAccessController tests complete integration of the v2 registry auth package.
 func TestAccessController(t *testing.T) {
 	options := map[string]interface{}{
-		"addr":       "https://openshift-example.com/osapi",
-		"apiVersion": latest.Version,
+		"addr":        "https://openshift-example.com/osapi",
+		"apiVersion":  latest.Version,
+		RealmKey:      "myrealm",
+		TokenRealmKey: "https://tokenrealm.com/token",
 	}
 
 	tests := map[string]struct {
 		access             []auth.Access
 		basicToken         string
+		bearerToken        string
 		openshiftResponses []response
 		expectedError      error
 		expectedChallenge  bool
+		expectedHeaders    http.Header
 		expectedRepoErr    string
 		expectedActions    []string
 	}{
@@ -103,6 +107,7 @@ func TestAccessController(t *testing.T) {
 			basicToken:        "",
 			expectedError:     ErrTokenRequired,
 			expectedChallenge: true,
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Bearer realm="https://tokenrealm.com/token"`}},
 		},
 		"invalid registry token": {
 			access: []auth.Access{{
@@ -111,14 +116,16 @@ func TestAccessController(t *testing.T) {
 			basicToken:        "ab-cd-ef-gh",
 			expectedError:     ErrTokenInvalid,
 			expectedChallenge: true,
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="failed to decode credentials"`}},
 		},
-		"invalid openshift bearer token": {
+		"invalid openshift basic password": {
 			access: []auth.Access{{
 				Resource: auth.Resource{Type: "repository"},
 			}},
 			basicToken:        "abcdefgh",
-			expectedError:     ErrOpenShiftTokenRequired,
+			expectedError:     ErrTokenInvalid,
 			expectedChallenge: true,
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="failed to decode credentials"`}},
 		},
 		"valid openshift token but invalid namespace": {
 			access: []auth.Access{{
@@ -155,7 +162,8 @@ func TestAccessController(t *testing.T) {
 			openshiftResponses: []response{{403, ""}},
 			expectedError:      ErrOpenShiftAccessDenied,
 			expectedChallenge:  true,
-			expectedActions:    []string{"GET /oapi/v1/users/~"},
+			expectedHeaders:    http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="access denied"`}},
+			expectedActions:    []string{"GET /oapi/v1/users/~ (Authorization=Bearer awesome)"},
 		},
 		"docker login with valid openshift creds": {
 			basicToken: "dXNyMTphd2Vzb21l",
@@ -164,7 +172,7 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
-			expectedActions:   []string{"GET /oapi/v1/users/~"},
+			expectedActions:   []string{"GET /oapi/v1/users/~ (Authorization=Bearer awesome)"},
 		},
 		"error running subject access review": {
 			access: []auth.Access{{
@@ -180,7 +188,7 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post localSubjectAccessReviews)"),
 			expectedChallenge: false,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews (Authorization=Bearer awesome)"},
 		},
 		"valid openshift token but token not scoped for the given repo operation": {
 			access: []auth.Access{{
@@ -196,7 +204,8 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="access denied"`}},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews (Authorization=Bearer awesome)"},
 		},
 		"partially valid openshift token": {
 			// Check all the different resource-type/verb combinations we allow to make sure they validate and continue to validate remaining Resource requests
@@ -215,11 +224,12 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="access denied"`}},
 			expectedActions: []string{
-				"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews",
-				"POST /oapi/v1/namespaces/bar/localsubjectaccessreviews",
-				"POST /oapi/v1/subjectaccessreviews",
-				"POST /oapi/v1/namespaces/baz/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews (Authorization=Bearer awesome)",
+				"POST /oapi/v1/namespaces/bar/localsubjectaccessreviews (Authorization=Bearer awesome)",
+				"POST /oapi/v1/subjectaccessreviews (Authorization=Bearer awesome)",
+				"POST /oapi/v1/namespaces/baz/localsubjectaccessreviews (Authorization=Bearer awesome)",
 			},
 		},
 		"deferred cross-mount error": {
@@ -241,9 +251,9 @@ func TestAccessController(t *testing.T) {
 			expectedChallenge: false,
 			expectedRepoErr:   "fromrepo/bbb",
 			expectedActions: []string{
-				"POST /oapi/v1/namespaces/pushrepo/localsubjectaccessreviews",
-				"POST /oapi/v1/namespaces/pushrepo/localsubjectaccessreviews",
-				"POST /oapi/v1/namespaces/fromrepo/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/pushrepo/localsubjectaccessreviews (Authorization=Bearer awesome)",
+				"POST /oapi/v1/namespaces/pushrepo/localsubjectaccessreviews (Authorization=Bearer awesome)",
+				"POST /oapi/v1/namespaces/fromrepo/localsubjectaccessreviews (Authorization=Bearer awesome)",
 			},
 		},
 		"valid openshift token": {
@@ -260,7 +270,23 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews (Authorization=Bearer awesome)"},
+		},
+		"valid anonymous token": {
+			access: []auth.Access{{
+				Resource: auth.Resource{
+					Type: "repository",
+					Name: "foo/bar",
+				},
+				Action: "pull",
+			}},
+			bearerToken: "anonymous",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "foo", Allowed: true, Reason: "authorized!"})},
+			},
+			expectedError:     nil,
+			expectedChallenge: false,
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews (Authorization=)"},
 		},
 		"pruning": {
 			access: []auth.Access{
@@ -285,7 +311,7 @@ func TestAccessController(t *testing.T) {
 			expectedError:     nil,
 			expectedChallenge: false,
 			expectedActions: []string{
-				"POST /oapi/v1/subjectaccessreviews",
+				"POST /oapi/v1/subjectaccessreviews (Authorization=Bearer awesome)",
 			},
 		},
 	}
@@ -298,6 +324,9 @@ func TestAccessController(t *testing.T) {
 		}
 		if len(test.basicToken) > 0 {
 			req.Header.Set("Authorization", fmt.Sprintf("Basic %s", test.basicToken))
+		}
+		if len(test.bearerToken) > 0 {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", test.bearerToken))
 		}
 		ctx := context.WithValue(context.Background(), "http.request", req)
 
@@ -351,10 +380,18 @@ func TestAccessController(t *testing.T) {
 				}
 			}
 		} else {
-			_, isChallenge := err.(auth.Challenge)
+			challengeErr, isChallenge := err.(auth.Challenge)
 			if test.expectedChallenge != isChallenge {
 				t.Errorf("%s: expected challenge=%v, accessController returned challenge=%v", k, test.expectedChallenge, isChallenge)
 				continue
+			}
+			if isChallenge {
+				recorder := httptest.NewRecorder()
+				challengeErr.SetHeaders(recorder)
+				if !reflect.DeepEqual(recorder.HeaderMap, test.expectedHeaders) {
+					t.Errorf("%s: expected headers\n%#v\ngot\n%#v", k, test.expectedHeaders, recorder.HeaderMap)
+					continue
+				}
 			}
 
 			if err.Error() != test.expectedError.Error() {
@@ -386,7 +423,7 @@ func simulateOpenShiftMaster(responses []response) (*httptest.Server, *[]string)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(response.code)
 		fmt.Fprintln(w, response.body)
-		actions = append(actions, r.Method+" "+r.URL.Path)
+		actions = append(actions, fmt.Sprintf(`%s %s (Authorization=%s)`, r.Method, r.URL.Path, r.Header.Get("Authorization")))
 	}))
 	return server, &actions
 }
