@@ -11,6 +11,9 @@ import (
 
 // Negotiater defines the minimal interface needed to interact with GSSAPI to perform a negotiate challenge/response
 type Negotiater interface {
+	// Load gives the negotiator a chance to load any resources needed to handle a challenge/response sequence.
+	// It may be invoked multiple times. If an error is returned, InitSecContext and IsComplete are not called, but Release() is.
+	Load() error
 	// InitSecContext returns the response token for a Negotiate challenge token from a given URL,
 	// or an error if no response token could be obtained or the incoming token is invalid.
 	InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error)
@@ -34,8 +37,14 @@ func NewNegotiateChallengeHandler(negotiater Negotiater) ChallengeHandler {
 
 func (c *NegotiateChallengeHandler) CanHandle(headers http.Header) bool {
 	// Make sure this is a negotiate request
-	isNegotiate, _, err := getNegotiateToken(headers)
-	return err == nil && isNegotiate
+	if isNegotiate, _, err := getNegotiateToken(headers); err != nil || !isNegotiate {
+		return false
+	}
+	// Make sure our negotiator can initialize
+	if err := c.negotiater.Load(); err != nil {
+		return false
+	}
+	return true
 }
 
 func (c *NegotiateChallengeHandler) HandleChallenge(requestURL string, headers http.Header) (http.Header, bool, error) {
