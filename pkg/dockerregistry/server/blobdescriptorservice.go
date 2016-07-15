@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -43,14 +44,28 @@ type blobDescriptorService struct {
 // corresponding image stream. This method is invoked from inside of upstream's linkedBlobStore. It expects
 // a proper repository object to be set on given context by upper openshift middleware wrappers.
 func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	repo, found := RepositoryFrom(ctx)
+	if !found || repo == nil {
+		err := fmt.Errorf("failed to retrieve repository from context")
+		context.GetLogger(ctx).Error(err)
+		return distribution.Descriptor{}, err
+	}
+
 	// if there is a repo layer link, return its descriptor
-	desc, statErr := bs.BlobDescriptorService.Stat(ctx, dgst)
-	if statErr == nil {
+	desc, err := bs.BlobDescriptorService.Stat(ctx, dgst)
+	if err == nil {
+		// and remember the association
+		repo.cachedLayers.RememberDigest(dgst, repo.blobrepositorycachettl, imageapi.DockerImageReference{
+			Namespace: repo.namespace,
+			Name:      repo.name,
+		}.Exact())
 		return desc, nil
 	}
 
+	context.GetLogger(ctx).Debugf("could not stat layer link %q in repository %q: %v", dgst.String(), repo.Named().Name(), err)
+
 	// verify the blob is stored locally
-	desc, err := dockerRegistry.BlobStatter().Stat(ctx, dgst)
+	desc, err = dockerRegistry.BlobStatter().Stat(ctx, dgst)
 	if err != nil {
 		return desc, err
 	}
@@ -63,17 +78,29 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 	return distribution.Descriptor{}, distribution.ErrBlobUnknown
 }
 
+func (bs *blobDescriptorService) Clear(ctx context.Context, dgst digest.Digest) error {
+	repo, found := RepositoryFrom(ctx)
+	if !found || repo == nil {
+		err := fmt.Errorf("failed to retrieve repository from context")
+		context.GetLogger(ctx).Error(err)
+		return err
+	}
+
+	repo.cachedLayers.ForgetDigest(dgst, imageapi.DockerImageReference{
+		Namespace: repo.namespace,
+		Name:      repo.name,
+	}.Exact())
+	return bs.BlobDescriptorService.Clear(ctx, dgst)
+}
+
 // imageStreamHasBlob returns true if the given blob digest is referenced in image stream corresponding to
 // given repository. If not found locally, image stream's images will be iterated and fetched from newest to
 // oldest until found. Each processed image will update local cache of blobs.
 func imageStreamHasBlob(r *repository, dgst digest.Digest) bool {
-	repositories := r.cachedLayers.RepositoriesForDigest(dgst)
-	match := imageapi.DockerImageReference{Namespace: r.namespace, Name: r.name}.Exact()
-	for _, repo := range repositories {
-		if repo == match {
-			context.GetLogger(r.ctx).Debugf("found cached blob %q in repository %s/%s", dgst.String(), r.Named().Name())
-			return true
-		}
+	repoCacheName := imageapi.DockerImageReference{Namespace: r.namespace, Name: r.name}.Exact()
+	if r.cachedLayers.RepositoryHasBlob(repoCacheName, dgst) {
+		context.GetLogger(r.ctx).Debugf("found cached blob %q in repository %s", dgst.String(), r.Named().Name())
+		return true
 	}
 
 	context.GetLogger(r.ctx).Debugf("verifying presence of blob %q in image stream %s/%s", dgst.String(), r.namespace, r.name)
@@ -113,7 +140,7 @@ func imageStreamHasBlob(r *repository, dgst digest.Digest) bool {
 		if _, processed := processedImages[tagEvent.Image]; processed {
 			continue
 		}
-		if imageHasBlob(r, match, tagEvent.Image, dgst.String(), !r.pullthrough) {
+		if imageHasBlob(r, repoCacheName, tagEvent.Image, dgst.String(), !r.pullthrough) {
 			tagName := event2Name[tagEvent]
 			context.GetLogger(r.ctx).Debugf("blob found under istag %s/%s:%s in image %s", r.namespace, r.name, tagName, tagEvent.Image)
 			return logFound(true)
