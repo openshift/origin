@@ -185,6 +185,17 @@ func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
+// HasImageChangeTrigger returns whether the provided deployment configuration has
+// an image change trigger or not.
+func HasImageChangeTrigger(config *deployapi.DeploymentConfig) bool {
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			return true
+		}
+	}
+	return false
+}
+
 func DeploymentConfigDeepCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	objCopy, err := api.Scheme.DeepCopy(dc)
 	if err != nil {

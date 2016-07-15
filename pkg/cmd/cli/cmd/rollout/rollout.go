@@ -48,6 +48,7 @@ func NewCmdRollout(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd.AddCommand(NewCmdRolloutResume(fullName, f, out))
 	cmd.AddCommand(NewCmdRolloutUndo(fullName, f, out))
 	cmd.AddCommand(NewCmdRolloutLatest(fullName, f, out))
+	cmd.AddCommand(NewCmdRolloutStatus(fullName, f, out))
 
 	return cmd
 }
@@ -148,5 +149,22 @@ func NewCmdRolloutUndo(fullName string, f *clientcmd.Factory, out io.Writer) *co
 	cmd := rollout.NewCmdRolloutUndo(f.Factory, out)
 	cmd.Long = rolloutUndoLong
 	cmd.Example = fmt.Sprintf(rolloutUndoExample, fullName)
+	return cmd
+}
+
+const (
+	rolloutStatusLong = `
+Watch the status of the latest rollout, until it's done.`
+
+	rolloutStatusExample = `  # Watch the status of the latest rollout
+  %[1]s rollout status dc/nginx
+`
+)
+
+// NewCmdRolloutStatus is a wrapper for the Kubernetes cli rollout status command
+func NewCmdRolloutStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := rollout.NewCmdRolloutStatus(f.Factory, out)
+	cmd.Long = rolloutStatusLong
+	cmd.Example = fmt.Sprintf(rolloutStatusExample, fullName)
 	return cmd
 }
