@@ -536,7 +536,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			// sanity check to ensure that the following asertion on the amount of old deployments is valid
-			o.Expect(*deploymentConfig.Spec.RevisionHistoryLimit).To(o.Equal(revisionHistoryLimit))
+			o.Expect(*deploymentConfig.Spec.RevisionHistoryLimit).To(o.Equal(int32(revisionHistoryLimit)))
 
 			// we need to filter out any deployments that we don't care about,
 			// namely the active deployment and any newer deployments
