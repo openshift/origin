@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -116,8 +115,9 @@ type RegistryConfig struct {
 const randomSecretSize = 32
 
 const (
-	defaultLabel = "docker-registry=default"
-	defaultPort  = 5000
+	defaultLabel      = "docker-registry=default"
+	defaultPort       = 5000
+	defaultNoAuthPort = 5001
 	/* TODO: `/healthz` has been deprecated by `/`; keep it temporarily for backwards compatibility until
 	 * a next major release with a strict requirement on newer registry image
 	 * NOTE that `/` is supported since ose `v3.1.1.0`
@@ -139,7 +139,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 		ImageTemplate:  variable.NewDefaultImageTemplate(),
 		Name:           "registry",
 		Labels:         defaultLabel,
-		Ports:          strconv.Itoa(defaultPort),
+		Ports:          fmt.Sprintf("%d,%d", defaultPort, defaultNoAuthPort),
 		Volume:         "/registry",
 		ServiceAccount: "registry",
 		Replicas:       1,
@@ -163,7 +163,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.Type, "type", "docker-registry", "The registry image to use - if you specify --images this flag may be ignored.")
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this registry on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest image for the registry instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, fmt.Sprintf("A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for %d.", defaultPort))
+	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, fmt.Sprintf("A comma delimited list of ports or port pairs to expose on the registry pod. The default is set for %s.", cfg.Ports))
 	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the registry; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the registry and its components.")
 	cmd.Flags().StringVar(&cfg.Volume, "volume", cfg.Volume, "The volume path to use for registry storage; defaults to /registry which is the default for origin-docker-registry.")
@@ -438,7 +438,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		})
 	}
 
-	objects = app.AddServices(objects, true)
+	objects = app.AddServices(objects, false)
 
 	// Set registry service's sessionAffinity to ClientIP to prevent push
 	// failures due to a use of poorly consistent storage shared by

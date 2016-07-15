@@ -15,6 +15,7 @@ LABEL io.k8s.display-name="OpenShift Origin Image Registry" \
 # The registry doesn't require a root user.
 USER 1001
 EXPOSE 5000
+EXPOSE 5001
 VOLUME /registry
 ENV REGISTRY_CONFIGURATION_PATH=/config.yml
 
