@@ -127,11 +127,15 @@ test-end-to-end: build
 # Run tools tests.
 #
 # Example:
-#   make test-cmd
+#   make test-tools
 test-tools:
 	hack/test-tools.sh
 .PHONY: test-tools
 
+# Run assets tests.
+#
+# Example:
+#   make test-assets  
 test-assets:
 ifeq ($(TEST_ASSETS),true)
 	hack/test-assets.sh
