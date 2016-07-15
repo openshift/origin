@@ -2,6 +2,7 @@ package server
 
 import (
 	"sync"
+	"time"
 
 	"github.com/hashicorp/golang-lru"
 
@@ -26,20 +27,36 @@ func newDigestToRepositoryCache(size int) (digestToRepositoryCache, error) {
 	return digestToRepositoryCache{Cache: c}, nil
 }
 
-const bucketSize = 10
+const bucketSize = 16
 
 // RememberDigest associates a digest with a repository.
-func (c digestToRepositoryCache) RememberDigest(dgst digest.Digest, repo string) {
+func (c digestToRepositoryCache) RememberDigest(dgst digest.Digest, ttl time.Duration, repo string) {
 	key := dgst.String()
 	value, ok := c.Get(key)
 	if !ok {
 		value = &repositoryBucket{}
-		if ok, _ := c.ContainsOrAdd(key, value); !ok {
-			return
+		if ok, _ := c.ContainsOrAdd(key, value); ok {
+			// the value exists now, get it
+			value, ok = c.Get(key)
+			if !ok {
+				// should not happen
+				return
+			}
 		}
 	}
 	repos := value.(*repositoryBucket)
-	repos.Add(repo)
+	repos.Add(ttl, repo)
+}
+
+// ForgetDigest removes an association between given digest and repository from the cache.
+func (c digestToRepositoryCache) ForgetDigest(dgst digest.Digest, repo string) {
+	key := dgst.String()
+	value, ok := c.Get(key)
+	if !ok {
+		return
+	}
+	repos := value.(*repositoryBucket)
+	repos.Remove(repo)
 }
 
 // RepositoriesForDigest returns a list of repositories that may contain this digest.
@@ -52,42 +69,123 @@ func (c digestToRepositoryCache) RepositoriesForDigest(dgst digest.Digest) []str
 	return repos.Copy()
 }
 
+// repositoryBucket contains a list of repositories with eviction timeouts.
 type repositoryBucket struct {
 	mu   sync.Mutex
-	list []string
+	list []bucketEntry
 }
 
 // Has returns true if the bucket contains this repository.
-func (i *repositoryBucket) Has(repo string) bool {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	for _, s := range i.list {
-		if s == repo {
-			return true
-		}
-	}
-	return false
+func (b *repositoryBucket) Has(repo string) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.evictStale(time.Now())
+
+	return b.getIndexOf(repo) >= 0
 }
 
 // Add one or more repositories to this bucket.
-func (i *repositoryBucket) Add(repos ...string) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	arr := i.list
+func (b *repositoryBucket) Add(ttl time.Duration, repos ...string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	now := time.Now()
+	b.evictStale(now)
+	evictOn := now.Add(ttl)
+
 	for _, repo := range repos {
-		if len(arr) >= bucketSize {
-			arr = arr[1:]
+		index := b.getIndexOf(repo)
+		arr := b.list
+
+		if index >= 0 {
+			// repository already exists, move it to the end with highest eviction time
+			entry := arr[index]
+			copy(arr[index:], arr[index+1:])
+			if entry.evictOn.Before(evictOn) {
+				entry.evictOn = evictOn
+			}
+			arr[len(arr)-1] = entry
+
+		} else {
+			// repo is a new entry
+			if len(arr) >= bucketSize {
+				arr = arr[1:]
+			}
+			arr = append(arr, bucketEntry{
+				repository: repo,
+				evictOn:    evictOn,
+			})
 		}
-		arr = append(arr, repo)
+
+		b.list = arr
 	}
-	i.list = arr
+}
+
+// Remove removes all the given repos from repository bucket.
+func (b *repositoryBucket) Remove(repos ...string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	for _, repo := range repos {
+		index := b.getIndexOf(repo)
+
+		if index >= 0 {
+			copy(b.list[index:], b.list[index+1:])
+			b.list = b.list[:len(b.list)-1]
+		}
+	}
+}
+
+// getIndexOf returns an index of given repository in bucket's array. If not found, -1 will be returned.
+func (b *repositoryBucket) getIndexOf(repo string) int {
+	arr := b.list
+
+	for i := 0; i < len(arr); i++ {
+		if arr[i].repository == repo {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// e.
+func (b *repositoryBucket) evictStale(now time.Time) {
+	arr := b.list
+	j := 0
+
+	for i := 0; i < len(arr); i++ {
+		if arr[i].evictOn.Before(now) {
+			continue
+		}
+		if i > j {
+			arr[j] = arr[i]
+		}
+		j++
+	}
+
+	if j < len(arr) {
+		b.list = arr[0:j]
+	}
 }
 
 // Copy returns a copy of the contents of this bucket in a threadsafe fasion.
-func (i *repositoryBucket) Copy() []string {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	out := make([]string, len(i.list))
-	copy(out, i.list)
+func (b *repositoryBucket) Copy() []string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.evictStale(time.Now())
+
+	out := make([]string, len(b.list))
+	for i, e := range b.list {
+		out[i] = e.repository
+	}
 	return out
+}
+
+// bucketEntry holds a repository name with eviction timeout.
+type bucketEntry struct {
+	repository string
+	evictOn    time.Time
 }

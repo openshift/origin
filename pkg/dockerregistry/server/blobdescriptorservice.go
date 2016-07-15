@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/docker/distribution"
@@ -42,23 +43,30 @@ type blobDescriptorService struct {
 // corresponding image stream. This method is invoked from inside of upstream's linkedBlobStore. It expects
 // a proper repository object to be set on given context by upper openshift middleware wrappers.
 func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	repo, found := RepositoryFrom(ctx)
+	if !found || repo == nil {
+		err := fmt.Errorf("failed to retrieve repository from context")
+		context.GetLogger(ctx).Error(err)
+		return distribution.Descriptor{}, err
+	}
+
 	// if there is a repo layer link, return its descriptor
-	desc, statErr := bs.BlobDescriptorService.Stat(ctx, dgst)
-	if statErr == nil {
+	desc, err := bs.BlobDescriptorService.Stat(ctx, dgst)
+	if err == nil {
+		// and remember the association
+		repo.cachedLayers.RememberDigest(dgst, repo.blobrepositorycachettl, imageapi.DockerImageReference{
+			Namespace: repo.namespace,
+			Name:      repo.name,
+		}.Exact())
 		return desc, nil
 	}
 
+	context.GetLogger(ctx).Debugf("could not stat layer link %q in repository %q: %v", dgst.String(), repo.Named().Name(), err)
+
 	// verify the blob is stored locally
-	desc, err := dockerRegistry.BlobStatter().Stat(ctx, dgst)
+	desc, err = dockerRegistry.BlobStatter().Stat(ctx, dgst)
 	if err != nil {
 		return desc, err
-	}
-
-	// verify that an image holding this blob is actually present in the image stream
-	repo, found := RepositoryFrom(ctx)
-	if !found {
-		context.GetLogger(ctx).Errorf("failed to retrieve repository from context")
-		return distribution.Descriptor{}, statErr
 	}
 
 	if imageStreamHasBlob(repo, dgst) {
@@ -66,6 +74,21 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 	}
 
 	return distribution.Descriptor{}, distribution.ErrBlobUnknown
+}
+
+func (bs *blobDescriptorService) Clear(ctx context.Context, dgst digest.Digest) error {
+	repo, found := RepositoryFrom(ctx)
+	if !found || repo == nil {
+		err := fmt.Errorf("failed to retrieve repository from context")
+		context.GetLogger(ctx).Error(err)
+		return err
+	}
+
+	repo.cachedLayers.ForgetDigest(dgst, imageapi.DockerImageReference{
+		Namespace: repo.namespace,
+		Name:      repo.name,
+	}.Exact())
+	return bs.BlobDescriptorService.Clear(ctx, dgst)
 }
 
 // imageStreamHasBlob returns true if the given blob digest is referenced in image stream corresponding to
