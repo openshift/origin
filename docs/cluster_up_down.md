@@ -2,6 +2,7 @@
 
 - [Overview](#overview)
 - [Getting Started](#getting-started)
+  - [Docker beta](#docker-beta)
   - [Mac OS X](#mac-os-x)
   - [Windows](#windows)
   - [Linux](#linux)
@@ -23,6 +24,43 @@ command line to create and deploy apps with commands like `oc new-app`, `oc new-
 a URL to access the management console for your cluster.
 
 ## Getting Started
+
+### Docker Beta
+
+For Docker beta on Windows or Mac:
+
+1. Install Docker and make sure that it is functional.
+2. Download the `oc` binary for your platform from [latest release](https://github.com/openshift/origin/releases/latest) and place it in your path.
+2. Configure Docker insecure registry setting:
+
+   a. Get the current configuration:
+      ```
+      pinata get daemon > daemon.cfg
+      ```
+   b. Edit the configuration file `daemon.cfg` to include `"insecure-registries":["172.30.0.0/16"]`. For example:
+      ```
+      {"storage-driver":"aufs","debug":true,"insecure-registries":["172.30.0.0/16"]}
+      ```
+   c. Set the daemon configuration:
+      ```
+      pinata set daemon @daemon.cfg
+      ```
+
+3. Set the networking mode to `nat`:
+   ```
+   pinata set network nat
+   ```
+
+4. Open Terminal and run:
+   ```
+   oc cluster up
+   ```
+
+To stop the cluster, run:
+
+```
+oc cluster down
+```
 
 ### Mac OS X
 
