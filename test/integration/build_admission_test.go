@@ -19,6 +19,7 @@ import (
 )
 
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, false)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
@@ -74,6 +75,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 }
 
 func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, true)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}

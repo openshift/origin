@@ -23,17 +23,20 @@ import (
 )
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeNameClusterAdmin(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	oclient, kclient := setupClusterAdminPodNodeConstraintsTest(t, &pluginapi.PodNodeConstraintsConfig{})
 	testPodNodeConstraintsObjectCreationWithPodTemplate(t, "set node name, cluster admin", kclient, oclient, "nodename.example.com", nil, false)
 }
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeNameNonAdmin(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &pluginapi.PodNodeConstraintsConfig{}
 	oclient, kclient := setupUserPodNodeConstraintsTest(t, config, "derples")
 	testPodNodeConstraintsObjectCreationWithPodTemplate(t, "set node name, regular user", kclient, oclient, "nodename.example.com", nil, true)
 }
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorClusterAdmin(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &pluginapi.PodNodeConstraintsConfig{
 		NodeSelectorLabelBlacklist: []string{"hostname"},
 	}
@@ -42,6 +45,7 @@ func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorClusterAdmin(t *testing
 }
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorNonAdmin(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &pluginapi.PodNodeConstraintsConfig{
 		NodeSelectorLabelBlacklist: []string{"hostname"},
 	}

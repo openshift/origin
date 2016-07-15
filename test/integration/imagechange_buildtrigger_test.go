@@ -21,6 +21,7 @@ const (
 )
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -30,6 +31,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -39,6 +41,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *t
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -48,6 +51,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -57,6 +61,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -66,6 +71,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	projectAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -364,6 +370,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 }
 
 func TestMultipleImageChangeBuildTriggers(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	mockImageStream := func(name, tag string) *imageapi.ImageStream {
 		return &imageapi.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{Name: name},

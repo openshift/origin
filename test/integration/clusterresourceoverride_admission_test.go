@@ -19,6 +19,7 @@ import (
 )
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,
@@ -45,6 +46,7 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 }
 
 func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,

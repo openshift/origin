@@ -309,6 +309,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 
 	// Build master config
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -30,6 +30,8 @@ import (
 
 func TestClusterReaderCoverage(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,6 +116,8 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -185,6 +189,8 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 
 func TestAuthorizationResolution(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -373,7 +379,7 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 
 func TestAuthorizationResourceAccessReview(t *testing.T) {
 	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t, "TestAuthorizationResourceAccessReview")
+	defer testutil.DumpEtcdOnFailure(t)
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -567,6 +573,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 
 func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -695,6 +702,8 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 
 func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -979,6 +988,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 // this is needed to support old docker registry images
 func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1106,6 +1117,8 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 // this is needed to support old who-can client
 func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

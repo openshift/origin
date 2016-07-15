@@ -81,6 +81,7 @@ func mockBuild() *buildapi.Build {
 // TestConcurrentBuildControllers tests the transition of a build from new to pending. Ensures that only a single New -> Pending
 // transition happens and that only a single pod is created during a set period of time.
 func TestConcurrentBuildControllers(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple BuildControllers
 	osClient, kClient := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
 
@@ -161,6 +162,7 @@ type buildControllerPodTest struct {
 
 // TestConcurrentBuildPodControllers tests the lifecycle of a build pod when running multiple controllers.
 func TestConcurrentBuildPodControllers(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple BuildPodControllers
 	osClient, kClient := setupBuildControllerTest(controllerCount{BuildPodControllers: 5}, t)
 
@@ -309,6 +311,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 }
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple ImageChangeTrigger controllers
 	osClient, _ := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
 	tag := "latest"
@@ -322,21 +325,25 @@ func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 }
 
 func TestBuildDeleteController(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
 	runBuildDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
 	runBuildRunningPodDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildCompletePodDeleteController(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
 	runBuildCompletePodDeleteTest(t, osClient, kClient)
 }
 
 func TestConcurrentBuildConfigControllers(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	osClient, kClient := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
 	runBuildConfigChangeControllerTest(t, osClient, kClient)
 }

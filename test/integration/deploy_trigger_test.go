@@ -26,6 +26,7 @@ func TestTriggers_manual(t *testing.T) {
 	const namespace = "test-triggers-manual"
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +104,7 @@ func TestTriggers_manual(t *testing.T) {
 // will start a new deployment when an image change happens.
 func TestTriggers_imageChange(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
@@ -208,6 +210,7 @@ waitForNewConfig:
 // trigger will have its image updated without starting a new deployment.
 func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
@@ -353,6 +356,7 @@ out:
 // will start a new deployment iff all images are resolved.
 func TestTriggers_MultipleICTs(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
@@ -508,6 +512,7 @@ func TestTriggers_configChange(t *testing.T) {
 	const namespace = "test-triggers-configchange"
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)

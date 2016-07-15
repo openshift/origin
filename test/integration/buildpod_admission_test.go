@@ -26,6 +26,7 @@ import (
 var buildPodAdmissionTestTimeout time.Duration = 10 * time.Second
 
 func TestBuildDefaultGitHTTPProxy(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	httpProxy := "http://my.test.proxy:12345"
 	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		GitHTTPProxy: httpProxy,
@@ -37,6 +38,7 @@ func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 }
 
 func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	httpsProxy := "https://my.test.proxy:12345"
 	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		GitHTTPSProxy: httpsProxy,
@@ -48,6 +50,7 @@ func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
 }
 
 func TestBuildDefaultEnvironment(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	env := []kapi.EnvVar{
 		{
 			Name:  "VAR1",
@@ -68,6 +71,7 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 }
 
 func TestBuildOverrideForcePull(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
@@ -78,6 +82,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 }
 
 func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ForcePull: true,
 	})

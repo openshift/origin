@@ -67,6 +67,7 @@ func makeMapping(user, identity string) *api.UserIdentityMapping {
 
 func TestUserInitialization(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

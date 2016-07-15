@@ -55,6 +55,7 @@ func TestWebConsoleExtensions(t *testing.T) {
 
 	// Build master config.
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("Failed creating master configuration: %v", err)

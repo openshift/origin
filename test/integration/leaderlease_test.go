@@ -15,6 +15,7 @@ import (
 
 func TestLeaderLeaseAcquire(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	client := testutil.NewEtcdClient()
 
 	key := "/random/key"
@@ -52,6 +53,7 @@ func TestLeaderLeaseAcquire(t *testing.T) {
 
 func TestLeaderLeaseWait(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	client := testutil.NewEtcdClient()
 	key := "/random/key"
 
@@ -93,6 +95,7 @@ func TestLeaderLeaseWait(t *testing.T) {
 
 func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	client := testutil.NewEtcdClient()
 	key := "/random/key"
 
@@ -124,6 +127,7 @@ func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
 
 func TestLeaderLeaseReacquire(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	client := testutil.NewEtcdClient()
 	key := "/random/key"
 

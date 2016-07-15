@@ -34,6 +34,7 @@ import (
 
 func TestImageStreamImport(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -197,6 +198,7 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 	}
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	// start regular HTTP servers
 	requireAuth := false
@@ -318,6 +320,7 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 
 func TestImageStreamImportAuthenticated(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, true, &count))
@@ -484,6 +487,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 // repository.
 func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, false, &count))
@@ -584,6 +588,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 // error occurs writes the error only once (instead of every interval)
 func TestImageStreamImportScheduled(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	written := make(chan struct{}, 1)
 	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -55,6 +55,7 @@ func testOne(t *testing.T, client *kclient.Client, namespace, addrType string, s
 
 func TestEndpointAdmission(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

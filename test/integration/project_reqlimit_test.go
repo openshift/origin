@@ -125,6 +125,7 @@ func projectRequestLimitUsers() map[string]labels.Set {
 }
 
 func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	kclient, oclient, clientConfig := setupProjectRequestLimitTest(t, projectRequestLimitMultiLevelConfig())
 	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
@@ -140,6 +141,7 @@ func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
 }
 
 func TestProjectRequestLimitEmptyConfig(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	kclient, oclient, clientConfig := setupProjectRequestLimitTest(t, projectRequestLimitEmptyConfig())
 	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
@@ -155,6 +157,7 @@ func TestProjectRequestLimitEmptyConfig(t *testing.T) {
 }
 
 func TestProjectRequestLimitSingleConfig(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	kclient, oclient, clientConfig := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
@@ -172,6 +175,7 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 // we had a bug where this failed on ` uenxpected error: metadata.name: Invalid value: "system:admin": may not contain ":"`
 // make sure we never have that bug again and that project limits for them work
 func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	_, oclient, _ := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 
 	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
