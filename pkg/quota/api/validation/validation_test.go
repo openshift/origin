@@ -40,7 +40,7 @@ func TestValidationClusterQuota(t *testing.T) {
 		&quotaapi.ClusterResourceQuota{
 			ObjectMeta: api.ObjectMeta{Name: "good"},
 			Spec: quotaapi.ClusterResourceQuotaSpec{
-				Selector: &unversioned.LabelSelector{MatchLabels: validLabels},
+				Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
 				Quota:    spec,
 			},
 		},
@@ -58,7 +58,7 @@ func TestValidationClusterQuota(t *testing.T) {
 			A: quotaapi.ClusterResourceQuota{
 				ObjectMeta: api.ObjectMeta{Namespace: "bad", Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: &unversioned.LabelSelector{MatchLabels: validLabels},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
 					Quota:    spec,
 				},
 			},
@@ -79,7 +79,7 @@ func TestValidationClusterQuota(t *testing.T) {
 			A: quotaapi.ClusterResourceQuota{
 				ObjectMeta: api.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: &unversioned.LabelSelector{MatchLabels: validLabels},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
 					Quota:    invalidQuotaResourceSpec,
 				},
 			},

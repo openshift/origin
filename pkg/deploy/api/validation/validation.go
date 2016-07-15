@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
+	kapivalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -37,7 +38,11 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 	if spec.Template != nil {
 		podSpec = &spec.Template.Spec
 	}
+
 	allErrs = append(allErrs, validateDeploymentStrategy(&spec.Strategy, podSpec, specPath.Child("strategy"))...)
+	if spec.RevisionHistoryLimit != nil {
+		allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(*spec.RevisionHistoryLimit), specPath.Child("revisionHistoryLimit"))...)
+	}
 	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {

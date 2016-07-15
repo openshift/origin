@@ -198,8 +198,16 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	fi
 	local test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
 
-	local end_time=$(os::cmd::internal::seconds_since_epoch)
-	local time_elapsed=$(echo "scale=3; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
+    if (( ! test_succeeded )); then
+        os::text::print_blue "[DEBUG] Output content test failed. Debugging information follows:"
+        os::text::print_blue "[DEBUG] \${grep_args}=${grep_args}"
+        os::text::print_blue "[DEBUG] \${test_result}=${test_result}"
+        os::text::print_blue "[DEBUG] \${test_eval_func}=${test_eval_func}"
+        os::text::print_blue "[DEBUG] \${test_succeeded}=${test_succeeded}"
+    fi
+
+    local end_time=$(os::cmd::internal::seconds_since_epoch)
+    local time_elapsed=$(echo "scale=3; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
 
     # clear the preamble so we can print out the success or error message
 	os::text::clear_string "${preamble}"

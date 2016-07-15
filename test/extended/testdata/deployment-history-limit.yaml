@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: history-limit
+spec:
+  replicas: 1
+  selector:
+    name: history-limit
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/echo
+          - test pre hook executed
+  template:
+    metadata:
+      labels:
+        name: history-limit
+    spec:
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "100"
+  triggers:
+  - type: ConfigChange
+  revisionHistoryLimit: 3

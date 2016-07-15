@@ -334,6 +334,50 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	}
 }
 
+// TestHandle_unrelatedPodAlreadyExists ensures that attempts to create a
+// deployer pod, when a pod with the same name but missing annotations results
+// a transition to failed.
+func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+
+	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
+	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	deployment.Spec.Replicas = 1
+
+	fake := &ktestclient.Fake{}
+	fake.AddReactor("create", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(ktestclient.CreateAction).GetObject().(*kapi.Pod).Name
+		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
+	})
+	fake.AddReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(ktestclient.UpdateAction).GetObject().(*kapi.ReplicationController)
+		updatedDeployment = rc
+		return true, rc, nil
+	})
+
+	controller := okDeploymentController(fake, deployment, nil, false, kapi.PodRunning)
+
+	if err := controller.Handle(deployment); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, exists := updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; exists {
+		t.Fatalf("deployment updated with pod name annotation")
+	}
+
+	if e, a := deployapi.DeploymentFailedUnrelatedDeploymentExists, deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation]; e != a {
+		t.Errorf("expected reason annotation %s, got %s", e, a)
+	}
+
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Errorf("expected deployment status %s, got %s", e, a)
+	}
+	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
+		t.Errorf("expected failed deployment to be scaled to zero: %d", a)
+	}
+}
+
 // TestHandle_noop ensures that pending, running, and failed states result in
 // no action by the controller (as long as the deployment hasn't been cancelled
 // and the deployer pod status is synced with the deployment status).

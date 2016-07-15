@@ -145,7 +145,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/basicresources/create"
 os::cmd::expect_success 'oc create dc my-nginx --image=nginx'
 os::cmd::expect_success 'oc delete dc my-nginx'
-os::cmd::expect_success 'oc create clusterquota limit-bob --project-selector=openshift.io/requester=user-bob --hard=pods=10'
+os::cmd::expect_success 'oc create clusterquota limit-bob --project-label-selector=openshift.io/requester=user-bob --hard=pods=10'
 os::cmd::expect_success 'oc delete clusterquota/limit-bob'
 echo "create subcommands: ok"
 os::test::junit::declare_suite_end
@@ -261,6 +261,15 @@ os::cmd::expect_success 'oc create -f test/testdata/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
 echo "expose: ok"
+os::test::junit::declare_suite_end
+
+# Test that resource printer includes resource kind on multiple resources
+os::test::junit::declare_suite_start "cmd/basicresources/get"
+os::cmd::expect_success 'oc create imagestream test1'
+os::cmd::expect_success 'oc new-app node'
+os::cmd::expect_success_and_text 'oc get all' 'is/test1'
+os::cmd::expect_success_and_not_text 'oc get is' 'is/test1'
+echo "resource printer: ok"
 os::test::junit::declare_suite_end
 
 # Test OAuth access token describer

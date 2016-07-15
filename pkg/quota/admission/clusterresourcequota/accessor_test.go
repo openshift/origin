@@ -6,7 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/controller/framework"
@@ -188,7 +187,7 @@ func TestGetQuota(t *testing.T) {
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
 				mapper.namespaceToQuota["foo"] = sets.NewString("user-one")
-				mapper.namespaceToLabels["foo"] = map[string]string{"two": "bravo"}
+				mapper.namespaceToSelectionFields["foo"] = clusterquotamapping.SelectionFields{Labels: map[string]string{"two": "bravo"}}
 				return mapper
 			},
 			requestedNamespace: "foo",
@@ -206,9 +205,9 @@ func TestGetQuota(t *testing.T) {
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
 				mapper.namespaceToQuota["foo"] = sets.NewString()
-				mapper.namespaceToLabels["foo"] = map[string]string{"one": "alfa"}
+				mapper.namespaceToSelectionFields["foo"] = clusterquotamapping.SelectionFields{Labels: map[string]string{"one": "alfa"}}
 				mapper.namespaceToQuota["bar"] = sets.NewString("user-one")
-				mapper.namespaceToLabels["bar"] = map[string]string{"two": "bravo"}
+				mapper.namespaceToSelectionFields["bar"] = clusterquotamapping.SelectionFields{Labels: map[string]string{"two": "bravo"}}
 				return mapper
 			},
 			requestedNamespace: "foo",
@@ -251,7 +250,7 @@ func TestGetQuota(t *testing.T) {
 			mapperFunc: func() clusterquotamapping.ClusterQuotaMapper {
 				mapper := newFakeClusterQuotaMapper()
 				mapper.namespaceToQuota["foo"] = sets.NewString("user-one")
-				mapper.namespaceToLabels["foo"] = map[string]string{"one": "alfa"}
+				mapper.namespaceToSelectionFields["foo"] = clusterquotamapping.SelectionFields{Labels: map[string]string{"one": "alfa"}}
 				return mapper
 			},
 			requestedNamespace: "foo",
@@ -344,8 +343,8 @@ func TestGetQuota(t *testing.T) {
 }
 
 type fakeClusterQuotaMapper struct {
-	quotaToSelector   map[string]*unversioned.LabelSelector
-	namespaceToLabels map[string]map[string]string
+	quotaToSelector            map[string]quotaapi.ClusterResourceQuotaSelector
+	namespaceToSelectionFields map[string]clusterquotamapping.SelectionFields
 
 	quotaToNamespaces map[string]sets.String
 	namespaceToQuota  map[string]sets.String
@@ -353,17 +352,17 @@ type fakeClusterQuotaMapper struct {
 
 func newFakeClusterQuotaMapper() *fakeClusterQuotaMapper {
 	return &fakeClusterQuotaMapper{
-		quotaToSelector:   map[string]*unversioned.LabelSelector{},
-		namespaceToLabels: map[string]map[string]string{},
-		quotaToNamespaces: map[string]sets.String{},
-		namespaceToQuota:  map[string]sets.String{},
+		quotaToSelector:            map[string]quotaapi.ClusterResourceQuotaSelector{},
+		namespaceToSelectionFields: map[string]clusterquotamapping.SelectionFields{},
+		quotaToNamespaces:          map[string]sets.String{},
+		namespaceToQuota:           map[string]sets.String{},
 	}
 }
 
-func (m *fakeClusterQuotaMapper) GetClusterQuotasFor(namespaceName string) ([]string, map[string]string) {
-	return m.namespaceToQuota[namespaceName].List(), m.namespaceToLabels[namespaceName]
+func (m *fakeClusterQuotaMapper) GetClusterQuotasFor(namespaceName string) ([]string, clusterquotamapping.SelectionFields) {
+	return m.namespaceToQuota[namespaceName].List(), m.namespaceToSelectionFields[namespaceName]
 }
-func (m *fakeClusterQuotaMapper) GetNamespacesFor(quotaName string) ([]string, *unversioned.LabelSelector) {
+func (m *fakeClusterQuotaMapper) GetNamespacesFor(quotaName string) ([]string, quotaapi.ClusterResourceQuotaSelector) {
 	return m.quotaToNamespaces[quotaName].List(), m.quotaToSelector[quotaName]
 }
 func (m *fakeClusterQuotaMapper) AddListener(listener clusterquotamapping.MappingChangeListener) {}

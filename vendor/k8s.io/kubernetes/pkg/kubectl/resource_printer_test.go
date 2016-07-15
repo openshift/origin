@@ -163,6 +163,23 @@ func TestBadPrinter(t *testing.T) {
 	}
 }
 
+func TestFormatResourceName(t *testing.T) {
+	tests := []struct {
+		kind, name string
+		want       string
+	}{
+		{"", "", ""},
+		{"", "name", "name"},
+		{"kind", "", "kind/"}, // should not happen in practice
+		{"kind", "name", "kind/name"},
+	}
+	for _, tt := range tests {
+		if got := formatResourceName(tt.kind, tt.name, true); got != tt.want {
+			t.Errorf("formatResourceName(%q, %q) = %q, want %q", tt.kind, tt.name, got, tt.want)
+		}
+	}
+}
+
 func testPrinter(t *testing.T, printer ResourcePrinter, unmarshalFunc func(data []byte, v interface{}) error) {
 	buf := bytes.NewBuffer([]byte{})
 
@@ -216,7 +233,12 @@ func TestJSONPrinter(t *testing.T) {
 }
 
 func PrintCustomType(obj *TestPrintType, w io.Writer, options PrintOptions) error {
-	_, err := fmt.Fprintf(w, "%s", obj.Data)
+	data := obj.Data
+	kind := options.Kind
+	if options.WithKind {
+		data = kind + "/" + data
+	}
+	_, err := fmt.Fprintf(w, "%s", data)
 	return err
 }
 
@@ -226,7 +248,7 @@ func ErrorPrintHandler(obj *TestPrintType, w io.Writer, options PrintOptions) er
 
 func TestCustomTypePrinting(t *testing.T) {
 	columns := []string{"Data"}
-	printer := NewHumanReadablePrinter(false, false, false, false, false, false, []string{})
+	printer := NewHumanReadablePrinter(nil)
 	printer.Handler(columns, PrintCustomType)
 
 	obj := TestPrintType{"test object"}
@@ -241,9 +263,26 @@ func TestCustomTypePrinting(t *testing.T) {
 	}
 }
 
+func TestCustomTypePrintingWithKind(t *testing.T) {
+	columns := []string{"Data"}
+	printer := NewHumanReadablePrinter(&PrintOptions{WithKind: true, Kind: "test"})
+	printer.Handler(columns, PrintCustomType)
+
+	obj := TestPrintType{"test object"}
+	buffer := &bytes.Buffer{}
+	err := printer.PrintObj(&obj, buffer)
+	if err != nil {
+		t.Fatalf("An error occurred printing the custom type: %#v", err)
+	}
+	expectedOutput := "Data\ntest/test object"
+	if buffer.String() != expectedOutput {
+		t.Errorf("The data was not printed as expected. Expected:\n%s\nGot:\n%s", expectedOutput, buffer.String())
+	}
+}
+
 func TestPrintHandlerError(t *testing.T) {
 	columns := []string{"Data"}
-	printer := NewHumanReadablePrinter(false, false, false, false, false, false, []string{})
+	printer := NewHumanReadablePrinter(nil)
 	printer.Handler(columns, ErrorPrintHandler)
 	obj := TestPrintType{"test object"}
 	buffer := &bytes.Buffer{}
@@ -254,7 +293,7 @@ func TestPrintHandlerError(t *testing.T) {
 }
 
 func TestUnknownTypePrinting(t *testing.T) {
-	printer := NewHumanReadablePrinter(false, false, false, false, false, false, []string{})
+	printer := NewHumanReadablePrinter(nil)
 	buffer := &bytes.Buffer{}
 	err := printer.PrintObj(&TestUnknownType{}, buffer)
 	if err == nil {
@@ -458,8 +497,8 @@ func TestPrinters(t *testing.T) {
 		t.Fatal(err)
 	}
 	printers := map[string]ResourcePrinter{
-		"humanReadable":        NewHumanReadablePrinter(true, false, false, false, false, false, []string{}),
-		"humanReadableHeaders": NewHumanReadablePrinter(false, false, false, false, false, false, []string{}),
+		"humanReadable":        NewHumanReadablePrinter(&PrintOptions{NoHeaders: true}),
+		"humanReadableHeaders": NewHumanReadablePrinter(nil),
 		"json":                 &JSONPrinter{},
 		"yaml":                 &YAMLPrinter{},
 		"template":             templatePrinter,
@@ -502,7 +541,7 @@ func TestPrinters(t *testing.T) {
 
 func TestPrintEventsResultSorted(t *testing.T) {
 	// Arrange
-	printer := NewHumanReadablePrinter(false /* noHeaders */, false, false, false, false, false, []string{})
+	printer := NewHumanReadablePrinter(nil)
 
 	obj := api.EventList{
 		Items: []api.Event{
@@ -546,7 +585,7 @@ func TestPrintEventsResultSorted(t *testing.T) {
 }
 
 func TestPrintNodeStatus(t *testing.T) {
-	printer := NewHumanReadablePrinter(false, false, false, false, false, false, []string{})
+	printer := NewHumanReadablePrinter(nil)
 	table := []struct {
 		node   api.Node
 		status string
@@ -670,7 +709,7 @@ func TestPrintHunmanReadableIngressWithColumnLabels(t *testing.T) {
 		},
 	}
 	buff := bytes.Buffer{}
-	printIngress(&ingress, &buff, PrintOptions{false, false, false, false, false, false, []string{"app_name"}})
+	printIngress(&ingress, &buff, PrintOptions{ColumnLabels: []string{"app_name"}})
 	output := string(buff.Bytes())
 	appName := ingress.ObjectMeta.Labels["app_name"]
 	if !strings.Contains(output, appName) {
@@ -754,7 +793,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 		},
 		{
 			Spec: api.ServiceSpec{
-				ClusterIP: "1.5.6.7",
+				ClusterIP: "1.2.3.4",
 				Type:      "LoadBalancer",
 				Ports: []api.ServicePort{
 					{
@@ -793,7 +832,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 	for _, svc := range tests {
 		for _, wide := range []bool{false, true} {
 			buff := bytes.Buffer{}
-			printService(&svc, &buff, PrintOptions{false, false, wide, false, false, false, []string{}})
+			printService(&svc, &buff, PrintOptions{Wide: wide})
 			output := string(buff.Bytes())
 			ip := svc.Spec.ClusterIP
 			if !strings.Contains(output, ip) {
@@ -977,7 +1016,7 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 	for _, test := range table {
 		if test.isNamespaced {
 			// Expect output to include namespace when requested.
-			printer := NewHumanReadablePrinter(false, true, false, false, false, false, []string{})
+			printer := NewHumanReadablePrinter(&PrintOptions{WithNamespace: true})
 			buffer := &bytes.Buffer{}
 			err := printer.PrintObj(test.obj, buffer)
 			if err != nil {
@@ -989,7 +1028,7 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 			}
 		} else {
 			// Expect error when trying to get all namespaces for un-namespaced object.
-			printer := NewHumanReadablePrinter(false, true, false, false, false, false, []string{})
+			printer := NewHumanReadablePrinter(&PrintOptions{WithNamespace: true})
 			buffer := &bytes.Buffer{}
 			err := printer.PrintObj(test.obj, buffer)
 			if err == nil {
@@ -1084,7 +1123,7 @@ func TestPrintPod(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, PrintOptions{false, false, false, true, false, false, []string{}})
+		printPod(&test.pod, buf, PrintOptions{Wide: true})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.expect) {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
@@ -1177,7 +1216,7 @@ func TestPrintNonTerminatedPod(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, PrintOptions{false, false, false, false, false, false, []string{}})
+		printPod(&test.pod, buf, PrintOptions{})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.expect) {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
@@ -1237,7 +1276,7 @@ func TestPrintPodWithLabels(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, PrintOptions{false, false, false, false, false, false, test.labelColumns})
+		printPod(&test.pod, buf, PrintOptions{ColumnLabels: test.labelColumns})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.startsWith) || !strings.HasSuffix(buf.String(), test.endsWith) {
 			t.Fatalf("Expected to start with: %s and end with: %s, but got: %s", test.startsWith, test.endsWith, buf.String())
@@ -1301,7 +1340,7 @@ func TestPrintDeployment(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printDeployment(&test.deployment, buf, PrintOptions{false, false, false, true, false, false, []string{}})
+		printDeployment(&test.deployment, buf, PrintOptions{ShowAll: true})
 		if buf.String() != test.expect {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
 		}
@@ -1336,7 +1375,7 @@ func TestPrintDaemonSet(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printDaemonSet(&test.ds, buf, PrintOptions{false, false, false, false, false, false, []string{}})
+		printDaemonSet(&test.ds, buf, PrintOptions{})
 		if !strings.HasPrefix(buf.String(), test.startsWith) {
 			t.Fatalf("Expected to start with %s but got %s", test.startsWith, buf.String())
 		}
@@ -1384,7 +1423,7 @@ func TestPrintJob(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printJob(&test.job, buf, PrintOptions{false, false, false, true, false, false, []string{}})
+		printJob(&test.job, buf, PrintOptions{ShowAll: true})
 		if buf.String() != test.expect {
 			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
 		}
@@ -1443,7 +1482,7 @@ func TestPrintPodShowLabels(t *testing.T) {
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, test := range tests {
-		printPod(&test.pod, buf, PrintOptions{false, false, false, false, test.showLabels, false, []string{}})
+		printPod(&test.pod, buf, PrintOptions{ShowLabels: test.showLabels})
 		// We ignore time
 		if !strings.HasPrefix(buf.String(), test.startsWith) || !strings.HasSuffix(buf.String(), test.endsWith) {
 			t.Fatalf("Expected to start with: %s and end with: %s, but got: %s", test.startsWith, test.endsWith, buf.String())

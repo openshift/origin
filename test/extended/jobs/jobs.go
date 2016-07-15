@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 )
 
-var _ = g.Describe("[job] openshift can execute jobs", func() {
+var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
 	defer g.GinkgoRecover()
 	oc := exeutil.NewCLI("job-controller", exeutil.KubeConfigPath())
 

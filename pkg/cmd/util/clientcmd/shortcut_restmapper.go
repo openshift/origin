@@ -125,3 +125,17 @@ func expandResourceShortcut(resource unversioned.GroupVersionResource) unversion
 	}
 	return resource
 }
+
+// resourceShortFormFor looks up for a short form of resource names.
+func resourceShortFormFor(resource string) (string, bool) {
+	var alias string
+	exists := false
+	for k, val := range shortForms {
+		if val == resource {
+			alias = k
+			exists = true
+			break
+		}
+	}
+	return alias, exists
+}

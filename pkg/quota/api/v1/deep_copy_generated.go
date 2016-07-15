@@ -17,6 +17,7 @@ func init() {
 		DeepCopy_v1_AppliedClusterResourceQuotaList,
 		DeepCopy_v1_ClusterResourceQuota,
 		DeepCopy_v1_ClusterResourceQuotaList,
+		DeepCopy_v1_ClusterResourceQuotaSelector,
 		DeepCopy_v1_ClusterResourceQuotaSpec,
 		DeepCopy_v1_ClusterResourceQuotaStatus,
 		DeepCopy_v1_ResourceQuotaStatusByNamespace,
@@ -100,15 +101,31 @@ func DeepCopy_v1_ClusterResourceQuotaList(in ClusterResourceQuotaList, out *Clus
 	return nil
 }
 
-func DeepCopy_v1_ClusterResourceQuotaSpec(in ClusterResourceQuotaSpec, out *ClusterResourceQuotaSpec, c *conversion.Cloner) error {
-	if in.Selector != nil {
-		in, out := in.Selector, &out.Selector
+func DeepCopy_v1_ClusterResourceQuotaSelector(in ClusterResourceQuotaSelector, out *ClusterResourceQuotaSelector, c *conversion.Cloner) error {
+	if in.LabelSelector != nil {
+		in, out := in.LabelSelector, &out.LabelSelector
 		*out = new(unversioned.LabelSelector)
 		if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
 			return err
 		}
 	} else {
-		out.Selector = nil
+		out.LabelSelector = nil
+	}
+	if in.AnnotationSelector != nil {
+		in, out := in.AnnotationSelector, &out.AnnotationSelector
+		*out = make(map[string]string)
+		for key, val := range in {
+			(*out)[key] = val
+		}
+	} else {
+		out.AnnotationSelector = nil
+	}
+	return nil
+}
+
+func DeepCopy_v1_ClusterResourceQuotaSpec(in ClusterResourceQuotaSpec, out *ClusterResourceQuotaSpec, c *conversion.Cloner) error {
+	if err := DeepCopy_v1_ClusterResourceQuotaSelector(in.Selector, &out.Selector, c); err != nil {
+		return err
 	}
 	if err := api_v1.DeepCopy_v1_ResourceQuotaSpec(in.Quota, &out.Quota, c); err != nil {
 		return err

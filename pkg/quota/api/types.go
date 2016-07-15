@@ -23,24 +23,35 @@ type ClusterResourceQuota struct {
 
 // ClusterResourceQuotaSpec defines the desired quota restrictions
 type ClusterResourceQuotaSpec struct {
-	// Selector is the label selector used to match projects.  It is not allowed to be empty
-	// and should only select active projects on the scale of dozens (though it can select
+	// Selector is the selector used to match projects.
+	// It should only select active projects on the scale of dozens (though it can select
 	// many more less active projects).  These projects will contend on object creation through
 	// this resource.
-	Selector *unversioned.LabelSelector
+	Selector ClusterResourceQuotaSelector
 
 	// Quota defines the desired quota
 	Quota kapi.ResourceQuotaSpec
 }
 
+// ClusterResourceQuotaSelector is used to select projects.  At least one of LabelSelector or AnnotationSelector
+// must present.  If only one is present, it is the only selection criteria.  If both are specified,
+// the project must match both restrictions.
+type ClusterResourceQuotaSelector struct {
+	// LabelSelector is used to select projects by label.
+	LabelSelector *unversioned.LabelSelector
+
+	// AnnotationSelector is used to select projects by annotation.
+	AnnotationSelector map[string]string
+}
+
 // ClusterResourceQuotaStatus defines the actual enforced quota and its current usage
 type ClusterResourceQuotaStatus struct {
-	// Total defines the actual enforced quota and its current usage across all namespaces
+	// Total defines the actual enforced quota and its current usage across all projects
 	Total kapi.ResourceQuotaStatus
 
-	// Namespaces slices the usage by namespace.  This division allows for quick resolution of
-	// deletion reconcilation inside of a single namespace without requiring a recalculation
-	// across all namespaces.  This map can be used to pull the deltas for a given namespace.
+	// Namespaces slices the usage by project.  This division allows for quick resolution of
+	// deletion reconcilation inside of a single project without requiring a recalculation
+	// across all projects.  This map can be used to pull the deltas for a given project.
 	Namespaces ResourceQuotasStatusByNamespace
 }
 
@@ -54,8 +65,8 @@ type ClusterResourceQuotaList struct {
 	Items []ClusterResourceQuota
 }
 
-// AppliedClusterResourceQuota mirrors ClusterResourceQuota at a namespace scope, for projection
-// into a namespace.  It allows a project-admin to know which ClusterResourceQuotas are applied to
+// AppliedClusterResourceQuota mirrors ClusterResourceQuota at a project scope, for projection
+// into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to
 // his project and their associated usage.
 type AppliedClusterResourceQuota struct {
 	unversioned.TypeMeta
