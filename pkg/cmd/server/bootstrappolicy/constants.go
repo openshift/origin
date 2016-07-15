@@ -57,6 +57,7 @@ const (
 	AdminRoleName           = "admin"
 	EditRoleName            = "edit"
 	ViewRoleName            = "view"
+	QuotaManagerRoleName    = "quota-manager"
 	SelfProvisionerRoleName = "self-provisioner"
 	BasicUserRoleName       = "basic-user"
 	StatusCheckerRoleName   = "cluster-status"

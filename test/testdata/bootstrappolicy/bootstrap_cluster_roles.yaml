@@ -451,6 +451,28 @@ items:
     verbs:
     - impersonate
   - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resourceNames:
+    - project-quota-01
+    - project-quota-02
+    - project-quota-03
+    - project-quota-04
+    - project-quota-05
+    - project-quota-06
+    - project-quota-07
+    - project-quota-08
+    - project-quota-09
+    - project-quota-10
+    resources:
+    - resourcequotas
+    verbs:
+    - create
+    - delete
+    - get
+    - patch
+    - update
+  - apiGroups:
     - autoscaling
     attributeRestrictions: null
     resources:
@@ -1246,6 +1268,50 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: quota-manager
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotas
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resourceNames:
+    - project-quota-01
+    - project-quota-02
+    - project-quota-03
+    - project-quota-04
+    - project-quota-05
+    - project-quota-06
+    - project-quota-07
+    - project-quota-08
+    - project-quota-09
+    - project-quota-10
+    resources:
+    - resourcequotas
+    verbs:
+    - create
+    - delete
+    - get
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: basic-user
   rules:
   - apiGroups:
@@ -1906,6 +1972,37 @@ items:
     creationTimestamp: null
     name: registry-admin
   rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotas
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resourceNames:
+    - project-quota-01
+    - project-quota-02
+    - project-quota-03
+    - project-quota-04
+    - project-quota-05
+    - project-quota-06
+    - project-quota-07
+    - project-quota-08
+    - project-quota-09
+    - project-quota-10
+    resources:
+    - resourcequotas
+    verbs:
+    - create
+    - delete
+    - get
+    - patch
+    - update
   - apiGroups:
     - ""
     attributeRestrictions: null

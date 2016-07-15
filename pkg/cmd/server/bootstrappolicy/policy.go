@@ -215,6 +215,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
 				authorizationapi.NewRule("impersonate").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 
+				// project level roles are allowed to modify some resourcequota documents by default to constrain their projects.  They cannot touch all of them
+				// because allowing that would prevent a cluster-admin from constraining projects
+				authorizationapi.NewRule("get", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("resourcequotas").Names(
+					"project-quota-01", "project-quota-02", "project-quota-03", "project-quota-04", "project-quota-05",
+					"project-quota-06", "project-quota-07", "project-quota-08", "project-quota-09", "project-quota-10").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
@@ -346,6 +352,23 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotausages").RuleOrDie(),
 			},
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: QuotaManagerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotas").RuleOrDie(),
+				// project level roles are allowed to modify some resourcequota documents by default to constrain their projects.  They cannot touch all of them
+				// because allowing that would prevent a cluster-admin from constraining projects
+				authorizationapi.NewRule("get", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("resourcequotas").Names(
+					"project-quota-01", "project-quota-02", "project-quota-03", "project-quota-04", "project-quota-05",
+					"project-quota-06", "project-quota-07", "project-quota-08", "project-quota-09", "project-quota-10").RuleOrDie(),
+
+				// should should be able to see projects you can control quota in.
+				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			},
+		},
+
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: BasicUserRoleName,
@@ -616,6 +639,13 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: RegistryAdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("resourcequotas").RuleOrDie(),
+				// project level roles are allowed to modify some resourcequota documents by default to constrain their projects.  They cannot touch all of them
+				// because allowing that would prevent a cluster-admin from constraining projects
+				authorizationapi.NewRule("get", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("resourcequotas").Names(
+					"project-quota-01", "project-quota-02", "project-quota-03", "project-quota-04", "project-quota-05",
+					"project-quota-06", "project-quota-07", "project-quota-08", "project-quota-09", "project-quota-10").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),

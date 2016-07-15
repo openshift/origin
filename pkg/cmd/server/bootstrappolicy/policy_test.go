@@ -103,6 +103,7 @@ func TestCovers(t *testing.T) {
 	var registryAdmin *authorizationapi.ClusterRole
 	var registryEditor *authorizationapi.ClusterRole
 	var registryViewer *authorizationapi.ClusterRole
+	var quotaManager *authorizationapi.ClusterRole
 
 	for i := range allRoles {
 		role := allRoles[i]
@@ -119,6 +120,8 @@ func TestCovers(t *testing.T) {
 			registryEditor = &role
 		case bootstrappolicy.RegistryViewerRoleName:
 			registryViewer = &role
+		case bootstrappolicy.QuotaManagerRoleName:
+			quotaManager = &role
 		}
 	}
 
@@ -138,6 +141,13 @@ func TestCovers(t *testing.T) {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryViewer.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+
+	if covers, miss := rulevalidation.Covers(admin.Rules, quotaManager.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, quotaManager.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 }
