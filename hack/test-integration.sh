@@ -107,7 +107,7 @@ export -f exectest
 export testexec
 export childargs
 
-loop="${TIMES:-1}"
+loop="${TIMES:-100}"
 pushd "./${package}" &>/dev/null
 # $1 is passed to grep -E to filter the list of tests; this may be the name of a single test,
 # a fragment of a test name, or a regular expression.
@@ -117,7 +117,7 @@ pushd "./${package}" &>/dev/null
 # hack/test-integration.sh WatchBuilds
 # hack/test-integration.sh Template*
 # hack/test-integration.sh "(WatchBuilds|Template)"
-tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | grep -E "${1-Test}") )
+tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | grep -E "${1-TestBootstrapRoles}") )
 # run each test as its own process
 ret=0
 for test in "${tests[@]}"; do

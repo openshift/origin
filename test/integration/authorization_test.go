@@ -371,6 +371,30 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 	}
 }
 
+func TestBootstrapRoles(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t, "TestBootstrapRoles")
+
+	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	list, err := clusterAdminClient.ClusterRoles().List(kapi.ListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(list.Items) != 48 {
+		t.Fatalf("expected 48, got %v", len(list.Items))
+	}
+}
+
 func TestAuthorizationResourceAccessReview(t *testing.T) {
 	testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t, "TestAuthorizationResourceAccessReview")
