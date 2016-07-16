@@ -23,5 +23,6 @@ middleware:
         pullthrough: true
         enforcequota: false
         projectcachettl: 1m
+        blobrepositorycachettl: 10m
   storage:
     - name: openshift
