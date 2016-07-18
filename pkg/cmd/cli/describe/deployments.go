@@ -83,10 +83,6 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)
 		fmt.Fprintln(out)
 
-		if deploymentConfig.Status.Details != nil && len(deploymentConfig.Status.Details.Message) > 0 {
-			fmt.Fprintf(out, "Warning:\t%s\n", deploymentConfig.Status.Details.Message)
-		}
-
 		deploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
 		deployment, err := d.kubeClient.ReplicationControllers(namespace).Get(deploymentName)
 		if err != nil {
