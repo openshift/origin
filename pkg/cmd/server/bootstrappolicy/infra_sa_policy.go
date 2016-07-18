@@ -60,6 +60,9 @@ const (
 
 	InfraEndpointControllerServiceAccountName = "endpoint-controller"
 	EndpointControllerRoleName                = "system:endpoint-controller"
+
+	InfraServiceIngressIPControllerServiceAccountName = "service-ingress-ip-controller"
+	ServiceIngressIPControllerRoleName                = "system:service-ingress-ip-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -758,6 +761,43 @@ func init() {
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("create"),
 					Resources: sets.NewString("endpoints/restricted"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraServiceIngressIPControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ServiceIngressIPControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Listing and watching services
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("services"),
+				},
+				// IngressIPController.persistSpec changes the spec of the service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("services"),
+				},
+				// IngressIPController.persistStatus changes the status of the service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("services/status"),
+				},
+				// IngressIPController.recorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},

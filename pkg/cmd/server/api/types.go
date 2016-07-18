@@ -450,6 +450,11 @@ type MasterNetworkConfig struct {
 	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
 	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
 	ExternalIPNetworkCIDRs []string
+	// IngressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare
+	// metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from.
+	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
+	// nodes, pods, or services.
+	IngressIPNetworkCIDR string
 }
 
 type ImageConfig struct {

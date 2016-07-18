@@ -199,6 +199,7 @@ networkConfig:
   clusterNetworkCIDR: ""
   externalIPNetworkCIDRs: null
   hostSubnetLength: 0
+  ingressIPNetworkCIDR: ""
   networkPluginName: ""
   serviceNetworkCIDR: ""
 oauthConfig:

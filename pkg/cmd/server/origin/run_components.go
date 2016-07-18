@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
+	"github.com/openshift/origin/pkg/service/controller/ingressip"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -61,6 +62,8 @@ const (
 
 	// from CMServer MinResyncPeriod
 	defaultReplenishmentSyncPeriod time.Duration = 12 * time.Hour
+
+	defaultIngressIPSyncPeriod time.Duration = 10 * time.Minute
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -515,4 +518,20 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	controller := clusterquotareconciliation.NewClusterQuotaReconcilationController(options)
 	c.ClusterQuotaMappingController.GetClusterQuotaMapper().AddListener(controller)
 	go controller.Run(5, utilwait.NeverStop)
+}
+
+// RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
+func (c *MasterConfig) RunIngressIPController(client *kclient.Client) {
+	// TODO need to disallow if a cloud provider is configured
+	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+		return
+	}
+
+	_, ipNet, err := net.ParseCIDR(c.Options.NetworkConfig.IngressIPNetworkCIDR)
+	if err != nil {
+		// should have been caught with validation
+		glog.Fatalf("Unable to start ingress ip controller: %v", err)
+	}
+	ingressIPController := ingressip.NewIngressIPController(client, ipNet, defaultIngressIPSyncPeriod)
+	go ingressIPController.Run(utilwait.NeverStop)
 }
