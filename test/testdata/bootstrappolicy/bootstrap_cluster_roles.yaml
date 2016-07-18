@@ -220,15 +220,8 @@ items:
     attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
     - clusterresourcequotas
+    - clusterresourcequotas/status
     verbs:
     - get
     - list

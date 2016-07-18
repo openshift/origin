@@ -291,8 +291,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		return kutilerrors.NewAggregate(reconcilationErrors), retryItems
 	}
 
-	// TODO separate out status updating
-	if _, err := c.clusterQuotaClient.ClusterResourceQuotas().Update(quota); err != nil {
+	if _, err := c.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(quota); err != nil {
 		return kutilerrors.NewAggregate(append(reconcilationErrors, err)), workItems
 	}
 

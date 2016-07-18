@@ -24,7 +24,6 @@ func (strategy) NamespaceScoped() bool {
 	return false
 }
 
-// AllowCreateOnUpdate is false for policies.
 func (strategy) AllowCreateOnUpdate() bool {
 	return false
 }
@@ -37,14 +36,17 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
-	_ = obj.(*quotaapi.ClusterResourceQuota)
+	quota := obj.(*quotaapi.ClusterResourceQuota)
+	quota.Status = quotaapi.ClusterResourceQuotaStatus{}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
-	_ = obj.(*quotaapi.ClusterResourceQuota)
+	curr := obj.(*quotaapi.ClusterResourceQuota)
+	prev := old.(*quotaapi.ClusterResourceQuota)
+
+	curr.Status = prev.Status
 }
 
 // Canonicalize normalizes the object after validation.
@@ -72,4 +74,47 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 			return labels.Set(quota.ObjectMeta.Labels), quotaapi.ClusterResourceQuotaToSelectableFields(quota), nil
 		},
 	}
+}
+
+type statusStrategy struct {
+	runtime.ObjectTyper
+}
+
+var StatusStrategy = statusStrategy{kapi.Scheme}
+
+func (statusStrategy) NamespaceScoped() bool {
+	return false
+}
+
+func (statusStrategy) AllowCreateOnUpdate() bool {
+	return false
+}
+
+func (statusStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
+func (statusStrategy) GenerateName(base string) string {
+	return base
+}
+
+func (statusStrategy) PrepareForCreate(obj runtime.Object) {
+}
+
+func (statusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	curr := obj.(*quotaapi.ClusterResourceQuota)
+	prev := old.(*quotaapi.ClusterResourceQuota)
+
+	curr.Spec = prev.Spec
+}
+
+func (statusStrategy) Canonicalize(obj runtime.Object) {
+}
+
+func (statusStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+	return validation.ValidateClusterResourceQuota(obj.(*quotaapi.ClusterResourceQuota))
+}
+
+func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateClusterResourceQuotaUpdate(obj.(*quotaapi.ClusterResourceQuota), old.(*quotaapi.ClusterResourceQuota))
 }
