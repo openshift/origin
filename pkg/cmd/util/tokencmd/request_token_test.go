@@ -11,10 +11,31 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
+type unloadableNegotiator struct {
+	releaseCalls int
+}
+
+func (n *unloadableNegotiator) Load() error {
+	return errors.New("Load failed")
+}
+func (n *unloadableNegotiator) InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error) {
+	return nil, errors.New("InitSecContext failed")
+}
+func (n *unloadableNegotiator) IsComplete() bool {
+	return false
+}
+func (n *unloadableNegotiator) Release() error {
+	n.releaseCalls++
+	return errors.New("Release failed")
+}
+
 type failingNegotiator struct {
 	releaseCalls int
 }
 
+func (n *failingNegotiator) Load() error {
+	return nil
+}
 func (n *failingNegotiator) InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error) {
 	return nil, errors.New("InitSecContext failed")
 }
@@ -29,9 +50,14 @@ func (n *failingNegotiator) Release() error {
 type successfulNegotiator struct {
 	rounds              int
 	initSecContextCalls int
+	loadCalls           int
 	releaseCalls        int
 }
 
+func (n *successfulNegotiator) Load() error {
+	n.loadCalls++
+	return nil
+}
 func (n *successfulNegotiator) InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error) {
 	n.initSecContextCalls++
 
@@ -91,6 +117,10 @@ func TestRequestToken(t *testing.T) {
 					t.Errorf("%s: expected one call to Release(), saw %d", test, negotiator.releaseCalls)
 				}
 			case *failingNegotiator:
+				if negotiator.releaseCalls != 1 {
+					t.Errorf("%s: expected one call to Release(), saw %d", test, negotiator.releaseCalls)
+				}
+			case *unloadableNegotiator:
 				if negotiator.releaseCalls != 1 {
 					t.Errorf("%s: expected one call to Release(), saw %d", test, negotiator.releaseCalls)
 				}
@@ -253,6 +283,29 @@ func TestRequestToken(t *testing.T) {
 				{negotiateRequest1, success},
 			},
 			ExpectedError: "client requires final negotiate token, none provided",
+		},
+
+		// Unloadable negotiate handler
+		"unloadable negotiate handler, no challenge, success": {
+			Handler: &NegotiateChallengeHandler{negotiater: &unloadableNegotiator{}},
+			Requests: []requestResponse{
+				{initialRequest, success},
+			},
+			ExpectedToken: successfulToken,
+		},
+		"unloadable negotiate handler, negotiate challenge, failure": {
+			Handler: &NegotiateChallengeHandler{negotiater: &unloadableNegotiator{}},
+			Requests: []requestResponse{
+				{initialRequest, negotiateChallenge1},
+			},
+			ExpectedError: "unhandled challenge",
+		},
+		"unloadable negotiate handler, basic challenge, failure": {
+			Handler: &NegotiateChallengeHandler{negotiater: &unloadableNegotiator{}},
+			Requests: []requestResponse{
+				{initialRequest, basicChallenge1},
+			},
+			ExpectedError: "unhandled challenge",
 		},
 
 		// Failing negotiate handler

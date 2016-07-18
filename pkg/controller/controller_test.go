@@ -121,7 +121,7 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 		return obj.(testObj).id, nil
 	}
 
-	fifo := kcache.NewFIFO(keyFunc)
+	fifo := kcache.NewResyncableFIFO(keyFunc)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -163,7 +163,7 @@ func TestRetryController_ratelimit(t *testing.T) {
 	keyFunc := func(obj interface{}) (string, error) {
 		return "key", nil
 	}
-	fifo := kcache.NewFIFO(keyFunc)
+	fifo := kcache.NewResyncableFIFO(keyFunc)
 	limiter := &mockLimiter{}
 	retryManager := NewQueueRetryManager(fifo,
 		keyFunc,

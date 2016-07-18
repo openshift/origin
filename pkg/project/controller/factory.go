@@ -33,7 +33,7 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 			return factory.KubeClient.Namespaces().Watch(options)
 		},
 	}
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(namespaceLW, &kapi.Namespace{}, queue, 1*time.Minute).Run()
 
 	namespaceController := &NamespaceController{
