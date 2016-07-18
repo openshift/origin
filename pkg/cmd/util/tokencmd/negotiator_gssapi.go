@@ -49,6 +49,11 @@ func NewGSSAPINegotiator(principalName string) Negotiater {
 	return &gssapiNegotiator{principalName: principalName}
 }
 
+func (g *gssapiNegotiator) Load() error {
+	_, err := g.loadLib()
+	return err
+}
+
 func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error) {
 	lib, err := g.loadLib()
 	if err != nil {

@@ -14,6 +14,9 @@ func NewGSSAPINegotiator(principalName string) Negotiater {
 	return &gssapiUnsupported{}
 }
 
+func (g *gssapiUnsupported) Load() error {
+	return errors.New("GSSAPI support is not enabled")
+}
 func (g *gssapiUnsupported) InitSecContext(requestURL string, challengeToken []byte) (tokenToSend []byte, err error) {
 	return nil, errors.New("GSSAPI support is not enabled")
 }
