@@ -43,6 +43,7 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 	if spec.RevisionHistoryLimit != nil {
 		allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(*spec.RevisionHistoryLimit), specPath.Child("revisionHistoryLimit"))...)
 	}
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(spec.MinReadySeconds), specPath.Child("minReadySeconds"))...)
 	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {

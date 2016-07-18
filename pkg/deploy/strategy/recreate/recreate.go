@@ -35,7 +35,7 @@ type RecreateDeploymentStrategy struct {
 	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
-	getUpdateAcceptor func(timeout time.Duration) strat.UpdateAcceptor
+	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
 	// tagClient is used to tag images
@@ -72,8 +72,8 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
-		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval)
+		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
@@ -106,7 +106,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	waitParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
 
 	if updateAcceptor == nil {
-		updateAcceptor = s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds) * time.Second)
+		updateAcceptor = s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds)*time.Second, config.Spec.MinReadySeconds)
 	}
 
 	// Execute any pre-hook.

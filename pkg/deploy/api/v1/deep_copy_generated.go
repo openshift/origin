@@ -157,6 +157,7 @@ func DeepCopy_v1_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentCo
 	if err := DeepCopy_v1_DeploymentStrategy(in.Strategy, &out.Strategy, c); err != nil {
 		return err
 	}
+	out.MinReadySeconds = in.MinReadySeconds
 	if in.Triggers != nil {
 		in, out := in.Triggers, &out.Triggers
 		*out = make([]DeploymentTriggerPolicy, len(in))

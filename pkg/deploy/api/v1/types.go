@@ -257,6 +257,11 @@ type DeploymentConfigSpec struct {
 	// Strategy describes how a deployment is executed.
 	Strategy DeploymentStrategy `json:"strategy"`
 
+	// MinReadySeconds is the minimum number of seconds for which a newly created pod should
+	// be ready without any of its container crashing, for it to be considered available.
+	// Defaults to 0 (pod will be considered available as soon as it is ready)
+	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
+
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.

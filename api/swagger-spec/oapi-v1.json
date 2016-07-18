@@ -21548,6 +21548,11 @@
       "$ref": "v1.DeploymentStrategy",
       "description": "Strategy describes how a deployment is executed."
      },
+     "minReadySeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "MinReadySeconds is the minimum number of seconds for which a newly created pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)"
+     },
      "triggers": {
       "type": "array",
       "items": {

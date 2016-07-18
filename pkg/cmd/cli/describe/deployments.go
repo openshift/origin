@@ -255,6 +255,10 @@ func printDeploymentConfigSpec(kc kclient.Interface, dc deployapi.DeploymentConf
 	formatString(w, "Strategy", spec.Strategy.Type)
 	printStrategy(spec.Strategy, "  ", w)
 
+	if dc.Spec.MinReadySeconds > 0 {
+		formatString(w, "MinReadySeconds", fmt.Sprintf("%d", spec.MinReadySeconds))
+	}
+
 	// Pod template
 	fmt.Fprintf(w, "Template:\n")
 	kctl.DescribePodTemplate(spec.Template, w)
