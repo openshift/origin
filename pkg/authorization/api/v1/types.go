@@ -155,6 +155,11 @@ type ResourceAccessReviewResponse struct {
 	UsersSlice []string `json:"users"`
 	// GroupsSlice is the list of groups who can perform the action
 	GroupsSlice []string `json:"groups"`
+
+	// EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned.
+	// It is entirely possible to get an error and be able to continue determine authorization status in spite of it.  This is
+	// most common when a bound role is missing, but enough roles are still present and bound to reason about the request.
+	EvaluationError string `json:"evalutionError"`
 }
 
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
