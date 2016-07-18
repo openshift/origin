@@ -40,10 +40,11 @@ func isResourceGuaranteed(container *api.Container, resource api.ResourceName) b
 
 // isResourceBestEffort returns true if the container's resource requirements are best-effort.
 func isResourceBestEffort(container *api.Container, resource api.ResourceName) bool {
-	// A container resource is best-effort if its request is unspecified or 0.
+	// A container resource is best-effort if its request is unspecified or 0 and it has no limit or a limit with value of 0.
 	// If a request is specified, then the user expects some kind of resource guarantee.
 	req, hasReq := container.Resources.Requests[resource]
-	return !hasReq || req.Value() == 0
+	limit, hasLimit := container.Resources.Limits[resource]
+	return (!hasReq || req.Value() == 0) && (!hasLimit || limit.Value() == 0)
 }
 
 // GetQos returns a mapping of resource name to QoS class of a container
