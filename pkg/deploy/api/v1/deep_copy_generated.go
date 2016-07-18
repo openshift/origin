@@ -171,7 +171,7 @@ func DeepCopy_v1_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentCo
 	out.Replicas = in.Replicas
 	if in.RevisionHistoryLimit != nil {
 		in, out := in.RevisionHistoryLimit, &out.RevisionHistoryLimit
-		*out = new(int)
+		*out = new(int32)
 		**out = *in
 	} else {
 		out.RevisionHistoryLimit = nil

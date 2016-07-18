@@ -307,7 +307,7 @@ type DeploymentConfigSpec struct {
 
 	// RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks.
 	// This field is a pointer to allow for differentiation between an explicit zero and not specified.
-	RevisionHistoryLimit *int
+	RevisionHistoryLimit *int32
 
 	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
 	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding

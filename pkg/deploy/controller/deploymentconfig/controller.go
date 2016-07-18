@@ -415,13 +415,13 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 	}
 
 	prunableDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, existingDeployments)
-	if len(prunableDeployments) <= *deploymentConfig.Spec.RevisionHistoryLimit {
+	if len(prunableDeployments) <= int(*deploymentConfig.Spec.RevisionHistoryLimit) {
 		// the past deployment quota has not been exceeded
 		return nil
 	}
 
 	deletionErrors := []error{}
-	for i := 0; i < (len(prunableDeployments) - *deploymentConfig.Spec.RevisionHistoryLimit); i++ {
+	for i := 0; i < (len(prunableDeployments) - int(*deploymentConfig.Spec.RevisionHistoryLimit)); i++ {
 		deployment := prunableDeployments[i]
 		if deployment.Spec.Replicas != 0 {
 			// we do not want to clobber active older deployments, but we *do* want them to count
