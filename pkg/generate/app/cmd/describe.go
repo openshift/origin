@@ -182,7 +182,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				fmt.Fprintf(out, "      * Every time %q changes a new build will be triggered\n", trackedImage)
 			} else {
 				// if we have source (but not a tracked image), the user must manually trigger a build.
-				fmt.Fprintf(out, "      * Use 'start-build to trigger a new build\n")
+				fmt.Fprintf(out, "      * Use 'start-build' to trigger a new build\n")
 			}
 		}
 	}
