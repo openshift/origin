@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ffc7392361f29db492a5423ff5367c072f0552a4
+%global commit 7e45079e44d38be8a8da6a954901783e2c36523f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.5+ffc7392 -X github.com/openshift/origin/pkg/version.commitFromGit=ffc7392 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-15T14:48:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-15T14:48:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.6+7e45079 -X github.com/openshift/origin/pkg/version.commitFromGit=7e45079 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-18T14:30:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-18T14:30:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.6
+Version:        3.3.0.7
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,16 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Jul 18 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.7
+- deploy: update revisionHistoryLimit to int32 (mkargaki@redhat.com)
+- Added a check for empty template in DeployConfig (rymurphy@redhat.com)
+- restore resyncing ability for fifo based controllers (deads@redhat.com)
+- UPSTREAM: <carry>: fix fifo resync, remove after FIFO is dead
+  (deads@redhat.com)
+- Dump deployment logs in case of test failure (nagy.martin@gmail.com)
+- Test gssapi library load when selecting available challenge handlers
+  (jliggitt@redhat.com)
+
 * Fri Jul 15 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.6
 - Cleanup OSE directories no longer in origin, or used (tdawson@redhat.com)
 - Add jobs to conformance run (maszulik@redhat.com)
