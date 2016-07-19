@@ -73,6 +73,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 	kcmdutil.AddOutputFlagsForMutation(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
+	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
@@ -129,6 +130,11 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		return err
 	}
 	route.Spec.TLS.CACertificate = string(caCert)
+
+	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
+	if len(insecurePolicy) > 0 {
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+	}
 
 	route, err = oc.Routes(ns).Create(route)
 	if err != nil {
