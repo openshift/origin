@@ -74,7 +74,7 @@ func newClusterResourceOverride(client clientset.Interface, config *api.ClusterR
 		}
 	}
 
-	limitRanger, err := limitranger.NewLimitRanger(client, &limitRangerActions{})
+	limitRanger, err := limitranger.NewLimitRanger(client, nil)
 	if err != nil {
 		return nil, err
 	}
