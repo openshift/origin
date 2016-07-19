@@ -1289,13 +1289,76 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
+						Kind: "ImageStream",
+						Name: "some/long/value/with/no/meaning",
+					},
+				},
+			},
+		},
+		// 2
+		{
+			string(field.ErrorTypeInvalid) + "output.to.name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "some/long/value/with/no/meaning",
+					},
+				},
+			},
+		},
+		// 3
+		{
+			string(field.ErrorTypeInvalid) + "output.to.name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "some/long/value/with/no/meaning:latest",
+					},
+				},
+			},
+		},
+		// 4
+		{
+			string(field.ErrorTypeInvalid) + "output.to.kind",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
 						Kind: "Foo",
 						Name: "test",
 					},
 				},
 			},
 		},
-		// 2
+		// 5
 		{
 			string(field.ErrorTypeRequired) + "output.to.kind",
 			buildapi.CommonSpec{
@@ -1313,7 +1376,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 3
+		// 6
 		{
 			string(field.ErrorTypeRequired) + "output.to.name",
 			buildapi.CommonSpec{
@@ -1333,7 +1396,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 4
+		// 7
 		{
 			string(field.ErrorTypeInvalid) + "output.to.name",
 			buildapi.CommonSpec{
@@ -1355,7 +1418,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 5
+		// 8
 		{
 			string(field.ErrorTypeInvalid) + "output.to.namespace",
 			buildapi.CommonSpec{
@@ -1377,7 +1440,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 6
+		// 9
 		// invalid because from is not specified in the
 		// sti strategy definition
 		{
@@ -1399,7 +1462,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 7
+		// 10
 		// Invalid because from.name is not specified
 		{
 			string(field.ErrorTypeRequired) + "strategy.sourceStrategy.from.name",
@@ -1424,7 +1487,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 8
+		// 11
 		// invalid because from name is a bad format
 		{
 			string(field.ErrorTypeInvalid) + "strategy.sourceStrategy.from.name",
@@ -1447,7 +1510,54 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 9
+		// 12
+		// invalid because from name is a bad format
+		{
+			string(field.ErrorTypeInvalid) + "strategy.sourceStrategy.from.name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "badformat"},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 13
+		// invalid because from name is a bad format
+		{
+			string(field.ErrorTypeInvalid) + "strategy.sourceStrategy.from.name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "bad/format:latest"},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+
+		// 14
 		// invalid because from is not specified in the
 		// custom strategy definition
 		{
@@ -1469,7 +1579,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 10
+		// 15
 		// invalid because from.name is not specified in the
 		// custom strategy definition
 		{
@@ -1493,7 +1603,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 11
+		// 16
 		{
 			string(field.ErrorTypeInvalid) + "source.dockerfile",
 			buildapi.CommonSpec{
@@ -1505,7 +1615,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 12
+		// 17
 		{
 			string(field.ErrorTypeInvalid) + "source.dockerfile",
 			buildapi.CommonSpec{
@@ -1520,7 +1630,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 13
+		// 18
 		// invalid because CompletionDeadlineSeconds <= 0
 		{
 			string(field.ErrorTypeInvalid) + "completionDeadlineSeconds",
@@ -1543,7 +1653,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				CompletionDeadlineSeconds: &zero,
 			},
 		},
-		// 14
+		// 19
 		// must provide some source input
 		{
 			string(field.ErrorTypeInvalid) + "source",
@@ -1560,7 +1670,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 15
+		// 20
 		// dockerfilePath can't be an absolute path
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
@@ -1584,7 +1694,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 16
+		// 21
 		// dockerfilePath can't start with ../
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
@@ -1608,7 +1718,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 17
+		// 22
 		// dockerfilePath can't reference a path outside of the dir
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
@@ -1632,7 +1742,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 18
+		// 23
 		// dockerfilePath can't equal ..
 		{
 			string(field.ErrorTypeInvalid) + "strategy.dockerStrategy.dockerfilePath",
@@ -1656,7 +1766,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 19
+		// 24
 		{
 			string(field.ErrorTypeInvalid) + "postCommit",
 			buildapi.CommonSpec{
@@ -1674,7 +1784,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 20
+		// 25
 		{
 			string(field.ErrorTypeInvalid) + "source.git",
 			buildapi.CommonSpec{
@@ -1683,7 +1793,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 21
+		// 26
 		{
 			string(field.ErrorTypeInvalid) + "source.git",
 			buildapi.CommonSpec{
@@ -1694,7 +1804,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 22
+		// 27
 		// jenkinsfilePath can't be an absolute path
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1711,7 +1821,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 23
+		// 28
 		// jenkinsfilePath can't start with ../
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1728,7 +1838,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 24
+		// 29
 		// jenkinsfilePath can't be a reference a path outside of the dir
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1745,7 +1855,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 25
+		// 30
 		// jenkinsfilePath can't be equal to ..
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfilePath",
@@ -1762,7 +1872,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 26
+		// 31
 		// path must be shorter than 100k
 		{
 			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.jenkinsfile",
