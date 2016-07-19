@@ -213,6 +213,10 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 		}
 	}
 
+	if deployutil.DeploymentVersionFor(to) < deployutil.DeploymentVersionFor(from) {
+		return fmt.Errorf("deployment %s is older than %s", to.Name, from.Name)
+	}
+
 	// Scale down any deployments which aren't the new or last deployment.
 	for _, candidate := range deployments {
 		// Skip the from/to deployments.
