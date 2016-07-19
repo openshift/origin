@@ -126,6 +126,7 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end: build
+	hack/env hack/verify-generated-protobuf.sh # Test the protobuf serializations when we know Docker is available
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 
