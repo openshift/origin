@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"strconv"
@@ -28,16 +29,26 @@ const (
 	// The output of the script is the name of a file containing the PID for the started daemon
 	startDaemonScript = `set -e
 TMPDIR=${TMPDIR:-/tmp}
-CONFIGFILE=$(mktemp 2> /dev/null || (echo -n "" > ${TMPDIR}/%[1]s && echo ${TMPDIR}/%[1]s))
-PIDFILE=$(mktemp 2> /dev/null || (echo -n "" > ${TMPDIR}/%[2]s && echo ${TMPDIR}/%[2]s))
+CONFIGFILE=$(echo -n "" > ${TMPDIR}/%[1]s && echo ${TMPDIR}/%[1]s)
+PIDFILE=$(echo -n "" > ${TMPDIR}/%[2]s && echo ${TMPDIR}/%[2]s)
 rm $PIDFILE
 printf "pid file = ${PIDFILE}\n[root]\n  path = /\n  use chroot = no\n  read only = no" > $CONFIGFILE
-rsync --daemon --config=${CONFIGFILE} --port=%[3]d
-echo ${PIDFILE}
+rsync --no-detach --daemon --config=${CONFIGFILE} --port=%[3]d
 `
-	portRangeFrom = 30000
-	portRangeTo   = 60000
-	remoteLabel   = "root"
+	killDaemonScript = `set -e
+TMPDIR=${TMPDIR:-/tmp}
+PIDFILE=${TMPDIR}/%[1]s
+kill $(cat ${PIDFILE})
+`
+	checkDaemonScript = `set -e
+TMPDIR=${TMPDIR:-/tmp}
+PIDFILE=${TMPDIR}/%[1]s
+ls ${PIDFILE}
+`
+	portRangeFrom           = 30000
+	portRangeTo             = 60000
+	remoteLabel             = "root"
+	RsyncDaemonStartTimeOut = 10 * time.Second
 )
 
 var (
@@ -152,26 +163,44 @@ func (s *rsyncDaemonStrategy) startRemoteDaemon() error {
 	}
 	cmdOut := &bytes.Buffer{}
 	cmdErr := &bytes.Buffer{}
-	cmdIn := bytes.NewBufferString(fmt.Sprintf(startDaemonScript, krand.String(32), krand.String(32), port))
-	err = s.RemoteExecutor.Execute([]string{"sh"}, cmdIn, cmdOut, cmdErr)
-	if err != nil {
-		glog.V(1).Infof("Error starting rsync daemon: %v. Out: %s, Err: %s\n", err, cmdOut.String(), cmdErr.String())
-		// Determine whether rsync is present in the container
-		if checkRsync(s.RemoteExecutor) != nil {
-			return strategySetupError("rsync not available in container")
+	pidFile := krand.String(32)
+	configFile := krand.String(32)
+	cmdIn := bytes.NewBufferString(fmt.Sprintf(startDaemonScript, configFile, pidFile, port))
+	daemonErr := make(chan error, 1)
+	go func() {
+		err = s.RemoteExecutor.Execute([]string{"sh"}, cmdIn, cmdOut, cmdErr)
+		if err != nil {
+			daemonErr <- fmt.Errorf("error starting rsync daemon: %v\nOut: %s\nErr: %s\n", err, cmdOut.String(), cmdErr.String())
 		}
-		return err
+	}()
+	// Wait until a pid file is present or an error has occurred
+	checkScript := bytes.NewBufferString(fmt.Sprintf(checkDaemonScript, pidFile))
+	startTime := time.Now()
+	for {
+		if time.Since(startTime) > RsyncDaemonStartTimeOut {
+			return fmt.Errorf("Timed out waiting for rsync daemon to start")
+		}
+		checkScript.Reset()
+		err = s.RemoteExecutor.Execute([]string{"sh"}, checkScript, ioutil.Discard, ioutil.Discard)
+		if err == nil {
+			break
+		}
+		if len(daemonErr) > 0 {
+			return <-daemonErr
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	s.daemonPort = port
-	s.daemonPIDFile = strings.TrimSpace(cmdOut.String())
+	s.daemonPIDFile = pidFile
 	return nil
 }
 
 func (s *rsyncDaemonStrategy) killRemoteDaemon() error {
-	cmd := []string{"sh", "-c", fmt.Sprintf("kill $(cat %s)", s.daemonPIDFile)}
+	cmd := []string{"sh"}
+	cmdIn := bytes.NewBufferString(fmt.Sprintf(killDaemonScript, s.daemonPIDFile))
 	cmdOut := &bytes.Buffer{}
 	cmdErr := &bytes.Buffer{}
-	err := s.RemoteExecutor.Execute(cmd, nil, cmdOut, cmdErr)
+	err := s.RemoteExecutor.Execute(cmd, cmdIn, cmdOut, cmdErr)
 	if err != nil {
 		glog.V(1).Infof("Error killing rsync daemon: %v. Out: %s, Err: %s\n", err, cmdOut.String(), cmdErr.String())
 	}
