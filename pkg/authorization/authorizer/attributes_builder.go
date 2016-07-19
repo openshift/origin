@@ -16,7 +16,7 @@ func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, i
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoResolver}
 }
 
-func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
+func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (Action, error) {
 	requestInfo, err := a.infoResolver.GetRequestInfo(req)
 	if err != nil {
 		return nil, err

@@ -14,7 +14,7 @@ import (
 
 func init() {
 	if err := api.Scheme.AddGeneratedDeepCopyFuncs(
-		DeepCopy_api_AuthorizationAttributes,
+		DeepCopy_api_Action,
 		DeepCopy_api_ClusterPolicy,
 		DeepCopy_api_ClusterPolicyBinding,
 		DeepCopy_api_ClusterPolicyBindingList,
@@ -48,7 +48,7 @@ func init() {
 	}
 }
 
-func DeepCopy_api_AuthorizationAttributes(in AuthorizationAttributes, out *AuthorizationAttributes, c *conversion.Cloner) error {
+func DeepCopy_api_Action(in Action, out *Action, c *conversion.Cloner) error {
 	out.Namespace = in.Namespace
 	out.Verb = in.Verb
 	out.Group = in.Group
@@ -77,7 +77,7 @@ func DeepCopy_api_ClusterPolicy(in ClusterPolicy, out *ClusterPolicy, c *convers
 	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
-		*out = make(map[string]*ClusterRole)
+		*out = make(ClusterRolesByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -106,7 +106,7 @@ func DeepCopy_api_ClusterPolicyBinding(in ClusterPolicyBinding, out *ClusterPoli
 	}
 	if in.RoleBindings != nil {
 		in, out := in.RoleBindings, &out.RoleBindings
-		*out = make(map[string]*ClusterRoleBinding)
+		*out = make(ClusterRoleBindingsByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -260,7 +260,7 @@ func DeepCopy_api_LocalResourceAccessReview(in LocalResourceAccessReview, out *L
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	return nil
@@ -270,7 +270,7 @@ func DeepCopy_api_LocalSubjectAccessReview(in LocalSubjectAccessReview, out *Loc
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -309,7 +309,7 @@ func DeepCopy_api_Policy(in Policy, out *Policy, c *conversion.Cloner) error {
 	}
 	if in.Roles != nil {
 		in, out := in.Roles, &out.Roles
-		*out = make(map[string]*Role)
+		*out = make(RolesByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -338,7 +338,7 @@ func DeepCopy_api_PolicyBinding(in PolicyBinding, out *PolicyBinding, c *convers
 	}
 	if in.RoleBindings != nil {
 		in, out := in.RoleBindings, &out.RoleBindings
-		*out = make(map[string]*RoleBinding)
+		*out = make(RoleBindingsByName)
 		for key, val := range in {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
@@ -468,7 +468,7 @@ func DeepCopy_api_ResourceAccessReview(in ResourceAccessReview, out *ResourceAcc
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	return nil
@@ -624,7 +624,7 @@ func DeepCopy_api_SubjectAccessReview(in SubjectAccessReview, out *SubjectAccess
 	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
 	}
-	if err := DeepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+	if err := DeepCopy_api_Action(in.Action, &out.Action, c); err != nil {
 		return err
 	}
 	out.User = in.User

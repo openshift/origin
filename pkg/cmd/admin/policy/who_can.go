@@ -94,7 +94,7 @@ func resourceFor(mapper meta.RESTMapper, resourceArg string) unversioned.GroupVe
 }
 
 func (o *whoCanOptions) run() error {
-	authorizationAttributes := authorizationapi.AuthorizationAttributes{
+	authorizationAttributes := authorizationapi.Action{
 		Verb:         o.verb,
 		Group:        o.resource.Group,
 		Resource:     o.resource.Resource,

@@ -309,7 +309,7 @@ func TestTagVerifier(t *testing.T) {
 				t.Errorf("%s: sar namespace: expected %v, got %v", name, e, a)
 			}
 			expectedSar := &authorizationapi.SubjectAccessReview{
-				Action: authorizationapi.AuthorizationAttributes{
+				Action: authorizationapi.Action{
 					Verb:         "get",
 					Resource:     "imagestreams",
 					ResourceName: "otherstream",
