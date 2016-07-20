@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7e45079e44d38be8a8da6a954901783e2c36523f
+%global commit 3cc6f5a96e7a22fb83534266b4facbd94bd49796
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.6+7e45079 -X github.com/openshift/origin/pkg/version.commitFromGit=7e45079 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-18T14:30:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-18T14:30:17Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.7+3cc6f5a -X github.com/openshift/origin/pkg/version.commitFromGit=3cc6f5a -X github.com/openshift/origin/pkg/version.buildDate=2016-07-20T15:09:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-20T15:09:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.7
+Version:        3.3.0.8
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,40 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Jul 20 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.8
+- Add support for anonymous registry requests (jliggitt@redhat.com)
+- Allow anonymous users to check their access (jliggitt@redhat.com)
+- gather dump before you kill the process (deads@redhat.com)
+- Bug 1357668: update error message on invalid tags in ICTs
+  (mkargaki@redhat.com)
+- Add goimports to the release image (ccoleman@redhat.com)
+- generate: Protobuf types and updates (ccoleman@redhat.com)
+- Handle content type correctly in extensions (ccoleman@redhat.com)
+- Generator for protobuf (ccoleman@redhat.com)
+- Give build fields proto safe names (ccoleman@redhat.com)
+- UPSTREAM: 28935: don't double encode runtime.Unknown (ccoleman@redhat.com)
+- UPSTREAM: 26044: Additional fixes to protobuf versioning
+  (ccoleman@redhat.com)
+- UPSTREAM: 28810: Honor protobuf name tag (ccoleman@redhat.com)
+- bump(k8s.io/kubernetes/third_party/protobuf):v1.3.0 (ccoleman@redhat.com)
+- Enable protoc in the release images (ccoleman@redhat.com)
+- Bump origin-web-console (15dc649) (jforrest@redhat.com)
+- Copy GSSAPI errors to prevent use-after-free bugs (mkhan@redhat.com)
+- oc new-app: add missing single quote. (vsemushi@redhat.com)
+- UPSTREAM: 27263: Cherry-picked (stefan.schimanski@gmail.com)
+- Remove deployment trigger warning (jhadvig@redhat.com)
+- deploy: add minReadySeconds for deploymentconfigs (mkargaki@redhat.com)
+- deploy: generated code for minReadySeconds (mkargaki@redhat.com)
+- UPSTREAM: 28111: Add MinReadySeconds to rolling updater (mkargaki@redhat.com)
+- UPSTREAM: 28966: Describe container volume mounts (mfojtik@redhat.com)
+- oc: add --insecure-policy for creating edge routes (mkargaki@redhat.com)
+- Bug 1356530: handle 403 in oc rollback (mkargaki@redhat.com)
+- Allow Docker for Mac beta to work by using port forwarding
+  (cewong@redhat.com)
+- expose evaluation errors for RAR (deads@redhat.com)
+- allow git_ssl_no_verify env variable in build pods (bparees@redhat.com)
+- deploy: move cli-related packages in cmd (mkargaki@redhat.com)
+
 * Mon Jul 18 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.7
 - deploy: update revisionHistoryLimit to int32 (mkargaki@redhat.com)
 - Added a check for empty template in DeployConfig (rymurphy@redhat.com)

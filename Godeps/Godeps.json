@@ -5123,6 +5123,11 @@
 			"ImportPath": "k8s.io/kubernetes/third_party/golang/template",
 			"Comment": "v1.3.0-58-g57fb9ac",
 			"Rev": "57fb9acc109285378ecd0af925c8160eb8ca19e6"
+		},
+		{
+			"ImportPath": "k8s.io/kubernetes/third_party/protobuf",
+			"Comment": "v1.3.0-58-g57fb9ac",
+			"Rev": "57fb9acc109285378ecd0af925c8160eb8ca19e6"
 		}
 	]
 }

@@ -70,8 +70,16 @@ func DecodeNestedRawExtensionOrUnknown(d runtime.Decoder, ext *runtime.RawExtens
 	}
 	obj, gvk, err := d.Decode(ext.Raw, nil, nil)
 	if err != nil {
-		// TODO: record mime-type with the object
 		unk := &runtime.Unknown{Raw: ext.Raw}
+		if runtime.IsNotRegisteredError(err) {
+			if _, gvk, err := d.Decode(ext.Raw, nil, unk); err == nil {
+				unk.APIVersion = gvk.GroupVersion().String()
+				unk.Kind = gvk.Kind
+				ext.Object = unk
+				return
+			}
+		}
+		// TODO: record mime-type with the object
 		if gvk != nil {
 			unk.APIVersion = gvk.GroupVersion().String()
 			unk.Kind = gvk.Kind

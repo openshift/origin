@@ -73,6 +73,22 @@ items:
   userNames: null
 - apiVersion: v1
   groupNames:
+  - system:authenticated
+  - system:unauthenticated
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: self-access-reviewers
+  roleRef:
+    name: self-access-reviewer
+  subjects:
+  - kind: SystemGroup
+    name: system:authenticated
+  - kind: SystemGroup
+    name: system:unauthenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
   - system:authenticated:oauth
   kind: ClusterRoleBinding
   metadata:

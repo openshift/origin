@@ -164,6 +164,9 @@ os::cmd::expect_success 'oc create route edge test-route --service=frontend'
 os::cmd::expect_success 'oc delete routes test-route'
 os::cmd::expect_failure 'oc create route edge new-route'
 os::cmd::expect_success 'oc delete services frontend'
+os::cmd::expect_success 'oc create route edge --insecure-policy=Allow --service=foo --port=80'
+os::cmd::expect_success_and_text 'oc get route foo -o jsonpath="{.spec.tls.insecureEdgeTerminationPolicy}"' 'Allow'
+os::cmd::expect_success 'oc delete routes foo'
 echo "routes: ok"
 os::test::junit::declare_suite_end
 

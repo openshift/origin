@@ -1,5 +1,4 @@
-// TODO: Move to pkg/deploy/cmd
-package scaler
+package cmd
 
 import (
 	"fmt"

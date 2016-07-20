@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -101,7 +102,8 @@ var (
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
 func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cobra.Command {
 	config := &ClientStartConfig{
-		Out: out,
+		Out:            out,
+		PortForwarding: defaultPortForwarding(),
 	}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -124,9 +126,10 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	cmd.Flags().StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
 	cmd.Flags().BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
-	cmd.Flags().StringVar(&config.HostConfigDir, "host-config-dir", "/var/lib/origin/openshift.local.config", "Directory on Docker host for OpenShift configuration")
-	cmd.Flags().StringVar(&config.HostVolumesDir, "host-volumes-dir", "/var/lib/origin/openshift.local.volumes", "Directory on Docker host for OpenShift volumes")
+	cmd.Flags().StringVar(&config.HostConfigDir, "host-config-dir", host.DefaultConfigDir, "Directory on Docker host for OpenShift configuration")
+	cmd.Flags().StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
 	cmd.Flags().StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
+	cmd.Flags().BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
@@ -150,6 +153,7 @@ type ClientStartConfig struct {
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
 	ShouldInstallMetrics      bool
+	PortForwarding            bool
 
 	UseNsenterMount bool
 	Out             io.Writer
@@ -229,9 +233,10 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Check that we have the minimum Docker version available to run OpenShift
 	c.addTask("Checking Docker version", c.CheckDockerVersion)
 
+	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
 	// mount OpenShift volumes.
-	c.addTask("Creating volume share", c.EnsureVolumeShare)
+	c.addTask("Creating host directories", c.EnsureHostDirectories)
 
 	// Determine an IP to use for OpenShift. Uses the following sources:
 	// - Docker host
@@ -293,6 +298,11 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 		c.TaskPrinter.Success()
 	}
 	return nil
+}
+
+func defaultPortForwarding() bool {
+	// Defaults to true if running on Mac, with no DOCKER_HOST defined
+	return runtime.GOOS == "darwin" && len(os.Getenv("DOCKER_HOST")) == 0
 }
 
 const defaultDockerMachineName = "openshift"
@@ -475,9 +485,11 @@ func (c *ClientStartConfig) CheckDockerVersion(io.Writer) error {
 	return nil
 }
 
-// EnsureVolumeShare ensures that a volume share exists on the Docker host machine if
-// not using the nsenter mounter for the OpenShift node
-func (c *ClientStartConfig) EnsureVolumeShare(io.Writer) error {
+func (c *ClientStartConfig) EnsureHostDirectories(io.Writer) error {
+	err := c.HostHelper().EnsureHostDirectories()
+	if err != nil {
+		return err
+	}
 	// A host volume share is not needed if using the nsenter mounter
 	if c.UseNsenterMount {
 		glog.V(5).Infof("Volume share is not needed when using nsenter mounter.")
@@ -533,6 +545,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		Environment:       c.Environment,
 		LogLevel:          c.ServerLogLevel,
 		DNSPort:           c.DNSPort,
+		PortForwarding:    c.PortForwarding,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
@@ -568,7 +581,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, out)
+	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out)
 }
 
 // ImportImageStreams imports default image streams into the server
@@ -639,7 +652,11 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 		if err != nil {
 			return nil, err
 		}
-		defaultCfg := kclientcmd.NewDefaultClientConfig(*cfg, &kclientcmd.ConfigOverrides{})
+		overrides := &kclientcmd.ConfigOverrides{}
+		if c.PortForwarding {
+			overrides.ClusterInfo.Server = fmt.Sprintf("https://%s:8443", c.ServerIP)
+		}
+		defaultCfg := kclientcmd.NewDefaultClientConfig(*cfg, overrides)
 		c.factory = clientcmd.NewFactory(defaultCfg)
 	}
 	return c.factory, nil
@@ -665,7 +682,7 @@ func (c *ClientStartConfig) OpenShiftHelper() *openshift.Helper {
 // HostHelper returns a helper object to check Host configuration
 func (c *ClientStartConfig) HostHelper() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.dockerClient, c.openShiftImage(), c.HostVolumesDir)
+		c.hostHelper = host.NewHostHelper(c.dockerClient, c.openShiftImage(), c.HostVolumesDir, c.HostConfigDir, c.HostDataDir)
 	}
 	return c.hostHelper
 }
@@ -713,6 +730,36 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 	if ip := net.ParseIP(c.PublicHostname); ip != nil && !ip.IsUnspecified() {
 		fmt.Fprintf(out, "Using public hostname IP %s as the host IP\n", ip)
 		return ip.String(), nil
+	}
+
+	// If using port-forwarding, find a local IP that can be used to communicate with the
+	// Origin container
+	if c.PortForwarding {
+		ip4, err := cmdutil.DefaultLocalIP4()
+		if err != nil {
+			return "", errors.NewError("cannot determine local IP address").WithCause(err)
+		}
+		glog.V(2).Infof("Testing local IP %s", ip4.String())
+		err = c.OpenShiftHelper().TestForwardedIP(ip4.String())
+		if err == nil {
+			return ip4.String(), nil
+		}
+		glog.V(2).Infof("Failed to use %s: %v", ip4.String(), err)
+		otherIPs, err := cmdutil.AllLocalIP4()
+		if err != nil {
+			return "", errors.NewError("cannot find local IP addresses to test").WithCause(err)
+		}
+		for _, ip := range otherIPs {
+			if ip.String() == ip4.String() {
+				continue
+			}
+			err = c.OpenShiftHelper().TestForwardedIP(ip.String())
+			if err == nil {
+				return ip.String(), nil
+			}
+			glog.V(2).Infof("Failed to use %s: %v", ip.String(), err)
+		}
+		return "", errors.NewError("could not determine local IP address to use").WithCause(err)
 	}
 
 	if len(c.DockerMachine) > 0 {

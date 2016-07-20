@@ -352,14 +352,12 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 }
 
 func (c *DeploymentConfigController) calculateStatus(config deployapi.DeploymentConfig, deployments []kapi.ReplicationController) (deployapi.DeploymentConfigStatus, error) {
-	// TODO: Implement MinReadySeconds for deploymentconfigs: https://github.com/openshift/origin/issues/7114
-	minReadSeconds := int32(0)
 	selector := labels.Set(config.Spec.Selector).AsSelector()
 	pods, err := c.podStore.Pods(config.Namespace).List(selector)
 	if err != nil {
 		return config.Status, err
 	}
-	available := deployutil.GetAvailablePods(pods.Items, minReadSeconds)
+	available := deployutil.GetAvailablePods(pods.Items, config.Spec.MinReadySeconds)
 
 	// UpdatedReplicas represents the replicas that use the deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.

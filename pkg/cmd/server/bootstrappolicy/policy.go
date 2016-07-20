@@ -361,6 +361,15 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: SelfAccessReviewerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule("create").Groups(authzGroup).Resources("selfsubjectrulesreviews").RuleOrDie(),
+				{Verbs: sets.NewString("create"), APIGroups: []string{authzGroup}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: SelfProvisionerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -771,6 +780,18 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: BasicUserRoleName,
 			},
 			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: SelfAccessReviewerRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: SelfAccessReviewerRoleName,
+			},
+			Subjects: []kapi.ObjectReference{
+				{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup},
+				{Kind: authorizationapi.SystemGroupKind, Name: UnauthenticatedGroup},
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

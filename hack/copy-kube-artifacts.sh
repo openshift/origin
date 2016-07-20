@@ -52,6 +52,7 @@ rsync -av \
 /test/fixtures/***
 /test/integration/***
 /third_party/golang/***
+/third_party/protobuf/***
 /README.md
 EOF
 
