@@ -1,5 +1,4 @@
-// TODO: Move to pkg/deploy/cmd
-package reaper
+package cmd
 
 import (
 	"time"
