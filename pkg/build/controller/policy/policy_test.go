@@ -94,7 +94,7 @@ func TestForBuild(t *testing.T) {
 	}
 }
 
-func TestHandleComplete(t *testing.T) {
+func TestHandleCompleteSerial(t *testing.T) {
 	builds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerial),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerial),
@@ -118,5 +118,32 @@ func TestHandleComplete(t *testing.T) {
 
 	if resultBuilds.Items[2].Status.StartTimestamp != nil {
 		t.Errorf("build-3 should not have Status.StartTimestamp set")
+	}
+}
+
+func TestHandleCompleteParallel(t *testing.T) {
+	builds := []buildapi.Build{
+		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicyParallel),
+		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
+		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
+	}
+
+	client := newTestClient(builds)
+
+	if err := handleComplete(client, client, &builds[0]); err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	resultBuilds, err := client.List("test", kapi.ListOptions{})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if resultBuilds.Items[1].Status.StartTimestamp == nil {
+		t.Errorf("build-2 should have Status.StartTimestamp set to trigger it")
+	}
+
+	if resultBuilds.Items[2].Status.StartTimestamp == nil {
+		t.Errorf("build-3 should have Status.StartTimestamp set to trigger it")
 	}
 }
