@@ -4,7 +4,7 @@ metadata:
   name: minreadytest
 spec:
   replicas: 2
-  minReadySeconds: 1000
+  minReadySeconds: 500
   selector:
     name: minreadytest
   template:

@@ -556,7 +556,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 	})
 
 	g.Describe("with minimum ready seconds set", func() {
-		g.It("should include various info in status [Conformance]", func() {
+		g.It("should not transition the deployment to Complete before satisfied [Conformance]", func() {
 			_, name, err := createFixture(oc, minReadySecondsFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
