@@ -60,7 +60,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.4",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -121,10 +121,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
