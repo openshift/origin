@@ -35,6 +35,10 @@ type Event struct {
 // AddEnvironmentLookUp adds mechanism for extracting environment
 // variables, from operating system or .env file
 func AddEnvironmentLookUp(context *Context) error {
+	if context.ResourceLookup == nil {
+		context.ResourceLookup = &FileResourceLookup{}
+	}
+
 	if context.EnvironmentLookup == nil {
 		cwd, err := os.Getwd()
 		if err != nil {
