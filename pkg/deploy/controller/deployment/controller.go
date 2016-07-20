@@ -77,7 +77,6 @@ type DeploymentController struct {
 func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) error {
 	currentStatus := deployutil.DeploymentStatusFor(deployment)
 	nextStatus := currentStatus
-	deploymentScaled := false
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 	deployer, deployerErr := c.getPod(deployment.Namespace, deployerPodName)
@@ -183,11 +182,6 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 
 	case deployapi.DeploymentStatusFailed:
-		// Check for test deployment and ensure the deployment scale matches
-		if config, err := deployutil.DecodeDeploymentConfig(deployment, c.codec); err == nil && config.Spec.Test {
-			deploymentScaled = deployment.Spec.Replicas != 0
-			deployment.Spec.Replicas = 0
-		}
 		// Try to cleanup once more a cancelled deployment in case hook pods
 		// were created just after we issued the first cleanup request.
 		if deployutil.IsDeploymentCancelled(deployment) {
@@ -197,18 +191,12 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 
 	case deployapi.DeploymentStatusComplete:
-		// Check for test deployment and ensure the deployment scale matches
-		if config, err := deployutil.DecodeDeploymentConfig(deployment, c.codec); err == nil && config.Spec.Test {
-			deploymentScaled = deployment.Spec.Replicas != 0
-			deployment.Spec.Replicas = 0
-		}
-
 		if err := c.cleanupDeployerPods(deployment); err != nil {
 			return err
 		}
 	}
 
-	if deployutil.CanTransitionPhase(currentStatus, nextStatus) || deploymentScaled {
+	if deployutil.CanTransitionPhase(currentStatus, nextStatus) {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 
 		// if we are going to transition to failed or complete and scale is non-zero, we'll check one more
