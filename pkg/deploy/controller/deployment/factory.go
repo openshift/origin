@@ -189,14 +189,8 @@ func (c *DeploymentController) work() bool {
 		return false
 	}
 
-	copied, err := deployutil.DeploymentDeepCopy(rc)
-	if err != nil {
-		glog.Error(err.Error())
-		return false
-	}
-
-	err = c.Handle(copied)
-	c.handleErr(err, key, copied)
+	err = c.Handle(rc)
+	c.handleErr(err, key, rc)
 
 	return false
 }

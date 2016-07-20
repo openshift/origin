@@ -17,7 +17,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 const (
@@ -258,13 +257,7 @@ func (c *DeploymentConfigController) work() bool {
 		return false
 	}
 
-	copied, err := deployutil.DeploymentConfigDeepCopy(dc)
-	if err != nil {
-		glog.Error(err.Error())
-		return false
-	}
-
-	err = c.Handle(copied)
+	err = c.Handle(dc)
 	c.handleErr(err, key)
 
 	return false

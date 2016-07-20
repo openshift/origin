@@ -262,10 +262,13 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 	case config.Spec.Test:
 		glog.V(4).Infof("Detected changed replicas for test deploymentConfig %q, ignoring that change", deployutil.LabelForDeploymentConfig(config))
 	default:
-		oldReplicas := config.Spec.Replicas
-		config.Spec.Replicas = activeReplicas
-		var err error
-		config, err = c.dn.DeploymentConfigs(config.Namespace).Update(config)
+		copied, err := deployutil.DeploymentConfigDeepCopy(config)
+		if err != nil {
+			return err
+		}
+		oldReplicas := copied.Spec.Replicas
+		copied.Spec.Replicas = activeReplicas
+		config, err = c.dn.DeploymentConfigs(copied.Namespace).Update(copied)
 		if err != nil {
 			return err
 		}
@@ -342,12 +345,17 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 		return nil
 	}
 
-	config.Status = newStatus
-	if _, err := c.dn.DeploymentConfigs(config.Namespace).UpdateStatus(config); err != nil {
-		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+	copied, err := deployutil.DeploymentConfigDeepCopy(config)
+	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(config), config.Status.ObservedGeneration)
+
+	copied.Status = newStatus
+	if _, err := c.dn.DeploymentConfigs(copied.Namespace).UpdateStatus(copied); err != nil {
+		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(copied), err)
+		return err
+	}
+	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(copied), copied.Status.ObservedGeneration)
 	return nil
 }
 

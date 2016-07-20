@@ -325,12 +325,12 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 		t.Fatalf("deployment updated with pod name annotation")
 	}
 
-	if e, a := deployapi.DeploymentFailedUnrelatedDeploymentExists, deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation]; e != a {
-		t.Errorf("expected reason annotation %s, got %s", e, a)
+	if e, a := deployapi.DeploymentFailedUnrelatedDeploymentExists, updatedDeployment.Annotations[deployapi.DeploymentStatusReasonAnnotation]; e != a {
+		t.Fatalf("expected reason annotation %s, got %s", e, a)
 	}
 
 	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
-		t.Errorf("expected deployment status %s, got %s", e, a)
+		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
 
@@ -366,15 +366,15 @@ func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 		t.Fatalf("deployment updated with pod name annotation")
 	}
 
-	if e, a := deployapi.DeploymentFailedUnrelatedDeploymentExists, deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation]; e != a {
-		t.Errorf("expected reason annotation %s, got %s", e, a)
+	if e, a := deployapi.DeploymentFailedUnrelatedDeploymentExists, updatedDeployment.Annotations[deployapi.DeploymentStatusReasonAnnotation]; e != a {
+		t.Fatalf("expected reason annotation %s, got %s", e, a)
 	}
 
 	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
-		t.Errorf("expected deployment status %s, got %s", e, a)
+		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
-		t.Errorf("expected failed deployment to be scaled to zero: %d", a)
+		t.Fatalf("expected failed deployment to be scaled to zero: %d", a)
 	}
 }
 
@@ -447,7 +447,7 @@ func TestHandle_failedTest(t *testing.T) {
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
 	deployment, _ := deployutil.MakeDeployment(config, codec)
 	deployment.Spec.Replicas = 1
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusFailed)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
 	controller := okDeploymentController(fake, deployment, nil, true, kapi.PodFailed)
 
@@ -532,7 +532,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
 	deployment, _ := deployutil.MakeDeployment(config, codec)
 	deployment.Spec.Replicas = 1
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
 	controller := okDeploymentController(fake, deployment, hookPods, true, kapi.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
