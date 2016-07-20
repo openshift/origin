@@ -11,7 +11,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
-	scalertest "github.com/openshift/origin/pkg/deploy/scaler/test"
+	cmdtest "github.com/openshift/origin/pkg/deploy/cmd/test"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 
@@ -33,7 +33,7 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 			t.Fatal("unexpected call")
 			return nil, nil
 		},
-		scaler: &scalertest.FakeScaler{},
+		scaler: &cmdtest.FakeScaler{},
 	}
 
 	err := deployer.Deploy("namespace", "name")
@@ -134,7 +134,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		var actualFrom, actualTo *kapi.ReplicationController
 		var actualDesired int32
 		to := findDeployment(s.toVersion)
-		scaler := &scalertest.FakeScaler{}
+		scaler := &cmdtest.FakeScaler{}
 
 		deployer := &Deployer{
 			out:    &bytes.Buffer{},

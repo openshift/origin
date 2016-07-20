@@ -17,18 +17,19 @@ os::util::environment::setup_time_vars
 function cleanup()
 {
     out=$?
-    pkill -P $$
     set +e
-    kill_all_processes
-
-    # pull information out of the server log so that we can get failure management in jenkins to highlight it and
-    # really have it smack people in their logs.  This is a severe correctness problem
-    grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
     echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
     set_curl_args 0 1
     curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
     echo
+
+    pkill -P $$
+    kill_all_processes
+
+    # pull information out of the server log so that we can get failure management in jenkins to highlight it and
+    # really have it smack people in their logs.  This is a severe correctness problem
+    grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
     # we keep a JSON dump of etcd data so we do not need to keep the binary store
     local sudo="${USE_SUDO:+sudo}"

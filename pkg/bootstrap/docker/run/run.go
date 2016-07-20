@@ -53,6 +53,23 @@ func (h *Runner) Image(image string) *Runner {
 	return h
 }
 
+func (h *Runner) PortForward(local, remote int) *Runner {
+	if h.hostConfig.PortBindings == nil {
+		h.hostConfig.PortBindings = map[docker.Port][]docker.PortBinding{}
+	}
+	containerPort := docker.Port(fmt.Sprintf("%d/tcp", remote))
+	binding := docker.PortBinding{
+		HostPort: fmt.Sprintf("%d", local),
+	}
+	h.hostConfig.PortBindings[containerPort] = []docker.PortBinding{binding}
+
+	if h.config.ExposedPorts == nil {
+		h.config.ExposedPorts = map[docker.Port]struct{}{}
+	}
+	h.config.ExposedPorts[containerPort] = struct{}{}
+	return h
+}
+
 // Entrypoint sets the entrypoint to use when running
 func (h *Runner) Entrypoint(cmd ...string) *Runner {
 	h.config.Entrypoint = cmd

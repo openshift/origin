@@ -138,5 +138,9 @@ func (o *whoCanOptions) run() error {
 		fmt.Printf("Groups: %s\n\n", strings.Join(resourceAccessReviewResponse.Groups.List(), "\n        "))
 	}
 
+	if len(resourceAccessReviewResponse.EvaluationError) != 0 {
+		fmt.Printf("Error during evaluation, results may not be complete: %s\n", resourceAccessReviewResponse.EvaluationError)
+	}
+
 	return nil
 }

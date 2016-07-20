@@ -239,10 +239,11 @@ func (ResourceAccessReview) SwaggerDoc() map[string]string {
 }
 
 var map_ResourceAccessReviewResponse = map[string]string{
-	"":          "ResourceAccessReviewResponse describes who can perform the action",
-	"namespace": "Namespace is the namespace used for the access review",
-	"users":     "UsersSlice is the list of users who can perform the action",
-	"groups":    "GroupsSlice is the list of groups who can perform the action",
+	"":               "ResourceAccessReviewResponse describes who can perform the action",
+	"namespace":      "Namespace is the namespace used for the access review",
+	"users":          "UsersSlice is the list of users who can perform the action",
+	"groups":         "GroupsSlice is the list of groups who can perform the action",
+	"evalutionError": "EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned. It is entirely possible to get an error and be able to continue determine authorization status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to reason about the request.",
 }
 
 func (ResourceAccessReviewResponse) SwaggerDoc() map[string]string {

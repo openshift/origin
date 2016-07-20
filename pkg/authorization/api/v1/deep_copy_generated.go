@@ -497,6 +497,7 @@ func DeepCopy_v1_ResourceAccessReviewResponse(in ResourceAccessReviewResponse, o
 	} else {
 		out.GroupsSlice = nil
 	}
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 
