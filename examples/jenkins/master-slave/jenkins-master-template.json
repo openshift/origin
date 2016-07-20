@@ -55,8 +55,7 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
-        "creationTimestamp": null
+        "name": "jenkins"
       },
       "spec": {
         "to": {
@@ -135,8 +134,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "name": "${JENKINS_SERVICE_NAME}"
       },
       "spec": {
         "strategy": {
@@ -168,7 +166,6 @@
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${JENKINS_SERVICE_NAME}"
             }
@@ -248,8 +245,8 @@
           {
             "name": "jnlp",
             "protocol": "TCP",
-            "port": 49187,
-            "targetPort": 49187,
+            "port": 50000,
+            "targetPort": 50000,
             "nodePort": 0
           }
         ],

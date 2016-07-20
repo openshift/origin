@@ -41,7 +41,7 @@ $ oc policy add-role-to-user edit system:serviceaccount:ci:default -n ci
 
 3. Install the provided OpenShift templates:
 ```
-# Slave convertor (optional):
+# Slave converter (optional):
 $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-slave-template.json
 
 # Jenkins master template:
@@ -55,7 +55,7 @@ $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/example
    alternative repository with your own custom entry point script.
 
 6. Click *Create* and navigate to *Browse/Builds*. You should see the build
-   running. Once this build finish, you should have the Jenkins Slave image
+   running. Once this build finishes, you should have the Jenkins Slave image
    ready to be used.
 
 7. Now click on *Add to project* again and select the `jenkins-master` template.
