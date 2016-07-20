@@ -1,6 +1,12 @@
 package docker
 
-import dockerclient "github.com/fsouza/go-dockerclient"
+import (
+	"errors"
+	"io"
+	"path/filepath"
+
+	dockerclient "github.com/fsouza/go-dockerclient"
+)
 
 // FakeDocker provides a fake docker interface
 type FakeDocker struct {
@@ -12,6 +18,8 @@ type FakeDocker struct {
 	DefaultURLImage              string
 	DefaultURLResult             string
 	DefaultURLError              error
+	AssembleInputFilesResult     string
+	AssembleInputFilesError      error
 	RunContainerOpts             RunContainerOptions
 	RunContainerError            error
 	RunContainerErrorBeforeStart bool
@@ -81,6 +89,11 @@ func (f *FakeDocker) GetScriptsURL(image string) (string, error) {
 	return f.DefaultURLResult, f.DefaultURLError
 }
 
+// GetAssembleInputFiles finds a io.openshift.s2i.assemble-input-files label on the given image.
+func (f *FakeDocker) GetAssembleInputFiles(image string) (string, error) {
+	return f.AssembleInputFilesResult, f.AssembleInputFilesError
+}
+
 // RunContainer runs a fake Docker container
 func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 	f.RunContainerOpts = opts
@@ -100,6 +113,16 @@ func (f *FakeDocker) RunContainer(opts RunContainerOptions) error {
 
 func (f *FakeDocker) UploadToContainer(srcPath, destPath, container string) error {
 	return nil
+}
+
+// UploadToContainerWithCallback uploads artifacts to the container.
+func (f *FakeDocker) UploadToContainerWithCallback(srcPath, destPath, container string, walkFn filepath.WalkFunc, modifyInplace bool) error {
+	return errors.New("not implemented")
+}
+
+// DownloadFromContainer downloads file (or directory) from the container.
+func (f *FakeDocker) DownloadFromContainer(containerPath string, w io.Writer, container string) error {
+	return errors.New("not implemented")
 }
 
 // GetImageID returns a fake Docker image ID

@@ -7,6 +7,8 @@ import (
 const (
 	// Assemble is the name of the script responsible for the build process of the resulting image.
 	Assemble = "assemble"
+	// AssembleRuntime is the name of the script responsible for the preparation process of the resulting image.
+	AssembleRuntime = "assemble-runtime"
 	// Run is the name of the script responsible for running the final application.
 	Run = "run"
 	// SaveArtifacts is the name of the script responsible for storing dependencies etc. between builds.
@@ -34,6 +36,9 @@ const (
 
 	// ContextTmp is the location of applications sources off of a supplied context dir
 	ContextTmp = "upload" + string(os.PathSeparator) + "tmp"
+
+	// RuntimeArtifactsDir is the location of application artifacts and scripts that will be copied into a runtime image.
+	RuntimeArtifactsDir = "upload" + string(os.PathSeparator) + "runtimeArtifacts"
 
 	// Ignorefile is the s2i version for ignore files like we see with .gitignore or .dockerignore .. initial impl mirrors documented .dockerignore capabilities
 	IgnoreFile = ".s2iignore"

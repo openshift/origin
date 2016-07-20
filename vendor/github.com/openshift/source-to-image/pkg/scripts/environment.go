@@ -68,6 +68,14 @@ func ConvertEnvironment(env []Environment) (result []string) {
 	return
 }
 
+// ConvertEnvironmentList converts the EnvironmentList to "key=val" strings
+func ConvertEnvironmentList(env api.EnvironmentList) (result []string) {
+	for _, e := range env {
+		result = append(result, fmt.Sprintf("%s=%s", e.Name, e.Value))
+	}
+	return
+}
+
 // ConvertEnvironmentToDocker converts the []Environment into Dockerfile format
 func ConvertEnvironmentToDocker(env []Environment) (result string) {
 	for i, e := range env {
