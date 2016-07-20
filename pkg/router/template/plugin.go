@@ -97,11 +97,11 @@ func env(name, defaultValue string) string {
 func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
 	globalFuncs := template.FuncMap{
-		"endpointsForAlias": endpointsForAlias,
-		"env":               env,
-		"matchString":       matchString,
-		"isInteger":         isInteger,
-		"matchValues":       matchValues,
+		"endpointsForAlias": endpointsForAlias, //returns the list of valid endpoints
+		"env":               env,               //tries to get an environment variable if it can't return a default
+		"matchPattern":      matchPattern,      //anchors provided regular expression and evaluates against given string
+		"isInteger":         isInteger,         //determines if a given variable is an integer
+		"matchValues":       matchValues,       //compares a given string to a list of allowed strings
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {

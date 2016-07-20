@@ -187,14 +187,14 @@ func matchValues(s string, allowedValues ...string) bool {
 	return false
 }
 
-func matchString(pattern, s string) bool {
-	glog.V(4).Infof("Matchstring called with %s and %s", pattern, s)
-	status, err := regexp.MatchString(pattern, s)
+func matchPattern(pattern, s string) bool {
+	glog.V(4).Infof("matchPattern called with %s and %s", pattern, s)
+	status, err := regexp.MatchString("^("+pattern+")$", s)
 	if err == nil {
-		glog.V(4).Infof("Matchstring returning status: %v", status)
+		glog.V(4).Infof("matchPattern returning status: %v", status)
 		return status
 	}
-	glog.Errorf("Error with regex pattern in call to matchString: %v", err)
+	glog.Errorf("Error with regex pattern in call to matchPattern: %v", err)
 	return false
 }
 
