@@ -8,6 +8,14 @@ the project-admin may accidentally expose confidential projects to unauthorized 
 To prevent those issues, a cluster-admin should be able to restrict the set of subjects (users, groups, serviceaccounts)
 that can be bound to roles in a given project.
 
+ 1. Project ownerA somehow establishes a relationship with userB (invite/request/approve flow).  Once established
+    userB should be bindable into any project owned by ownerA.
+ 2. Binding subject restrictions should be possible on a per-project basis: userA can be bound into project1,
+    but not project2.  This allows a project owner to restrict a project admin, but still delegate bounded bindings.
+ 3. Project owner's are likely to have associated groups (pseudo-org things), they'll want to restrict subject binding
+    based on group literals or group labels.
+
+
 
 ## Mechanism
 The restrictions are naturally per project, but the selected sets of subjects are likely to be re-used across related
