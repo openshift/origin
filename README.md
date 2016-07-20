@@ -78,7 +78,7 @@ FAQ
     for building applications in containers.  Our goal is to do most of that work upstream, with
     integration and final packaging occurring in Origin.
 
-    You can run the core Kubernetes server components with `openshift start kube`, use `kubectl` via
+    You can run the core Kubernetes server components with `openshift start kubernetes`, use `kubectl` via
     `openshift kube`, and the Origin release zips include versions of `kubectl`, `kubelet`,
     `kube-apiserver`, and other core components. You can see the version of Kubernetes included with
     Origin via `openshift version`.
