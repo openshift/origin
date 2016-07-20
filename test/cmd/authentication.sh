@@ -11,6 +11,18 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/authentication"
 
+# Logging in prints useful messages
+os::test::junit::declare_suite_start "cmd/authentication/existing-credentials"
+os::cmd::expect_success_and_text 'oc login -u user1 -p pw' 'Login successful'
+os::cmd::expect_success_and_text 'oc login -u user2 -p pw' 'Login successful'
+# Switching to another user using existing credentials informs you
+os::cmd::expect_success_and_text 'oc login -u user1'       'Logged into ".*" as "user1" using existing credentials'
+# Completing a login as the same user using existing credentials informs you
+os::cmd::expect_success_and_text 'oc login -u user1'       'Logged into ".*" as "user1" using existing credentials'
+# Return to the system:admin user
+os::cmd::expect_success 'oc login -u system:admin -n cmd-authentication'
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/authentication/scopedtokens"
 os::cmd::expect_success 'oadm policy add-role-to-user admin scoped-user'
 
