@@ -150,7 +150,7 @@ function start_os_server() {
 	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-	 --loglevel=4 --logspec='*importer=5' \
+	 --loglevel=5 --logspec='*importer=5' \
 	 --latest-images="${use_latest_images}" \
 	&>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
