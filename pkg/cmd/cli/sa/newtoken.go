@@ -17,7 +17,6 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/serviceaccounts"
@@ -44,7 +43,7 @@ be applied to any created token so that tokens created with this command can be 
 	newServiceAccountTokenExamples = `  # Generate a new token for service account 'default'
   %[1]s 'default'
 
-  # Generate a new token for service account 'default' and apply 
+  # Generate a new token for service account 'default' and apply
   # labels 'foo' and 'bar' to the new token for identification
   # %[1]s 'default' --labels foo=foo-value,bar=bar-value
 `
@@ -201,7 +200,7 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 		return nil, fmt.Errorf("could not begin watch for token: %v", err)
 	}
 
-	event, err := cmd.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
 		if event.Type == watch.Error {
 			return false, fmt.Errorf("encountered error while watching for token: %v", event.Object)
 		}
