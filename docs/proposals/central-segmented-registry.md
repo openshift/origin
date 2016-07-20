@@ -10,18 +10,18 @@ Today, OpenShift deployments support a single integrated registry, referenced as
 
 ## Goals
 
-* **Consistent Image Reference** We want users to consistently reference the same image name across all of their clusters as part of a promotion workflow. We want to do this through controlling environment assignment at the cluster level. In other words, the production cluster should have access to images in the production registry.
+* **Consistent Image Reference** We want users to consistently reference the same image name across all of their clusters as part of a promotion workflow. We want to do this through controlling environment assignment at the cluster level. In other words, the production cluster should only have access to images in the production registry.
 * **External Registry Abstraction** We also want users to be able to reference "external" registries as an integrated service abstraction, regardless of the actual cluster the registry is hosted.
 * **Optional with Backward Compatibility** This proposes significant complexity. Using it should be optional. Administrators and users who do not require this feature should not have to do anything differently.
 * **On-Premise** This proposal is focused on solving issues unique to private, on-premise users of OpenShift. Untrusted, multi-tenant use is not in scope.
 
 ## Central Registry Support
 
-For the purposes of discussion, a "central registry" is another OpenShift cluster dedicated to serving images. As described later, this "registry cluster" may optionally host several different registries to support environment segmentation. The registry cluster may serve one or many OpenShift clusters.
+For the purposes of discussion, a "central registry" is a simply a dedicated OpenShift cluster for serving images. As described below, this "registry cluster" hosts one or more registry deployments to support environment segmentation. The registry cluster may serve one or many OpenShift clusters.
 
 ## Segmenting Registries
 
-Registries are reference by **<project>/<registry-name>**. The default registry deployment is **default/docker-registry**. Today, the project namespace the registry is deployed to does not impact the naming of the image. These are arbitrary projects.
+The OpenShift registry is reference by `<project>/<registry-service>`. The default registry deployment is `default/docker-registry`. Multiple registries may be deployed on the same cluster using unique project namespaces. Each registry is addressed using a unique route.
 
 ### Managing Images
 
@@ -33,7 +33,7 @@ ImageStreamTags are annotated (annotations or labels?) with a list of approved r
               - test
               - uat
 
-To promote to the production environment, a user or process adds an annotation to the ImageStreamTag object. This action would trigger a job to manage ImageStream metadata, registry and storage.
+To promote to the production environment, a user or process adds an annotation to the ImageStreamTag object. This action would trigger a job to manage ImageStream metadata, registry and storage so the image could be served from the desired registry environment.
 
         kind: ImageStreamTag
           annotations:
@@ -84,7 +84,7 @@ The central registry is referenced using external service abstraction. Instead o
               name: docker-registry
           status: {}
 
-An Endpoint object created in the "default" project namespace on each cluster. In this example, the test cluster will reference the test registry instance in the central registry cluster.
+An Endpoint object created in the "default" project namespace on each cluster. In this example, the test OpenShift cluster references the test registry instance in the central registry cluster.
 
         kind: Endpoints
         apiVersion: v1
@@ -92,18 +92,18 @@ An Endpoint object created in the "default" project namespace on each cluster. I
           name: docker-registry
         subsets:
           - addresses:
-              - IP: test-registry.example.com
+              - IP: docker-registry-test.apps.example.com
             ports:
               - port: 443
                 name: docker-registry
 
 ### Managing Authorization
 
-Cross-cluster authorization is a significant challenge. Automating or synchronizing cross-cluster authorization is ultimately desired.
+Cross-cluster authorization is a significant challenge. Automating or synchronizing cross-cluster authorization is ultimately desired. Until that can be achieved, manual processes may need to bridge the gap.
 
 **Deployments**
 
-Initially, basic functionality should enable a cluster administrator to configure a service account with pull access to the appropriate registry environment so deployments "just work". This service account would have access to *all images* in the central registry irregardless of the environment. We are relying on each cluster registry service object to prevent pulling images from unintended environments. Additional engineering work would be required if restricting pulling images is required. See "Builds" topic.
+Initially, a cluster administrator configures a service account with pull access to the appropriate registry environment so deployments "just work". This service account would have access to *all images* in the central registry irregardless of the environment. We are relying on each cluster registry service object to prevent pulling images from unintended environments. Additional engineering work would be required if restricting pulling images is required.
 
 **Builds**
 
@@ -113,22 +113,7 @@ For organizations that maintain separate build clusters, the registry cluster co
 
 **Image Scans**
 
-As we look towards implementing integrated image scanning, the central registry cluster is a good candidate for running the scanning workloads.
-
-## Use Case
-
-**Central Registry Serving multiple OpenShift clusters with environment segmentation**
-
-Customer has requested a single registry to serve a global user base. This central registry serves multiple OpenShift clusters serving lifecycle environments test, UAT, production. Images are to be logically segmented by environment. For example, an image in the test environment should never be deployed in production.
-
-The global registry is a separate OpenShift cluster. This cluster has three actual deployments of the docker registry, each with its own service endpoint and route. Each registry environment is in a separate project namespace and is therefore referenced by unique route. Imagestreams are created in the projects they are desired in.
-
-        <registry_service_environment>/<project>/<image>:<tag>
-In this example there are three namespaces (test, uat, prod) each with a "registry" service and corresponding registry pod. The "app" imagestream is in project "myproject".
-
-        test-registry.example.com/myproject/app:v1.1.2
-        uat-registry.example.com/myproject/app:v1.1.1
-        prod-registry.example.com/myproject/app:v1.1.0
+As we look towards implementing integrated image scanning, the central registry cluster is a good candidate for running scanning workloads that check for vulnerabilities at the registry.
 
 ## Background
 
