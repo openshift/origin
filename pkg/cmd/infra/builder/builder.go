@@ -1,12 +1,14 @@
 package builder
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
-	"github.com/openshift/origin/pkg/version"
+	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 )
 
 const (
@@ -35,7 +37,7 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
 	return cmd
 }
 
@@ -50,6 +52,6 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
 	return cmd
 }
