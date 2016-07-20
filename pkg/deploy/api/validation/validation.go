@@ -439,7 +439,7 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 func validateImageStreamTagName(istag string) error {
 	name, _, ok := imageapi.SplitImageStreamTag(istag)
 	if !ok {
-		return fmt.Errorf("invalid ImageStreamTag: %s", istag)
+		return fmt.Errorf("must be in the form of <name>:<tag>")
 	}
 	if reasons := imageval.ValidateImageStreamName(name, false); len(reasons) != 0 {
 		return errors.New(strings.Join(reasons, ", "))
