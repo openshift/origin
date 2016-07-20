@@ -140,6 +140,11 @@ type ImageRef struct {
 	OutputImage     bool
 	Insecure        bool
 	HasEmptyDir     bool
+	// FromDockerFile keeps track of whether this image was retrieved from a
+	// Dockerfile, which changes our BuildConfig results.  If true, the
+	// ImageChangeTrigger for this run is left blank, and the strategy will not
+	// have a from: component
+	FromDockerfile bool
 	// TagDirectly will create the image stream using a tag for this reference, not a bulk
 	// import.
 	TagDirectly bool

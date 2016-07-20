@@ -28,11 +28,14 @@ func componentWithSource(s string) (component, repo string, builder bool, err er
 		if len(segs) == 2 {
 			builder = true
 			switch {
+			// ~[code]
 			case len(segs[0]) == 0:
 				err = fmt.Errorf("when using '[image]~[code]' form for %q, you must specify a image name", s)
 				return
+			// [image]~
 			case len(segs[1]) == 0:
 				component = segs[0]
+			// [image]~[code]
 			default:
 				component = segs[0]
 				repo = segs[1]
@@ -299,6 +302,11 @@ type ComponentInput struct {
 
 	ExpectToBuild bool
 	ScratchImage  bool
+	// FromDockerFile keeps track of whether this image was retrieved from a
+	// Dockerfile, which changes our BuildConfig results.  If true, the
+	// ImageChangeTrigger for this run is left blank, and the strategy will not
+	// have a from: component
+	FromDockerfile bool
 
 	Uses          *SourceRepository
 	ResolvedMatch *ComponentMatch

@@ -322,6 +322,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						glog.Warningf(msg, from)
 					}
 					image = inputImage
+					if image != nil {
+						image.FromDockerfile = refInput.FromDockerfile
+					}
 				}
 
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)

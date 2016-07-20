@@ -36,6 +36,19 @@ os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: tru
 
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
+# test docker strategy with repo that has a dockerfile, making sure the
+# dockerStrategy has no From: field
+os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/ruby-hello-world --strategy=docker -o jsonpath={.items[2].spec.strategy}' 'map[type:Docker dockerStrategy:map[]]'
+# test docker strategy with repo that has a dockerfile, making sure an
+# ImageChangeTrigger isn't included
+os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ruby-hello-world --strategy=docker -o jsonpath={.items[2].spec.triggers}' 'type:ImageChange'
+# test docker strategy with repo that has a dockerfile and a user specified
+# image, making sure an ImageChangeTrigger is included
+os::cmd::expect_success_and_text 'oc new-app openshift/origin:latest~https://github.com/openshift/ruby-hello-world --strategy=docker -o jsonpath={.items[2].spec.triggers}' 'type:ImageChange'
+# test docker strategy with repo that has a dockerfile and a user specified
+# image, making sure the right dockerStrategy is used
+os::cmd::expect_success_and_text 'oc new-app openshift/origin:latest~https://github.com/openshift/ruby-hello-world --strategy=docker -o jsonpath={.items[2].spec.strategy.dockerStrategy.from}' 'origin:latest'
+
 
 # check label creation
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'

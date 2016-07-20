@@ -506,6 +506,7 @@ func AddMissingComponentsToRefBuilder(
 			refs := b.AddComponents([]string{baseImage}, func(input *app.ComponentInput) app.ComponentReference {
 				input.Resolver = dockerfileResolver
 				input.Use(repo)
+				input.FromDockerfile = true
 				input.ExpectToBuild = true
 				repo.UsedBy(input)
 				repo.BuildWithDocker()

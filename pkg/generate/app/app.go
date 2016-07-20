@@ -204,7 +204,7 @@ func (s *BuildStrategyRef) BuildStrategy(env Environment) (*buildapi.BuildStrate
 		strategy := &buildapi.DockerBuildStrategy{
 			Env: env.List(),
 		}
-		if s.Base != nil {
+		if s.Base != nil && !s.Base.FromDockerfile {
 			ref := s.Base.ObjectReference()
 			strategy.From = &ref
 			triggers = s.Base.BuildTriggers()
@@ -247,6 +247,7 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	}
 	strategy := &buildapi.BuildStrategy{}
 	strategyTriggers := []buildapi.BuildTriggerPolicy{}
+
 	if r.Strategy != nil {
 		strategy, strategyTriggers = r.Strategy.BuildStrategy(r.Env)
 	}
