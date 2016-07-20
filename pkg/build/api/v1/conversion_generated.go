@@ -1764,6 +1764,26 @@ func autoConvert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBui
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
 	out.ForcePull = in.ForcePull
+	if in.RuntimeImage != nil {
+		in, out := &in.RuntimeImage, &out.RuntimeImage
+		*out = new(api.ObjectReference)
+		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RuntimeImage = nil
+	}
+	if in.RuntimeArtifacts != nil {
+		in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
+		*out = make([]build_api.ImageSourcePath, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ImageSourcePath_To_api_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RuntimeArtifacts = nil
+	}
 	return nil
 }
 
@@ -1794,6 +1814,26 @@ func autoConvert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build_api
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
 	out.ForcePull = in.ForcePull
+	if in.RuntimeImage != nil {
+		in, out := &in.RuntimeImage, &out.RuntimeImage
+		*out = new(api_v1.ObjectReference)
+		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RuntimeImage = nil
+	}
+	if in.RuntimeArtifacts != nil {
+		in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
+		*out = make([]ImageSourcePath, len(*in))
+		for i := range *in {
+			if err := Convert_api_ImageSourcePath_To_v1_ImageSourcePath(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.RuntimeArtifacts = nil
+	}
 	return nil
 }
 
