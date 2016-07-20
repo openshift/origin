@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -732,6 +733,22 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("error requesting token: %v", err)
 	}
 
+	anonymousConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	anonymousClient, err := client.New(&anonymousConfig)
+	if err != nil {
+		t.Fatalf("error getting anonymous client: %v", err)
+	}
+
+	addAnonymous := &policy.RoleModificationOptions{
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.EditRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", clusterAdminClient),
+		Users:               []string{"system:anonymous"},
+	}
+	if err := addAnonymous.AddRole(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	addDanny := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
@@ -773,6 +790,12 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterInterface: dannyClient.SubjectAccessReviews(),
 		clusterReview:    askCanDannyGetProject,
 		err:              `User "danny" cannot create subjectaccessreviews at the cluster scope`,
+	}.run(t)
+	subjectAccessReviewTest{
+		description:      "as anonymous, can I make cluster subject access reviews",
+		clusterInterface: anonymousClient.SubjectAccessReviews(),
+		clusterReview:    askCanDannyGetProject,
+		err:              `User "system:anonymous" cannot create subjectaccessreviews at the cluster scope`,
 	}.run(t)
 
 	addValerie := &policy.RoleModificationOptions{
@@ -834,11 +857,31 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 			Namespace: "mallet-project",
 		},
 	}.run(t)
+	// ensure unprivileged users cannot check other users' access
 	subjectAccessReviewTest{
 		description:    "harold denied ability to run subject access review in project mallet-project",
 		localInterface: haroldClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:    askCanEdgarDeletePods,
 		err:            `User "harold" cannot create localsubjectaccessreviews in project "mallet-project"`,
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous denied ability to run subject access review in project mallet-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("mallet-project"),
+		localReview:    askCanEdgarDeletePods,
+		err:            `User "system:anonymous" cannot create localsubjectaccessreviews in project "mallet-project"`,
+	}.run(t)
+	// ensure message does not leak whether the namespace exists or not
+	subjectAccessReviewTest{
+		description:    "harold denied ability to run subject access review in project nonexistent-project",
+		localInterface: haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanEdgarDeletePods,
+		err:            `User "harold" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous denied ability to run subject access review in project nonexistent-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanEdgarDeletePods,
+		err:            `User "system:anonymous" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{
@@ -890,6 +933,61 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 			Namespace: "hammer-project",
 		},
 	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous told he can create pods in project hammer-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("hammer-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in hammer-project",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+
+	// test checking self permissions when denied
+	subjectAccessReviewTest{
+		description:    "harold told he cannot create pods in project mallet-project",
+		localInterface: haroldClient.LocalSubjectAccessReviews("mallet-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "harold" cannot create pods in project "mallet-project"`,
+			Namespace: "mallet-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous told he cannot create pods in project mallet-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("mallet-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "system:anonymous" cannot create pods in project "mallet-project"`,
+			Namespace: "mallet-project",
+		},
+	}.run(t)
+
+	// test checking self-permissions doesn't leak whether namespace exists or not
+	subjectAccessReviewTest{
+		description:    "harold told he cannot create pods in project nonexistent-project",
+		localInterface: haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "harold" cannot create pods in project "nonexistent-project"`,
+			Namespace: "nonexistent-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous told he cannot create pods in project nonexistent-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "system:anonymous" cannot create pods in project "nonexistent-project"`,
+			Namespace: "nonexistent-project",
+		},
+	}.run(t)
+
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "policybindings"},
 	}

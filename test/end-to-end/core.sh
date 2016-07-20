@@ -191,6 +191,31 @@ echo "[INFO] Docker login as pusher to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
 echo "[INFO] Docker login successful"
 
+# Test anonymous registry access
+# setup: log out of docker, log into openshift as e2e-user to run policy commands, tag image to use for push attempts
+os::cmd::expect_success 'oc login -u e2e-user'
+os::cmd::expect_success 'docker pull busybox'
+os::cmd::expect_success "docker tag -f busybox ${DOCKER_REGISTRY}/missing/image:tag"
+os::cmd::expect_success "docker logout ${DOCKER_REGISTRY}"
+# unauthorized pulls return "not found" errors to anonymous users, regardless of backing data
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/missing/image:tag"              "not found"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"    "not found"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "not found"
+# test anonymous pulls
+os::cmd::expect_success 'oc policy add-role-to-user system:image-puller system:anonymous -n custom'
+os::cmd::try_until_text 'oc policy who-can get imagestreams/layers -n custom' 'system:anonymous'
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+# unauthorized pushes return authorization errors, regardless of backing data 
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/missing/image:tag"              "authentication required"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"    "authentication required"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "authentication required"
+# test anonymous pushes
+os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:anonymous -n custom'
+os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+
 # log back into docker as e2e-user again
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
 

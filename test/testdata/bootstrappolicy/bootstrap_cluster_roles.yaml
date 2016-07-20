@@ -1301,6 +1301,29 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: self-access-reviewer
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - selfsubjectrulesreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions:
+      apiVersion: v1
+      kind: IsPersonalSubjectAccessReview
+    resources:
+    - localsubjectaccessreviews
+    - subjectaccessreviews
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: self-provisioner
   rules:
   - apiGroups:

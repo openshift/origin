@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,6 +33,13 @@ func (d deferredErrors) Empty() bool {
 	return len(d) == 0
 }
 
+const (
+	OpenShiftAuth = "openshift"
+
+	RealmKey      = "realm"
+	TokenRealmKey = "token-realm"
+)
+
 // DefaultRegistryClient is exposed for testing the registry with fake client.
 var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
@@ -58,7 +64,7 @@ func (r *RegistryClient) SafeClientConfig() restclient.Config {
 }
 
 func init() {
-	registryauth.Register("openshift", registryauth.InitFunc(newAccessController))
+	registryauth.Register(OpenShiftAuth, registryauth.InitFunc(newAccessController))
 }
 
 type contextKey int
@@ -96,8 +102,9 @@ func DeferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
 }
 
 type AccessController struct {
-	realm  string
-	config restclient.Config
+	realm      string
+	tokenRealm string
+	config     restclient.Config
 }
 
 var _ registryauth.AccessController = &AccessController{}
@@ -109,13 +116,20 @@ type authChallenge struct {
 
 var _ registryauth.Challenge = &authChallenge{}
 
+type tokenAuthChallenge struct {
+	realm   string
+	service string
+	err     error
+}
+
+var _ registryauth.Challenge = &tokenAuthChallenge{}
+
 // Errors used and exported by this package.
 var (
 	// Challenging errors
-	ErrTokenRequired          = errors.New("authorization header with basic token required")
-	ErrTokenInvalid           = errors.New("failed to decode basic token")
-	ErrOpenShiftTokenRequired = errors.New("expected bearer token as password for basic token to registry")
-	ErrOpenShiftAccessDenied  = errors.New("access denied")
+	ErrTokenRequired         = errors.New("authorization header required")
+	ErrTokenInvalid          = errors.New("failed to decode credentials")
+	ErrOpenShiftAccessDenied = errors.New("access denied")
 
 	// Non-challenging errors
 	ErrNamespaceRequired   = errors.New("repository namespace required")
@@ -125,12 +139,15 @@ var (
 
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
 	log.Info("Using Origin Auth handler")
-	realm, ok := options["realm"].(string)
+	realm, ok := options[RealmKey].(string)
 	if !ok {
 		// Default to openshift if not present
 		realm = "origin"
 	}
-	return &AccessController{realm: realm, config: DefaultRegistryClient.SafeClientConfig()}, nil
+
+	tokenRealm, _ := options[TokenRealmKey].(string)
+
+	return &AccessController{realm: realm, tokenRealm: tokenRealm, config: DefaultRegistryClient.SafeClientConfig()}, nil
 }
 
 // Error returns the internal error string for this authChallenge.
@@ -149,10 +166,35 @@ func (ac *authChallenge) SetHeaders(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", str)
 }
 
+// Error returns the internal error string for this authChallenge.
+func (ac *tokenAuthChallenge) Error() string {
+	return ac.err.Error()
+}
+
+// SetHeaders sets the bearer challenge header on the response.
+func (ac *tokenAuthChallenge) SetHeaders(w http.ResponseWriter) {
+	// WWW-Authenticate response challenge header.
+	// See https://docs.docker.com/registry/spec/auth/token/#/how-to-authenticate and https://tools.ietf.org/html/rfc6750#section-3
+	str := fmt.Sprintf("Bearer realm=%q", ac.realm)
+	if ac.service != "" {
+		str += fmt.Sprintf(",service=%q", ac.service)
+	}
+	w.Header().Set("WWW-Authenticate", str)
+}
+
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
 func (ac *AccessController) wrapErr(err error) error {
 	switch err {
-	case ErrTokenRequired, ErrTokenInvalid, ErrOpenShiftTokenRequired, ErrOpenShiftAccessDenied:
+	case ErrTokenRequired:
+		// Challenge for errors that involve missing tokens
+		if len(ac.tokenRealm) > 0 {
+			// Direct to token auth if we've been given a place to direct to
+			return &tokenAuthChallenge{realm: ac.tokenRealm, err: err}
+		} else {
+			// Otherwise just send the basic challenge
+			return &authChallenge{realm: ac.realm, err: err}
+		}
+	case ErrTokenInvalid, ErrOpenShiftAccessDenied:
 		// Challenge for errors that involve tokens or access denied
 		return &authChallenge{realm: ac.realm, err: err}
 	case ErrNamespaceRequired, ErrUnsupportedAction, ErrUnsupportedResource:
@@ -175,7 +217,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, ac.wrapErr(err)
 	}
 
-	bearerToken, err := getToken(ctx, req)
+	bearerToken, err := getOpenShiftAPIToken(ctx, req)
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}
@@ -301,26 +343,35 @@ func getNamespaceName(resourceName string) (string, string, error) {
 	return ns, name, nil
 }
 
-func getToken(ctx context.Context, req *http.Request) (string, error) {
+func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error) {
+	token := ""
+
 	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
+	if len(authParts) != 2 {
 		return "", ErrTokenRequired
 	}
-	basicToken := authParts[1]
 
-	payload, err := base64.StdEncoding.DecodeString(basicToken)
-	if err != nil {
-		context.GetLogger(ctx).Errorf("Basic token decode failed: %s", err)
-		return "", ErrTokenInvalid
+	switch strings.ToLower(authParts[0]) {
+	case "bearer":
+		// This is either a direct API token, or a token issued by our docker token handler
+		token = authParts[1]
+		// Recognize the token issued to anonymous users by our docker token handler
+		if token == anonymousToken {
+			token = ""
+		}
+
+	case "basic":
+		_, password, ok := req.BasicAuth()
+		if !ok || len(password) == 0 {
+			return "", ErrTokenInvalid
+		}
+		token = password
+
+	default:
+		return "", ErrTokenRequired
 	}
 
-	osAuthParts := strings.SplitN(string(payload), ":", 2)
-	if len(osAuthParts) != 2 {
-		return "", ErrOpenShiftTokenRequired
-	}
-
-	bearerToken := osAuthParts[1]
-	return bearerToken, nil
+	return token, nil
 }
 
 func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) error {
