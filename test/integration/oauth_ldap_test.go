@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -116,7 +114,7 @@ func TestOAuthLDAP(t *testing.T) {
 			URL:    fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
 			BindDN: bindDN,
 			BindPassword: configapi.StringSource{
-				configapi.StringSourceSpec{
+				StringSourceSpec: configapi.StringSourceSpec{
 					File:    bindPasswordFile.Name(),
 					KeyFile: bindPasswordKeyFile.Name(),
 				},

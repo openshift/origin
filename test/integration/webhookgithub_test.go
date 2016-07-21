@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -296,7 +294,7 @@ func postFile(client restclient.HTTPClient, event, filename, url string, expStat
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != expStatusCode {
-		t.Errorf("Wrong response code, expecting %d, got %s: %s!", expStatusCode, resp.StatusCode, string(body))
+		t.Errorf("Wrong response code, expecting %d, got %d: %s!", expStatusCode, resp.StatusCode, string(body))
 	}
 }
 

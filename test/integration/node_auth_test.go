@@ -1,5 +1,3 @@
-// +build integration,!no-etcd
-
 package integration
 
 import (
