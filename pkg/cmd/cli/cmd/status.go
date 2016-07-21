@@ -25,8 +25,8 @@ Show a high level overview of the current project
 
 This command will show services, deployment configs, build configurations, and active deployments.
 If you have any misconfigured components information about them will be shown. For more information
-about individual items, use the describe command (e.g. oc describe buildConfig,
-oc describe deploymentConfig, oc describe service).
+about individual items, use the describe command (e.g. %[1]s describe buildConfig,
+%[1]s describe deploymentConfig, %[1]s describe service).
 
 You can specify an output format of "-o dot" to have this command output the generated status
 graph in DOT format that is suitable for use by the "dot" command.`
@@ -57,13 +57,14 @@ type StatusOptions struct {
 }
 
 // NewCmdStatus implements the OpenShift cli status command.
-func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+// baseCLIName is the path from root cmd to the parent of this cmd.
+func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	opts := &StatusOptions{}
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [-o dot | -v ]", StatusRecommendedName),
 		Short:   "Show an overview of the current project",
-		Long:    statusLong,
+		Long:    fmt.Sprintf(statusLong, baseCLIName),
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := opts.Complete(f, cmd, args, out)
