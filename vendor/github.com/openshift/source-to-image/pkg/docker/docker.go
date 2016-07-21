@@ -41,6 +41,9 @@ const (
 	// The previous name of this label was 'io.s2i.destination'. This is now
 	// deprecated
 	DestinationLabel = api.DefaultNamespace + "destination"
+	// AssembleInputFilesLabel is the name of the Docker image LABEL that tells S2I which
+	// files wil be copied from builder to a runtime image.
+	AssembleInputFilesLabel = api.DefaultNamespace + "assemble-input-files"
 
 	// DefaultDestination is the destination where the artifacts will be placed
 	// if DestinationLabel was not specified.
@@ -81,6 +84,7 @@ type Docker interface {
 	GetOnBuild(string) ([]string, error)
 	RemoveContainer(id string) error
 	GetScriptsURL(name string) (string, error)
+	GetAssembleInputFiles(string) (string, error)
 	RunContainer(opts RunContainerOptions) error
 	GetImageID(name string) (string, error)
 	GetImageWorkdir(name string) (string, error)
@@ -93,6 +97,8 @@ type Docker interface {
 	GetImageUser(name string) (string, error)
 	GetLabels(name string) (map[string]string, error)
 	UploadToContainer(srcPath, destPath, container string) error
+	UploadToContainerWithCallback(srcPath, destPath, container string, walkFn filepath.WalkFunc, modifyInplace bool) error
+	DownloadFromContainer(containerPath string, w io.Writer, container string) error
 	Ping() error
 }
 
@@ -107,6 +113,7 @@ type Client interface {
 	StartContainer(id string, hostConfig *docker.HostConfig) error
 	WaitContainer(id string) (int, error)
 	UploadToContainer(id string, opts docker.UploadToContainerOptions) error
+	DownloadFromContainer(id string, opts docker.DownloadFromContainerOptions) error
 	RemoveContainer(opts docker.RemoveContainerOptions) error
 	CommitContainer(opts docker.CommitContainerOptions) (*docker.Image, error)
 	CopyFromContainer(opts docker.CopyFromContainerOptions) error
@@ -137,8 +144,6 @@ type RunContainerOptions struct {
 	ExternalScripts  bool
 	ScriptsURL       string
 	Destination      string
-	Command          string
-	CommandOverrides func(originalCmd string) string
 	Env              []string
 	Stdin            io.Reader
 	Stdout           io.Writer
@@ -151,6 +156,17 @@ type RunContainerOptions struct {
 	CGroupLimits     *api.CGroupLimits
 	CapDrop          []string
 	Binds            []string
+	Command          string
+	CommandOverrides func(originalCmd string) string
+	// CommandExplicit provides a full control on the CMD directive.
+	// It won't modified in any way and will be passed to the docker as-is.
+	// Use this option when you want to use arbitrary command as CMD directive.
+	// In this case you can't use Command because 1) it's just a string
+	// 2) it will be modified by prepending base dir and cleaned by the path.Join().
+	// You also can't use CommandOverrides because 1) it's a string
+	// 2) it only gets applied when Command equals to "assemble" or "usage" script
+	// AND script is inside of the tar archive.
+	CommandExplicit []string
 }
 
 // asDockerConfig converts a RunContainerOptions into a Config understood by the
@@ -272,6 +288,25 @@ func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
 }
 
 // UploadToContainer uploads artifacts to the container.
+func (d *stiDocker) UploadToContainer(src, dest, container string) error {
+	makeFileWorldWritable := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// Skip chmod if on windows OS and for symlinks
+		if runtime.GOOS == "windows" || info.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
+		mode := os.FileMode(0666)
+		if info.IsDir() {
+			mode = 0777
+		}
+		return os.Chmod(path, mode)
+	}
+	return d.UploadToContainerWithCallback(src, dest, container, makeFileWorldWritable, false)
+}
+
+// UploadToContainerWithCallback uploads artifacts to the container.
 // If the source is a directory, then all files and sub-folders are copied into
 // the destination (which has to be directory as well).
 // If the source is a single file, then the file copied into destination (which
@@ -280,7 +315,7 @@ func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
 // out the WORKDIR of the image that the container was created from and use that
 // as a destination. If the WORKDIR is not set, then we copy files into "/"
 // folder (docker upload default).
-func (d *stiDocker) UploadToContainer(src, dest, container string) error {
+func (d *stiDocker) UploadToContainerWithCallback(src, dest, container string, walkFn filepath.WalkFunc, modifyInplace bool) error {
 	path := filepath.Dir(dest)
 	f, err := os.Open(src)
 	if err != nil {
@@ -294,14 +329,14 @@ func (d *stiDocker) UploadToContainer(src, dest, container string) error {
 		path = dest
 		go func() {
 			defer w.Close()
-			if err := t.StreamDirAsTar(src, dest, w); err != nil {
+			if err := t.StreamDirAsTarWithCallback(src, w, walkFn, modifyInplace); err != nil {
 				glog.V(0).Infof("error: Uploading directory to container failed: %v", err)
 			}
 		}()
 	} else {
 		go func() {
 			defer w.Close()
-			if err := t.StreamFileAsTar(src, filepath.Base(dest), w); err != nil {
+			if err := t.StreamFileAsTarWithCallback(src, filepath.Base(dest), w, walkFn, modifyInplace); err != nil {
 				glog.V(0).Infof("error: Uploading files to container failed: %v", err)
 			}
 		}()
@@ -309,6 +344,12 @@ func (d *stiDocker) UploadToContainer(src, dest, container string) error {
 	glog.V(3).Infof("Uploading %q to %q ...", src, path)
 	opts := docker.UploadToContainerOptions{Path: path, InputStream: r}
 	return d.client.UploadToContainer(container, opts)
+}
+
+// DownloadFromContainer downloads file (or directory) from the container.
+func (d *stiDocker) DownloadFromContainer(containerPath string, w io.Writer, container string) error {
+	opts := docker.DownloadFromContainerOptions{Path: containerPath, OutputStream: w}
+	return d.client.DownloadFromContainer(container, opts)
 }
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
@@ -489,6 +530,22 @@ func (d *stiDocker) GetScriptsURL(image string) (string, error) {
 	return getScriptsURL(imageMetadata), nil
 }
 
+// GetAssembleInputFiles finds a io.openshift.s2i.assemble-input-files label on the given image.
+func (d *stiDocker) GetAssembleInputFiles(image string) (string, error) {
+	imageMetadata, err := d.CheckAndPullImage(image)
+	if err != nil {
+		return "", err
+	}
+
+	label := getLabel(imageMetadata, AssembleInputFilesLabel)
+	if len(label) == 0 {
+		glog.V(0).Infof("warning: Image %q does not contain a value for the %s label", image, AssembleInputFilesLabel)
+	} else {
+		glog.V(3).Infof("Image %q contains %s set to %q", image, AssembleInputFilesLabel, label)
+	}
+	return label, nil
+}
+
 // getScriptsURL finds a scripts url label in the image metadata
 func getScriptsURL(image *docker.Image) string {
 	scriptsURL := getLabel(image, ScriptsURLLabel)
@@ -631,11 +688,18 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		return err
 	}
 
+	// tarDestination will be passed as location to PostExecute function
+	// and will be used as the prefix for the CMD (scripts/run)
 	var tarDestination string
+
 	var cmd []string
 	if !opts.TargetImage {
-		tarDestination = determineTarDestinationDir(opts, imageMetadata)
-		cmd = constructCommand(opts, imageMetadata, tarDestination)
+		if len(opts.CommandExplicit) != 0 {
+			cmd = opts.CommandExplicit
+		} else {
+			tarDestination = determineTarDestinationDir(opts, imageMetadata)
+			cmd = constructCommand(opts, imageMetadata, tarDestination)
+		}
 		glog.V(5).Infof("Setting %q command for container ...", strings.Join(cmd, " "))
 	}
 	createOpts.Config.Cmd = cmd
