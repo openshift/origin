@@ -2,11 +2,11 @@
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "mysql-persistent",
+    "name": "mariadb-ephemeral",
     "annotations": {
-      "description": "MySQL database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
-      "iconClass": "icon-mysql-database",
-      "tags": "database,mysql"
+      "description": "MariaDB database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "iconClass": "icon-mariadb",
+      "tags": "database,mariadb"
     }
   },
   "objects": [
@@ -19,29 +19,12 @@
       "spec": {
         "ports": [
           {
-            "name": "mysql",
+            "name": "mariadb",
             "port": 3306
           }
         ],
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
-        }
-      }
-    },
-    {
-      "kind": "PersistentVolumeClaim",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
-      },
-      "spec": {
-        "accessModes": [
-          "ReadWriteOnce"
-        ],
-        "resources": {
-          "requests": {
-            "storage": "${VOLUME_CAPACITY}"
-          }
         }
       }
     },
@@ -61,11 +44,11 @@
             "imageChangeParams": {
               "automatic": true,
               "containerNames": [
-                "mysql"
+                "mariadb"
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:5.6",
+                "name": "mariadb:10.1",
                 "namespace": "${NAMESPACE}"
               }
             }
@@ -87,7 +70,7 @@
           "spec": {
             "containers": [
               {
-                "name": "mysql",
+                "name": "mariadb",
                 "image": " ",
                 "ports": [
                   {
@@ -140,8 +123,8 @@
             "volumes": [
               {
                 "name": "${DATABASE_SERVICE_NAME}-data",
-                "persistentVolumeClaim": {
-                  "claimName": "${DATABASE_SERVICE_NAME}"
+                "emptyDir": {
+                  "medium": ""
                 }
               }
             ]
@@ -168,13 +151,13 @@
       "name": "DATABASE_SERVICE_NAME",
       "displayName": "Database Service Name",
       "description": "The name of the OpenShift Service exposed for the database.",
-      "value": "mysql",
+      "value": "mariadb",
       "required": true
     },
     {
       "name": "MYSQL_USER",
       "displayName": "MySQL User",
-      "description": "Username for MySQL user that will be used for accessing the database.",
+      "description": "Username for MariaDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
       "required": true
@@ -182,7 +165,7 @@
     {
       "name": "MYSQL_PASSWORD",
       "displayName": "MySQL Password",
-      "description": "Password for the MySQL user.",
+      "description": "Password for the MariaDB user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -190,19 +173,12 @@
     {
       "name": "MYSQL_DATABASE",
       "displayName": "MySQL Database Name",
-      "description": "Name of the MySQL database accessed.",
+      "description": "Name of the MariaDB database accessed.",
       "value": "sampledb",
-      "required": true
-    },
-    {
-      "name": "VOLUME_CAPACITY",
-      "displayName": "Volume Capacity",
-      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
-      "value": "1Gi",
       "required": true
     }
   ],
   "labels": {
-    "template": "mysql-persistent-template"
+    "template": "mariadb-persistent-template"
   }
 }
