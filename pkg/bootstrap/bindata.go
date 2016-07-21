@@ -3321,8 +3321,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins-jnlp",
-        "creationTimestamp": null
+        "name": "jenkins-jnlp"
       },
       "spec": {
         "ports": [

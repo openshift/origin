@@ -9,14 +9,14 @@ RUN yum install -y --setopt=tsflags=nodocs --enablerepo=centosplus epel-release 
     yum install -y --setopt=tsflags=nodocs install $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
-    mkdir -p /opt/app-root/jenkins && \
-    chown -R 1001:0 /opt/app-root/jenkins && \
-    chmod -R g+w /opt/app-root/jenkins
+    mkdir -p /home/jenkins && \
+    chown -R 1001:0 /home/jenkins && \
+    chmod -R g+w /home/jenkins
 
 # Copy the entrypoint
-COPY contrib/openshift/* /opt/app-root/jenkins/
+ADD contrib/openshift/* /usr/local/bin/
+
 USER 1001
 
-# Run the JNLP client by default
-# To use swarm client, specify "/opt/app-root/jenkins/run-swarm-client" as Command
-ENTRYPOINT ["/opt/app-root/jenkins/run-jnlp-client"]
+# Run the Jenkins JNLP client
+ENTRYPOINT ["/usr/local/bin/run-jnlp-client"]
