@@ -121,9 +121,12 @@ const (
 	UserInfo        = UserIndicator + "info"
 	UserAccessCheck = UserIndicator + "check-access"
 
-	// UserListProject gives explicit permission to see the projects a user can see.  This is often used to prime secondary ACL systems
+	// UserListScopedProjects gives explicit permission to see the projects that this token can see.
+	UserListScopedProjects = UserIndicator + "list-scoped-projects"
+
+	// UserListAllProjects gives explicit permission to see the projects a user can see.  This is often used to prime secondary ACL systems
 	// unrelated to openshift and to display projects for selection in a secondary UI.
-	UserListProject = UserIndicator + "list-projects"
+	UserListAllProjects = UserIndicator + "list-projects"
 
 	// UserFull includes all permissions of the user
 	UserFull = UserIndicator + "full"
@@ -138,7 +141,7 @@ func (userEvaluator) Handles(scope string) bool {
 
 func (userEvaluator) Validate(scope string) error {
 	switch scope {
-	case UserFull, UserInfo, UserAccessCheck, UserListProject:
+	case UserFull, UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
 		return nil
 	}
 
@@ -151,7 +154,9 @@ func (userEvaluator) Describe(scope string) (string, string, error) {
 		return "Read-only access to your user information (including username, identities, and group membership)", "", nil
 	case UserAccessCheck:
 		return `Read-only access to view your privileges (for example, "can I create builds?")`, "", nil
-	case UserListProject:
+	case UserListScopedProjects:
+		return `Read-only access to list your projects viewable with this token and view their metadata (display name, description, etc.)`, "", nil
+	case UserListAllProjects:
 		return `Read-only access to list your projects and view their metadata (display name, description, etc.)`, "", nil
 	case UserFull:
 		return `Full read/write access with all of your permissions`, `Includes any access you have to escalating resources like secrets`, nil
@@ -171,9 +176,14 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter c
 			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
-	case UserListProject:
+	case UserListScopedProjects:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+		}, nil
+	case UserListAllProjects:
+		return []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+			{Verbs: sets.NewString("get"), APIGroups: []string{kapi.GroupName}, Resources: sets.NewString("namespaces")},
 		}, nil
 	case UserFull:
 		return []authorizationapi.PolicyRule{
@@ -187,7 +197,7 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter c
 
 func (userEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error) {
 	switch scope {
-	case UserFull:
+	case UserFull, UserListAllProjects:
 		return []string{"*"}, nil
 	default:
 		return []string{}, nil
