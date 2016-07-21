@@ -79,7 +79,7 @@ func hasRunningSerialBuild(lister buildclient.BuildLister, namespace, buildConfi
 // build configuration. It also returns the indication whether there are
 // currently running builds, to make sure there is no race-condition between
 // re-listing the builds.
-func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigName string) (*buildapi.Build, bool, error) {
+func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigName string) ([]*buildapi.Build, bool, error) {
 	var (
 		nextBuild           *buildapi.Build
 		hasRunningBuilds    bool
@@ -98,17 +98,29 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 		return nil, hasRunningBuilds, err
 	}
 
+	nextParallelBuilds := []*buildapi.Build{}
 	for i, b := range builds.Items {
 		buildNumber, err := buildutil.BuildNumber(&b)
 		if err != nil {
 			return nil, hasRunningBuilds, err
+		}
+		if buildutil.BuildRunPolicy(&b) == buildapi.BuildRunPolicyParallel {
+			nextParallelBuilds = append(nextParallelBuilds, &builds.Items[i])
 		}
 		if previousBuildNumber == 0 || buildNumber < previousBuildNumber {
 			nextBuild = &builds.Items[i]
 			previousBuildNumber = buildNumber
 		}
 	}
-	return nextBuild, hasRunningBuilds, nil
+	nextBuilds := []*buildapi.Build{}
+	// if the next build is a parallel build, then start all the queued parallel builds,
+	// otherwise just start the next build if there is one.
+	if nextBuild != nil && buildutil.BuildRunPolicy(nextBuild) == buildapi.BuildRunPolicyParallel {
+		nextBuilds = nextParallelBuilds
+	} else if nextBuild != nil {
+		nextBuilds = append(nextBuilds, nextBuild)
+	}
+	return nextBuilds, hasRunningBuilds, nil
 }
 
 // handleComplete represents the default OnComplete handler. This Handler will
@@ -120,21 +132,27 @@ func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpd
 	if len(bcName) == 0 {
 		return nil
 	}
-	nextBuild, hasRunningBuilds, err := GetNextConfigBuild(lister, build.Namespace, bcName)
+	nextBuilds, hasRunningBuilds, err := GetNextConfigBuild(lister, build.Namespace, bcName)
 	if err != nil {
 		return fmt.Errorf("unable to get the next build for %s/%s: %v", build.Namespace, build.Name, err)
 	}
-	if hasRunningBuilds || nextBuild == nil {
+	if hasRunningBuilds || len(nextBuilds) == 0 {
 		return nil
 	}
 	now := unversioned.Now()
-	nextBuild.Status.StartTimestamp = &now
-	return wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
-		err := updater.Update(nextBuild.Namespace, nextBuild)
-		if err != nil && errors.IsConflict(err) {
-			glog.V(5).Infof("Error updating build %s/%s: %v (will retry)", nextBuild.Namespace, nextBuild.Name, err)
-			return false, nil
+	for _, build := range nextBuilds {
+		build.Status.StartTimestamp = &now
+		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
+			err := updater.Update(build.Namespace, build)
+			if err != nil && errors.IsConflict(err) {
+				glog.V(5).Infof("Error updating build %s/%s: %v (will retry)", build.Namespace, build.Name, err)
+				return false, nil
+			}
+			return true, err
+		})
+		if err != nil {
+			return err
 		}
-		return true, err
-	})
+	}
+	return nil
 }
