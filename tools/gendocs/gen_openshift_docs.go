@@ -51,6 +51,6 @@ func main() {
 	gendocs.GenDocs(cmd, outFile)
 
 	outFile = outDir + "oadm_by_example_content.adoc"
-	cmd = admin.NewCommandAdmin("oadm", "oadm", ioutil.Discard, ioutil.Discard)
+	cmd = admin.NewCommandAdmin("oadm", "oadm", &bytes.Buffer{}, ioutil.Discard, ioutil.Discard)
 	gendocs.GenDocs(cmd, outFile)
 }
