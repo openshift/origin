@@ -35,6 +35,20 @@ func TestStop(t *testing.T) {
 		return &(kerrors.NewNotFound(kapi.Resource("DeploymentConfig"), "config").ErrStatus)
 	}
 
+	pause := func(d *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
+		d.Spec.Paused = true
+		return d
+	}
+
+	fakeDC := map[string]*deployapi.DeploymentConfig{
+		"simple-stop":           deploytest.OkDeploymentConfig(1),
+		"legacy-simple-stop":    deploytest.OkDeploymentConfig(1),
+		"multi-stop":            deploytest.OkDeploymentConfig(5),
+		"legacy-multi-stop":     deploytest.OkDeploymentConfig(5),
+		"no-deployments":        deploytest.OkDeploymentConfig(5),
+		"legacy-no-deployments": deploytest.OkDeploymentConfig(5),
+	}
+
 	tests := []struct {
 		testName  string
 		namespace string
@@ -49,9 +63,36 @@ func TestStop(t *testing.T) {
 			testName:  "simple stop",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
+			oc:        testclient.NewSimpleFake(fakeDC["simple-stop"]),
 			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1)),
 			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", pause(fakeDC["simple-stop"])),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
+			},
+			kexpected: []ktestclient.Action{
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
+			},
+			err: false,
+		},
+		{
+			testName:  "legacy simple stop",
+			namespace: "default",
+			name:      "config",
+			oc:        testclient.NewSimpleFake(fakeDC["legacy-simple-stop"]),
+			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1)),
+			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", nil),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
@@ -70,9 +111,64 @@ func TestStop(t *testing.T) {
 			testName:  "stop multiple controllers",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
+			oc:        testclient.NewSimpleFake(fakeDC["multi-stop"]),
 			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1, 2, 3, 4, 5)),
 			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", pause(fakeDC["multi-stop"])),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
+			},
+			kexpected: []ktestclient.Action{
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
+				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
+				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
+				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-2"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
+				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
+				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-3"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
+				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
+				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-4"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
+				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-5"),
+			},
+			err: false,
+		},
+		{
+			testName:  "legacy stop multiple controllers",
+			namespace: "default",
+			name:      "config",
+			oc:        testclient.NewSimpleFake(fakeDC["legacy-multi-stop"]),
+			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1, 2, 3, 4, 5)),
+			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", nil),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
@@ -122,7 +218,7 @@ func TestStop(t *testing.T) {
 			oc:        testclient.NewSimpleFake(notfound()),
 			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1)),
 			expected: []ktestclient.Action{
-				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
 				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
@@ -143,7 +239,7 @@ func TestStop(t *testing.T) {
 			oc:        testclient.NewSimpleFake(notfound()),
 			kc:        ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{}),
 			expected: []ktestclient.Action{
-				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
 				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
@@ -154,9 +250,29 @@ func TestStop(t *testing.T) {
 			testName:  "config, no deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
+			oc:        testclient.NewSimpleFake(fakeDC["no-deployments"]),
 			kc:        ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{}),
 			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", pause(fakeDC["no-deployments"])),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
+			},
+			kexpected: []ktestclient.Action{
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+			},
+			err: false,
+		},
+		{
+			testName:  "legacy config, no deployments",
+			namespace: "default",
+			name:      "config",
+			oc:        testclient.NewSimpleFake(fakeDC["legacy-no-deployments"]),
+			kc:        ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{}),
+			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", nil),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
@@ -180,8 +296,19 @@ func TestStop(t *testing.T) {
 			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions(), test.expected)
 		}
 		for j, actualAction := range test.oc.Actions() {
-			if !reflect.DeepEqual(actualAction, test.expected[j]) {
-				t.Errorf("%s: unexpected action: %s, expected %s", test.testName, actualAction, test.expected[j])
+			e, a := test.expected[j], actualAction
+			switch a.(type) {
+			case ktestclient.UpdateAction:
+				if e.GetVerb() != a.GetVerb() ||
+					e.GetNamespace() != a.GetNamespace() ||
+					e.GetResource() != a.GetResource() ||
+					e.GetSubresource() != a.GetSubresource() {
+					t.Errorf("%s: unexpected action[%d]: %s, expected %s", test.testName, j, a, e)
+				}
+			default:
+				if !reflect.DeepEqual(actualAction, test.expected[j]) {
+					t.Errorf("%s: unexpected action: got:\n%#+v\nexpected:\n%#+v", test.testName, actualAction, test.expected[j])
+				}
 			}
 		}
 		if len(test.kc.Actions()) != len(test.kexpected) {

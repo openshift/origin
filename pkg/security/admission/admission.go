@@ -104,9 +104,6 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	if len(a.GetSubresource()) != 0 {
 		return nil
 	}
-	if len(a.GetSubresource()) != 0 {
-		return nil
-	}
 
 	pod, ok := a.GetObject().(*kapi.Pod)
 	// if we can't convert then we don't handle this object so just return

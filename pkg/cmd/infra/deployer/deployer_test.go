@@ -118,6 +118,19 @@ func TestDeployer_deployScenarios(t *testing.T) {
 				{2, 0},
 			},
 		},
+		{
+			"version mismatch",
+			// existing deployments
+			[]*kapi.ReplicationController{
+				mkd(1, deployapi.DeploymentStatusComplete, 0, 0),
+				mkd(2, deployapi.DeploymentStatusNew, 3, 0),
+				mkd(3, deployapi.DeploymentStatusComplete, 0, 3),
+			},
+			// from and to version
+			3, 2,
+			// expected scale events
+			[]scaleEvent{},
+		},
 	}
 
 	for _, s := range scenarios {
@@ -163,6 +176,12 @@ func TestDeployer_deployScenarios(t *testing.T) {
 		}
 
 		err := deployer.Deploy(to.Namespace, to.Name)
+		if s.toVersion < s.fromVersion {
+			if err == nil {
+				t.Fatalf("expected error when toVersion is older than newVersion")
+			}
+			continue
+		}
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

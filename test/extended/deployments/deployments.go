@@ -483,7 +483,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 	})
 
 	g.Describe("reaper", func() {
-		g.It("should delete all failed deployer pods and hook pods", func() {
+		g.It("should delete all failed deployer pods and hook pods [Conformance]", func() {
 			resource, name, err := createFixture(oc, brokenDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

@@ -2,6 +2,8 @@
 // sources:
 // examples/image-streams/image-streams-centos7.json
 // examples/image-streams/image-streams-rhel7.json
+// examples/db-templates/mariadb-ephemeral-template.json
+// examples/db-templates/mariadb-persistent-template.json
 // examples/db-templates/mongodb-ephemeral-template.json
 // examples/db-templates/mongodb-persistent-template.json
 // examples/db-templates/mysql-ephemeral-template.json
@@ -1308,6 +1310,432 @@ func examplesImageStreamsImageStreamsRhel7Json() (*asset, error) {
 	return a, nil
 }
 
+var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "mariadb-ephemeral",
+    "annotations": {
+      "description": "MariaDB database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "iconClass": "icon-mariadb",
+      "tags": "database,mariadb"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mariadb",
+            "port": 3306
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mariadb"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mariadb:10.1",
+                "namespace": "${NAMESPACE}"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "mariadb",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 3306
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c",
+                      "MYSQL_PWD=\"$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
+                },
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
+      "value": "mariadb",
+      "required": true
+    },
+    {
+      "name": "MYSQL_USER",
+      "displayName": "MySQL User",
+      "description": "Username for MariaDB user that will be used for accessing the database.",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "displayName": "MySQL Password",
+      "description": "Password for the MariaDB user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "displayName": "MySQL Database Name",
+      "description": "Name of the MariaDB database accessed.",
+      "value": "sampledb",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "mariadb-persistent-template"
+  }
+}
+`)
+
+func examplesDbTemplatesMariadbEphemeralTemplateJsonBytes() ([]byte, error) {
+	return _examplesDbTemplatesMariadbEphemeralTemplateJson, nil
+}
+
+func examplesDbTemplatesMariadbEphemeralTemplateJson() (*asset, error) {
+	bytes, err := examplesDbTemplatesMariadbEphemeralTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/db-templates/mariadb-ephemeral-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "mariadb-persistent",
+    "annotations": {
+      "description": "MariaDB database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "iconClass": "icon-mariadb",
+      "tags": "database,mariadb"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mariadb",
+            "port": 3306
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mariadb"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mariadb:10.1",
+                "namespace": "${NAMESPACE}"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "mariadb",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 3306
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c",
+                      "MYSQL_PWD=\"$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
+                },
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "persistentVolumeClaim": {
+                  "claimName": "${DATABASE_SERVICE_NAME}"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
+      "value": "mariadb",
+      "required": true
+    },
+    {
+      "name": "MYSQL_USER",
+      "displayName": "MySQL User",
+      "description": "Username for MariaDB user that will be used for accessing the database.",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "displayName": "MySQL Password",
+      "description": "Password for the MariaDB user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "displayName": "MySQL Database Name",
+      "description": "Name of the MariaDB database accessed.",
+      "value": "sampledb",
+      "required": true
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+      "value": "1Gi",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "mariadb-persistent-template"
+  }
+}
+`)
+
+func examplesDbTemplatesMariadbPersistentTemplateJsonBytes() ([]byte, error) {
+	return _examplesDbTemplatesMariadbPersistentTemplateJson, nil
+}
+
+func examplesDbTemplatesMariadbPersistentTemplateJson() (*asset, error) {
+	bytes, err := examplesDbTemplatesMariadbPersistentTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/db-templates/mariadb-persistent-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
 var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
@@ -1370,7 +1798,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:latest",
+                "name": "mongodb:3.2",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1622,7 +2050,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:latest",
+                "name": "mongodb:3.2",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1807,7 +2235,6 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "mysql-ephemeral",
-    "creationTimestamp": null,
     "annotations": {
       "description": "MySQL database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mysql-database",
@@ -1864,7 +2291,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest",
+                "name": "mysql:5.6",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1926,10 +2353,10 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -2093,7 +2520,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest",
+                "name": "mysql:5.6",
                 "namespace": "${NAMESPACE}"
               }
             }
@@ -2313,7 +2740,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.4",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2374,10 +2801,10 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -2553,7 +2980,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.4",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2894,8 +3321,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins-jnlp",
-        "creationTimestamp": null
+        "name": "jenkins-jnlp"
       },
       "spec": {
         "ports": [
@@ -6073,6 +6499,8 @@ func AssetNames() []string {
 var _bindata = map[string]func() (*asset, error){
 	"examples/image-streams/image-streams-centos7.json": examplesImageStreamsImageStreamsCentos7Json,
 	"examples/image-streams/image-streams-rhel7.json": examplesImageStreamsImageStreamsRhel7Json,
+	"examples/db-templates/mariadb-ephemeral-template.json": examplesDbTemplatesMariadbEphemeralTemplateJson,
+	"examples/db-templates/mariadb-persistent-template.json": examplesDbTemplatesMariadbPersistentTemplateJson,
 	"examples/db-templates/mongodb-ephemeral-template.json": examplesDbTemplatesMongodbEphemeralTemplateJson,
 	"examples/db-templates/mongodb-persistent-template.json": examplesDbTemplatesMongodbPersistentTemplateJson,
 	"examples/db-templates/mysql-ephemeral-template.json": examplesDbTemplatesMysqlEphemeralTemplateJson,
@@ -6130,6 +6558,10 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"examples": &bintree{nil, map[string]*bintree{
 		"db-templates": &bintree{nil, map[string]*bintree{
+			"mariadb-ephemeral-template.json": &bintree{examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{
+			}},
+			"mariadb-persistent-template.json": &bintree{examplesDbTemplatesMariadbPersistentTemplateJson, map[string]*bintree{
+			}},
 			"mongodb-ephemeral-template.json": &bintree{examplesDbTemplatesMongodbEphemeralTemplateJson, map[string]*bintree{
 			}},
 			"mongodb-persistent-template.json": &bintree{examplesDbTemplatesMongodbPersistentTemplateJson, map[string]*bintree{

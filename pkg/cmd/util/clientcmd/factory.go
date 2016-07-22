@@ -612,7 +612,17 @@ func (w *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 				},
 			},
 		}, nil
-
+	case *imageapi.ImageStreamImage:
+		// create a minimal pod spec that uses the image referenced by the istag without any introspection
+		// it possible that we could someday do a better job introspecting it
+		return &api.PodTemplateSpec{
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyNever,
+				Containers: []api.Container{
+					{Name: "container-00", Image: t.Image.DockerImageReference},
+				},
+			},
+		}, nil
 	case *deployapi.DeploymentConfig:
 		fallback := t.Spec.Template
 

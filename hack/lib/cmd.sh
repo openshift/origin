@@ -608,7 +608,6 @@ function os::cmd::internal::run_until_text() {
 		junit_log+=( "FAILURE after ${time_elapsed}s: ${description//$'\n'/;}: the command timed out" )
 
 		os::text::print_red "$(os::cmd::internal::print_try_until_results)"
-		os::test::junit::declare_test_end
 		return_code=1
 	fi
 

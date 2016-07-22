@@ -87,6 +87,7 @@ var (
 	}
 	templateLocations = map[string]string{
 		"mongodb":            "examples/db-templates/mongodb-ephemeral-template.json",
+		"mariadb":            "examples/db-templates/mariadb-ephemeral-template.json",
 		"mysql":              "examples/db-templates/mysql-ephemeral-template.json",
 		"postgresql":         "examples/db-templates/postgresql-ephemeral-template.json",
 		"cakephp quickstart": "examples/quickstarts/cakephp-mysql.json",

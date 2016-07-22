@@ -66,6 +66,14 @@ status:
     reason: kubelet is posting ready status
     status: \"True\"
     type: Ready
+  allocatable:
+    cpu: \"4\"
+    memory: 8010948Ki
+    pods: \"110\"
+  capacity:
+    cpu: \"4\"
+    memory: 8010948Ki
+    pods: \"110\"
 ' | oc create -f -"
 
 os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=true' 'Ready'

@@ -14,20 +14,20 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 	"k8s.io/kubernetes/pkg/util/term"
-	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/generate/app"
+	generateapp "github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 type DebugOptions struct {
@@ -102,7 +102,7 @@ the shell.`
 // NewCmdDebug creates a command for debugging pods.
 func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &DebugOptions{
-		Timeout: 30 * time.Second,
+		Timeout: 15 * time.Minute,
 		Attach: kcmd.AttachOptions{
 			In:    in,
 			Out:   out,
@@ -238,7 +238,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		ObjectMeta: template.ObjectMeta,
 		Spec:       template.Spec,
 	}
-	pod.Name, pod.Namespace = infos[0].Name, infos[0].Namespace
+	pod.Name, pod.Namespace = fmt.Sprintf("%s-debug", generateapp.MakeSimpleName(infos[0].Name)), infos[0].Namespace
 	o.Attach.Pod = pod
 
 	o.AsNonRoot = !o.AsRoot && cmd.Flag("as-root").Changed
@@ -286,106 +286,6 @@ func (o DebugOptions) Validate() error {
 		return fmt.Errorf("the container %q is not a valid container name; must be one of %v", o.Attach.ContainerName, names)
 	}
 	return nil
-}
-
-// WatchConditionFunc returns true if the condition has been reached, false if it has not been reached yet,
-// or an error if the condition cannot be checked and should terminate.
-type WatchConditionFunc func(event watch.Event) (bool, error)
-
-// Until reads items from the watch until each provided condition succeeds, and then returns the last watch
-// encountered. The first condition that returns an error terminates the watch (and the event is also returned).
-// If no event has been received, the returned event will be nil.
-// TODO: move to pkg/watch upstream
-func Until(timeout time.Duration, watcher watch.Interface, conditions ...WatchConditionFunc) (*watch.Event, error) {
-	ch := watcher.ResultChan()
-	defer watcher.Stop()
-	var after <-chan time.Time
-	if timeout > 0 {
-		after = time.After(timeout)
-	} else {
-		ch := make(chan time.Time)
-		close(ch)
-		after = ch
-	}
-	var lastEvent *watch.Event
-	for _, condition := range conditions {
-		for {
-			select {
-			case event, ok := <-ch:
-				if !ok {
-					return lastEvent, wait.ErrWaitTimeout
-				}
-				lastEvent = &event
-				// TODO: check for watch expired error and retry watch from latest point?
-				done, err := condition(event)
-				if err != nil {
-					return lastEvent, err
-				}
-				if done {
-					return lastEvent, nil
-				}
-			case <-after:
-				return lastEvent, wait.ErrWaitTimeout
-			}
-		}
-	}
-	return lastEvent, wait.ErrWaitTimeout
-}
-
-// ErrPodCompleted is returned by PodRunning or PodContainerRunning to indicate that
-// the pod has already reached completed state.
-var ErrPodCompleted = fmt.Errorf("pod ran to completion")
-
-// TODO: move to pkg/client/conditions.go upstream
-//
-// Example of a running condition, will be used elsewhere
-//
-// PodRunning returns true if the pod is running, false if the pod has not yet reached running state,
-// returns ErrPodCompleted if the pod has run to completion, or an error in any other case.
-// func PodRunning(event watch.Event) (bool, error) {
-// 	switch event.Type {
-// 	case watch.Deleted:
-// 		return false, kapierrors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, "")
-// 	}
-// 	switch t := event.Object.(type) {
-// 	case *kapi.Pod:
-// 		switch t.Status.Phase {
-// 		case kapi.PodRunning:
-// 			return true, nil
-// 		case kapi.PodFailed, kapi.PodSucceeded:
-// 			return false, ErrPodCompleted
-// 		}
-// 	}
-// 	return false, nil
-// }
-
-// PodContainerRunning returns false until the named container has ContainerStatus running (at least once),
-// and will return an error if the pod is deleted, runs to completion, or the container pod is not available.
-func PodContainerRunning(containerName string) WatchConditionFunc {
-	return func(event watch.Event) (bool, error) {
-		switch event.Type {
-		case watch.Deleted:
-			return false, kapierrors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, "")
-		}
-		switch t := event.Object.(type) {
-		case *kapi.Pod:
-			switch t.Status.Phase {
-			case kapi.PodRunning, kapi.PodPending:
-			case kapi.PodFailed, kapi.PodSucceeded:
-				return false, ErrPodCompleted
-			default:
-				return false, nil
-			}
-			for _, s := range t.Status.ContainerStatuses {
-				if s.Name != containerName {
-					continue
-				}
-				return s.State.Running != nil, nil
-			}
-			return false, nil
-		}
-		return false, nil
-	}
 }
 
 // SingleObject returns a ListOptions for watching a single object.
@@ -439,7 +339,7 @@ func (o *DebugOptions) Debug() error {
 			return err
 		}
 		fmt.Fprintf(o.Attach.Err, "Waiting for pod to start ...\n")
-		switch containerRunningEvent, err := Until(o.Timeout, w, PodContainerRunning(o.Attach.ContainerName)); {
+		switch containerRunningEvent, err := watch.Until(o.Timeout, w, kclient.PodContainerRunning(o.Attach.ContainerName)); {
 		// api didn't error right away but the pod wasn't even created
 		case kapierrors.IsNotFound(err):
 			msg := fmt.Sprintf("unable to create the debug pod %q", pod.Name)
@@ -448,7 +348,7 @@ func (o *DebugOptions) Debug() error {
 			}
 			return fmt.Errorf(msg)
 		// switch to logging output
-		case err == ErrPodCompleted, !o.Attach.Stdin:
+		case err == kclient.ErrPodCompleted, !o.Attach.Stdin:
 			_, err := kcmd.LogsOptions{
 				Object: pod,
 				Options: &kapi.PodLogOptions{
@@ -565,9 +465,6 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 
 	pod.ResourceVersion = ""
 	pod.Spec.RestartPolicy = kapi.RestartPolicyNever
-
-	// shorten segments to handle long names and names with bad characters
-	pod.Name, _ = app.NewUniqueNameGenerator(fmt.Sprintf("%s-debug", pod.Name)).Generate(nil)
 
 	pod.Status = kapi.PodStatus{}
 	pod.UID = ""

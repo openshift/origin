@@ -127,8 +127,8 @@ will be lost along with the rest of the resource.`
   # Delete pods and services with label name=myLabel.
   %[1]s delete pods,services -l name=myLabel
 
-  # Delete a pod with ID 1234-56-7890-234234-456456.
-  %[1]s delete pod 1234-56-7890-234234-456456
+  # Delete a pod with name node-1-vsjnm.
+  %[1]s delete pod node-1-vsjnm
 
   # Delete all resources associated with a running app, includes
   # buildconfig,deploymentconfig,service,imagestream,route and pod,

@@ -226,6 +226,11 @@ backend be_edge_http_{{$cfgIdx}}
     {{ else }}
   balance leastconn
     {{ end }}
+    {{ with $value := index $cfg.Annotations "router.openshift.io/haproxy.timeout"}}
+      {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
+  timeout server  {{$value}}
+      {{ end }}
+    {{ end }}
   timeout check 5000ms
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
   http-request set-header X-Forwarded-Port %[dst_port]
@@ -259,6 +264,11 @@ backend be_tcp_{{$cfgIdx}}
     {{ else }}
   balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source" }}
     {{ end }}
+    {{ with $value := index $cfg.Annotations "router.openshift.io/haproxy.timeout"}}
+      {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
+  timeout server  {{$value}}
+      {{ end }}
+    {{ end }}
   hash-type consistent
   timeout check 5000ms
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
@@ -282,6 +292,12 @@ backend be_secure_{{$cfgIdx}}
     {{ else }}
   balance leastconn
     {{ end }}
+    {{ with $value := index $cfg.Annotations "router.openshift.io/haproxy.timeout"}}
+      {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
+  timeout server  {{$value}}
+      {{ end }}
+    {{ end }}
+
   timeout check 5000ms
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}

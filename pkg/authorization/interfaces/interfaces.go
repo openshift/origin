@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -36,6 +37,9 @@ type RoleBinding interface {
 	RoleRef() kapi.ObjectReference
 	Users() sets.String
 	Groups() sets.String
+
+	// AppliesToUser returns true if the provided user matches this role binding
+	AppliesToUser(user.Info) bool
 }
 
 func NewClusterPolicyAdapter(policy *authorizationapi.ClusterPolicy) Policy {
@@ -219,6 +223,17 @@ func (a RoleBindingAdapter) Groups() sets.String {
 	return sets.NewString(groups...)
 }
 
+// AppliesToUser returns true if this binding applies to the provided user.
+func (a RoleBindingAdapter) AppliesToUser(user user.Info) bool {
+	if authorizationapi.SubjectsContainUser(a.roleBinding.Subjects, a.roleBinding.Namespace, user.GetName()) {
+		return true
+	}
+	if authorizationapi.SubjectsContainAnyGroup(a.roleBinding.Subjects, user.GetGroups()) {
+		return true
+	}
+	return false
+}
+
 type ClusterPolicyBindingAdapter struct {
 	policyBinding *authorizationapi.ClusterPolicyBinding
 
@@ -273,4 +288,15 @@ func (a ClusterRoleBindingAdapter) Groups() sets.String {
 	_, groups := authorizationapi.StringSubjectsFor(a.roleBinding.Namespace, a.roleBinding.Subjects)
 
 	return sets.NewString(groups...)
+}
+
+// AppliesToUser returns true if this binding applies to the provided user.
+func (a ClusterRoleBindingAdapter) AppliesToUser(user user.Info) bool {
+	if authorizationapi.SubjectsContainUser(a.roleBinding.Subjects, a.roleBinding.Namespace, user.GetName()) {
+		return true
+	}
+	if authorizationapi.SubjectsContainAnyGroup(a.roleBinding.Subjects, user.GetGroups()) {
+		return true
+	}
+	return false
 }
