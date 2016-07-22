@@ -1223,8 +1223,8 @@ Delete one or more resources
   # Delete pods and services with label name=myLabel.
   oc delete pods,services -l name=myLabel
 
-  # Delete a pod with ID 1234-56-7890-234234-456456.
-  oc delete pod 1234-56-7890-234234-456456
+  # Delete a pod with name node-1-vsjnm.
+  oc delete pod node-1-vsjnm
 
   # Delete all resources associated with a running app, includes
   # buildconfig,deploymentconfig,service,imagestream,route and pod,
@@ -1348,6 +1348,9 @@ Perform a direct Docker build
 ----
   # Build the current directory into a single layer and tag
   oc ex dockerbuild . myimage:latest
+
+  # Mount a client secret into the build at a certain path
+  oc ex dockerbuild . myimage:latest --mount ~/mysecret.pem:/etc/pki/secret/mysecret.pem
 ----
 ====
 
@@ -2130,7 +2133,7 @@ Generate a new token for a service account.
   # Generate a new token for service account 'default'
   oc serviceaccounts new-token 'default'
 
-  # Generate a new token for service account 'default' and apply 
+  # Generate a new token for service account 'default' and apply
   # labels 'foo' and 'bar' to the new token for identification
   # oc serviceaccounts new-token 'default' --labels foo=foo-value,bar=bar-value
 

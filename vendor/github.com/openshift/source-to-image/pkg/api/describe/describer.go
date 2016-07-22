@@ -22,6 +22,7 @@ func DescribeConfig(config *api.Config) string {
 			fmt.Fprintf(out, "Description:\t%s\n", config.Description)
 		}
 		describeBuilderImage(config, config.BuilderImage, out)
+		describeRuntimeImage(config, out)
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
 		if len(config.Ref) > 0 {
 			fmt.Fprintf(out, "Source Ref:\t%s\n", config.Ref)
@@ -106,6 +107,23 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 	}
 	if len(c.BuilderBaseImageVersion) > 0 {
 		fmt.Fprintf(out, "Builder Base Version:\t%s\n", c.BuilderBaseImageVersion)
+	}
+}
+
+func describeRuntimeImage(config *api.Config, out io.Writer) {
+	if len(config.RuntimeImage) == 0 {
+		return
+	}
+
+	fmt.Fprintf(out, "Runtime Image:\t%s\n", config.RuntimeImage)
+
+	pullPolicy := config.RuntimeImagePullPolicy
+	if len(pullPolicy) == 0 {
+		pullPolicy = api.DefaultRuntimeImagePullPolicy
+	}
+	fmt.Fprintf(out, "Runtime Image Pull Policy:\t%s\n", pullPolicy)
+	if len(config.RuntimeAuthentication.Username) > 0 {
+		fmt.Fprintf(out, "Runtime Image Pull User:\t%s\n", config.RuntimeAuthentication.Username)
 	}
 }
 

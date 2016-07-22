@@ -24,7 +24,7 @@ if [[ -z "${oc}" ]]; then
 fi
 
 function build() {
-  "${oc}" ex dockerbuild $2 $1
+  eval "'${oc}' ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
 }
 
 # Build the images

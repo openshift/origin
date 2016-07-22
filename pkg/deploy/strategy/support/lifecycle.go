@@ -94,6 +94,9 @@ func (e *HookExecutor) emitEvent(deployment *kapi.ReplicationController, eventTy
 		InvolvedObject: *ref,
 		Reason:         reason,
 		Message:        msg,
+		Source: kapi.EventSource{
+			Component: deployutil.DeployerPodNameFor(deployment),
+		},
 		FirstTimestamp: t,
 		LastTimestamp:  t,
 		Count:          1,

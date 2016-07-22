@@ -65,7 +65,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest",
+                "name": "mysql:5.6",
                 "namespace": "${NAMESPACE}"
               }
             }

@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/openvswitch
 #
-FROM centos:centos7
+FROM openshift/origin-base
 
 COPY scripts/* /usr/local/bin/
 

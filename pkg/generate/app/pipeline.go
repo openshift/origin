@@ -254,20 +254,27 @@ func (g PipelineGroup) String() string {
 	return strings.Join(s, "+")
 }
 
+// MakeSimpleName strips any non-alphanumeric characters out of a string and returns
+// either an empty string or a string which is valid for most Kubernetes resources.
+func MakeSimpleName(name string) string {
+	name = strings.ToLower(name)
+	name = invalidServiceChars.ReplaceAllString(name, "")
+	name = strings.TrimFunc(name, func(r rune) bool { return r == '-' })
+	if len(name) > kuval.DNS952LabelMaxLength {
+		name = name[:kuval.DNS952LabelMaxLength]
+	}
+	return name
+}
+
 var invalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
 
 func makeValidServiceName(name string) (string, string) {
 	if len(validation.ValidateServiceName(name, false)) == 0 {
 		return name, ""
 	}
-	name = strings.ToLower(name)
-	name = invalidServiceChars.ReplaceAllString(name, "")
-	name = strings.TrimFunc(name, func(r rune) bool { return r == '-' })
-	switch {
-	case len(name) == 0:
+	name = MakeSimpleName(name)
+	if len(name) == 0 {
 		return "", "service-"
-	case len(name) > kuval.DNS952LabelMaxLength:
-		name = name[:kuval.DNS952LabelMaxLength]
 	}
 	return name, ""
 }
