@@ -13,7 +13,12 @@ OS_OUTPUT_GOPATH ?= 1
 
 export GOFLAGS
 export TESTFLAGS
+# If set to 1, create an isolated GOPATH inside _output using symlinks to avoid
+# other packages being accidentally included. Defaults to on.
 export OS_OUTPUT_GOPATH
+# May be used to set additional arguments passed to the image build commands for
+# mounting secrets specific to a build environment.
+export OS_BUILD_IMAGE_ARGS
 
 # Build code.
 #

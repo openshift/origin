@@ -17,7 +17,12 @@ Build a Dockerfile into a single layer
 
 .PP
 Builds the provided directory with a Dockerfile into a single layered image.
-Requires that you have a working connection to a Docker engine.
+Requires that you have a working connection to a Docker engine. You may mount
+secrets or config into the build with the \-\-mount flag \- these files will not
+be included in the final image.
+
+.PP
+Experimental: This command is under active development and may change without notice.
 
 
 .SH OPTIONS
@@ -28,6 +33,10 @@ Requires that you have a working connection to a Docker engine.
 .PP
 \fB\-\-dockerfile\fP=""
     An optional path to a Dockerfile to use.
+
+.PP
+\fB\-\-mount\fP=[]
+    An optional list of files and directories to mount during the build. Use SRC:DST syntax for each path.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -103,6 +112,9 @@ Requires that you have a working connection to a Docker engine.
 .nf
   # Build the current directory into a single layer and tag
   oc ex dockerbuild . myimage:latest
+
+  # Mount a client secret into the build at a certain path
+  oc ex dockerbuild . myimage:latest \-\-mount \~/mysecret.pem:/etc/pki/secret/mysecret.pem
 
 .fi
 .RE

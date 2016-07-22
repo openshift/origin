@@ -1348,6 +1348,9 @@ Perform a direct Docker build
 ----
   # Build the current directory into a single layer and tag
   oc ex dockerbuild . myimage:latest
+
+  # Mount a client secret into the build at a certain path
+  oc ex dockerbuild . myimage:latest --mount ~/mysecret.pem:/etc/pki/secret/mysecret.pem
 ----
 ====
 
