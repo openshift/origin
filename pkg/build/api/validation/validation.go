@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapivalidation "github.com/openshift/origin/pkg/image/api/validation"
 )
 
 // ValidateBuild tests required fields for a Build.
@@ -347,6 +348,8 @@ func validateToImageReference(reference *kapi.ObjectReference, fldPath *field.Pa
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag name contains invalid syntax"))
 		}
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
@@ -377,6 +380,8 @@ func validateFromImageReference(reference *kapi.ObjectReference, fldPath *field.
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag name contains invalid syntax"))
 		}
 
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
