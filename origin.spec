@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3cc6f5a96e7a22fb83534266b4facbd94bd49796
+%global commit 760c9a0aa30d9ccd0a24a311508f9882d26b3e2e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.7+3cc6f5a -X github.com/openshift/origin/pkg/version.commitFromGit=3cc6f5a -X github.com/openshift/origin/pkg/version.buildDate=2016-07-20T15:09:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-20T15:09:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.8+760c9a0 -X github.com/openshift/origin/pkg/version.commitFromGit=760c9a0 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-22T14:23:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-22T14:23:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.8
+Version:        3.3.0.9
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,49 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Jul 22 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.9
+- Clean up Origin and OSE differences (tdawson@redhat.com)
+- Abort deployment when the from version is higher than to version
+  (mfojtik@redhat.com)
+- run all parallel builds when a serial build finishes (bparees@redhat.com)
+- Image progress: recognize additional already pushed status
+  (cewong@redhat.com)
+- Accept OS_BUILD_IMAGE_ARGS in our image build scripts (ccoleman@redhat.com)
+- clean up jenkins master/slave example (bparees@redhat.com)
+- add mariadb template and use specific imagestream tag versions, not latest
+  (bparees@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  9350cd1ef8afc9c91dcdc96e1d972cbcc6f36181 (vsemushi@redhat.com)
+- Add an experimental --mount flag to oc ex dockerbuild (ccoleman@redhat.com)
+- Inherit all our images from our base (ccoleman@redhat.com)
+- add default resource requests to registry creation (agladkov@redhat.com)
+- Pause the deployment config before deleting (mfojtik@redhat.com)
+- Debug should not have 15s timeout (ccoleman@redhat.com)
+- Start rsync daemon in the foreground to prevent zombie processes
+  (cewong@redhat.com)
+- Bump origin-web-console (bad6254) (jforrest@redhat.com)
+- Enabling multiline parameter injection for templates (jupierce@redhat.com)
+- allow for configurable server side timeouts on routes (jtanenba@redhat.com)
+- UPSTREAM: 29133: use a separate queue for initial quota calculation
+  (deads@redhat.com)
+- Cherry-pick scripts create a .make directory that we should ignore
+  (decarr@redhat.com)
+- Fix ClusterResourceOverride test that has been broken for a while
+  (ccoleman@redhat.com)
+- Bump size of file allowed to be uploaded (ccoleman@redhat.com)
+- Test must set RequireEtcd (ccoleman@redhat.com)
+- Strip build tags from integration, they are not needed (ccoleman@redhat.com)
+- update generated docs (jvallejo@redhat.com)
+- UPSTREAM: 0000: update timeout flag help to contain correct duration format
+  (jvallejo@redhat.com)
+- Avoid allocations while checking role bindings (ccoleman@redhat.com)
+- Fixed a bug in jUnit output from os::cmd::try_until_text
+  (skuznets@redhat.com)
+- use pod name instead of id in oc delete example (jvallejo@redhat.com)
+- deploy: add source for hook events (mkargaki@redhat.com)
+- Added checks in build path for docker-compose import
+  (surajssd009005@gmail.com)
+
 * Wed Jul 20 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.8
 - Add support for anonymous registry requests (jliggitt@redhat.com)
 - Allow anonymous users to check their access (jliggitt@redhat.com)
