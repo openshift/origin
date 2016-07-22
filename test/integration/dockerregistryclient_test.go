@@ -182,7 +182,7 @@ func TestRegistryClientRegistryNotFound(t *testing.T) {
 	}
 }
 
-func doTestRegistryClientImage(t *testing.T, registry, version string) {
+func doTestRegistryClientImage(t *testing.T, registry, reponame, version string) {
 	conn, err := dockerregistry.NewClient(10*time.Second, version == "v2").Connect(registry, false)
 	if err != nil {
 		t.Fatal(err)
@@ -198,22 +198,28 @@ func doTestRegistryClientImage(t *testing.T, registry, version string) {
 
 	var image *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		image, err = conn.ImageByTag("openshift", "origin", "latest")
+		image, err = conn.ImageByTag("openshift", reponame, "latest")
 		return err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(image.ContainerConfig.Entrypoint) == 0 {
-		t.Errorf("%s: unexpected image: %#v", version, image)
+
+	if image.Comment != "Imported from -" {
+		t.Errorf("%s: unexpected image comment", version)
 	}
+
+	if image.Architecture != "amd64" {
+		t.Errorf("%s: unexpected image architecture", version)
+	}
+
 	if version == "v2" && !image.PullByID {
 		t.Errorf("%s: should be able to pull by ID %s", version, image.ID)
 	}
 
 	var other *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		other, err = conn.ImageByID("openshift", "origin", image.ID)
+		other, err = conn.ImageByID("openshift", reponame, image.ID)
 		return err
 	})
 	if err != nil {
@@ -224,14 +230,19 @@ func doTestRegistryClientImage(t *testing.T, registry, version string) {
 	}
 }
 
-func TestRegistryClientImageV2(t *testing.T) {
-	t.Skip("openshift/origin is being pushed by Docker 1.9, which causes this test to fail because digests don't match")
-	doTestRegistryClientImage(t, dockerHubV2RegistryName, "v2")
+func TestRegistryClientAPIv2ManifestV2Schema2(t *testing.T) {
+	t.Log("openshift/schema-v2-test-repo was pushed by Docker 1.11.1")
+	doTestRegistryClientImage(t, dockerHubV2RegistryName, "schema-v2-test-repo", "v2")
 }
 
-func TestRegistryClientImageV1(t *testing.T) {
-	t.Skip("openshift/origin is being pushed by Docker 1.9, which causes this test to fail because digests don't match")
-	doTestRegistryClientImage(t, dockerHubV1RegistryName, "v1")
+func TestRegistryClientAPIv2ManifestV2Schema1(t *testing.T) {
+	t.Log("openshift/schema-v1-test-repo was pushed by Docker 1.8.2")
+	doTestRegistryClientImage(t, dockerHubV2RegistryName, "schema-v1-test-repo", "v2")
+}
+
+func TestRegistryClientAPIv1(t *testing.T) {
+	t.Log("openshift/schema-v1-test-repo was pushed by Docker 1.8.2")
+	doTestRegistryClientImage(t, dockerHubV1RegistryName, "schema-v1-test-repo", "v1")
 }
 
 func TestRegistryClientQuayIOImage(t *testing.T) {
