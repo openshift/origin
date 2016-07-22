@@ -100,6 +100,9 @@ func rsyncFlagsFromOptions(o *RsyncOptions) []string {
 	if o.RsyncNoPerms {
 		flags = append(flags, "--no-perms")
 	}
+	if o.RsyncTimeout > 0 {
+		flags = append(flags, fmt.Sprintf("--timeout=%d", o.RsyncTimeout))
+	}
 	return flags
 }
 
