@@ -1299,6 +1299,7 @@ _oc_deploy()
 
     flags+=("--cancel")
     flags+=("--enable-triggers")
+    flags+=("--follow")
     flags+=("--latest")
     flags+=("--retry")
     flags+=("--api-version=")
