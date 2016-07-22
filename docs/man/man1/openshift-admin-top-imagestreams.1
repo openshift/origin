@@ -1,26 +1,26 @@
-.TH "OADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OPENSHIFT ADMIN TOP" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-oadm \- Tools for managing a cluster
+openshift admin top imagestreams \- Show usage statistics for ImageStreams
 
 
 .SH SYNOPSIS
 .PP
-\fBoadm\fP [OPTIONS]
+\fBopenshift admin top imagestreams\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Administrative Commands
+Show usage statistics for ImageStreams
 
 .PP
-Commands for managing a cluster are exposed here. Many administrative
-actions involve interaction with the command\-line client as well.
+This command analyzes all the ImageStreams managed by the platform and presents current
+usage statistics.
 
 
-.SH OPTIONS
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
 \fB\-\-api\-version\fP=""
     DEPRECATED: The API version to use when talking to the server
@@ -86,9 +86,21 @@ actions involve interaction with the command\-line client as well.
     The name of the kubeconfig user to use
 
 
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Show usage statistics for ImageStreams
+  openshift admin top imagestreams
+
+.fi
+.RE
+
+
 .SH SEE ALSO
 .PP
-\fBoadm\-router(1)\fP, \fBoadm\-ipfailover(1)\fP, \fBoadm\-registry(1)\fP, \fBoadm\-new\-project(1)\fP, \fBoadm\-policy(1)\fP, \fBoadm\-groups(1)\fP, \fBoadm\-ca(1)\fP, \fBoadm\-overwrite\-policy(1)\fP, \fBoadm\-create\-node\-config(1)\fP, \fBoadm\-manage\-node(1)\fP, \fBoadm\-cordon(1)\fP, \fBoadm\-uncordon(1)\fP, \fBoadm\-drain(1)\fP, \fBoadm\-taint(1)\fP, \fBoadm\-pod\-network(1)\fP, \fBoadm\-diagnostics(1)\fP, \fBoadm\-prune(1)\fP, \fBoadm\-build\-chain(1)\fP, \fBoadm\-migrate(1)\fP, \fBoadm\-top(1)\fP, \fBoadm\-create\-kubeconfig(1)\fP, \fBoadm\-create\-api\-client\-config(1)\fP, \fBoadm\-create\-bootstrap\-project\-template(1)\fP, \fBoadm\-create\-bootstrap\-policy\-file(1)\fP, \fBoadm\-create\-login\-template(1)\fP, \fBoadm\-create\-provider\-selection\-template(1)\fP, \fBoadm\-create\-error\-template(1)\fP, \fBoadm\-create\-master\-certs(1)\fP, \fBoadm\-create\-key\-pair(1)\fP, \fBoadm\-create\-server\-cert(1)\fP, \fBoadm\-create\-signer\-cert(1)\fP, \fBoadm\-config(1)\fP, \fBoadm\-completion(1)\fP, \fBoadm\-options(1)\fP, \fBoadm\-version(1)\fP,
+\fBopenshift\-admin\-top(1)\fP,
 
 
 .SH HISTORY
