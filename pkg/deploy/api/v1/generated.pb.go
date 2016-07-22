@@ -23,6 +23,7 @@
 		DeploymentLogOptions
 		DeploymentStrategy
 		DeploymentTriggerImageChangeParams
+		DeploymentTriggerPolicies
 		DeploymentTriggerPolicy
 		ExecNewPodHook
 		LifecycleHook
@@ -104,6 +105,10 @@ func (m *DeploymentTriggerImageChangeParams) Reset()         { *m = DeploymentTr
 func (m *DeploymentTriggerImageChangeParams) String() string { return proto.CompactTextString(m) }
 func (*DeploymentTriggerImageChangeParams) ProtoMessage()    {}
 
+func (m *DeploymentTriggerPolicies) Reset()         { *m = DeploymentTriggerPolicies{} }
+func (m *DeploymentTriggerPolicies) String() string { return proto.CompactTextString(m) }
+func (*DeploymentTriggerPolicies) ProtoMessage()    {}
+
 func (m *DeploymentTriggerPolicy) Reset()         { *m = DeploymentTriggerPolicy{} }
 func (m *DeploymentTriggerPolicy) String() string { return proto.CompactTextString(m) }
 func (*DeploymentTriggerPolicy) ProtoMessage()    {}
@@ -143,6 +148,7 @@ func init() {
 	proto.RegisterType((*DeploymentLogOptions)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.DeploymentLogOptions")
 	proto.RegisterType((*DeploymentStrategy)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.DeploymentStrategy")
 	proto.RegisterType((*DeploymentTriggerImageChangeParams)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.DeploymentTriggerImageChangeParams")
+	proto.RegisterType((*DeploymentTriggerPolicies)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.DeploymentTriggerPolicies")
 	proto.RegisterType((*DeploymentTriggerPolicy)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.DeploymentTriggerPolicy")
 	proto.RegisterType((*ExecNewPodHook)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.ExecNewPodHook")
 	proto.RegisterType((*LifecycleHook)(nil), "github.com.openshift.origin.pkg.deploy.api.v1.LifecycleHook")
@@ -468,17 +474,15 @@ func (m *DeploymentConfigSpec) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n9
-	if len(m.Triggers) > 0 {
-		for _, msg := range m.Triggers {
-			data[i] = 0x12
-			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
+	if m.Triggers != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Triggers.Size()))
+		n10, err := m.Triggers.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n10
 	}
 	data[i] = 0x18
 	i++
@@ -525,11 +529,11 @@ func (m *DeploymentConfigSpec) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x42
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
-		n10, err := m.Template.MarshalTo(data[i:])
+		n11, err := m.Template.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n10
+		i += n11
 	}
 	data[i] = 0x48
 	i++
@@ -574,11 +578,11 @@ func (m *DeploymentConfigStatus) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x3a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Details.Size()))
-		n11, err := m.Details.MarshalTo(data[i:])
+		n12, err := m.Details.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n11
+		i += n12
 	}
 	return i, nil
 }
@@ -679,11 +683,11 @@ func (m *DeploymentLogOptions) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.SinceTime.Size()))
-		n12, err := m.SinceTime.MarshalTo(data[i:])
+		n13, err := m.SinceTime.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n12
+		i += n13
 	}
 	data[i] = 0x30
 	i++
@@ -742,40 +746,40 @@ func (m *DeploymentStrategy) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.CustomParams.Size()))
-		n13, err := m.CustomParams.MarshalTo(data[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n13
-	}
-	if m.RecreateParams != nil {
-		data[i] = 0x1a
-		i++
-		i = encodeVarintGenerated(data, i, uint64(m.RecreateParams.Size()))
-		n14, err := m.RecreateParams.MarshalTo(data[i:])
+		n14, err := m.CustomParams.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n14
 	}
-	if m.RollingParams != nil {
-		data[i] = 0x22
+	if m.RecreateParams != nil {
+		data[i] = 0x1a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.RollingParams.Size()))
-		n15, err := m.RollingParams.MarshalTo(data[i:])
+		i = encodeVarintGenerated(data, i, uint64(m.RecreateParams.Size()))
+		n15, err := m.RecreateParams.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n15
 	}
+	if m.RollingParams != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.RollingParams.Size()))
+		n16, err := m.RollingParams.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n16
+	}
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Resources.Size()))
-	n16, err := m.Resources.MarshalTo(data[i:])
+	n17, err := m.Resources.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n16
+	i += n17
 	if len(m.Labels) > 0 {
 		for k := range m.Labels {
 			data[i] = 0x32
@@ -854,15 +858,45 @@ func (m *DeploymentTriggerImageChangeParams) MarshalTo(data []byte) (int, error)
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.From.Size()))
-	n17, err := m.From.MarshalTo(data[i:])
+	n18, err := m.From.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n17
+	i += n18
 	data[i] = 0x22
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.LastTriggeredImage)))
 	i += copy(data[i:], m.LastTriggeredImage)
+	return i, nil
+}
+
+func (m DeploymentTriggerPolicies) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m DeploymentTriggerPolicies) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, msg := range m {
+			data[i] = 0xa
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
 	return i, nil
 }
 
@@ -889,11 +923,11 @@ func (m *DeploymentTriggerPolicy) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ImageChangeParams.Size()))
-		n18, err := m.ImageChangeParams.MarshalTo(data[i:])
+		n19, err := m.ImageChangeParams.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n18
+		i += n19
 	}
 	return i, nil
 }
@@ -985,11 +1019,11 @@ func (m *LifecycleHook) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.ExecNewPod.Size()))
-		n19, err := m.ExecNewPod.MarshalTo(data[i:])
+		n20, err := m.ExecNewPod.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n19
+		i += n20
 	}
 	if len(m.TagImages) > 0 {
 		for _, msg := range m.TagImages {
@@ -1030,31 +1064,31 @@ func (m *RecreateDeploymentStrategyParams) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Pre.Size()))
-		n20, err := m.Pre.MarshalTo(data[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n20
-	}
-	if m.Mid != nil {
-		data[i] = 0x1a
-		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Mid.Size()))
-		n21, err := m.Mid.MarshalTo(data[i:])
+		n21, err := m.Pre.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n21
 	}
-	if m.Post != nil {
-		data[i] = 0x22
+	if m.Mid != nil {
+		data[i] = 0x1a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Post.Size()))
-		n22, err := m.Post.MarshalTo(data[i:])
+		i = encodeVarintGenerated(data, i, uint64(m.Mid.Size()))
+		n22, err := m.Mid.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n22
+	}
+	if m.Post != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Post.Size()))
+		n23, err := m.Post.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n23
 	}
 	return i, nil
 }
@@ -1093,21 +1127,21 @@ func (m *RollingDeploymentStrategyParams) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x22
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.MaxUnavailable.Size()))
-		n23, err := m.MaxUnavailable.MarshalTo(data[i:])
+		n24, err := m.MaxUnavailable.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n23
+		i += n24
 	}
 	if m.MaxSurge != nil {
 		data[i] = 0x2a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.MaxSurge.Size()))
-		n24, err := m.MaxSurge.MarshalTo(data[i:])
+		n25, err := m.MaxSurge.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n24
+		i += n25
 	}
 	if m.UpdatePercent != nil {
 		data[i] = 0x30
@@ -1118,21 +1152,21 @@ func (m *RollingDeploymentStrategyParams) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x3a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Pre.Size()))
-		n25, err := m.Pre.MarshalTo(data[i:])
+		n26, err := m.Pre.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n25
+		i += n26
 	}
 	if m.Post != nil {
 		data[i] = 0x42
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Post.Size()))
-		n26, err := m.Post.MarshalTo(data[i:])
+		n27, err := m.Post.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n26
+		i += n27
 	}
 	return i, nil
 }
@@ -1159,11 +1193,11 @@ func (m *TagImageHook) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.To.Size()))
-	n27, err := m.To.MarshalTo(data[i:])
+	n28, err := m.To.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n27
+	i += n28
 	return i, nil
 }
 
@@ -1296,11 +1330,9 @@ func (m *DeploymentConfigSpec) Size() (n int) {
 	_ = l
 	l = m.Strategy.Size()
 	n += 1 + l + sovGenerated(uint64(l))
-	if len(m.Triggers) > 0 {
-		for _, e := range m.Triggers {
-			l = e.Size()
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.Triggers != nil {
+		l = m.Triggers.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	n += 1 + sovGenerated(uint64(m.Replicas))
 	if m.RevisionHistoryLimit != nil {
@@ -1440,6 +1472,18 @@ func (m *DeploymentTriggerImageChangeParams) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.LastTriggeredImage)
 	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m DeploymentTriggerPolicies) Size() (n int) {
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, e := range m {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -2643,8 +2687,10 @@ func (m *DeploymentConfigSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Triggers = append(m.Triggers, DeploymentTriggerPolicy{})
-			if err := m.Triggers[len(m.Triggers)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if m.Triggers == nil {
+				m.Triggers = DeploymentTriggerPolicies{}
+			}
+			if err := m.Triggers.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4106,6 +4152,87 @@ func (m *DeploymentTriggerImageChangeParams) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.LastTriggeredImage = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DeploymentTriggerPolicies) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeploymentTriggerPolicies: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeploymentTriggerPolicies: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			*m = append(*m, DeploymentTriggerPolicy{})
+			if err := (*m)[len(*m)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
