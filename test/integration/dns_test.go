@@ -194,8 +194,17 @@ func TestDNS(t *testing.T) {
 			dnsQuestionName: "headless.default.svc.cluster.local.",
 			srv: []*dns.SRV{
 				{
-					Target: headlessIPHash + "._unknown-port-2345._tcp.headless.default.svc.cluster.local.",
-					Port:   2345,
+					Target: headlessIPHash + ".headless.default.svc.cluster.local.",
+					Port:   0,
+				},
+			},
+		},
+		{ // SRV record for a port
+			dnsQuestionName: "_http._tcp.headless2.default.svc.cluster.local.",
+			srv: []*dns.SRV{
+				{
+					Target: headless2IPHash + ".headless2.default.svc.cluster.local.",
+					Port:   2346,
 				},
 			},
 		},
@@ -211,17 +220,13 @@ func TestDNS(t *testing.T) {
 			dnsQuestionName: "headless2.default.svc.cluster.local.",
 			srv: []*dns.SRV{
 				{
-					Target: headless2IPHash + "._http._tcp.headless2.default.svc.cluster.local.",
-					Port:   2346,
-				},
-				{
-					Target: headless2IPHash + "._other._tcp.headless2.default.svc.cluster.local.",
-					Port:   2345,
+					Target: headless2IPHash + ".headless2.default.svc.cluster.local.",
+					Port:   0,
 				},
 			},
 		},
 		{ // the SRV record resolves to the IP
-			dnsQuestionName: "other.e1.headless2.default.svc.cluster.local.",
+			dnsQuestionName: headless2IPHash + ".headless2.default.svc.cluster.local.",
 			expect:          []*net.IP{&headless2IP},
 		},
 		{

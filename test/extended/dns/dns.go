@@ -266,8 +266,7 @@ var _ = Describe("DNS", func() {
 				"prefix.kubernetes.default.svc",
 				"prefix.kubernetes.default.svc.cluster.local",
 
-				// answer wildcards on cluster service
-				fmt.Sprintf("prefix.headless.%s", f.Namespace.Name),
+				// answer wildcards on clusterIP services
 				fmt.Sprintf("prefix.clusterip.%s", f.Namespace.Name),
 			}, expect),
 
