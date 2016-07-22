@@ -1,0 +1,176 @@
+.TH "OPENSHIFT ADMIN MIGRATE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift admin migrate image\-references \- Update embedded Docker image references
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift admin migrate image\-references\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Migrate references to Docker images
+
+.PP
+This command updates embedded Docker image references on the server in place. By default it
+will update image streams and images, and may be used to update resources with a pod template
+(deployments, replication controllers, daemon sets).
+
+.PP
+References are changed by providing a mapping between a source registry and name and the
+desired registry and name. Either name or registry can be set to '*' to change all values.
+The registry value "docker.io" is special and will handle any image reference that refers to
+the DockerHub. You may pass multiple mappings \- the first matching mapping will be applied
+per resource.
+
+.PP
+The following resource types may be migrated by this command:
+.IP 
+
+.IP
+\(bu images               * daemonsets
+.IP
+\(bu imagestreams         * jobs
+.IP
+\(bu buildconfigs         * replicationcontrollers
+.IP
+\(bu deploymentconfigs    * pods
+.IP
+\(bu secrets (docker)
+.PP
+Only images, imagestreams, and secrets are updated by default. Updating images and image
+streams requires administrative privileges.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-all\-namespaces\fP=true
+    Migrate objects in all namespaces. Defaults to true.
+
+.PP
+\fB\-\-confirm\fP=false
+    If true, all requested objects will be migrated. Defaults to false.
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to docker\-compose.yml file to use
+
+.PP
+\fB\-\-from\-key\fP=""
+    If specified, only migrate items with a key (namespace/name or name) greater than or equal to this value
+
+.PP
+\fB\-\-include\fP=[imagestream,image,secrets]
+    Resource types to migrate. Passing \-\-filename will override this flag.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output the modified objects instead of saving them, valid values are 'yaml' or 'json'
+
+.PP
+\fB\-\-to\-key\fP=""
+    If specified, only migrate items with a key (namespace/name or name) less than this value
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Perform a dry\-run of migrating all "docker.io" references to "myregistry.com"
+  openshift admin migrate image\-references docker.io/*=myregistry.com/*
+
+  # To actually perform the migration, the confirm flag must be appended
+  openshift admin migrate image\-references docker.io/*=myregistry.com/* \-\-confirm
+
+  # To see more details of what will be migrated, use the loglevel and output flags
+  openshift admin migrate image\-references docker.io/*=myregistry.com/* \-\-loglevel=2 \-o yaml
+
+  # Migrate from a service IP to an internal service DNS name
+  openshift admin migrate image\-references 172.30.1.54/*=registry.openshift.svc.cluster.local/*
+
+  # Migrate from a service IP to an internal service DNS name for all deployment configs and builds
+  openshift admin migrate image\-references 172.30.1.54/*=registry.openshift.svc.cluster.local/* \-\-include=buildconfigs,deploymentconfigs
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-admin\-migrate(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

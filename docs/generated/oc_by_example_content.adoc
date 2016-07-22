@@ -353,6 +353,54 @@ Manage nodes - list pods, evacuate, or mark ready
 ====
 
 
+== oc adm migrate image-references
+Update embedded Docker image references
+
+====
+
+[options="nowrap"]
+----
+  # Perform a dry-run of migrating all "docker.io" references to "myregistry.com"
+  oc adm migrate image-references docker.io/*=myregistry.com/*
+
+  # To actually perform the migration, the confirm flag must be appended
+  oc adm migrate image-references docker.io/*=myregistry.com/* --confirm
+
+  # To see more details of what will be migrated, use the loglevel and output flags
+  oc adm migrate image-references docker.io/*=myregistry.com/* --loglevel=2 -o yaml
+
+  # Migrate from a service IP to an internal service DNS name
+  oc adm migrate image-references 172.30.1.54/*=registry.openshift.svc.cluster.local/*
+
+  # Migrate from a service IP to an internal service DNS name for all deployment configs and builds
+  oc adm migrate image-references 172.30.1.54/*=registry.openshift.svc.cluster.local/* --include=buildconfigs,deploymentconfigs
+----
+====
+
+
+== oc adm migrate storage
+Update the stored version of API objects
+
+====
+
+[options="nowrap"]
+----
+  # Perform a dry-run of updating all objects
+  oc adm migrate storage
+
+  # To actually perform the update, the confirm flag must be appended
+  oc adm migrate storage --confirm
+
+  # Only migrate pods
+  oc adm migrate storage --include=pods --confirm
+
+  # Only pods that are in namespaces starting with "bar"
+  oc adm migrate storage --include=pods --confirm --from-key=bar/ --to-key=bar/\xFF
+
+----
+====
+
+
 == oc adm pod-network join-projects
 Join project network
 
