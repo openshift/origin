@@ -26,6 +26,7 @@ import (
 
 func TestServiceAccountAuthorization(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 	saUsername := serviceaccount.MakeUsername(saNamespace, saName)
@@ -246,6 +247,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	saName := serviceaccountadmission.DefaultServiceAccountName
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -303,6 +305,7 @@ func getServiceAccountPullSecret(client *kclient.Client, ns, name string) (strin
 
 func TestEnforcingServiceAccount(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
 	if err != nil {

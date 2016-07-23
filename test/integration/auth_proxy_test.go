@@ -33,6 +33,8 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	idp.MappingMethod = "claim"
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)

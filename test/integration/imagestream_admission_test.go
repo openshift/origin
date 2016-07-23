@@ -21,6 +21,7 @@ import (
 const limitRangeName = "limits"
 
 func TestImageStreamTagsAdmission(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	kClient, client := setupImageStreamAdmissionTest(t)
 
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest, imagetest.MiscImageDigest} {
@@ -216,6 +217,7 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 }
 
 func TestImageStreamAdmitSpecUpdate(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	kClient, client := setupImageStreamAdmissionTest(t)
 
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
@@ -354,6 +356,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 }
 
 func TestImageStreamAdmitStatusUpdate(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	kClient, client := setupImageStreamAdmissionTest(t)
 	images := []*imageapi.Image{}
 

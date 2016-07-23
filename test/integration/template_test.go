@@ -19,6 +19,7 @@ import (
 
 func TestTemplate(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, path, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -117,6 +118,7 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 
 func TestTemplateTransformationFromConfig(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
