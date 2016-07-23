@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -1666,6 +1667,128 @@ func TestTagsChanged(t *testing.T) {
 		if changed != test.changed || deleted != test.deleted {
 			t.Errorf("%s: unexpected tagsChanged, expected (%v, %v) got (%v, %v)",
 				name, test.changed, test.deleted, changed, deleted)
+		}
+	}
+}
+
+func TestIndexOfImageSignature(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		signatures    []ImageSignature
+		matchType     string
+		matchContent  []byte
+		expectedIndex int
+	}{
+		{
+			name:          "empty",
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: -1,
+		},
+
+		{
+			name: "not present",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: -1,
+		},
+
+		{
+			name: "first and only",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("binary"),
+			expectedIndex: 0,
+		},
+
+		{
+			name: "last",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: 2,
+		},
+
+		{
+			name: "many matches",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob2"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: 1,
+		},
+	} {
+
+		im := Image{
+			Signatures: make([]ImageSignature, len(tc.signatures)),
+		}
+		for i, signature := range tc.signatures {
+			signature.Name = fmt.Sprintf("%s:%s", signature.Type, signature.Content)
+			im.Signatures[i] = signature
+		}
+
+		matchName := fmt.Sprintf("%s:%s", tc.matchType, tc.matchContent)
+
+		index := IndexOfImageSignatureByName(im.Signatures, matchName)
+		if index != tc.expectedIndex {
+			t.Errorf("[%s] got unexpected index: %d != %d", tc.name, index, tc.expectedIndex)
+		}
+
+		index = IndexOfImageSignature(im.Signatures, tc.matchType, tc.matchContent)
+		if index != tc.expectedIndex {
+			t.Errorf("[%s] got unexpected index: %d != %d", tc.name, index, tc.expectedIndex)
 		}
 	}
 }

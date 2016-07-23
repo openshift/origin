@@ -76,6 +76,7 @@ const (
 	ImagePusherRoleName       = "system:image-pusher"
 	ImageBuilderRoleName      = "system:image-builder"
 	ImagePrunerRoleName       = "system:image-pruner"
+	ImageSignerRoleName       = "system:image-signer"
 	DeployerRoleName          = "system:deployer"
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"

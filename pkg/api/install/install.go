@@ -283,6 +283,17 @@ func init() {
 				return true, imagev1.Convert_api_Image_To_v1_Image(a, b, s)
 			}
 
+		case *imagev1.ImageSignature:
+			switch b := objB.(type) {
+			case *imageapi.ImageSignature:
+				return true, imagev1.Convert_v1_ImageSignature_To_api_ImageSignature(a, b, s)
+			}
+		case *imageapi.ImageSignature:
+			switch b := objB.(type) {
+			case *imagev1.ImageSignature:
+				return true, imagev1.Convert_api_ImageSignature_To_v1_ImageSignature(a, b, s)
+			}
+
 		case *imagev1.ImageStreamImport:
 			switch b := objB.(type) {
 			case *imageapi.ImageStreamImport:

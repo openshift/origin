@@ -24,8 +24,6 @@ import (
 // TestOAuthOIDC checks CLI password login against an OIDC provider
 func TestOAuthOIDC(t *testing.T) {
 
-	tokenCalled := false
-	userinfoCalled := false
 	expectedTokenPost := url.Values{
 		"grant_type":    []string{"password"},
 		"client_id":     []string{"myclient"},
@@ -89,14 +87,12 @@ func TestOAuthOIDC(t *testing.T) {
 			}
 
 			w.Write([]byte(tokenResponse))
-			tokenCalled = true
 
 		case "/userinfo":
 			if r.Header.Get("Authorization") != "Bearer 12345" {
 				t.Fatalf("Expected authorization header, got %#v", r.Header)
 			}
 			w.Write([]byte(userinfoResponse))
-			userinfoCalled = true
 
 		default:
 			t.Fatalf("Unexpected OIDC request: %v", r.URL.String())

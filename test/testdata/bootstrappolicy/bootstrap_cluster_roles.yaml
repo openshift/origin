@@ -180,6 +180,7 @@ items:
     attributeRestrictions: null
     resources:
     - images
+    - imagesignatures
     - imagestreamimages
     - imagestreams
     - imagestreams/status
@@ -1497,6 +1498,28 @@ items:
     - imagestreams/status
     verbs:
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:image-signer
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - images
+    - imagestreams/layers
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagesignatures
+    verbs:
+    - create
+    - delete
 - apiVersion: v1
   kind: ClusterRole
   metadata:
