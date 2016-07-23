@@ -1434,6 +1434,25 @@ Expose a replicated application as a service or route
 ====
 
 
+== oc extract
+Extract secrets or config maps to disk
+
+====
+
+[options="nowrap"]
+----
+  # extract the secret "test" to the current directory
+  oc extract secret/test
+
+  # extract the config map "nginx" to the /tmp directory
+  oc extract configmap/nginx --to=/tmp
+
+  # extract only the key "nginx.conf" from config map "nginx" to the /tmp directory
+  oc extract configmap/nginx --to=/tmp --keys=nginx.conf
+----
+====
+
+
 == oc get
 Display one or many resources
 
