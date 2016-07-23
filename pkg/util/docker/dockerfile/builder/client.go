@@ -306,7 +306,7 @@ func (e *ClientExecutor) CreateScratchImage() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := fmt.Sprintf("scratch-%s", random)
+	name := fmt.Sprintf("scratch%s", random)
 
 	buf := &bytes.Buffer{}
 	w := tar.NewWriter(buf)
