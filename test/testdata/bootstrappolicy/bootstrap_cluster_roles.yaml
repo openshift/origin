@@ -289,6 +289,13 @@ items:
     verbs:
     - create
   - apiGroups:
+    - authentication.k8s.io
+    attributeRestrictions: null
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -1751,6 +1758,13 @@ items:
     creationTimestamp: null
     name: system:node
   rules:
+  - apiGroups:
+    - authentication.k8s.io
+    attributeRestrictions: null
+    resources:
+    - tokenreviews
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null

@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/unversioned"
 
 	oauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	authncache "github.com/openshift/origin/pkg/auth/authenticator/token/cache"
-	authnremote "github.com/openshift/origin/pkg/auth/authenticator/token/remotemaster"
+	authnremote "github.com/openshift/origin/pkg/auth/authenticator/token/remotetokenreview"
 	"github.com/openshift/origin/pkg/auth/group"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func newAuthenticator(clientCAs *x509.CertPool, anonymousConfig restclient.Config, cacheTTL time.Duration, cacheSize int) (authenticator.Request, error) {
+func newAuthenticator(authenticationClient unversionedauthentication.TokenReviewsGetter, clientCAs *x509.CertPool, cacheTTL time.Duration, cacheSize int) (authenticator.Request, error) {
 	authenticators := []oauthenticator.Request{}
 
 	// API token auth
@@ -39,7 +39,7 @@ func newAuthenticator(clientCAs *x509.CertPool, anonymousConfig restclient.Confi
 		err                error
 	)
 	// Authenticate against the remote master
-	tokenAuthenticator, err = authnremote.NewAuthenticator(anonymousConfig)
+	tokenAuthenticator, err = authnremote.NewAuthenticator(authenticationClient)
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +107,6 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 	}
 
 	namespace := ""
-	userName := u.GetName()
-	groups := u.GetGroups()
 
 	apiVerb := ""
 	switch r.Method {
@@ -139,9 +137,9 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 	}
 	// TODO: handle other things like /healthz/*? not sure if "non-resource" urls on the kubelet make sense to authorize against master non-resource URL policy
 
-	glog.V(2).Infof("Node request attributes: namespace=%s, user=%s, groups=%v, attrs=%#v", namespace, userName, groups, attrs)
+	glog.V(2).Infof("Node request attributes: namespace=%s, user=%#v, attrs=%#v", namespace, u, attrs)
 
-	return authzadapter.KubernetesAuthorizerAttributes(namespace, userName, groups, attrs)
+	return authzadapter.KubernetesAuthorizerAttributes(namespace, u, attrs)
 }
 
 func newAuthorizer(c *oclient.Client, cacheTTL time.Duration, cacheSize int) (kauthorizer.Authorizer, error) {

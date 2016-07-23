@@ -39,21 +39,23 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube        = ""
-	APIGroupExtensions  = "extensions"
-	APIGroupAutoscaling = "autoscaling"
-	APIGroupBatch       = "batch"
-	APIGroupPolicy      = "policy"
-	APIGroupApps        = "apps"
-	APIGroupFederation  = "federation"
+	APIGroupKube           = ""
+	APIGroupExtensions     = "extensions"
+	APIGroupAutoscaling    = "autoscaling"
+	APIGroupAuthentication = "authentication.k8s.io"
+	APIGroupBatch          = "batch"
+	APIGroupPolicy         = "policy"
+	APIGroupApps           = "apps"
+	APIGroupFederation     = "federation"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
-		APIGroupKube:        {"v1"},
-		APIGroupExtensions:  {"v1beta1"},
-		APIGroupAutoscaling: {"v1"},
-		APIGroupBatch:       {"v1", "v2alpha1"},
-		APIGroupApps:        {"v1alpha1"},
+		APIGroupKube:           {"v1"},
+		APIGroupExtensions:     {"v1beta1"},
+		APIGroupAutoscaling:    {"v1"},
+		APIGroupAuthentication: {"v1beta1"},
+		APIGroupBatch:          {"v1", "v2alpha1"},
+		APIGroupApps:           {"v1alpha1"},
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
