@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,6 +53,27 @@ func Test_NewGoRoutineMap_Positive_SingleOp(t *testing.T) {
 	// Assert
 	if err != nil {
 		t.Fatalf("NewGoRoutine failed. Expected: <no error> Actual: <%v>", err)
+	}
+}
+
+func Test_NewGoRoutineMap_Positive_TwoOps(t *testing.T) {
+	// Arrange
+	grm := NewGoRoutineMap(false /* exponentialBackOffOnError */)
+	operation1Name := "operation1-name"
+	operation2Name := "operation2-name"
+	operation := func() error { return nil }
+
+	// Act
+	err1 := grm.Run(operation1Name, operation)
+	err2 := grm.Run(operation2Name, operation)
+
+	// Assert
+	if err1 != nil {
+		t.Fatalf("NewGoRoutine %q failed. Expected: <no error> Actual: <%v>", operation1Name, err1)
+	}
+
+	if err2 != nil {
+		t.Fatalf("NewGoRoutine %q failed. Expected: <no error> Actual: <%v>", operation2Name, err2)
 	}
 }
 

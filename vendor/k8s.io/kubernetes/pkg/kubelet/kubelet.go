@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 	"k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	"k8s.io/kubernetes/pkg/kubelet/util/queue"
-	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volume"
+	"k8s.io/kubernetes/pkg/kubelet/volumemanager"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
@@ -402,6 +402,21 @@ func NewMainKubelet(
 	klet.podCache = kubecontainer.NewCache()
 	klet.podManager = kubepod.NewBasicPodManager(kubepod.NewBasicMirrorClient(klet.kubeClient))
 
+	klet.volumePluginMgr, err =
+		NewInitializedVolumePluginMgr(klet, volumePlugins)
+	if err != nil {
+		return nil, err
+	}
+
+	klet.volumeManager, err = volumemanager.NewVolumeManager(
+		enableControllerAttachDetach,
+		hostname,
+		klet.podManager,
+		klet.kubeClient,
+		klet.volumePluginMgr,
+		klet.containerRuntime,
+		mounter)
+
 	// Initialize the runtime.
 	switch containerRuntime {
 	case "docker":
@@ -501,13 +516,14 @@ func NewMainKubelet(
 		return nil, err
 	}
 
-	klet.volumeManager, err = kubeletvolume.NewVolumeManager(
+	klet.volumeManager, err = volumemanager.NewVolumeManager(
 		enableControllerAttachDetach,
 		hostname,
 		klet.podManager,
 		klet.kubeClient,
 		klet.volumePluginMgr,
-		klet.containerRuntime)
+		klet.containerRuntime,
+		mounter)
 
 	runtimeCache, err := kubecontainer.NewRuntimeCache(klet.containerRuntime)
 	if err != nil {
@@ -687,7 +703,7 @@ type Kubelet struct {
 	// VolumeManager runs a set of asynchronous loops that figure out which
 	// volumes need to be attached/mounted/unmounted/detached based on the pods
 	// scheduled on this node and makes it so.
-	volumeManager kubeletvolume.VolumeManager
+	volumeManager volumemanager.VolumeManager
 
 	// Cloud provider interface.
 	cloud                   cloudprovider.Interface

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/status"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/queue"
-	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volume"
+	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volumemanager"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -293,13 +293,15 @@ func newTestKubeletWithImageList(
 		t.Fatalf("failed to initialize VolumePluginMgr: %v", err)
 	}
 
+	kubelet.mounter = &mount.FakeMounter{}
 	kubelet.volumeManager, err = kubeletvolume.NewVolumeManager(
 		controllerAttachDetachEnabled,
 		kubelet.hostname,
 		kubelet.podManager,
 		fakeKubeClient,
 		kubelet.volumePluginMgr,
-		fakeRuntime)
+		fakeRuntime,
+		kubelet.mounter)
 	if err != nil {
 		t.Fatalf("failed to initialize volume manager: %v", err)
 	}
@@ -433,7 +435,6 @@ func TestSyncPodsDeletesWhenSourcesAreReady(t *testing.T) {
 func TestVolumeAttachAndMountControllerDisabled(t *testing.T) {
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
 	kubelet := testKubelet.kubelet
-	kubelet.mounter = &mount.FakeMounter{}
 
 	pod := podWithUidNameNsSpec("12345678", "foo", "test", api.PodSpec{
 		Volumes: []api.Volume{
@@ -504,7 +505,6 @@ func TestVolumeAttachAndMountControllerDisabled(t *testing.T) {
 func TestVolumeUnmountAndDetachControllerDisabled(t *testing.T) {
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
 	kubelet := testKubelet.kubelet
-	kubelet.mounter = &mount.FakeMounter{}
 
 	pod := podWithUidNameNsSpec("12345678", "foo", "test", api.PodSpec{
 		Volumes: []api.Volume{
@@ -616,7 +616,6 @@ func TestVolumeUnmountAndDetachControllerDisabled(t *testing.T) {
 func TestVolumeAttachAndMountControllerEnabled(t *testing.T) {
 	testKubelet := newTestKubelet(t, true /* controllerAttachDetachEnabled */)
 	kubelet := testKubelet.kubelet
-	kubelet.mounter = &mount.FakeMounter{}
 	kubeClient := testKubelet.fakeKubeClient
 	kubeClient.AddReactor("get", "nodes",
 		func(action core.Action) (bool, runtime.Object, error) {
@@ -711,7 +710,6 @@ func TestVolumeAttachAndMountControllerEnabled(t *testing.T) {
 func TestVolumeUnmountAndDetachControllerEnabled(t *testing.T) {
 	testKubelet := newTestKubelet(t, true /* controllerAttachDetachEnabled */)
 	kubelet := testKubelet.kubelet
-	kubelet.mounter = &mount.FakeMounter{}
 	kubeClient := testKubelet.fakeKubeClient
 	kubeClient.AddReactor("get", "nodes",
 		func(action core.Action) (bool, runtime.Object, error) {
