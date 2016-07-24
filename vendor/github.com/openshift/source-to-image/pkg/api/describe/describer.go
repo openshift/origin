@@ -83,7 +83,7 @@ func DescribeConfig(config *api.Config) string {
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("ERROR: %v", err)
+		fmt.Printf("error: %v", err)
 	}
 	return out
 }
