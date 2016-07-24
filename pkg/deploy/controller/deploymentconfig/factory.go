@@ -59,6 +59,11 @@ func NewDeploymentConfigController(dcInformer, rcInformer, podInformer framework
 		DeleteFunc: c.deleteReplicationController,
 	})
 	c.podStore.Indexer = podInformer.GetIndexer()
+	podInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    c.addPod,
+		UpdateFunc: c.updatePod,
+		DeleteFunc: c.deletePod,
+	})
 
 	c.dcStoreSynced = dcInformer.HasSynced
 	c.rcStoreSynced = rcInformer.HasSynced
@@ -185,6 +190,37 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	}
 	glog.V(4).Infof("Replication controller %q deleted.", rc.Name)
 	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) addPod(obj interface{}) {
+	if dc, err := c.dcStore.GetConfigForPod(obj.(*kapi.Pod)); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) updatePod(old, cur interface{}) {
+	if dc, err := c.dcStore.GetConfigForPod(cur.(*kapi.Pod)); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) deletePod(obj interface{}) {
+	pod, ok := obj.(*kapi.Pod)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			glog.Errorf("Couldn't get object from tombstone %+v", obj)
+			return
+		}
+		pod, ok = tombstone.Obj.(*kapi.Pod)
+		if !ok {
+			glog.Errorf("Tombstone contained object that is not a pod: %+v", obj)
+			return
+		}
+	}
+	if dc, err := c.dcStore.GetConfigForPod(pod); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
 }
