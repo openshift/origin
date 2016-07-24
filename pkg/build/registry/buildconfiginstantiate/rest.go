@@ -219,7 +219,11 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
 	}
-	if err := exec.Stream(kubeletremotecommand.SupportedStreamingProtocols, r, nil, nil, false); err != nil {
+	streamOptions := remotecommand.StreamOptions{
+		SupportedProtocols: kubeletremotecommand.SupportedStreamingProtocols,
+		Stdin:              r,
+	}
+	if err := exec.Stream(streamOptions); err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 	return latest, nil

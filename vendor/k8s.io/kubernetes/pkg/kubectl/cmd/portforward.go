@@ -160,6 +160,7 @@ func RunPortForward(f *cmdutil.Factory, cmd *cobra.Command, args []string, fw po
 		Namespace(namespace).
 		Name(pod.Name).
 		SubResource("portforward")
+
 	getErr := fw.ForwardPorts("GET", getReq.URL(), config, args, stopCh)
 	if getErr == nil {
 		return nil
