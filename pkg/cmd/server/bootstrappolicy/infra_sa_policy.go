@@ -157,18 +157,31 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				// DeploymentControllerFactory.deploymentLW
 				{
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
+					Resources: sets.NewString("replicationcontrollers", "replicasets", "deployments"),
 				},
 				// DeploymentControllerFactory.deploymentClient
 				{
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
+					Resources: sets.NewString("replicationcontrollers", "replicasets", "deployments"),
+				},
+				// DeploymentController (upstream) creating RS
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("create", "update", "delete", "watch"),
+					Resources: sets.NewString("replicationcontrollers", "replicasets"),
 				},
 				// DeploymentController.podClient
 				{
 					Verbs:     sets.NewString("get", "list", "create", "watch", "delete", "update"),
 					Resources: sets.NewString("pods"),
+				},
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("deployments/status"),
 				},
 				// DeploymentController.recorder (EventBroadcaster)
 				{

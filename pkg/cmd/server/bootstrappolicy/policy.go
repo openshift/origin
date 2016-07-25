@@ -219,7 +219,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale",
-					"replicasets", "replicasets/status", "replicasets/scale").RuleOrDie(),
+					"replicasets", "replicasets/status", "replicasets/scale", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("roles", "rolebindings").RuleOrDie(),
@@ -272,7 +272,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale", "replicasets", "replicasets/scale").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale", "replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets", "replicasets/status").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
@@ -316,7 +316,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "daemonsets", "replicasets").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "daemonsets", "replicasets", "deployments", "deployments/status", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("replicasets/status", "replicasets/scale").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
