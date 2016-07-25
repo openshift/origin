@@ -130,7 +130,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale", "deploymentconfigs/log",
 					"deploymentconfigs/status").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(imageGroup).Resources("images", "imagestreams", "imagestreamtags", "imagestreamimages",
+				authorizationapi.NewRule(read...).Groups(imageGroup).Resources("images", "imagesignatures", "imagestreams", "imagestreamtags", "imagestreamimages",
 					"imagestreams/status").RuleOrDie(),
 				// pull images
 				authorizationapi.NewRule("get").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
@@ -154,6 +154,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// permissions to check access.  These creates are non-mutating
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews",
 					"selfsubjectrulesreviews", "subjectaccessreviews").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups("authentication.k8s.io").Resources("tokenreviews").RuleOrDie(),
 				// Allow read access to node metrics
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources(authorizationapi.NodeMetricsResource).RuleOrDie(),
 				// Allow read access to stats
@@ -450,6 +451,15 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: ImageSignerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule("get").Groups(imageGroup).Resources("images", "imagestreams/layers").RuleOrDie(),
+				authorizationapi.NewRule("create", "delete").Groups(imageGroup).Resources("imagesignatures").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: DeployerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -543,6 +553,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// Needed to check API access.  These creates are non-mutating
+				authorizationapi.NewRule("create").Groups("authentication.k8s.io").Resources("tokenreviews").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("subjectaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
 				// Needed to build serviceLister, to populate env vars for services
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("services").RuleOrDie(),

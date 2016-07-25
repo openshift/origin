@@ -93,6 +93,8 @@ os::cmd::expect_success_and_text "oc get dc --show-labels" "app=dockerbuild,temp
 os::cmd::expect_success_and_text "oc get dc frontend --show-labels" "app=dockerbuild,template=application-template-dockerbuild"
 os::cmd::expect_success_and_not_text "oc get dc" "app=dockerbuild,template=application-template-dockerbuild"
 os::cmd::expect_success_and_not_text "oc get dc frontend" "app=dockerbuild,template=application-template-dockerbuild"
+os::cmd::expect_success "oc process -f test/testdata/old-template.json | oc create -f -"
+os::cmd::expect_success_and_text "oc get dc/eap-app -o yaml" ":latest"
 echo "get: ok"
 os::test::junit::declare_suite_end
 

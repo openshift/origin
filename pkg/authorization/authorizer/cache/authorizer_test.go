@@ -48,7 +48,7 @@ func TestCacheKey(t *testing.T) {
 				NonResourceURL:    true,
 				URL:               "/abc",
 			},
-			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","url":"/abc","user":"me","verb":"v"}`,
+			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","scopes":null,"url":"/abc","user":"me","verb":"v"}`,
 		},
 	}
 

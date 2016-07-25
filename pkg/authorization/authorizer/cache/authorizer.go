@@ -14,6 +14,7 @@ import (
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -144,6 +145,7 @@ func cacheKey(ctx kapi.Context, a authorizer.AuthorizationAttributes) (string, e
 	if user, ok := kapi.UserFrom(ctx); ok {
 		keyData["user"] = user.GetName()
 		keyData["groups"] = user.GetGroups()
+		keyData["scopes"] = user.GetExtra()[authorizationapi.ScopesKey]
 	}
 
 	key, err := json.Marshal(keyData)

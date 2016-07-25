@@ -46,6 +46,9 @@ func (s Strategy) PrepareForCreate(obj runtime.Object) {
 			}.Exact()
 		}
 	}
+
+	// signatures can be added using "images" or "imagesignatures" resources
+	ism.Image.Signatures = nil
 }
 
 // Canonicalize normalizes the object after validation.

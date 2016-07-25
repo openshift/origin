@@ -140,6 +140,61 @@ FAQ
     Versions of Docker distributed by the Docker team don't allow containers to mount volumes on the host and write to them (mount propagation is private). Kubernetes manages volumes and uses them to expose secrets into containers, which Origin uses to give containers the tokens they need to access the API and run deployments and builds. Until mount propagation is configurable in Docker you must use Docker on Fedora, CentOS, or RHEL (which have a patch to allow mount propagation) or run Origin outside of a container. Tracked in [this issue](https://github.com/openshift/origin/issues/3072).
 
 
+Alpha and Unsupported Kubernetes Features
+-----------------------------------------
+
+Some features from upstream Kubernetes are not yet enabled in Origin, for reasons including supportability, security, or limitations in the upstream feature.
+
+Kubernetes Definitions:
+
+* Alpha
+  * The feature is available, but no guarantees are made about backwards compatibility or whether data is preserved when feature moves to Beta.
+  * The feature may have significant bugs and is suitable for testing and prototyping.
+  * The feature may be replaced or significantly redesigned in the future.
+  * No migration to Beta is generally provided other than documentation of the change.
+* Beta
+  * The feature is available and generally agreed to solve the desired solution, but may need stabilization or additional feedback.
+  * The feature is potentially suitable for limited production use under constrained circumstances.
+  * The feature is unlikely to be replaced or removed, although it is still possible for feature changes that require migration.
+
+OpenShift uses these terms in the same fashion as Kubernetes, and adds four more:
+
+* Not Yet Secure
+  * Features which are not yet enabled because they have significant security or stability risks to the cluster
+  * Generally this applies to features which may allow escalation or denial-of-service behavior on the platform
+  * In some cases this is applied to new features which have not had time for full security review
+* Potentially Insecure
+  * Features that require additional work to be properly secured in a multi-user environment
+  * These features are only enabled for cluster admins by default and we do not recommend enabling them for untrusted users
+  * We generally try to identify and fix these within 1 release of their availability
+* Tech Preview
+  * Features that are considered unsupported for various reasons are known as 'tech preview' in our documentation
+  * Kubernetes Alpha and Beta features are considered tech preview, although occasionally some features will be graduated early
+  * Any tech preview feature is not supported in OpenShift Container Platform except through exemption
+* Disabled Pending Migration
+  * These are features that are new in Kubernetes but which originated in OpenShift, and thus need migrations for existing users
+  * We generally try to minimize the impact of features introduced upstream to Kubernetes on OpenShift users by providing seamless
+    migration for existing clusters.
+  * Generally these are addressed within 1 Kubernetes release
+
+The list of features that qualify under these labels is described below, along with additional context for why.
+
+Feature | Kubernetes | OpenShift | Justification
+------- | ---------- | --------- | -------------
+Third Party Resources | Alpha (1.3) | Not Yet Secure (1.2, 1.3) | Third party resources are still under active development upstream.<br>Known issues include failure to clean up resources in etcd, which may result in a denial of service attack against the cluster.<br>We are considering enabling them for development environments only.
+Garbage Collection | Alpha (1.3) | Not Yet Secure (1.3) | Garbage collection will automatically delete related resources on the server, and thus given the potential for data loss we are waiting for GC to graduate to beta and have a full release cycle of testing before enabling it in Origin.<br>At the current time, it is possible for a malicious user to trick another user into deleting a sensitive resource (like a quota or limit resource) during deletion, which must be addressed prior to enablement.
+Pet Sets | Alpha (1.3) | Tech Preview (1.3) | Pet Sets are still being actively developed and no backwards compatibility is guaranteed. Also, Pet Sets allow users to create PVCs indirectly, and more security controls are needed to limit the potential impact on the cluster.
+Init Containers | Alpha (1.3) | Tech Preview (1.3) | Init containers are properly secured, but are not officially part of the Kubernetes API and may change without notice.
+Federated Clusters | Beta (1.3) | Tech Preview (1.3) | A Kubernetes federation server may be used against Origin clusters with the appropriate credentials today.<br>Known issues include tenant support in federation and the ability to have consistent access control between federation and normal clusters.<br>No Origin specific binary is being distributed for federation at this time.
+Deployment | Alpha (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.2)<br>Tech Preview (1.3) | OpenShift launched with DeploymentConfigs, a more fully featured Deployment object. We plan to enable upstream Deployments with automatic migrations to Deployment Configs so that existing clusters continue to function as normal without a migration, and so that existing client tools automatically display Deployments.<br>Deployment Configs are a superset of Deployment features.
+Replica Sets | Beta (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.2)<br>Tech Preview (1.3) | Replica Sets perform the same function as Replication Controllers, but have a more powerful label syntax. We are working upstream to enable a migration path forward for clusters with existing Replication Controllers deployed to be automatically migratable to Replica Sets, in order to ease the transition for clients and tooling that depend on RCs.
+Ingress | Alpha (1.1)<br>Beta (1.2, 1.3) | Disabled Pending Migration (1.2, 1.3) | OpenShift launched with Routes, a more full featured Ingress object. We plan to enable upstream Ingresses with automatic migrations to Routes so that existing clusters continue to function as normal without a migration, and so that existing client tools automatically display Ingresses.<br>Upstream ingress controllers are not supported, since the integrated router is production supported with a superset of Ingress functionality.
+PodSecurityPolicy | Alpha (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.3)<br>Not Yet Secure (1.3) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
+PodAntiAffinitySelectors | Alpha (1.3) | Not Yet Secure (1.3)<br>Tech Preview (1.4?) | End users are not allowed to set PodAntiAffinitySelectors that are not the node name due to the possibility of attacking the scheduler via denial of service.|
+
+Please contact us if this list omits a feature supported in Kubernetes which does not run in Origin.
+
+
 Contributing
 ------------
 

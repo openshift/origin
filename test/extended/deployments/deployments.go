@@ -236,12 +236,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("deploying a few more times")
 			for i := 0; i < 3; i++ {
-				out, err = oc.Run("deploy").Args("--latest", "deployment-test").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
-
-				out, err = oc.Run("logs").Args("-f", "dc/deployment-test").Output()
+				out, err = oc.Run("deploy").Args("--latest", "--follow", "deployment-test").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying the deployment is marked complete and scaled to zero")
@@ -290,7 +285,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			o.Expect(waitForLatestCondition(oc, "custom-deployment", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
-			out, err = oc.Run("logs").Args("-f", "dc/custom-deployment").Output()
+			out, err = oc.Run("deploy").Args("--follow", "dc/custom-deployment").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployment is marked complete")
@@ -556,7 +551,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 	})
 
 	g.Describe("with minimum ready seconds set", func() {
-		g.It("should include various info in status [Conformance]", func() {
+		g.It("should not transition the deployment to Complete before satisfied [Conformance]", func() {
 			_, name, err := createFixture(oc, minReadySecondsFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

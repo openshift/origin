@@ -22,6 +22,7 @@ import (
 func TestPatchConflicts(t *testing.T) {
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 

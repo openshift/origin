@@ -44,6 +44,15 @@ func (c *FakeImages) Create(inObj *imageapi.Image) (*imageapi.Image, error) {
 	return obj.(*imageapi.Image), err
 }
 
+func (c *FakeImages) Update(inObj *imageapi.Image) (*imageapi.Image, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("images", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.Image), err
+}
+
 func (c *FakeImages) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("images", name), &imageapi.Image{})
 	return err
