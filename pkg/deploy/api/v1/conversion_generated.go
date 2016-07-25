@@ -359,7 +359,7 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_
 	out.MinReadySeconds = in.MinReadySeconds
 	if in.Triggers != nil {
 		in, out := &in.Triggers, &out.Triggers
-		*out = make([]DeploymentTriggerPolicy, len(*in))
+		*out = make(DeploymentTriggerPolicies, len(*in))
 		for i := range *in {
 			if err := Convert_api_DeploymentTriggerPolicy_To_v1_DeploymentTriggerPolicy(&(*in)[i], &(*out)[i], s); err != nil {
 				return err

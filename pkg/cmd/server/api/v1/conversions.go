@@ -46,6 +46,23 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.JenkinsPipelineConfig.Enabled = &v
 			}
 
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &ClientConnectionOverrides{
+					// historical values
+					QPS:   150.0,
+					Burst: 300,
+				}
+			}
+			setDefault_ClientConnectionOverrides(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &ClientConnectionOverrides{
+					// historical values
+					QPS:   100.0,
+					Burst: 200,
+				}
+			}
+			setDefault_ClientConnectionOverrides(obj.MasterClients.ExternalKubernetesClientConnectionOverrides)
+
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
 				if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
@@ -80,6 +97,15 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			}
 		},
 		func(obj *NodeConfig) {
+			if obj.MasterClientConnectionOverrides == nil {
+				obj.MasterClientConnectionOverrides = &ClientConnectionOverrides{
+					// historical values
+					QPS:   10.0,
+					Burst: 20,
+				}
+			}
+			setDefault_ClientConnectionOverrides(obj.MasterClientConnectionOverrides)
+
 			// Defaults/migrations for NetworkConfig
 			if len(obj.NetworkConfig.NetworkPluginName) == 0 {
 				obj.NetworkConfig.NetworkPluginName = obj.DeprecatedNetworkPluginName
@@ -307,6 +333,17 @@ func convert_runtime_Object_To_runtime_RawExtension(in *runtime.Object, out *run
 // appropriate output type.
 func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out *runtime.Object, s conversion.Scope) error {
 	return extension.Convert_runtime_RawExtension_To_runtime_Object(internal.Scheme, in, out, s)
+}
+
+// setDefault_ClientConnectionOverrides defaults a client connection to the pre-1.3 settings of
+// being JSON only. Callers must explicitly opt-in to Protobuf support in 1.3+.
+func setDefault_ClientConnectionOverrides(overrides *ClientConnectionOverrides) {
+	if len(overrides.AcceptContentTypes) == 0 {
+		overrides.AcceptContentTypes = "application/json"
+	}
+	if len(overrides.ContentType) == 0 {
+		overrides.ContentType = "application/json"
+	}
 }
 
 var _ runtime.NestedObjectDecoder = &MasterConfig{}

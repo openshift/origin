@@ -18,7 +18,7 @@ message Group {
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
   // Users is the list of users in this group.
-  repeated string users = 2;
+  optional OptionalNames users = 2;
 }
 
 // GroupList is a collection of Groups
@@ -56,6 +56,13 @@ message IdentityList {
 
   // Items is the list of identities
   repeated Identity items = 2;
+}
+
+// OptionalNames is an array that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+message OptionalNames {
+  // items, if empty, will result in an empty slice
+  repeated string items = 1;
 }
 
 // User describes someone that makes requests to the API

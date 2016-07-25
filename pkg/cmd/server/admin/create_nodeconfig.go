@@ -440,6 +440,10 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	if err != nil {
 		return err
 	}
+	config = internal.(*configapi.NodeConfig)
+
+	// For new configurations, use protobuf.
+	configapi.SetProtobufClientDefaults(config.MasterClientConnectionOverrides)
 
 	content, err := latestconfigapi.WriteYAML(internal)
 	if err != nil {

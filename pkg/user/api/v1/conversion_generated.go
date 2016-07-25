@@ -40,7 +40,13 @@ func autoConvert_v1_Group_To_api_Group(in *Group, out *user_api.Group, s convers
 	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	out.Users = in.Users
+	if in.Users != nil {
+		in, out := &in.Users, &out.Users
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Users = nil
+	}
 	return nil
 }
 
@@ -55,7 +61,13 @@ func autoConvert_api_Group_To_v1_Group(in *user_api.Group, out *Group, s convers
 	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	out.Users = in.Users
+	if in.Users != nil {
+		in, out := &in.Users, &out.Users
+		*out = make(OptionalNames, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Users = nil
+	}
 	return nil
 }
 

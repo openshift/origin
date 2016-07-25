@@ -9,7 +9,7 @@
 		github.com/openshift/origin/pkg/authorization/api/v1/generated.proto
 
 	It has these top-level messages:
-		AuthorizationAttributes
+		Action
 		ClusterPolicy
 		ClusterPolicyBinding
 		ClusterPolicyBindingList
@@ -25,6 +25,8 @@
 		NamedClusterRoleBinding
 		NamedRole
 		NamedRoleBinding
+		OptionalNames
+		OptionalScopes
 		Policy
 		PolicyBinding
 		PolicyBindingList
@@ -57,9 +59,9 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-func (m *AuthorizationAttributes) Reset()         { *m = AuthorizationAttributes{} }
-func (m *AuthorizationAttributes) String() string { return proto.CompactTextString(m) }
-func (*AuthorizationAttributes) ProtoMessage()    {}
+func (m *Action) Reset()         { *m = Action{} }
+func (m *Action) String() string { return proto.CompactTextString(m) }
+func (*Action) ProtoMessage()    {}
 
 func (m *ClusterPolicy) Reset()         { *m = ClusterPolicy{} }
 func (m *ClusterPolicy) String() string { return proto.CompactTextString(m) }
@@ -120,6 +122,14 @@ func (*NamedRole) ProtoMessage()    {}
 func (m *NamedRoleBinding) Reset()         { *m = NamedRoleBinding{} }
 func (m *NamedRoleBinding) String() string { return proto.CompactTextString(m) }
 func (*NamedRoleBinding) ProtoMessage()    {}
+
+func (m *OptionalNames) Reset()         { *m = OptionalNames{} }
+func (m *OptionalNames) String() string { return proto.CompactTextString(m) }
+func (*OptionalNames) ProtoMessage()    {}
+
+func (m *OptionalScopes) Reset()         { *m = OptionalScopes{} }
+func (m *OptionalScopes) String() string { return proto.CompactTextString(m) }
+func (*OptionalScopes) ProtoMessage()    {}
 
 func (m *Policy) Reset()         { *m = Policy{} }
 func (m *Policy) String() string { return proto.CompactTextString(m) }
@@ -186,7 +196,7 @@ func (m *SubjectRulesReviewStatus) String() string { return proto.CompactTextStr
 func (*SubjectRulesReviewStatus) ProtoMessage()    {}
 
 func init() {
-	proto.RegisterType((*AuthorizationAttributes)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.AuthorizationAttributes")
+	proto.RegisterType((*Action)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.Action")
 	proto.RegisterType((*ClusterPolicy)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.ClusterPolicy")
 	proto.RegisterType((*ClusterPolicyBinding)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.ClusterPolicyBinding")
 	proto.RegisterType((*ClusterPolicyBindingList)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.ClusterPolicyBindingList")
@@ -202,6 +212,8 @@ func init() {
 	proto.RegisterType((*NamedClusterRoleBinding)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.NamedClusterRoleBinding")
 	proto.RegisterType((*NamedRole)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.NamedRole")
 	proto.RegisterType((*NamedRoleBinding)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.NamedRoleBinding")
+	proto.RegisterType((*OptionalNames)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.OptionalNames")
+	proto.RegisterType((*OptionalScopes)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.OptionalScopes")
 	proto.RegisterType((*Policy)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.Policy")
 	proto.RegisterType((*PolicyBinding)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.PolicyBinding")
 	proto.RegisterType((*PolicyBindingList)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.PolicyBindingList")
@@ -219,7 +231,7 @@ func init() {
 	proto.RegisterType((*SubjectAccessReviewResponse)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.SubjectAccessReviewResponse")
 	proto.RegisterType((*SubjectRulesReviewStatus)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.SubjectRulesReviewStatus")
 }
-func (m *AuthorizationAttributes) Marshal() (data []byte, err error) {
+func (m *Action) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
 	n, err := m.MarshalTo(data)
@@ -229,7 +241,7 @@ func (m *AuthorizationAttributes) Marshal() (data []byte, err error) {
 	return data[:n], nil
 }
 
-func (m *AuthorizationAttributes) MarshalTo(data []byte) (int, error) {
+func (m *Action) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -506,35 +518,25 @@ func (m *ClusterRoleBinding) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n10
-	if len(m.UserNames) > 0 {
-		for _, s := range m.UserNames {
-			data[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.UserNames != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.UserNames.Size()))
+		n11, err := m.UserNames.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n11
 	}
-	if len(m.GroupNames) > 0 {
-		for _, s := range m.GroupNames {
-			data[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.GroupNames != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.GroupNames.Size()))
+		n12, err := m.GroupNames.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n12
 	}
 	if len(m.Subjects) > 0 {
 		for _, msg := range m.Subjects {
@@ -551,11 +553,11 @@ func (m *ClusterRoleBinding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.RoleRef.Size()))
-	n11, err := m.RoleRef.MarshalTo(data[i:])
+	n13, err := m.RoleRef.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n11
+	i += n13
 	return i, nil
 }
 
@@ -577,11 +579,11 @@ func (m *ClusterRoleBindingList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n12, err := m.ListMeta.MarshalTo(data[i:])
+	n14, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n12
+	i += n14
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -615,11 +617,11 @@ func (m *ClusterRoleList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n13, err := m.ListMeta.MarshalTo(data[i:])
+	n15, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n13
+	i += n15
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -670,12 +672,12 @@ func (m *LocalResourceAccessReview) MarshalTo(data []byte) (int, error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.AuthorizationAttributes.Size()))
-	n14, err := m.AuthorizationAttributes.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Action.Size()))
+	n16, err := m.Action.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n14
+	i += n16
 	return i, nil
 }
 
@@ -696,12 +698,12 @@ func (m *LocalSubjectAccessReview) MarshalTo(data []byte) (int, error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.AuthorizationAttributes.Size()))
-	n15, err := m.AuthorizationAttributes.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Action.Size()))
+	n17, err := m.Action.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n15
+	i += n17
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.User)))
@@ -721,20 +723,15 @@ func (m *LocalSubjectAccessReview) MarshalTo(data []byte) (int, error) {
 			i += copy(data[i:], s)
 		}
 	}
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			data[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.Scopes != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Scopes.Size()))
+		n18, err := m.Scopes.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n18
 	}
 	return i, nil
 }
@@ -761,11 +758,11 @@ func (m *NamedClusterRole) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Role.Size()))
-	n16, err := m.Role.MarshalTo(data[i:])
+	n19, err := m.Role.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n16
+	i += n19
 	return i, nil
 }
 
@@ -791,11 +788,11 @@ func (m *NamedClusterRoleBinding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.RoleBinding.Size()))
-	n17, err := m.RoleBinding.MarshalTo(data[i:])
+	n20, err := m.RoleBinding.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n17
+	i += n20
 	return i, nil
 }
 
@@ -821,11 +818,11 @@ func (m *NamedRole) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Role.Size()))
-	n18, err := m.Role.MarshalTo(data[i:])
+	n21, err := m.Role.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n18
+	i += n21
 	return i, nil
 }
 
@@ -851,11 +848,77 @@ func (m *NamedRoleBinding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.RoleBinding.Size()))
-	n19, err := m.RoleBinding.MarshalTo(data[i:])
+	n22, err := m.RoleBinding.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n19
+	i += n22
+	return i, nil
+}
+
+func (m OptionalNames) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m OptionalNames) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, s := range m {
+			data[i] = 0xa
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+	return i, nil
+}
+
+func (m OptionalScopes) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m OptionalScopes) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, s := range m {
+			data[i] = 0xa
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
 	return i, nil
 }
 
@@ -877,19 +940,19 @@ func (m *Policy) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n20, err := m.ObjectMeta.MarshalTo(data[i:])
+	n23, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n20
+	i += n23
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LastModified.Size()))
-	n21, err := m.LastModified.MarshalTo(data[i:])
+	n24, err := m.LastModified.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n21
+	i += n24
 	if len(m.Roles) > 0 {
 		for _, msg := range m.Roles {
 			data[i] = 0x1a
@@ -923,27 +986,27 @@ func (m *PolicyBinding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n22, err := m.ObjectMeta.MarshalTo(data[i:])
+	n25, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n22
+	i += n25
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LastModified.Size()))
-	n23, err := m.LastModified.MarshalTo(data[i:])
+	n26, err := m.LastModified.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n23
+	i += n26
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.PolicyRef.Size()))
-	n24, err := m.PolicyRef.MarshalTo(data[i:])
+	n27, err := m.PolicyRef.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n24
+	i += n27
 	if len(m.RoleBindings) > 0 {
 		for _, msg := range m.RoleBindings {
 			data[i] = 0x22
@@ -977,11 +1040,11 @@ func (m *PolicyBindingList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n25, err := m.ListMeta.MarshalTo(data[i:])
+	n28, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n25
+	i += n28
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1015,11 +1078,11 @@ func (m *PolicyList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n26, err := m.ListMeta.MarshalTo(data[i:])
+	n29, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n26
+	i += n29
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1068,11 +1131,11 @@ func (m *PolicyRule) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.AttributeRestrictions.Size()))
-	n27, err := m.AttributeRestrictions.MarshalTo(data[i:])
+	n30, err := m.AttributeRestrictions.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n27
+	i += n30
 	if len(m.APIGroups) > 0 {
 		for _, s := range m.APIGroups {
 			data[i] = 0x1a
@@ -1153,12 +1216,12 @@ func (m *ResourceAccessReview) MarshalTo(data []byte) (int, error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.AuthorizationAttributes.Size()))
-	n28, err := m.AuthorizationAttributes.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Action.Size()))
+	n31, err := m.Action.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n28
+	i += n31
 	return i, nil
 }
 
@@ -1236,11 +1299,11 @@ func (m *Role) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n29, err := m.ObjectMeta.MarshalTo(data[i:])
+	n32, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n29
+	i += n32
 	if len(m.Rules) > 0 {
 		for _, msg := range m.Rules {
 			data[i] = 0x12
@@ -1274,40 +1337,30 @@ func (m *RoleBinding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n30, err := m.ObjectMeta.MarshalTo(data[i:])
+	n33, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n30
-	if len(m.UserNames) > 0 {
-		for _, s := range m.UserNames {
-			data[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	i += n33
+	if m.UserNames != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.UserNames.Size()))
+		n34, err := m.UserNames.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n34
 	}
-	if len(m.GroupNames) > 0 {
-		for _, s := range m.GroupNames {
-			data[i] = 0x1a
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.GroupNames != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.GroupNames.Size()))
+		n35, err := m.GroupNames.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n35
 	}
 	if len(m.Subjects) > 0 {
 		for _, msg := range m.Subjects {
@@ -1324,11 +1377,11 @@ func (m *RoleBinding) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.RoleRef.Size()))
-	n31, err := m.RoleRef.MarshalTo(data[i:])
+	n36, err := m.RoleRef.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n31
+	i += n36
 	return i, nil
 }
 
@@ -1350,11 +1403,11 @@ func (m *RoleBindingList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n32, err := m.ListMeta.MarshalTo(data[i:])
+	n37, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n32
+	i += n37
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1388,11 +1441,11 @@ func (m *RoleList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n33, err := m.ListMeta.MarshalTo(data[i:])
+	n38, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n33
+	i += n38
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1426,19 +1479,19 @@ func (m *SelfSubjectRulesReview) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
-	n34, err := m.Spec.MarshalTo(data[i:])
+	n39, err := m.Spec.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n34
+	i += n39
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n35, err := m.Status.MarshalTo(data[i:])
+	n40, err := m.Status.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n35
+	i += n40
 	return i, nil
 }
 
@@ -1457,20 +1510,15 @@ func (m *SelfSubjectRulesReviewSpec) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			data[i] = 0xa
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.Scopes != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Scopes.Size()))
+		n41, err := m.Scopes.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n41
 	}
 	return i, nil
 }
@@ -1492,12 +1540,12 @@ func (m *SubjectAccessReview) MarshalTo(data []byte) (int, error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.AuthorizationAttributes.Size()))
-	n36, err := m.AuthorizationAttributes.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Action.Size()))
+	n42, err := m.Action.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n36
+	i += n42
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.User)))
@@ -1517,20 +1565,15 @@ func (m *SubjectAccessReview) MarshalTo(data []byte) (int, error) {
 			i += copy(data[i:], s)
 		}
 	}
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			data[i] = 0x22
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.Scopes != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Scopes.Size()))
+		n43, err := m.Scopes.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n43
 	}
 	return i, nil
 }
@@ -1630,7 +1673,7 @@ func encodeVarintGenerated(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	return offset + 1
 }
-func (m *AuthorizationAttributes) Size() (n int) {
+func (m *Action) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Namespace)
@@ -1731,17 +1774,13 @@ func (m *ClusterRoleBinding) Size() (n int) {
 	_ = l
 	l = m.ObjectMeta.Size()
 	n += 1 + l + sovGenerated(uint64(l))
-	if len(m.UserNames) > 0 {
-		for _, s := range m.UserNames {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.UserNames != nil {
+		l = m.UserNames.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
-	if len(m.GroupNames) > 0 {
-		for _, s := range m.GroupNames {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.GroupNames != nil {
+		l = m.GroupNames.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	if len(m.Subjects) > 0 {
 		for _, e := range m.Subjects {
@@ -1791,7 +1830,7 @@ func (m *IsPersonalSubjectAccessReview) Size() (n int) {
 func (m *LocalResourceAccessReview) Size() (n int) {
 	var l int
 	_ = l
-	l = m.AuthorizationAttributes.Size()
+	l = m.Action.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -1799,7 +1838,7 @@ func (m *LocalResourceAccessReview) Size() (n int) {
 func (m *LocalSubjectAccessReview) Size() (n int) {
 	var l int
 	_ = l
-	l = m.AuthorizationAttributes.Size()
+	l = m.Action.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.User)
 	n += 1 + l + sovGenerated(uint64(l))
@@ -1809,11 +1848,9 @@ func (m *LocalSubjectAccessReview) Size() (n int) {
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.Scopes != nil {
+		l = m.Scopes.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	return n
 }
@@ -1855,6 +1892,30 @@ func (m *NamedRoleBinding) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	l = m.RoleBinding.Size()
 	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m OptionalNames) Size() (n int) {
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, s := range m {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m OptionalScopes) Size() (n int) {
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, s := range m {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -1961,7 +2022,7 @@ func (m *PolicyRule) Size() (n int) {
 func (m *ResourceAccessReview) Size() (n int) {
 	var l int
 	_ = l
-	l = m.AuthorizationAttributes.Size()
+	l = m.Action.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -2007,17 +2068,13 @@ func (m *RoleBinding) Size() (n int) {
 	_ = l
 	l = m.ObjectMeta.Size()
 	n += 1 + l + sovGenerated(uint64(l))
-	if len(m.UserNames) > 0 {
-		for _, s := range m.UserNames {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.UserNames != nil {
+		l = m.UserNames.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
-	if len(m.GroupNames) > 0 {
-		for _, s := range m.GroupNames {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.GroupNames != nil {
+		l = m.GroupNames.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	if len(m.Subjects) > 0 {
 		for _, e := range m.Subjects {
@@ -2071,11 +2128,9 @@ func (m *SelfSubjectRulesReview) Size() (n int) {
 func (m *SelfSubjectRulesReviewSpec) Size() (n int) {
 	var l int
 	_ = l
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.Scopes != nil {
+		l = m.Scopes.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	return n
 }
@@ -2083,7 +2138,7 @@ func (m *SelfSubjectRulesReviewSpec) Size() (n int) {
 func (m *SubjectAccessReview) Size() (n int) {
 	var l int
 	_ = l
-	l = m.AuthorizationAttributes.Size()
+	l = m.Action.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.User)
 	n += 1 + l + sovGenerated(uint64(l))
@@ -2093,11 +2148,9 @@ func (m *SubjectAccessReview) Size() (n int) {
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
-	if len(m.Scopes) > 0 {
-		for _, s := range m.Scopes {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.Scopes != nil {
+		l = m.Scopes.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	return n
 }
@@ -2140,7 +2193,7 @@ func sovGenerated(x uint64) (n int) {
 func sozGenerated(x uint64) (n int) {
 	return sovGenerated(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *AuthorizationAttributes) Unmarshal(data []byte) error {
+func (m *Action) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2163,10 +2216,10 @@ func (m *AuthorizationAttributes) Unmarshal(data []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: AuthorizationAttributes: wiretype end group for non-group")
+			return fmt.Errorf("proto: Action: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AuthorizationAttributes: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: Action: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3102,7 +3155,7 @@ func (m *ClusterRoleBinding) Unmarshal(data []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserNames", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -3112,26 +3165,30 @@ func (m *ClusterRoleBinding) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserNames = append(m.UserNames, string(data[iNdEx:postIndex]))
+			if m.UserNames == nil {
+				m.UserNames = OptionalNames{}
+			}
+			if err := m.UserNames.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GroupNames", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -3141,20 +3198,24 @@ func (m *ClusterRoleBinding) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.GroupNames = append(m.GroupNames, string(data[iNdEx:postIndex]))
+			if m.GroupNames == nil {
+				m.GroupNames = OptionalNames{}
+			}
+			if err := m.GroupNames.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -3541,7 +3602,7 @@ func (m *LocalResourceAccessReview) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AuthorizationAttributes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3565,7 +3626,7 @@ func (m *LocalResourceAccessReview) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.AuthorizationAttributes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Action.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3621,7 +3682,7 @@ func (m *LocalSubjectAccessReview) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AuthorizationAttributes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3645,7 +3706,7 @@ func (m *LocalSubjectAccessReview) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.AuthorizationAttributes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Action.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3711,7 +3772,7 @@ func (m *LocalSubjectAccessReview) Unmarshal(data []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Scopes", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -3721,20 +3782,24 @@ func (m *LocalSubjectAccessReview) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Scopes = append(m.Scopes, string(data[iNdEx:postIndex]))
+			if m.Scopes == nil {
+				m.Scopes = OptionalScopes{}
+			}
+			if err := m.Scopes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4171,6 +4236,164 @@ func (m *NamedRoleBinding) Unmarshal(data []byte) error {
 			if err := m.RoleBinding.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *OptionalNames) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OptionalNames: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OptionalNames: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			*m = append(*m, string(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *OptionalScopes) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OptionalScopes: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OptionalScopes: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			*m = append(*m, string(data[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4983,7 +5206,7 @@ func (m *ResourceAccessReview) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AuthorizationAttributes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -5007,7 +5230,7 @@ func (m *ResourceAccessReview) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.AuthorizationAttributes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Action.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5372,7 +5595,7 @@ func (m *RoleBinding) Unmarshal(data []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UserNames", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -5382,26 +5605,30 @@ func (m *RoleBinding) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserNames = append(m.UserNames, string(data[iNdEx:postIndex]))
+			if m.UserNames == nil {
+				m.UserNames = OptionalNames{}
+			}
+			if err := m.UserNames.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GroupNames", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -5411,20 +5638,24 @@ func (m *RoleBinding) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.GroupNames = append(m.GroupNames, string(data[iNdEx:postIndex]))
+			if m.GroupNames == nil {
+				m.GroupNames = OptionalNames{}
+			}
+			if err := m.GroupNames.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -5873,7 +6104,7 @@ func (m *SelfSubjectRulesReviewSpec) Unmarshal(data []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Scopes", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -5883,20 +6114,24 @@ func (m *SelfSubjectRulesReviewSpec) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Scopes = append(m.Scopes, string(data[iNdEx:postIndex]))
+			if m.Scopes == nil {
+				m.Scopes = OptionalScopes{}
+			}
+			if err := m.Scopes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -5950,7 +6185,7 @@ func (m *SubjectAccessReview) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AuthorizationAttributes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -5974,7 +6209,7 @@ func (m *SubjectAccessReview) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.AuthorizationAttributes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Action.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6040,7 +6275,7 @@ func (m *SubjectAccessReview) Unmarshal(data []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Scopes", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -6050,20 +6285,24 @@ func (m *SubjectAccessReview) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Scopes = append(m.Scopes, string(data[iNdEx:postIndex]))
+			if m.Scopes == nil {
+				m.Scopes = OptionalScopes{}
+			}
+			if err := m.Scopes.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
