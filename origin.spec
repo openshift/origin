@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 760c9a0aa30d9ccd0a24a311508f9882d26b3e2e
+%global commit 21da9c99b05decb5ddf73571313aef718d2311a8
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.8+760c9a0 -X github.com/openshift/origin/pkg/version.commitFromGit=760c9a0 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-22T14:23:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-22T14:23:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.9+21da9c9 -X github.com/openshift/origin/pkg/version.commitFromGit=21da9c9 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-25T14:17:11Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-25T14:17:11Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.9
+Version:        3.3.0.10
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,43 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Jul 25 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.10
+- Skip the '-' character in scratch builds for Docker 1.9.1
+  (ccoleman@redhat.com)
+- Added REST storage for imagesignatures resource (miminar@redhat.com)
+- List enabled/disabled features in readme. (ccoleman@redhat.com)
+- Match upstream exec API refactoring (agoldste@redhat.com)
+- UPSTREAM: 29237: Fix Windows terminal handling (agoldste@redhat.com)
+- Example description incorrect (li.guangxu@zte.com.cn)
+- add oc annotate --single-resource flag tests (jvallejo@redhat.com)
+- UPSTREAM: 29319: update rsrc amnt check to allow use of --resource-version
+  flag with single rsrc (jvallejo@redhat.com)
+- deploy: validate minReadySeconds against default deployment timeout
+  (mkargaki@redhat.com)
+- make node auth use tokenreview API (deads@redhat.com)
+- UPSTREAM: 28788: add tokenreviews endpoint to implement webhook
+  (deads@redhat.com)
+- UPSTREAM: 28852: authorize based on user.Info (deads@redhat.com)
+- deploy: stop defaulting to ImageStreamTag unconditionally
+  (mkargaki@redhat.com)
+- deploy: enqueue configs on pod events (mkargaki@redhat.com)
+- validate imagestreamtag names in build definitions (bparees@redhat.com)
+- dump etcd on test integration failures (deads@redhat.com)
+- oc: enable following deployment logs in deploy (mkargaki@redhat.com)
+- deploy: update the log registry to poll on notfound deployments
+  (mkargaki@redhat.com)
+- UPSTREAM: 28964: Reexport term.IsTerminal (agoldste@redhat.com)
+- UPSTREAM: <carry>: support pointing oc portforward to old openshift server
+  (agoldste@redhat.com)
+- UPSTREAM: <carry>: support pointing oc exec to old openshift server
+  (agoldste@redhat.com)
+- UPSTREAM: 25273: Support terminal resizing for exec/attach/run
+  (agoldste@redhat.com)
+- UPSTREAM: <carry>: REVERT support pointing oc exec to old openshift server
+  (agoldste@redhat.com)
+- Implement an `oc extract` command to make it easy to use secrets
+  (ccoleman@redhat.com)
+
 * Fri Jul 22 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.9
 - Clean up Origin and OSE differences (tdawson@redhat.com)
 - Abort deployment when the from version is higher than to version
