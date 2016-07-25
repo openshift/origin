@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/graph"
@@ -307,23 +306,9 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(g, image)
 
-		manifest := imageapi.DockerImageManifest{}
-		if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-			utilruntime.HandleError(fmt.Errorf("unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err))
-			continue
-		}
-
-		// schema1 layers
-		for _, layer := range manifest.FSLayers {
-			glog.V(4).Infof("Adding image layer v1 %q to graph", layer.DockerBlobSum)
-			layerNode := imagegraph.EnsureImageLayerNode(g, layer.DockerBlobSum)
-			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
-		}
-
-		// schema2 layers
-		for _, layer := range manifest.Layers {
-			glog.V(4).Infof("Adding image layer v2 %q to graph", layer.Digest)
-			layerNode := imagegraph.EnsureImageLayerNode(g, layer.Digest)
+		for _, layer := range image.DockerImageLayers {
+			glog.V(4).Infof("Adding image layer %q to graph", layer.Name)
+			layerNode := imagegraph.EnsureImageLayerNode(g, layer.Name)
 			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
 		}
 	}
@@ -365,7 +350,8 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, li
 			for i := range history.Items {
 				n := imagegraph.FindImage(g, history.Items[i].Image)
 				if n == nil {
-					glog.V(2).Infof("Unable to find image %q in graph (from tag=%q, revision=%d, dockerImageReference=%s)", history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
+					glog.V(2).Infof("Unable to find image %q in graph (from tag=%q, revision=%d, dockerImageReference=%s) - skipping",
+						history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
 					continue
 				}
 				imageNode := n.(*imagegraph.ImageNode)
@@ -482,7 +468,7 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
 		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("unable to parse DockerImageReference %q: %v", container.Image, err))
+			glog.V(2).Infof("Unable to parse DockerImageReference %q: %v - skipping", container.Image, err)
 			continue
 		}
 
@@ -493,7 +479,7 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 
 		imageNode := imagegraph.FindImage(g, ref.ID)
 		if imageNode == nil {
-			glog.Infof("Unable to find image %q in the graph", ref.ID)
+			glog.V(2).Infof("Unable to find image %q in the graph - skipping", ref.ID)
 			continue
 		}
 
@@ -850,12 +836,10 @@ func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
 // given ImageLayerNode.
 func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) []*imagegraph.ImageStreamNode {
 	ret := []*imagegraph.ImageStreamNode{}
-
 	for _, predecessor := range g.To(layerNode) {
 		if g.Kind(predecessor) != imagegraph.ImageStreamNodeKind {
 			continue
 		}
-
 		ret = append(ret, predecessor.(*imagegraph.ImageStreamNode))
 	}
 
