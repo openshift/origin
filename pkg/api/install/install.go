@@ -49,6 +49,8 @@ import (
 	routev1 "github.com/openshift/origin/pkg/route/api/v1"
 	templatev1 "github.com/openshift/origin/pkg/template/api/v1"
 	userv1 "github.com/openshift/origin/pkg/user/api/v1"
+
+	"github.com/openshift/origin/pkg/api/upstreamconversions"
 )
 
 func init() {
@@ -518,4 +520,6 @@ func init() {
 		}
 		return false, nil
 	})
+
+	upstreamconversions.AddToScheme(kapi.Scheme)
 }
