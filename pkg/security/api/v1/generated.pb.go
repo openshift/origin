@@ -138,8 +138,8 @@ func (m *PodSecurityPolicyReviewSpec) MarshalTo(data []byte) (int, error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.PodSpec.Size()))
-	n3, err := m.PodSpec.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+	n3, err := m.Template.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -243,8 +243,8 @@ func (m *PodSecurityPolicySelfSubjectReviewSpec) MarshalTo(data []byte) (int, er
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.PodSpec.Size()))
-	n6, err := m.PodSpec.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+	n6, err := m.Template.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -303,8 +303,8 @@ func (m *PodSecurityPolicySubjectReviewSpec) MarshalTo(data []byte) (int, error)
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.PodSpec.Size()))
-	n9, err := m.PodSpec.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+	n9, err := m.Template.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -362,8 +362,8 @@ func (m *PodSecurityPolicySubjectReviewStatus) MarshalTo(data []byte) (int, erro
 	i += copy(data[i:], m.Reason)
 	data[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.PodSpec.Size()))
-	n11, err := m.PodSpec.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+	n11, err := m.Template.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -441,7 +441,7 @@ func (m *PodSecurityPolicyReview) Size() (n int) {
 func (m *PodSecurityPolicyReviewSpec) Size() (n int) {
 	var l int
 	_ = l
-	l = m.PodSpec.Size()
+	l = m.Template.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	if len(m.ServiceAccountNames) > 0 {
 		for _, s := range m.ServiceAccountNames {
@@ -477,7 +477,7 @@ func (m *PodSecurityPolicySelfSubjectReview) Size() (n int) {
 func (m *PodSecurityPolicySelfSubjectReviewSpec) Size() (n int) {
 	var l int
 	_ = l
-	l = m.PodSpec.Size()
+	l = m.Template.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -495,7 +495,7 @@ func (m *PodSecurityPolicySubjectReview) Size() (n int) {
 func (m *PodSecurityPolicySubjectReviewSpec) Size() (n int) {
 	var l int
 	_ = l
-	l = m.PodSpec.Size()
+	l = m.Template.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.User)
 	n += 1 + l + sovGenerated(uint64(l))
@@ -517,7 +517,7 @@ func (m *PodSecurityPolicySubjectReviewStatus) Size() (n int) {
 	}
 	l = len(m.Reason)
 	n += 1 + l + sovGenerated(uint64(l))
-	l = m.PodSpec.Size()
+	l = m.Template.Size()
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -686,7 +686,7 @@ func (m *PodSecurityPolicyReviewSpec) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PodSpec", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -710,7 +710,7 @@ func (m *PodSecurityPolicyReviewSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.PodSpec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -986,7 +986,7 @@ func (m *PodSecurityPolicySelfSubjectReviewSpec) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PodSpec", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1010,7 +1010,7 @@ func (m *PodSecurityPolicySelfSubjectReviewSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.PodSpec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1176,7 +1176,7 @@ func (m *PodSecurityPolicySubjectReviewSpec) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PodSpec", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1200,7 +1200,7 @@ func (m *PodSecurityPolicySubjectReviewSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.PodSpec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1376,7 +1376,7 @@ func (m *PodSecurityPolicySubjectReviewStatus) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PodSpec", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -1400,7 +1400,7 @@ func (m *PodSecurityPolicySubjectReviewStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.PodSpec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
