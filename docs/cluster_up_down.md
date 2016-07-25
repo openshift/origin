@@ -225,3 +225,8 @@ oc cluster up --image=myregistry.example.com/ose/origin
 ```
 
 Both --version and --image may be combined to specify the image name prefix and tag for the images to use.
+
+The --force-pull flag may be used to force every image used by the OpenShift cluster to be pulled before use. If used with
+the --version=latest flag, the most recent images from the registry will be used. Using this flag will
+incur a performance cost, given that the docker registry needs to be contacted for every container that is created in the
+cluster.
