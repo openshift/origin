@@ -97,6 +97,10 @@ func addKnownTypes(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion, &extensions.ReplicaSet{})
 	scheme.AddKnownTypes(SchemeGroupVersion, &extensions.ReplicaSetList{})
 
+	// Add deployments
+	scheme.AddKnownTypes(SchemeGroupVersion, &extensions.Deployment{})
+	scheme.AddKnownTypes(SchemeGroupVersion, &extensions.DeploymentList{})
+
 	// Add the watch version that applies
 	versionedwatch.AddToGroupVersion(scheme, SchemeGroupVersion)
 }
