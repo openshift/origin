@@ -542,7 +542,9 @@ func TestHandlePod(t *testing.T) {
 		if build.Status.Phase != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status.Phase)
 		}
-
+		if tc.inStatus != buildapi.BuildPhaseCancelled && tc.inStatus != buildapi.BuildPhaseComplete && !hasBuildPodNameAnnotation(build) {
+			t.Errorf("(%d) Build does not have pod name annotation.", i)
+		}
 		if tc.startTimestamp == nil && build.Status.StartTimestamp != nil {
 			t.Errorf("(%d) Expected nil start timestamp, got %v!", i, build.Status.StartTimestamp)
 		}
