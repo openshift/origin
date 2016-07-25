@@ -74,7 +74,7 @@ type DefaultStorageFactory struct {
 	APIResourceConfigSource APIResourceConfigSource
 
 	// newStorageCodecFn exists to be overwritten for unit testing.
-	newStorageCodecFn func(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, config storagebackend.Config) (codec runtime.Codec, err error)
+	newStorageCodecFn func(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, cohabitingStorageGroups []string, storageEncodingResource, memoryEncodingResource unversioned.GroupResource, config storagebackend.Config) (codec runtime.Codec, err error)
 
 	// newStorageFn exists to be overwritten for unit testing.
 	newStorageFn func(config storagebackend.Config, codec runtime.Codec) (etcdStorage storage.Interface, err error)
@@ -244,7 +244,14 @@ func (s *DefaultStorageFactory) New(groupResource unversioned.GroupResource) (st
 		return nil, err
 	}
 
-	codec, err := s.newStorageCodecFn(etcdMediaType, etcdSerializer, storageEncodingVersion, internalVersion, config)
+	cohabitingStorageGroups := []string{}
+	for _, potentialStorageResource := range s.Overrides[groupResource].cohabitatingResources {
+		if s.APIResourceConfigSource.AnyVersionOfResourceEnabled(potentialStorageResource) {
+			cohabitingStorageGroups = append(cohabitingStorageGroups, potentialStorageResource.Group)
+		}
+	}
+
+	codec, err := s.newStorageCodecFn(etcdMediaType, etcdSerializer, storageEncodingVersion, internalVersion, cohabitingStorageGroups, storageEncodingResource, groupResource, config)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +278,11 @@ func (s *DefaultStorageFactory) Backends() []string {
 
 // NewStorageCodec assembles a storage codec for the provided storage media type, the provided serializer, and the requested
 // storage and memory versions.
-func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, config storagebackend.Config) (runtime.Codec, error) {
+func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer,
+	storageVersion, memoryVersion unversioned.GroupVersion, cohabitingStorageGroups []string,
+	storageEncodingResource, memoryEncodingResource unversioned.GroupResource,
+	config storagebackend.Config) (runtime.Codec, error) {
+
 	mediaType, options, err := mime.ParseMediaType(storageMediaType)
 	if err != nil {
 		return nil, fmt.Errorf("%q is not a valid mime-type", storageMediaType)
@@ -290,9 +301,39 @@ func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer, stor
 		s = runtime.NewBase64Serializer(s)
 	}
 
+	var encoder runtime.Encoder
+	switch {
+	case storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationControllers"},
+		storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: "v1", Kind: "ReplicationController"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	case storageEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "replicasets"}:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "ReplicaSet"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	default:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupVersioner(storageVersion, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	}
+
+	decodeableGroupKinds := []unversioned.GroupKind{unversioned.GroupKind{Group: memoryVersion.Group}, unversioned.GroupKind{Group: storageVersion.Group}}
+	for _, group := range cohabitingStorageGroups {
+		decodeableGroupKinds = append(decodeableGroupKinds, unversioned.GroupKind{Group: group})
+	}
 	ds := recognizer.NewDecoder(s, ns.UniversalDeserializer())
-	encoder := ns.EncoderForVersion(s, runtime.NewMultiGroupVersioner(storageVersion, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
-	decoder := ns.DecoderToVersion(ds, runtime.NewMultiGroupVersioner(memoryVersion, unversioned.GroupKind{Group: memoryVersion.Group}, unversioned.GroupKind{Group: storageVersion.Group}))
+	var decoder runtime.Decoder
+	switch {
+	case memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationControllers"},
+		memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "ReplicationController"}, decodeableGroupKinds...))
+
+	case memoryEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "replicasets"}:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: runtime.APIVersionInternal, Kind: "ReplicaSet"}, decodeableGroupKinds...))
+
+	default:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupVersioner(memoryVersion, decodeableGroupKinds...))
+
+	}
+
 	return runtime.NewCodec(encoder, decoder), nil
 }
 
