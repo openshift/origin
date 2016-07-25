@@ -6,6 +6,7 @@ import (
 
 	// we have a strong dependency on kube objects for deployments and scale
 	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/authentication/install"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
@@ -281,6 +282,17 @@ func init() {
 			switch b := objB.(type) {
 			case *imagev1.Image:
 				return true, imagev1.Convert_api_Image_To_v1_Image(a, b, s)
+			}
+
+		case *imagev1.ImageSignature:
+			switch b := objB.(type) {
+			case *imageapi.ImageSignature:
+				return true, imagev1.Convert_v1_ImageSignature_To_api_ImageSignature(a, b, s)
+			}
+		case *imageapi.ImageSignature:
+			switch b := objB.(type) {
+			case *imagev1.ImageSignature:
+				return true, imagev1.Convert_api_ImageSignature_To_v1_ImageSignature(a, b, s)
 			}
 
 		case *imagev1.ImageStreamImport:

@@ -104,11 +104,13 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	options := &DebugOptions{
 		Timeout: 15 * time.Minute,
 		Attach: kcmd.AttachOptions{
-			In:    in,
-			Out:   out,
-			Err:   errout,
-			TTY:   true,
-			Stdin: true,
+			StreamOptions: kcmd.StreamOptions{
+				In:    in,
+				Out:   out,
+				Err:   errout,
+				TTY:   true,
+				Stdin: true,
+			},
 
 			Attach: &kcmd.DefaultRemoteAttach{},
 		},

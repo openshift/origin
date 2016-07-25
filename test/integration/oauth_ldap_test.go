@@ -80,6 +80,7 @@ func TestOAuthLDAP(t *testing.T) {
 	defer ldapServer.Stop()
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

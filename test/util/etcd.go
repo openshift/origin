@@ -7,6 +7,8 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	goruntime "runtime"
+	"strings"
 	"testing"
 
 	"github.com/coreos/pkg/capnslog"
@@ -84,10 +86,15 @@ func withEtcdKey(f func(string)) {
 	f(prefix)
 }
 
-func DumpEtcdOnFailure(t *testing.T, name string) {
+func DumpEtcdOnFailure(t *testing.T) {
 	if !t.Failed() {
 		return
 	}
+
+	pc := make([]uintptr, 10)
+	goruntime.Callers(2, pc)
+	f := goruntime.FuncForPC(pc[0])
+	name := f.Name()[strings.LastIndex(f.Name(), "Test"):]
 
 	client := NewEtcdClient()
 	etcdResponse, err := client.RawGet("/", false, true)

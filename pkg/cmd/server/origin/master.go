@@ -58,6 +58,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagesecret"
+	"github.com/openshift/origin/pkg/image/registry/imagesignature"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
@@ -467,6 +468,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
+	imageSignatureStorage := imagesignature.NewREST(c.PrivilegedLoopbackOpenShiftClient.Images())
 	imageStreamLimitVerifier := imageadmission.NewLimitVerifier(c.KubeClient())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
 	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, imageapi.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry, imageStreamLimitVerifier)
@@ -558,6 +560,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
+		"imagesignatures":      imageSignatureStorage,
 		"imageStreams/secrets": imageStreamSecretsStorage,
 		"imageStreams":         imageStreamStorage,
 		"imageStreams/status":  imageStreamStatusStorage,

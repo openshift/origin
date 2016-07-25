@@ -38,6 +38,19 @@ func (s *StoreToDeploymentConfigLister) GetConfigForController(rc *kapi.Replicat
 	return obj.(*deployapi.DeploymentConfig), nil
 }
 
+// GetConfigForPod returns the managing deployment config for the provided pod.
+func (s *StoreToDeploymentConfigLister) GetConfigForPod(pod *kapi.Pod) (*deployapi.DeploymentConfig, error) {
+	dcName := deployutil.DeploymentConfigNameFor(pod)
+	obj, exists, err := s.Indexer.GetByKey(pod.Namespace + "/" + dcName)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, kapierrors.NewNotFound(deployapi.Resource("deploymentconfig"), dcName)
+	}
+	return obj.(*deployapi.DeploymentConfig), nil
+}
+
 func (s *StoreToDeploymentConfigLister) GetConfigsForImageStream(stream *imageapi.ImageStream) ([]*deployapi.DeploymentConfig, error) {
 	items, err := s.Indexer.ByIndex(ImageStreamReferenceIndex, stream.Namespace+"/"+stream.Name)
 	if err != nil {

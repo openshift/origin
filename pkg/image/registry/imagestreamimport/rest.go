@@ -331,6 +331,7 @@ func (r *REST) importSuccessful(
 	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now unversioned.Time, importPolicy api.TagImportPolicy,
 	importedImages map[string]error, updatedImages map[string]*api.Image,
 ) (*api.Image, bool) {
+	Strategy.PrepareImageForCreate(image)
 
 	pullSpec, _ := api.MostAccuratePullSpec(image.DockerImageReference, image.Name, "")
 	tagEvent := api.TagEvent{

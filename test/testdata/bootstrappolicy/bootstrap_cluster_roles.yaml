@@ -180,6 +180,7 @@ items:
     attributeRestrictions: null
     resources:
     - images
+    - imagesignatures
     - imagestreamimages
     - imagestreams
     - imagestreams/status
@@ -285,6 +286,13 @@ items:
     - resourceaccessreviews
     - selfsubjectrulesreviews
     - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authentication.k8s.io
+    attributeRestrictions: null
+    resources:
+    - tokenreviews
     verbs:
     - create
   - apiGroups:
@@ -1501,6 +1509,28 @@ items:
   kind: ClusterRole
   metadata:
     creationTimestamp: null
+    name: system:image-signer
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - images
+    - imagestreams/layers
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagesignatures
+    verbs:
+    - create
+    - delete
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
     name: system:deployer
   rules:
   - apiGroups:
@@ -1728,6 +1758,13 @@ items:
     creationTimestamp: null
     name: system:node
   rules:
+  - apiGroups:
+    - authentication.k8s.io
+    attributeRestrictions: null
+    resources:
+    - tokenreviews
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null

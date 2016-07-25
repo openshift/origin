@@ -589,6 +589,7 @@ type fakeImageRegistry struct {
 	createImage func(ctx kapi.Context, image *api.Image) error
 	deleteImage func(ctx kapi.Context, id string) error
 	watchImages func(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
+	updateImage func(ctx kapi.Context, image *api.Image) (*api.Image, error)
 }
 
 func (f *fakeImageRegistry) ListImages(ctx kapi.Context, options *kapi.ListOptions) (*api.ImageList, error) {
@@ -605,6 +606,9 @@ func (f *fakeImageRegistry) DeleteImage(ctx kapi.Context, id string) error {
 }
 func (f *fakeImageRegistry) WatchImages(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
 	return f.watchImages(ctx, options)
+}
+func (f *fakeImageRegistry) UpdateImage(ctx kapi.Context, image *api.Image) (*api.Image, error) {
+	return f.updateImage(ctx, image)
 }
 
 type fakeImageStreamRegistry struct {

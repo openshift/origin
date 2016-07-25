@@ -61,6 +61,10 @@ If no options are given, shows information about the latest deployment.
     Enables all image triggers for the deployment config.
 
 .PP
+\fB\-\-follow\fP=false
+    Follow the logs of a deployment
+
+.PP
 \fB\-\-latest\fP=false
     Start a new deployment now.
 
@@ -145,6 +149,9 @@ If no options are given, shows information about the latest deployment.
 
   # Start a new deployment based on the 'database'
   openshift cli deploy database \-\-latest
+
+  # Start a new deployment and follow its log
+  openshift cli deploy database \-\-latest \-\-follow
 
   # Retry the latest failed deployment based on 'frontend'
   # The deployer pod and any hook pods are deleted for the latest failed deployment

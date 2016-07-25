@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -1002,4 +1003,56 @@ func SetContainerImageEntrypointAnnotation(annotations map[string]string, contai
 
 func LabelForStream(stream *ImageStream) string {
 	return fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+}
+
+// JoinImageSignatureName joins image name and custom signature name into one string with @ separator.
+func JoinImageSignatureName(imageName, signatureName string) (string, error) {
+	if len(imageName) == 0 {
+		return "", fmt.Errorf("imageName may not be empty")
+	}
+	if len(signatureName) == 0 {
+		return "", fmt.Errorf("signatureName may not be empty")
+	}
+	if strings.Count(imageName, "@") > 0 || strings.Count(signatureName, "@") > 0 {
+		return "", fmt.Errorf("neither imageName nor signatureName can contain '@'")
+	}
+	return fmt.Sprintf("%s@%s", imageName, signatureName), nil
+}
+
+// SplitImageSignatureName splits given signature name into image name and signature name.
+func SplitImageSignatureName(imageSignatureName string) (imageName, signatureName string, err error) {
+	segments := strings.Split(imageSignatureName, "@")
+	switch len(segments) {
+	case 2:
+		signatureName = segments[1]
+		imageName = segments[0]
+		if len(imageName) == 0 || len(signatureName) == 0 {
+			err = fmt.Errorf("image signature name %q must have an image name and signature name", imageSignatureName)
+		}
+	default:
+		err = fmt.Errorf("expected exactly one @ in the image signature name %q", imageSignatureName)
+	}
+	return
+}
+
+// IndexOfImageSignatureByName returns an index of signature identified by name in the image if present. It
+// returns -1 otherwise.
+func IndexOfImageSignatureByName(signatures []ImageSignature, name string) int {
+	for i := range signatures {
+		if signatures[i].Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
+// IndexOfImageSignature returns index of signature identified by type and blob in the image if present. It
+// returns -1 otherwise.
+func IndexOfImageSignature(signatures []ImageSignature, sType string, sContent []byte) int {
+	for i := range signatures {
+		if signatures[i].Type == sType && bytes.Equal(signatures[i].Content, sContent) {
+			return i
+		}
+	}
+	return -1
 }

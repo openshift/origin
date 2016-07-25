@@ -46,6 +46,7 @@ func testPodDuration(t *testing.T, name string, kclient kclient.Interface, pod *
 }
 
 func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: &secs,
@@ -58,6 +59,7 @@ func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
 }
 
 func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: &secs,

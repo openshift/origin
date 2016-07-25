@@ -502,17 +502,25 @@ func (m *ImageSignature) MarshalTo(data []byte) (int, error) {
 	_ = l
 	data[i] = 0xa
 	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+	n9, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n9
+	data[i] = 0x12
+	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Type)))
 	i += copy(data[i:], m.Type)
 	if m.Content != nil {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(len(m.Content)))
 		i += copy(data[i:], m.Content)
 	}
 	if len(m.Conditions) > 0 {
 		for _, msg := range m.Conditions {
-			data[i] = 0x1a
+			data[i] = 0x22
 			i++
 			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(data[i:])
@@ -522,13 +530,13 @@ func (m *ImageSignature) MarshalTo(data []byte) (int, error) {
 			i += n
 		}
 	}
-	data[i] = 0x22
+	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.ImageIdentity)))
 	i += copy(data[i:], m.ImageIdentity)
 	if len(m.SignedClaims) > 0 {
 		for k := range m.SignedClaims {
-			data[i] = 0x2a
+			data[i] = 0x32
 			i++
 			v := m.SignedClaims[k]
 			mapSize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
@@ -544,34 +552,34 @@ func (m *ImageSignature) MarshalTo(data []byte) (int, error) {
 		}
 	}
 	if m.Created != nil {
-		data[i] = 0x32
-		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Created.Size()))
-		n9, err := m.Created.MarshalTo(data[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n9
-	}
-	if m.IssuedBy != nil {
 		data[i] = 0x3a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.IssuedBy.Size()))
-		n10, err := m.IssuedBy.MarshalTo(data[i:])
+		i = encodeVarintGenerated(data, i, uint64(m.Created.Size()))
+		n10, err := m.Created.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n10
 	}
-	if m.IssuedTo != nil {
+	if m.IssuedBy != nil {
 		data[i] = 0x42
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.IssuedTo.Size()))
-		n11, err := m.IssuedTo.MarshalTo(data[i:])
+		i = encodeVarintGenerated(data, i, uint64(m.IssuedBy.Size()))
+		n11, err := m.IssuedBy.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n11
+	}
+	if m.IssuedTo != nil {
+		data[i] = 0x4a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.IssuedTo.Size()))
+		n12, err := m.IssuedTo.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n12
 	}
 	return i, nil
 }
@@ -594,27 +602,27 @@ func (m *ImageStream) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n12, err := m.ObjectMeta.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n12
-	data[i] = 0x12
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
-	n13, err := m.Spec.MarshalTo(data[i:])
+	n13, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n13
-	data[i] = 0x1a
+	data[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n14, err := m.Status.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n14, err := m.Spec.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n14
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n15, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n15
 	return i, nil
 }
 
@@ -636,19 +644,19 @@ func (m *ImageStreamImage) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n15, err := m.ObjectMeta.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n15
-	data[i] = 0x12
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-	n16, err := m.Image.MarshalTo(data[i:])
+	n16, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n16
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
+	n17, err := m.Image.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n17
 	return i, nil
 }
 
@@ -670,27 +678,27 @@ func (m *ImageStreamImport) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n17, err := m.ObjectMeta.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n17
-	data[i] = 0x12
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
-	n18, err := m.Spec.MarshalTo(data[i:])
+	n18, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n18
-	data[i] = 0x1a
+	data[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n19, err := m.Status.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n19, err := m.Spec.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n19
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n20, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n20
 	return i, nil
 }
 
@@ -721,11 +729,11 @@ func (m *ImageStreamImportSpec) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Repository.Size()))
-		n20, err := m.Repository.MarshalTo(data[i:])
+		n21, err := m.Repository.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n20
+		i += n21
 	}
 	if len(m.Images) > 0 {
 		for _, msg := range m.Images {
@@ -761,21 +769,21 @@ func (m *ImageStreamImportStatus) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Import.Size()))
-		n21, err := m.Import.MarshalTo(data[i:])
+		n22, err := m.Import.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n21
+		i += n22
 	}
 	if m.Repository != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Repository.Size()))
-		n22, err := m.Repository.MarshalTo(data[i:])
+		n23, err := m.Repository.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n22
+		i += n23
 	}
 	if len(m.Images) > 0 {
 		for _, msg := range m.Images {
@@ -810,11 +818,11 @@ func (m *ImageStreamList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n23, err := m.ListMeta.MarshalTo(data[i:])
+	n24, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n23
+	i += n24
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -848,19 +856,19 @@ func (m *ImageStreamMapping) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n24, err := m.ObjectMeta.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n24
-	data[i] = 0x12
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-	n25, err := m.Image.MarshalTo(data[i:])
+	n25, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n25
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
+	n26, err := m.Image.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n26
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Tag)))
@@ -954,20 +962,20 @@ func (m *ImageStreamTag) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n26, err := m.ObjectMeta.MarshalTo(data[i:])
+	n27, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n26
+	i += n27
 	if m.Tag != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Tag.Size()))
-		n27, err := m.Tag.MarshalTo(data[i:])
+		n28, err := m.Tag.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n27
+		i += n28
 	}
 	data[i] = 0x18
 	i++
@@ -987,11 +995,11 @@ func (m *ImageStreamTag) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-	n28, err := m.Image.MarshalTo(data[i:])
+	n29, err := m.Image.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n28
+	i += n29
 	return i, nil
 }
 
@@ -1013,11 +1021,11 @@ func (m *ImageStreamTagList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n29, err := m.ListMeta.MarshalTo(data[i:])
+	n30, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n29
+	i += n30
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -1097,19 +1105,19 @@ func (m *RepositoryImportSpec) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.From.Size()))
-	n30, err := m.From.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n30
-	data[i] = 0x12
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ImportPolicy.Size()))
-	n31, err := m.ImportPolicy.MarshalTo(data[i:])
+	n31, err := m.From.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n31
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ImportPolicy.Size()))
+	n32, err := m.ImportPolicy.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n32
 	data[i] = 0x18
 	i++
 	if m.IncludeManifest {
@@ -1139,11 +1147,11 @@ func (m *RepositoryImportStatus) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n32, err := m.Status.MarshalTo(data[i:])
+	n33, err := m.Status.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n32
+	i += n33
 	if len(m.Images) > 0 {
 		for _, msg := range m.Images {
 			data[i] = 0x12
@@ -1200,19 +1208,19 @@ func (m *SignatureCondition) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LastProbeTime.Size()))
-	n33, err := m.LastProbeTime.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n33
-	data[i] = 0x22
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
-	n34, err := m.LastTransitionTime.MarshalTo(data[i:])
+	n34, err := m.LastProbeTime.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n34
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
+	n35, err := m.LastTransitionTime.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n35
 	data[i] = 0x2a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
@@ -1268,11 +1276,11 @@ func (m *SignatureIssuer) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.SignatureGenericEntity.Size()))
-	n35, err := m.SignatureGenericEntity.MarshalTo(data[i:])
+	n36, err := m.SignatureGenericEntity.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n35
+	i += n36
 	return i, nil
 }
 
@@ -1294,11 +1302,11 @@ func (m *SignatureSubject) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.SignatureGenericEntity.Size()))
-	n36, err := m.SignatureGenericEntity.MarshalTo(data[i:])
+	n37, err := m.SignatureGenericEntity.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n36
+	i += n37
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.PublicKeyID)))
@@ -1324,11 +1332,11 @@ func (m *TagEvent) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.Created.Size()))
-	n37, err := m.Created.MarshalTo(data[i:])
+	n38, err := m.Created.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n37
+	i += n38
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageReference)))
@@ -1369,11 +1377,11 @@ func (m *TagEventCondition) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x1a
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
-	n38, err := m.LastTransitionTime.MarshalTo(data[i:])
+	n39, err := m.LastTransitionTime.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n38
+	i += n39
 	data[i] = 0x22
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
@@ -1462,11 +1470,11 @@ func (m *TagReference) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.From.Size()))
-		n39, err := m.From.MarshalTo(data[i:])
+		n40, err := m.From.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n39
+		i += n40
 	}
 	data[i] = 0x20
 	i++
@@ -1484,11 +1492,11 @@ func (m *TagReference) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x32
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ImportPolicy.Size()))
-	n40, err := m.ImportPolicy.MarshalTo(data[i:])
+	n41, err := m.ImportPolicy.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n40
+	i += n41
 	return i, nil
 }
 
@@ -1630,6 +1638,8 @@ func (m *ImageList) Size() (n int) {
 func (m *ImageSignature) Size() (n int) {
 	var l int
 	_ = l
+	l = m.ObjectMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
 	l = len(m.Type)
 	n += 1 + l + sovGenerated(uint64(l))
 	if m.Content != nil {
@@ -3116,6 +3126,36 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			var stringLen uint64
@@ -3143,7 +3183,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			}
 			m.Type = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Content", wireType)
 			}
@@ -3174,7 +3214,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				m.Content = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Conditions", wireType)
 			}
@@ -3205,7 +3245,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ImageIdentity", wireType)
 			}
@@ -3234,7 +3274,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			}
 			m.ImageIdentity = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SignedClaims", wireType)
 			}
@@ -3345,7 +3385,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			}
 			m.SignedClaims[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 6:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Created", wireType)
 			}
@@ -3378,7 +3418,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 7:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IssuedBy", wireType)
 			}
@@ -3411,7 +3451,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IssuedTo", wireType)
 			}

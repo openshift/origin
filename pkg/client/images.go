@@ -16,6 +16,7 @@ type ImageInterface interface {
 	List(opts kapi.ListOptions) (*imageapi.ImageList, error)
 	Get(name string) (*imageapi.Image, error)
 	Create(image *imageapi.Image) (*imageapi.Image, error)
+	Update(image *imageapi.Image) (*imageapi.Image, error)
 	Delete(name string) error
 }
 
@@ -53,6 +54,14 @@ func (c *images) Get(name string) (result *imageapi.Image, err error) {
 func (c *images) Create(image *imageapi.Image) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
 	err = c.r.Post().Resource("images").Body(image).Do().Into(result)
+	return
+}
+
+// Update allows to modify existing image. Since most of image's attributes are immutable, this call allows
+// mainly for updating image signatures.
+func (c *images) Update(image *imageapi.Image) (result *imageapi.Image, err error) {
+	result = &imageapi.Image{}
+	err = c.r.Put().Resource("images").Name(image.Name).Body(image).Do().Into(result)
 	return
 }
 

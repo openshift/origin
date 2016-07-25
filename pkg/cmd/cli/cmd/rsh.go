@@ -59,12 +59,14 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 		ForceTTY:   false,
 		DisableTTY: false,
 		ExecOptions: &kubecmd.ExecOptions{
-			In:  in,
-			Out: out,
-			Err: err,
+			StreamOptions: kubecmd.StreamOptions{
+				In:  in,
+				Out: out,
+				Err: err,
 
-			TTY:   true,
-			Stdin: true,
+				TTY:   true,
+				Stdin: true,
+			},
 
 			Executor: &kubecmd.DefaultRemoteExecutor{},
 		},

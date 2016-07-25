@@ -196,10 +196,20 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 		func(j *image.Image, c fuzz.Continue) {
 			c.Fuzz(&j.ObjectMeta)
 			c.Fuzz(&j.DockerImageMetadata)
+			c.Fuzz(&j.Signatures)
 			j.DockerImageMetadata.APIVersion = ""
 			j.DockerImageMetadata.Kind = ""
 			j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
 			j.DockerImageReference = c.RandString()
+		},
+		func(j *image.ImageSignature, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Conditions = nil
+			j.ImageIdentity = ""
+			j.SignedClaims = nil
+			j.Created = nil
+			j.IssuedBy = nil
+			j.IssuedTo = nil
 		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)

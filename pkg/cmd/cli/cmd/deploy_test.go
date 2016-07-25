@@ -56,8 +56,8 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 			return true, deploymentFor(config, status), nil
 		})
 
-		o := &DeployOptions{osClient: osClient, kubeClient: kubeClient}
-		err := o.deploy(config, ioutil.Discard)
+		o := &DeployOptions{osClient: osClient, kubeClient: kubeClient, out: ioutil.Discard}
+		err := o.deploy(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -84,9 +84,9 @@ func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
 		kubeClient := ktc.NewSimpleFake(existingDeployment)
-		o := &DeployOptions{kubeClient: kubeClient}
+		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
 
-		err := o.deploy(config, ioutil.Discard)
+		err := o.deploy(config)
 		if err == nil {
 			t.Errorf("expected an error starting deployment with existing status %s", status)
 		}
@@ -102,8 +102,8 @@ func TestCmdDeploy_latestLookupError(t *testing.T) {
 	})
 
 	config := deploytest.OkDeploymentConfig(1)
-	o := &DeployOptions{kubeClient: kubeClient}
-	err := o.deploy(config, ioutil.Discard)
+	o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+	err := o.deploy(config)
 
 	if err == nil {
 		t.Fatal("expected an error")
@@ -150,8 +150,8 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		return true, nil, nil
 	})
 
-	o := &DeployOptions{kubeClient: kubeClient}
-	err := o.retry(config, ioutil.Discard)
+	o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+	err := o.retry(config)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -194,8 +194,8 @@ func TestCmdDeploy_retryRejectNonFailed(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(1)
 		existingDeployment := deploymentFor(config, status)
 		kubeClient := ktc.NewSimpleFake(existingDeployment)
-		o := &DeployOptions{kubeClient: kubeClient}
-		err := o.retry(config, ioutil.Discard)
+		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
+		err := o.retry(config)
 		if err == nil {
 			t.Errorf("expected an error retrying deployment with status %s", status)
 		}
@@ -255,9 +255,9 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 			return true, existingDeployments, nil
 		})
 
-		o := &DeployOptions{kubeClient: kubeClient}
+		o := &DeployOptions{kubeClient: kubeClient, out: ioutil.Discard}
 
-		err := o.cancel(config, ioutil.Discard)
+		err := o.cancel(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -309,8 +309,8 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 		config.Spec.Triggers = append(config.Spec.Triggers, mktrigger())
 	}
 
-	o := &DeployOptions{osClient: osClient}
-	err := o.reenableTriggers(config, ioutil.Discard)
+	o := &DeployOptions{osClient: osClient, out: ioutil.Discard}
+	err := o.reenableTriggers(config)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

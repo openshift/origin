@@ -31,6 +31,7 @@ import (
 // }
 
 func TestStorageVersionsUnified(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	runStorageTest(t, "unified",
 		extensions_v1beta1.SchemeGroupVersion,
 		extensions_v1beta1.SchemeGroupVersion,
