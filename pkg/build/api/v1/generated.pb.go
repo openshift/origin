@@ -1937,14 +1937,16 @@ func (m *SourceBuildStrategy) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Scripts)))
 	i += copy(data[i:], m.Scripts)
-	data[i] = 0x28
-	i++
-	if m.Incremental {
-		data[i] = 1
-	} else {
-		data[i] = 0
+	if m.Incremental != nil {
+		data[i] = 0x28
+		i++
+		if *m.Incremental {
+			data[i] = 1
+		} else {
+			data[i] = 0
+		}
+		i++
 	}
-	i++
 	data[i] = 0x30
 	i++
 	if m.ForcePull {
@@ -2687,7 +2689,9 @@ func (m *SourceBuildStrategy) Size() (n int) {
 	}
 	l = len(m.Scripts)
 	n += 1 + l + sovGenerated(uint64(l))
-	n += 2
+	if m.Incremental != nil {
+		n += 2
+	}
 	n += 2
 	return n
 }
@@ -8487,7 +8491,8 @@ func (m *SourceBuildStrategy) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			m.Incremental = bool(v != 0)
+			b := bool(v != 0)
+			m.Incremental = &b
 		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ForcePull", wireType)

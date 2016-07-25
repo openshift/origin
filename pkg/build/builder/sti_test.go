@@ -67,6 +67,7 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 }
 
 func makeBuild() *api.Build {
+	t := true
 	return &api.Build{
 		Spec: api.BuildSpec{
 			CommonSpec: api.CommonSpec{
@@ -80,7 +81,7 @@ func makeBuild() *api.Build {
 							Kind: "DockerImage",
 							Name: "test/builder:latest",
 						},
-						Incremental: true,
+						Incremental: &t,
 					}},
 				Output: api.BuildOutput{
 					To: &kapi.ObjectReference{

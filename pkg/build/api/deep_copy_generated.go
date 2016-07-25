@@ -906,7 +906,13 @@ func DeepCopy_api_SourceBuildStrategy(in SourceBuildStrategy, out *SourceBuildSt
 		out.Env = nil
 	}
 	out.Scripts = in.Scripts
-	out.Incremental = in.Incremental
+	if in.Incremental != nil {
+		in, out := in.Incremental, &out.Incremental
+		*out = new(bool)
+		**out = *in
+	} else {
+		out.Incremental = nil
+	}
 	out.ForcePull = in.ForcePull
 	return nil
 }

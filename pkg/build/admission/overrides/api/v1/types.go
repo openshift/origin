@@ -9,5 +9,5 @@ type BuildOverridesConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 
 	// ForcePull indicates whether the build strategy should always be set to ForcePull=true
-	ForcePull bool `json:"forcePull",description:"if true, will always set ForcePull to true on builds"`
+	ForcePull bool `json:"forcePull"`
 }

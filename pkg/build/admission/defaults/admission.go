@@ -83,6 +83,15 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 		addDefaultEnvVar(envVar, buildEnv)
 	}
 
+	sourceDefaults := a.defaultsConfig.SourceStrategyDefaults
+	sourceStrategy := build.Spec.Strategy.SourceStrategy
+	if sourceDefaults != nil && sourceDefaults.Incremental != nil && *sourceDefaults.Incremental &&
+		sourceStrategy != nil && sourceStrategy.Incremental == nil {
+		glog.V(5).Infof("Setting source strategy Incremental to true in build %s/%s", build.Namespace, build.Name)
+		t := true
+		build.Spec.Strategy.SourceStrategy.Incremental = &t
+	}
+
 	// Apply git proxy defaults
 	if build.Spec.Source.Git == nil {
 		return
