@@ -293,9 +293,9 @@ func (o *NewAppOptions) Run() error {
 				}
 			}
 			if triggered {
-				fmt.Fprintf(out, "%sBuild scheduled, use 'oc logs -f bc/%s' to track its progress.\n", indent, t.Name)
+				fmt.Fprintf(out, "%[1]sBuild scheduled, use '%[3]s logs -f bc/%[2]s' to track its progress.\n", indent, t.Name, o.CommandName)
 			} else {
-				fmt.Fprintf(out, "%sUse 'oc start-build %s' to start a build.\n", indent, t.Name)
+				fmt.Fprintf(out, "%[1]sUse '%[3]s start-build %[2]s' to start a build.\n", indent, t.Name, o.CommandName)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
@@ -649,7 +649,7 @@ func transformError(err error, commandName, commandPath string, groups errorGrou
 					heredoc.Docf(`
 						The argument %[1]q could apply to the following Docker images, OpenShift image streams, or templates:
 
-						%[2]sTo view a full list of matches, use 'oc new-app -S %[1]s'`, t.Value, buf.String(),
+						%[2]sTo view a full list of matches, use '%[3]s new-app -S %[1]s'`, t.Value, buf.String(), commandName,
 					),
 					t,
 					t.Errs...,
@@ -746,7 +746,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, command
 	sort.Sort(newapp.ScoredComponentMatches(dockerImages))
 
 	if len(templates) > 0 {
-		fmt.Fprintln(out, "Templates (oc new-app --template=<template>)")
+		fmt.Fprintf(out, "Templates (%s new-app --template=<template>)\n", commandName)
 		fmt.Fprintln(out, "-----")
 		for _, match := range templates {
 			template := match.Template
@@ -762,7 +762,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, command
 	}
 
 	if len(imageStreams) > 0 {
-		fmt.Fprintln(out, "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])")
+		fmt.Fprintf(out, "Image streams (%s new-app --image-stream=<image-stream> [--code=<source>])\n", commandName)
 		fmt.Fprintln(out, "-----")
 		for _, match := range imageStreams {
 			imageStream := match.ImageStream
@@ -790,7 +790,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, command
 	}
 
 	if len(dockerImages) > 0 {
-		fmt.Fprintln(out, "Docker images (oc new-app --docker-image=<docker-image> [--code=<source>])")
+		fmt.Fprintf(out, "Docker images (%s new-app --docker-image=<docker-image> [--code=<source>])\n", commandName)
 		fmt.Fprintln(out, "-----")
 		for _, match := range dockerImages {
 			image := match.Image
