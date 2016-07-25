@@ -36,6 +36,7 @@ os::cmd::expect_success_and_text 'oc secrets new from-file .dockercfg=${HOME}/do
 os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/dockerconfig' "error: Key names or file paths cannot contain '='."
 
 workingdir="$( mktemp -d )"
+os::cmd::try_until_success "oc get secret/dockercfg"
 os::cmd::expect_success_and_text "oc extract secret/dockercfg --to '${workingdir}'" '.dockercfg'
 os::cmd::expect_success_and_text "cat '${workingdir}/.dockercfg'" 'sample-user'
 os::cmd::expect_failure_and_text "oc extract secret/dockercfg --to '${workingdir}'" 'error: .dockercfg: file exists, pass --confirm to overwrite'
