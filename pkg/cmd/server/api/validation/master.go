@@ -181,6 +181,10 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	if config.AdmissionConfig.PluginConfig != nil {
 		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig"))...)
+		validationResults.Append(ValidateAdmissionPluginConfigConflicts(config))
+	}
+	if len(config.AdmissionConfig.PluginOrderOverride) != 0 {
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
 	}
 
 	validationResults.Append(ValidateControllerConfig(config.ControllerConfig, fldPath.Child("controllerConfig")))
@@ -505,8 +509,11 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig, fldPath 
 	if config.AdmissionConfig.PluginConfig != nil {
 		validationResults.AddErrors(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig"))...)
 	}
+	if len(config.AdmissionConfig.PluginOrderOverride) != 0 {
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
+	}
 
-	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments"))...)
+	validationResults.Append(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments")))
 	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments, fldPath.Child("controllerArguments"))...)
 
 	return validationResults
@@ -581,8 +588,19 @@ func ValidateRoutingConfig(config api.RoutingConfig, fldPath *field.Path) field.
 	return allErrs
 }
 
-func ValidateAPIServerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, apiserveroptions.NewAPIServer().AddFlags, fldPath)
+func ValidateAPIServerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	validationResults.AddErrors(ValidateExtendedArguments(config, apiserveroptions.NewAPIServer().AddFlags, fldPath)...)
+
+	if len(config["admission-control"]) > 0 {
+		validationResults.AddWarnings(field.Invalid(fldPath.Key("admission-control"), config["admission-control"], "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
+	}
+	if len(config["admission-control-config-file"]) > 0 {
+		validationResults.AddWarnings(field.Invalid(fldPath.Key("admission-control-config-file"), config["admission-control-config-file"], "specify a single admission control config file is being phased out.  Convert to admissionConfig.pluginConfig, one file per plugin."))
+	}
+
+	return validationResults
 }
 
 func ValidateControllerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
@@ -601,4 +619,19 @@ func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginCo
 	}
 	return allErrs
 
+}
+
+func ValidateAdmissionPluginConfigConflicts(masterConfig *api.MasterConfig) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if masterConfig.KubernetesMasterConfig != nil {
+		// check for collisions between openshift and kube plugin config
+		for pluginName, kubeConfig := range masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
+			if openshiftConfig, exists := masterConfig.AdmissionConfig.PluginConfig[pluginName]; exists && !reflect.DeepEqual(kubeConfig, openshiftConfig) {
+				validationResults.AddWarnings(field.Invalid(field.NewPath("kubernetesMasterConfig", "admissionConfig", "pluginConfig").Key(pluginName), masterConfig.AdmissionConfig.PluginConfig[pluginName], "conflicts with kubernetesMasterConfig.admissionConfig.pluginConfig.  Separate admission chains are being phased out.  Convert to admissionConfig.pluginConfig."))
+			}
+		}
+	}
+
+	return validationResults
 }
