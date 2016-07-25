@@ -3,18 +3,17 @@ package plugin
 import (
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -152,51 +151,43 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 }
 
 func (master *OsdnMaster) watchNodes() {
-	eventQueue := master.registry.RunEventQueue(Nodes)
 	nodeAddressMap := map[types.UID]string{}
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for nodes: %v", err))
-			return
-		}
-		node := obj.(*kapi.Node)
+	master.registry.RunEventQueue(Nodes, func(delta cache.Delta) error {
+		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID
 
 		nodeIP, err := getNodeIP(node)
 		if err != nil {
-			log.Errorf("Failed to get node IP for %s, skipping event: %v, node: %v", name, eventType, node)
-			continue
+			return fmt.Errorf("failed to get node IP for %s, skipping event: %v, node: %v", name, delta.Type, node)
 		}
 
-		switch eventType {
-		case watch.Added, watch.Modified:
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
 			master.clearInitialNodeNetworkUnavailableCondition(node)
 
 			if oldNodeIP, ok := nodeAddressMap[uid]; ok && (oldNodeIP == nodeIP) {
-				continue
+				break
 			}
 			// Node status is frequently updated by kubelet, so log only if the above condition is not met
-			log.V(5).Infof("Watch %s event for Node %q", strings.Title(string(eventType)), name)
+			log.V(5).Infof("Watch %s event for Node %q", delta.Type, name)
 
 			err = master.addNode(name, nodeIP)
 			if err != nil {
-				log.Errorf("Error creating subnet for node %s, ip %s: %v", name, nodeIP, err)
-				continue
+				return fmt.Errorf("error creating subnet for node %s, ip %s: %v", name, nodeIP, err)
 			}
 			nodeAddressMap[uid] = nodeIP
-		case watch.Deleted:
-			log.V(5).Infof("Watch %s event for Node %q", strings.Title(string(eventType)), name)
+		case cache.Deleted:
+			log.V(5).Infof("Watch %s event for Node %q", delta.Type, name)
 			delete(nodeAddressMap, uid)
 
 			err = master.deleteNode(name)
 			if err != nil {
-				log.Errorf("Error deleting node %s: %v", name, err)
+				return fmt.Errorf("Error deleting node %s: %v", name, err)
 			}
 		}
-	}
+		return nil
+	})
 }
 
 func (node *OsdnNode) SubnetStartNode(mtu uint32) (bool, error) {
@@ -252,50 +243,41 @@ func (node *OsdnNode) initSelfSubnet() error {
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
 	subnets := make(map[string]*osapi.HostSubnet)
-	eventQueue := node.registry.RunEventQueue(HostSubnets)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for subnets: %v", err))
-			return
-		}
-		hs := obj.(*osapi.HostSubnet)
-
+	node.registry.RunEventQueue(HostSubnets, func(delta cache.Delta) error {
+		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
-			continue
+			return nil
 		}
 
-		log.V(5).Infof("Watch %s event for HostSubnet %q", strings.Title(string(eventType)), hs.ObjectMeta.Name)
-		switch eventType {
-		case watch.Added, watch.Modified:
+		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
 			oldSubnet, exists := subnets[string(hs.UID)]
 			if exists {
 				if oldSubnet.HostIP == hs.HostIP {
-					continue
+					break
 				} else {
 					// Delete old subnet rules
-					if err = node.DeleteHostSubnetRules(oldSubnet); err != nil {
-						log.Error(err)
+					if err := node.DeleteHostSubnetRules(oldSubnet); err != nil {
+						return err
 					}
 				}
 			}
-			if err = node.registry.ValidateNodeIP(hs.HostIP); err != nil {
-				log.Errorf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
-				continue
+			if err := node.registry.ValidateNodeIP(hs.HostIP); err != nil {
+				log.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
+				break
 			}
 
-			if err = node.AddHostSubnetRules(hs); err != nil {
-				log.Error(err)
-				continue
+			if err := node.AddHostSubnetRules(hs); err != nil {
+				return err
 			}
 			subnets[string(hs.UID)] = hs
-		case watch.Deleted:
+		case cache.Deleted:
 			delete(subnets, string(hs.UID))
-
-			if err = node.DeleteHostSubnetRules(hs); err != nil {
-				log.Error(err)
+			if err := node.DeleteHostSubnetRules(hs); err != nil {
+				return err
 			}
 		}
-	}
+		return nil
+	})
 }
