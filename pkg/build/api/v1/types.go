@@ -475,7 +475,7 @@ type SourceBuildStrategy struct {
 	Scripts string `json:"scripts,omitempty" protobuf:"bytes,4,opt,name=scripts"`
 
 	// incremental flag forces the Source build to do incremental builds if true.
-	Incremental bool `json:"incremental,omitempty" protobuf:"varint,5,opt,name=incremental"`
+	Incremental *bool `json:"incremental,omitempty" protobuf:"varint,5,opt,name=incremental"`
 
 	// forcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty" protobuf:"varint,6,opt,name=forcePull"`
