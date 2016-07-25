@@ -181,7 +181,6 @@ readonly EXCLUDED_TESTS=(
   "should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
   "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
   "\[Feature:Example\]"      # may need to pre-pull images
-  "should serve a basic image on each replica with a public image" # is failing to create pods, the test is broken
   "ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
   "NodeProblemDetector"        # requires a non-master node to run on
 
