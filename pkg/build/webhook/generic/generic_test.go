@@ -482,8 +482,49 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 	}
 }
 
-func TestExtractWithKeyValuePairs(t *testing.T) {
+func TestExtractWithKeyValuePairsJSON(t *testing.T) {
 	req := GivenRequestWithPayload(t, "push-generic-envs.json")
+	buildConfig := &api.BuildConfig{
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret:   "secret100",
+						AllowEnv: true,
+					},
+				},
+			},
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						Ref: "master",
+					},
+				},
+				Strategy: mockBuildStrategy,
+			},
+		},
+	}
+	plugin := New()
+	revision, envvars, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision == nil {
+		t.Error("Expected the 'revision' return value to not be nil")
+	}
+
+	if len(envvars) == 0 {
+		t.Error("Expected env vars to be set")
+	}
+}
+
+func TestExtractWithKeyValuePairsYAML(t *testing.T) {
+	req := GivenRequestWithPayloadAndContentType(t, "push-generic-envs.yaml", "application/yaml")
 	buildConfig := &api.BuildConfig{
 		Spec: api.BuildConfigSpec{
 			Triggers: []api.BuildTriggerPolicy{
