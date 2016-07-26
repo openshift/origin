@@ -32,22 +32,22 @@ type REST struct {
 	*registry.Store
 }
 
-const Prefix = "/podsecuritypolicies"
-
 // NewREST returns a RESTStorage object that will work against PodSecurityPolicy objects.
 func NewREST(opts generic.RESTOptions) *REST {
+	prefix := "/" + opts.ResourcePrefix
+
 	newListFunc := func() runtime.Object { return &extensions.PodSecurityPolicyList{} }
 	storageInterface := opts.Decorator(
-		opts.Storage, 100, &extensions.PodSecurityPolicy{}, Prefix, podsecuritypolicy.Strategy, newListFunc)
+		opts.Storage, 100, &extensions.PodSecurityPolicy{}, prefix, podsecuritypolicy.Strategy, newListFunc)
 
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &extensions.PodSecurityPolicy{} },
 		NewListFunc: newListFunc,
 		KeyRootFunc: func(ctx api.Context) string {
-			return Prefix
+			return prefix
 		},
 		KeyFunc: func(ctx api.Context, name string) (string, error) {
-			return registry.NoNamespaceKeyFunc(ctx, Prefix, name)
+			return registry.NoNamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*extensions.PodSecurityPolicy).Name, nil

@@ -35,7 +35,7 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against Role objects.
 func NewREST(opts generic.RESTOptions) *REST {
-	prefix := "/roles"
+	prefix := "/" + opts.ResourcePrefix
 
 	newListFunc := func() runtime.Object { return &rbac.RoleList{} }
 	storageInterface := opts.Decorator(
