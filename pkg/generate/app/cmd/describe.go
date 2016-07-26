@@ -14,6 +14,21 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// These constants represent common annotations keys
+const (
+	// OpenShiftDisplayName is a common, optional annotation that stores the name displayed by a UI when referencing a resource.
+	OpenShiftDisplayName = "openshift.io/display-name"
+)
+
+func displayName(meta kapi.ObjectMeta) string {
+	// If an object has a display name, prefer it over the meta name.
+	displayName := meta.Annotations[OpenShiftDisplayName]
+	if len(displayName) > 0 {
+		return displayName
+	}
+	return meta.Name
+}
+
 func localOrRemoteName(meta kapi.ObjectMeta, namespace string) string {
 	if len(meta.Namespace) == 0 || namespace == meta.Namespace {
 		return meta.Name
