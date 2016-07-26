@@ -658,6 +658,7 @@ func DeepCopy_api_SubjectAccessReviewResponse(in SubjectAccessReviewResponse, ou
 	out.Namespace = in.Namespace
 	out.Allowed = in.Allowed
 	out.Reason = in.Reason
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 

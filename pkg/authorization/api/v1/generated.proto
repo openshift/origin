@@ -409,6 +409,11 @@ message SubjectAccessReviewResponse {
 
   // Reason is optional.  It indicates why a request was allowed or denied.
   optional string reason = 3;
+
+  // EvaluationError is an indication that some error occurred during the authorization check.
+  // It is entirely possible to get an error and be able to continue determine authorization status in spite of it.  This is
+  // most common when a bound role is missing, but enough roles are still present and bound to reason about the request.
+  optional string evaluationError = 4;
 }
 
 // SubjectRulesReviewStatus is contains the result of a rules check
