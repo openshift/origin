@@ -16,13 +16,14 @@ os::cmd::expect_success 'oc label namespace/foo owner=deads'
 os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o name' "for-deads"
 os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads -n foo --as deads' "secrets.*9"
+oc get secrets -o name --all-namespaces
 
 
 os::cmd::expect_success 'oc create clusterquota for-deads-by-annotation --project-annotation-selector=openshift.io/requester=deads --hard=secrets=50'
 os::cmd::expect_success 'oc new-project bar --as=deads'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n bar --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o name' "for-deads-by-annotation"
-os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*18"
+os::cmd::try_until_text 'oc get secrets -o name --all-namespaces; oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*18"
 
 os::cmd::expect_success 'oc delete project foo'
 os::cmd::expect_success 'oc delete project bar'
