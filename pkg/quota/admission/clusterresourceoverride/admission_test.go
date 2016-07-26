@@ -225,7 +225,18 @@ func TestLimitRequestAdmission(t *testing.T) {
 			t.Errorf("%s: admission controller returned error: %v", test.name, err)
 			continue
 		}
-		resources := test.pod.Spec.Containers[0].Resources // only test one container
+		resources := test.pod.Spec.InitContainers[0].Resources // only test one container
+		if actual := resources.Requests[kapi.ResourceMemory]; test.expectedMemRequest.Cmp(actual) != 0 {
+			t.Errorf("%s: memory requests do not match; %v should be %v", test.name, actual, test.expectedMemRequest)
+		}
+		if actual := resources.Requests[kapi.ResourceCPU]; test.expectedCpuRequest.Cmp(actual) != 0 {
+			t.Errorf("%s: cpu requests do not match; %v should be %v", test.name, actual, test.expectedCpuRequest)
+		}
+		if actual := resources.Limits[kapi.ResourceCPU]; test.expectedCpuLimit.Cmp(actual) != 0 {
+			t.Errorf("%s: cpu limits do not match; %v should be %v", test.name, actual, test.expectedCpuLimit)
+		}
+
+		resources = test.pod.Spec.Containers[0].Resources // only test one container
 		if actual := resources.Requests[kapi.ResourceMemory]; test.expectedMemRequest.Cmp(actual) != 0 {
 			t.Errorf("%s: memory requests do not match; %v should be %v", test.name, actual, test.expectedMemRequest)
 		}
@@ -241,6 +252,11 @@ func TestLimitRequestAdmission(t *testing.T) {
 func testBestEffortPod() *kapi.Pod {
 	return &kapi.Pod{
 		Spec: kapi.PodSpec{
+			InitContainers: []kapi.Container{
+				{
+					Resources: kapi.ResourceRequirements{},
+				},
+			},
 			Containers: []kapi.Container{
 				{
 					Resources: kapi.ResourceRequirements{},
@@ -253,6 +269,20 @@ func testBestEffortPod() *kapi.Pod {
 func testPod(memLimit string, memRequest string, cpuLimit string, cpuRequest string) *kapi.Pod {
 	return &kapi.Pod{
 		Spec: kapi.PodSpec{
+			InitContainers: []kapi.Container{
+				{
+					Resources: kapi.ResourceRequirements{
+						Limits: kapi.ResourceList{
+							kapi.ResourceCPU:    resource.MustParse(cpuLimit),
+							kapi.ResourceMemory: resource.MustParse(memLimit),
+						},
+						Requests: kapi.ResourceList{
+							kapi.ResourceCPU:    resource.MustParse(cpuRequest),
+							kapi.ResourceMemory: resource.MustParse(memRequest),
+						},
+					},
+				},
+			},
 			Containers: []kapi.Container{
 				{
 					Resources: kapi.ResourceRequirements{

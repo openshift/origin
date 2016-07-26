@@ -165,7 +165,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 // and validates that the sc falls within the scc constraints.  All containers must validate against
 // the same scc or is not considered valid.
 func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod, fldPath *field.Path) field.ErrorList {
-	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.Containers))
+	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.InitContainers)+len(pod.Spec.Containers))
 
 	errs := field.ErrorList{}
 
@@ -183,24 +183,29 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 
 	// Note: this is not changing the original container, we will set container SCs later so long
 	// as all containers validated under the same SCC.
-	for i, containerCopy := range pod.Spec.Containers {
-		// We will determine the effective security context for the container and validate against that
-		// since that is how the sc provider will eventually apply settings in the runtime.
-		// This results in an SC that is based on the Pod's PSC with the set fields from the container
-		// overriding pod level settings.
-		containerCopy.SecurityContext = sc.DetermineEffectiveSecurityContext(pod, &containerCopy)
-
-		sc, err := provider.CreateContainerSecurityContext(pod, &containerCopy)
-		if err != nil {
-			errs = append(errs, field.Invalid(field.NewPath("spec", "containers").Index(i).Child("securityContext"), "", err.Error()))
+	containerPath := field.NewPath("spec", "initContainers")
+	for i, containerCopy := range pod.Spec.InitContainers {
+		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
+		errs = append(errs, resolutionErrs...)
+		if len(resolutionErrs) > 0 {
 			continue
 		}
-		generatedSCs[i] = sc
-
-		containerCopy.SecurityContext = sc
-		errs = append(errs, provider.ValidateContainerSecurityContext(pod, &containerCopy, field.NewPath("spec", "containers").Index(i).Child("securityContext"))...)
+		generatedSCs[i] = csc
 	}
 
+	base := len(pod.Spec.InitContainers)
+
+	// Note: this is not changing the original container, we will set container SCs later so long
+	// as all containers validated under the same SCC.
+	containerPath = field.NewPath("spec", "containers")
+	for i, containerCopy := range pod.Spec.Containers {
+		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
+		errs = append(errs, resolutionErrs...)
+		if len(resolutionErrs) > 0 {
+			continue
+		}
+		generatedSCs[i+base] = csc
+	}
 	if len(errs) > 0 {
 		// ensure psc is not mutated if there are errors
 		pod.Spec.SecurityContext = originalPSC
@@ -209,10 +214,32 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 
 	// if we've reached this code then we've generated and validated an SC for every container in the
 	// pod so let's apply what we generated.  Note: the psc is already applied.
-	for i, sc := range generatedSCs {
-		pod.Spec.Containers[i].SecurityContext = sc
+	for i := range pod.Spec.InitContainers {
+		pod.Spec.InitContainers[i].SecurityContext = generatedSCs[i]
+	}
+	for i := range pod.Spec.Containers {
+		pod.Spec.Containers[i].SecurityContext = generatedSCs[i+base]
 	}
 	return nil
+}
+
+// resolveContainerSecurityContext checks the provided container against the provider, returning any
+// validation errors encountered on the resulting security context, or the security context that was
+// resolved. The SecurityContext field of the container is updated, so ensure that a copy of the original
+// container is passed here if you wish to preserve the original input.
+func resolveContainerSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod, container *kapi.Container, path *field.Path) (*kapi.SecurityContext, field.ErrorList) {
+	// We will determine the effective security context for the container and validate against that
+	// since that is how the sc provider will eventually apply settings in the runtime.
+	// This results in an SC that is based on the Pod's PSC with the set fields from the container
+	// overriding pod level settings.
+	container.SecurityContext = sc.DetermineEffectiveSecurityContext(pod, container)
+
+	csc, err := provider.CreateContainerSecurityContext(pod, container)
+	if err != nil {
+		return nil, field.ErrorList{field.Invalid(path.Child("securityContext"), "", err.Error())}
+	}
+	container.SecurityContext = csc
+	return csc, provider.ValidateContainerSecurityContext(pod, container, path.Child("securityContext"))
 }
 
 // createProvidersFromConstraints creates providers from the constraints supplied, including
