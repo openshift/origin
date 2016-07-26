@@ -20051,8 +20051,7 @@
     "id": "v1.BuildSource",
     "description": "BuildSource is the SCM used for the build.",
     "required": [
-     "type",
-     "secrets"
+     "type"
     ],
     "properties": {
      "type": {
