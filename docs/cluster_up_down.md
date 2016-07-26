@@ -208,7 +208,8 @@ To use a different suffix, specify it with `--routing-suffix`.
 
 ## Specifying Images to Use
 
-By default `oc cluster up` uses `openshift/origin:latest` as its OpenShift image and `openshift-origin-${component}:latest` for 
+By default `oc cluster up` uses `openshift/origin:[released-version]` as its OpenShift image (where [released-version] 
+corresponds to the release of the `oc` client) and `openshift-origin-${component}:[released-version]` for 
 other images created by the OpenShift cluster (registry, router, builders, etc). It is possible to use a different set of 
 images by specifying the version and/or the image prefix.
 
@@ -225,3 +226,8 @@ oc cluster up --image=myregistry.example.com/ose/origin
 ```
 
 Both --version and --image may be combined to specify the image name prefix and tag for the images to use.
+
+The --force-pull flag may be used to force every image used by the OpenShift cluster to be pulled before use. If used with 
+the --version=latest flag, the most recent images from the registry will be used. Using this flag will
+incur a performance cost, given that the docker registry needs to be contacted for every container that is created in the
+cluster.

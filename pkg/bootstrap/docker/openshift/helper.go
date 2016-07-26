@@ -20,7 +20,9 @@ import (
 	dockerexec "github.com/openshift/origin/pkg/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
+	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -74,6 +76,7 @@ type StartOptions struct {
 	LogLevel          int
 	MetricsHost       string
 	PortForwarding    bool
+	ForcePull         bool
 }
 
 // NewHelper creates a new OpenShift helper
@@ -284,7 +287,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.HostConfigDir, opt.ServerIP, opt.MetricsHost)
+		err = h.updateConfig(configDir, opt.HostConfigDir, opt.ServerIP, opt.MetricsHost, opt.ForcePull)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -438,7 +441,7 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 	return filepath.Join(tempDir, filepath.Base(hostDir)), nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) error {
+func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string, forcePull bool) error {
 	masterConfig := filepath.Join(configDir, "master", "master-config.yaml")
 	glog.V(1).Infof("Reading master config from %s", masterConfig)
 	cfg, err := configapilatest.ReadMasterConfig(masterConfig)
@@ -455,6 +458,20 @@ func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) 
 
 	if len(metricsHost) > 0 && cfg.AssetConfig != nil {
 		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", metricsHost)
+	}
+
+	if forcePull {
+		if cfg.KubernetesMasterConfig.AdmissionConfig.PluginConfig == nil {
+			cfg.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+		}
+		cfg.KubernetesMasterConfig.AdmissionConfig.PluginConfig["AlwaysPullImages"] = configapi.AdmissionPluginConfig{
+			Configuration: &configapi.DefaultAdmissionConfig{},
+		}
+		cfg.KubernetesMasterConfig.AdmissionConfig.PluginConfig["BuildOverrides"] = configapi.AdmissionPluginConfig{
+			Configuration: &overridesapi.BuildOverridesConfig{
+				ForcePull: true,
+			},
+		}
 	}
 
 	cfgBytes, err := configapilatest.WriteYAML(cfg)
