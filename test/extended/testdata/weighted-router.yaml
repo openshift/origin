@@ -47,7 +47,7 @@ items:
       test: router
       select: weighted
     annotations:
-      router.openshift.io/haproxy.balance: roundrobin
+      haproxy.router.openshift.io/balance: roundrobin
   spec:
     host: weighted.example.com
     to:
