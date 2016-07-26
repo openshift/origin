@@ -96,16 +96,20 @@ FAQ
 
 3. What can I run on Origin?
 
-    Origin is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of Origin can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.org/latest/using_images/s2i_images/overview.html). Our available images are:
+    Origin is designed to run any existing Docker images.  Additionally, you can define builds that will produce new Docker images using a `Dockerfile`.
 
-    * [Ruby](https://github.com/openshift/sti-ruby)
-    * [Python](https://github.com/openshift/sti-python)
-    * [NodeJS](https://github.com/openshift/sti-nodejs)
-    * [PHP](https://github.com/openshift/sti-php)
-    * [Perl](https://github.com/openshift/sti-perl)
-    * [Wildfly](https://github.com/openshift/wildfly-8-centos)
+    However, the real magic of Origin is [Source-to-Image (S2I)](https://github.com/openshift/source-to-image) builds, which allow developers to simply provide an application source repository containing code to build and run.  It works by combining an existing S2I-enabled Docker image with application source to produce a new runnable image for your application.
 
-    Your application image can be easily extended with a database service with our [database images](http://docs.openshift.org/latest/using_images/db_images/overview.html). Our available database images are:
+    We are continuing to grow the [ecosystem of Source-to-Image builder images](https://docs.openshift.org/latest/using_images/s2i_images/overview.html) and it's straightforward to [create your own](https://blog.openshift.com/create-s2i-builder-image/).  Some of our available images include:
+
+    * [Ruby](https://github.com/sclorg/s2i-ruby-container)
+    * [Python](https://github.com/sclorg/s2i-python-container)
+    * [Node.js](https://github.com/sclorg/s2i-nodejs-container)
+    * [PHP](https://github.com/sclorg/s2i-php-container)
+    * [Perl](https://github.com/sclorg/s2i-perl-container)
+    * [WildFly](https://github.com/openshift-s2i/s2i-wildfly)
+
+    Your application image can be easily extended with a database service with our [database images](https://docs.openshift.org/latest/using_images/db_images/overview.html):
 
     * [MySQL](https://github.com/openshift/mysql)
     * [MongoDB](https://github.com/openshift/mongodb)
