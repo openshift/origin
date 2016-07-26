@@ -242,7 +242,10 @@ os::cmd::expect_success_and_text "cat ${BASETMPDIR}/atomic.local.config/master/m
 os::test::junit::declare_suite_end
 
 # from this point every command will use config from the KUBECONFIG env var
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
+mkdir -p ${HOME}/.kube
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/non-default-config
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
@@ -258,6 +261,7 @@ for test in "${tests[@]}"; do
 
   os::test::junit::declare_suite_start "cmd/${namespace}-namespace-setup"
   # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
+  os::cmd::expect_success "oc login --server='${KUBERNETES_MASTER}' --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
   os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
   os::cmd::expect_success "oc new-project '${namespace}'"
   # wait for the project cache to catch up and correctly list us in the new project
@@ -268,13 +272,16 @@ for test in "${tests[@]}"; do
     failed="true"
     tail -40 "${LOG_DIR}/openshift.log"
   fi
-  oc project ${CLUSTER_ADMIN_CONTEXT}
-  oc delete project "${namespace}"
+
+  os::test::junit::declare_suite_start "cmd/${namespace}-namespace-teardown"
+  os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
+  os::cmd::expect_success "oc delete project '${namespace}'"
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
+  os::test::junit::declare_suite_end
 done
 
 os::log::info "Metrics information logged to ${LOG_DIR}/metrics.log"
-oc get --raw /metrics > "${LOG_DIR}/metrics.log"
+oc get --raw /metrics --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"> "${LOG_DIR}/metrics.log"
 
 if [[ -n "${failed:-}" ]]; then
     exit 1

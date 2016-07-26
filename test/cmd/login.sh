@@ -1,3 +1,28 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/lib/init.sh"
+os::log::stacktrace::install
+trap os::test::junit::reconcile_output EXIT
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete project project-foo
+  exit 0
+) &>/dev/null
+
+os::test::junit::declare_suite_start "cmd/login"
+# This test validates login functionality for the client
+# we want this test to run without $KUBECONFIG or $KUBERNETES_MASTER as it tests that functionality
+login_kubeconfig="${ARTIFACT_DIR}/login.kubeconfig"
+cp "${KUBECONFIG}" "${login_kubeconfig}"
+unset KUBECONFIG
+unset KUBERNETES_MASTER
 # test client not configured
 os::cmd::expect_failure_and_text "oc get services" 'Missing or incomplete configuration info.  Please login'
 unused_port="33333"
@@ -31,7 +56,7 @@ os::cmd::expect_success 'oc logout'
 # logs in skipping certificate check
 os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything"
 # logs in by an existing and valid token
-temp_token=$(oc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
+temp_token="$(oc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')"
 os::cmd::expect_success_and_text "oc login --token=${temp_token}" 'using the token provided'
 os::cmd::expect_success 'oc logout'
 # properly parse server port
@@ -54,24 +79,17 @@ os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list p
 echo "login warnings: ok"
 
 # log in and set project to use from now on
-VERBOSE=true os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
-VERBOSE=true os::cmd::expect_success 'oc get projects'
-VERBOSE=true os::cmd::expect_success 'oc project project-foo'
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+os::cmd::expect_success 'oc get projects'
+os::cmd::expect_success 'oc project project-foo'
 os::cmd::expect_success_and_text 'oc config view' "current-context.+project-foo/${API_HOST}:${API_PORT}/test-user"
 os::cmd::expect_success_and_text 'oc whoami' 'test-user'
-os::cmd::expect_success_and_text "oc whoami --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'system:admin'
+os::cmd::expect_success_and_text "oc whoami --config='${login_kubeconfig}'" 'system:admin'
 os::cmd::expect_success_and_text 'oc whoami -t' '.'
 os::cmd::expect_success_and_text 'oc whoami -c' '.'
 
 # test config files from the --config flag
-os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
-
+os::cmd::expect_success "oc get services --config='${login_kubeconfig}'"
 # test config files from env vars
-os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
-
-# test config files in the home directory
-mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
-os::cmd::expect_success 'oc get services'
-mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
-echo "config files: ok"
+os::cmd::expect_success "KUBECONFIG='${login_kubeconfig}' oc get services"
+os::test::junit::declare_suite_end
