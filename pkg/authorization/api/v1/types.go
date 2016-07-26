@@ -193,6 +193,10 @@ type SubjectAccessReviewResponse struct {
 	Allowed bool `json:"allowed" protobuf:"varint,2,opt,name=allowed"`
 	// Reason is optional.  It indicates why a request was allowed or denied.
 	Reason string `json:"reason,omitempty" protobuf:"bytes,3,opt,name=reason"`
+	// EvaluationError is an indication that some error occurred during the authorization check.
+	// It is entirely possible to get an error and be able to continue determine authorization status in spite of it.  This is
+	// most common when a bound role is missing, but enough roles are still present and bound to reason about the request.
+	EvaluationError string `json:"evaluationError,omitempty" protobuf:"bytes,4,opt,name=evaluationError"`
 }
 
 // OptionalScopes is an array that may also be left nil to distinguish between set and unset.
