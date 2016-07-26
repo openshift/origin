@@ -193,18 +193,10 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 
 	local test_result=0
 	if [[ -n "${grep_args}" ]]; then
-		test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${grep_args}"'; echo $? )
-
+		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${grep_args}" <(os::cmd::internal::get_results)'; echo $? )
 	fi
 	local test_succeeded=$( ${test_eval_func} "${test_result}"; echo $? )
 
-    if (( ! test_succeeded )); then
-        os::text::print_blue "[DEBUG] Output content test failed. Debugging information follows:"
-        os::text::print_blue "[DEBUG] \${grep_args}=${grep_args}"
-        os::text::print_blue "[DEBUG] \${test_result}=${test_result}"
-        os::text::print_blue "[DEBUG] \${test_eval_func}=${test_eval_func}"
-        os::text::print_blue "[DEBUG] \${test_succeeded}=${test_succeeded}"
-    fi
 
     local end_time=$(os::cmd::internal::seconds_since_epoch)
     local time_elapsed=$(echo "scale=3; ${end_time} - ${start_time}" | bc | xargs printf '%5.3f') # in decimal seconds, we need leading zeroes for parsing later
@@ -578,7 +570,8 @@ function os::cmd::internal::run_until_text() {
 	local test_succeeded=0
 	while [ $(date +%s000) -lt $deadline ]; do
 		local cmd_result=$( os::cmd::internal::run_collecting_output "${cmd}"; echo $? )
-		local test_result=$( os::cmd::internal::run_collecting_output 'os::cmd::internal::get_results | grep -Eq "${text}"'; echo $? )
+		local test_result
+		test_result=$( os::cmd::internal::run_collecting_output 'grep -Eq "${text}" <(os::cmd::internal::get_results)'; echo $? )
 		test_succeeded=$( os::cmd::internal::success_func "${test_result}"; echo $? )
 
 		if (( test_succeeded )); then
