@@ -81,6 +81,7 @@ type RsyncOptions struct {
 	RsyncExclude  string
 	RsyncProgress bool
 	RsyncNoPerms  bool
+	RsyncTimeout  int
 
 	Out    io.Writer
 	ErrOut io.Writer
@@ -118,6 +119,7 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 	cmd.Flags().BoolVar(&o.RsyncProgress, "progress", false, "rsync - show progress during transfer")
 	cmd.Flags().BoolVar(&o.RsyncNoPerms, "no-perms", false, "rsync - do not transfer permissions")
 	cmd.Flags().BoolVarP(&o.Watch, "watch", "w", false, "Watch directory for changes and resync automatically")
+	cmd.Flags().IntVar(&o.RsyncTimeout, "timeout", 0, "I/O timeout in seconds")
 	return cmd
 }
 
@@ -232,6 +234,9 @@ func (o *RsyncOptions) Validate() error {
 	}
 	if err := o.Strategy.Validate(); err != nil {
 		return err
+	}
+	if o.RsyncTimeout < 0 {
+		return errors.New("--timeout can only have a positive value in seconds")
 	}
 
 	return nil
