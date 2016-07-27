@@ -108,7 +108,8 @@
           {
             "type": "Generic",
             "generic": {
-              "secret": "secret101"
+              "secret": "secret101",
+              "allowEnv": true
             }
           },
           {
