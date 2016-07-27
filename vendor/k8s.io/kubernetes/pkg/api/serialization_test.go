@@ -43,7 +43,6 @@ import (
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer/streaming"
-	"k8s.io/kubernetes/pkg/runtime/serializer/versioning"
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -185,13 +184,24 @@ func TestSetControllerConversion(t *testing.T) {
 		t.Fatalf("unexpected encoding error: %v", err)
 	}
 
-	decoder := api.Codecs.UniversalDecoder(*extGroup.GroupVersion(), *defaultGroup.GroupVersion())
-	if err := versioning.EnableCrossGroupDecoding(decoder, extGroup.GroupVersion().Group, defaultGroup.GroupVersion().Group); err != nil {
-		t.Fatalf("unexpected error while enabling cross-group decoding: %v", err)
-	}
+	// ds := recognizer.NewDecoder(s, ns.UniversalDeserializer())
+	rcDecoder := api.Codecs.DecoderToVersion(
+		api.Codecs.UniversalDecoder(*extGroup.GroupVersion(), *defaultGroup.GroupVersion()),
+		runtime.NewMultiGroupKinder(
+			unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "ReplicationController"},
+			unversioned.GroupKind{Group: extGroup.GroupVersion().Group}, unversioned.GroupKind{Group: defaultGroup.GroupVersion().Group},
+		),
+	)
+	rsDecoder := api.Codecs.DecoderToVersion(
+		api.Codecs.UniversalDecoder(*extGroup.GroupVersion(), *defaultGroup.GroupVersion()),
+		runtime.NewMultiGroupKinder(
+			unversioned.GroupVersionKind{Group: extGroup.GroupVersion().Group, Version: runtime.APIVersionInternal, Kind: "ReplicaSet"},
+			unversioned.GroupKind{Group: extGroup.GroupVersion().Group}, unversioned.GroupKind{Group: defaultGroup.GroupVersion().Group},
+		),
+	)
 
 	t.Logf("rs.v1beta1.extensions -> rc._internal")
-	if err := runtime.DecodeInto(decoder, data, rc); err != nil {
+	if err := runtime.DecodeInto(rcDecoder, data, rc); err != nil {
 		t.Fatalf("unexpected decoding error: %v", err)
 	}
 
@@ -202,7 +212,7 @@ func TestSetControllerConversion(t *testing.T) {
 	}
 
 	t.Logf("rc.v1 -> rs._internal.extensions")
-	if err := runtime.DecodeInto(decoder, data, rs); err != nil {
+	if err := runtime.DecodeInto(rsDecoder, data, rs); err != nil {
 		t.Fatalf("unexpected decoding error: %v", err)
 	}
 }
