@@ -402,20 +402,20 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 		// not supported on security context review for now)
 		func(j *securityapi.PodSecurityPolicyReview, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.Spec.PodSpec.InitContainers = nil
+			j.Spec.Template.Spec.InitContainers = nil
 			for i := range j.Status.AllowedServiceAccounts {
-				j.Status.AllowedServiceAccounts[i].PodSpec.InitContainers = nil
+				j.Status.AllowedServiceAccounts[i].Template.Spec.InitContainers = nil
 			}
 		},
 		func(j *securityapi.PodSecurityPolicySelfSubjectReview, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.Spec.PodSpec.InitContainers = nil
-			j.Status.PodSpec.InitContainers = nil
+			j.Spec.Template.Spec.InitContainers = nil
+			j.Status.Template.Spec.InitContainers = nil
 		},
 		func(j *securityapi.PodSecurityPolicySubjectReview, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.Spec.PodSpec.InitContainers = nil
-			j.Status.PodSpec.InitContainers = nil
+			j.Spec.Template.Spec.InitContainers = nil
+			j.Status.Template.Spec.InitContainers = nil
 		},
 
 		func(j *runtime.Object, c fuzz.Continue) {

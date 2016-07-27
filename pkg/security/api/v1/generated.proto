@@ -13,7 +13,7 @@ import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 // Package-wide variables from generator "generated".
 option go_package = "v1";
 
-// PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodSpec` in question.
+// PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.
 message PodSecurityPolicyReview {
   // spec is the PodSecurityPolicy to check.
   optional PodSecurityPolicyReviewSpec spec = 1;
@@ -24,26 +24,26 @@ message PodSecurityPolicyReview {
 
 // PodSecurityPolicyReviewSpec defines specification for PodSecurityPolicyReview
 message PodSecurityPolicyReviewSpec {
-  // podSpec is the PodSpec to check. The podSpec.serviceAccountName field is used
-  // if serviceAccountNames is empty, unless the podSpec.serviceAccountName is empty,
+  // template is the PodTemplateSpec to check. The template.spec.serviceAccountName field is used
+  // if serviceAccountNames is empty, unless the template.spec.serviceAccountName is empty,
   // in which case "default" is used.
-  // If serviceAccountNames is specified, podSpec.serviceAccountName is ignored.
-  optional k8s.io.kubernetes.pkg.api.v1.PodSpec podSpec = 1;
+  // If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.
+  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 1;
 
   // serviceAccountNames is an optional set of ServiceAccounts to run the check with.
-  // If serviceAccountNames is empty, the podSpec serviceAccountName is used,
+  // If serviceAccountNames is empty, the template.spec.serviceAccountName is used,
   // unless it's empty, in which case "default" is used instead.
-  // If serviceAccountNames is specified, podSpec serviceAccountName is ignored.
+  // If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.
   repeated string serviceAccountNames = 2;
 }
 
 // PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.
 message PodSecurityPolicyReviewStatus {
-  // allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodSpec.
+  // allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodTemplateSpec.
   repeated ServiceAccountPodSecurityPolicyReviewStatus allowedServiceAccounts = 1;
 }
 
-// PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodSpec
+// PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec
 message PodSecurityPolicySelfSubjectReview {
   // spec defines specification the PodSecurityPolicySelfSubjectReview.
   optional PodSecurityPolicySelfSubjectReviewSpec spec = 1;
@@ -54,11 +54,11 @@ message PodSecurityPolicySelfSubjectReview {
 
 // PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.
 message PodSecurityPolicySelfSubjectReviewSpec {
-  // podSpec is the PodSpec to check.
-  optional k8s.io.kubernetes.pkg.api.v1.PodSpec podSpec = 1;
+  // template is the PodTemplateSpec to check.
+  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 1;
 }
 
-// PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodSpec.
+// PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.
 message PodSecurityPolicySubjectReview {
   // spec defines specification for the PodSecurityPolicySubjectReview.
   optional PodSecurityPolicySubjectReviewSpec spec = 1;
@@ -69,13 +69,13 @@ message PodSecurityPolicySubjectReview {
 
 // PodSecurityPolicySubjectReviewSpec defines specification for PodSecurityPolicySubjectReview
 message PodSecurityPolicySubjectReviewSpec {
-  // podSpec is the PodSpec to check. If podSpec.serviceAccountName is empty it will not be defaulted.
+  // template is the PodTemplateSpec to check. If template.spec.serviceAccountName is empty it will not be defaulted.
   // If its non-empty, it will be checked.
-  optional k8s.io.kubernetes.pkg.api.v1.PodSpec podSpec = 1;
+  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 1;
 
   // user is the user you're testing for.
   // If you specify "user" but not "group", then is it interpreted as "What if user were not a member of any groups.
-  // If user and groups are empty, then the check is performed using *only* the serviceAccountName in the podSpec.
+  // If user and groups are empty, then the check is performed using *only* the serviceAccountName in the template.
   optional string user = 2;
 
   // groups is the groups you're testing for.
@@ -84,7 +84,7 @@ message PodSecurityPolicySubjectReviewSpec {
 
 // PodSecurityPolicySubjectReviewStatus contains information/status for PodSecurityPolicySubjectReview.
 message PodSecurityPolicySubjectReviewStatus {
-  // allowedBy is a reference to the rule that allows the PodSpec.
+  // allowedBy is a reference to the rule that allows the PodTemplateSpec.
   // A rule can be a SecurityContextConstraint or a PodSecurityPolicy
   // A `nil`, indicates that it was denied.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference allowedBy = 1;
@@ -94,8 +94,8 @@ message PodSecurityPolicySubjectReviewStatus {
   // is no information available.
   optional string reason = 2;
 
-  // podSpec is the PodSpec after the defaulting is applied.
-  optional k8s.io.kubernetes.pkg.api.v1.PodSpec podSpec = 3;
+  // template is the PodTemplateSpec after the defaulting is applied.
+  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 3;
 }
 
 // ServiceAccountPodSecurityPolicyReviewStatus represents ServiceAccount name and related review status

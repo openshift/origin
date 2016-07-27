@@ -167,11 +167,11 @@ func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec
 	case *deployapi.DeploymentConfig:
 		return r.Spec.Template.Spec, nil
 	case *securityapi.PodSecurityPolicySubjectReview:
-		return r.Spec.PodSpec, nil
+		return r.Spec.Template.Spec, nil
 	case *securityapi.PodSecurityPolicySelfSubjectReview:
-		return r.Spec.PodSpec, nil
+		return r.Spec.Template.Spec, nil
 	case *securityapi.PodSecurityPolicyReview:
-		return r.Spec.PodSpec, nil
+		return r.Spec.Template.Spec, nil
 	}
 	return kapi.PodSpec{}, kapierrors.NewInternalError(fmt.Errorf("No PodSpec available for supplied admission attribute"))
 }
