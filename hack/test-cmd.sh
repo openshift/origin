@@ -148,22 +148,7 @@ oc version
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 configure_os_server
-
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start master \
-  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=5 \
-  &>"${LOG_DIR}/openshift.log" &
-OS_PID=$!
-
-if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-    export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-    export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-fi
-
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+start_os_master
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"

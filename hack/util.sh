@@ -201,7 +201,7 @@ function start_os_master() {
 	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
-	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
+	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE="${OPENSHIFT_PROFILE:-web}" OPENSHIFT_ON_PANIC=crash openshift start master \
 	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --loglevel=4 --logspec='*importer=5' \
 	&>"${LOG_DIR}/openshift.log" &
