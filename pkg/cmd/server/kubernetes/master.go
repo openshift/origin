@@ -356,9 +356,9 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var configData []byte
 
 	// TODO make the rate limiter configurable
-	configFactory := factory.NewConfigFactory(c.KubeClient, kapi.DefaultSchedulerName, kapi.DefaultHardPodAffinitySymmetricWeight, kapi.DefaultFailureDomains)
+	configFactory := factory.NewConfigFactory(c.KubeClient, c.SchedulerServer.SchedulerName, int(c.SchedulerServer.HardPodAffinitySymmetricWeight), c.SchedulerServer.FailureDomains)
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
-		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
+		configData, err = ioutil.ReadFile(c.SchedulerServer.PolicyConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read scheduler config: %v", err)
 		}
