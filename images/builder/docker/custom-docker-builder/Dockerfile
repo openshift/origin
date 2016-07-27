@@ -17,7 +17,7 @@
 FROM openshift/origin-base
 
 RUN INSTALL_PKGS="gettext automake make docker" && \
-    yum install -y --enablerepo=centosplus $INSTALL_PKGS && \
+    yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all
 
