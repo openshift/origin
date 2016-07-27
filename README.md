@@ -216,7 +216,7 @@ See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for
 If you want to run the test suite, make sure you have your environment set up, and from the `origin` directory run:
 
 ```
-# run the unit tests
+# run the verifiers, unit tests, and command tests
 $ make check
 
 # run a command-line integration test suite
