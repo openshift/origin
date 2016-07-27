@@ -4,7 +4,7 @@
 
 # expect_success runs the cmd and expects an exit code of 0
 function os::cmd::expect_success() {
-	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argument, got $#"; exit 1; fi
+	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_success expects only one argument, got $#"; return 1; fi
 	local cmd=$1
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}"
@@ -13,7 +13,7 @@ readonly -f os::cmd::expect_success
 
 # expect_failure runs the cmd and expects a non-zero exit code
 function os::cmd::expect_failure() {
-	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_failure expects only one argument, got $#"; exit 1; fi
+	if [[ $# -ne 1 ]]; then echo "os::cmd::expect_failure expects only one argument, got $#"; return 1; fi
 	local cmd=$1
 
 	os::cmd::internal::expect_exit_code_run_grep "${cmd}" "os::cmd::internal::failure_func"
@@ -23,7 +23,7 @@ readonly -f os::cmd::expect_failure
 # expect_success_and_text runs the cmd and expects an exit code of 0
 # as well as running a grep test to find the given string in the output
 function os::cmd::expect_success_and_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_text expects two arguments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_text expects two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_text=$2
 
@@ -34,7 +34,7 @@ readonly -f os::cmd::expect_success_and_text
 # expect_failure_and_text runs the cmd and expects a non-zero exit code
 # as well as running a grep test to find the given string in the output
 function os::cmd::expect_failure_and_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_text expects two arguments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_text expects two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_text=$2
 
@@ -45,7 +45,7 @@ readonly -f os::cmd::expect_failure_and_text
 # expect_success_and_not_text runs the cmd and expects an exit code of 0
 # as well as running a grep test to ensure the given string is not in the output
 function os::cmd::expect_success_and_not_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_not_text expects two arguments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_success_and_not_text expects two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_text=$2
 
@@ -56,7 +56,7 @@ readonly -f os::cmd::expect_success_and_not_text
 # expect_failure_and_not_text runs the cmd and expects a non-zero exit code
 # as well as running a grep test to ensure the given string is not in the output
 function os::cmd::expect_failure_and_not_text() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_not_text expects two arguments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_failure_and_not_text expects two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_text=$2
 
@@ -66,7 +66,7 @@ readonly -f os::cmd::expect_failure_and_not_text
 
 # expect_code runs the cmd and expects a given exit code
 function os::cmd::expect_code() {
-	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_code expects two arguments, got $#"; exit 1; fi
+	if [[ $# -ne 2 ]]; then echo "os::cmd::expect_code expects two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_cmd_code=$2
 
@@ -77,7 +77,7 @@ readonly -f os::cmd::expect_code
 # expect_code_and_text runs the cmd and expects the given exit code
 # as well as running a grep test to find the given string in the output
 function os::cmd::expect_code_and_text() {
-	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_text expects three arguments, got $#"; exit 1; fi
+	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_text expects three arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_cmd_code=$2
 	local expected_text=$3
@@ -89,7 +89,7 @@ readonly -f os::cmd::expect_code_and_text
 # expect_code_and_not_text runs the cmd and expects the given exit code
 # as well as running a grep test to ensure the given string is not in the output
 function os::cmd::expect_code_and_not_text() {
-	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_not_text expects three arguments, got $#"; exit 1; fi
+	if [[ $# -ne 3 ]]; then echo "os::cmd::expect_code_and_not_text expects three arguments, got $#"; return 1; fi
 	local cmd=$1
 	local expected_cmd_code=$2
 	local expected_text=$3
@@ -106,7 +106,7 @@ minute=$(( 60 * second ))
 # the default time-out for os::cmd::try_until_success is 60 seconds.
 # the default interval for os::cmd::try_until_success is 200ms
 function os::cmd::try_until_success() {
-	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one arguments, got $#"; exit 1; fi
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one arguments, got $#"; return 1; fi
 	local cmd=$1
 	local duration=${2:-minute}
 	local interval=${3:-0.2}
@@ -118,7 +118,7 @@ readonly -f os::cmd::try_until_success
 # os::cmd::try_until_failure runs the cmd until either the command fails or times out
 # the default time-out for os::cmd::try_until_failure is 60 seconds.
 function os::cmd::try_until_failure() {
-	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one argument, got $#"; exit 1; fi
+	if [[ $# -lt 1 ]]; then echo "os::cmd::try_until_success expects at least one argument, got $#"; return 1; fi
 	local cmd=$1
 	local duration=${2:-$minute}
 	local interval=${3:-0.2}
@@ -130,7 +130,7 @@ readonly -f os::cmd::try_until_failure
 # os::cmd::try_until_text runs the cmd until either the command outputs the desired text or times out
 # the default time-out for os::cmd::try_until_text is 60 seconds.
 function os::cmd::try_until_text() {
-	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_success expects at least two arguments, got $#"; exit 1; fi
+	if [[ $# -lt 2 ]]; then echo "os::cmd::try_until_success expects at least two arguments, got $#"; return 1; fi
 	local cmd=$1
 	local text=$2
 	local duration=${3:-minute}
@@ -183,7 +183,7 @@ function os::cmd::internal::expect_exit_code_run_grep() {
 	local name=$(os::cmd::internal::describe_call "${cmd}" "${cmd_eval_func}" "${grep_args}" "${test_eval_func}")
     local preamble="Running ${name}..."
 	echo "${preamble}"
-	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'	
+	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
 	junit_log+=( "${name//$'\n'/;}" )
 
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
@@ -491,7 +491,7 @@ function os::cmd::internal::run_until_exit_code() {
 	echo "${preamble}"
 	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
 	junit_log+=( "${description//$'\n'/;}" )
-	
+
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
 	local deadline=$(( $(date +%s000) + $duration ))
@@ -571,7 +571,7 @@ function os::cmd::internal::run_until_text() {
 	echo "${preamble}"
 	# for ease of parsing, we want the entire declaration on one line, so we replace '\n' with ';'
 	junit_log+=( "${description//$'\n'/;}" )
-	
+
 	local start_time=$(os::cmd::internal::seconds_since_epoch)
 
 	local deadline=$(( $(date +%s000) + $duration ))

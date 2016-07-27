@@ -196,8 +196,8 @@ func (t *stiTar) StreamFileAsTarWithCallback(source, name string, writer io.Writ
 	if err := fs.Copy(source, dst); err != nil {
 		return err
 	}
-	fileInfo, fileErr := os.Stat(source)
-	if err := walkFn(source, fileInfo, fileErr); err != nil {
+	fileInfo, fileErr := os.Stat(dst)
+	if err := walkFn(dst, fileInfo, fileErr); err != nil {
 		return err
 	}
 	return t.CreateTarStream(tmpDir, false, writer)

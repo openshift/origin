@@ -13,8 +13,8 @@ import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 // Package-wide variables from generator "generated".
 option go_package = "v1";
 
-// AuthorizationAttributes describes a request to the API server
-message AuthorizationAttributes {
+// Action describes a request to the API server
+message Action {
   // Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
   optional string namespace = 1;
 
@@ -103,10 +103,12 @@ message ClusterRoleBinding {
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role
-  repeated string userNames = 2;
+  // +genconversion=false
+  optional OptionalNames userNames = 2;
 
   // GroupNames holds all the groups directly bound to the role
-  repeated string groupNames = 3;
+  // +genconversion=false
+  optional OptionalNames groupNames = 3;
 
   // Subjects hold object references to authorize with this rule
   repeated k8s.io.kubernetes.pkg.api.v1.ObjectReference subjects = 4;
@@ -141,25 +143,26 @@ message IsPersonalSubjectAccessReview {
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
 message LocalResourceAccessReview {
-  // AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-  optional AuthorizationAttributes authorizationAttributes = 1;
+  // Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+  optional Action Action = 1;
 }
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 message LocalSubjectAccessReview {
-  // AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-  optional AuthorizationAttributes authorizationAttributes = 1;
+  // Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+  optional Action Action = 1;
 
   // User is optional.  If both User and Groups are empty, the current authenticated user is used.
   optional string user = 2;
 
   // Groups is optional.  Groups is the list of groups to which the User belongs.
+  // +genconversion=false
   repeated string groups = 3;
 
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil for a self-SAR, means "use the scopes on this request".
   // Nil for a regular SAR, means the same as empty.
-  repeated string scopes = 4;
+  optional OptionalScopes scopes = 4;
 }
 
 // NamedClusterRole relates a name with a cluster role
@@ -196,6 +199,20 @@ message NamedRoleBinding {
 
   // RoleBinding is the role binding being named
   optional RoleBinding roleBinding = 2;
+}
+
+// OptionalNames is an array that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+message OptionalNames {
+  // items, if empty, will result in an empty slice
+  repeated string items = 1;
+}
+
+// OptionalScopes is an array that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+message OptionalScopes {
+  // items, if empty, will result in an empty slice
+  repeated string items = 1;
 }
 
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
@@ -274,8 +291,8 @@ message PolicyRule {
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
 // action specified by spec
 message ResourceAccessReview {
-  // AuthorizationAttributes describes the action being tested.
-  optional AuthorizationAttributes authorizationAttributes = 1;
+  // Action describes the action being tested.
+  optional Action Action = 1;
 }
 
 // ResourceAccessReviewResponse describes who can perform the action
@@ -284,9 +301,11 @@ message ResourceAccessReviewResponse {
   optional string namespace = 1;
 
   // UsersSlice is the list of users who can perform the action
+  // +genconversion=false
   repeated string users = 2;
 
   // GroupsSlice is the list of groups who can perform the action
+  // +genconversion=false
   repeated string groups = 3;
 
   // EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned.
@@ -312,10 +331,12 @@ message RoleBinding {
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role
-  repeated string userNames = 2;
+  // +genconversion=false
+  optional OptionalNames userNames = 2;
 
   // GroupNames holds all the groups directly bound to the role
-  repeated string groupNames = 3;
+  // +genconversion=false
+  optional OptionalNames groupNames = 3;
 
   // Subjects hold object references to authorize with this rule
   repeated k8s.io.kubernetes.pkg.api.v1.ObjectReference subjects = 4;
@@ -357,24 +378,25 @@ message SelfSubjectRulesReview {
 message SelfSubjectRulesReviewSpec {
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil means "use the scopes on this request".
-  repeated string scopes = 1;
+  optional OptionalScopes scopes = 1;
 }
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 message SubjectAccessReview {
-  // AuthorizationAttributes describes the action being tested.
-  optional AuthorizationAttributes authorizationAttributes = 1;
+  // Action describes the action being tested.
+  optional Action Action = 1;
 
   // User is optional. If both User and Groups are empty, the current authenticated user is used.
   optional string user = 2;
 
   // GroupsSlice is optional. Groups is the list of groups to which the User belongs.
+  // +genconversion=false
   repeated string groups = 3;
 
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil for a self-SAR, means "use the scopes on this request".
   // Nil for a regular SAR, means the same as empty.
-  repeated string scopes = 4;
+  optional OptionalScopes scopes = 4;
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action

@@ -26,6 +26,9 @@ type NodeConfig struct {
 	// MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master
 	MasterKubeConfig string `json:"masterKubeConfig"`
 
+	// MasterClientConnectionOverrides provides overrides to the client connection used to connect to the master.
+	MasterClientConnectionOverrides *ClientConnectionOverrides `json:"masterClientConnectionOverrides"`
+
 	// DNSDomain holds the domain suffix
 	DNSDomain string `json:"dnsDomain"`
 
@@ -501,8 +504,28 @@ type HTTPServingInfo struct {
 type MasterClients struct {
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string `json:"openshiftLoopbackKubeConfig"`
-	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
+	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to Kubernetes
 	ExternalKubernetesKubeConfig string `json:"externalKubernetesKubeConfig"`
+
+	// OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.
+	OpenShiftLoopbackClientConnectionOverrides *ClientConnectionOverrides `json:"openshiftLoopbackClientConnectionOverrides"`
+	// ExternalKubernetesClientConnectionOverrides specifies client overrides for proxying to Kubernetes.
+	ExternalKubernetesClientConnectionOverrides *ClientConnectionOverrides `json:"externalKubernetesClientConnectionOverrides"`
+}
+
+// ClientConnectionOverrides are a set of overrides to the default client connection settings.
+type ClientConnectionOverrides struct {
+	// AcceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
+	// default value of 'application/json'. This field will control all connections to the server used by a particular
+	// client.
+	AcceptContentTypes string `json:"acceptContentTypes"`
+	// ContentType is the content type used when sending data to the server from this client.
+	ContentType string `json:"contentType"`
+
+	// QPS controls the number of queries per second allowed for this connection.
+	QPS float32 `json:"qps"`
+	// Burst allows extra queries to accumulate when a client is exceeding its rate.
+	Burst int32 `json:"burst"`
 }
 
 // DNSConfig holds the necessary configuration options for DNS

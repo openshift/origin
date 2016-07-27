@@ -64,14 +64,14 @@ func DeepCopy_v1_Template(in Template, out *Template, c *conversion.Cloner) erro
 	} else {
 		out.Parameters = nil
 	}
-	if in.Labels != nil {
-		in, out := in.Labels, &out.Labels
+	if in.ObjectLabels != nil {
+		in, out := in.ObjectLabels, &out.ObjectLabels
 		*out = make(map[string]string)
 		for key, val := range in {
 			(*out)[key] = val
 		}
 	} else {
-		out.Labels = nil
+		out.ObjectLabels = nil
 	}
 	return nil
 }

@@ -733,6 +733,18 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 		return ip.String(), nil
 	}
 
+	if len(c.DockerMachine) > 0 {
+		// If a docker machine is specified, port forwarding will not be used
+		c.PortForwarding = false
+		glog.V(2).Infof("Using docker machine %q to determine server IP", c.DockerMachine)
+		ip, err := dockermachine.IP(c.DockerMachine)
+		if err != nil {
+			return "", errors.NewError("Could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
+		}
+		fmt.Fprintf(out, "Using docker-machine IP %s as the host IP\n", ip)
+		return ip, nil
+	}
+
 	// If using port-forwarding, find a local IP that can be used to communicate with the
 	// Origin container
 	if c.PortForwarding {
@@ -761,16 +773,6 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 			glog.V(2).Infof("Failed to use %s: %v", ip.String(), err)
 		}
 		return "", errors.NewError("could not determine local IP address to use").WithCause(err)
-	}
-
-	if len(c.DockerMachine) > 0 {
-		glog.V(2).Infof("Using docker machine %q to determine server IP", c.DockerMachine)
-		ip, err := dockermachine.IP(c.DockerMachine)
-		if err != nil {
-			return "", errors.NewError("Could not determine IP address").WithCause(err).WithSolution("Ensure that docker-machine is functional.")
-		}
-		fmt.Fprintf(out, "Using docker-machine IP %s as the host IP\n", ip)
-		return ip, nil
 	}
 
 	// First, try to get the host from the DOCKER_HOST if communicating via tcp

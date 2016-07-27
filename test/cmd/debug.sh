@@ -28,6 +28,7 @@ os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-live
 os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" '\- /bin/env'
 os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'stdinOnce'
 os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'tty'
+os::cmd::expect_success_and_not_text "oc debug --tty=false dc/test-deployment-config -o yaml" 'tty'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'stdin'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
 os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'on node "invalid"'

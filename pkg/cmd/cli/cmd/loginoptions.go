@@ -58,6 +58,8 @@ type LoginOptions struct {
 	Token string
 
 	PathOptions *kclientcmd.PathOptions
+
+	CommandName string
 }
 
 // Gather all required information in a comprehensive order.
@@ -311,9 +313,9 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	case 0:
 		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
-    oc new-project <projectname>
+    %s new-project <projectname>
 
-`)
+`, o.CommandName)
 		o.Project = ""
 
 	case 1:
@@ -342,7 +344,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		}
 		o.Project = current.Name
 
-		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
+		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with '%s project <projectname>':\n\n", o.CommandName)
 		for _, p := range projects.List() {
 			if o.Project == p {
 				fmt.Fprintf(o.Out, "  * %s\n", p)

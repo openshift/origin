@@ -19,9 +19,16 @@ if [[ -z "$(which protoc)" || "$(protoc --version)" != "libprotoc 3.0."* ]]; the
   exit 1
 fi
 
+if [[ -z "$(which goimports)" ]]; then
+  echo "goimports is required to be present on your path in order to format the generated"
+  echo "protobuf files"
+  echo
+  exit 1
+fi
+
 os::build::setup_env
 
-hack/build-go.sh tools/genprotobuf vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
+"${OS_ROOT}/hack/build-go.sh" tools/genprotobuf vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
 genprotobuf="$( os::build::find-binary genprotobuf )"
 
 if [[ -z "${genprotobuf}" ]]; then
@@ -32,4 +39,4 @@ if [[ -z "${genprotobuf}" ]]; then
 	exit 1
 fi
 
-${genprotobuf} --output-base="${GOPATH}/src" "$@"
+PATH="$( dirname "${genprotobuf}" ):${PATH}" ${genprotobuf} --output-base="${GOPATH}/src" "$@"

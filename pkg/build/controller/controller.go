@@ -205,10 +205,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPod
 		return fmt.Errorf("failed to create build pod: %v", err)
 	}
-	if build.Annotations == nil {
-		build.Annotations = make(map[string]string)
-	}
-	build.Annotations[buildapi.BuildPodNameAnnotation] = podSpec.Name
+	setBuildPodNameAnnotation(build, podSpec.Name)
 	glog.V(4).Infof("Created pod for build: %#v", podSpec)
 
 	// Set the build phase, which will be persisted.
@@ -326,7 +323,8 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 
 	// Update the build object when it progress to a next state or the reason for
 	// the current state changed.
-	if build.Status.Phase != nextStatus && !buildutil.IsBuildComplete(build) {
+	if (!hasBuildPodNameAnnotation(build) || build.Status.Phase != nextStatus) && !buildutil.IsBuildComplete(build) {
+		setBuildPodNameAnnotation(build, pod.Name)
 		reason := ""
 		if len(build.Status.Reason) > 0 {
 			reason = " (" + string(build.Status.Reason) + ")"
@@ -439,5 +437,22 @@ func buildKey(pod *kapi.Pod) *buildapi.Build {
 			Name:      buildutil.GetBuildName(pod),
 			Namespace: pod.Namespace,
 		},
+	}
+}
+
+func hasBuildPodNameAnnotation(build *buildapi.Build) bool {
+	if build.Annotations == nil {
+		return false
+	}
+	_, hasAnnotation := build.Annotations[buildapi.BuildPodNameAnnotation]
+	return hasAnnotation
+}
+
+func setBuildPodNameAnnotation(build *buildapi.Build, podName string) {
+	if build.Annotations == nil {
+		build.Annotations = map[string]string{}
+	}
+	if _, hasAnnotation := build.Annotations[buildapi.BuildPodNameAnnotation]; !hasAnnotation {
+		build.Annotations[buildapi.BuildPodNameAnnotation] = podName
 	}
 }

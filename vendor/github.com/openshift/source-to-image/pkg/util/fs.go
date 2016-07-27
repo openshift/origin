@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"runtime"
 
@@ -156,6 +157,19 @@ func (h *fs) CopyContents(src string, dest string) (err error) {
 // RemoveDirectory removes the specified directory and all its contents
 func (h *fs) RemoveDirectory(dir string) error {
 	glog.V(2).Infof("Removing directory '%s'", dir)
+
+	// HACK: If deleting a directory in windows, call out to the system to do the deletion
+	// TODO: Remove this workaround when we switch to go 1.7 -- os.RemoveAll should
+	// be fixed for Windows in that release.
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd.exe", "/c", fmt.Sprintf("rd /s /q %s", dir))
+		output, err := cmd.Output()
+		if err != nil {
+			glog.Errorf("Error removing directory %q: %v %s", dir, err, string(output))
+			return err
+		}
+		return nil
+	}
 
 	err := os.RemoveAll(dir)
 	if err != nil {

@@ -24,7 +24,7 @@ import (
 
 type impersonateAuthorizer struct{}
 
-func (impersonateAuthorizer) Authorize(ctx kapi.Context, a authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+func (impersonateAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allowed bool, reason string, err error) {
 	user, exists := kapi.UserFrom(ctx)
 	if !exists {
 		return false, "missing user", nil
@@ -63,7 +63,7 @@ func (impersonateAuthorizer) Authorize(ctx kapi.Context, a authorizer.Authorizat
 	return false, "deny by default", nil
 }
 
-func (impersonateAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (impersonateAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }
 

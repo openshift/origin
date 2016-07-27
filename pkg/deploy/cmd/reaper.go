@@ -17,7 +17,7 @@ import (
 )
 
 // NewDeploymentConfigReaper returns a new reaper for deploymentConfigs
-func NewDeploymentConfigReaper(oc *client.Client, kc *kclient.Client) kubectl.Reaper {
+func NewDeploymentConfigReaper(oc client.Interface, kc kclient.Interface) kubectl.Reaper {
 	return &DeploymentConfigReaper{oc: oc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
 }
 

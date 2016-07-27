@@ -30,7 +30,7 @@ func (r *DeploymentConfigRollbacker) Rollback(namespace, name string, updatedAnn
 		return "", fmt.Errorf("passed object is not a deployment config: %#v", obj)
 	}
 	if config.Spec.Paused {
-		return "", fmt.Errorf("cannot rollback a paused config; resume it first with 'oc rollout resume dc/%s' and try again", config.Name)
+		return "", fmt.Errorf("cannot rollback a paused config; resume it first with '%[2]s rollout resume dc/%[1]s' and try again", config.Name, name)
 	}
 
 	rollback := &deployapi.DeploymentConfigRollback{

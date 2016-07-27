@@ -49,6 +49,10 @@ type Role struct {
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
+// OptionalNames is an array that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+type OptionalNames []string
+
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
@@ -58,9 +62,11 @@ type RoleBinding struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role
-	UserNames []string `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
+	// +genconversion=false
+	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role
-	GroupNames []string `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
+	// +genconversion=false
+	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule
 	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
 
@@ -69,6 +75,8 @@ type RoleBinding struct {
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
 }
+
+type NamedRoles []NamedRole
 
 // +genclient=true
 
@@ -83,8 +91,10 @@ type Policy struct {
 	LastModified unversioned.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles []NamedRole `json:"roles" protobuf:"bytes,3,rep,name=roles"`
+	Roles NamedRoles `json:"roles" protobuf:"bytes,3,rep,name=roles"`
 }
+
+type NamedRoleBindings []NamedRoleBinding
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
@@ -99,7 +109,7 @@ type PolicyBinding struct {
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings []NamedRoleBinding `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
+	RoleBindings NamedRoleBindings `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
 }
 
 // NamedRole relates a Role with a name
@@ -133,7 +143,7 @@ type SelfSubjectRulesReview struct {
 type SelfSubjectRulesReviewSpec struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil means "use the scopes on this request".
-	Scopes []string `json:"scopes" protobuf:"bytes,1,rep,name=scopes"`
+	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,1,rep,name=scopes"`
 }
 
 // SubjectRulesReviewStatus is contains the result of a rules check
@@ -152,8 +162,10 @@ type ResourceAccessReviewResponse struct {
 	// Namespace is the namespace used for the access review
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,1,opt,name=namespace"`
 	// UsersSlice is the list of users who can perform the action
+	// +genconversion=false
 	UsersSlice []string `json:"users" protobuf:"bytes,2,rep,name=users"`
 	// GroupsSlice is the list of groups who can perform the action
+	// +genconversion=false
 	GroupsSlice []string `json:"groups" protobuf:"bytes,3,rep,name=groups"`
 
 	// EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned.
@@ -167,8 +179,8 @@ type ResourceAccessReviewResponse struct {
 type ResourceAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
@@ -183,48 +195,54 @@ type SubjectAccessReviewResponse struct {
 	Reason string `json:"reason,omitempty" protobuf:"bytes,3,opt,name=reason"`
 }
 
+// OptionalScopes is an array that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+type OptionalScopes []string
+
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 	// User is optional. If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" protobuf:"bytes,2,opt,name=user"`
 	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
+	// +genconversion=false
 	GroupsSlice []string `json:"groups" protobuf:"bytes,3,rep,name=groups"`
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
 	// Nil for a regular SAR, means the same as empty.
-	Scopes []string `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
+	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
 }
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
 type LocalResourceAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 }
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
-	AuthorizationAttributes `json:",inline" protobuf:"bytes,1,opt,name=authorizationAttributes"`
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" protobuf:"bytes,2,opt,name=user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
+	// +genconversion=false
 	GroupsSlice []string `json:"groups" protobuf:"bytes,3,rep,name=groups"`
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
 	// Nil for a regular SAR, means the same as empty.
-	Scopes []string `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
+	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
 }
 
-// AuthorizationAttributes describes a request to the API server
-type AuthorizationAttributes struct {
+// Action describes a request to the API server
+type Action struct {
 	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
 	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
 	// Verb is one of: get, list, watch, create, update, delete
@@ -302,9 +320,11 @@ type ClusterRoleBinding struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role
-	UserNames []string `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
+	// +genconversion=false
+	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role
-	GroupNames []string `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
+	// +genconversion=false
+	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule
 	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
 
@@ -313,6 +333,8 @@ type ClusterRoleBinding struct {
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
 }
+
+type NamedClusterRoles []NamedClusterRole
 
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
@@ -325,8 +347,10 @@ type ClusterPolicy struct {
 	LastModified unversioned.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
 
 	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
-	Roles []NamedClusterRole `json:"roles" protobuf:"bytes,3,rep,name=roles"`
+	Roles NamedClusterRoles `json:"roles" protobuf:"bytes,3,rep,name=roles"`
 }
+
+type NamedClusterRoleBindings []NamedClusterRoleBinding
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
@@ -341,7 +365,7 @@ type ClusterPolicyBinding struct {
 	// PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
 	// RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name
-	RoleBindings []NamedClusterRoleBinding `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
+	RoleBindings NamedClusterRoleBindings `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
 }
 
 // NamedClusterRole relates a name with a cluster role

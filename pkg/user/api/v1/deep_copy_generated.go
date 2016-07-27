@@ -35,7 +35,7 @@ func DeepCopy_v1_Group(in Group, out *Group, c *conversion.Cloner) error {
 	}
 	if in.Users != nil {
 		in, out := in.Users, &out.Users
-		*out = make([]string, len(in))
+		*out = make(OptionalNames, len(in))
 		copy(*out, in)
 	} else {
 		out.Users = nil

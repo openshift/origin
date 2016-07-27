@@ -302,7 +302,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		glog.Infof("Starting node networking %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 	}
 
-	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
+	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig, nodeConfig.MasterClientConnectionOverrides)
 	if err != nil {
 		return err
 	}
