@@ -15,8 +15,10 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate/app"
+	image "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -398,5 +400,119 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 	}
 	if e, a := expectedPorts.List(), actualPorts.List(); !reflect.DeepEqual(e, a) {
 		t.Errorf("Expected ports=%v, got %v", e, a)
+	}
+}
+
+func TestBuildOutputCycleResilience(t *testing.T) {
+
+	config := &AppConfig{}
+
+	mockIS := &image.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "mockimagestream",
+		},
+		Spec: image.ImageStreamSpec{
+			Tags: make(map[string]image.TagReference),
+		},
+	}
+	mockIS.Spec.Tags["latest"] = image.TagReference{
+		From: &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: "mockimage:latest",
+		},
+	}
+
+	dfn := "mockdockerfilename"
+	malOutputBC := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "buildCfgWithWeirdOutputObjectRef",
+		},
+		Spec: buildapi.BuildConfigSpec{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Dockerfile: &dfn,
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "mockimagestream:latest",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "NewTypeOfRef",
+						Name: "Yet-to-be-implemented",
+					},
+				},
+			},
+		},
+	}
+
+	_, err := config.followRefToDockerImage(malOutputBC.Spec.Output.To, nil, []runtime.Object{malOutputBC, mockIS})
+	expected := "Unable to follow reference type: \"NewTypeOfRef\""
+	if err == nil || err.Error() != expected {
+		t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, expected)
+	}
+}
+
+func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
+
+	config := &AppConfig{}
+
+	mockIS := &image.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "mockimagestream",
+		},
+		Spec: image.ImageStreamSpec{
+			Tags: make(map[string]image.TagReference),
+		},
+	}
+	mockIS.Spec.Tags["latest"] = image.TagReference{
+		From: &kapi.ObjectReference{
+			Kind: "ImageStreamTag",
+			Name: "10.0",
+		},
+	}
+	mockIS.Spec.Tags["10.0"] = image.TagReference{
+		From: &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: "mockimage:latest",
+		},
+	}
+
+	dfn := "mockdockerfilename"
+	followingTagCycleBC := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "buildCfgWithWeirdOutputObjectRef",
+		},
+		Spec: buildapi.BuildConfigSpec{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Dockerfile: &dfn,
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "mockimagestream:latest",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "mockimagestream:10.0",
+					},
+				},
+			},
+		},
+	}
+
+	expected := "output image of \"mockimage:latest\" should be different than input"
+	err := config.checkCircularReferences([]runtime.Object{followingTagCycleBC, mockIS})
+	if err == nil || err.Error() != expected {
+		t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, expected)
 	}
 }
