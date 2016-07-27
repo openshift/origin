@@ -140,67 +140,8 @@ oc version
 
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
-
-# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
-
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
-
-# Set deconflicted etcd ports in the config
-cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
-openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
-openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
-
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start master \
-  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=5 \
-  &>"${LOG_DIR}/openshift.log" &
-OS_PID=$!
-
-if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-    export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-    export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-fi
-
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+configure_os_server
+start_os_master
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -322,8 +263,7 @@ os::test::junit::declare_suite_end
 
 # from this point every command will use config from the KUBECONFIG env var
 export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
-export KUBECONFIG="${HOME}/.kube/non-default-config"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
+export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
