@@ -332,14 +332,20 @@ cp ${KUBECONFIG}{,.bak}  # keep so we can reset kubeconfig after each test
 for test in "${tests[@]}"; do
   echo
   echo "++ ${test}"
-  name=$(basename ${test} .sh)
+  # we don't want to make it possible to have similarly named bash scripts
+  # in the test/cmd directory, so we will name each project by taking the
+  # relative path to the test from $OS_ROOT, removing the .sh suffix, and
+  # replacing slashes with dashes
+  name="$( os::util::repository_relative_path "${test}" )"
+  name="${name%.sh}"
+  name="${name//\//-}"
 
   # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
   oc project ${CLUSTER_ADMIN_CONTEXT}
-  oc new-project "cmd-${name}"
+  oc new-project "${name}"
   ${test}
   oc project ${CLUSTER_ADMIN_CONTEXT}
-  oc delete project "cmd-${name}"
+  oc delete project "${name}"
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
