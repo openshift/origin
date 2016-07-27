@@ -8,6 +8,7 @@ OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/lib/init.sh"
 os::log::stacktrace::install
 trap os::test::junit::reconcile_output EXIT
+project="$( oc project -q )"
 
 os::test::junit::declare_suite_start "cmd/policy"
 # This test validates user level policy
@@ -26,7 +27,7 @@ os::cmd::expect_success 'oc new-project foo'
 os::cmd::expect_failure 'oc whoami --as=system:admin'
 os::cmd::expect_success_and_text 'oc whoami --as=system:serviceaccount:foo:default' "system:serviceaccount:foo:default"
 os::cmd::expect_failure 'oc whoami --as=system:serviceaccount:another:default'
-os::cmd::expect_success 'oc login -u system:admin -n cmd-policy'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success 'oc delete project foo'
 
 
