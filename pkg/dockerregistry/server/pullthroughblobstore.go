@@ -1,9 +1,9 @@
 package server
 
 import (
-	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -121,14 +121,12 @@ func (r *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseWri
 		context.GetLogger(ctx).Errorf("Failure to open remote store for digest %q: %v", dgst.String(), err)
 		return err
 	}
+	defer remoteReader.Close()
 
 	setResponseHeaders(w, desc.Size, desc.MediaType, dgst)
 
-	context.GetLogger(r.repo.ctx).Infof("Copying %d bytes of type %q for %q", desc.Size, desc.MediaType, dgst.String())
-	if _, err := io.CopyN(w, remoteReader, desc.Size); err != nil {
-		context.GetLogger(r.repo.ctx).Errorf("Failed copying content from remote store %q: %v", dgst.String(), err)
-		return err
-	}
+	context.GetLogger(ctx).Infof("serving blob %s of type %s %d bytes long", dgst.String(), desc.MediaType, desc.Size)
+	http.ServeContent(w, req, desc.Digest.String(), time.Time{}, remoteReader)
 	return nil
 }
 

@@ -48,10 +48,10 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testImageStream := testNewImageStreamObject("user", "app", "latest", testImage.Name)
+	testImageStream := registrytest.TestNewImageStreamObject("user", "app", "latest", testImage.Name, "")
 	client := &testclient.Fake{}
 	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
-	client.AddReactor("get", "images", getFakeImageGetHandler(t, *testImage))
+	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
 
 	// TODO: get rid of those nasty global vars
 	backupRegistryClient := DefaultRegistryClient

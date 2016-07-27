@@ -42,7 +42,7 @@ const (
 
 // RegistryClient encapsulates getting access to the OpenShift API.
 type RegistryClient interface {
-	// Clients return the authenticated client to use with the server.
+	// Clients return the authenticated clients to use with the server.
 	Clients() (client.Interface, kclient.Interface, error)
 	// SafeClientConfig returns a client config without authentication info.
 	SafeClientConfig() restclient.Config
