@@ -146,11 +146,11 @@ func (m *Template) MarshalTo(data []byte) (int, error) {
 			i += n
 		}
 	}
-	if len(m.Labels) > 0 {
-		for k := range m.Labels {
+	if len(m.ObjectLabels) > 0 {
+		for k := range m.ObjectLabels {
 			data[i] = 0x2a
 			i++
-			v := m.Labels[k]
+			v := m.ObjectLabels[k]
 			mapSize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
 			i = encodeVarintGenerated(data, i, uint64(mapSize))
 			data[i] = 0xa
@@ -269,8 +269,8 @@ func (m *Template) Size() (n int) {
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
-	if len(m.Labels) > 0 {
-		for k, v := range m.Labels {
+	if len(m.ObjectLabels) > 0 {
+		for k, v := range m.ObjectLabels {
 			_ = k
 			_ = v
 			mapEntrySize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
@@ -703,7 +703,7 @@ func (m *Template) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Labels", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectLabels", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -807,10 +807,10 @@ func (m *Template) Unmarshal(data []byte) error {
 			}
 			mapvalue := string(data[iNdEx:postStringIndexmapvalue])
 			iNdEx = postStringIndexmapvalue
-			if m.Labels == nil {
-				m.Labels = make(map[string]string)
+			if m.ObjectLabels == nil {
+				m.ObjectLabels = make(map[string]string)
 			}
-			m.Labels[mapkey] = mapvalue
+			m.ObjectLabels[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

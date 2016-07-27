@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 21da9c99b05decb5ddf73571313aef718d2311a8
+%global commit 8b48deedd4c60d2911ac14cea1e684c6b026b528
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.9+21da9c9 -X github.com/openshift/origin/pkg/version.commitFromGit=21da9c9 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-25T14:17:11Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-25T14:17:11Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.10+8b48dee -X github.com/openshift/origin/pkg/version.commitFromGit=8b48dee -X github.com/openshift/origin/pkg/version.buildDate=2016-07-27T14:07:30Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-27T14:07:30Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.10
+Version:        3.3.0.11
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,58 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Jul 27 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.11
+- README.md: Updates to "What can I run on Origin?" section (jawnsy@redhat.com)
+- Return instead of exit on argument mismatch in os::cmd (skuznets@redhat.com)
+- Allows filtering templates by namespace in new-app (ffranz@redhat.com)
+- tolerate yaml payloads for generic webhooks (bparees@redhat.com)
+- Use client interface for DCReaper (matthieu.dalstein@amadeus.com)
+- Clarify major Origin features (jawnsy@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  3632461ab64707aad489203b99889650cdf02647 (jupierce@redhat.com)
+- Update Origin admission controllers to handle init containers
+  (ccoleman@redhat.com)
+- UPSTREAM: 29356: Container limits are not applied to InitContainers
+  (ccoleman@redhat.com)
+- UPSTREAM: 29356: InitContainers are not checked for hostPort ranges
+  (ccoleman@redhat.com)
+- InitContainer admission (ccoleman@redhat.com)
+- update docs (jvallejo@redhat.com)
+- make cli command root dynamic in cmd output (jvallejo@redhat.com)
+- Ensure build pod name annotation is set (cewong@redhat.com)
+- Secrets: work around race in `oc extract` test (sgallagh@redhat.com)
+- Fix test registry client with images of different versions
+  (agladkov@redhat.com)
+- Parse v2 schema manifest (agladkov@redhat.com)
+- add master-config validation that complains about using troublesome admission
+  chains (deads@redhat.com)
+- Use image.DockerImageLayers for pruning (maszulik@redhat.com)
+- implement basic DDOS protections in the HAProxy template router
+  (jtanenba@redhat.com)
+- generated: For proto and authorization changes (ccoleman@redhat.com)
+- Enable protobuf for new configurations, json for old (ccoleman@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  49dac82c5f1521e95980c71ff0e092b991fc1b09 (bparees@redhat.com)
+- Make authorization conversions efficient (ccoleman@redhat.com)
+- Rename AuthorizationAttributes -> Action (ccoleman@redhat.com)
+- Fix issues running protobuf from clients (ccoleman@redhat.com)
+- Verify protobuf during runs (ccoleman@redhat.com)
+- Templates should use NestedObject* with Unstructured scheme
+  (ccoleman@redhat.com)
+- UPSTREAM: 28931: genconversion=false should skip fields during conversion
+  generation (ccoleman@redhat.com)
+- UPSTREAM: 28934: Unable to have optional message slice (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Drop LegacyCodec in unversioned client
+  (ccoleman@redhat.com)
+- UPSTREAM: 28932: Fail correctly in go-to-protobuf (ccoleman@redhat.com)
+- UPSTREAM: 28933: Handle server errors more precisely (ccoleman@redhat.com)
+- extended: set failure traps in all deployment tests (mkargaki@redhat.com)
+- Adding template instructional message to new-app output (jupierce@redhat.com)
+- Override port forwarding if using docker machine (cewong@redhat.com)
+- Bump origin-web-console (50d02f7) (jforrest@redhat.com)
+- support -f flag for --follow in start-build (bparees@redhat.com)
+- Enforce --tty=false flag for 'oc debug' (mdame@localhost.localdomain)
+
 * Mon Jul 25 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.10
 - Skip the '-' character in scratch builds for Docker 1.9.1
   (ccoleman@redhat.com)

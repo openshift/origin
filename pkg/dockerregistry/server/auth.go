@@ -388,7 +388,7 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) erro
 
 func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Verb:         verb,
 			Group:        imageapi.GroupName,
 			Resource:     "imagestreams/layers",
@@ -415,7 +415,7 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 
 func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
 	sar := authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Verb:     "delete",
 			Group:    imageapi.GroupName,
 			Resource: "images",

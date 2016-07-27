@@ -69,6 +69,12 @@ os::cmd::expect_success_and_text 'openshift cli get dc --loglevel=7  2>&1 | grep
 echo "version reporting: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/basicresources/status"
+os::cmd::expect_success_and_text 'openshift cli status -h' 'openshift cli describe buildConfig'
+os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+echo "status help output: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/basicresources/explain"
 os::cmd::expect_success_and_text 'oc types' 'Deployment Configuration'
 os::cmd::expect_failure_and_text 'oc get' 'deploymentconfig'

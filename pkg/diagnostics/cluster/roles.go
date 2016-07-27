@@ -39,7 +39,7 @@ func (d *ClusterRoles) CanRun() (bool, error) {
 		return false, fmt.Errorf("must have client.SubjectAccessReviews")
 	}
 
-	return userCan(d.SARClient, authorizationapi.AuthorizationAttributes{
+	return userCan(d.SARClient, authorizationapi.Action{
 		Verb:     "list",
 		Group:    authorizationapi.GroupName,
 		Resource: "clusterroles",

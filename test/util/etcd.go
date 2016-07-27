@@ -94,7 +94,11 @@ func DumpEtcdOnFailure(t *testing.T) {
 	pc := make([]uintptr, 10)
 	goruntime.Callers(2, pc)
 	f := goruntime.FuncForPC(pc[0])
-	name := f.Name()[strings.LastIndex(f.Name(), "Test"):]
+	last := strings.LastIndex(f.Name(), "Test")
+	if last == -1 {
+		last = 0
+	}
+	name := f.Name()[last:]
 
 	client := NewEtcdClient()
 	etcdResponse, err := client.RawGet("/", false, true)

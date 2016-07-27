@@ -115,6 +115,18 @@ func (CertInfo) SwaggerDoc() map[string]string {
 	return map_CertInfo
 }
 
+var map_ClientConnectionOverrides = map[string]string{
+	"":                   "ClientConnectionOverrides are a set of overrides to the default client connection settings.",
+	"acceptContentTypes": "AcceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the default value of 'application/json'. This field will control all connections to the server used by a particular client.",
+	"contentType":        "ContentType is the content type used when sending data to the server from this client.",
+	"qps":                "QPS controls the number of queries per second allowed for this connection.",
+	"burst":              "Burst allows extra queries to accumulate when a client is exceeding its rate.",
+}
+
+func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
+	return map_ClientConnectionOverrides
+}
+
 var map_ControllerConfig = map[string]string{
 	"":                   "ControllerConfig holds configuration values for controllers",
 	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
@@ -415,8 +427,10 @@ func (LocalQuota) SwaggerDoc() map[string]string {
 
 var map_MasterClients = map[string]string{
 	"": "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
-	"openshiftLoopbackKubeConfig":  "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
-	"externalKubernetesKubeConfig": "ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes",
+	"openshiftLoopbackKubeConfig":                 "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
+	"externalKubernetesKubeConfig":                "ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to Kubernetes",
+	"openshiftLoopbackClientConnectionOverrides":  "OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.",
+	"externalKubernetesClientConnectionOverrides": "ExternalKubernetesClientConnectionOverrides specifies client overrides for proxying to Kubernetes.",
 }
 
 func (MasterClients) SwaggerDoc() map[string]string {
@@ -504,25 +518,26 @@ func (NodeAuthConfig) SwaggerDoc() map[string]string {
 }
 
 var map_NodeConfig = map[string]string{
-	"":                    "NodeConfig is the fully specified config starting an OpenShift node",
-	"nodeName":            "NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname. If you're describing a set of static nodes to the master, this value must match one of the values in the list",
-	"nodeIP":              "Node may have multiple IPs, specify the IP to use for pod traffic routing If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used",
-	"servingInfo":         "ServingInfo describes how to start serving",
-	"masterKubeConfig":    "MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master",
-	"dnsDomain":           "DNSDomain holds the domain suffix",
-	"dnsIP":               "DNSIP holds the IP",
-	"networkPluginName":   "Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead",
-	"networkConfig":       "NetworkConfig provides network options for the node",
-	"volumeDirectory":     "VolumeDirectory is the directory that volumes will be stored under",
-	"imageConfig":         "ImageConfig holds options that describe how to build image names for system components",
-	"allowDisabledDocker": "AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.",
-	"podManifestConfig":   "PodManifestConfig holds the configuration for enabling the Kubelet to create pods based from a manifest file(s) placed locally on the node",
-	"authConfig":          "AuthConfig holds authn/authz configuration options",
-	"dockerConfig":        "DockerConfig holds Docker related configuration options.",
-	"kubeletArguments":    "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
-	"proxyArguments":      "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
-	"iptablesSyncPeriod":  "IPTablesSyncPeriod is how often iptable rules are refreshed",
-	"volumeConfig":        "VolumeConfig contains options for configuring volumes on the node.",
+	"":                                "NodeConfig is the fully specified config starting an OpenShift node",
+	"nodeName":                        "NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname. If you're describing a set of static nodes to the master, this value must match one of the values in the list",
+	"nodeIP":                          "Node may have multiple IPs, specify the IP to use for pod traffic routing If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used",
+	"servingInfo":                     "ServingInfo describes how to start serving",
+	"masterKubeConfig":                "MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master",
+	"masterClientConnectionOverrides": "MasterClientConnectionOverrides provides overrides to the client connection used to connect to the master.",
+	"dnsDomain":                       "DNSDomain holds the domain suffix",
+	"dnsIP":                           "DNSIP holds the IP",
+	"networkPluginName":               "Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead",
+	"networkConfig":                   "NetworkConfig provides network options for the node",
+	"volumeDirectory":                 "VolumeDirectory is the directory that volumes will be stored under",
+	"imageConfig":                     "ImageConfig holds options that describe how to build image names for system components",
+	"allowDisabledDocker":             "AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.",
+	"podManifestConfig":               "PodManifestConfig holds the configuration for enabling the Kubelet to create pods based from a manifest file(s) placed locally on the node",
+	"authConfig":                      "AuthConfig holds authn/authz configuration options",
+	"dockerConfig":                    "DockerConfig holds Docker related configuration options.",
+	"kubeletArguments":                "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
+	"proxyArguments":                  "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
+	"iptablesSyncPeriod":              "IPTablesSyncPeriod is how often iptable rules are refreshed",
+	"volumeConfig":                    "VolumeConfig contains options for configuring volumes on the node.",
 }
 
 func (NodeConfig) SwaggerDoc() map[string]string {

@@ -31,6 +31,8 @@ type FakeDocker struct {
 	GetImageUserImage            string
 	GetImageUserResult           string
 	GetImageUserError            error
+	GetImageEntrypointResult     []string
+	GetImageEntrypointError      error
 	CommitContainerOpts          CommitContainerOptions
 	CommitContainerResult        string
 	CommitContainerError         error
@@ -135,6 +137,11 @@ func (f *FakeDocker) GetImageID(image string) (string, error) {
 func (f *FakeDocker) GetImageUser(image string) (string, error) {
 	f.GetImageUserImage = image
 	return f.GetImageUserResult, f.GetImageUserError
+}
+
+// GetImageEntrypoint returns an empty entrypoint
+func (f *FakeDocker) GetImageEntrypoint(image string) ([]string, error) {
+	return f.GetImageEntrypointResult, f.GetImageEntrypointError
 }
 
 // CommitContainer commits a fake Docker container

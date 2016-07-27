@@ -18,6 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/transport"
 	knet "k8s.io/kubernetes/pkg/util/net"
 
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
+
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -471,6 +474,8 @@ func (repo *v2repository) getTags(c *connection) (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
+	addAcceptHeader(req)
+
 	if len(repo.token) > 0 {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", repo.token))
 	}
@@ -528,6 +533,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
+	addAcceptHeader(req)
 
 	if len(repo.token) > 0 {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", repo.token))
@@ -579,7 +585,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 	if err != nil {
 		return nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
 	}
-	dockerImage, err := unmarshalV2DockerImage(body)
+	dockerImage, err := repo.unmarshalImageManifest(c, body)
 	if err != nil {
 		return nil, err
 	}
@@ -595,6 +601,87 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 
 func (repo *v2repository) getImage(c *connection, image, userTag string) (*Image, error) {
 	return repo.getTaggedImage(c, image, userTag)
+}
+
+func (repo *v2repository) getImageConfig(c *connection, dgst string) ([]byte, error) {
+	endpoint := repo.endpoint
+	endpoint.Path = path.Join(endpoint.Path, fmt.Sprintf("/v2/%s/blobs/%s", repo.name, dgst))
+	req, err := http.NewRequest("GET", endpoint.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	if len(repo.token) > 0 {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", repo.token))
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting image config for %s: %v", repo.name, err))
+	}
+	defer resp.Body.Close()
+
+	switch code := resp.StatusCode; {
+	case code == http.StatusUnauthorized:
+		if len(repo.token) != 0 {
+			// The DockerHub returns JWT tokens that take effect at "now" at second resolution, which means clients can
+			// be rejected when requests are made near the time boundary.
+			if repo.retries > 0 {
+				repo.retries--
+				time.Sleep(time.Second / 2)
+				return repo.getImageConfig(c, dgst)
+			}
+			delete(c.cached, repo.name)
+			// docker will not return a NotFound on any repository URL - for backwards compatibility, return NotFound on the
+			// repo
+			body, _ := ioutil.ReadAll(resp.Body)
+			glog.V(4).Infof("passed valid auth token, but unable to find image config at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+			return nil, errBlobNotFound{dgst, repo.name}
+		}
+		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
+		if err != nil {
+			return nil, fmt.Errorf("error getting image config for %s:%s: %v", repo.name, dgst, err)
+		}
+		repo.retries = 2
+		repo.token = token
+		return repo.getImageConfig(c, dgst)
+	case code == http.StatusNotFound:
+		body, _ := ioutil.ReadAll(resp.Body)
+		glog.V(4).Infof("unable to find image config at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+		return nil, errBlobNotFound{dgst, repo.name}
+	case code >= 300 || resp.StatusCode < 200:
+		// token might have expired - evict repo from cache so we can get a new one on retry
+		delete(c.cached, repo.name)
+
+		return nil, fmt.Errorf("error retrieving image config: server returned %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)
+	}
+
+	return body, nil
+}
+
+func (repo *v2repository) unmarshalImageManifest(c *connection, body []byte) (*docker.Image, error) {
+	manifest := imageapi.DockerImageManifest{}
+	if err := json.Unmarshal(body, &manifest); err != nil {
+		return nil, err
+	}
+	switch manifest.SchemaVersion {
+	case 1:
+		if len(manifest.History) == 0 {
+			return nil, fmt.Errorf("image has no v1Compatibility history and cannot be used")
+		}
+		return unmarshalDockerImage([]byte(manifest.History[0].DockerV1Compatibility))
+	case 2:
+		config, err := repo.getImageConfig(c, manifest.Config.Digest)
+		if err != nil {
+			return nil, err
+		}
+		return unmarshalDockerImage(config)
+	}
+	return nil, fmt.Errorf("unrecognized Docker image manifest schema %d", manifest.SchemaVersion)
 }
 
 // v1repository exposes methods for accessing a named Docker V1 repository on a server.
@@ -713,6 +800,16 @@ func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image
 	return &Image{Image: *dockerImage}, nil
 }
 
+// errBlobNotFound is an error indicating the requested blob does not exist in the repository.
+type errBlobNotFound struct {
+	digest     string
+	repository string
+}
+
+func (e errBlobNotFound) Error() string {
+	return fmt.Sprintf("blob %s was not found in repository %q", e.digest, e.repository)
+}
+
 // errTagNotFound is an error indicating the requested tag does not exist on the server. May be returned on
 // a v2 repository when the repository does not exist (because the v2 registry returns 401 on any repository
 // you do not have permission to see, or does not exist)
@@ -784,8 +881,13 @@ func IsTagNotFound(err error) bool {
 	return ok
 }
 
+func IsBlobNotFound(err error) bool {
+	_, ok := err.(errBlobNotFound)
+	return ok
+}
+
 func IsNotFound(err error) bool {
-	return IsRegistryNotFound(err) || IsRepositoryNotFound(err) || IsImageNotFound(err) || IsTagNotFound(err)
+	return IsRegistryNotFound(err) || IsRepositoryNotFound(err) || IsImageNotFound(err) || IsTagNotFound(err) || IsBlobNotFound(err)
 }
 
 func unmarshalDockerImage(body []byte) (*docker.Image, error) {
@@ -809,13 +911,7 @@ func unmarshalDockerImage(body []byte) (*docker.Image, error) {
 	}, nil
 }
 
-func unmarshalV2DockerImage(body []byte) (*docker.Image, error) {
-	manifest := imageapi.DockerImageManifest{}
-	if err := json.Unmarshal(body, &manifest); err != nil {
-		return nil, err
-	}
-	if len(manifest.History) == 0 {
-		return nil, fmt.Errorf("image has no v1Compatibility history and cannot be used")
-	}
-	return unmarshalDockerImage([]byte(manifest.History[0].DockerV1Compatibility))
+func addAcceptHeader(r *http.Request) {
+	r.Header.Add("Accept", schema1.MediaTypeManifest)
+	r.Header.Add("Accept", schema2.MediaTypeManifest)
 }

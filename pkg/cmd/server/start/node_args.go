@@ -156,6 +156,7 @@ func ValidateRuntime(config *configapi.NodeConfig, components *utilflags.Compone
 
 // BuildSerializeableNodeConfig takes the NodeArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
 // config object for starting the node
+// TODO: reconcile that this is not used by CreateNodeConfig in all-in-one start.
 func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, error) {
 	var dnsIP string
 	if len(args.ClusterDNS) > 0 {
@@ -198,8 +199,12 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 	if err != nil {
 		return nil, err
 	}
+	config = internal.(*configapi.NodeConfig)
 
-	return internal.(*configapi.NodeConfig), nil
+	// When creating a new config, use Protobuf
+	configapi.SetProtobufClientDefaults(config.MasterClientConnectionOverrides)
+
+	return config, nil
 }
 
 // GetServerCertHostnames returns the set of hostnames and IP addresses a serving certificate for node on this host might need to be valid for.

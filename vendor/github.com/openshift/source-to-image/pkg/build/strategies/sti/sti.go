@@ -25,9 +25,12 @@ import (
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
-var glog = utilglog.StderrLog
-
 var (
+	// DefaultEntrypoint is the default entry point used when starting containers
+	DefaultEntrypoint = []string{"/bin/env"}
+
+	glog = utilglog.StderrLog
+
 	// List of directories that needs to be present inside working dir
 	workingDirs = []string{
 		api.UploadScripts,
@@ -322,8 +325,8 @@ func (builder *STI) SetScripts(required, optional []string) {
 	builder.optionalScripts = optional
 }
 
-// PostExecute allows to execute post-build actions after the Docker build
-// finishes.
+// PostExecute allows to execute post-build actions after the Docker
+// container execution finishes.
 func (builder *STI) PostExecute(containerID, destination string) error {
 	builder.postExecutorStepsContext.containerID = containerID
 	builder.postExecutorStepsContext.destination = destination
@@ -411,6 +414,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
 		User:            user,
+		Entrypoint:      DefaultEntrypoint,
 		ExternalScripts: builder.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
@@ -454,9 +458,10 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 	}
 
 	opts := dockerpkg.RunContainerOptions{
-		Image:  config.BuilderImage,
-		Stdout: outWriter,
-		Stderr: errWriter,
+		Image:      config.BuilderImage,
+		Entrypoint: DefaultEntrypoint,
+		Stdout:     outWriter,
+		Stderr:     errWriter,
 		// The PullImage is false because the PullImage function should be called
 		// before we run the container
 		PullImage:       false,

@@ -13,121 +13,59 @@ import (
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
-func Convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *newer.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *newer.LocalResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview(in *newer.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
-
 	return nil
 }
 
 func Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.GroupsSlice = in.Groups.List()
-
 	return nil
 }
 
 func Convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *LocalSubjectAccessReview, out *newer.LocalSubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
-
 	return nil
 }
 
 func Convert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in *newer.LocalSubjectAccessReview, out *LocalSubjectAccessReview, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in, out, s); err != nil {
 		return err
 	}
 
 	out.GroupsSlice = in.Groups.List()
-
 	return nil
 }
 
 func Convert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in, out, s); err != nil {
 		return err
 	}
 
 	out.Users = sets.NewString(in.UsersSlice...)
 	out.Groups = sets.NewString(in.GroupsSlice...)
-
 	return nil
 }
 
 func Convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+	if err := autoConvert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse(in, out, s); err != nil {
 		return err
 	}
 
 	out.UsersSlice = in.Users.List()
 	out.GroupsSlice = in.Groups.List()
-
 	return nil
 }
 
@@ -173,19 +111,17 @@ func Convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRu
 }
 
 func Convert_v1_Policy_To_api_Policy(in *Policy, out *newer.Policy, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.Roles = make(map[string]*newer.Role)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-}
-
-func Convert_api_Policy_To_v1_Policy(in *newer.Policy, out *Policy, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.Roles = make([]NamedRole, 0, 0)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+	if err := autoConvert_v1_Policy_To_api_Policy(in, out, s); err != nil {
+		return err
+	}
+	if out.Roles == nil {
+		out.Roles = make(map[string]*newer.Role)
+	}
+	return nil
 }
 
 func Convert_v1_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.RoleBinding, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+	if err := autoConvert_v1_RoleBinding_To_api_RoleBinding(in, out, s); err != nil {
 		return err
 	}
 
@@ -200,7 +136,7 @@ func Convert_v1_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.RoleB
 }
 
 func Convert_api_RoleBinding_To_v1_RoleBinding(in *newer.RoleBinding, out *RoleBinding, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+	if err := autoConvert_api_RoleBinding_To_v1_RoleBinding(in, out, s); err != nil {
 		return err
 	}
 
@@ -210,32 +146,28 @@ func Convert_api_RoleBinding_To_v1_RoleBinding(in *newer.RoleBinding, out *RoleB
 }
 
 func Convert_v1_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.RoleBindings = make(map[string]*newer.RoleBinding)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-}
-
-func Convert_api_PolicyBinding_To_v1_PolicyBinding(in *newer.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.RoleBindings = make([]NamedRoleBinding, 0, 0)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+	if err := autoConvert_v1_PolicyBinding_To_api_PolicyBinding(in, out, s); err != nil {
+		return err
+	}
+	if out.RoleBindings == nil {
+		out.RoleBindings = make(map[string]*newer.RoleBinding)
+	}
+	return nil
 }
 
 // and now the globals
 func Convert_v1_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.Roles = make(map[string]*newer.ClusterRole)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-}
-
-func Convert_api_ClusterPolicy_To_v1_ClusterPolicy(in *newer.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.Roles = make([]NamedClusterRole, 0, 0)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+	if err := autoConvert_v1_ClusterPolicy_To_api_ClusterPolicy(in, out, s); err != nil {
+		return err
+	}
+	if out.Roles == nil {
+		out.Roles = make(map[string]*newer.ClusterRole)
+	}
+	return nil
 }
 
 func Convert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBinding, out *newer.ClusterRoleBinding, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+	if err := autoConvert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in, out, s); err != nil {
 		return err
 	}
 
@@ -250,7 +182,7 @@ func Convert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBind
 }
 
 func Convert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *newer.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+	if err := autoConvert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in, out, s); err != nil {
 		return err
 	}
 
@@ -260,21 +192,23 @@ func Convert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *newer.ClusterRo
 }
 
 func Convert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.RoleBindings = make(map[string]*newer.ClusterRoleBinding)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+	if err := autoConvert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in, out, s); err != nil {
+		return err
+	}
+	if out.RoleBindings == nil {
+		out.RoleBindings = make(map[string]*newer.ClusterRoleBinding)
+	}
+	return nil
 }
 
-func Convert_api_ClusterPolicyBinding_To_v1_ClusterPolicyBinding(in *newer.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
-	out.LastModified = in.LastModified
-	out.RoleBindings = make([]NamedClusterRoleBinding, 0, 0)
-	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-}
+func Convert_v1_NamedRoles_To_api_RolesByName(in *NamedRoles, out *newer.RolesByName, s conversion.Scope) error {
+	if *out == nil {
+		*out = make(newer.RolesByName)
+	}
 
-func Convert_v1_NamedRoleArray_to_api_RoleArray(in *[]NamedRole, out *map[string]*newer.Role, s conversion.Scope) error {
 	for _, curr := range *in {
 		newRole := &newer.Role{}
-		if err := s.Convert(&curr.Role, newRole, 0); err != nil {
+		if err := Convert_v1_Role_To_api_Role(&curr.Role, newRole, s); err != nil {
 			return err
 		}
 		(*out)[curr.Name] = newRole
@@ -282,7 +216,7 @@ func Convert_v1_NamedRoleArray_to_api_RoleArray(in *[]NamedRole, out *map[string
 
 	return nil
 }
-func Convert_api_NamedRoleArray_to_v1_RoleArray(in *map[string]*newer.Role, out *[]NamedRole, s conversion.Scope) error {
+func Convert_api_RolesByName_To_v1_NamedRoles(in *newer.RolesByName, out *NamedRoles, s conversion.Scope) error {
 	allKeys := make([]string, 0, len(*in))
 	for key := range *in {
 		allKeys = append(allKeys, key)
@@ -292,7 +226,7 @@ func Convert_api_NamedRoleArray_to_v1_RoleArray(in *map[string]*newer.Role, out 
 	for _, key := range allKeys {
 		newRole := (*in)[key]
 		oldRole := &Role{}
-		if err := s.Convert(newRole, oldRole, 0); err != nil {
+		if err := Convert_api_Role_To_v1_Role(newRole, oldRole, s); err != nil {
 			return err
 		}
 
@@ -303,10 +237,13 @@ func Convert_api_NamedRoleArray_to_v1_RoleArray(in *map[string]*newer.Role, out 
 	return nil
 }
 
-func Convert_v1_NamedRoleBindingArray_to_api_RoleBindingArray(in *[]NamedRoleBinding, out *map[string]*newer.RoleBinding, s conversion.Scope) error {
+func Convert_v1_NamedRoleBindings_To_api_RoleBindingsByName(in *NamedRoleBindings, out *newer.RoleBindingsByName, s conversion.Scope) error {
+	if *out == nil {
+		*out = make(newer.RoleBindingsByName)
+	}
 	for _, curr := range *in {
 		newRoleBinding := &newer.RoleBinding{}
-		if err := s.Convert(&curr.RoleBinding, newRoleBinding, 0); err != nil {
+		if err := Convert_v1_RoleBinding_To_api_RoleBinding(&curr.RoleBinding, newRoleBinding, s); err != nil {
 			return err
 		}
 		(*out)[curr.Name] = newRoleBinding
@@ -314,7 +251,7 @@ func Convert_v1_NamedRoleBindingArray_to_api_RoleBindingArray(in *[]NamedRoleBin
 
 	return nil
 }
-func Convert_api_RoleBindingArray_to_v1_NamedRoleBindingArray(in *map[string]*newer.RoleBinding, out *[]NamedRoleBinding, s conversion.Scope) error {
+func Convert_api_RoleBindingsByName_To_v1_NamedRoleBindings(in *newer.RoleBindingsByName, out *NamedRoleBindings, s conversion.Scope) error {
 	allKeys := make([]string, 0, len(*in))
 	for key := range *in {
 		allKeys = append(allKeys, key)
@@ -324,7 +261,7 @@ func Convert_api_RoleBindingArray_to_v1_NamedRoleBindingArray(in *map[string]*ne
 	for _, key := range allKeys {
 		newRoleBinding := (*in)[key]
 		oldRoleBinding := &RoleBinding{}
-		if err := s.Convert(newRoleBinding, oldRoleBinding, 0); err != nil {
+		if err := Convert_api_RoleBinding_To_v1_RoleBinding(newRoleBinding, oldRoleBinding, s); err != nil {
 			return err
 		}
 
@@ -335,10 +272,13 @@ func Convert_api_RoleBindingArray_to_v1_NamedRoleBindingArray(in *map[string]*ne
 	return nil
 }
 
-func Convert_v1_NamedClusterRoleArray_to_api_ClusterRoleArray(in *[]NamedClusterRole, out *map[string]*newer.ClusterRole, s conversion.Scope) error {
+func Convert_v1_NamedClusterRoles_To_api_ClusterRolesByName(in *NamedClusterRoles, out *newer.ClusterRolesByName, s conversion.Scope) error {
+	if *out == nil {
+		*out = make(newer.ClusterRolesByName)
+	}
 	for _, curr := range *in {
 		newRole := &newer.ClusterRole{}
-		if err := s.Convert(&curr.Role, newRole, 0); err != nil {
+		if err := Convert_v1_ClusterRole_To_api_ClusterRole(&curr.Role, newRole, s); err != nil {
 			return err
 		}
 		(*out)[curr.Name] = newRole
@@ -346,7 +286,7 @@ func Convert_v1_NamedClusterRoleArray_to_api_ClusterRoleArray(in *[]NamedCluster
 
 	return nil
 }
-func Convert_api_ClusterRoleArray_to_v1_NamedClusterRoleArray(in *map[string]*newer.ClusterRole, out *[]NamedClusterRole, s conversion.Scope) error {
+func Convert_api_ClusterRolesByName_To_v1_NamedClusterRoles(in *newer.ClusterRolesByName, out *NamedClusterRoles, s conversion.Scope) error {
 	allKeys := make([]string, 0, len(*in))
 	for key := range *in {
 		allKeys = append(allKeys, key)
@@ -356,7 +296,7 @@ func Convert_api_ClusterRoleArray_to_v1_NamedClusterRoleArray(in *map[string]*ne
 	for _, key := range allKeys {
 		newRole := (*in)[key]
 		oldRole := &ClusterRole{}
-		if err := s.Convert(newRole, oldRole, 0); err != nil {
+		if err := Convert_api_ClusterRole_To_v1_ClusterRole(newRole, oldRole, s); err != nil {
 			return err
 		}
 
@@ -366,18 +306,20 @@ func Convert_api_ClusterRoleArray_to_v1_NamedClusterRoleArray(in *map[string]*ne
 
 	return nil
 }
-func Convert_v1_NamedClusterRoleBindingArray_to_ClusterRoleBindingArray(in *[]NamedClusterRoleBinding, out *map[string]*newer.ClusterRoleBinding, s conversion.Scope) error {
+func Convert_v1_NamedClusterRoleBindings_To_api_ClusterRoleBindingsByName(in *NamedClusterRoleBindings, out *newer.ClusterRoleBindingsByName, s conversion.Scope) error {
+	if *out == nil {
+		*out = make(newer.ClusterRoleBindingsByName)
+	}
 	for _, curr := range *in {
 		newRoleBinding := &newer.ClusterRoleBinding{}
-		if err := s.Convert(&curr.RoleBinding, newRoleBinding, 0); err != nil {
+		if err := Convert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(&curr.RoleBinding, newRoleBinding, s); err != nil {
 			return err
 		}
 		(*out)[curr.Name] = newRoleBinding
 	}
-
 	return nil
 }
-func Convert_api_ClusterRoleBindingArray_to_v1_NamedClusterRoleBindingArray(in *map[string]*newer.ClusterRoleBinding, out *[]NamedClusterRoleBinding, s conversion.Scope) error {
+func Convert_api_ClusterRoleBindingsByName_To_v1_NamedClusterRoleBindings(in *newer.ClusterRoleBindingsByName, out *NamedClusterRoleBindings, s conversion.Scope) error {
 	allKeys := make([]string, 0, len(*in))
 	for key := range *in {
 		allKeys = append(allKeys, key)
@@ -387,7 +329,7 @@ func Convert_api_ClusterRoleBindingArray_to_v1_NamedClusterRoleBindingArray(in *
 	for _, key := range allKeys {
 		newRoleBinding := (*in)[key]
 		oldRoleBinding := &ClusterRoleBinding{}
-		if err := s.Convert(newRoleBinding, oldRoleBinding, 0); err != nil {
+		if err := Convert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(newRoleBinding, oldRoleBinding, s); err != nil {
 			return err
 		}
 
@@ -400,15 +342,6 @@ func Convert_api_ClusterRoleBindingArray_to_v1_NamedClusterRoleBindingArray(in *
 
 func addConversionFuncs(scheme *runtime.Scheme) {
 	err := scheme.AddConversionFuncs(
-		Convert_v1_NamedRoleArray_to_api_RoleArray,
-		Convert_api_NamedRoleArray_to_v1_RoleArray,
-		Convert_v1_NamedRoleBindingArray_to_api_RoleBindingArray,
-		Convert_api_RoleBindingArray_to_v1_NamedRoleBindingArray,
-		Convert_v1_NamedClusterRoleArray_to_api_ClusterRoleArray,
-		Convert_api_ClusterRoleArray_to_v1_NamedClusterRoleArray,
-		Convert_v1_NamedClusterRoleBindingArray_to_ClusterRoleBindingArray,
-		Convert_api_ClusterRoleBindingArray_to_v1_NamedClusterRoleBindingArray,
-
 		Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		Convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,

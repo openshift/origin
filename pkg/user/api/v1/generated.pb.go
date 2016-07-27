@@ -13,6 +13,7 @@
 		GroupList
 		Identity
 		IdentityList
+		OptionalNames
 		User
 		UserIdentityMapping
 		UserList
@@ -46,6 +47,10 @@ func (m *IdentityList) Reset()         { *m = IdentityList{} }
 func (m *IdentityList) String() string { return proto.CompactTextString(m) }
 func (*IdentityList) ProtoMessage()    {}
 
+func (m *OptionalNames) Reset()         { *m = OptionalNames{} }
+func (m *OptionalNames) String() string { return proto.CompactTextString(m) }
+func (*OptionalNames) ProtoMessage()    {}
+
 func (m *User) Reset()         { *m = User{} }
 func (m *User) String() string { return proto.CompactTextString(m) }
 func (*User) ProtoMessage()    {}
@@ -63,6 +68,7 @@ func init() {
 	proto.RegisterType((*GroupList)(nil), "github.com.openshift.origin.pkg.user.api.v1.GroupList")
 	proto.RegisterType((*Identity)(nil), "github.com.openshift.origin.pkg.user.api.v1.Identity")
 	proto.RegisterType((*IdentityList)(nil), "github.com.openshift.origin.pkg.user.api.v1.IdentityList")
+	proto.RegisterType((*OptionalNames)(nil), "github.com.openshift.origin.pkg.user.api.v1.OptionalNames")
 	proto.RegisterType((*User)(nil), "github.com.openshift.origin.pkg.user.api.v1.User")
 	proto.RegisterType((*UserIdentityMapping)(nil), "github.com.openshift.origin.pkg.user.api.v1.UserIdentityMapping")
 	proto.RegisterType((*UserList)(nil), "github.com.openshift.origin.pkg.user.api.v1.UserList")
@@ -90,20 +96,15 @@ func (m *Group) MarshalTo(data []byte) (int, error) {
 		return 0, err
 	}
 	i += n1
-	if len(m.Users) > 0 {
-		for _, s := range m.Users {
-			data[i] = 0x12
-			i++
-			l = len(s)
-			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
-				l >>= 7
-				i++
-			}
-			data[i] = uint8(l)
-			i++
-			i += copy(data[i:], s)
+	if m.Users != nil {
+		data[i] = 0x12
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Users.Size()))
+		n2, err := m.Users.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n2
 	}
 	return i, nil
 }
@@ -126,11 +127,11 @@ func (m *GroupList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n2, err := m.ListMeta.MarshalTo(data[i:])
+	n3, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n2
+	i += n3
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -164,11 +165,11 @@ func (m *Identity) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n3, err := m.ObjectMeta.MarshalTo(data[i:])
+	n4, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n3
+	i += n4
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.ProviderName)))
@@ -180,11 +181,11 @@ func (m *Identity) MarshalTo(data []byte) (int, error) {
 	data[i] = 0x22
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.User.Size()))
-	n4, err := m.User.MarshalTo(data[i:])
+	n5, err := m.User.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n4
+	i += n5
 	if len(m.Extra) > 0 {
 		for k := range m.Extra {
 			data[i] = 0x2a
@@ -223,11 +224,11 @@ func (m *IdentityList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n5, err := m.ListMeta.MarshalTo(data[i:])
+	n6, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n5
+	i += n6
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -238,6 +239,39 @@ func (m *IdentityList) MarshalTo(data []byte) (int, error) {
 				return 0, err
 			}
 			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m OptionalNames) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m OptionalNames) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, s := range m {
+			data[i] = 0xa
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
 		}
 	}
 	return i, nil
@@ -261,11 +295,11 @@ func (m *User) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n6, err := m.ObjectMeta.MarshalTo(data[i:])
+	n7, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n6
+	i += n7
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.FullName)))
@@ -321,27 +355,27 @@ func (m *UserIdentityMapping) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n7, err := m.ObjectMeta.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n7
-	data[i] = 0x12
-	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Identity.Size()))
-	n8, err := m.Identity.MarshalTo(data[i:])
+	n8, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n8
-	data[i] = 0x1a
+	data[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.User.Size()))
-	n9, err := m.User.MarshalTo(data[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.Identity.Size()))
+	n9, err := m.Identity.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n9
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.User.Size()))
+	n10, err := m.User.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n10
 	return i, nil
 }
 
@@ -363,11 +397,11 @@ func (m *UserList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n10, err := m.ListMeta.MarshalTo(data[i:])
+	n11, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n10
+	i += n11
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -415,11 +449,9 @@ func (m *Group) Size() (n int) {
 	_ = l
 	l = m.ObjectMeta.Size()
 	n += 1 + l + sovGenerated(uint64(l))
-	if len(m.Users) > 0 {
-		for _, s := range m.Users {
-			l = len(s)
-			n += 1 + l + sovGenerated(uint64(l))
-		}
+	if m.Users != nil {
+		l = m.Users.Size()
+		n += 1 + l + sovGenerated(uint64(l))
 	}
 	return n
 }
@@ -468,6 +500,18 @@ func (m *IdentityList) Size() (n int) {
 	if len(m.Items) > 0 {
 		for _, e := range m.Items {
 			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m OptionalNames) Size() (n int) {
+	var l int
+	_ = l
+	if len(m) > 0 {
+		for _, s := range m {
+			l = len(s)
 			n += 1 + l + sovGenerated(uint64(l))
 		}
 	}
@@ -598,7 +642,7 @@ func (m *Group) Unmarshal(data []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Users", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGenerated
@@ -608,20 +652,24 @@ func (m *Group) Unmarshal(data []byte) error {
 				}
 				b := data[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGenerated
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Users = append(m.Users, string(data[iNdEx:postIndex]))
+			if m.Users == nil {
+				m.Users = OptionalNames{}
+			}
+			if err := m.Users.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -1123,6 +1171,85 @@ func (m *IdentityList) Unmarshal(data []byte) error {
 			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *OptionalNames) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OptionalNames: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OptionalNames: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			*m = append(*m, string(data[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

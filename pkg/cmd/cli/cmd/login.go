@@ -55,7 +55,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 		Long:    loginLong,
 		Example: fmt.Sprintf(loginExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args); err != nil {
+			if err := options.Complete(f, cmd, args, fullName); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 
@@ -91,7 +91,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 	return cmds
 }
 
-func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string, commandName string) error {
 	kubeconfig, err := f.OpenShiftClientConfig.RawConfig()
 	o.StartingKubeConfig = &kubeconfig
 	if err != nil {
@@ -100,6 +100,11 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		}
 		// build a valid object to use if we failed on a non-existent file
 		o.StartingKubeConfig = kclientcmdapi.NewConfig()
+	}
+
+	o.CommandName = commandName
+	if o.CommandName == "" {
+		o.CommandName = "oc"
 	}
 
 	addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
@@ -190,7 +195,7 @@ func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	}
 
 	if newFileCreated {
-		fmt.Fprintln(options.Out, "Welcome! See 'oc help' to get started.")
+		fmt.Fprintf(options.Out, "Welcome! See '%s help' to get started.\n", options.CommandName)
 	}
 	return nil
 }

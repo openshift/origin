@@ -46,6 +46,7 @@ func TestClientConfigForVersion(t *testing.T) {
 			return
 		}
 		called++
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"versions":["v1"]}`))
 	}))
 	defer server.Close()

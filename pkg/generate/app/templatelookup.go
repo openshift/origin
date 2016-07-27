@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -29,53 +30,64 @@ type TemplateSearcher struct {
 func (r TemplateSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	matches := ComponentMatches{}
 	var errs []error
-	checkedNamespaces := sets.NewString()
-	for _, namespace := range r.Namespaces {
-		if checkedNamespaces.Has(namespace) {
+	for _, term := range terms {
+		ref, err := template.ParseTemplateReference(term)
+		if err != nil {
+			glog.V(2).Infof("template references must be of the form [<namespace>/]<name>, term %q did not qualify", term)
 			continue
 		}
-		checkedNamespaces.Insert(namespace)
+		if term == "__template_fail" {
+			errs = append(errs, fmt.Errorf("unable to find the specified template: %s", term))
+			continue
+		}
 
-		templates, err := r.Client.Templates(namespace).List(kapi.ListOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) || errors.IsForbidden(err) {
+		namespaces := r.Namespaces
+		if ref.HasNamespace() {
+			namespaces = []string{ref.Namespace}
+		}
+
+		checkedNamespaces := sets.NewString()
+		for _, namespace := range namespaces {
+			if checkedNamespaces.Has(namespace) {
 				continue
 			}
-			errs = append(errs, err)
-			continue
-		}
+			checkedNamespaces.Insert(namespace)
 
-		exact := false
-		for i := range templates.Items {
-			template := &templates.Items[i]
-			for _, term := range terms {
-				if term == "__template_fail" {
-					errs = append(errs, fmt.Errorf("unable to find the specified template: %s", term))
+			templates, err := r.Client.Templates(namespace).List(kapi.ListOptions{})
+			if err != nil {
+				if errors.IsNotFound(err) || errors.IsForbidden(err) {
 					continue
 				}
+				errs = append(errs, err)
+				continue
+			}
 
-				glog.V(4).Infof("checking for term %s in namespace %s", term, namespace)
-				if score, scored := templateScorer(*template, term); scored {
+			exact := false
+			for i := range templates.Items {
+				template := &templates.Items[i]
+				glog.V(4).Infof("checking namespace %s for template %s", namespace, ref.Name)
+				if score, scored := templateScorer(*template, ref.Name); scored {
 					if score == 0.0 {
 						exact = true
 					}
 					glog.V(4).Infof("Adding template %q in project %q with score %f", template.Name, template.Namespace, score)
+					fullName := fmt.Sprintf("%s/%s", template.Namespace, template.Name)
 					matches = append(matches, &ComponentMatch{
 						Value:       term,
-						Argument:    fmt.Sprintf("--template=%q", template.Name),
-						Name:        template.Name,
+						Argument:    fmt.Sprintf("--template=%q", fullName),
+						Name:        fullName,
 						Description: fmt.Sprintf("Template %q in project %q", template.Name, template.Namespace),
 						Score:       score,
 						Template:    template,
 					})
 				}
 			}
-		}
 
-		// If we found one or more exact matches in this namespace, do not continue looking at
-		// other namespaces
-		if exact && precise {
-			break
+			// If we found one or more exact matches in this namespace, do not continue looking at
+			// other namespaces
+			if exact && precise {
+				break
+			}
 		}
 	}
 

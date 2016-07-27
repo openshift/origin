@@ -105,7 +105,7 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 }
 
 // forbidden renders a simple forbidden error
-func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w http.ResponseWriter, req *http.Request) {
+func forbidden(reason string, attributes authorizer.Action, w http.ResponseWriter, req *http.Request) {
 	kind := ""
 	resource := ""
 	group := ""

@@ -48,9 +48,37 @@ func ExpandInjectedFiles(injections api.VolumeList) ([]string, error) {
 			if err != nil {
 				return err
 			}
+
+			// Detected files will be truncated. k8s' AtomicWriter creates
+			// directories and symlinks to directories in order to inject files.
+			// An attempt to truncate either a dir or symlink to a dir will fail.
+			// Thus, we need to dereference symlinks to see if they might point
+			// to a directory.
+			// Do not try to simplify this logic to simply return nil if a symlink
+			// is detected. During the tar transfer to an assemble image, symlinked
+			// files are turned concrete (i.e. they will be turned into regular files
+			// containing the content of their target). These newly concrete files
+			// need to be truncated as well.
+
+			if f.Mode()&os.ModeSymlink != 0 {
+				linkDest, err := filepath.EvalSymlinks(path)
+				if err != nil {
+					return fmt.Errorf("Unable to evaluate symlink [%v]: %v", path, err)
+				}
+				// Evaluate the destination of the link.
+				f, err = os.Lstat(linkDest)
+				if err != nil {
+					// This is not a fatal error. If AtomicWrite tried multiple times, a symlink might not point
+					// to a valid destination.
+					glog.Warningf("Unable to lstat symlink destination [%v]->[%v]. Partial atomic write?", path, linkDest, err)
+					return nil
+				}
+			}
+
 			if f.IsDir() {
 				return nil
 			}
+
 			newPath := filepath.Join(s.Destination, strings.TrimPrefix(path, s.Source))
 			result = append(result, newPath)
 			return nil

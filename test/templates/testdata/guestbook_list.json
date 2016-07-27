@@ -5,6 +5,7 @@
         "name": "guestbook-example",
         "creationTimestamp": null,
         "annotations": {
+            "openshift.io/display-name": "Guestbook Example",
             "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
         }
     },

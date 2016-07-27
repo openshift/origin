@@ -289,6 +289,26 @@ func createFixture(oc *exutil.CLI, fixture string) (string, string, error) {
 	return resource, parts[1], nil
 }
 
+func failureTrap(oc *exutil.CLI, name string, failed bool) {
+	if !failed {
+		return
+	}
+
+	dc, rcs, pods, err := deploymentInfo(oc, name)
+	if err != nil {
+		return
+	}
+
+	e2e.Logf("DC: %#v", dc)
+	e2e.Logf("  RCs: %#v", rcs)
+	p, _ := deploymentPods(pods)
+	for k, v := range p {
+		for _, pod := range v {
+			e2e.Logf("  Deployer: %s %#v", k, pod)
+		}
+	}
+}
+
 func checkDeploymentConfigHasSynced(dc *deployapi.DeploymentConfig, _ []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
 	return deployutil.HasSynced(dc), nil
 }

@@ -320,18 +320,8 @@ func SetOpenShiftDefaults(config *restclient.Config) error {
 	if config.APIPath == "" {
 		config.APIPath = "/oapi"
 	}
-
-	// groupMeta, err := registered.Group(config.GroupVersion.Group)
-	// if err != nil {
-	// 	return fmt.Errorf("API group %q is not recognized (valid values: %v)", config.GroupVersion.Group, latest.Versions)
-	// }
 	if config.NegotiatedSerializer == nil {
 		config.NegotiatedSerializer = kapi.Codecs
-	}
-
-	if config.Codec == nil {
-		config.Codec = kapi.Codecs.LegacyCodec(*config.GroupVersion)
-		// config.Codec = kapi.Codecs.CodecForVersions(groupMeta.Codec, []unversioned.GroupVersion{*config.GroupVersion}, groupMeta.GroupVersions)
 	}
 	return nil
 }

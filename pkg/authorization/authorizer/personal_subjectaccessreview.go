@@ -12,7 +12,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-func IsPersonalAccessReview(a AuthorizationAttributes) (bool, error) {
+func IsPersonalAccessReview(a Action) (bool, error) {
 	switch extendedAttributes := a.GetRequestAttributes().(type) {
 	case *http.Request:
 		return isPersonalAccessReviewFromRequest(a, extendedAttributes)
@@ -30,7 +30,7 @@ func IsPersonalAccessReview(a AuthorizationAttributes) (bool, error) {
 }
 
 // isPersonalAccessReviewFromRequest this variant handles the case where we have an httpRequest
-func isPersonalAccessReviewFromRequest(a AuthorizationAttributes, req *http.Request) (bool, error) {
+func isPersonalAccessReviewFromRequest(a Action, req *http.Request) (bool, error) {
 	// TODO once we're integrated with the api installer, we should have direct access to the deserialized content
 	// for now, this only happens on subjectaccessreviews with a personal check, pay the double retrieve and decode cost
 	body, err := ioutil.ReadAll(req.Body)

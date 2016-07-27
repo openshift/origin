@@ -95,6 +95,7 @@ type Docker interface {
 	CheckAndPullImage(name string) (*docker.Image, error)
 	BuildImage(opts BuildImageOptions) error
 	GetImageUser(name string) (string, error)
+	GetImageEntrypoint(name string) ([]string, error)
 	GetLabels(name string) (map[string]string, error)
 	UploadToContainer(srcPath, destPath, container string) error
 	UploadToContainerWithCallback(srcPath, destPath, container string, walkFn filepath.WalkFunc, modifyInplace bool) error
@@ -138,13 +139,17 @@ type PullResult struct {
 
 // RunContainerOptions are options passed in to the RunContainer method
 type RunContainerOptions struct {
-	Image            string
-	PullImage        bool
-	PullAuth         docker.AuthConfiguration
-	ExternalScripts  bool
-	ScriptsURL       string
-	Destination      string
-	Env              []string
+	Image           string
+	PullImage       bool
+	PullAuth        docker.AuthConfiguration
+	ExternalScripts bool
+	ScriptsURL      string
+	Destination     string
+	Env             []string
+	// Entrypoint will be used to override the default entrypoint
+	// for the image if it has one.  If the image has no entrypoint,
+	// this value is ignored.
+	Entrypoint       []string
 	Stdin            io.Reader
 	Stdout           io.Writer
 	Stderr           io.Writer
@@ -176,6 +181,7 @@ func (rco RunContainerOptions) asDockerConfig() docker.Config {
 		Image:        getImageName(rco.Image),
 		User:         rco.User,
 		Env:          rco.Env,
+		Entrypoint:   rco.Entrypoint,
 		OpenStdin:    rco.Stdin != nil,
 		StdinOnce:    rco.Stdin != nil,
 		AttachStdout: rco.Stdout != nil,
@@ -237,6 +243,7 @@ type CommitContainerOptions struct {
 	User        string
 	Command     []string
 	Env         []string
+	Entrypoint  []string
 	Labels      map[string]string
 }
 
@@ -285,6 +292,15 @@ func (d *stiDocker) GetImageWorkdir(name string) (string, error) {
 		workdir = "/"
 	}
 	return workdir, nil
+}
+
+// GetImageEntrypoint returns the ENTRYPOINT property for the given image name.
+func (d *stiDocker) GetImageEntrypoint(name string) ([]string, error) {
+	image, err := d.client.InspectImage(name)
+	if err != nil {
+		return nil, err
+	}
+	return image.Config.Entrypoint, nil
 }
 
 // UploadToContainer uploads artifacts to the container.
@@ -683,6 +699,23 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 	} else {
 		imageMetadata, err = d.client.InspectImage(image)
 	}
+
+	// if the original image has no entrypoint, and the run invocation
+	// is trying to set an entrypoint, ignore it.  We only want to
+	// set the entrypoint if we need to override a default entrypoint
+	// in the image.  This allows us to still work with a minimal image
+	// that does not contain "/bin/env" since we don't attempt to override
+	// the entrypoint.
+	if len(opts.Entrypoint) != 0 {
+		entrypoint, err := d.GetImageEntrypoint(image)
+		if err != nil {
+			return err
+		}
+		if len(entrypoint) == 0 {
+			opts.Entrypoint = nil
+		}
+	}
+
 	if err != nil {
 		glog.V(0).Infof("error: Unable to get image metadata for %s: %v", image, err)
 		return err
@@ -837,12 +870,13 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 		Repository: repository,
 		Tag:        tag,
 	}
-	if opts.Command != nil {
+	if opts.Command != nil || opts.Entrypoint != nil {
 		config := docker.Config{
-			Cmd:    opts.Command,
-			Env:    opts.Env,
-			Labels: opts.Labels,
-			User:   opts.User,
+			Cmd:        opts.Command,
+			Entrypoint: opts.Entrypoint,
+			Env:        opts.Env,
+			Labels:     opts.Labels,
+			User:       opts.User,
 		}
 		dockerOpts.Run = &config
 		glog.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, config)
