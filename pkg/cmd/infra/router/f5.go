@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -10,11 +11,11 @@ import (
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -129,7 +130,7 @@ func NewCommandF5Router(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)

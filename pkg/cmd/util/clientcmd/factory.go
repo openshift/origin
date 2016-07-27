@@ -119,6 +119,22 @@ func (c defaultingClientConfig) ConfigAccess() kclientcmd.ConfigAccess {
 	return c.nested.ConfigAccess()
 }
 
+type errConfigurationMissing struct {
+	err error
+}
+
+func (e errConfigurationMissing) Error() string {
+	return fmt.Sprintf("%v", e.err)
+}
+
+func IsConfigurationMissing(err error) bool {
+	switch err.(type) {
+	case errConfigurationMissing:
+		return true
+	}
+	return kclientcmd.IsContextNotFound(err)
+}
+
 // ClientConfig returns a complete client config
 func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 	cfg, err := c.nested.ClientConfig()
@@ -136,13 +152,13 @@ func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 		return icc, nil
 	}
 
-	return nil, fmt.Errorf(`Missing or incomplete configuration info.  Please login or point to an existing, complete config file:
+	return nil, errConfigurationMissing{fmt.Errorf(`Missing or incomplete configuration info.  Please login or point to an existing, complete config file:
 
   1. Via the command-line flag --config
   2. Via the KUBECONFIG environment variable
   3. In your home directory as ~/.kube/config
 
-To view or setup config directly use the 'config' command.`)
+To view or setup config directly use the 'config' command.`)}
 }
 
 // Factory provides common options for OpenShift commands

@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const adminLong = `
@@ -127,7 +126,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 	)
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName, version.Options{}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{}))
 	}
 
 	return cmds

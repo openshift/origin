@@ -186,6 +186,11 @@ openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\"
 openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
 openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
+# check oc version with no server running but config files present
+os::test::junit::declare_suite_start "cmd/version"
+os::cmd::expect_success_and_not_text "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc version" "did you specify the right host or port"
+os::test::junit::declare_suite_end
+
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -219,6 +224,12 @@ atomic-enterprise start \
   --volume-dir="${VOLUME_DIR}" \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
+
+# check oc version with no config file
+os::test::junit::declare_suite_start "cmd/version"
+os::cmd::expect_success_and_not_text "oc version" "Missing or incomplete configuration info"
+echo "oc version (with no config file set): ok"
+os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/validatation"
 # validate config that was generated
