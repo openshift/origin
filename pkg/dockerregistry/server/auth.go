@@ -40,26 +40,36 @@ const (
 	TokenRealmKey = "token-realm"
 )
 
+// RegistryClient encapsulates getting access to the OpenShift API.
+type RegistryClient interface {
+	// Clients return the authenticated client to use with the server.
+	Clients() (client.Interface, kclient.Interface, error)
+	// SafeClientConfig returns a client config without authentication info.
+	SafeClientConfig() restclient.Config
+}
+
 // DefaultRegistryClient is exposed for testing the registry with fake client.
 var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
-// RegistryClient encapsulates getting access to the OpenShift API.
-type RegistryClient struct {
+// registryClient implements RegistryClient
+type registryClient struct {
 	config *clientcmd.Config
 }
 
+var _ RegistryClient = &registryClient{}
+
 // NewRegistryClient creates a registry client.
-func NewRegistryClient(config *clientcmd.Config) *RegistryClient {
-	return &RegistryClient{config: config}
+func NewRegistryClient(config *clientcmd.Config) RegistryClient {
+	return &registryClient{config: config}
 }
 
 // Client returns the authenticated client to use with the server.
-func (r *RegistryClient) Clients() (client.Interface, kclient.Interface, error) {
+func (r *registryClient) Clients() (client.Interface, kclient.Interface, error) {
 	return r.config.Clients()
 }
 
 // SafeClientConfig returns a client config without authentication info.
-func (r *RegistryClient) SafeClientConfig() restclient.Config {
+func (r *registryClient) SafeClientConfig() restclient.Config {
 	return clientcmd.AnonymousClientConfig(r.config.OpenShiftConfig())
 }
 
