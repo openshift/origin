@@ -355,4 +355,3 @@ echo "patch: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
-

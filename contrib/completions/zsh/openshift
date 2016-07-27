@@ -4923,6 +4923,7 @@ _openshift_cli_new-project()
 
     flags+=("--description=")
     flags+=("--display-name=")
+    flags+=("--skip-config-write")
     flags+=("--api-version=")
     flags+=("--as=")
     flags+=("--certificate-authority=")
