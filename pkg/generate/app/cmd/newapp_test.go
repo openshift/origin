@@ -189,7 +189,7 @@ func TestBuildTemplates(t *testing.T) {
 			if !match.IsTemplate() {
 				t.Errorf("%s: Expected template match, got: %v", n, match)
 			}
-			if c.templateName != match.Name {
+			if fmt.Sprintf("%s/%s", c.namespace, c.templateName) != match.Name {
 				t.Errorf("%s: Expected template name %q, got: %q", n, c.templateName, match.Name)
 			}
 			if len(parms) != len(c.parms) {
