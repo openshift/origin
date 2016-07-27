@@ -24,14 +24,7 @@ function cleanup()
     local sudo="${USE_SUDO:+sudo}"
     ${sudo} rm -rf "${ETCD_DATA_DIR}"
 
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Test Failed !!!!"
-        echo
-        tail -40 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    elif go tool -n pprof >/dev/null 2>&1; then
+    if go tool -n pprof >/dev/null 2>&1; then
         os::log::info "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
         go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
@@ -349,7 +342,10 @@ for test in "${tests[@]}"; do
   os::cmd::try_until_text "oc get projects -o name" "project/${namespace}"
   os::test::junit::declare_suite_end
 
-  ${test}
+  if ! ${test}; then
+    failed="true"
+    tail -40 "${LOG_DIR}/openshift.log"
+  fi
   oc project ${CLUSTER_ADMIN_CONTEXT}
   oc delete project "${namespace}"
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
@@ -357,4 +353,8 @@ done
 
 os::log::info "Metrics information logged to ${LOG_DIR}/metrics.log"
 oc get --raw /metrics > "${LOG_DIR}/metrics.log"
+
+if [[ -n "${failed:-}" ]]; then
+    exit 1
+fi
 echo "test-cmd: ok"
