@@ -286,12 +286,6 @@ os::cmd::expect_success_and_text 'oc config view' "current-context.+/${API_HOST}
 os::cmd::expect_success 'oc logout'
 os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
 
-# log in as an image-pruner and test that oadm prune images works against the atomic binary
-os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
-os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
-# this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
-os::cmd::expect_success 'oadm prune images'
-
 # make sure we handle invalid config file destination
 os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test --config=/src --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
 echo "login warnings: ok"
