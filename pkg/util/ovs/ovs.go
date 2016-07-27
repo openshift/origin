@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/util/exec"
 )
 
@@ -32,8 +34,12 @@ func (tx *Transaction) exec(cmd string, args ...string) (string, error) {
 		return "", tx.err
 	}
 
+	glog.V(5).Infof("Executing: %s %s", cmdpath, strings.Join(args, " "))
 	var output []byte
 	output, tx.err = tx.execer.Command(cmdpath, args...).CombinedOutput()
+	if tx.err != nil {
+		glog.V(5).Infof("Error executing %s: %s", cmdpath, string(output))
+	}
 	return string(output), tx.err
 }
 
