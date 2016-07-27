@@ -249,11 +249,11 @@ func TestSyncFunc(t *testing.T) {
 
 		var actualQuota *quotaapi.ClusterResourceQuota
 		for _, action := range client.Actions() {
-			updateAction, ok := action.(ktestclient.UpdateAction)
+			updateAction, ok := action.(ktestclient.UpdateActionImpl)
 			if !ok {
 				continue
 			}
-			if updateAction.Matches("update", "clusterresourcequotas") {
+			if updateAction.Matches("update", "clusterresourcequotas") && updateAction.Subresource == "status" {
 				actualQuota = updateAction.GetObject().(*quotaapi.ClusterResourceQuota)
 				break
 			}

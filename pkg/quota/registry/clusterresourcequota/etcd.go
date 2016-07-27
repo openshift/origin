@@ -2,6 +2,7 @@ package clusterresourcequota
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -21,6 +22,46 @@ type REST struct {
 
 // NewStorage returns a RESTStorage object that will work against nodes.
 func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
+	store, err := makeStore(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &REST{Store: store}, nil
+}
+
+func NewStatusStorage(optsGetter restoptions.Getter) (*StatusREST, error) {
+	store, err := makeStore(optsGetter)
+	if err != nil {
+		return nil, err
+	}
+	store.CreateStrategy = nil
+	store.DeleteStrategy = nil
+	store.UpdateStrategy = StatusStrategy
+
+	return &StatusREST{store: store}, nil
+}
+
+// StatusREST implements the REST endpoint for changing the status of a resourcequota.
+type StatusREST struct {
+	store *registry.Store
+}
+
+func (r *StatusREST) New() runtime.Object {
+	return &quotaapi.ClusterResourceQuota{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch.
+func (r *StatusREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	return r.store.Get(ctx, name)
+}
+
+// Update alters the status subset of an object.
+func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
+}
+
+func makeStore(optsGetter restoptions.Getter) (*registry.Store, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:       func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
@@ -48,5 +89,5 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		return nil, err
 	}
 
-	return &REST{store}, nil
+	return store, nil
 }
