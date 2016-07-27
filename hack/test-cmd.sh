@@ -231,21 +231,6 @@ os::cmd::expect_success_and_not_text "oc version" "Missing or incomplete configu
 echo "oc version (with no config file set): ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/validatation"
-# validate config that was generated
-os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
-os::cmd::expect_success_and_text "openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml" 'SUCCESS'
-# breaking the config fails the validation check
-cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
-os::util::sed '7,12d' ${BASETMPDIR}/master-config-broken.yaml
-os::cmd::expect_failure_and_text "openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml" 'ERROR'
-
-cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
-os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
-os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
-echo "validation: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/config"
 # ensure that DisabledFeatures aren't written to config files
 os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
