@@ -147,67 +147,7 @@ oc version
 
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
-
-# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
-    ALL_IP_ADDRESSES="$(openshift start --print-ip)"
-    SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost,172.30.0.1"
-            SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},kubernetes.default.svc.cluster.local,kubernetes.default.svc,kubernetes.default,kubernetes"
-            SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},openshift.default.svc.cluster.local,openshift.default.svc,openshift.default,openshift"
-
-    while read -r IP_ADDRESS
-    do
-        SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-    done <<< "${ALL_IP_ADDRESSES}"
-
-    export ALL_IP_ADDRESSES
-    export SERVER_HOSTNAME_LIST
-fi
-
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://${KUBELET_BIND_HOST}:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --dns="tcp://${API_HOST}:53" \
-  --listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
-
-# Set deconflicted etcd ports in the config
-cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
-openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
-openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" | \
-openshift ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
+configure_os_server
 
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
@@ -364,16 +304,9 @@ mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
 os::test::junit::declare_suite_end
 
-
 # from this point every command will use config from the KUBECONFIG env var
 export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
-export KUBECONFIG="${HOME}/.kube/non-default-config"
-export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-local sudo="${USE_SUDO:+sudo}"
-${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
-echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
-
+export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
