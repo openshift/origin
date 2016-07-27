@@ -22,7 +22,6 @@ function cleanup()
     echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
     set_curl_args 0 1
     curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-    echo
 
     pkill -P $$
     kill_all_processes
@@ -42,16 +41,9 @@ function cleanup()
         echo
         echo -------------------------------------
         echo
-    else
-        if path=$(go tool -n pprof 2>&1); then
-          echo
-          echo "pprof: top output"
-          echo
-          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
-        fi
-
-        echo
-        echo "Complete"
+    elif go tool -n pprof >/dev/null 2>&1; then
+        echo "[INFO] \`pprof\` output logged to ${LOG_DIR}/pprof.out"
+        go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
 
     # TODO(skuznets): un-hack this nonsense once traps are in a better state
@@ -83,6 +75,7 @@ function cleanup()
     fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
+    echo "[INFO] Exiting with ${out}"
     exit $out
 }
 
@@ -350,11 +343,6 @@ for test in "${tests[@]}"; do
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
-# Done
-echo
-echo
+echo "[INFO] Metrics information logged to ${LOG_DIR}/metrics.log"
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80 > "${LOG_DIR}/metrics.log"
-grep "request_count" "${LOG_DIR}/metrics.log"
-echo
-echo
 echo "test-cmd: ok"
