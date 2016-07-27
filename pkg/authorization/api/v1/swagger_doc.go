@@ -324,10 +324,11 @@ func (SubjectAccessReview) SwaggerDoc() map[string]string {
 }
 
 var map_SubjectAccessReviewResponse = map[string]string{
-	"":          "SubjectAccessReviewResponse describes whether or not a user or group can perform an action",
-	"namespace": "Namespace is the namespace used for the access review",
-	"allowed":   "Allowed is required.  True if the action would be allowed, false otherwise.",
-	"reason":    "Reason is optional.  It indicates why a request was allowed or denied.",
+	"":                "SubjectAccessReviewResponse describes whether or not a user or group can perform an action",
+	"namespace":       "Namespace is the namespace used for the access review",
+	"allowed":         "Allowed is required.  True if the action would be allowed, false otherwise.",
+	"reason":          "Reason is optional.  It indicates why a request was allowed or denied.",
+	"evaluationError": "EvaluationError is an indication that some error occurred during the authorization check. It is entirely possible to get an error and be able to continue determine authorization status in spite of it.  This is most common when a bound role is missing, but enough roles are still present and bound to reason about the request.",
 }
 
 func (SubjectAccessReviewResponse) SwaggerDoc() map[string]string {

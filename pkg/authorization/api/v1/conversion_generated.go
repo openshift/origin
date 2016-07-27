@@ -1101,6 +1101,7 @@ func autoConvert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewRespon
 	out.Namespace = in.Namespace
 	out.Allowed = in.Allowed
 	out.Reason = in.Reason
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 
@@ -1115,6 +1116,7 @@ func autoConvert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewRespon
 	out.Namespace = in.Namespace
 	out.Allowed = in.Allowed
 	out.Reason = in.Reason
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 

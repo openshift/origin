@@ -99,14 +99,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	requestContext := kapi.WithNamespace(kapi.WithUser(ctx, userToCheck), subjectAccessReview.Action.Namespace)
 	attributes := authorizer.ToDefaultAuthorizationAttributes(subjectAccessReview.Action)
 	allowed, reason, err := r.authorizer.Authorize(requestContext, attributes)
-	if err != nil {
-		return nil, err
-	}
-
 	response := &authorizationapi.SubjectAccessReviewResponse{
 		Namespace: subjectAccessReview.Action.Namespace,
 		Allowed:   allowed,
 		Reason:    reason,
+	}
+	if err != nil {
+		response.EvaluationError = err.Error()
 	}
 
 	return response, nil
