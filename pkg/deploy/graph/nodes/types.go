@@ -17,7 +17,7 @@ func DeploymentConfigNodeName(o *deployapi.DeploymentConfig) osgraph.UniqueName 
 
 type DeploymentConfigNode struct {
 	osgraph.Node
-	*deployapi.DeploymentConfig
+	DeploymentConfig *deployapi.DeploymentConfig
 
 	IsFound bool
 }

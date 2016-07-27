@@ -4,6 +4,7 @@ import (
 	"github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
@@ -153,4 +154,34 @@ func EnsureHorizontalPodAutoscalerNode(g osgraph.MutableUniqueGraph, hpa *autosc
 			return &HorizontalPodAutoscalerNode{Node: node, HorizontalPodAutoscaler: hpa}
 		},
 	).(*HorizontalPodAutoscalerNode)
+}
+
+func EnsurePetSetNode(g osgraph.MutableUniqueGraph, petset *kapps.PetSet) *PetSetNode {
+	nodeName := PetSetNodeName(petset)
+	node := osgraph.EnsureUnique(g,
+		nodeName,
+		func(node osgraph.Node) graph.Node {
+			return &PetSetNode{node, petset}
+		},
+	).(*PetSetNode)
+
+	specNode := EnsurePetSetSpecNode(g, &petset.Spec, petset.Namespace, nodeName)
+	g.AddEdge(node, specNode, osgraph.ContainsEdgeKind)
+
+	return node
+}
+
+func EnsurePetSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.PetSetSpec, namespace string, ownerName osgraph.UniqueName) *PetSetSpecNode {
+	specName := PetSetSpecNodeName(spec, ownerName)
+	specNode := osgraph.EnsureUnique(g,
+		specName,
+		func(node osgraph.Node) graph.Node {
+			return &PetSetSpecNode{node, spec, namespace, ownerName}
+		},
+	).(*PetSetSpecNode)
+
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &spec.Template, namespace, specName)
+	g.AddEdge(specNode, ptSpecNode, osgraph.ContainsEdgeKind)
+
+	return specNode
 }
