@@ -250,7 +250,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		return fmt.Errorf("Couldn't get working dir of %q image: %v", image, err)
 	}
 
-	commandBaseDir := workDir
+	commandBaseDir := filepath.Join(workDir, "scripts")
 	useExternalAssembleScript := step.builder.externalScripts[api.AssembleRuntime]
 	if !useExternalAssembleScript {
 		// script already inside of the image
@@ -265,7 +265,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	}
 
 	cmd := fmt.Sprintf(
-		"while [ ! -f %q ]; do sleep 0.5; done; %s/scripts/%s; exit $?",
+		"while [ ! -f %q ]; do sleep 0.5; done; %s/%s; exit $?",
 		lastFileDstPath,
 		commandBaseDir,
 		api.AssembleRuntime,
