@@ -22,6 +22,7 @@ type BuildInterface interface {
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 	Clone(request *buildapi.BuildRequest) (*buildapi.Build, error)
 	UpdateDetails(build *buildapi.Build) (*buildapi.Build, error)
+	UpdateStatus(build *buildapi.Build) (*buildapi.Build, error)
 }
 
 // builds implements BuildsNamespacer interface
@@ -100,5 +101,12 @@ func (c *builds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, 
 func (c *builds) UpdateDetails(build *buildapi.Build) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
 	err = c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).SubResource("details").Body(build).Do().Into(result)
+	return
+}
+
+// UpdateStatus updates the build status for a given build.
+func (c *builds) UpdateStatus(build *buildapi.Build) (result *buildapi.Build, err error) {
+	result = &buildapi.Build{}
+	err = c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).SubResource("status").Body(build).Do().Into(result)
 	return
 }

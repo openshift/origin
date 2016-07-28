@@ -14,17 +14,17 @@ import (
 	controller "github.com/openshift/origin/pkg/controller"
 )
 
-type buildUpdater struct {
+type buildStatusUpdater struct {
 	Build *buildapi.Build
 }
 
-func (b *buildUpdater) Update(namespace string, build *buildapi.Build) error {
+func (b *buildStatusUpdater) UpdateStatus(namespace string, build *buildapi.Build) error {
 	b.Build = build
 	return nil
 }
 
 func TestLimitedLogAndRetryFinish(t *testing.T) {
-	updater := &buildUpdater{}
+	updater := &buildStatusUpdater{}
 	err := errors.New("funky error")
 
 	now := unversioned.Now()
@@ -50,7 +50,7 @@ func TestLimitedLogAndRetryFinish(t *testing.T) {
 }
 
 func TestLimitedLogAndRetryProcessing(t *testing.T) {
-	updater := &buildUpdater{}
+	updater := &buildStatusUpdater{}
 	err := errors.New("funky error")
 
 	now := unversioned.Now()

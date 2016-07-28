@@ -25,11 +25,11 @@ type RunPolicy interface {
 }
 
 // GetAllRunPolicies returns a set of all run policies.
-func GetAllRunPolicies(lister buildclient.BuildLister, updater buildclient.BuildUpdater) []RunPolicy {
+func GetAllRunPolicies(lister buildclient.BuildLister, updater buildclient.BuildStatusUpdater) []RunPolicy {
 	return []RunPolicy{
-		&ParallelPolicy{BuildLister: lister, BuildUpdater: updater},
-		&SerialPolicy{BuildLister: lister, BuildUpdater: updater},
-		&SerialLatestOnlyPolicy{BuildLister: lister, BuildUpdater: updater},
+		&ParallelPolicy{BuildLister: lister, BuildStatusUpdater: updater},
+		&SerialPolicy{BuildLister: lister, BuildStatusUpdater: updater},
+		&SerialLatestOnlyPolicy{BuildLister: lister, BuildStatusUpdater: updater},
 	}
 }
 
@@ -127,7 +127,7 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 // check which build should be run next and update the StartTimestamp field for
 // that build. That will trigger HandleBuild() to process that build immediately
 // and as a result the build is immediately executed.
-func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpdater, build *buildapi.Build) error {
+func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildStatusUpdater, build *buildapi.Build) error {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return nil
@@ -143,7 +143,7 @@ func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpd
 	for _, build := range nextBuilds {
 		build.Status.StartTimestamp = &now
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
-			err := updater.Update(build.Namespace, build)
+			err := updater.UpdateStatus(build.Namespace, build)
 			if err != nil && errors.IsConflict(err) {
 				glog.V(5).Infof("Error updating build %s/%s: %v (will retry)", build.Namespace, build.Name, err)
 				return false, nil

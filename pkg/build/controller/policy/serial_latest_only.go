@@ -21,8 +21,8 @@ import (
 // will produce consistent results, but might not suit the CI/CD flow where user
 // expect that every commit is built.
 type SerialLatestOnlyPolicy struct {
-	BuildUpdater buildclient.BuildUpdater
-	BuildLister  buildclient.BuildLister
+	BuildStatusUpdater buildclient.BuildStatusUpdater
+	BuildLister        buildclient.BuildLister
 }
 
 // IsRunnable implements the RunPolicy interface.
@@ -46,7 +46,7 @@ func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildapi.Build) (bool, error)
 
 // IsRunnable implements the Scheduler interface.
 func (s *SerialLatestOnlyPolicy) OnComplete(build *buildapi.Build) error {
-	return handleComplete(s.BuildLister, s.BuildUpdater, build)
+	return handleComplete(s.BuildLister, s.BuildStatusUpdater, build)
 }
 
 // cancelPreviousBuilds cancels all queued builds that have the build sequence number
@@ -80,7 +80,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	for _, b := range builds.Items {
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
 			b.Status.Cancelled = true
-			err := s.BuildUpdater.Update(b.Namespace, &b)
+			err := s.BuildStatusUpdater.UpdateStatus(b.Namespace, &b)
 			if err != nil && errors.IsConflict(err) {
 				glog.V(5).Infof("Error cancelling build %s/%s: %v (will retry)", b.Namespace, b.Name, err)
 				return false, nil

@@ -12,8 +12,8 @@ import (
 // order as they were created and using this policy might cause unpredictable
 // behavior.
 type ParallelPolicy struct {
-	BuildLister  buildclient.BuildLister
-	BuildUpdater buildclient.BuildUpdater
+	BuildLister        buildclient.BuildLister
+	BuildStatusUpdater buildclient.BuildStatusUpdater
 }
 
 // IsRunnable implements the RunPolicy interface. The parallel builds are run as soon
@@ -28,5 +28,5 @@ func (s *ParallelPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 
 // OnComplete implements the RunPolicy interface.
 func (s *ParallelPolicy) OnComplete(build *buildapi.Build) error {
-	return handleComplete(s.BuildLister, s.BuildUpdater, build)
+	return handleComplete(s.BuildLister, s.BuildStatusUpdater, build)
 }

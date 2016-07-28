@@ -66,6 +66,7 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+// TODO: Prevent updates to build status when compatibility allows
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	_ = obj.(*api.Build)
 }
@@ -140,3 +141,20 @@ func (detailsStrategy) AllowUnconditionalUpdate() bool {
 
 // DetailsStrategy is the strategy used to manage updates to a Build revision
 var DetailsStrategy = detailsStrategy{Strategy}
+
+type statusStrategy struct {
+	strategy
+}
+
+// StatusStrategy is the strategy used to manage build status updates
+var StatusStrategy = statusStrategy{Strategy}
+
+func (statusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newBuild := obj.(*api.Build)
+	oldBuild := old.(*api.Build)
+	newBuild.Spec = oldBuild.Spec
+}
+
+func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateBuildStatusUpdate(obj.(*api.Build), old.(*api.Build))
+}

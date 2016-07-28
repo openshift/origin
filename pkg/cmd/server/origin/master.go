@@ -404,13 +404,14 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
 
-	buildStorage, buildDetailsStorage, err := buildetcd.NewREST(c.RESTOptionsGetter)
+	buildStorage, buildDetailsStorage, buildStatusStorage, err := buildetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
-	buildConfigStorage, err := buildconfigetcd.NewREST(c.RESTOptionsGetter)
+	buildConfigStorage, buildConfigStatusStorage, err := buildconfigetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
+	buildConfigStatusRegistry := buildconfigregistry.NewStatusRegistry(buildConfigStatusStorage)
 
 	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter, c.DeploymentConfigScaleClient())
 	checkStorageErr(err)
@@ -492,13 +493,13 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
-			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
-			GetBuildFunc:            buildRegistry.GetBuild,
-			CreateBuildFunc:         buildRegistry.CreateBuild,
-			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
-			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
-			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
+			GetBuildConfigFunc:          buildConfigRegistry.GetBuildConfig,
+			UpdateBuildConfigStatusFunc: buildConfigStatusRegistry.UpdateBuildConfigStatus,
+			GetBuildFunc:                buildRegistry.GetBuild,
+			CreateBuildFunc:             buildRegistry.CreateBuild,
+			GetImageStreamFunc:          imageStreamRegistry.GetImageStream,
+			GetImageStreamImageFunc:     imageStreamImageRegistry.GetImageStreamImage,
+			GetImageStreamTagFunc:       imageStreamTagRegistry.GetImageStreamTag,
 		},
 		ServiceAccounts: c.KubeClient(),
 		Secrets:         c.KubeClient(),
@@ -632,10 +633,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		storage["builds"] = buildStorage
 		storage["buildConfigs"] = buildConfigStorage
 		storage["buildConfigs/webhooks"] = buildConfigWebHooks
+		storage["buildConfigs/status"] = buildConfigStatusStorage
 		storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
 		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
 		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), kubeletClient)
 		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient(), kubeletClient)
+		storage["builds/status"] = buildStatusStorage
 		storage["builds/details"] = buildDetailsStorage
 	}
 

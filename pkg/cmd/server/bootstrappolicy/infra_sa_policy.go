@@ -120,11 +120,13 @@ func init() {
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("builds"),
 				},
+				// TODO: Remove permission to update builds when no longer a compatibility issue
 				// BuildController.BuildUpdater (OSClientBuildClient)
 				{
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("builds"),
+					Resources: sets.NewString("builds", "builds/status"),
 				},
+				// TODO: Remove permission to create virtual build strategy types when no longer a compatibility issue
 				// Create permission on virtual build type resources allows builds of those types to be updated
 				{
 					Verbs:     sets.NewString("create"),

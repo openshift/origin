@@ -47,6 +47,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+// TODO: Prevent any updates to status when compatibility allows
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 	newBC := obj.(*api.BuildConfig)
 	oldBC := old.(*api.BuildConfig)
@@ -97,4 +98,29 @@ func dropUnknownTriggers(bc *api.BuildConfig) {
 		}
 	}
 	bc.Spec.Triggers = triggers
+}
+
+type statusStrategy struct {
+	strategy
+}
+
+// StatusStrategy is the default logic that applies when updating BuildConfig status
+var StatusStrategy = statusStrategy{Strategy}
+
+// PrepareForUpdate ensures that a BuildConfig spec remains unchanged with the exception of Triggers
+// The LastImageID can be updated with a status change. No other change of the spec is allowed.
+func (statusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newBC := obj.(*api.BuildConfig)
+	oldBC := old.(*api.BuildConfig)
+
+	newTriggers := newBC.Spec.Triggers
+	newBC.Spec = oldBC.Spec
+	// Allow changes to triggers for LastImageID. If anything else in triggers is
+	// changed, validation of the update will fail.
+	newBC.Spec.Triggers = newTriggers
+}
+
+// ValidateUpdate ensures that a BuildConfig status update is valid
+func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateBuildConfigStatusUpdate(obj.(*api.BuildConfig), old.(*api.BuildConfig))
 }

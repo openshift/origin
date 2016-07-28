@@ -97,3 +97,12 @@ func (c *FakeBuildConfigs) InstantiateBinary(request *buildapi.BinaryBuildReques
 
 	return obj.(*buildapi.Build), err
 }
+
+func (c *FakeBuildConfigs) UpdateStatus(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("buildconfigs/status", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.BuildConfig), err
+}

@@ -12,8 +12,8 @@ import (
 // created. This will produce consistent results, but block the build execution until the
 // previous builds are complete.
 type SerialPolicy struct {
-	BuildLister  buildclient.BuildLister
-	BuildUpdater buildclient.BuildUpdater
+	BuildLister        buildclient.BuildLister
+	BuildStatusUpdater buildclient.BuildStatusUpdater
 }
 
 // IsRunnable implements the RunPolicy interface.
@@ -31,5 +31,5 @@ func (s *SerialPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 
 // OnComplete implements the RunPolicy interface.
 func (s *SerialPolicy) OnComplete(build *buildapi.Build) error {
-	return handleComplete(s.BuildLister, s.BuildUpdater, build)
+	return handleComplete(s.BuildLister, s.BuildStatusUpdater, build)
 }

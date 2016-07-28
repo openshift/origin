@@ -79,3 +79,12 @@ func (c *FakeBuilds) UpdateDetails(inObj *buildapi.Build) (*buildapi.Build, erro
 
 	return obj.(*buildapi.Build), err
 }
+
+func (c *FakeBuilds) UpdateStatus(inObj *buildapi.Build) (*buildapi.Build, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("builds/status", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.Build), err
+}

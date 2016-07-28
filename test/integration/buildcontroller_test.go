@@ -764,7 +764,7 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 	}
 
 	newBuild.Status.Phase = buildapi.BuildPhaseComplete
-	clusterAdminClient.Builds(testutil.Namespace()).Update(newBuild)
+	clusterAdminClient.Builds(testutil.Namespace()).UpdateStatus(newBuild)
 	event = waitForWatch(t, "build updated to complete", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)

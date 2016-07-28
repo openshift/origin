@@ -17,9 +17,9 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-type okBuildUpdater struct{}
+type okBuildStatusUpdater struct{}
 
-func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error {
+func (okc *okBuildStatusUpdater) UpdateStatus(namespace string, build *buildapi.Build) error {
 	return nil
 }
 
@@ -29,10 +29,10 @@ func (okc *okBuildLister) List(namespace string, opts kapi.ListOptions) (*builda
 	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
 }
 
-type errBuildUpdater struct{}
+type errBuildStatusUpdater struct{}
 
-func (ec *errBuildUpdater) Update(namespace string, build *buildapi.Build) error {
-	return errors.New("UpdateBuild error!")
+func (ec *errBuildStatusUpdater) UpdateStatus(namespace string, build *buildapi.Build) error {
+	return errors.New("UpdateBuildStatus error!")
 }
 
 type okStrategy struct {
@@ -152,21 +152,21 @@ func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi
 
 func mockBuildController() *BuildController {
 	return &BuildController{
-		BuildUpdater:      &okBuildUpdater{},
-		BuildLister:       &okBuildLister{},
-		PodManager:        &okPodManager{},
-		BuildStrategy:     &okStrategy{},
-		ImageStreamClient: &okImageStreamClient{},
-		Recorder:          &record.FakeRecorder{},
-		RunPolicies:       policy.GetAllRunPolicies(&okBuildLister{}, &okBuildUpdater{}),
+		BuildStatusUpdater: &okBuildStatusUpdater{},
+		BuildLister:        &okBuildLister{},
+		PodManager:         &okPodManager{},
+		BuildStrategy:      &okStrategy{},
+		ImageStreamClient:  &okImageStreamClient{},
+		Recorder:           &record.FakeRecorder{},
+		RunPolicies:        policy.GetAllRunPolicies(&okBuildLister{}, &okBuildStatusUpdater{}),
 	}
 }
 
 func mockBuildPodController(build *buildapi.Build) *BuildPodController {
 	return &BuildPodController{
-		BuildStore:   buildtest.NewFakeBuildStore(build),
-		BuildUpdater: &okBuildUpdater{},
-		PodManager:   &okPodManager{},
+		BuildStore:         buildtest.NewFakeBuildStore(build),
+		BuildStatusUpdater: &okBuildStatusUpdater{},
+		PodManager:         &okPodManager{},
 	}
 }
 
@@ -193,15 +193,15 @@ func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 
 func TestHandleBuild(t *testing.T) {
 	type handleBuildTest struct {
-		inStatus      buildapi.BuildPhase
-		outStatus     buildapi.BuildPhase
-		buildOutput   buildapi.BuildOutput
-		buildStrategy BuildStrategy
-		buildUpdater  buildclient.BuildUpdater
-		imageClient   imageStreamClient
-		podManager    podManager
-		outputSpec    string
-		errExpected   bool
+		inStatus           buildapi.BuildPhase
+		outStatus          buildapi.BuildPhase
+		buildOutput        buildapi.BuildOutput
+		buildStrategy      BuildStrategy
+		buildStatusUpdater buildclient.BuildStatusUpdater
+		imageClient        imageStreamClient
+		podManager         podManager
+		outputSpec         string
+		errExpected        bool
 	}
 
 	tests := []handleBuildTest{
@@ -301,9 +301,9 @@ func TestHandleBuild(t *testing.T) {
 			},
 		},
 		{ // 9
-			inStatus:     buildapi.BuildPhaseNew,
-			outStatus:    buildapi.BuildPhasePending,
-			buildUpdater: &errBuildUpdater{},
+			inStatus:           buildapi.BuildPhaseNew,
+			outStatus:          buildapi.BuildPhasePending,
+			buildStatusUpdater: &errBuildStatusUpdater{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
 					Kind: "DockerImage",
@@ -370,7 +370,7 @@ func TestHandleBuild(t *testing.T) {
 			},
 			outputSpec: "image/repo:tag",
 			// an error updating the build is not reported as an error.
-			buildUpdater: &errBuildUpdater{},
+			buildStatusUpdater: &errBuildStatusUpdater{},
 		},
 	}
 
@@ -380,8 +380,8 @@ func TestHandleBuild(t *testing.T) {
 		if tc.buildStrategy != nil {
 			ctrl.BuildStrategy = tc.buildStrategy
 		}
-		if tc.buildUpdater != nil {
-			ctrl.BuildUpdater = tc.buildUpdater
+		if tc.buildStatusUpdater != nil {
+			ctrl.BuildStatusUpdater = tc.buildStatusUpdater
 		}
 		if tc.podManager != nil {
 			ctrl.PodManager = tc.podManager
@@ -446,7 +446,7 @@ func TestHandlePod(t *testing.T) {
 		completionTimestamp *unversioned.Time
 		podStatus           kapi.PodPhase
 		exitCode            int
-		buildUpdater        buildclient.BuildUpdater
+		buildStatusUpdater  buildclient.BuildStatusUpdater
 		podManager          podManager
 	}
 	dummy := unversioned.Now()
@@ -503,7 +503,7 @@ func TestHandlePod(t *testing.T) {
 			outStatus:           buildapi.BuildPhaseComplete,
 			podStatus:           kapi.PodSucceeded,
 			exitCode:            0,
-			buildUpdater:        &errBuildUpdater{},
+			buildStatusUpdater:  &errBuildStatusUpdater{},
 			startTimestamp:      nil,
 			completionTimestamp: curtime,
 		},
@@ -525,13 +525,13 @@ func TestHandlePod(t *testing.T) {
 		if tc.matchID {
 			build.Name = "name"
 		}
-		if tc.buildUpdater != nil {
-			ctrl.BuildUpdater = tc.buildUpdater
+		if tc.buildStatusUpdater != nil {
+			ctrl.BuildStatusUpdater = tc.buildStatusUpdater
 		}
 
 		err := ctrl.HandlePod(pod)
 
-		if tc.buildUpdater != nil && reflect.TypeOf(tc.buildUpdater).Elem().Name() == "errBuildUpdater" {
+		if tc.buildStatusUpdater != nil && reflect.TypeOf(tc.buildStatusUpdater).Elem().Name() == "errBuildStatusUpdater" {
 			if err == nil {
 				t.Errorf("(%d) Expected error, got none", i)
 			}
@@ -573,7 +573,7 @@ func TestCancelBuild(t *testing.T) {
 		outStatus           buildapi.BuildPhase
 		podStatus           kapi.PodPhase
 		exitCode            int
-		buildUpdater        buildclient.BuildUpdater
+		buildStatusUpdater  buildclient.BuildStatusUpdater
 		podManager          podManager
 		startTimestamp      *unversioned.Time
 		completionTimestamp *unversioned.Time
@@ -635,7 +635,7 @@ func TestCancelBuild(t *testing.T) {
 			outStatus:           buildapi.BuildPhaseNew,
 			podStatus:           kapi.PodFailed,
 			exitCode:            1,
-			buildUpdater:        &errBuildUpdater{},
+			buildStatusUpdater:  &errBuildStatusUpdater{},
 			startTimestamp:      nil,
 			completionTimestamp: nil,
 		},
@@ -651,8 +651,8 @@ func TestCancelBuild(t *testing.T) {
 	for i, tc := range tests {
 		build := mockBuild(tc.inStatus, buildapi.BuildOutput{})
 		ctrl := mockBuildController()
-		if tc.buildUpdater != nil {
-			ctrl.BuildUpdater = tc.buildUpdater
+		if tc.buildStatusUpdater != nil {
+			ctrl.BuildStatusUpdater = tc.buildStatusUpdater
 		}
 		if tc.podManager != nil {
 			ctrl.PodManager = tc.podManager
@@ -665,7 +665,7 @@ func TestCancelBuild(t *testing.T) {
 				t.Errorf("(%d) Expected error, got none", i)
 			}
 		}
-		if tc.buildUpdater != nil && reflect.TypeOf(tc.buildUpdater).Elem().Name() == "errBuildUpdater" {
+		if tc.buildStatusUpdater != nil && reflect.TypeOf(tc.buildStatusUpdater).Elem().Name() == "errBuildStatusUpdater" {
 			if err == nil {
 				t.Errorf("(%d) Expected error, got none", i)
 			}
@@ -846,18 +846,18 @@ func TestHandleHandleBuildDeletionDeletePodError(t *testing.T) {
 	}
 }
 
-type customBuildUpdater struct {
+type customBuildStatusUpdater struct {
 	UpdateFunc func(namespace string, build *buildapi.Build) error
 }
 
-func (c *customBuildUpdater) Update(namespace string, build *buildapi.Build) error {
+func (c *customBuildStatusUpdater) UpdateStatus(namespace string, build *buildapi.Build) error {
 	return c.UpdateFunc(namespace, build)
 }
 
-func mockBuildPodDeleteController(build *buildapi.Build, buildUpdater *customBuildUpdater, err error) *BuildPodDeleteController {
+func mockBuildPodDeleteController(build *buildapi.Build, buildStatusUpdater *customBuildStatusUpdater, err error) *BuildPodDeleteController {
 	return &BuildPodDeleteController{
-		BuildStore:   buildtest.FakeBuildStore{Build: build, Err: err},
-		BuildUpdater: buildUpdater,
+		BuildStore:         buildtest.FakeBuildStore{Build: build, Err: err},
+		BuildStatusUpdater: buildStatusUpdater,
 	}
 }
 
@@ -865,7 +865,7 @@ func TestHandleBuildPodDeletionOK(t *testing.T) {
 	updateWasCalled := false
 	// only not finished build (buildutil.IsBuildComplete) should be handled
 	build := mockBuild(buildapi.BuildPhaseRunning, buildapi.BuildOutput{})
-	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+	ctrl := mockBuildPodDeleteController(build, &customBuildStatusUpdater{
 		UpdateFunc: func(namespace string, build *buildapi.Build) error {
 			updateWasCalled = true
 			return nil
@@ -886,7 +886,7 @@ func TestHandleBuildPodDeletionOKFinishedBuild(t *testing.T) {
 	updateWasCalled := false
 	// finished build buildutil.IsBuildComplete should not be handled
 	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
-	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+	ctrl := mockBuildPodDeleteController(build, &customBuildStatusUpdater{
 		UpdateFunc: func(namespace string, build *buildapi.Build) error {
 			updateWasCalled = true
 			return nil
@@ -907,7 +907,7 @@ func TestHandleBuildPodDeletionOKErroneousBuild(t *testing.T) {
 	updateWasCalled := false
 	// erroneous builds should not be handled
 	build := mockBuild(buildapi.BuildPhaseError, buildapi.BuildOutput{})
-	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+	ctrl := mockBuildPodDeleteController(build, &customBuildStatusUpdater{
 		UpdateFunc: func(namespace string, build *buildapi.Build) error {
 			updateWasCalled = true
 			return nil
@@ -925,7 +925,7 @@ func TestHandleBuildPodDeletionOKErroneousBuild(t *testing.T) {
 }
 
 func TestHandleBuildPodDeletionBuildGetError(t *testing.T) {
-	ctrl := mockBuildPodDeleteController(nil, &customBuildUpdater{}, errors.New("random"))
+	ctrl := mockBuildPodDeleteController(nil, &customBuildStatusUpdater{}, errors.New("random"))
 	pod := mockPod(kapi.PodSucceeded, 0)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
@@ -936,7 +936,7 @@ func TestHandleBuildPodDeletionBuildGetError(t *testing.T) {
 
 func TestHandleBuildPodDeletionBuildNotExists(t *testing.T) {
 	updateWasCalled := false
-	ctrl := mockBuildPodDeleteController(nil, &customBuildUpdater{
+	ctrl := mockBuildPodDeleteController(nil, &customBuildStatusUpdater{
 		UpdateFunc: func(namespace string, build *buildapi.Build) error {
 			updateWasCalled = true
 			return nil
@@ -955,7 +955,7 @@ func TestHandleBuildPodDeletionBuildNotExists(t *testing.T) {
 
 func TestHandleBuildPodDeletionBuildUpdateError(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseRunning, buildapi.BuildOutput{})
-	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+	ctrl := mockBuildPodDeleteController(build, &customBuildStatusUpdater{
 		UpdateFunc: func(namespace string, build *buildapi.Build) error {
 			return errors.New("random")
 		},

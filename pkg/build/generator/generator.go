@@ -54,7 +54,7 @@ type BuildGenerator struct {
 // GeneratorClient is the API client used by the generator
 type GeneratorClient interface {
 	GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
-	UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
+	UpdateBuildConfigStatus(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
 	GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error)
 	CreateBuild(ctx kapi.Context, build *buildapi.Build) error
 	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
@@ -64,13 +64,13 @@ type GeneratorClient interface {
 
 // Client is an implementation of the GeneratorClient interface
 type Client struct {
-	GetBuildConfigFunc      func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
-	UpdateBuildConfigFunc   func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuildFunc            func(ctx kapi.Context, name string) (*buildapi.Build, error)
-	CreateBuildFunc         func(ctx kapi.Context, build *buildapi.Build) error
-	GetImageStreamFunc      func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImageFunc func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTagFunc   func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
+	GetBuildConfigFunc          func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
+	UpdateBuildConfigStatusFunc func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
+	GetBuildFunc                func(ctx kapi.Context, name string) (*buildapi.Build, error)
+	CreateBuildFunc             func(ctx kapi.Context, build *buildapi.Build) error
+	GetImageStreamFunc          func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
+	GetImageStreamImageFunc     func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
+	GetImageStreamTagFunc       func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
 // GetBuildConfig retrieves a named build config
@@ -78,9 +78,9 @@ func (c Client) GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildCo
 	return c.GetBuildConfigFunc(ctx, name)
 }
 
-// UpdateBuildConfig updates a named build config
-func (c Client) UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
-	return c.UpdateBuildConfigFunc(ctx, buildConfig)
+// UpdateBuildConfigStatus updates the status of a named build config
+func (c Client) UpdateBuildConfigStatus(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+	return c.UpdateBuildConfigStatusFunc(ctx, buildConfig)
 }
 
 // GetBuild retrieves a build
@@ -253,8 +253,8 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 
 	// need to update the BuildConfig because LastVersion and possibly
 	// LastTriggeredImageID changed
-	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
-		glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
+	if err := g.Client.UpdateBuildConfigStatus(ctx, bc); err != nil {
+		glog.V(4).Infof("Failed to update status for BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
 		return nil, err
 	}
 
@@ -352,8 +352,8 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 
 	// need to update the BuildConfig because LastVersion changed
 	if buildConfig != nil {
-		if err := g.Client.UpdateBuildConfig(ctx, buildConfig); err != nil {
-			glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", buildConfig.Namespace, buildConfig.Name)
+		if err := g.Client.UpdateBuildConfigStatus(ctx, buildConfig); err != nil {
+			glog.V(4).Infof("Failed to update status for BuildConfig %s/%s so no Build will be created", buildConfig.Namespace, buildConfig.Name)
 			return nil, err
 		}
 	}

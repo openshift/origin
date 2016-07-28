@@ -24,7 +24,7 @@ func (f *fakeBuildClient) List(namespace string, opts kapi.ListOptions) (*builda
 	return f.builds, nil
 }
 
-func (f *fakeBuildClient) Update(namespace string, build *buildapi.Build) error {
+func (f *fakeBuildClient) UpdateStatus(namespace string, build *buildapi.Build) error {
 	// Make sure every update fails at least once with conflict to ensure build updates are
 	// retried.
 	if f.updateErrCount == 0 {

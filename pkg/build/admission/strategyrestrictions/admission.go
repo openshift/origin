@@ -46,6 +46,11 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	if resource := attr.GetResource().GroupResource(); resource != buildsResource && resource != buildConfigsResource {
 		return nil
 	}
+	// Explicitly exclude the builds/status and buildconfigs/status subresource because they
+	// cannot be used to change the build type
+	if attr.GetSubresource() == "status" {
+		return nil
+	}
 	// Explicitly exclude the builds/details subresource because it's only
 	// updating commit info and cannot change build type.
 	if attr.GetResource().GroupResource() == buildsResource && attr.GetSubresource() == "details" {

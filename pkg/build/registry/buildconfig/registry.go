@@ -23,6 +23,12 @@ type Registry interface {
 	WatchBuildConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
 }
 
+// StatusRegistry is an interface for things that know how to update BuildConfig status
+type StatusRegistry interface {
+	// UpdateBuildConfig updates a buildConfig status
+	UpdateBuildConfigStatus(ctx kapi.Context, buildConfig *api.BuildConfig) error
+}
+
 // storage puts strong typing around storage calls
 type storage struct {
 	rest.StandardStorage
@@ -66,5 +72,19 @@ func (s *storage) UpdateBuildConfig(ctx kapi.Context, build *api.BuildConfig) er
 
 func (s *storage) DeleteBuildConfig(ctx kapi.Context, name string) error {
 	_, err := s.Delete(ctx, name, nil)
+	return err
+}
+
+type statusStorage struct {
+	rest.Updater
+}
+
+// NewStatusRegistry returns a Registry interface for the givn Storage.
+func NewStatusRegistry(u rest.Updater) StatusRegistry {
+	return &statusStorage{u}
+}
+
+func (s *statusStorage) UpdateBuildConfigStatus(ctx kapi.Context, build *api.BuildConfig) error {
+	_, _, err := s.Update(ctx, build.Name, rest.DefaultUpdatedObjectInfo(build, kapi.Scheme))
 	return err
 }
