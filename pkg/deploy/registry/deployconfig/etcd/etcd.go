@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -68,6 +69,29 @@ func NewREST(optsGetter restoptions.Getter, rcNamespacer kclient.ReplicationCont
 	return deploymentConfigREST, statusREST, scaleREST, nil
 }
 
+type forceDCOnUpdate struct {
+	rest.UpdatedObjectInfo
+}
+
+// UpdatedObject satisfies the UpdatedObjectInfo interface.
+// It returns a copy of the held obj, passed through any configured transformers.
+func (i forceDCOnUpdate) UpdatedObject(ctx kapi.Context, oldObj runtime.Object) (runtime.Object, error) {
+	accessor, err := meta.Accessor(oldObj)
+	if err != nil {
+		return nil, err
+	}
+	originalKind, exists := accessor.GetAnnotations()[kapi.OriginalKindAnnotationName]
+	if !exists || originalKind == "DeploymentConfig." {
+		return i.UpdatedObjectInfo.UpdatedObject(ctx, oldObj)
+	}
+
+	return nil, fmt.Errorf("wrong native type, no cross type updates allowed: %v", originalKind)
+}
+
+func (r *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.Store.Update(ctx, name, forceDCOnUpdate{objInfo})
+}
+
 // ScaleREST contains the REST storage for the Scale subresource of DeploymentConfigs.
 type ScaleREST struct {
 	registry     deployconfig.Registry
@@ -97,6 +121,9 @@ func (r *ScaleREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedOb
 	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name)
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
+	}
+	if originalKind, exists := deploymentConfig.Annotations[kapi.OriginalKindAnnotationName]; exists && originalKind == "DeploymentConfig." {
+		return nil, false, fmt.Errorf("wrong native type, no cross type updates allowed: %v", originalKind)
 	}
 
 	old := api.ScaleFromConfig(deploymentConfig)
@@ -136,5 +163,5 @@ func (r *StatusREST) New() runtime.Object {
 
 // Update alters the status subset of an deploymentConfig.
 func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+	return r.store.Update(ctx, name, forceDCOnUpdate{objInfo})
 }
