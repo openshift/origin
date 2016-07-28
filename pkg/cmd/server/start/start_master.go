@@ -561,6 +561,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
+		_, _, deploymentClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for deployment controller: %v", err)
+		}
 		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
@@ -606,6 +610,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicaSetController(rsClient)
+		kc.RunDeploymentController(deploymentClient)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 

@@ -52,7 +52,12 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 			configs := []*deployapi.DeploymentConfig{}
 			objs := store.List()
 			for _, obj := range objs {
-				configs = append(configs, obj.(*deployapi.DeploymentConfig))
+				dc := obj.(*deployapi.DeploymentConfig)
+				if originalKind, exists := dc.Annotations[kapi.OriginalKindAnnotationName]; exists && originalKind != "DeploymentConfig." {
+					continue
+				}
+
+				configs = append(configs, dc)
 			}
 			return configs, nil
 		},

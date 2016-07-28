@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -14,8 +12,14 @@ import (
 )
 
 type fakeObject struct {
-	Kind       string `json:"kind"`
-	APIVersion string `json:"apiVersion"`
+	Kind       string       `json:"kind"`
+	APIVersion string       `json:"apiVersion"`
+	Metadata   fakeMetadata `json:"metadata"`
+}
+
+type fakeMetadata struct {
+	Name        string            `json:"name"`
+	Annotations map[string]string `json:"annotations"`
 }
 
 func TestRCRSCohabitation(t *testing.T) {
@@ -89,14 +93,13 @@ func TestRCRSCohabitation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedEtcdEncoding := fakeObject{Kind: "ReplicationController", APIVersion: "v1"}
 	for _, node := range etcdControllers.Node.Nodes {
 		obj := fakeObject{}
 		if err := json.Unmarshal([]byte(node.Value), &obj); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if obj != expectedEtcdEncoding {
-			t.Errorf("expected %v, got %v", expectedEtcdEncoding, obj)
+		if obj.Kind != "ReplicationController" || obj.APIVersion != "v1" {
+			t.Errorf("wrong serialization: %v", node.Value)
 		}
 	}
 

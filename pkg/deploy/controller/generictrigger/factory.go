@@ -131,6 +131,10 @@ func (c *DeploymentTriggerController) updateImageStream(old, cur interface{}) {
 }
 
 func (c *DeploymentTriggerController) enqueueDeploymentConfig(dc *deployapi.DeploymentConfig) {
+	if originalKind, exists := dc.Annotations[kapi.OriginalKindAnnotationName]; exists && originalKind != "DeploymentConfig." {
+		return
+	}
+
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", dc, err)
