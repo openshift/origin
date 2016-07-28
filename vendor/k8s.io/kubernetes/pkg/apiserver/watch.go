@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/httplog"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer/streaming"
@@ -78,6 +79,13 @@ func serveWatch(watcher watch.Interface, scope RequestScope, req *restful.Reques
 
 	// find the embedded serializer matching the media type
 	embeddedEncoder := scope.Serializer.EncoderForVersion(serializer.Embedded.Serializer, scope.Kind.GroupVersion())
+
+	switch {
+	case scope.Resource.GroupResource() == unversioned.GroupResource{Group: "", Resource: "deploymentconfigs"}:
+		embeddedEncoder = scope.Serializer.EncoderForVersion(serializer.Embedded.Serializer, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: "v1", Kind: "DeploymentConfig"}, unversioned.GroupKind{Group: ""}, unversioned.GroupKind{Group: "extensions"}))
+	case scope.Resource.GroupResource() == unversioned.GroupResource{Group: "extensions", Resource: "deployments"}:
+		embeddedEncoder = scope.Serializer.EncoderForVersion(serializer.Embedded.Serializer, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "Deployment"}, unversioned.GroupKind{Group: "extensions"}, unversioned.GroupKind{Group: ""}))
+	}
 
 	server := &WatchServer{
 		watching: watcher,

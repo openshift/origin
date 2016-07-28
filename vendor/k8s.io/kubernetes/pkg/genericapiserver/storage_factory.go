@@ -306,9 +306,13 @@ func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer,
 	case storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationControllers"},
 		storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}:
 		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: "v1", Kind: "ReplicationController"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
-
 	case storageEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "replicasets"}:
 		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "ReplicaSet"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	case storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "deploymentconfigs"}:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: "v1", Kind: "DeploymentConfig"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+	case storageEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "deployments"}:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "Deployment"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
 
 	default:
 		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupVersioner(storageVersion, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
@@ -325,9 +329,13 @@ func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer,
 	case memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationControllers"},
 		memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}:
 		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "ReplicationController"}, decodeableGroupKinds...))
-
 	case memoryEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "replicasets"}:
 		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: runtime.APIVersionInternal, Kind: "ReplicaSet"}, decodeableGroupKinds...))
+
+	case memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "deploymentconfigs"}:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "DeploymentConfig"}, decodeableGroupKinds...))
+	case memoryEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "deployments"}:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: runtime.APIVersionInternal, Kind: "Deployment"}, decodeableGroupKinds...))
 
 	default:
 		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupVersioner(memoryVersion, decodeableGroupKinds...))
