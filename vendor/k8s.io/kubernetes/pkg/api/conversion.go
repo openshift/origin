@@ -171,7 +171,9 @@ func Convert_resource_Quantity_To_resource_Quantity(in *resource.Quantity, out *
 }
 
 func Convert_map_to_unversioned_LabelSelector(in *map[string]string, out *unversioned.LabelSelector, s conversion.Scope) error {
-	out = new(unversioned.LabelSelector)
+	if out == nil {
+		return nil
+	}
 	for labelKey, labelValue := range *in {
 		utillabels.AddLabelToSelector(out, labelKey, labelValue)
 	}
