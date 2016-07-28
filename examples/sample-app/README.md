@@ -240,17 +240,17 @@ This section covers how to perform all the steps of building, deploying, and upd
               MYSQL_PASSWORD=jmsyVsGo # generated
               MYSQL_DATABASE=root
         --> Creating resources with label app=ruby-sample-build ...
-            service "frontend" created
-            route "route-edge" created
-            imagestream "origin-ruby-sample" created
-            imagestream "ruby-22-centos7" created
-            buildconfig "ruby-sample-build" created
-            deploymentconfig "frontend" created
-            service "database" created
-            deploymentconfig "database" created
+            Service "frontend" created
+            Route "route-edge" created
+            ImageStream "origin-ruby-sample" created
+            ImageStream "ruby-22-centos7" created
+            BuildConfig "ruby-sample-build" created
+            DeploymentConfig "frontend" created
+            Service "database" created
+            DeploymentConfig "database" created
         --> Success
-            Build scheduled for "ruby-sample-build", use 'oc logs' to track its progress.
-            Run 'oc status' to view your app.
+            Build scheduled for "ruby-sample-build" - use the logs command to track its progress.
+            Run 'oc status' to view your app. 
 
 
     Note that no build has actually occurred yet, so at this time there
