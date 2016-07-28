@@ -149,6 +149,8 @@ function start() {
   sudo modprobe openvswitch
   sudo modprobe br_netfilter 2> /dev/null || true
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+  # overlayfs, if available, will be faster than vfs
+  sudo modprobe overlay 2> /dev/null || true
   mkdir -p "${CONFIG_ROOT}"
 
   if [[ "${SKIP_BUILD}" = "true" ]]; then
