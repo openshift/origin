@@ -28,12 +28,34 @@ const (
 )
 
 type vnidMap struct {
-	ids  map[string]uint32
-	lock sync.Mutex
+	ids        map[string]uint32
+	namespaces map[uint32]sets.String
+	lock       sync.Mutex
 }
 
 func newVnidMap() *vnidMap {
-	return &vnidMap{ids: make(map[string]uint32)}
+	return &vnidMap{
+		ids:        make(map[string]uint32),
+		namespaces: make(map[uint32]sets.String),
+	}
+}
+
+func (vmap *vnidMap) addNamespaceToSet(name string, vnid uint32) {
+	set, found := vmap.namespaces[vnid]
+	if !found {
+		set = sets.NewString()
+		vmap.namespaces[vnid] = set
+	}
+	set.Insert(name)
+}
+
+func (vmap *vnidMap) removeNamespaceFromSet(name string, vnid uint32) {
+	if set, found := vmap.namespaces[vnid]; found {
+		set.Delete(name)
+		if set.Len() == 0 {
+			delete(vmap.namespaces, vnid)
+		}
+	}
 }
 
 func (vmap *vnidMap) GetVNID(name string) (uint32, error) {
@@ -68,11 +90,27 @@ func (vmap *vnidMap) WaitAndGetVNID(name string) (uint32, error) {
 	return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 }
 
+func (vmap *vnidMap) GetNamespaces(id uint32) []string {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
+
+	if set, ok := vmap.namespaces[id]; ok {
+		return set.List()
+	} else {
+		return nil
+	}
+}
+
 func (vmap *vnidMap) SetVNID(name string, id uint32) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
+	if oldId, found := vmap.ids[name]; found {
+		vmap.removeNamespaceFromSet(name, oldId)
+	}
 	vmap.ids[name] = id
+	vmap.addNamespaceToSet(name, id)
+
 	log.Infof("Associate netid %d to namespace %q", id, name)
 }
 
@@ -85,6 +123,7 @@ func (vmap *vnidMap) UnsetVNID(name string) (id uint32, err error) {
 		// In case of error, return some value which is not a valid VNID
 		return MaxVNID + 1, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
 	}
+	vmap.removeNamespaceFromSet(name, id)
 	delete(vmap.ids, name)
 	log.Infof("Dissociate netid %d from namespace %q", id, name)
 	return id, nil
@@ -94,12 +133,8 @@ func (vmap *vnidMap) CheckVNID(id uint32) bool {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
-	for _, netid := range vmap.ids {
-		if netid == id {
-			return true
-		}
-	}
-	return false
+	_, found := vmap.namespaces[id]
+	return found
 }
 
 func (vmap *vnidMap) GetAllocatedVNIDs() []uint32 {
