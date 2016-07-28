@@ -307,6 +307,10 @@ os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-au
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 os::cmd::expect_success 'oadm prune images'
 
+# make sure we handle invalid config file destination
+os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test --config=/src --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
+echo "login warnings: ok"
+
 # log in and set project to use from now on
 VERBOSE=true os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 VERBOSE=true os::cmd::expect_success 'oc get projects'
