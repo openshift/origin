@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -127,6 +128,16 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 			if len(o.ToKey) > 0 && o.ToKey <= key {
 				return false, nil
 			}
+
+			// check to see if this is the native type.  The annotation tells us.
+			metadata, err := meta.Accessor(info.Object)
+			if err != nil {
+				return false, err
+			}
+			if _, exists := metadata.GetAnnotations()[kapi.OriginalKindAnnotationName]; exists {
+				return false, nil
+			}
+
 			return true, nil
 		}
 	}
