@@ -1097,6 +1097,22 @@ Create a policy binding that references the policy in the targetted namespace.
 ====
 
 
+== oc create quota
+Create a quota with the specified name.
+
+====
+
+[options="nowrap"]
+----
+  // Create a new resourcequota named my-quota
+  $ oc create quota my-quota --hard=cpu=1,memory=1G,pods=2,services=3,replicationcontrollers=2,resourcequotas=1,secrets=5,persistentvolumeclaims=10
+  
+  // Create a new resourcequota named best-effort
+  $ oc create quota best-effort --hard=pods=100 --scopes=BestEffort
+----
+====
+
+
 == oc create route edge
 Create a route that uses edge TLS termination
 

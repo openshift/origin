@@ -183,6 +183,7 @@ openshift-cli-create-identity.1
 openshift-cli-create-imagestream.1
 openshift-cli-create-namespace.1
 openshift-cli-create-policybinding.1
+openshift-cli-create-quota.1
 openshift-cli-create-route-edge.1
 openshift-cli-create-route-passthrough.1
 openshift-cli-create-route-reencrypt.1
@@ -317,6 +318,7 @@ openshift-kube-convert.1
 openshift-kube-cordon.1
 openshift-kube-create-configmap.1
 openshift-kube-create-namespace.1
+openshift-kube-create-quota.1
 openshift-kube-create-secret-docker-registry.1
 openshift-kube-create-secret-generic.1
 openshift-kube-create-secret-tls.1

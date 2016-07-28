@@ -104,6 +104,7 @@ oc-create-identity.1
 oc-create-imagestream.1
 oc-create-namespace.1
 oc-create-policybinding.1
+oc-create-quota.1
 oc-create-route-edge.1
 oc-create-route-passthrough.1
 oc-create-route-reencrypt.1
