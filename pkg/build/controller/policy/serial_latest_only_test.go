@@ -14,7 +14,7 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)
-	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildStatusUpdater: client}
+	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
 	runnableBuilds := []string{
 		"build-1",
 	}
@@ -45,7 +45,7 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if !builds.Items[1].Status.Cancelled {
+	if !builds.Items[1].Spec.Cancelled {
 		t.Errorf("expected build-2 to be cancelled")
 	}
 }
@@ -58,7 +58,7 @@ func TestSerialLatestOnlyIsRunnableMixed(t *testing.T) {
 		addBuild("build-4", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)
-	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildStatusUpdater: client}
+	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
 	for _, build := range allNewBuilds {
 		runnable, err := policy.IsRunnable(&build)
 		if err != nil {
@@ -72,13 +72,13 @@ func TestSerialLatestOnlyIsRunnableMixed(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if builds.Items[0].Status.Cancelled {
+	if builds.Items[0].Spec.Cancelled {
 		t.Errorf("expected build-1 is complete and should not be cancelled")
 	}
-	if builds.Items[2].Status.Cancelled {
+	if builds.Items[2].Spec.Cancelled {
 		t.Errorf("expected build-3 is running and should not be cancelled")
 	}
-	if builds.Items[3].Status.Cancelled {
+	if builds.Items[3].Spec.Cancelled {
 		t.Errorf("expected build-4 will run next and should not be cancelled")
 	}
 }
@@ -96,7 +96,7 @@ func TestSerialLatestOnlyIsRunnableBuildsWithErrors(t *testing.T) {
 	builds[1].ObjectMeta.Annotations = map[string]string{}
 
 	client := newTestClient(builds)
-	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildStatusUpdater: client}
+	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
 
 	ok, err := policy.IsRunnable(&builds[0])
 	if !ok || err != nil {

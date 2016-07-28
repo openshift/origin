@@ -22,6 +22,7 @@ import (
 // expect that every commit is built.
 type SerialLatestOnlyPolicy struct {
 	BuildStatusUpdater buildclient.BuildStatusUpdater
+	BuildUpdater       buildclient.BuildUpdater
 	BuildLister        buildclient.BuildLister
 }
 
@@ -79,8 +80,8 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	var result = []error{}
 	for _, b := range builds.Items {
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
-			b.Status.Cancelled = true
-			err := s.BuildStatusUpdater.UpdateStatus(b.Namespace, &b)
+			b.Spec.Cancelled = true
+			err := s.BuildUpdater.Update(b.Namespace, &b)
 			if err != nil && errors.IsConflict(err) {
 				glog.V(5).Infof("Error cancelling build %s/%s: %v (will retry)", b.Namespace, b.Name, err)
 				return false, nil

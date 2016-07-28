@@ -25,11 +25,11 @@ type RunPolicy interface {
 }
 
 // GetAllRunPolicies returns a set of all run policies.
-func GetAllRunPolicies(lister buildclient.BuildLister, updater buildclient.BuildStatusUpdater) []RunPolicy {
+func GetAllRunPolicies(lister buildclient.BuildLister, updater buildclient.BuildUpdater, statusUpdater buildclient.BuildStatusUpdater) []RunPolicy {
 	return []RunPolicy{
-		&ParallelPolicy{BuildLister: lister, BuildStatusUpdater: updater},
-		&SerialPolicy{BuildLister: lister, BuildStatusUpdater: updater},
-		&SerialLatestOnlyPolicy{BuildLister: lister, BuildStatusUpdater: updater},
+		&ParallelPolicy{BuildLister: lister, BuildStatusUpdater: statusUpdater},
+		&SerialPolicy{BuildLister: lister, BuildStatusUpdater: statusUpdater},
+		&SerialLatestOnlyPolicy{BuildLister: lister, BuildUpdater: updater},
 	}
 }
 

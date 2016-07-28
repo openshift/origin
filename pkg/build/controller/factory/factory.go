@@ -62,6 +62,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildStatusUpdater, maxTimeout 
 type BuildControllerFactory struct {
 	OSClient            osclient.Interface
 	KubeClient          kclient.Interface
+	BuildUpdater        buildclient.BuildUpdater
 	BuildStatusUpdater  buildclient.BuildStatusUpdater
 	BuildLister         buildclient.BuildLister
 	DockerBuildStrategy *strategy.DockerBuildStrategy
@@ -85,7 +86,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 		BuildLister:        factory.BuildLister,
 		ImageStreamClient:  client,
 		PodManager:         client,
-		RunPolicies:        policy.GetAllRunPolicies(factory.BuildLister, factory.BuildStatusUpdater),
+		RunPolicies:        policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater, factory.BuildStatusUpdater),
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
 			SourceBuildStrategy: factory.SourceBuildStrategy,

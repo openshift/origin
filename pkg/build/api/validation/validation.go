@@ -33,6 +33,25 @@ func ValidateBuild(build *buildapi.Build) field.ErrorList {
 	return allErrs
 }
 
+func buildSpecSemanticEqualities() conversion.Equalities {
+	// Copy base semantic funcs
+	funcs := []interface{}{}
+	for _, fv := range kapi.Semantic.Equalities {
+		funcs = append(funcs, fv.Interface())
+	}
+	// Add func to whitelist Cancelled flag
+	funcs = append(funcs, func(a, b buildapi.BuildSpec) bool {
+		// Set the Cancelled flag to the same value to white-list
+		a.Cancelled = b.Cancelled
+
+		// Compare with original semantic set of equalities which do not include this function
+		return kapi.Semantic.DeepEqual(a, b)
+	})
+	return conversion.EqualitiesOrDie(funcs...)
+}
+
+var buildSpecSemantic = buildSpecSemanticEqualities()
+
 func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&build.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))...)
@@ -42,7 +61,11 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "phase"), build.Status.Phase, "phase cannot be updated from a terminal state"))
 	}
-	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
+	// Cancelled is a one-way flag, cannot be unset
+	if older.Spec.Cancelled && !build.Spec.Cancelled {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "cancelled"), build.Spec.Cancelled, "cancelled cannot be changed once set"))
+	}
+	if !buildSpecSemantic.DeepEqual(build.Spec, older.Spec) {
 		diff, err := diffBuildSpec(build.Spec, older.Spec)
 		if err != nil {
 			glog.V(2).Infof("Error calculating build spec patch: %v", err)
@@ -71,10 +94,6 @@ func ValidateBuildDetailsUpdate(build *buildapi.Build, older *buildapi.Build) fi
 // ValidateBuildStatusUpdate validates a build status update
 func ValidateBuildStatusUpdate(build *buildapi.Build, older *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
-	// Ensure that the cancelled flag is not changed in a status update
-	if older.Status.Cancelled != build.Status.Cancelled {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "cancelled"), nil, "cannot update cancelled flag in a status update"))
-	}
 	return allErrs
 }
 

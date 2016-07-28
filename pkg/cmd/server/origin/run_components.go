@@ -242,6 +242,7 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		KubeClient:         kclient,
 		OSClient:           osclient,
+		BuildUpdater:       buildclient.NewOSClientBuildClient(osclient),
 		BuildStatusUpdater: buildclient.NewOSClientBuildClient(osclient),
 		BuildLister:        buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{

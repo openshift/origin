@@ -23,6 +23,12 @@ func (okc *okBuildStatusUpdater) UpdateStatus(namespace string, build *buildapi.
 	return nil
 }
 
+type okBuildUpdater struct{}
+
+func (okc *okBuildUpdater) Update(namespace string, build *buildapi.Build) error {
+	return nil
+}
+
 type okBuildLister struct{}
 
 func (okc *okBuildLister) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
@@ -158,7 +164,7 @@ func mockBuildController() *BuildController {
 		BuildStrategy:      &okStrategy{},
 		ImageStreamClient:  &okImageStreamClient{},
 		Recorder:           &record.FakeRecorder{},
-		RunPolicies:        policy.GetAllRunPolicies(&okBuildLister{}, &okBuildStatusUpdater{}),
+		RunPolicies:        policy.GetAllRunPolicies(&okBuildLister{}, &okBuildUpdater{}, &okBuildStatusUpdater{}),
 	}
 }
 

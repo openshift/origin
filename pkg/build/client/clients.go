@@ -11,6 +11,10 @@ type BuildStatusUpdater interface {
 	UpdateStatus(namespace string, build *buildapi.Build) error
 }
 
+type BuildUpdater interface {
+	Update(namespace string, build *buildapi.Build) error
+}
+
 // BuildLister provides methods for listing the Builds.
 type BuildLister interface {
 	List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error)
@@ -27,6 +31,12 @@ func NewOSClientBuildClient(client osclient.Interface) *OSClientBuildClient {
 }
 
 // Update updates builds using the OpenShift client.
+func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) error {
+	_, e := c.Client.Builds(namespace).Update(build)
+	return e
+}
+
+// UpdateStatus updates build status using the OpenShift client.
 func (c OSClientBuildClient) UpdateStatus(namespace string, build *buildapi.Build) error {
 	_, e := c.Client.Builds(namespace).UpdateStatus(build)
 	return e

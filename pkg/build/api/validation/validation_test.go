@@ -77,28 +77,6 @@ func TestValidateBuildDetailsUpdate(t *testing.T) {
 	}
 }
 
-func TestValidateBuildStatusUpdate(t *testing.T) {
-	older := testBuild()
-	newer := testBuild()
-
-	// Ensure that a change to the cancelled flag is not allowed through a status update
-	older.Status.Cancelled = false
-	newer.Status.Cancelled = true
-	errs := ValidateBuildStatusUpdate(newer, older)
-	if len(errs) == 0 {
-		t.Errorf("no error returned when changing cancelled flag on build status update")
-	}
-
-	// Ensure that a valid status update is allowed
-	older.Status.Cancelled = false
-	newer.Status.Cancelled = false
-	newer.Status.Phase = buildapi.BuildPhaseComplete
-	errs = ValidateBuildStatusUpdate(newer, older)
-	if len(errs) > 0 {
-		t.Errorf("expected no error, got: %v", errs)
-	}
-}
-
 func checkDockerStrategyEmptySourceError(result field.ErrorList) bool {
 	for _, err := range result {
 		if err.Type == field.ErrorTypeInvalid && strings.Contains(err.Field, "spec.source") && strings.Contains(err.Detail, "must provide a value for at least one source input(git, binary, dockerfile, images).") {
@@ -333,6 +311,12 @@ func newDefaultParameters() buildapi.BuildSpec {
 	}
 }
 
+func cancelledBuildSpec() buildapi.BuildSpec {
+	spec := newDefaultParameters()
+	spec.Cancelled = true
+	return spec
+}
+
 func newNonDefaultParameters() buildapi.BuildSpec {
 	o := newDefaultParameters()
 	o.Source.Git.URI = "changed"
@@ -364,6 +348,28 @@ func TestValidateBuildUpdate(t *testing.T) {
 		T      field.ErrorType
 		F      string
 	}{
+		"cancelled": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       cancelledBuildSpec(),
+			},
+		},
+		"uncancel": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       cancelledBuildSpec(),
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+			},
+			T: field.ErrorTypeInvalid,
+			F: "spec.cancelled",
+		},
 		"changed spec": {
 			Old: &buildapi.Build{
 				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
@@ -436,6 +442,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 
 	for k, v := range errorCases {
 		errs := ValidateBuildUpdate(v.Update, v.Old)
+		if len(v.T) == 0 {
+			if len(errs) > 0 {
+				t.Errorf("%s: unexpected failure %v", k, errs)
+			}
+			continue
+		}
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.Update)
 			continue

@@ -712,9 +712,11 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 	}
 	// TODO remove/update this when we support cloning binary builds
 	newBuild.Spec.Source.Binary = nil
+	newBuild.Spec.Cancelled = false
 	if newBuild.Annotations == nil {
 		newBuild.Annotations = make(map[string]string)
 	}
+	delete(newBuild.Annotations, buildapi.BuildPodNameAnnotation)
 	newBuild.Annotations[buildapi.BuildCloneAnnotation] = build.Name
 	if buildConfig != nil {
 		newBuild.Annotations[buildapi.BuildNumberAnnotation] = strconv.FormatInt(buildConfig.Status.LastVersion, 10)

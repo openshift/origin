@@ -103,7 +103,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 
 	// A cancelling event was triggered for the build, delete its pod and update build status.
-	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
+	if build.Spec.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
 		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
 		if err := bc.CancelBuild(build); err != nil {
 			build.Status.Reason = buildapi.StatusReasonCancelBuildFailed
@@ -140,7 +140,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 // build.Message.
 func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	// If a cancelling event was triggered for the build, update build status.
-	if build.Status.Cancelled {
+	if build.Spec.Cancelled {
 		glog.V(4).Infof("Cancelling build %s/%s.", build.Namespace, build.Name)
 		build.Status.Phase = buildapi.BuildPhaseCancelled
 		build.Status.Reason = ""
@@ -374,7 +374,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 	build := obj.(*buildapi.Build)
 
 	// If build was cancelled, we'll leave HandleBuild to update the build
-	if build.Status.Cancelled {
+	if build.Spec.Cancelled {
 		glog.V(4).Infof("Cancelation for build was already triggered, ignoring")
 		return nil
 	}

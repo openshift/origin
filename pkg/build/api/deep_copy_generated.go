@@ -415,6 +415,7 @@ func DeepCopy_api_BuildSpec(in BuildSpec, out *BuildSpec, c *conversion.Cloner) 
 	if err := DeepCopy_api_CommonSpec(in.CommonSpec, &out.CommonSpec, c); err != nil {
 		return err
 	}
+	out.Cancelled = in.Cancelled
 	if in.TriggeredBy != nil {
 		in, out := in.TriggeredBy, &out.TriggeredBy
 		*out = make([]BuildTriggerCause, len(in))
@@ -431,7 +432,6 @@ func DeepCopy_api_BuildSpec(in BuildSpec, out *BuildSpec, c *conversion.Cloner) 
 
 func DeepCopy_api_BuildStatus(in BuildStatus, out *BuildStatus, c *conversion.Cloner) error {
 	out.Phase = in.Phase
-	out.Cancelled = in.Cancelled
 	out.Reason = in.Reason
 	out.Message = in.Message
 	if in.StartTimestamp != nil {

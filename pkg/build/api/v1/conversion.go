@@ -10,6 +10,22 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+func Convert_api_Build_To_v1_Build(in *newer.Build, out *Build, s conversion.Scope) error {
+	if err := autoConvert_api_Build_To_v1_Build(in, out, s); err != nil {
+		return err
+	}
+	out.Status.Cancelled = in.Spec.Cancelled
+	return nil
+}
+
+func Convert_v1_Build_To_api_Build(in *Build, out *newer.Build, s conversion.Scope) error {
+	if err := autoConvert_v1_Build_To_api_Build(in, out, s); err != nil {
+		return err
+	}
+	out.Spec.Cancelled = in.Status.Cancelled
+	return nil
+}
+
 func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {
 	if err := autoConvert_v1_BuildConfig_To_api_BuildConfig(in, out, s); err != nil {
 		return err
@@ -170,6 +186,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		Convert_api_BuildSource_To_v1_BuildSource,
 		Convert_v1_BuildStrategy_To_api_BuildStrategy,
 		Convert_api_BuildStrategy_To_v1_BuildStrategy,
+		Convert_api_Build_To_v1_Build,
+		Convert_v1_Build_To_api_Build,
 	)
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Build",
