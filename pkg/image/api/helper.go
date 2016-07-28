@@ -184,6 +184,7 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.ID = id
 		break
 	default:
+		// TODO: this is no longer true with V2
 		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
 

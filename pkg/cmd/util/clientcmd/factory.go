@@ -430,6 +430,20 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return kAttachablePodForObjectFunc(object)
 		}
 	}
+	kUpdatePodSpecForObject := w.Factory.UpdatePodSpecForObject
+	w.UpdatePodSpecForObject = func(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
+		switch t := obj.(type) {
+		case *deployapi.DeploymentConfig:
+			template := t.Spec.Template
+			if template == nil {
+				t.Spec.Template = template
+				template = &api.PodTemplateSpec{}
+			}
+			return true, fn(&template.Spec)
+		default:
+			return kUpdatePodSpecForObject(obj, fn)
+		}
+	}
 	kProtocolsForObject := w.Factory.ProtocolsForObject
 	w.ProtocolsForObject = func(object runtime.Object) (map[string]string, error) {
 		switch t := object.(type) {
@@ -601,31 +615,6 @@ func (f *Factory) ExtractFileContents(obj runtime.Object) (map[string][]byte, bo
 		return out, true, nil
 	default:
 		return nil, false, nil
-	}
-}
-
-// UpdatePodSpecForObject update the pod specification for the provided object
-// TODO: move to upstream
-func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
-	// TODO: replace with a swagger schema based approach (identify pod template via schema introspection)
-	switch t := obj.(type) {
-	case *api.Pod:
-		return true, fn(&t.Spec)
-	case *api.PodTemplate:
-		return true, fn(&t.Template.Spec)
-	case *api.ReplicationController:
-		if t.Spec.Template == nil {
-			t.Spec.Template = &api.PodTemplateSpec{}
-		}
-		return true, fn(&t.Spec.Template.Spec)
-	case *deployapi.DeploymentConfig:
-		template := t.Spec.Template
-		if template == nil {
-			template = &api.PodTemplateSpec{}
-		}
-		return true, fn(&template.Spec)
-	default:
-		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
 	}
 }
 

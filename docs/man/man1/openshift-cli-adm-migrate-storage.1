@@ -1,0 +1,165 @@
+.TH "OPENSHIFT CLI ADM MIGRATE" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift cli adm migrate storage \- Update the stored version of API objects
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift cli adm migrate storage\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+Migrate internal object storage via update
+
+.PP
+This command invokes an update operation on every API object reachable by the caller. This forces
+the server to write to the underlying storage if the object representation has changed. Use this
+command to ensure that the most recent storage changes have been applied to all objects (storage
+version, storage encoding, any newer object defaults).
+
+.PP
+To operate on a subset of resources, use the \-\-include flag. If you encounter errors during a run
+the command will output a list of resources that received errors, which you can then re\-run the
+command on. You may also specify \-\-from\-key and \-\-to\-key to restrict the set of resource names
+to operate on (key is NAMESPACE/NAME for resources in namespaces or NAME for cluster scoped
+resources). \-\-from\-key is inclusive if specified, while \-\-to\-key is exclusive.
+
+.PP
+By default, events are not migrated since they expire within a very short period of time. If you
+have significantly increased the expiration time of events, run a migration with \-\-include=events
+
+.PP
+WARNING: This is a slow command and will put significant load on an API server. It may also
+  result in significant intra\-cluster traffic.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-all\-namespaces\fP=true
+    Migrate objects in all namespaces. Defaults to true.
+
+.PP
+\fB\-\-confirm\fP=false
+    If true, all requested objects will be migrated. Defaults to false.
+
+.PP
+\fB\-f\fP, \fB\-\-filename\fP=[]
+    Filename, directory, or URL to docker\-compose.yml file to use
+
+.PP
+\fB\-\-from\-key\fP=""
+    If specified, only migrate items with a key (namespace/name or name) greater than or equal to this value
+
+.PP
+\fB\-\-include\fP=[*]
+    Resource types to migrate. Passing \-\-filename will override this flag.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output the modified objects instead of saving them, valid values are 'yaml' or 'json'
+
+.PP
+\fB\-\-to\-key\fP=""
+    If specified, only migrate items with a key (namespace/name or name) less than this value
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-api\-version\fP=""
+    DEPRECATED: The API version to use when talking to the server
+
+.PP
+\fB\-\-as\fP=""
+    Username to impersonate for the operation.
+
+.PP
+\fB\-\-certificate\-authority\fP=""
+    Path to a cert. file for the certificate authority.
+
+.PP
+\fB\-\-client\-certificate\fP=""
+    Path to a client certificate file for TLS.
+
+.PP
+\fB\-\-client\-key\fP=""
+    Path to a client key file for TLS.
+
+.PP
+\fB\-\-cluster\fP=""
+    The name of the kubeconfig cluster to use
+
+.PP
+\fB\-\-config\fP=""
+    Path to the config file to use for CLI requests.
+
+.PP
+\fB\-\-context\fP=""
+    The name of the kubeconfig context to use
+
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-insecure\-skip\-tls\-verify\fP=false
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+.PP
+\fB\-\-match\-server\-version\fP=false
+    Require server version to match client version
+
+.PP
+\fB\-n\fP, \fB\-\-namespace\fP=""
+    If present, the namespace scope for this CLI request.
+
+.PP
+\fB\-\-server\fP=""
+    The address and port of the Kubernetes API server
+
+.PP
+\fB\-\-token\fP=""
+    Bearer token for authentication to the API server.
+
+.PP
+\fB\-\-user\fP=""
+    The name of the kubeconfig user to use
+
+
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Perform a dry\-run of updating all objects
+  openshift cli adm migrate storage
+
+  # To actually perform the update, the confirm flag must be appended
+  openshift cli adm migrate storage \-\-confirm
+
+  # Only migrate pods
+  openshift cli adm migrate storage \-\-include=pods \-\-confirm
+
+  # Only pods that are in namespaces starting with "bar"
+  openshift cli adm migrate storage \-\-include=pods \-\-confirm \-\-from\-key=bar/ \-\-to\-key=bar/\\xFF
+
+
+.fi
+.RE
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-cli\-adm\-migrate(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator
