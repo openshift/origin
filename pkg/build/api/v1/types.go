@@ -252,7 +252,7 @@ type BuildSource struct {
 
 	// secrets represents a list of secrets and their destinations that will
 	// be used only for the build.
-	Secrets []SecretBuildSource `json:"secrets" protobuf:"bytes,8,rep,name=secrets"`
+	Secrets []SecretBuildSource `json:"secrets,omitempty" protobuf:"bytes,8,rep,name=secrets"`
 }
 
 // ImageSource describes an image that is used as source for the build

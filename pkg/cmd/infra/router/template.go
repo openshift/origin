@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,13 +14,13 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktypes "k8s.io/kubernetes/pkg/types"
 
+	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -115,7 +116,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)

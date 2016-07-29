@@ -14,6 +14,7 @@ trap os::test::junit::reconcile_output EXIT
   set +e
   oc delete all,templates,secrets,pods,jobs --all
   oc delete image v1-image
+  oc delete group patch-group
   exit 0
 ) &>/dev/null
 
@@ -28,16 +29,19 @@ os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 # Test to make sure that we're reporting the correct version information from endpoints and the correct
 # User-Agent information from our clients regardless of which resources they're trying to access
 os::build::get_version_vars
-os_git_regex="$( escape_regex ${OS_GIT_VERSION%%-*} )"
-kube_git_regex="$( escape_regex ${KUBE_GIT_VERSION%%-*} )"
+os_git_regex="$( escape_regex "${OS_GIT_VERSION%%-*}" )"
+kube_git_regex="$( escape_regex "${KUBE_GIT_VERSION%%-*}" )"
+etcd_git_regex="$( escape_regex "${ETCD_GIT_VERSION%%-*}" )"
 os::cmd::expect_success_and_text 'oc version' "oc ${os_git_regex}"
 os::cmd::expect_success_and_text 'oc version' "kubernetes ${kube_git_regex}"
+os::cmd::expect_success_and_text 'oc version' "features: Basic-Auth"
 os::cmd::expect_success_and_text 'openshift version' "openshift ${os_git_regex}"
 os::cmd::expect_success_and_text 'openshift version' "kubernetes ${kube_git_regex}"
-os::cmd::expect_success_and_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${kube_git_regex}"
-os::cmd::expect_success_and_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift' "${os_git_regex}"
-os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${OS_GIT_COMMIT}"
-os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift' "${KUBE_GIT_COMMIT}"
+os::cmd::expect_success_and_text 'openshift version' "etcd ${etcd_git_regex}"
+os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${kube_git_regex}"
+os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${os_git_regex}"
+os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${OS_GIT_COMMIT}"
+os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${KUBE_GIT_COMMIT}"
 
 # variants I know I have to worry about
 # 1. oc (kube and openshift resources)
@@ -144,7 +148,7 @@ os::cmd::expect_success 'oc get nodes'
   # subshell so we can unset kubeconfig
   cfg="${KUBECONFIG}"
   unset KUBECONFIG
-  os::cmd::expect_success 'kubectl get nodes --kubeconfig="${cfg}"'
+  os::cmd::expect_success "kubectl get nodes --kubeconfig='${cfg}'"
 )
 echo "nodes: ok"
 os::test::junit::declare_suite_end
@@ -292,13 +296,12 @@ os::cmd::expect_success 'oc delete all --all'
 
 os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"
 # switch to test user to be sure that default project admin policy works properly
-new="$(mktemp -d)/tempconfig"
-os::cmd::expect_success "oc config view --raw > $new"
-export KUBECONFIG=$new
-project=$(oc project -q)
+temp_config="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > '${temp_config}'"
+export KUBECONFIG="${temp_config}"
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
-os::cmd::try_until_success 'oc project ${project}'
+os::cmd::try_until_success "oc project '$(oc project -q)'"
 
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
@@ -334,7 +337,7 @@ echo "delete all: ok"
 os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
-os::cmd::expect_failure_and_text "oc new-project --token="$( oc sa get-token builder )" will-fail" 'Error from server: You may not request a new project via this API'
+os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server: You may not request a new project via this API'
 
 # test oc projects
 os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
@@ -349,9 +352,7 @@ echo 'projects command ok'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly
-oc login -u system:admin
-# Clean up group if needed to be re-entrant
-oc delete group patch-group || true
+os::cmd::expect_success 'oc login -u system:admin'
 group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
 os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
 os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: null'

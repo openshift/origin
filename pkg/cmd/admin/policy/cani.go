@@ -162,7 +162,11 @@ func (o *canIOptions) Run() (bool, error) {
 	if response.Allowed {
 		fmt.Fprintln(o.Out, "yes")
 	} else {
-		fmt.Fprintln(o.Out, "no")
+		fmt.Fprint(o.Out, "no")
+		if len(response.EvaluationError) > 0 {
+			fmt.Fprintf(o.Out, " - %v", response.EvaluationError)
+		}
+		fmt.Fprintln(o.Out)
 	}
 
 	return response.Allowed, nil

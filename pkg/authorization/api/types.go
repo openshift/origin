@@ -206,6 +206,10 @@ type SubjectAccessReviewResponse struct {
 	Allowed bool
 	// Reason is optional.  It indicates why a request was allowed or denied.
 	Reason string
+	// EvaluationError is an indication that some error occurred during the authorization check.
+	// It is entirely possible to get an error and be able to continue determine authorization status in spite of it.  This is
+	// most common when a bound role is missing, but enough roles are still present and bound to reason about the request.
+	EvaluationError string
 }
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action

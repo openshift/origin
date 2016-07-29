@@ -1609,6 +1609,10 @@ func (m *SubjectAccessReviewResponse) MarshalTo(data []byte) (int, error) {
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
 	i += copy(data[i:], m.Reason)
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.EvaluationError)))
+	i += copy(data[i:], m.EvaluationError)
 	return i, nil
 }
 
@@ -2162,6 +2166,8 @@ func (m *SubjectAccessReviewResponse) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	n += 2
 	l = len(m.Reason)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.EvaluationError)
 	n += 1 + l + sovGenerated(uint64(l))
 	return n
 }
@@ -6431,6 +6437,35 @@ func (m *SubjectAccessReviewResponse) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Reason = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EvaluationError", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EvaluationError = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -391,19 +391,19 @@ func deploymentConfig(setNodeSelector bool) runtime.Object {
 
 func podSecurityPolicySubjectReview(setNodeSelector bool) runtime.Object {
 	pspsr := &securityapi.PodSecurityPolicySubjectReview{}
-	pspsr.Spec.PodSpec = *podSpec(setNodeSelector)
+	pspsr.Spec.Template.Spec = *podSpec(setNodeSelector)
 	return pspsr
 }
 
 func podSecurityPolicySelfSubjectReview(setNodeSelector bool) runtime.Object {
 	pspssr := &securityapi.PodSecurityPolicySelfSubjectReview{}
-	pspssr.Spec.PodSpec = *podSpec(setNodeSelector)
+	pspssr.Spec.Template.Spec = *podSpec(setNodeSelector)
 	return pspssr
 }
 
 func podSecurityPolicyReview(setNodeSelector bool) runtime.Object {
 	pspr := &securityapi.PodSecurityPolicyReview{}
-	pspr.Spec.PodSpec = *podSpec(setNodeSelector)
+	pspr.Spec.Template.Spec = *podSpec(setNodeSelector)
 	return pspr
 }
 

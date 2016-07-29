@@ -81,7 +81,7 @@ FAQ
     for building applications in containers.  Our goal is to do most of that work upstream, with
     integration and final packaging occurring in Origin.
 
-    You can run the core Kubernetes server components with `openshift start kube`, use `kubectl` via
+    You can run the core Kubernetes server components with `openshift start kubernetes`, use `kubectl` via
     `openshift kube`, and the Origin release zips include versions of `kubectl`, `kubelet`,
     `kube-apiserver`, and other core components. You can see the version of Kubernetes included with
     Origin via `openshift version`.
@@ -198,6 +198,7 @@ Replica Sets | Beta (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.2)<br>Te
 Ingress | Alpha (1.1)<br>Beta (1.2, 1.3) | Disabled Pending Migration (1.2, 1.3) | OpenShift launched with Routes, a more full featured Ingress object. We plan to enable upstream Ingresses with automatic migrations to Routes so that existing clusters continue to function as normal without a migration, and so that existing client tools automatically display Ingresses.<br>Upstream ingress controllers are not supported, since the integrated router is production supported with a superset of Ingress functionality.
 PodSecurityPolicy | Alpha (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.3)<br>Not Yet Secure (1.3) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
 PodAntiAffinitySelectors | Alpha (1.3) | Not Yet Secure (1.3)<br>Tech Preview (1.4?) | End users are not allowed to set PodAntiAffinitySelectors that are not the node name due to the possibility of attacking the scheduler via denial of service.|
+NetworkPolicy | Beta (1.3) | Tech Preview (1.3) | OpenShift's default network plugins (`redhat/openshift-ovs-subnet` and `redhat/openshift-ovs-multitenant`) do not support NetworkPolicy yet, but if you use a third-party network plugin, it might.
 
 Please contact us if this list omits a feature supported in Kubernetes which does not run in Origin.
 
@@ -216,7 +217,7 @@ See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for
 If you want to run the test suite, make sure you have your environment set up, and from the `origin` directory run:
 
 ```
-# run the unit tests
+# run the verifiers, unit tests, and command tests
 $ make check
 
 # run a command-line integration test suite
