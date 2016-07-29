@@ -11,19 +11,21 @@ const (
 
 // +genclient=true
 
-// ClusterNetwork describes a cluster network
+// ClusterNetwork describes the cluster network. There is normally only one object of this type,
+// named "default", which is created by the SDN network plugin based on the master configuration
+// when the cluster is brought up for the first time.
 type ClusterNetwork struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// Network is a CIDR string to specify the global overlay network's L3 space
+	// Network is a CIDR string specifying the global overlay network's L3 space
 	Network string `json:"network" protobuf:"bytes,2,opt,name=network"`
-	// HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host
+	// HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods
 	HostSubnetLength uint32 `json:"hostsubnetlength" protobuf:"varint,3,opt,name=hostsubnetlength"`
-	// ServiceNetwork is the CIDR string to specify the service network
+	// ServiceNetwork is the CIDR range that Service IP addresses are allocated from
 	ServiceNetwork string `json:"serviceNetwork" protobuf:"bytes,4,opt,name=serviceNetwork"`
-	// PluginName is the name of the network plugin
+	// PluginName is the name of the network plugin being used
 	PluginName string `json:"pluginName,omitempty" protobuf:"bytes,5,opt,name=pluginName"`
 }
 
@@ -36,18 +38,19 @@ type ClusterNetworkList struct {
 	Items []ClusterNetwork `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// HostSubnet encapsulates the inputs needed to define the container subnet network on a node
+// HostSubnet describes the container subnet network on a node. The HostSubnet object must have the
+// same name as the Node object it corresponds to.
 type HostSubnet struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// Host is the name of the host that is registered at the master. May just be an IP address, resolvable hostname or a complete DNS.
-	// A lease will be sought after this name.
+	// Host is the name of the node. (This is redundant with the object's name, and this
+	// field is not actually used any more.)
 	Host string `json:"host" protobuf:"bytes,2,opt,name=host"`
-	// HostIP is the IP address to be used as vtep by other hosts in the overlay network
+	// HostIP is the IP address to be used as a VTEP by other nodes in the overlay network
 	HostIP string `json:"hostIP" protobuf:"bytes,3,opt,name=hostIP"`
-	// Subnet is the actual subnet CIDR lease assigned to the host
+	// Subnet is the CIDR range of the overlay network assigned to the node for its pods
 	Subnet string `json:"subnet" protobuf:"bytes,4,opt,name=subnet"`
 }
 
@@ -60,15 +63,17 @@ type HostSubnetList struct {
 	Items []HostSubnet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// NetNamespace encapsulates the inputs needed to define a unique network namespace on the cluster
+// NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant
+// plugin, every Namespace will have a corresponding NetNamespace object with the same name.
+// (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)
 type NetNamespace struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// NetName is the name of the network namespace
+	// NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)
 	NetName string `json:"netname" protobuf:"bytes,2,opt,name=netname"`
-	// NetID is the network identifier of the network namespace assigned to each overlay network packet
+	// NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oadm pod-network" commands.
 	NetID uint32 `json:"netid" protobuf:"varint,3,opt,name=netid"`
 }
 
