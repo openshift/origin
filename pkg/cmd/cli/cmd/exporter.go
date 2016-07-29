@@ -40,6 +40,10 @@ type Exporter interface {
 
 type defaultExporter struct{}
 
+func NewExporter() Exporter {
+	return &defaultExporter{}
+}
+
 func (e *defaultExporter) AddExportOptions(flags *pflag.FlagSet) {
 }
 
