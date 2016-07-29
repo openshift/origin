@@ -4590,6 +4590,147 @@
     ]
    },
    {
+    "path": "/oapi/v1/clusterresourcequotas/{name}/status",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "GET",
+      "summary": "read status of the specified ClusterResourceQuota",
+      "nickname": "readClusterResourceQuotaStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "PUT",
+      "summary": "replace status of the specified ClusterResourceQuota",
+      "nickname": "replaceClusterResourceQuotaStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ClusterResourceQuota",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.ClusterResourceQuota",
+      "method": "PATCH",
+      "summary": "partially update status of the specified ClusterResourceQuota",
+      "nickname": "patchClusterResourceQuotaStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "unversioned.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ClusterResourceQuota",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ClusterResourceQuota"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/clusterrolebindings",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -20051,8 +20192,7 @@
     "id": "v1.BuildSource",
     "description": "BuildSource is the SCM used for the build.",
     "required": [
-     "type",
-     "secrets"
+     "type"
     ],
     "properties": {
      "type": {

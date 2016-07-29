@@ -139,9 +139,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(projectGroup).Resources("projectrequests", "projects").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("appliedclusterresourcequotas").RuleOrDie(),
-
-				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("clusterresourcequotas").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(quotaGroup).Resources("appliedclusterresourcequotas", "clusterresourcequotas", "clusterresourcequotas/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(routeGroup).Resources("routes", "routes/status").RuleOrDie(),
 

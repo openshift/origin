@@ -20,6 +20,7 @@ type subjectAccessTest struct {
 	requestingUser *user.DefaultInfo
 
 	expectedUserInfo *user.DefaultInfo
+	expectedError    string
 }
 
 type testAuthorizer struct {
@@ -76,6 +77,7 @@ func TestDeniedNamespace(t *testing.T) {
 			User:   "foo",
 			Groups: sets.NewString(),
 		},
+		expectedError: "denied initial check",
 	}
 
 	test.runTest(t)
@@ -140,6 +142,11 @@ func TestErrors(t *testing.T) {
 			},
 			User:   "foo",
 			Groups: sets.NewString("first", "second"),
+		},
+		expectedUserInfo: &user.DefaultInfo{
+			Name:   "foo",
+			Groups: []string{"first", "second"},
+			Extra:  map[string][]string{},
 		},
 	}
 
@@ -233,9 +240,10 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	storage := REST{r.authorizer}
 
 	expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
-		Namespace: r.reviewRequest.Action.Namespace,
-		Allowed:   r.authorizer.allowed,
-		Reason:    r.authorizer.reason,
+		Namespace:       r.reviewRequest.Action.Namespace,
+		Allowed:         r.authorizer.allowed,
+		Reason:          r.authorizer.reason,
+		EvaluationError: r.authorizer.err,
 	}
 
 	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
@@ -246,17 +254,16 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	}
 
 	obj, err := storage.Create(ctx, r.reviewRequest)
-	if err != nil && len(r.authorizer.err) == 0 {
+	switch {
+	case err == nil && len(r.expectedError) == 0:
+	case err == nil && len(r.expectedError) != 0:
+		t.Fatalf("missing expected error: %v", r.expectedError)
+	case err != nil && len(r.expectedError) == 0:
 		t.Fatalf("unexpected error: %v", err)
+	case err != nil && len(r.expectedError) == 0 && err.Error() != r.expectedError:
+		t.Fatalf("unexpected error: %v", r.expectedError)
 	}
-	if len(r.authorizer.err) != 0 {
-		if err == nil {
-			t.Fatalf("unexpected non-error: %v", err)
-		}
-		if e, a := r.authorizer.err, err.Error(); e != a {
-			t.Fatalf("expected %v, got %v", e, a)
-		}
-
+	if len(r.expectedError) > 0 {
 		return
 	}
 
@@ -264,10 +271,6 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 	case *authorizationapi.SubjectAccessReviewResponse:
 		if !reflect.DeepEqual(expectedResponse, obj) {
 			t.Errorf("diff %v", diff.ObjectGoPrintDiff(expectedResponse, obj))
-		}
-	case nil:
-		if len(r.authorizer.err) == 0 {
-			t.Fatal("unexpected nil object")
 		}
 
 	default:

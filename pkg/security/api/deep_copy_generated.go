@@ -41,7 +41,7 @@ func DeepCopy_api_PodSecurityPolicyReview(in PodSecurityPolicyReview, out *PodSe
 }
 
 func DeepCopy_api_PodSecurityPolicyReviewSpec(in PodSecurityPolicyReviewSpec, out *PodSecurityPolicyReviewSpec, c *conversion.Cloner) error {
-	if err := api.DeepCopy_api_PodSpec(in.PodSpec, &out.PodSpec, c); err != nil {
+	if err := api.DeepCopy_api_PodTemplateSpec(in.Template, &out.Template, c); err != nil {
 		return err
 	}
 	if in.ServiceAccountNames != nil {
@@ -83,7 +83,7 @@ func DeepCopy_api_PodSecurityPolicySelfSubjectReview(in PodSecurityPolicySelfSub
 }
 
 func DeepCopy_api_PodSecurityPolicySelfSubjectReviewSpec(in PodSecurityPolicySelfSubjectReviewSpec, out *PodSecurityPolicySelfSubjectReviewSpec, c *conversion.Cloner) error {
-	if err := api.DeepCopy_api_PodSpec(in.PodSpec, &out.PodSpec, c); err != nil {
+	if err := api.DeepCopy_api_PodTemplateSpec(in.Template, &out.Template, c); err != nil {
 		return err
 	}
 	return nil
@@ -103,7 +103,7 @@ func DeepCopy_api_PodSecurityPolicySubjectReview(in PodSecurityPolicySubjectRevi
 }
 
 func DeepCopy_api_PodSecurityPolicySubjectReviewSpec(in PodSecurityPolicySubjectReviewSpec, out *PodSecurityPolicySubjectReviewSpec, c *conversion.Cloner) error {
-	if err := api.DeepCopy_api_PodSpec(in.PodSpec, &out.PodSpec, c); err != nil {
+	if err := api.DeepCopy_api_PodTemplateSpec(in.Template, &out.Template, c); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -128,7 +128,7 @@ func DeepCopy_api_PodSecurityPolicySubjectReviewStatus(in PodSecurityPolicySubje
 		out.AllowedBy = nil
 	}
 	out.Reason = in.Reason
-	if err := api.DeepCopy_api_PodSpec(in.PodSpec, &out.PodSpec, c); err != nil {
+	if err := api.DeepCopy_api_PodTemplateSpec(in.Template, &out.Template, c); err != nil {
 		return err
 	}
 	return nil

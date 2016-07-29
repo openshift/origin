@@ -22,7 +22,6 @@ function cleanup()
     echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
     set_curl_args 0 1
     curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-    echo
 
     pkill -P $$
     kill_all_processes
@@ -42,16 +41,9 @@ function cleanup()
         echo
         echo -------------------------------------
         echo
-    else
-        if path=$(go tool -n pprof 2>&1); then
-          echo
-          echo "pprof: top output"
-          echo
-          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
-        fi
-
-        echo
-        echo "Complete"
+    elif go tool -n pprof >/dev/null 2>&1; then
+        echo "[INFO] \`pprof\` output logged to ${LOG_DIR}/pprof.out"
+        go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
 
     # TODO(skuznets): un-hack this nonsense once traps are in a better state
@@ -83,6 +75,7 @@ function cleanup()
     fi
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
+    echo "[INFO] Exiting with ${out}"
     exit $out
 }
 
@@ -193,6 +186,11 @@ openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\"
 openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
 openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
+# check oc version with no server running but config files present
+os::test::junit::declare_suite_start "cmd/version"
+os::cmd::expect_success_and_not_text "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc version" "did you specify the right host or port"
+os::test::junit::declare_suite_end
+
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
@@ -227,19 +225,10 @@ atomic-enterprise start \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
 
-os::test::junit::declare_suite_start "cmd/validatation"
-# validate config that was generated
-os::cmd::expect_success_and_text "openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml" 'SUCCESS'
-os::cmd::expect_success_and_text "openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml" 'SUCCESS'
-# breaking the config fails the validation check
-cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
-os::util::sed '7,12d' ${BASETMPDIR}/master-config-broken.yaml
-os::cmd::expect_failure_and_text "openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml" 'ERROR'
-
-cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
-os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
-os::cmd::expect_failure_and_text "openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml" 'ERROR'
-echo "validation: ok"
+# check oc version with no config file
+os::test::junit::declare_suite_start "cmd/version"
+os::cmd::expect_success_and_not_text "oc version" "Missing or incomplete configuration info"
+echo "oc version (with no config file set): ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/config"
@@ -303,6 +292,10 @@ os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-au
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 os::cmd::expect_success 'oadm prune images'
 
+# make sure we handle invalid config file destination
+os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test --config=/src --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
+echo "login warnings: ok"
+
 # log in and set project to use from now on
 VERBOSE=true os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 VERBOSE=true os::cmd::expect_success 'oc get projects'
@@ -318,27 +311,6 @@ os::cmd::expect_success "oc get services --config='${MASTER_CONFIG_DIR}/admin.ku
 
 # test config files from env vars
 os::cmd::expect_success "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc get services"
-
-# test completion command help
-os::cmd::expect_success_and_text "oc completion -h" "prints shell code"
-os::cmd::expect_success_and_text "openshift completion -h" "prints shell code"
-os::cmd::expect_success_and_text "oadm completion -h" "prints shell code"
-# test completion command output
-os::cmd::expect_failure_and_text "oc completion" "Shell not specified."
-os::cmd::expect_success "oc completion bash"
-os::cmd::expect_success "oc completion zsh"
-os::cmd::expect_failure_and_text "oc completion test_shell" 'Unsupported shell type "test_shell"'
-# test completion command for openshift
-os::cmd::expect_failure_and_text "openshift completion" "Shell not specified."
-os::cmd::expect_success "openshift completion bash"
-os::cmd::expect_success "openshift completion zsh"
-os::cmd::expect_failure_and_text "openshift completion test_shell" 'Unsupported shell type "test_shell"'
-# test completion command for oadm
-os::cmd::expect_failure_and_text "oadm completion" "Shell not specified."
-os::cmd::expect_success "oadm completion bash"
-os::cmd::expect_success "oadm completion zsh"
-os::cmd::expect_failure_and_text "oadm completion test_shell" 'Unsupported shell type "test_shell"'
-echo "oc completion: ok"
 
 # test config files in the home directory
 mkdir -p ${HOME}/.kube
@@ -371,11 +343,6 @@ for test in "${tests[@]}"; do
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
-# Done
-echo
-echo
+echo "[INFO] Metrics information logged to ${LOG_DIR}/metrics.log"
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80 > "${LOG_DIR}/metrics.log"
-grep "request_count" "${LOG_DIR}/metrics.log"
-echo
-echo
 echo "test-cmd: ok"

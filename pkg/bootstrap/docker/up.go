@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 const (
@@ -121,7 +122,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	}
 	cmd.Flags().BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
 	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
-	cmd.Flags().StringVar(&config.ImageVersion, "version", "latest", "Specify the tag for OpenShift images")
+	cmd.Flags().StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
 	cmd.Flags().StringVar(&config.Image, "image", "openshift/origin", "Specify the images to use for OpenShift")
 	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
@@ -198,6 +199,10 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.TaskPrinter = NewTaskPrinter(c.Out)
 	c.originalFactory = f
 	c.command = cmd
+
+	if len(c.ImageVersion) == 0 {
+		c.ImageVersion = defaultImageVersion()
+	}
 
 	c.addTask("Checking OpenShift client", c.CheckOpenShiftClient)
 
@@ -307,6 +312,10 @@ func defaultPortForwarding() bool {
 }
 
 const defaultDockerMachineName = "openshift"
+
+func defaultImageVersion() string {
+	return variable.OverrideVersion.LastSemanticVersion()
+}
 
 // CreateDockerMachine will create a new Docker machine to run OpenShift
 func (c *ClientStartConfig) CreateDockerMachine(out io.Writer) error {

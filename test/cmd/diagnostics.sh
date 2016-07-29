@@ -17,6 +17,19 @@ trap os::test::junit::reconcile_output EXIT
 # The rest should be included in some fashion.
 
 os::test::junit::declare_suite_start "cmd/diagnostics"
+
+# validate config that was generated
+os::cmd::expect_success "oadm diagnostics MasterConfigCheck --master-config='${MASTER_CONFIG_DIR}/master-config.yaml'"
+os::cmd::expect_success "oadm diagnostics NodeConfigCheck --node-config='${NODE_CONFIG_DIR}/node-config.yaml'"
+# breaking the config fails the validation check
+cp "${MASTER_CONFIG_DIR}/master-config.yaml" "${BASETMPDIR}/master-config-broken.yaml"
+os::util::sed '7,12d' "${BASETMPDIR}/master-config-broken.yaml"
+os::cmd::expect_failure_and_text "oadm diagnostics MasterConfigCheck --master-config='${BASETMPDIR}/master-config-broken.yaml'" 'ERROR'
+
+cp "${NODE_CONFIG_DIR}/node-config.yaml" "${BASETMPDIR}/node-config-broken.yaml"
+os::util::sed '5,10d' "${BASETMPDIR}/node-config-broken.yaml"
+os::cmd::expect_failure_and_text "oadm diagnostics NodeConfigCheck --node-config='${BASETMPDIR}/node-config-broken.yaml'" 'ERROR'
+
 os::cmd::expect_success 'oadm diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
 # DiagnosticPod can't run without Docker, would just time out. Exercise flags instead.
 os::cmd::expect_success "oadm diagnostics DiagnosticPod --prevent-modification --images=foo"

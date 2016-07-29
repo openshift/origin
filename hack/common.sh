@@ -642,6 +642,7 @@ function os::build::get_version_vars() {
   fi
   os::build::os_version_vars
   os::build::kube_version_vars
+  os::build::etcd_version_vars
 }
 readonly -f os::build::get_version_vars
 
@@ -692,6 +693,12 @@ function os::build::os_version_vars() {
 }
 readonly -f os::build::os_version_vars
 
+function os::build::etcd_version_vars() {
+  ETCD_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/coreos/etcd/client" "comment")
+  ETCD_GIT_VERSION=$(echo "${ETCD_GIT_COMMIT}" | sed -E "s/\-.*/\+git/g" | sed -E "s/v//")
+}
+readonly -f os::build::etcd_version_vars
+
 # os::build::kube_version_vars returns the version of Kubernetes we have
 # vendored.
 function os::build::kube_version_vars() {
@@ -735,6 +742,8 @@ OS_GIT_MAJOR='${OS_GIT_MAJOR-}'
 OS_GIT_MINOR='${OS_GIT_MINOR-}'
 KUBE_GIT_COMMIT='${KUBE_GIT_COMMIT-}'
 KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
+ETCD_GIT_VERSION='${ETCD_GIT_VERSION-}'
+ETCD_GIT_COMMIT='${ETCD_GIT_COMMIT-}'
 EOF
 }
 readonly -f os::build::save_version_vars

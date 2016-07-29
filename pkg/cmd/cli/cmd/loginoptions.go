@@ -18,7 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	cmderr "github.com/openshift/origin/pkg/cmd/errors"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -396,7 +398,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	}
 
 	if err := kclientcmd.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
-		return false, err
+		if !os.IsPermission(err) {
+			return false, err
+		}
+
+		out := &bytes.Buffer{}
+		cmderr.PrintError(errors.ErrKubeConfigNotWriteable(o.PathOptions.GetDefaultFilename(), o.PathOptions.IsExplicitFile(), err), out)
+		return false, fmt.Errorf("%v", out)
 	}
 
 	created := false

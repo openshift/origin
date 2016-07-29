@@ -7,7 +7,7 @@ import (
 
 // +genclient=true
 
-// PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodSpec.
+// PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.
 type PodSecurityPolicySubjectReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -20,13 +20,13 @@ type PodSecurityPolicySubjectReview struct {
 
 // PodSecurityPolicySubjectReviewSpec defines specification for PodSecurityPolicySubjectReview
 type PodSecurityPolicySubjectReviewSpec struct {
-	// podSpec is the PodSpec to check. If podSpec.serviceAccountName is empty it will not be defaulted.
+	// template is the PodTemplateSpec to check. If template.spec.serviceAccountName is empty it will not be defaulted.
 	// If its non-empty, it will be checked.
-	PodSpec kapi.PodSpec `json:"podSpec" protobuf:"bytes,1,opt,name=podSpec"`
+	Template kapi.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
 
 	// user is the user you're testing for.
 	// If you specify "user" but not "group", then is it interpreted as "What if user were not a member of any groups.
-	// If user and groups are empty, then the check is performed using *only* the serviceAccountName in the podSpec.
+	// If user and groups are empty, then the check is performed using *only* the serviceAccountName in the template.
 	User string `json:"user,omitempty" protobuf:"bytes,2,opt,name=user"`
 
 	// groups is the groups you're testing for.
@@ -35,7 +35,7 @@ type PodSecurityPolicySubjectReviewSpec struct {
 
 // PodSecurityPolicySubjectReviewStatus contains information/status for PodSecurityPolicySubjectReview.
 type PodSecurityPolicySubjectReviewStatus struct {
-	// allowedBy is a reference to the rule that allows the PodSpec.
+	// allowedBy is a reference to the rule that allows the PodTemplateSpec.
 	// A rule can be a SecurityContextConstraint or a PodSecurityPolicy
 	// A `nil`, indicates that it was denied.
 	AllowedBy *kapi.ObjectReference `json:"allowedBy,omitempty" protobuf:"bytes,1,opt,name=allowedBy"`
@@ -45,11 +45,11 @@ type PodSecurityPolicySubjectReviewStatus struct {
 	// is no information available.
 	Reason string `json:"reason,omitempty" protobuf:"bytes,2,opt,name=reason"`
 
-	// podSpec is the PodSpec after the defaulting is applied.
-	PodSpec kapi.PodSpec `json:"podSpec,omitempty" protobuf:"bytes,3,opt,name=podSpec"`
+	// template is the PodTemplateSpec after the defaulting is applied.
+	Template kapi.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
 }
 
-// PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodSpec
+// PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec
 type PodSecurityPolicySelfSubjectReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -62,11 +62,11 @@ type PodSecurityPolicySelfSubjectReview struct {
 
 // PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.
 type PodSecurityPolicySelfSubjectReviewSpec struct {
-	// podSpec is the PodSpec to check.
-	PodSpec kapi.PodSpec `json:"podSpec" protobuf:"bytes,1,opt,name=podSpec"`
+	// template is the PodTemplateSpec to check.
+	Template kapi.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
 }
 
-// PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodSpec` in question.
+// PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.
 type PodSecurityPolicyReview struct {
 	unversioned.TypeMeta `json:",inline"`
 
@@ -79,22 +79,22 @@ type PodSecurityPolicyReview struct {
 
 // PodSecurityPolicyReviewSpec defines specification for PodSecurityPolicyReview
 type PodSecurityPolicyReviewSpec struct {
-	// podSpec is the PodSpec to check. The podSpec.serviceAccountName field is used
-	// if serviceAccountNames is empty, unless the podSpec.serviceAccountName is empty,
+	// template is the PodTemplateSpec to check. The template.spec.serviceAccountName field is used
+	// if serviceAccountNames is empty, unless the template.spec.serviceAccountName is empty,
 	// in which case "default" is used.
-	// If serviceAccountNames is specified, podSpec.serviceAccountName is ignored.
-	PodSpec kapi.PodSpec `json:"podSpec" protobuf:"bytes,1,opt,name=podSpec"`
+	// If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.
+	Template kapi.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
 
 	// serviceAccountNames is an optional set of ServiceAccounts to run the check with.
-	// If serviceAccountNames is empty, the podSpec serviceAccountName is used,
+	// If serviceAccountNames is empty, the template.spec.serviceAccountName is used,
 	// unless it's empty, in which case "default" is used instead.
-	// If serviceAccountNames is specified, podSpec serviceAccountName is ignored.
+	// If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.
 	ServiceAccountNames []string `json:"serviceAccountNames,omitempty" protobuf:"bytes,2,rep,name=serviceAccountNames"` // TODO: find a way to express 'all service accounts'
 }
 
 // PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.
 type PodSecurityPolicyReviewStatus struct {
-	// allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodSpec.
+	// allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodTemplateSpec.
 	AllowedServiceAccounts []ServiceAccountPodSecurityPolicyReviewStatus `json:"allowedServiceAccounts" protobuf:"bytes,1,rep,name=allowedServiceAccounts"`
 }
 
