@@ -63,6 +63,9 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
 		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
 		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
+		sdnapi.Kind("ClusterNetwork"):                 &ClusterNetworkDescriber{c},
+		sdnapi.Kind("HostSubnet"):                     &HostSubnetDescriber{c},
+		sdnapi.Kind("NetNamespace"):                   &NetNamespaceDescriber{c},
 		sdnapi.Kind("EgressNetworkPolicy"):            &EgressNetworkPolicyDescriber{c},
 	}
 	return m
@@ -1487,6 +1490,63 @@ func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings
 		return "", err
 	}
 	return DescribeClusterQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(quota))
+}
+
+type ClusterNetworkDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a ClusterNetwork
+func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	cn, err := d.ClusterNetwork().Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, cn.ObjectMeta)
+		formatString(out, "Cluster Network", cn.Network)
+		formatString(out, "Host Subnet Length", cn.HostSubnetLength)
+		formatString(out, "Service Network", cn.ServiceNetwork)
+		formatString(out, "Plugin Name", cn.PluginName)
+		return nil
+	})
+}
+
+type HostSubnetDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a HostSubnet
+func (d *HostSubnetDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	hs, err := d.HostSubnets().Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, hs.ObjectMeta)
+		formatString(out, "Node", hs.Host)
+		formatString(out, "Node IP", hs.HostIP)
+		formatString(out, "Pod Subnet", hs.Subnet)
+		return nil
+	})
+}
+
+type NetNamespaceDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a NetNamespace
+func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	netns, err := d.NetNamespaces().Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, netns.ObjectMeta)
+		formatString(out, "Name", netns.NetName)
+		formatString(out, "ID", netns.NetID)
+		return nil
+	})
 }
 
 type EgressNetworkPolicyDescriber struct {
