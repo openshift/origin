@@ -256,6 +256,8 @@ os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '$
 os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/hello-world'" "202 Accepted"
 # 201 means that blob has been cross mounted from given repository
 os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/ruby-22-centos7'" "201 Created"
+os::cmd::expect_success_and_text "oc get -n crossmount istag repo:_pullthrough_dep_${rubyimageblob:7:6}" "$rubyimagedigest"
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "200 OK"
 # check that the blob is linked now
 os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "200 OK"
 # remove pusher's permissions to read from the source repository

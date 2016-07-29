@@ -8,6 +8,11 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // errorBlobStore wraps a distribution.BlobStore for a particular repo.
@@ -55,6 +60,7 @@ func (r *errorBlobStore) Create(ctx context.Context, options ...distribution.Blo
 	}
 
 	ctx = WithRepository(ctx, r.repo)
+	var pullthroughSourceImageReference *imageapi.DockerImageReference
 
 	opts, err := effectiveCreateOptions(options)
 	if err != nil {
@@ -62,7 +68,13 @@ func (r *errorBlobStore) Create(ctx context.Context, options ...distribution.Blo
 	}
 	err = checkPendingCrossMountErrors(ctx, opts)
 	if err == nil && opts.Mount.ShouldMount {
-		desc, err = statSourceRepository(ctx, opts.Mount.From, opts.Mount.From.Digest())
+		context.GetLogger(ctx).Debugf("checking for presence of blob %s in a source repository %s", opts.Mount.From.Digest().String(), opts.Mount.From.Name())
+		desc, pullthroughSourceImageReference, err = statSourceRepository(ctx, r.repo, opts.Mount.From, opts.Mount.From.Digest())
+	}
+	if err == nil && pullthroughSourceImageReference != nil {
+		ref := pullthroughSourceImageReference.MostSpecific()
+		context.GetLogger(ctx).Debugf("trying to tag source image %s into image stream %s", ref.Exact(), r.repo.Named().Name())
+		err = tagPullthroughSourceImageInTargetRepository(ctx, &ref, r.repo, opts.Mount.From.Digest())
 	}
 
 	if err != nil {
@@ -154,10 +166,80 @@ func (f statCrossMountCreateOptions) Apply(v interface{}) error {
 	return nil
 }
 
-func statSourceRepository(ctx context.Context, sourceRepoName reference.Named, dgst digest.Digest) (distribution.Descriptor, error) {
-	repo, err := dockerRegistry.Repository(ctx, sourceRepoName)
+// statSourceRepository founds a blob in the source repository of cross-repo mount and returns its descriptor
+// if found. If the blob is not stored locally but it's available in remote repository, the
+// pullthroughSourceImageReference output parameter will be set to contain a reference of an image containing
+// it.
+func statSourceRepository(
+	ctx context.Context,
+	destRepo *repository,
+	sourceRepoName reference.Named,
+	dgst digest.Digest,
+) (desc distribution.Descriptor, pullthroughSourceImageReference *imageapi.DockerImageReference, err error) {
+	upstreamRepo, err := dockerRegistry.Repository(ctx, sourceRepoName)
 	if err != nil {
-		return distribution.Descriptor{}, err
+		return distribution.Descriptor{}, nil, err
 	}
-	return repo.Blobs(ctx).Stat(ctx, dgst)
+	namespace, name, err := getNamespaceName(sourceRepoName.Name())
+	if err != nil {
+		return distribution.Descriptor{}, nil, err
+	}
+
+	repo := *destRepo
+	repo.namespace = namespace
+	repo.name = name
+	repo.Repository = upstreamRepo
+
+	// ask pullthrough blob store to set source image reference if the blob is found in remote repository
+	var ref imageapi.DockerImageReference
+	ctx = WithPullthroughSourceImageReference(ctx, &ref)
+
+	desc, err = repo.Blobs(ctx).Stat(ctx, dgst)
+	if err == nil && len(ref.Registry) != 0 {
+		pullthroughSourceImageReference = &ref
+	}
+	return
+}
+
+// tagPullthroughSourceImageInTargetRepository creates a tag in a destination image stream of cross-repo mount
+// referencing a remote image that contains the blob. With the reference present in the target stream, the
+// pullthrough will allow to serve the blob from the image stream without storing it locally.
+func tagPullthroughSourceImageInTargetRepository(ctx context.Context, ref *imageapi.DockerImageReference, destRepo *repository, dgst digest.Digest) error {
+	if len(ref.ID) == 0 {
+		return fmt.Errorf("cannot tag image lacking ID as a pullthrough source (%s)", ref.Exact())
+	}
+
+	tag := fmt.Sprintf("_pullthrough_dep_%s", dgst.Hex()[0:6])
+
+	is, err := destRepo.getImageStream()
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
+			return err
+		}
+
+		// create image stream
+		stream := imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: destRepo.name,
+			},
+		}
+		context.GetLogger(ctx).Infof("creating image stream to hold pullthrough source image %q for blob %q", ref.Exact(), dgst.String())
+		is, err = destRepo.registryOSClient.ImageStreams(destRepo.namespace).Create(&stream)
+		if kerrors.IsAlreadyExists(err) {
+			is, err = destRepo.getImageStream()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = imageapi.ResolveImageID(is, ref.ID)
+	if err == nil {
+		context.GetLogger(ctx).Debugf("source image %s is already rererenced in image stream", ref.ID)
+		return err
+	}
+
+	// TODO: there's a danger of creating several similar tags for different blobs during a single image push
+	context.GetLogger(ctx).Infof("creating istag %s:%s referencing image %q", destRepo.Named().Name(), tag, ref.ID)
+	return destRepo.Tags(ctx).Tag(ctx, tag, distribution.Descriptor{Digest: digest.Digest(ref.ID)})
 }

@@ -18,6 +18,8 @@ import (
 const (
 	// repositoryKey serves to store/retrieve repository object to/from context.
 	repositoryKey = "openshift.repository"
+
+	pullthroughSourceImageReferenceKey = "openshift.pullthrough.sourceImage"
 )
 
 func WithRepository(parent context.Context, repo *repository) context.Context {
@@ -25,6 +27,13 @@ func WithRepository(parent context.Context, repo *repository) context.Context {
 }
 func RepositoryFrom(ctx context.Context) (repo *repository, found bool) {
 	repo, found = ctx.Value(repositoryKey).(*repository)
+	return
+}
+func WithPullthroughSourceImageReference(parent context.Context, ref *imageapi.DockerImageReference) context.Context {
+	return context.WithValue(parent, pullthroughSourceImageReferenceKey, ref)
+}
+func PullthroughSourceImageReferenceFrom(ctx context.Context) (ref *imageapi.DockerImageReference, found bool) {
+	ref, found = ctx.Value(pullthroughSourceImageReferenceKey).(*imageapi.DockerImageReference)
 	return
 }
 

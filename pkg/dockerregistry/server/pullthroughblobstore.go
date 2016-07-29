@@ -138,6 +138,9 @@ func (r *pullthroughBlobStore) findCandidateRepository(ctx context.Context, sear
 		return distribution.Descriptor{}, distribution.ErrBlobUnknown
 	}
 
+	// if not nil, higher level asks us to set image reference if found
+	pullthroughSourceImage, _ := PullthroughSourceImageReferenceFrom(ctx)
+
 	// see if any of the previously located repositories containing this digest are in this
 	// image stream
 	for _, repo := range cachedLayers {
@@ -151,6 +154,9 @@ func (r *pullthroughBlobStore) findCandidateRepository(ctx context.Context, sear
 			continue
 		}
 		context.GetLogger(r.repo.ctx).Infof("Found digest location from cache %q in %q: %v", dgst, repo, err)
+		if pullthroughSourceImage != nil {
+			*pullthroughSourceImage = *ref
+		}
 		return desc, nil
 	}
 
@@ -162,6 +168,9 @@ func (r *pullthroughBlobStore) findCandidateRepository(ctx context.Context, sear
 		}
 		r.repo.cachedLayers.RememberDigest(dgst, r.repo.blobrepositorycachettl, repo)
 		context.GetLogger(r.repo.ctx).Infof("Found digest location by search %q in %q: %v", dgst, repo, err)
+		if pullthroughSourceImage != nil {
+			*pullthroughSourceImage = *ref
+		}
 		return desc, nil
 	}
 
