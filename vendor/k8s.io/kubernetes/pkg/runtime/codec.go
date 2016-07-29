@@ -249,8 +249,64 @@ func (v multiGroupVersioner) PrefersGroup() (string, bool) {
 	return v.groupKinds[0].Group, true
 }
 
+var _ GroupVersioner = multiGroupKinder{}
+var _ GroupVersionerKinder = multiGroupKinder{}
+
+type multiGroupKinder struct {
+	target     unversioned.GroupVersionKind
+	groupKinds []unversioned.GroupKind
+}
+
+// NewMultiGroupVersioner creates a group versioner that returns gv for each specified group, and
+// prefers the first item in groups.
+func NewMultiGroupKinder(gvk unversioned.GroupVersionKind, groupKinds ...unversioned.GroupKind) GroupVersionerKinder {
+	return multiGroupKinder{target: gvk, groupKinds: groupKinds}
+}
+
+// VersionForGroupKind returns the target version if the provided src GroupKind matches any of the allowed
+// group kinds. If Kind is specified on src, only an equivalent Kind or empty kind will match.
+func (v multiGroupKinder) VersionForGroupKind(src unversioned.GroupKind) (unversioned.GroupVersion, bool) {
+	gvk, match := v.KindForGroupKind(src)
+	return gvk.GroupVersion(), match
+}
+
+func (v multiGroupKinder) KindForGroupKind(src unversioned.GroupKind) (unversioned.GroupVersionKind, bool) {
+	// match any group kind with the same kind
+	if len(src.Kind) > 0 {
+		for _, kind := range v.groupKinds {
+			// skip group kinds that don't match this kind
+			if len(kind.Kind) > 0 && kind.Kind != src.Kind {
+				continue
+			}
+			if kind.Group == src.Group {
+				return v.target, true
+			}
+		}
+		return unversioned.GroupVersionKind{}, false
+	}
+
+	// match only group kinds that specify no kind
+	for _, kind := range v.groupKinds {
+		if len(kind.Kind) > 0 {
+			continue
+		}
+		if kind.Group == src.Group {
+			return v.target, true
+		}
+	}
+	return unversioned.GroupVersionKind{}, false
+}
+
+func (v multiGroupKinder) PrefersGroup() (string, bool) {
+	return v.groupKinds[0].Group, true
+}
+
 // kindForGroupVersioner identifies the first GVK that the target group versioner accepts.
 func kindForGroupVersioner(kinds []unversioned.GroupVersionKind, target GroupVersioner) (unversioned.GroupVersionKind, bool) {
+	if kinder, ok := target.(GroupVersionerKinder); ok {
+		return kindForGroupKinder(kinds, kinder)
+	}
+
 	// select the kind that matches the preferred group
 	if group, ok := target.PrefersGroup(); ok {
 		if gv, ok := target.VersionForGroupKind(unversioned.GroupKind{Group: group}); ok {
@@ -266,6 +322,29 @@ func kindForGroupVersioner(kinds []unversioned.GroupVersionKind, target GroupVer
 	for _, kind := range kinds {
 		if gv, ok := target.VersionForGroupKind(kind.GroupKind()); ok {
 			return gv.WithKind(kind.Kind), true
+		}
+	}
+
+	// no match
+	return unversioned.GroupVersionKind{}, false
+}
+
+func kindForGroupKinder(kinds []unversioned.GroupVersionKind, target GroupVersionerKinder) (unversioned.GroupVersionKind, bool) {
+	// select the kind that matches the preferred group
+	if group, ok := target.PrefersGroup(); ok {
+		if gvk, ok := target.KindForGroupKind(unversioned.GroupKind{Group: group}); ok {
+			for _, kind := range kinds {
+				if kind.Group == group {
+					return gvk, true
+				}
+			}
+		}
+	}
+
+	// find the first group that has a target version
+	for _, kind := range kinds {
+		if gvk, ok := target.KindForGroupKind(kind.GroupKind()); ok {
+			return gvk, true
 		}
 	}
 

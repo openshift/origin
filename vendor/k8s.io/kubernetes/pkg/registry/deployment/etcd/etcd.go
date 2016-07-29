@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	storeerr "k8s.io/kubernetes/pkg/api/errors/storage"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
@@ -61,7 +62,7 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against deployments.
 func NewREST(opts generic.RESTOptions) (*REST, *StatusREST, *RollbackREST) {
-	prefix := "/deployments"
+	prefix := "/" + opts.ResourcePrefix
 
 	newListFunc := func() runtime.Object { return &extensions.DeploymentList{} }
 	storageInterface := opts.Decorator(
@@ -106,6 +107,29 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST, *RollbackREST) {
 	return &REST{store}, &StatusREST{store: &statusStore}, &RollbackREST{store: store}
 }
 
+type forceDCOnUpdate struct {
+	rest.UpdatedObjectInfo
+}
+
+// UpdatedObject satisfies the UpdatedObjectInfo interface.
+// It returns a copy of the held obj, passed through any configured transformers.
+func (i forceDCOnUpdate) UpdatedObject(ctx api.Context, oldObj runtime.Object) (runtime.Object, error) {
+	accessor, err := meta.Accessor(oldObj)
+	if err != nil {
+		return nil, err
+	}
+	originalKind, exists := accessor.GetAnnotations()[api.OriginalKindAnnotationName]
+	if !exists || originalKind == "Deployment.extensions" {
+		return i.UpdatedObjectInfo.UpdatedObject(ctx, oldObj)
+	}
+
+	return nil, fmt.Errorf("wrong native type, no cross type updates allowed: %v", originalKind)
+}
+
+func (r *REST) Update(ctx api.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.Store.Update(ctx, name, forceDCOnUpdate{objInfo})
+}
+
 // StatusREST implements the REST endpoint for changing the status of a deployment
 type StatusREST struct {
 	store *registry.Store
@@ -122,7 +146,7 @@ func (r *StatusREST) Get(ctx api.Context, name string) (runtime.Object, error) {
 
 // Update alters the status subset of an object.
 func (r *StatusREST) Update(ctx api.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+	return r.store.Update(ctx, name, forceDCOnUpdate{objInfo})
 }
 
 // RollbackREST implements the REST endpoint for initiating the rollback of a deployment
@@ -173,6 +197,9 @@ func (r *RollbackREST) setDeploymentRollback(ctx api.Context, deploymentID strin
 		if !ok {
 			return nil, fmt.Errorf("unexpected object: %#v", obj)
 		}
+		if originalKind, exists := d.Annotations[api.OriginalKindAnnotationName]; exists && originalKind == "Deployment.extensions" {
+			return nil, fmt.Errorf("wrong native type, no cross type updates allowed: %v", originalKind)
+		}
 		if d.Annotations == nil {
 			d.Annotations = make(map[string]string)
 		}
@@ -214,6 +241,9 @@ func (r *ScaleREST) Update(ctx api.Context, name string, objInfo rest.UpdatedObj
 	deployment, err := r.registry.GetDeployment(ctx, name)
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("deployments/scale"), name)
+	}
+	if originalKind, exists := deployment.Annotations[api.OriginalKindAnnotationName]; exists && originalKind == "Deployment.extensions" {
+		return nil, false, fmt.Errorf("wrong native type, no cross type updates allowed: %v", originalKind)
 	}
 
 	oldScale, err := scaleFromDeployment(deployment)

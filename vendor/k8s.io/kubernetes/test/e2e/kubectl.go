@@ -507,7 +507,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 					{"role=master"},
 					{"Status:", "Running"},
 					{"IP:"},
-					{"Controllers:", "ReplicationController/redis-master"},
+					{"Controllers:", "ReplicaSet/redis-master"},
 					{"Image:", redisImage},
 					{"State:", "Running"},
 					{"QoS Tier:", "BestEffort"},

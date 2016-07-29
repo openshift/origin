@@ -40,6 +40,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/controller/shared"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 // MasterConfig defines the required values to start a Kubernetes master
@@ -179,6 +180,11 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// the order here is important, it defines which version will be used for storage
 	storageFactory.AddCohabitatingResources(extensions.Resource("jobs"), batch.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
+	storageFactory.AddCohabitatingResources(kapi.Resource("replicationcontrollers"), kapi.Resource("replicationControllers" /*typoed with camel-case upstream*/), extensions.Resource("replicasets"))
+	storageFactory.AddCohabitatingResources(deployapi.Resource("deploymentconfigs"), extensions.Resource("deployments"))
+	storageFactory.IgnoreCohabitingStorageVersion(extensions.Resource("deployments"))
+	storageFactory.SetEtcdPrefix(extensions.Resource("deployments"), options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	storageFactory.SetEtcdPrefix(deployapi.Resource("deploymentconfigs"), options.EtcdStorageConfig.OpenShiftStoragePrefix)
 
 	// Preserve previous behavior of using the first non-loopback address
 	// TODO: Deprecate this behavior and just require a valid value to be passed in

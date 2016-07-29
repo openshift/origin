@@ -42,3 +42,19 @@ func GetImageFixture(filename string) (*imageapi.Image, error) {
 	}
 	return obj.(*imageapi.Image), nil
 }
+
+func GetFixture(filename string) (runtime.Object, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	jsonData, err := kyaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
+}

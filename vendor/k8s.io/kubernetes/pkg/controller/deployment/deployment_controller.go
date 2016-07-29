@@ -370,6 +370,10 @@ func (dc *DeploymentController) deletePod(obj interface{}) {
 }
 
 func (dc *DeploymentController) enqueueDeployment(deployment *extensions.Deployment) {
+	if originalKind, exists := deployment.Annotations[api.OriginalKindAnnotationName]; exists && originalKind != "Deployment.extensions" {
+		return
+	}
+
 	key, err := controller.KeyFunc(deployment)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", deployment, err)

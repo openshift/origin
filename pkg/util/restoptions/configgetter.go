@@ -6,6 +6,9 @@ import (
 	"strings"
 	"sync"
 
+	newetcdclient "github.com/coreos/etcd/client"
+	"github.com/golang/glog"
+
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -14,11 +17,11 @@ import (
 	genericrest "k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer/recognizer"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
-	"github.com/golang/glog"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -34,7 +37,10 @@ type configRESTOptionsGetter struct {
 	restOptionsLock sync.Mutex
 	restOptionsMap  map[unversioned.GroupResource]genericrest.RESTOptions
 
+	// etcdHelper is re-used where we can.  If we need to override the codec, we fallback to
+	// sharing the etcdClient
 	etcdHelper storage.Interface
+	etcdClient newetcdclient.Client
 
 	cacheEnabled     bool
 	defaultCacheSize int
@@ -99,16 +105,40 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 		return resourceOptions, nil
 	}
 
-	if g.etcdHelper == nil {
+	if g.etcdClient == nil {
+		var err error
 		// TODO: choose destination etcd based on input resource
-		etcdClient, err := etcd.MakeNewEtcdClient(g.masterOptions.EtcdClientInfo)
+		g.etcdClient, err = etcd.MakeNewEtcdClient(g.masterOptions.EtcdClientInfo)
 		if err != nil {
 			return genericrest.RESTOptions{}, err
 		}
-		// TODO: choose destination group/version based on input group/resource
-		// TODO: Tune the cache size
-		groupVersion := unversioned.GroupVersion{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion}
-		g.etcdHelper = etcdstorage.NewEtcdStorage(etcdClient, kapi.Codecs.LegacyCodec(groupVersion), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericserveroptions.DefaultDeserializationCacheSize)
+	}
+	// TODO: choose destination group/version based on input group/resource
+	// TODO: Tune the cache size
+	var etcdHelper storage.Interface
+	switch {
+	case resource == unversioned.GroupResource{Resource: "deploymentconfigs"}:
+		s := kapi.Codecs.LegacyCodec(
+			unversioned.GroupVersion{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion},
+			unversioned.GroupVersion{Group: "extensions", Version: "v1beta1"},
+		)
+
+		encoder := kapi.Codecs.EncoderForVersion(s,
+			runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion, Kind: "DeploymentConfig"},
+				unversioned.GroupKind{Group: ""}, unversioned.GroupKind{Group: "extensions"}))
+
+		decodeableGroupKinds := []unversioned.GroupKind{{Group: ""}, {Group: "extensions"}}
+		ds := recognizer.NewDecoder(s, kapi.Codecs.UniversalDeserializer())
+		decoder := kapi.Codecs.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "DeploymentConfig"}, decodeableGroupKinds...))
+
+		etcdHelper = etcdstorage.NewEtcdStorage(g.etcdClient, runtime.NewCodec(encoder, decoder), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericserveroptions.DefaultDeserializationCacheSize/50 /*rough guess at how many resource we have*/)
+
+	default:
+		if g.etcdHelper == nil {
+			groupVersion := unversioned.GroupVersion{Group: "", Version: g.masterOptions.EtcdStorageConfig.OpenShiftStorageVersion}
+			g.etcdHelper = etcdstorage.NewEtcdStorage(g.etcdClient, kapi.Codecs.LegacyCodec(groupVersion), g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix, false, genericserveroptions.DefaultDeserializationCacheSize)
+		}
+		etcdHelper = g.etcdHelper
 	}
 
 	configuredCacheSize, specified := g.cacheSizes[resource]
@@ -132,7 +162,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 	}
 
 	resourceOptions := genericrest.RESTOptions{
-		Storage:                 g.etcdHelper,
+		Storage:                 etcdHelper,
 		Decorator:               decorator,
 		DeleteCollectionWorkers: 1,
 	}

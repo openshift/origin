@@ -226,6 +226,10 @@ func (c *DeploymentConfigController) deletePod(obj interface{}) {
 }
 
 func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *deployapi.DeploymentConfig) {
+	if originalKind, exists := dc.Annotations[kapi.OriginalKindAnnotationName]; exists && originalKind != "DeploymentConfig." {
+		return
+	}
+
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %#v: %v", dc, err)
