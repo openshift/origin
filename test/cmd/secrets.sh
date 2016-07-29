@@ -69,15 +69,56 @@ os::cmd::expect_success 'oc secrets new-sshauth sshauth --ssh-privatekey=$PRIVAT
 # check to make sure incorrect SSH private-key path fail as expected
 os::cmd::expect_failure_and_text 'oc secrets new-sshauth bad-file --ssh-privatekey=/bad/path' 'error: open /bad/path: no such file or directory'
 
+# attach secrets to service account (deprecated)
+# single secret with prefix
+os::cmd::expect_success 'oc secrets add deployer basicauth'
+# don't add the same secret twice
+os::cmd::expect_success 'oc secrets add deployer basicauth sshauth'
+# make sure we can add as as pull secret
+os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull'
+# make sure we can add as as pull secret and mount secret at once
+os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull,mount'
+
 # attach secrets to service account
 # single secret with prefix
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/basicauth'
+os::cmd::expect_success 'oc secrets link deployer basicauth'
 # don't add the same secret twice
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/basicauth secrets/sshauth'
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth'
 # make sure we can add as as pull secret
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/basicauth secrets/sshauth --for=pull'
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth --for=pull'
 # make sure we can add as as pull secret and mount secret at once
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/basicauth secrets/sshauth --for=pull,mount'
+os::cmd::expect_success 'oc secrets link deployer basicauth sshauth --for=pull,mount'
+
+# Confirm that all the linked secrets are present
+os::cmd::expect_success 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
+os::cmd::expect_success 'oc get serviceaccounts/deployer -o yaml |grep -q sshauth'
+
+# Remove secrets from service account
+os::cmd::expect_success 'oc secrets unlink deployer basicauth'
+# Confirm that the secret was removed
+os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
+
+# Re-link that secret
+os::cmd::expect_success 'oc secrets link deployer basicauth'
+
+# Removing a non-existent secret should warn but succeed and change nothing
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar' 'secrets "foobar" not found'
+
+# Make sure that removing an existent and non-existent secret succeeds but warns about the non-existent one
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer foobar basicauth' 'secrets "foobar" not found'
+# Make sure that the existing secret is removed
+os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q basicauth'
+
+# Make sure that removing a real but unlinked secret succeeds
+# https://github.com/openshift/origin/pull/9234#discussion_r70832486
+os::cmd::expect_success 'oc secrets unlink deployer basicauth'
+
+# Make sure that it succeeds if *any* of the secrets are linked
+# https://github.com/openshift/origin/pull/9234#discussion_r70832486
+os::cmd::expect_success 'oc secrets unlink deployer basicauth sshauth'
+
+# Confirm that the linked one was removed
+os::cmd::expect_failure 'oc get serviceaccounts/deployer -o yaml |grep -q sshauth'
 
 # command alias
 os::cmd::expect_success 'oc secret --help'
@@ -86,6 +127,8 @@ os::cmd::expect_success 'oc secret new-dockercfg --help'
 os::cmd::expect_success 'oc secret new-basicauth --help'
 os::cmd::expect_success 'oc secret new-sshauth --help'
 os::cmd::expect_success 'oc secret add --help'
+os::cmd::expect_success 'oc secret link --help'
+os::cmd::expect_success 'oc secret unlink --help'
 
 echo "secrets: ok"
 os::test::junit::declare_suite_end

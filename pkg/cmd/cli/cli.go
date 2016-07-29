@@ -87,6 +87,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	f := clientcmd.New(cmds.PersistentFlags())
 
 	loginCmd := cmd.NewCmdLogin(fullName, f, in, out)
+	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit")
+
 	groups := templates.CommandGroups{
 		{
 			Message: "Basic Commands:",
@@ -128,7 +130,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdDelete(fullName, f, out),
 				cmd.NewCmdScale(fullName, f, out),
 				cmd.NewCmdAutoscale(fullName, f, out),
-				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
+				secretcmds,
 				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, out),
 			},
 		},
@@ -180,6 +182,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out)),
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
+		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f.Factory, out)),
 	}
 
 	changeSharedFlagDefaults(cmds)

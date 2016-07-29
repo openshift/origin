@@ -2092,20 +2092,39 @@ Change the number of pods in a deployment
 
 
 == oc secrets add
-Add secrets to a ServiceAccount
+DEPRECATED: secrets link
 
 ====
 
 [options="nowrap"]
 ----
-  // To use your secret inside of a pod or as a push, pull, or source secret for a build, you must add a 'mount' secret to your service account like this:
-  oc secrets add serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
+  # Add an image pull secret to a service account to automatically use it for pulling pod images:
+  oc serviceaccount-name pull-secret --for=pull
 
-  // To use your secret as an image pull secret, you must add a 'pull' secret to your service account like this:
-  oc secrets add serviceaccount/sa-name secrets/secret-name --for=pull
+  # Add an image pull secret to a service account to automatically use it for both pulling and pushing build images:
+  oc builder builder-image-secret --for=pull,mount
 
-  // To use your secret for image pulls or inside a pod:
-  oc secrets add serviceaccount/sa-name secrets/secret-name --for=pull,mount
+  # If the cluster's serviceAccountConfig is operating with limitSecretReferences: True, secrets must be added to the pod's service account whitelist in order to be available to the pod:
+  oc pod-sa pod-secret
+----
+====
+
+
+== oc secrets link
+Link secrets to a ServiceAccount
+
+====
+
+[options="nowrap"]
+----
+  # Add an image pull secret to a service account to automatically use it for pulling pod images:
+  oc secrets link serviceaccount-name pull-secret --for=pull
+
+  # Add an image pull secret to a service account to automatically use it for both pulling and pushing build images:
+  oc secrets link builder builder-image-secret --for=pull,mount
+
+  # If the cluster's serviceAccountConfig is operating with limitSecretReferences: True, secrets must be added to the pod's service account whitelist in order to be available to the pod:
+  oc secrets link pod-sa pod-secret
 ----
 ====
 
@@ -2191,6 +2210,19 @@ Create a new secret for SSH authentication
 
   // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
   oc secrets new SECRET path/to/.gitconfig
+----
+====
+
+
+== oc secrets unlink
+Detach secrets from a ServiceAccount
+
+====
+
+[options="nowrap"]
+----
+ # Unlink a secret currently associated with a service account:
+oc secrets unlink serviceaccount-name secret-name another-secret-name ...
 ----
 ====
 
