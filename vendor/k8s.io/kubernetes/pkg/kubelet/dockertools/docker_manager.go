@@ -177,6 +177,8 @@ type DockerManager struct {
 
 	// Directory to host local seccomp profiles.
 	seccompProfileRoot string
+
+	imageAllowedFunc func(repoDigests []string) error
 }
 
 // A subset of the pod.Manager interface extracted for testing purposes.
@@ -194,6 +196,64 @@ func PodInfraContainerEnv(env map[string]string) kubecontainer.Option {
 			})
 		}
 	}
+}
+
+func NewDockerManagerWithImageIDCheck(
+	client DockerInterface,
+	recorder record.EventRecorder,
+	livenessManager proberesults.Manager,
+	containerRefManager *kubecontainer.RefManager,
+	podGetter podGetter,
+	machineInfo *cadvisorapi.MachineInfo,
+	podInfraContainerImage string,
+	qps float32,
+	burst int,
+	containerLogsDir string,
+	osInterface kubecontainer.OSInterface,
+	networkPlugin network.NetworkPlugin,
+	runtimeHelper kubecontainer.RuntimeHelper,
+	httpClient types.HttpGetter,
+	execHandler ExecHandler,
+	oomAdjuster *oom.OOMAdjuster,
+	procFs procfs.ProcFSInterface,
+	cpuCFSQuota bool,
+	imageBackOff *flowcontrol.Backoff,
+	serializeImagePulls bool,
+	enableCustomMetrics bool,
+	hairpinMode bool,
+	seccompProfileRoot string,
+	imageAllowedFunc func(repoDigests []string) error,
+	options ...kubecontainer.Option,
+) *DockerManager {
+
+	ret := NewDockerManager(
+		client,
+		recorder,
+		livenessManager,
+		containerRefManager,
+		podGetter,
+		machineInfo,
+		podInfraContainerImage,
+		qps,
+		burst,
+		containerLogsDir,
+		osInterface,
+		networkPlugin,
+		runtimeHelper,
+		httpClient,
+		execHandler,
+		oomAdjuster,
+		procFs,
+		cpuCFSQuota,
+		imageBackOff,
+		serializeImagePulls,
+		enableCustomMetrics,
+		hairpinMode,
+		seccompProfileRoot,
+		options...)
+	ret.imageAllowedFunc = imageAllowedFunc
+
+	return ret
 }
 
 func NewDockerManager(
@@ -2116,6 +2176,19 @@ func (dm *DockerManager) tryContainerStart(container *api.Container, pod *api.Po
 	containerStatus := podStatus.FindContainerStatusByName(container.Name)
 	if containerStatus != nil {
 		restartCount = containerStatus.RestartCount + 1
+	}
+
+	// at this point we have a container image, but we haven't started it yet.  Add a check to see if we're allowed to run it.
+	if dm.imageAllowedFunc != nil {
+		imageMetadata, err := dm.client.InspectImage(container.Image)
+		if err != nil {
+			return kubecontainer.ErrRunContainer, err.Error()
+		}
+		fmt.Printf("####  HAVE %#v", imageMetadata)
+		if err := dm.imageAllowedFunc(imageMetadata.RepoDigests); err != nil {
+			fmt.Printf("#### NOT STARTING CONTAINER!")
+			return err, err.Error()
+		}
 	}
 
 	// TODO(dawnchen): Check RestartPolicy.DelaySeconds before restart a container

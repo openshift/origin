@@ -407,7 +407,7 @@ func NewMainKubelet(
 	switch containerRuntime {
 	case "docker":
 		// Only supported one for now, continue.
-		klet.containerRuntime = dockertools.NewDockerManager(
+		klet.containerRuntime = dockertools.NewDockerManagerWithImageIDCheck(
 			dockerClient,
 			kubecontainer.FilterEventRecorder(recorder),
 			klet.livenessManager,
@@ -431,6 +431,16 @@ func NewMainKubelet(
 			enableCustomMetrics,
 			klet.hairpinMode == componentconfig.HairpinVeth,
 			seccompProfileRoot,
+			func(repoDigests []string) error {
+				fmt.Printf("####  CHECKING %v", repoDigests)
+
+				for _, digest := range repoDigests {
+					if strings.HasSuffix(digest, "sha256:6762bce40196b43d8a63fc3a3644d37197082ed173c5aec158980b5f1c1944e2") {
+						return fmt.Errorf("disallowing sha256:6762bce40196b43d8a63fc3a3644d37197082ed173c5aec158980b5f1c1944e2")
+					}
+				}
+				return nil
+			},
 			containerRuntimeOptions...,
 		)
 	case "rkt":
