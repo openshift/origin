@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8b48deedd4c60d2911ac14cea1e684c6b026b528
+%global commit 2983a259392412fd4cdf84fff6101d457151fe44
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.10+8b48dee -X github.com/openshift/origin/pkg/version.commitFromGit=8b48dee -X github.com/openshift/origin/pkg/version.buildDate=2016-07-27T14:07:30Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-27T14:07:30Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.11+2983a25 -X github.com/openshift/origin/pkg/version.commitFromGit=2983a25 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-29T15:04:21Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-29T15:04:21Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.11
+Version:        3.3.0.12
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,57 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Jul 29 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.12
+- Avoid to create an API client if not needed (ffranz@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  724c0ddaacec2fad31a05ac2d2175cd9ad7136c6 (bparees@redhat.com)
+- UPSTREAM: 29457: Quota was not counting services with multiple nodeports
+  properly (agoldste@redhat.com)
+- Improved Bash idioms in test/cmd/images.sh (skuznets@redhat.com)
+- Improved Bash idioms in test/cmd/builds.sh (skuznets@redhat.com)
+- Improved Bash idioms in test/cmd/basicresources.sh (skuznets@redhat.com)
+- Ensured that all indentation in hack/lib/cmd.sh used tabs
+  (skuznets@redhat.com)
+- Use anonyous FIFO instead of pipe in os::cmd output test
+  (skuznets@redhat.com)
+- Handled working dir changes in Bash relative path util (skuznets@redhat.com)
+- Colocated config validation with other diagnostics tests
+  (skuznets@redhat.com)
+- example: add pulling origin-pod (li.guangxu@zte.com.cn)
+- Update generated files (stefan.schimanski@gmail.com)
+- UPSTREAM: 28351: Add support for kubectl create quota command
+  (stefan.schimanski@gmail.com)
+- generated: cmd changes (ccoleman@redhat.com)
+- Add a migration framework for mutable resources (ccoleman@redhat.com)
+- make oc login kubeconfig permission error clearer (jvallejo@redhat.com)
+- Update branding of templates to use OpenShift Platform Container
+  (sgoodwin@redhat.com)
+- update oc version to display client and server versions (jvallejo@redhat.com)
+- Set default image version for 'oc cluster up' (cewong@redhat.com)
+- make clusterquota/status endpoint (deads@redhat.com)
+- update PSP review APIS (deads@redhat.com)
+- handle authorization evaluation error for SAR (deads@redhat.com)
+- BuildSource: mark secrets field as omitempty. (vsemushi@redhat.com)
+- Moved completions tests from hack/test-cmd.sh into test/cmd/completions.sh
+  (skuznets@redhat.com)
+- Removed spam from hack/test-cmd.sh output on test success
+  (skuznets@redhat.com)
+- update the output of Deploying a private docker registry
+  (li.guangxu@zte.com.cn)
+- document NetworkPolicy status (danw@redhat.com)
+- UPSTREAM: 29291: Cherry-picked (jimmidyson@gmail.com)
+- Description of (run the unit tests) is incorrect in README.md
+  (li.guangxu@zte.com.cn)
+- dockerbuild pull on Docker 1.9 is broken (ccoleman@redhat.com)
+- Add Dockerfiles.centos7 and job-id files for CentOS image building
+  (tdawson@redhat.com)
+- Add V(5) logging back to pkg/util/ovs and pkg/util/ipcmd (danw@redhat.com)
+- update FAQ in README.md (li.guangxu@zte.com.cn)
+- dind: enable overlay storage (marun@redhat.com)
+- dind: remove wrapper script (marun@redhat.com)
+- Make /var/lib/origin mounted rslave for containerized systemd units
+  (sdodson@redhat.com)
+
 * Wed Jul 27 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.11
 - README.md: Updates to "What can I run on Origin?" section (jawnsy@redhat.com)
 - Return instead of exit on argument mismatch in os::cmd (skuznets@redhat.com)
