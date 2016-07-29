@@ -114,12 +114,13 @@ func Convert_extensions_Deployment_To_v1_DeploymentConfig(in *extensionsapi.Depl
 	if err := kapi.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
+
 	if err := kapiv1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 
-	if in.Annotations == nil {
-		out.Annotations = map[string]string{}
+	if out.Annotations == nil {
+		out.Annotations = make(map[string]string)
 	}
 
 	if err := Convert_extensions_DeploymentSpec_To_v1_DeploymentConfigSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -134,46 +135,80 @@ func Convert_extensions_Deployment_To_v1_DeploymentConfig(in *extensionsapi.Depl
 		}
 	}
 
-	// Restore all stored non-convertible fields
-	if in.ObjectMeta.Annotations != nil {
-		restoreNonConvertible("status.latestVersion", in.ObjectMeta.Annotations, &out.Status.LatestVersion)
-		restoreNonConvertible("status.details", in.ObjectMeta.Annotations, &out.Status.Details)
-		restoreNonConvertible("spec.test", in.ObjectMeta.Annotations, &out.Spec.Test)
-		prefix := "spec.strategy."
-		restoreNonConvertible("spec.strategy.resources", in.ObjectMeta.Annotations, &out.Spec.Strategy.Resources)
-		restoreNonConvertible("spec.strategy.annotations", in.ObjectMeta.Annotations, &out.Spec.Strategy.Annotations)
-		restoreNonConvertible("spec.strategy.labels", in.ObjectMeta.Annotations, &out.Spec.Strategy.Labels)
-		restoreNonConvertible("spec.strategy.triggers", in.ObjectMeta.Annotations, &out.Spec.Triggers)
+	if err := restoreNonConvertible("status.latestVersion", &in.ObjectMeta.Annotations, &out.Status.LatestVersion); err != nil {
+		return err
+	}
+	if err := restoreNonConvertible("status.details", &in.ObjectMeta.Annotations, &out.Status.Details); err != nil {
+		return err
+	}
+	if err := restoreNonConvertible("spec.test", &in.ObjectMeta.Annotations, &out.Spec.Test); err != nil {
+		return err
+	}
 
-		if out.Spec.Strategy.RollingParams != nil {
-			prefix = "spec.strategy.rollingParams."
+	prefix := "spec.strategy."
+	if err := restoreNonConvertible("spec.strategy.resources", &in.ObjectMeta.Annotations, &out.Spec.Strategy.Resources); err != nil {
+		return err
+	}
+	if err := restoreNonConvertible("spec.strategy.annotations", &in.ObjectMeta.Annotations, &out.Spec.Strategy.Annotations); err != nil {
+		return err
+	}
+	if err := restoreNonConvertible("spec.strategy.labels", &in.ObjectMeta.Annotations, &out.Spec.Strategy.Labels); err != nil {
+		return err
+	}
+
+	if err := restoreNonConvertible("spec.strategy.triggers", &in.ObjectMeta.Annotations, &out.Spec.Triggers); err != nil {
+		return err
+	}
+
+	if out.Spec.Strategy.RollingParams != nil {
+		prefix = "spec.strategy.rollingParams."
+		if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/"+prefix+"updatePeriodSeconds"]; exists {
 			out.Spec.Strategy.RollingParams.UpdatePeriodSeconds = new(int64)
-			restoreNonConvertible(prefix+"updatePeriodSeconds", in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.UpdatePeriodSeconds)
-			out.Spec.Strategy.RollingParams.IntervalSeconds = new(int64)
-			restoreNonConvertible(prefix+"intervalSeconds", in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.IntervalSeconds)
-			out.Spec.Strategy.RollingParams.TimeoutSeconds = new(int64)
-			restoreNonConvertible(prefix+"timeoutSeconds", in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.TimeoutSeconds)
-
-			if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/"+prefix+"updatePercent"]; exists {
-				out.Spec.Strategy.RollingParams.UpdatePercent = new(int32)
-				restoreNonConvertible(prefix+"updatePercent", in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.UpdatePercent)
+			if err := restoreNonConvertible(prefix+"updatePeriodSeconds", &in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.UpdatePeriodSeconds); err != nil {
+				return err
 			}
-
-			intermediate := deployapiv1.LifecycleHook{}
-			restoreNonConvertible(prefix+"pre", in.ObjectMeta.Annotations, &intermediate)
-			out.Spec.Strategy.RollingParams.Pre = &intermediate
-
-			intermediate = deployapiv1.LifecycleHook{}
-			restoreNonConvertible(prefix+"post", in.ObjectMeta.Annotations, &intermediate)
-			out.Spec.Strategy.RollingParams.Post = &intermediate
 		}
 
-		if out.Spec.Strategy.RecreateParams != nil {
-			intermediate := deployapiv1.RecreateDeploymentStrategyParams{}
-			restoreNonConvertible("spec.strategy.recreateParams", in.ObjectMeta.Annotations, &intermediate)
-			*out.Spec.Strategy.RecreateParams = intermediate
+		if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/"+prefix+"intervalSeconds"]; exists {
+			out.Spec.Strategy.RollingParams.IntervalSeconds = new(int64)
+			if err := restoreNonConvertible(prefix+"intervalSeconds", &in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.IntervalSeconds); err != nil {
+				return err
+			}
 		}
 
+		if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/"+prefix+"timeoutSeconds"]; exists {
+			out.Spec.Strategy.RollingParams.TimeoutSeconds = new(int64)
+			if err := restoreNonConvertible(prefix+"timeoutSeconds", &in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.TimeoutSeconds); err != nil {
+				return err
+			}
+		}
+
+		if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/"+prefix+"updatePercent"]; exists {
+			out.Spec.Strategy.RollingParams.UpdatePercent = new(int32)
+			if err := restoreNonConvertible(prefix+"updatePercent", &in.ObjectMeta.Annotations, out.Spec.Strategy.RollingParams.UpdatePercent); err != nil {
+				return err
+			}
+		}
+
+		intermediatePre := deployapiv1.LifecycleHook{}
+		if err := restoreNonConvertible(prefix+"pre", &in.ObjectMeta.Annotations, &intermediatePre); err != nil {
+			return err
+		}
+		out.Spec.Strategy.RollingParams.Pre = &intermediatePre
+
+		intermediatePost := deployapiv1.LifecycleHook{}
+		if err := restoreNonConvertible(prefix+"post", &in.ObjectMeta.Annotations, &intermediatePost); err != nil {
+			return err
+		}
+		out.Spec.Strategy.RollingParams.Post = &intermediatePost
+	}
+
+	if out.Spec.Strategy.RecreateParams != nil {
+		intermediate := deployapiv1.RecreateDeploymentStrategyParams{}
+		if err := restoreNonConvertible("spec.strategy.recreateParams", &in.ObjectMeta.Annotations, &intermediate); err != nil {
+			return err
+		}
+		*out.Spec.Strategy.RecreateParams = intermediate
 	}
 
 	return nil
@@ -184,15 +219,16 @@ func Convert_api_DeploymentConfig_To_v1beta1_Deployment(in *deployapi.Deployment
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapi.DeploymentConfig))(in)
 	}
-	if err := kapi.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
 	if err := kapiv1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 
-	if in.Annotations == nil {
-		out.Annotations = map[string]string{}
+	if err := kapi.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+
+	if out.Annotations == nil {
+		out.Annotations = make(map[string]string)
 	}
 
 	if err := Convert_api_DeploymentConfigSpec_To_v1beta1_DeploymentSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -206,6 +242,23 @@ func Convert_api_DeploymentConfig_To_v1beta1_Deployment(in *deployapi.Deployment
 			return err
 		}
 	}
+
+	if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/spec.labelSelector"]; exists {
+		intermediate := extensionsv1beta1.LabelSelector{}
+		if err := restoreNonConvertible("spec.labelSelector", &in.ObjectMeta.Annotations, &intermediate); err != nil {
+			return err
+		}
+		out.Spec.Selector = &intermediate
+	}
+
+	if _, exists := in.ObjectMeta.Annotations[kapi.NonConvertibleAnnotationPrefix+"/spec.rollbackTo"]; exists {
+		intermediate := extensionsv1beta1.RollbackConfig{}
+		if err := restoreNonConvertible("spec.rollbackTo", &in.ObjectMeta.Annotations, &intermediate); err != nil {
+			return err
+		}
+		out.Spec.RollbackTo = &intermediate
+	}
+
 	return nil
 }
 
@@ -221,6 +274,9 @@ func Convert_extensions_DeploymentSpec_To_v1_DeploymentConfigSpec(in *extensions
 		if err := kapi.Convert_unversioned_LabelSelector_to_map(in.Selector, &out.Selector, s); err != nil {
 			addNonConvertible("spec.labelSelector", in.Selector, &nonConvertibleFields)
 		}
+	}
+	if in.RollbackTo != nil {
+		addNonConvertible("spec.rollbackTo", in.RollbackTo, &nonConvertibleFields)
 	}
 
 	switch in.Strategy.Type {
@@ -248,8 +304,6 @@ func Convert_api_DeploymentConfigSpec_To_v1beta1_DeploymentSpec(in *deployapi.De
 	out.MinReadySeconds = in.MinReadySeconds
 	out.RevisionHistoryLimit = in.RevisionHistoryLimit
 	out.Paused = in.Paused
-	// TODO: Set this based on annotation
-	out.RollbackTo = &extensionsv1beta1.RollbackConfig{}
 
 	nonConvertibleFields := field.ErrorList{}
 
@@ -301,7 +355,10 @@ func Convert_api_DeploymentConfigSpec_To_v1beta1_DeploymentSpec(in *deployapi.De
 		}
 	}
 
-	addNonConvertible("spec.strategy.resources", in.Strategy.Resources, &nonConvertibleFields)
+	if len(in.Strategy.Resources.Limits) > 0 {
+		addNonConvertible("spec.strategy.resources", in.Strategy.Resources, &nonConvertibleFields)
+	}
+
 	if in.Strategy.Annotations != nil {
 		addNonConvertible("spec.strategy.annotations", in.Strategy.Annotations, &nonConvertibleFields)
 	}
@@ -374,26 +431,31 @@ func addNonConvertible(fieldName string, in interface{}, out *field.ErrorList) {
 	*out = append(*out, field.Invalid(field.NewPath(fieldName), in, "cannot convert"))
 }
 
-// TODO this needs to return an error before merge
-func restoreNonConvertible(name string, annotations map[string]string, out interface{}) {
-	v, ok := annotations[kapi.NonConvertibleAnnotationPrefix+"/"+name]
+func restoreNonConvertible(name string, annotations *map[string]string, out interface{}) error {
+	oldAnnotations := *annotations
+	v, ok := oldAnnotations[kapi.NonConvertibleAnnotationPrefix+"/"+name]
 	if ok && len(v) > 0 {
 		if err := json.Unmarshal([]byte(v), &out); err != nil {
-			fmt.Printf("ERROR: failed to decode %q non-convertible field to %#+v: %v", name, out, err)
+			return fmt.Errorf("failed to decode %q non-convertible field to %#+v: %v", name, out, err)
+		} else {
+			newAnnotations := make(map[string]string)
+			for k, v := range oldAnnotations {
+				if k == kapi.NonConvertibleAnnotationPrefix+"/"+name {
+					continue
+				}
+				newAnnotations[k] = v
+			}
+			*annotations = newAnnotations
 		}
-	} else {
-		fmt.Printf("WARNING: requested field not found (%q)\n", name)
 	}
+	return nil
 }
 
 // errorsToNonConvertible converts the errors.Aggregate into
 // non-convertible field annotations. It returns error when the error in
 // aggregate is not a field error.
 func errorsToNonConvertible(err error, out *map[string]string) error {
-	if out == nil {
-		out = &map[string]string{}
-	}
-	newMap := *out
+	newOut := *out
 	if fieldErrs, ok := err.(errors.Aggregate); ok {
 		for _, e := range fieldErrs.Errors() {
 			fieldErr, ok := e.(*field.Error)
@@ -405,9 +467,9 @@ func errorsToNonConvertible(err error, out *map[string]string) error {
 			if err != nil {
 				return err
 			}
-			newMap[kapi.NonConvertibleAnnotationPrefix+"/"+fieldErr.Field] = string(b)
+			newOut[kapi.NonConvertibleAnnotationPrefix+"/"+fieldErr.Field] = string(b)
 		}
-		*out = newMap
+		*out = newOut
 		return nil
 	}
 	return err

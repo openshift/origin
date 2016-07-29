@@ -41,20 +41,17 @@ func TestDeploymentRoundtrip(t *testing.T) {
 		fuzzInternalObject(t, extGroup.InternalGroupVersion(), in, rand.Int63(),
 			func(p *kapi.PodTemplateSpec, c fuzz.Continue) {
 				c.FuzzNoCustom(p)
-				c.Fuzz(&p.Spec)
 				p.Annotations = map[string]string{}
 				p.Spec.InitContainers = []kapi.Container{}
 			},
 			func(s *unversioned.LabelSelector, c fuzz.Continue) {
 				s.MatchLabels = map[string]string{"foo": "bar"}
 			},
-			// the rollbackTo is not supported in deployment config
-			func(r *extensions.RollbackConfig, c fuzz.Continue) {},
 		)
 
-		mustBeEqualDiff := func(in interface{}, out interface{}) {
-			if !reflect.DeepEqual(in, out) {
-				t.Fatalf("objects are different:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", in, out, diff.ObjectDiff(in, out), diff.ObjectGoPrintSideBySide(out, in))
+		mustBeEqualDiff := func(input interface{}, output interface{}) {
+			if !reflect.DeepEqual(input, output) {
+				t.Fatalf("objects are different:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", input, output, diff.ObjectDiff(input, output), diff.ObjectGoPrintSideBySide(input, output))
 			}
 		}
 
@@ -76,6 +73,8 @@ func TestDeploymentRoundtrip(t *testing.T) {
 
 		mustBeEqualDiff(in.Status, out.Status)
 		mustBeEqualDiff(in.Spec, out.Spec)
+
+		// TODO: Verify that all non-convertible annotations were cleaned up (not the case right now)
 	}
 }
 
@@ -101,41 +100,42 @@ func TestDeploymentConfigRoundtrip(t *testing.T) {
 		fuzzInternalObject(t, extGroup.InternalGroupVersion(), in, rand.Int63(),
 			func(p *kapi.PodTemplateSpec, c fuzz.Continue) {
 				c.FuzzNoCustom(p)
-				c.Fuzz(&p.Spec)
 				p.Annotations = map[string]string{}
 				p.Spec.InitContainers = []kapi.Container{}
 			},
-			func(s *unversioned.LabelSelector, c fuzz.Continue) {
-				s.MatchLabels = map[string]string{"foo": "bar"}
-			},
-			// the rollbackTo is not supported in deployment config
-			func(r *extensions.RollbackConfig, c fuzz.Continue) {},
 			// custom deployment strategy is not supported in upstream
 			func(p *deployapi.CustomDeploymentStrategyParams, c fuzz.Continue) {},
 			func(p *deployapi.RecreateDeploymentStrategyParams, c fuzz.Continue) {
 				c.FuzzNoCustom(p)
-				v := int64(60)
+				// timeoutSeconds is defaulted to 600 when null
+				v := c.Int63()
 				p.TimeoutSeconds = &v
 			},
 			func(p *deployapi.RollingDeploymentStrategyParams, c fuzz.Continue) {
 				c.FuzzNoCustom(p)
-				timeoutVal := int64(60)
-				p.TimeoutSeconds = &timeoutVal
+				v := c.Int63()
+				// timeoutSeconds is defaulted to 600 when null
+				p.TimeoutSeconds = &v
+				// if updatePercent is set, maxSurge and maxUnavailable is defaulted
+				// based on that value
 				p.UpdatePercent = nil
 			},
 			func(h *deployapi.ExecNewPodHook, c fuzz.Continue) {
 				c.FuzzNoCustom(h)
+				// must be set otherwise defaulted
 				h.ContainerName = "foo"
 			},
 			func(h *deployapi.LifecycleHook, c fuzz.Continue) {
 				c.FuzzNoCustom(h)
 				h.FailurePolicy = deployapi.LifecycleHookFailurePolicyAbort
 				for i := range h.TagImages {
+					// must be set otherwise defaulted
 					h.TagImages[i].ContainerName = "foo"
 				}
 			},
 			func(d *deployapi.DeploymentConfig, c fuzz.Continue) {
 				c.FuzzNoCustom(d)
+				// pick a random strategy
 				strategies := []deployapi.DeploymentStrategyType{
 					deployapi.DeploymentStrategyTypeRolling,
 					deployapi.DeploymentStrategyTypeRecreate,
@@ -147,6 +147,10 @@ func TestDeploymentConfigRoundtrip(t *testing.T) {
 				}
 				d.Spec.Strategy.Type = strategies[rand.Intn(len(strategies))]
 				d.Spec.Strategy.CustomParams = nil
+				// defaulter mutates DecimalExponent to DecimalSI
+				d.Spec.Strategy.Resources = kapi.ResourceRequirements{}
+				// make sure we have the correct params set and the other params not
+				// set
 				switch d.Spec.Strategy.Type {
 				case deployapi.DeploymentStrategyTypeRolling:
 					d.Spec.Strategy.RecreateParams = nil
@@ -186,11 +190,6 @@ func TestDeploymentConfigRoundtrip(t *testing.T) {
 		if out.ObjectMeta.Annotations[kapi.OriginalKindAnnotationName] != "DeploymentConfig." {
 			t.Errorf("expected original-kind annotations to be set to v1.DeploymentConfig, got %v", out.ObjectMeta.Annotations[kapi.OriginalKindAnnotationName])
 		}
-
-		// TODO: The resources are properly restored, but the format is changed from
-		// DecimalExponent to DecimalSI. We should investigate why is that
-		// happening.
-		out.Spec.Strategy.Resources = in.Spec.Strategy.Resources
 
 		mustBeEqualDiff(in.Status, out.Status)
 		mustBeEqualDiff(in.Spec, out.Spec)
