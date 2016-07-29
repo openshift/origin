@@ -76,6 +76,8 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/basicresources/status"
 os::cmd::expect_success_and_text 'openshift cli status -h' 'openshift cli describe buildConfig'
 os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+os::cmd::expect_success_and_text 'oc status' 'oc new-app'
+os::cmd::expect_success_and_text 'openshift cli status' 'openshift cli new-app'
 echo "status help output: ok"
 os::test::junit::declare_suite_end
 
