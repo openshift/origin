@@ -112,6 +112,9 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ ./pullimages.sh
 
+    Note: the tag of pre-pull the Docker images should be consistent with openshift version. The default result after running this script is pulling latest version of docker images. When you need to pull specially tag, just run like this: 
+        
+        $ ./pullimages.sh v1.2.1
 
 2. Launch an all-in-one `openshift` instance
 
