@@ -61,6 +61,7 @@ check: | build verify
 #   make verify
 verify: build
 	# build-tests is disabled until we can determine why memory usage is so high
+	hack/verify-test-cmd-length.sh
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
@@ -141,7 +142,7 @@ test-tools:
 # Run assets tests.
 #
 # Example:
-#   make test-assets  
+#   make test-assets
 test-assets:
 ifeq ($(TEST_ASSETS),true)
 	hack/test-assets.sh
