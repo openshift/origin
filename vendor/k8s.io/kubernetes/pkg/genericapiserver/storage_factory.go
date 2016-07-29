@@ -19,6 +19,7 @@ package genericapiserver
 import (
 	"fmt"
 	"mime"
+	"strings"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -36,6 +37,12 @@ type StorageFactory interface {
 	// New finds the storage destination for the given group and resource. It will
 	// return an error if the group has no storage destination configured.
 	New(groupResource unversioned.GroupResource) (storage.Interface, error)
+
+	// ResourcePrefix returns the overridden resource prefix for the GroupResource
+	// This allows for cohabitation of resources with different native types and provides
+	// centralized control over the shape of etcd directories
+	ResourcePrefix(groupResource unversioned.GroupResource) string
+
 	// Backends gets all backends for all registered storage destinations.
 	// Used for getting all instances for health validations.
 	Backends() []string
@@ -67,7 +74,7 @@ type DefaultStorageFactory struct {
 	APIResourceConfigSource APIResourceConfigSource
 
 	// newStorageCodecFn exists to be overwritten for unit testing.
-	newStorageCodecFn func(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, config storagebackend.Config) (codec runtime.Codec, err error)
+	newStorageCodecFn func(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, cohabitingStorageGroups []string, storageEncodingResource, memoryEncodingResource unversioned.GroupResource, config storagebackend.Config) (codec runtime.Codec, err error)
 
 	// newStorageFn exists to be overwritten for unit testing.
 	newStorageFn func(config storagebackend.Config, codec runtime.Codec) (etcdStorage storage.Interface, err error)
@@ -77,8 +84,12 @@ type groupResourceOverrides struct {
 	// etcdLocation contains the list of "special" locations that are used for particular GroupResources
 	// These are merged on top of the StorageConfig when requesting the storage.Interface for a given GroupResource
 	etcdLocation []string
-	// etcdPrefix contains the list of "special" prefixes for a GroupResource.  Resource=* means for the entire group
+	// etcdPrefix contains the list of "special" prefixes for a GroupResource.
 	etcdPrefix string
+	// etcdResourcePrefix is the location to use to store a particular type under the `etcdPrefix` location
+	// If empty, the default mapping is used.  If the default mapping doesn't contain an entry, it will use
+	// the ToLowered name of the resource, not including the group.
+	etcdResourcePrefix string
 	// mediaType is the desired serializer to choose. If empty, the default is chosen.
 	mediaType string
 	// serializer contains the list of "special" serializers for a GroupResource.  Resource=* means for the entire group
@@ -87,6 +98,11 @@ type groupResourceOverrides struct {
 	// of exposing one set of concepts.  autoscaling.HPA and extensions.HPA as a for instance
 	// The order of the slice matters!  It is the priority order of lookup for finding a storage location
 	cohabitatingResources []unversioned.GroupResource
+
+	// ignoreCohabitatingStorageVersion controls whether or not a cohabitating resource attempts to serialize into the same
+	// groupVersion as all other cohabitators.  If not, it uses the groupVersion assigned to itself instead of the one being
+	// used by the first enabled cohabitator.
+	ignoreCohabitatingStorageVersion bool
 }
 
 var _ StorageFactory = &DefaultStorageFactory{}
@@ -122,6 +138,12 @@ func (s *DefaultStorageFactory) SetEtcdPrefix(groupResource unversioned.GroupRes
 	s.Overrides[groupResource] = overrides
 }
 
+func (s *DefaultStorageFactory) SetResourceEtcdPrefix(groupResource unversioned.GroupResource, prefix string) {
+	overrides := s.Overrides[groupResource]
+	overrides.etcdResourcePrefix = prefix
+	s.Overrides[groupResource] = overrides
+}
+
 func (s *DefaultStorageFactory) SetSerializer(groupResource unversioned.GroupResource, mediaType string, serializer runtime.StorageSerializer) {
 	overrides := s.Overrides[groupResource]
 	overrides.mediaType = mediaType
@@ -134,6 +156,16 @@ func (s *DefaultStorageFactory) AddCohabitatingResources(groupResources ...unver
 	for _, groupResource := range groupResources {
 		overrides := s.Overrides[groupResource]
 		overrides.cohabitatingResources = groupResources
+		s.Overrides[groupResource] = overrides
+	}
+}
+
+// IgnoreCohabitingStorageVersion indicates that the cohabitating resource should serialize using its own groupVersion, not the "shared" groupVersion
+// of all cohabitators.  Useful during resource migration/parity cases
+func (s *DefaultStorageFactory) IgnoreCohabitingStorageVersion(groupResources ...unversioned.GroupResource) {
+	for _, groupResource := range groupResources {
+		overrides := s.Overrides[groupResource]
+		overrides.ignoreCohabitatingStorageVersion = true
 		s.Overrides[groupResource] = overrides
 	}
 }
@@ -198,7 +230,12 @@ func (s *DefaultStorageFactory) New(groupResource unversioned.GroupResource) (st
 		config.ServerList = overriddenEtcdLocations
 	}
 
-	storageEncodingVersion, err := s.ResourceEncodingConfig.StorageEncodingFor(chosenStorageResource)
+	storageEncodingResource := chosenStorageResource
+	if s.Overrides[groupResource].ignoreCohabitatingStorageVersion {
+		storageEncodingResource = groupResource
+	}
+
+	storageEncodingVersion, err := s.ResourceEncodingConfig.StorageEncodingFor(storageEncodingResource)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +244,14 @@ func (s *DefaultStorageFactory) New(groupResource unversioned.GroupResource) (st
 		return nil, err
 	}
 
-	codec, err := s.newStorageCodecFn(etcdMediaType, etcdSerializer, storageEncodingVersion, internalVersion, config)
+	cohabitingStorageGroups := []string{}
+	for _, potentialStorageResource := range s.Overrides[groupResource].cohabitatingResources {
+		if s.APIResourceConfigSource.AnyVersionOfResourceEnabled(potentialStorageResource) {
+			cohabitingStorageGroups = append(cohabitingStorageGroups, potentialStorageResource.Group)
+		}
+	}
+
+	codec, err := s.newStorageCodecFn(etcdMediaType, etcdSerializer, storageEncodingVersion, internalVersion, cohabitingStorageGroups, storageEncodingResource, groupResource, config)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +278,11 @@ func (s *DefaultStorageFactory) Backends() []string {
 
 // NewStorageCodec assembles a storage codec for the provided storage media type, the provided serializer, and the requested
 // storage and memory versions.
-func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer, storageVersion, memoryVersion unversioned.GroupVersion, config storagebackend.Config) (runtime.Codec, error) {
+func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer,
+	storageVersion, memoryVersion unversioned.GroupVersion, cohabitingStorageGroups []string,
+	storageEncodingResource, memoryEncodingResource unversioned.GroupResource,
+	config storagebackend.Config) (runtime.Codec, error) {
+
 	mediaType, options, err := mime.ParseMediaType(storageMediaType)
 	if err != nil {
 		return nil, fmt.Errorf("%q is not a valid mime-type", storageMediaType)
@@ -253,8 +301,65 @@ func NewStorageCodec(storageMediaType string, ns runtime.StorageSerializer, stor
 		s = runtime.NewBase64Serializer(s)
 	}
 
+	var encoder runtime.Encoder
+	switch {
+	case storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationControllers"},
+		storageEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: "v1", Kind: "ReplicationController"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	case storageEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "replicasets"}:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "ReplicaSet"}, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	default:
+		encoder = ns.EncoderForVersion(s, runtime.NewMultiGroupVersioner(storageVersion, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
+
+	}
+
+	decodeableGroupKinds := []unversioned.GroupKind{unversioned.GroupKind{Group: memoryVersion.Group}, unversioned.GroupKind{Group: storageVersion.Group}}
+	for _, group := range cohabitingStorageGroups {
+		decodeableGroupKinds = append(decodeableGroupKinds, unversioned.GroupKind{Group: group})
+	}
 	ds := recognizer.NewDecoder(s, ns.UniversalDeserializer())
-	encoder := ns.EncoderForVersion(s, runtime.NewMultiGroupVersioner(storageVersion, unversioned.GroupKind{Group: storageVersion.Group}, unversioned.GroupKind{Group: memoryVersion.Group}))
-	decoder := ns.DecoderToVersion(ds, runtime.NewMultiGroupVersioner(memoryVersion, unversioned.GroupKind{Group: memoryVersion.Group}, unversioned.GroupKind{Group: storageVersion.Group}))
+	var decoder runtime.Decoder
+	switch {
+	case memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationControllers"},
+		memoryEncodingResource == unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "ReplicationController"}, decodeableGroupKinds...))
+
+	case memoryEncodingResource == unversioned.GroupResource{Group: "extensions", Resource: "replicasets"}:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupKinder(unversioned.GroupVersionKind{Group: "extensions", Version: runtime.APIVersionInternal, Kind: "ReplicaSet"}, decodeableGroupKinds...))
+
+	default:
+		decoder = ns.DecoderToVersion(ds, runtime.NewMultiGroupVersioner(memoryVersion, decodeableGroupKinds...))
+
+	}
+
 	return runtime.NewCodec(encoder, decoder), nil
+}
+
+var specialDefaultResourcePrefixes = map[unversioned.GroupResource]string{
+	unversioned.GroupResource{Group: "", Resource: "replicationControllers"}: "controllers",
+	unversioned.GroupResource{Group: "", Resource: "replicationcontrollers"}: "controllers",
+	unversioned.GroupResource{Group: "", Resource: "endpoints"}:              "services/endpoints",
+	unversioned.GroupResource{Group: "", Resource: "nodes"}:                  "minions",
+	unversioned.GroupResource{Group: "", Resource: "services"}:               "services/specs",
+}
+
+func (s *DefaultStorageFactory) ResourcePrefix(groupResource unversioned.GroupResource) string {
+	chosenStorageResource := s.getStorageGroupResource(groupResource)
+	groupOverride := s.Overrides[getAllResourcesAlias(chosenStorageResource)]
+	exactResourceOverride := s.Overrides[chosenStorageResource]
+
+	etcdResourcePrefix := specialDefaultResourcePrefixes[chosenStorageResource]
+	if len(groupOverride.etcdResourcePrefix) > 0 {
+		etcdResourcePrefix = groupOverride.etcdResourcePrefix
+	}
+	if len(exactResourceOverride.etcdResourcePrefix) > 0 {
+		etcdResourcePrefix = exactResourceOverride.etcdResourcePrefix
+	}
+	if len(etcdResourcePrefix) == 0 {
+		etcdResourcePrefix = strings.ToLower(chosenStorageResource.Resource)
+	}
+
+	return etcdResourcePrefix
 }

@@ -39,6 +39,14 @@ type GroupVersioner interface {
 	PrefersGroup() (string, bool)
 }
 
+// GroupVersionerKinder conveys information about a desired target version for objects being converted.
+type GroupVersionerKinder interface {
+	GroupVersioner
+	// KindForGroupKind returns the desired GroupVersionKind for a given GroupKind, or false if no version
+	// is preferred. The kind on the GroupKind is optional, and implementers may choose to ignore it.
+	KindForGroupKind(group unversioned.GroupKind) (unversioned.GroupVersionKind, bool)
+}
+
 // Encoders write objects to a serialized form
 type Encoder interface {
 	// Encode writes an object to a stream. Implementations may return errors if the versions are

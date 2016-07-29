@@ -38,6 +38,9 @@ import (
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/runtime/serializer/streaming"
 	"k8s.io/kubernetes/pkg/util/diff"
@@ -145,6 +148,72 @@ func roundTripSame(t *testing.T, group testapi.TestGroup, item runtime.Object, e
 		for _, codec := range codecs {
 			roundTrip(t, codec, item)
 		}
+	}
+}
+
+func Convert_v1beta1_ReplicaSet_to_api_ReplicationController(in *v1beta1.ReplicaSet, out *api.ReplicationController, s conversion.Scope) error {
+	intermediate1 := &extensions.ReplicaSet{}
+	if err := v1beta1.Convert_v1beta1_ReplicaSet_To_extensions_ReplicaSet(in, intermediate1, s); err != nil {
+		return err
+	}
+
+	intermediate2 := &v1.ReplicationController{}
+	if err := v1.Convert_extensions_ReplicaSet_to_v1_ReplicationController(intermediate1, intermediate2, s); err != nil {
+		return err
+	}
+
+	return v1.Convert_v1_ReplicationController_To_api_ReplicationController(intermediate2, out, s)
+}
+
+func TestSetControllerConversion(t *testing.T) {
+	if err := api.Scheme.AddConversionFuncs(Convert_v1beta1_ReplicaSet_to_api_ReplicationController); err != nil {
+		t.Fatal(err)
+	}
+
+	rs := &extensions.ReplicaSet{}
+	rc := &api.ReplicationController{}
+
+	extGroup := testapi.Extensions
+	defaultGroup := testapi.Default
+
+	fuzzInternalObject(t, extGroup.InternalGroupVersion(), rs, rand.Int63())
+
+	t.Logf("rs._internal.extensions -> rs.v1beta1.extensions")
+	data, err := runtime.Encode(extGroup.Codec(), rs)
+	if err != nil {
+		t.Fatalf("unexpected encoding error: %v", err)
+	}
+
+	// ds := recognizer.NewDecoder(s, ns.UniversalDeserializer())
+	rcDecoder := api.Codecs.DecoderToVersion(
+		api.Codecs.UniversalDecoder(*extGroup.GroupVersion(), *defaultGroup.GroupVersion()),
+		runtime.NewMultiGroupKinder(
+			unversioned.GroupVersionKind{Group: "", Version: runtime.APIVersionInternal, Kind: "ReplicationController"},
+			unversioned.GroupKind{Group: extGroup.GroupVersion().Group}, unversioned.GroupKind{Group: defaultGroup.GroupVersion().Group},
+		),
+	)
+	rsDecoder := api.Codecs.DecoderToVersion(
+		api.Codecs.UniversalDecoder(*extGroup.GroupVersion(), *defaultGroup.GroupVersion()),
+		runtime.NewMultiGroupKinder(
+			unversioned.GroupVersionKind{Group: extGroup.GroupVersion().Group, Version: runtime.APIVersionInternal, Kind: "ReplicaSet"},
+			unversioned.GroupKind{Group: extGroup.GroupVersion().Group}, unversioned.GroupKind{Group: defaultGroup.GroupVersion().Group},
+		),
+	)
+
+	t.Logf("rs.v1beta1.extensions -> rc._internal")
+	if err := runtime.DecodeInto(rcDecoder, data, rc); err != nil {
+		t.Fatalf("unexpected decoding error: %v", err)
+	}
+
+	t.Logf("rc._internal -> rc.v1")
+	data, err = runtime.Encode(defaultGroup.Codec(), rc)
+	if err != nil {
+		t.Fatalf("unexpected encoding error: %v", err)
+	}
+
+	t.Logf("rc.v1 -> rs._internal.extensions")
+	if err := runtime.DecodeInto(rsDecoder, data, rs); err != nil {
+		t.Fatalf("unexpected decoding error: %v", err)
 	}
 }
 

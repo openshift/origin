@@ -39,7 +39,7 @@ import (
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/persistentvolume"
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
-	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
+	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	volumecontroller "k8s.io/kubernetes/pkg/controller/volume"
 
@@ -96,6 +96,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 			Storage:                 storage,
 			Decorator:               generic.UndecoratedStorage,
 			DeleteCollectionWorkers: 0,
+			ResourcePrefix:          c.Master.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
 		})
 
 		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
@@ -237,16 +238,14 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	return allPlugins
 }
 
-// RunReplicationController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(
-		c.Informers.Pods().Informer(),
+func (c *MasterConfig) RunReplicaSetController(client *client.Client) {
+	controller := replicasetcontroller.NewReplicaSetController(
 		clientadapter.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
-		replicationcontroller.BurstReplicas,
+		replicasetcontroller.BurstReplicas,
 		int(c.ControllerManager.LookupCacheSizeForRC),
 	)
-	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
+	go controller.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop
