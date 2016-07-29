@@ -138,6 +138,25 @@ func (s *DefaultStorageFactory) AddCohabitatingResources(groupResources ...unver
 	}
 }
 
+func (s *DefaultStorageFactory) ForceStorageResource(groupResource, toForce unversioned.GroupResource) {
+	if len(s.Overrides[groupResource].cohabitatingResources) == 0 {
+		return
+	}
+
+	var cohabitating []unversioned.GroupResource
+	for _, potentialStorageResource := range s.Overrides[groupResource].cohabitatingResources {
+		if potentialStorageResource.Group == toForce.Group &&
+			potentialStorageResource.Resource == toForce.Resource {
+			continue
+		}
+		cohabitating = append(cohabitating, potentialStorageResource)
+	}
+
+	groupOverride := s.Overrides[groupResource]
+	groupOverride.cohabitatingResources = append([]unversioned.GroupResource{toForce}, cohabitating...)
+	s.Overrides[groupResource] = groupOverride
+}
+
 func getAllResourcesAlias(resource unversioned.GroupResource) unversioned.GroupResource {
 	return unversioned.GroupResource{Group: resource.Group, Resource: AllResources}
 }

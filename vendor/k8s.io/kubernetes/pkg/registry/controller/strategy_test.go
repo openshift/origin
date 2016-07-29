@@ -150,3 +150,60 @@ func TestSelectableFieldLabelConversions(t *testing.T) {
 		nil,
 	)
 }
+
+func TestValidateUpdate(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	validSelector := map[string]string{"a": "b"}
+	validPodTemplate := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector,
+			},
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSClusterFirst,
+				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			},
+		},
+	}
+	oldController := &api.ReplicationController{
+		ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault, ResourceVersion: "10", Annotations: make(map[string]string)},
+		Spec: api.ReplicationControllerSpec{
+			Replicas: 3,
+			Selector: validSelector,
+			Template: &validPodTemplate.Template,
+		},
+		Status: api.ReplicationControllerStatus{
+			Replicas:           1,
+			ObservedGeneration: int64(10),
+		},
+	}
+	// Conversion sets this annotation
+	oldController.Annotations[api.NonConvertibleAnnotationPrefix+"/"+"spec.selector"] = "no way"
+
+	// Deep-copy so we won't mutate both selectors.
+	objCopy, err := api.Scheme.DeepCopy(oldController)
+	if err != nil {
+		t.Fatalf("unexpected deep-copy error: %v", err)
+	}
+	newController, ok := objCopy.(*api.ReplicationController)
+	if !ok {
+		t.Fatalf("unexpected object: %#v", objCopy)
+	}
+	// Irrelevant (to the selector) update for the replication controller.
+	newController.Spec.Replicas = 5
+
+	// If they didn't try to update the selector then we should not return any error.
+	errs := Strategy.ValidateUpdate(ctx, newController, oldController)
+	if len(errs) > 0 {
+		t.Errorf("unexpected errors: %v", errs)
+	}
+
+	// Update the selector - validation should return an error.
+	newController.Spec.Selector["shiny"] = "newlabel"
+
+	errs = Strategy.ValidateUpdate(ctx, newController, oldController)
+	if len(errs) == 0 {
+		t.Errorf("expected a validation error")
+	}
+}

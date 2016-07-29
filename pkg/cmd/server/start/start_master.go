@@ -557,7 +557,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunSecurityAllocationController()
 
 	if kc != nil {
-		_, _, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
+		_, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
@@ -605,7 +605,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		// no special order
 		kc.RunNodeController()
 		kc.RunScheduler()
-		kc.RunReplicationController(rcClient)
+		kc.RunReplicaSetController(rsClient)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 
