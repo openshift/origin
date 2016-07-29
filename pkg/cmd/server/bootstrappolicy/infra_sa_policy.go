@@ -16,8 +16,8 @@ const (
 	InfraBuildControllerServiceAccountName = "build-controller"
 	BuildControllerRoleName                = "system:build-controller"
 
-	InfraReplicationControllerServiceAccountName = "replication-controller"
-	ReplicationControllerRoleName                = "system:replication-controller"
+	InfraReplicaSetControllerServiceAccountName = "replica-set-controller"
+	ReplicaSetControllerRoleName                = "system:replica-set-controller"
 
 	InfraDeploymentControllerServiceAccountName = "deployment-controller"
 	DeploymentControllerRoleName                = "system:deployment-controller"
@@ -157,18 +157,31 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				// DeploymentControllerFactory.deploymentLW
 				{
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
+					Resources: sets.NewString("replicationcontrollers", "replicasets", "deployments"),
 				},
 				// DeploymentControllerFactory.deploymentClient
 				{
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
+					Resources: sets.NewString("replicationcontrollers", "replicasets", "deployments"),
+				},
+				// DeploymentController (upstream) creating RS
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("create", "update", "delete", "watch"),
+					Resources: sets.NewString("replicationcontrollers", "replicasets"),
 				},
 				// DeploymentController.podClient
 				{
 					Verbs:     sets.NewString("get", "list", "create", "watch", "delete", "update"),
 					Resources: sets.NewString("pods"),
+				},
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("deployments/status"),
 				},
 				// DeploymentController.recorder (EventBroadcaster)
 				{
@@ -183,39 +196,41 @@ func init() {
 	}
 
 	err = InfraSAs.addServiceAccount(
-		InfraReplicationControllerServiceAccountName,
+		InfraReplicaSetControllerServiceAccountName,
 		authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: ReplicationControllerRoleName,
+				Name: ReplicaSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				// ReplicationManager.rcController.ListWatch
+				// ReplicaSetController.rcController.ListWatch
 				{
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
+					Resources: sets.NewString("replicasets"),
 				},
-				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
+				// ReplicaSetController.syncReplicaSet() -> updateReplicaCount()
 				{
-					// TODO: audit/remove those, 1.0 controllers needed get, update
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
+					Resources: sets.NewString("replicasets"),
 				},
-				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
+				// ReplicaSetController.syncReplicaSet() -> updateReplicaCount()
 				{
+					APIGroups: []string{extensions.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("replicationcontrollers/status"),
+					Resources: sets.NewString("replicasets/status"),
 				},
-				// ReplicationManager.podController.ListWatch
+				// ReplicaSetController.podController.ListWatch
 				{
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("pods"),
 				},
-				// ReplicationManager.podControl (RealPodControl)
+				// ReplicaSetController.podControl (RealPodControl)
 				{
 					Verbs:     sets.NewString("create", "delete"),
 					Resources: sets.NewString("pods"),
 				},
-				// ReplicationManager.podControl.recorder
+				// ReplicaSetController.podControl.recorder
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),

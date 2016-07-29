@@ -119,8 +119,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets", "daemonsets/status", "deployments", "deployments/scale",
 					"deployments/status", "horizontalpodautoscalers", "horizontalpodautoscalers/status", "ingresses", "ingresses/status", "jobs", "jobs/status",
-					"networkpolicies", "podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers",
-					"replicationcontrollers/scale", "thirdpartyresources").RuleOrDie(),
+					"networkpolicies", "podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers/scale", "thirdpartyresources").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("clusterpolicies", "clusterpolicybindings", "clusterroles", "clusterrolebindings",
 					"policies", "policybindings", "roles", "rolebindings").RuleOrDie(),
@@ -218,7 +217,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale",
+					"replicasets", "replicasets/status", "replicasets/scale", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("roles", "rolebindings").RuleOrDie(),
@@ -271,8 +271,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale").RuleOrDie(),
-				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale", "replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets", "replicasets/status").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
@@ -306,18 +306,17 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: ViewRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				// TODO add "replicationcontrollers/scale" here
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("pods", "replicationcontrollers", "serviceaccounts",
 					"services", "endpoints", "persistentvolumeclaims", "configmaps").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("limitranges", "resourcequotas", "bindings", "events",
-					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
+					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log", "replicationcontrollers/scale").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(batchGroup).Resources("jobs").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers").RuleOrDie(),
-				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "daemonsets", "replicasets", "deployments", "deployments/status", "deployments/scale").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("replicasets/status", "replicasets/scale").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
@@ -438,6 +437,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("get", "list").Groups(kapiGroup).Resources("pods", "replicationcontrollers").RuleOrDie(),
+				authorizationapi.NewRule("get", "list").Groups(extensionsGroup).Resources("replicasets").RuleOrDie(),
 				authorizationapi.NewRule("list").Groups(kapiGroup).Resources("limitranges").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(buildGroup).Resources("buildconfigs", "builds").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(deployGroup).Resources("deploymentconfigs").RuleOrDie(),
@@ -462,6 +462,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("get", "list", "update").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+				authorizationapi.NewRule("get", "list", "update").Groups(extensionsGroup).Resources("replicasets").RuleOrDie(),
 				authorizationapi.NewRule("get", "list", "watch", "create").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(kapiGroup).Resources("events").RuleOrDie(),

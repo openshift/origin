@@ -136,6 +136,12 @@ func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) fie
 
 func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
+	if kind, ok := oldConfig.GetAnnotations()[deployapi.OriginalKindAnnotation]; ok && kind != "v1.DeploymentConfig" {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("kind"), oldConfig.GetObjectKind().GroupVersionKind().Kind, "updating deployment via deployment config is not supported"),
+		)
+	}
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
 	allErrs = append(allErrs, ValidateDeploymentConfigStatusUpdate(newConfig, oldConfig)...)
 	return allErrs

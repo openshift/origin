@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/deployment"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -39,7 +40,7 @@ import (
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/persistentvolume"
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
-	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
+	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	volumecontroller "k8s.io/kubernetes/pkg/controller/volume"
 
@@ -237,16 +238,23 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	return allPlugins
 }
 
-// RunReplicationController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(
-		c.Informers.Pods().Informer(),
+// RunReplicaSetController starts the Kubernetes replica set controller sync loop
+func (c *MasterConfig) RunReplicaSetController(client *client.Client) {
+	controllerManager := replicasetcontroller.NewReplicaSetController(
 		clientadapter.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
-		replicationcontroller.BurstReplicas,
-		int(c.ControllerManager.LookupCacheSizeForRC),
+		replicasetcontroller.BurstReplicas,
+		int(c.ControllerManager.LookupCacheSizeForRS),
 	)
-	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
+	go controllerManager.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
+}
+
+func (c *MasterConfig) RunDeploymentController(client *client.Client) {
+	controller := deployment.NewDeploymentController(
+		clientadapter.FromUnversionedClient(client),
+		kctrlmgr.ResyncPeriod(c.ControllerManager),
+	)
+	go controller.Run(int(c.ControllerManager.ConcurrentDeploymentSyncs), utilwait.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop

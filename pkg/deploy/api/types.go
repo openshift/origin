@@ -22,6 +22,9 @@ const (
 	DeploymentStatusComplete DeploymentStatus = "Complete"
 	// DeploymentStatusFailed means the deployment finished with an error.
 	DeploymentStatusFailed DeploymentStatus = "Failed"
+
+	// TODO: Move this to k8s
+	OriginalKindAnnotation = "k8s.io/original-kind"
 )
 
 // DeploymentStrategy describes how to perform a deployment.

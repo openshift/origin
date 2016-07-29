@@ -208,7 +208,7 @@ func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController
 		c.queue.Add(key)
 		return nil, err
 	}
-	if !exists {
+	if !exists && len(key) > 0 {
 		glog.Infof("Replication controller %q has been deleted", key)
 		return nil, nil
 	}
