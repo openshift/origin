@@ -266,31 +266,41 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	kScalerFunc := w.Factory.Scaler
 	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
-		oc, kc, err := w.Clients()
-		if err != nil {
-			return nil, err
-		}
-
 		if mapping.GroupVersionKind.GroupKind() == deployapi.Kind("DeploymentConfig") {
+			oc, kc, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return deploycmd.NewDeploymentConfigScaler(oc, kc), nil
 		}
 		return kScalerFunc(mapping)
 	}
 	kReaperFunc := w.Factory.Reaper
 	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
-		oc, kc, err := w.Clients()
-		if err != nil {
-			return nil, err
-		}
-
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
+			oc, kc, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return deploycmd.NewDeploymentConfigReaper(oc, kc), nil
 		case authorizationapi.Kind("Role"):
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return authorizationreaper.NewRoleReaper(oc, oc), nil
 		case authorizationapi.Kind("ClusterRole"):
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
 		case userapi.Kind("User"):
+			oc, kc, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return authenticationreaper.NewUserReaper(
 				client.UsersInterface(oc),
 				client.GroupsInterface(oc),
@@ -299,6 +309,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				kclient.SecurityContextConstraintsInterface(kc),
 			), nil
 		case userapi.Kind("Group"):
+			oc, kc, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return authenticationreaper.NewGroupReaper(
 				client.GroupsInterface(oc),
 				client.ClusterRoleBindingsInterface(oc),
@@ -306,6 +320,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				kclient.SecurityContextConstraintsInterface(kc),
 			), nil
 		case buildapi.Kind("BuildConfig"):
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return buildreaper.NewBuildConfigReaper(oc), nil
 		}
 		return kReaperFunc(mapping)
@@ -344,16 +362,15 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	kLogsForObjectFunc := w.Factory.LogsForObject
 	w.LogsForObject = func(object, options runtime.Object) (*restclient.Request, error) {
-		oc, _, err := w.Clients()
-		if err != nil {
-			return nil, err
-		}
-
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
 			dopts, ok := options.(*deployapi.DeploymentLogOptions)
 			if !ok {
 				return nil, errors.New("provided options object is not a DeploymentLogOptions")
+			}
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
 			}
 			return oc.DeploymentLogs(t.Namespace).Get(t.Name, *dopts), nil
 		case *buildapi.Build:
@@ -364,11 +381,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if bopts.Version != nil {
 				return nil, errors.New("cannot specify a version and a build")
 			}
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
 		case *buildapi.BuildConfig:
 			bopts, ok := options.(*buildapi.BuildLogOptions)
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
+			}
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
 			}
 			builds, err := oc.Builds(t.Namespace).List(api.ListOptions{})
 			if err != nil {
@@ -474,18 +499,17 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.PrintObjectSpecificMessage = func(obj runtime.Object, out io.Writer) {}
 	kPauseObjectFunc := w.Factory.PauseObject
 	w.Factory.PauseObject = func(object runtime.Object) (bool, error) {
-		oc, _, err := w.Clients()
-		if err != nil {
-			return false, err
-		}
-
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
 			if t.Spec.Paused {
 				return true, nil
 			}
 			t.Spec.Paused = true
-			_, err := oc.DeploymentConfigs(t.Namespace).Update(t)
+			oc, _, err := w.Clients()
+			if err != nil {
+				return false, err
+			}
+			_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
 			// TODO: Pause the deployer containers.
 			return false, err
 		default:
@@ -494,18 +518,17 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	kResumeObjectFunc := w.Factory.ResumeObject
 	w.Factory.ResumeObject = func(object runtime.Object) (bool, error) {
-		oc, _, err := w.Clients()
-		if err != nil {
-			return false, err
-		}
-
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
 			if !t.Spec.Paused {
 				return true, nil
 			}
 			t.Spec.Paused = false
-			_, err := oc.DeploymentConfigs(t.Namespace).Update(t)
+			oc, _, err := w.Clients()
+			if err != nil {
+				return false, err
+			}
+			_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
 			// TODO: Resume the deployer containers.
 			return false, err
 		default:
@@ -514,26 +537,24 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	kHistoryViewerFunc := w.Factory.HistoryViewer
 	w.Factory.HistoryViewer = func(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
-		oc, kc, err := w.Clients()
-		if err != nil {
-			return nil, err
-		}
-
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
+			oc, kc, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return deploycmd.NewDeploymentConfigHistoryViewer(oc, kc), nil
 		}
 		return kHistoryViewerFunc(mapping)
 	}
 	kRollbackerFunc := w.Factory.Rollbacker
 	w.Factory.Rollbacker = func(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
-		oc, _, err := w.Clients()
-		if err != nil {
-			return nil, err
-		}
-
 		switch mapping.GroupVersionKind.GroupKind() {
 		case deployapi.Kind("DeploymentConfig"):
+			oc, _, err := w.Clients()
+			if err != nil {
+				return nil, err
+			}
 			return deploycmd.NewDeploymentConfigRollbacker(oc), nil
 		}
 		return kRollbackerFunc(mapping)
@@ -705,10 +726,6 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	if err != nil {
 		return "", err
 	}
-	oc, kc, err := f.Clients()
-	if err != nil {
-		return "", err
-	}
 	mapper, _ := f.Object(false)
 	resourceType, name, err := util.ResolveResource(api.Resource("pods"), resource, mapper)
 	if err != nil {
@@ -719,6 +736,10 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	case api.Resource("pods"):
 		return name, nil
 	case api.Resource("replicationcontrollers"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
 		rc, err := kc.ReplicationControllers(namespace).Get(name)
 		if err != nil {
 			return "", err
@@ -730,6 +751,10 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		}
 		return pod.Name, nil
 	case deployapi.Resource("deploymentconfigs"):
+		oc, kc, err := f.Clients()
+		if err != nil {
+			return "", err
+		}
 		dc, err := oc.DeploymentConfigs(namespace).Get(name)
 		if err != nil {
 			return "", err
@@ -741,6 +766,10 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		}
 		return pod.Name, nil
 	case extensions.Resource("daemonsets"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
 		ds, err := kc.Extensions().DaemonSets(namespace).Get(name)
 		if err != nil {
 			return "", err
@@ -755,12 +784,20 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		}
 		return pod.Name, nil
 	case extensions.Resource("jobs"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
 		job, err := kc.Extensions().Jobs(namespace).Get(name)
 		if err != nil {
 			return "", err
 		}
 		return podNameForJob(job, kc, timeout, sortBy)
 	case batch.Resource("jobs"):
+		kc, err := f.Client()
+		if err != nil {
+			return "", err
+		}
 		job, err := kc.Batch().Jobs(namespace).Get(name)
 		if err != nil {
 			return "", err
