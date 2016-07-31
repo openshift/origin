@@ -5,7 +5,6 @@ import (
 	"io"
 	"sort"
 	"strings"
-	"sync"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -26,14 +25,11 @@ import (
 	"github.com/golang/glog"
 )
 
-var constraintAdmitter *constraint
-var once sync.Once
-
 func init() {
-	kadmission.RegisterPlugin("SecurityContextConstraint", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-		constraintAdmitter = NewConstraint(client)
-		return constraintAdmitter, nil
-	})
+	kadmission.RegisterPlugin("SecurityContextConstraint",
+		func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+			return NewConstraint(client), nil
+		})
 }
 
 type constraint struct {
@@ -47,13 +43,10 @@ var _ = oadmission.WantsInformers(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
 func NewConstraint(kclient clientset.Interface) *constraint {
-	once.Do(func() {
-		constraintAdmitter = &constraint{
-			Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
-			client:  kclient,
-		}
-	})
-	return constraintAdmitter
+	return &constraint{
+		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
+		client:  kclient,
+	}
 }
 
 // Admit determines if the pod should be admitted based on the requested security context

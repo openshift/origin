@@ -5,14 +5,13 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/controller/shared"
-	"k8s.io/kubernetes/pkg/admission"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 func init() {
-	admission.RegisterPlugin("SCCExecRestrictions", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+	kadmission.RegisterPlugin("SCCExecRestrictions", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
 		execAdmitter := NewSCCExecRestrictions(client)
 		return execAdmitter, nil
 	})
@@ -24,13 +23,13 @@ var _ = oadmission.WantsInformers(&sccExecRestrictions{})
 // sccExecRestrictions is an implementation of admission.Interface which says no to a pod/exec on
 // a pod that the user would not be allowed to create
 type sccExecRestrictions struct {
-	*admission.Handler
+	*kadmission.Handler
 	constraintAdmission *constraint
 	client              clientset.Interface
 }
 
-func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
-	if a.GetOperation() != admission.Connect {
+func (d *sccExecRestrictions) Admit(a kadmission.Attributes) (err error) {
+	if a.GetOperation() != kadmission.Connect {
 		return nil
 	}
 	if a.GetResource().GroupResource() != kapi.Resource("pods") {
@@ -42,14 +41,14 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 
 	pod, err := d.client.Core().Pods(a.GetNamespace()).Get(a.GetName())
 	if err != nil {
-		return admission.NewForbidden(a, err)
+		return kadmission.NewForbidden(a, err)
 	}
 
 	// TODO, if we want to actually limit who can use which service account, then we'll need to add logic here to make sure that
 	// we're allowed to use the SA the pod is using.  Otherwise, user-A creates pod and user-B (who can't use the SA) can exec into it.
-	createAttributes := admission.NewAttributesRecord(pod, pod, kapi.Kind("Pod").WithVersion(""), a.GetNamespace(), a.GetName(), a.GetResource(), "", admission.Create, a.GetUserInfo())
+	createAttributes := kadmission.NewAttributesRecord(pod, pod, kapi.Kind("Pod").WithVersion(""), a.GetNamespace(), a.GetName(), a.GetResource(), "", kadmission.Create, a.GetUserInfo())
 	if err := d.constraintAdmission.Admit(createAttributes); err != nil {
-		return admission.NewForbidden(a, err)
+		return kadmission.NewForbidden(a, err)
 	}
 
 	return nil
@@ -58,7 +57,7 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 // NewSCCExecRestrictions creates a new admission controller that denies an exec operation on a privileged pod
 func NewSCCExecRestrictions(client clientset.Interface) *sccExecRestrictions {
 	return &sccExecRestrictions{
-		Handler:             admission.NewHandler(admission.Connect),
+		Handler:             kadmission.NewHandler(kadmission.Connect),
 		constraintAdmission: NewConstraint(client),
 		client:              client,
 	}

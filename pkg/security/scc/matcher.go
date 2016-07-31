@@ -19,7 +19,7 @@ type DefaultSCCMatcher struct {
 
 // NewDefaultSCCMatcher builds and initializes a DefaultSCCMatcher
 func NewDefaultSCCMatcher(c *oscache.IndexerToSecurityContextConstraintsLister) SCCMatcher {
-	return DefaultSCCMatcher{c}
+	return DefaultSCCMatcher{cache: c}
 }
 
 // FindApplicableSCCs implements SCCMatcher interface for DefaultSCCMatcher
