@@ -52,7 +52,6 @@ import (
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -78,7 +77,6 @@ import (
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
-	"github.com/openshift/origin/pkg/service"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -381,13 +379,6 @@ func handleVersion(req *restful.Request, resp *restful.Response) {
 }
 
 func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(kapi.NamespaceDefault).Get)
-	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
-	if err != nil {
-		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
-	}
-
 	kubeletClient, err := kubeletclient.NewStaticKubeletClient(c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
@@ -471,10 +462,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageSignatureStorage := imagesignature.NewREST(c.PrivilegedLoopbackOpenShiftClient.Images())
 	imageStreamLimitVerifier := imageadmission.NewLimitVerifier(c.KubeClient())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, imageapi.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry, imageStreamLimitVerifier)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, imageStreamLimitVerifier)
 	checkStorageErr(err)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
-	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, imageapi.DefaultRegistryFunc(defaultRegistryFunc))
+	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, c.RegistryNameFn)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	importerFn := func(r importer.RepositoryRetriever) imageimporter.Interface {
