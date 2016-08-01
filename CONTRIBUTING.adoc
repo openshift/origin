@@ -66,9 +66,9 @@ export OS_OUTPUT_GOPATH=1
 
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
-        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+        $ git clone https://github.com/<forkid>/origin  # Replace <forkid> with the your github id
         $ cd origin
-        $ git remote add upstream git://github.com/openshift/origin
+        $ git remote add upstream https://github.com/openshift/origin
 
 5.  From here, you can generate the OpenShift binaries by running:
 
@@ -129,9 +129,9 @@ export GOPATH=$HOME/go
 
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
-        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+        $ git clone https://github.com/<forkid>/origin  # Replace <forkid> with the your github id
         $ cd origin
-        $ git remote add upstream git://github.com/openshift/origin
+        $ git remote add upstream https://github.com/openshift/origin
 
 
 5.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 7 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
@@ -345,7 +345,7 @@ It's possible to target the Kubernetes e2e tests against a running
 OpenShift cluster.  From the root of an origin repo:
 
         $ pushd ..
-        $ git clone http://github.com/kubernetes/kubernetes/
+        $ git clone https://github.com/kubernetes/kubernetes/
         $ pushd kubernetes/build
         $ ./run hack/build-go.sh
         $ popd && popd
