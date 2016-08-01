@@ -74,7 +74,7 @@ func newClusterResourceOverride(client clientset.Interface, config *api.ClusterR
 		}
 	}
 
-	limitRanger, err := limitranger.NewLimitRanger(client, &limitRangerActions{})
+	limitRanger, err := limitranger.NewLimitRanger(client, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -155,54 +155,62 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
-	glog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec.Containers[0].Resources)
+	glog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
 	if err := a.LimitRanger.Admit(attr); err != nil {
 		glog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
-	glog.V(5).Infof("%s: pod limits after LimitRanger are: %#v", api.PluginName, pod.Spec.Containers[0].Resources)
-	for _, container := range pod.Spec.Containers {
-		resources := container.Resources
-		memLimit, memFound := resources.Limits[kapi.ResourceMemory]
-		if memFound && a.config.memoryRequestToLimitRatio != 0 {
-			// memory is measured in whole bytes.
-			// the plugin rounds down to the nearest MiB rather than bytes to improve ease of use for end-users.
-			amount := memLimit.Value() * int64(a.config.memoryRequestToLimitRatio*100) / 100
-			// TODO: move into resource.Quantity
-			var mod int64
-			switch memLimit.Format {
-			case resource.BinarySI:
-				mod = 1024 * 1024
-			default:
-				mod = 1000 * 1000
-			}
-			if rem := amount % mod; rem != 0 {
-				amount = amount - rem
-			}
-			q := resource.NewQuantity(int64(amount), memLimit.Format)
-			if memFloor.Cmp(*q) > 0 {
-				q = memFloor.Copy()
-			}
-			resources.Requests[kapi.ResourceMemory] = *q
-		}
-		if memFound && a.config.limitCPUToMemoryRatio != 0 {
-			amount := float64(memLimit.Value()) * a.config.limitCPUToMemoryRatio * cpuBaseScaleFactor
-			q := resource.NewMilliQuantity(int64(amount), resource.DecimalSI)
-			if cpuFloor.Cmp(*q) > 0 {
-				q = cpuFloor.Copy()
-			}
-			resources.Limits[kapi.ResourceCPU] = *q
-		}
-
-		cpuLimit, cpuFound := resources.Limits[kapi.ResourceCPU]
-		if cpuFound && a.config.cpuRequestToLimitRatio != 0 {
-			amount := float64(cpuLimit.MilliValue()) * a.config.cpuRequestToLimitRatio
-			q := resource.NewMilliQuantity(int64(amount), cpuLimit.Format)
-			if cpuFloor.Cmp(*q) > 0 {
-				q = cpuFloor.Copy()
-			}
-			resources.Requests[kapi.ResourceCPU] = *q
-		}
+	glog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
+	for i := range pod.Spec.InitContainers {
+		updateContainerResources(a.config, &pod.Spec.InitContainers[i])
 	}
-	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec.Containers[0].Resources)
+	for i := range pod.Spec.Containers {
+		updateContainerResources(a.config, &pod.Spec.Containers[i])
+	}
+	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec)
 	return nil
+}
+
+func updateContainerResources(config *internalConfig, container *kapi.Container) {
+	resources := container.Resources
+	memLimit, memFound := resources.Limits[kapi.ResourceMemory]
+	if memFound && config.memoryRequestToLimitRatio != 0 {
+		// memory is measured in whole bytes.
+		// the plugin rounds down to the nearest MiB rather than bytes to improve ease of use for end-users.
+		amount := memLimit.Value() * int64(config.memoryRequestToLimitRatio*100) / 100
+		// TODO: move into resource.Quantity
+		var mod int64
+		switch memLimit.Format {
+		case resource.BinarySI:
+			mod = 1024 * 1024
+		default:
+			mod = 1000 * 1000
+		}
+		if rem := amount % mod; rem != 0 {
+			amount = amount - rem
+		}
+		q := resource.NewQuantity(int64(amount), memLimit.Format)
+		if memFloor.Cmp(*q) > 0 {
+			q = memFloor.Copy()
+		}
+		resources.Requests[kapi.ResourceMemory] = *q
+	}
+	if memFound && config.limitCPUToMemoryRatio != 0 {
+		amount := float64(memLimit.Value()) * config.limitCPUToMemoryRatio * cpuBaseScaleFactor
+		q := resource.NewMilliQuantity(int64(amount), resource.DecimalSI)
+		if cpuFloor.Cmp(*q) > 0 {
+			q = cpuFloor.Copy()
+		}
+		resources.Limits[kapi.ResourceCPU] = *q
+	}
+
+	cpuLimit, cpuFound := resources.Limits[kapi.ResourceCPU]
+	if cpuFound && config.cpuRequestToLimitRatio != 0 {
+		amount := float64(cpuLimit.MilliValue()) * config.cpuRequestToLimitRatio
+		q := resource.NewMilliQuantity(int64(amount), cpuLimit.Format)
+		if cpuFloor.Cmp(*q) > 0 {
+			q = cpuFloor.Copy()
+		}
+		resources.Requests[kapi.ResourceCPU] = *q
+	}
+
 }

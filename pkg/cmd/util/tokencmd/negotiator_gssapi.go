@@ -3,6 +3,7 @@
 package tokencmd
 
 import (
+	"errors"
 	"net"
 	"net/url"
 	"runtime"
@@ -68,20 +69,20 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 			glog.V(5).Infof("acquiring credentials for principal name %s", g.principalName)
 			credBuffer, err := lib.MakeBufferString(g.principalName)
 			if err != nil {
-				return nil, err
+				return nil, convertGSSAPIError(err)
 			}
 			defer credBuffer.Release()
 
 			credName, err := credBuffer.Name(lib.GSS_KRB5_NT_PRINCIPAL_NAME)
 			if err != nil {
-				return nil, err
+				return nil, convertGSSAPIError(err)
 			}
 			defer credName.Release()
 
 			cred, _, _, err := lib.AcquireCred(credName, time.Duration(0), lib.GSS_C_NO_OID_SET, gssapi.GSS_C_INITIATE)
 			if err != nil {
 				glog.V(5).Infof("AcquireCred returned error: %v", err)
-				return nil, err
+				return nil, convertGSSAPIError(err)
 			}
 			g.cred = cred
 		} else {
@@ -103,13 +104,13 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 		glog.V(5).Infof("importing service name %s", serviceName)
 		nameBuf, err := lib.MakeBufferString(serviceName)
 		if err != nil {
-			return nil, err
+			return nil, convertGSSAPIError(err)
 		}
 		defer nameBuf.Release()
 
 		name, err := nameBuf.Name(lib.GSS_C_NT_HOSTBASED_SERVICE)
 		if err != nil {
-			return nil, err
+			return nil, convertGSSAPIError(err)
 		}
 		g.name = name
 		g.ctx = lib.GSS_C_NO_CONTEXT
@@ -117,7 +118,7 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 
 	incomingTokenBuffer, err := lib.MakeBufferBytes(challengeToken)
 	if err != nil {
-		return nil, err
+		return nil, convertGSSAPIError(err)
 	}
 	defer incomingTokenBuffer.Release()
 
@@ -136,7 +137,7 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 		return outgoingToken.Bytes(), nil
 	default:
 		glog.V(5).Infof("InitSecContext returned error: %v", err)
-		return nil, err
+		return nil, convertGSSAPIError(err)
 	}
 }
 
@@ -147,16 +148,16 @@ func (g *gssapiNegotiator) IsComplete() bool {
 func (g *gssapiNegotiator) Release() error {
 	var errs []error
 	if err := g.name.Release(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, convertGSSAPIError(err))
 	}
 	if err := g.ctx.Release(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, convertGSSAPIError(err))
 	}
 	if err := g.cred.Release(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, convertGSSAPIError(err))
 	}
 	if err := g.lib.Unload(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, convertGSSAPIError(err))
 	}
 	return utilerrors.NewAggregate(errs)
 }
@@ -190,9 +191,15 @@ func (g *gssapiNegotiator) loadLib() (*gssapi.Lib, error) {
 
 			// Otherwise, log and aggregate
 			glog.V(5).Infof("%v", loadError)
-			loadErrors = append(loadErrors, loadError)
+			loadErrors = append(loadErrors, convertGSSAPIError(loadError))
 		}
 		g.loadError = utilerrors.NewAggregate(loadErrors)
 	})
 	return g.lib, g.loadError
+}
+
+// convertGSSAPIError takes a GSSAPI error and turns it into a regular error.
+// This prevents us from accessing memory that has already been released by GSSAPI.
+func convertGSSAPIError(err error) error {
+	return errors.New(err.Error())
 }

@@ -34,7 +34,7 @@ function os::test::extended::setup {
   if [[ -z $(os::build::find-binary openshift) ]]; then
     hack/build-go.sh
   fi
-  
+
   os::util::environment::setup_time_vars
 
   # ensure proper relative directories are set
@@ -228,6 +228,7 @@ readonly CONFORMANCE_TESTS=(
   "\[volumes\] Test local storage quota FSGroup"
   "test deployment should run a deployment to completion"
   "Variable Expansion"
+  "init containers"
   "Clean up pods on node kubelet"
   "\[Feature\:SecurityContext\]"
   "should create a LimitRange with defaults"

@@ -2,7 +2,6 @@ package prune
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -51,7 +50,7 @@ const (
 )
 
 func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
-	image := imageWithLayers(id, ref, false, layer1, layer2, layer3, layer4, layer5)
+	image := imageWithLayers(id, ref, layer1, layer2, layer3, layer4, layer5)
 
 	if ageInMinutes >= 0 {
 		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
@@ -61,7 +60,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 }
 
 func sizedImage(id, ref string, size int64) imageapi.Image {
-	image := imageWithLayers(id, ref, false, layer1, layer2, layer3, layer4, layer5)
+	image := imageWithLayers(id, ref, layer1, layer2, layer3, layer4, layer5)
 	image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1) * time.Minute))
 	image.DockerImageMetadata.Size = size
 
@@ -72,7 +71,7 @@ func image(id, ref string) imageapi.Image {
 	return agedImage(id, ref, -1)
 }
 
-func imageWithLayers(id, ref string, v2 bool, layers ...string) imageapi.Image {
+func imageWithLayers(id, ref string, layers ...string) imageapi.Image {
 	image := imageapi.Image{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: id,
@@ -83,71 +82,22 @@ func imageWithLayers(id, ref string, v2 bool, layers ...string) imageapi.Image {
 		DockerImageReference: ref,
 	}
 
-	manifest := imageapi.DockerImageManifest{}
-	if v2 {
-		manifest.Layers = []imageapi.Descriptor{}
-		for _, layer := range layers {
-			manifest.Layers = append(manifest.Layers, imageapi.Descriptor{Digest: layer})
-		}
-	} else {
-		manifest.FSLayers = []imageapi.DockerFSLayer{}
-		for _, layer := range layers {
-			manifest.FSLayers = append(manifest.FSLayers, imageapi.DockerFSLayer{DockerBlobSum: layer})
-		}
-	}
-
-	manifestBytes, err := json.Marshal(&manifest)
-	if err != nil {
-		panic(err)
-	}
-
-	image.DockerImageManifest = string(manifestBytes)
-
-	return image
-}
-
-func imageWithLayersV1(id, ref string, layers ...string) imageapi.Image {
-	image := imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: id,
-			Annotations: map[string]string{
-				imageapi.ManagedByOpenShiftAnnotation: "true",
-			},
-		},
-		DockerImageReference: ref,
-	}
-
-	manifest := imageapi.DockerImageManifest{
-		FSLayers: []imageapi.DockerFSLayer{},
-	}
+	image.DockerImageLayers = []imageapi.ImageLayer{}
 	for _, layer := range layers {
-		manifest.FSLayers = append(manifest.FSLayers, imageapi.DockerFSLayer{DockerBlobSum: layer})
+		image.DockerImageLayers = append(image.DockerImageLayers, imageapi.ImageLayer{Name: layer})
 	}
-
-	manifestBytes, err := json.Marshal(&manifest)
-	if err != nil {
-		panic(err)
-	}
-
-	image.DockerImageManifest = string(manifestBytes)
 
 	return image
 }
 
 func unmanagedImage(id, ref string, hasAnnotations bool, annotation, value string) imageapi.Image {
-	image := imageWithLayers(id, ref, false)
+	image := imageWithLayers(id, ref)
 	if !hasAnnotations {
 		image.Annotations = nil
 	} else {
 		delete(image.Annotations, imageapi.ManagedByOpenShiftAnnotation)
 		image.Annotations[annotation] = value
 	}
-	return image
-}
-
-func imageWithBadManifest(id, ref string) imageapi.Image {
-	image := image(id, ref)
-	image.DockerImageManifest = "asdf"
 	return image
 }
 
@@ -766,51 +716,12 @@ func TestImagePruning(t *testing.T) {
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
 		},
-		"image with bad manifest is pruned ok": {
+		"image with layers": {
 			images: imageList(
-				imageWithBadManifest("id", "someregistry/foo/bar@id"),
-			),
-			expectedImageDeletions: []string{"id"},
-			expectedStreamUpdates:  []string{},
-		},
-		"image with v1 layers": {
-			images: imageList(
-				imageWithLayers("id1", registryURL+"/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", registryURL+"/foo/bar@id2", false, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id3", registryURL+"/foo/bar@id3", false, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id4", registryURL+"/foo/bar@id4", false, "layer5", "layer6", "layer7", "layer8"),
-			),
-			streams: streamList(
-				stream(registryURL, "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id1", registryURL+"/foo/bar@id1"),
-						tagEvent("id2", registryURL+"/foo/bar@id2"),
-						tagEvent("id3", registryURL+"/foo/bar@id3"),
-						tagEvent("id4", registryURL+"/foo/bar@id4"),
-					),
-				)),
-			),
-			expectedImageDeletions: []string{"id4"},
-			expectedStreamUpdates:  []string{"foo/bar|id4"},
-			expectedLayerDeletions: []string{
-				registryURL + "|foo/bar|layer5",
-				registryURL + "|foo/bar|layer6",
-				registryURL + "|foo/bar|layer7",
-				registryURL + "|foo/bar|layer8",
-			},
-			expectedBlobDeletions: []string{
-				registryURL + "|layer5",
-				registryURL + "|layer6",
-				registryURL + "|layer7",
-				registryURL + "|layer8",
-			},
-		},
-		"image with v2 layers": {
-			images: imageList(
-				imageWithLayers("id1", registryURL+"/foo/bar@id1", true, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", registryURL+"/foo/bar@id2", true, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id3", registryURL+"/foo/bar@id3", true, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id4", registryURL+"/foo/bar@id4", true, "layer5", "layer6", "layer7", "layer8"),
+				imageWithLayers("id1", registryURL+"/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", registryURL+"/foo/bar@id2", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id3", registryURL+"/foo/bar@id3", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id4", registryURL+"/foo/bar@id4", "layer5", "layer6", "layer7", "layer8"),
 			),
 			streams: streamList(
 				stream(registryURL, "foo", "bar", tags(
@@ -1052,8 +963,8 @@ func TestRegistryPruning(t *testing.T) {
 	}{
 		"layers unique to id1 pruned": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", "registry1/foo/bar@id2", false, "layer3", "layer4", "layer5", "layer6"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
 			streams: streamList(
 				stream("registry1", "foo", "bar", tags(
@@ -1082,7 +993,7 @@ func TestRegistryPruning(t *testing.T) {
 		},
 		"no pruning when no images are pruned": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
 			),
 			streams: streamList(
 				stream("registry1", "foo", "bar", tags(
@@ -1097,8 +1008,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 		"blobs pruned when streams have already been deleted": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", "registry1/foo/bar@id2", false, "layer3", "layer4", "layer5", "layer6"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
 			expectedLayerDeletions: sets.NewString(),
 			expectedBlobDeletions: sets.NewString(
@@ -1113,8 +1024,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 		"ping error": {
 			images: imageList(
-				imageWithLayers("id1", "registry1/foo/bar@id1", false, "layer1", "layer2", "layer3", "layer4"),
-				imageWithLayers("id2", "registry1/foo/bar@id2", false, "layer3", "layer4", "layer5", "layer6"),
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
 			streams: streamList(
 				stream("registry1", "foo", "bar", tags(

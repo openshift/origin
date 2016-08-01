@@ -8,7 +8,9 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -21,6 +23,12 @@ import (
 
 	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
+
+// Mount represents a binding between the current system and the destination client
+type Mount struct {
+	SourcePath      string
+	DestinationPath string
+}
 
 // ClientExecutor can run Docker builds from a Docker client.
 type ClientExecutor struct {
@@ -38,6 +46,11 @@ type ClientExecutor struct {
 	// AllowPull when set will pull images that are not present on
 	// the daemon.
 	AllowPull bool
+	// TransientMounts are a set of mounts from outside the build
+	// to the inside that will not be part of the final image. Any
+	// content created inside the mount's destinationPath will be
+	// omitted from the final image.
+	TransientMounts []Mount
 
 	Out, ErrOut io.Writer
 
@@ -104,7 +117,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 			}
 			from, err = e.CreateScratchImage()
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create a scratch image for this build: %v", err)
 			}
 			defer e.CleanupImage(from)
 		}
@@ -125,6 +138,8 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	e.LogFn("FROM %s", from)
 	glog.V(4).Infof("step: FROM %s", from)
 
+	var sharedMount string
+
 	// create a container to execute in, if necessary
 	mustStart := b.RequiresStart(node)
 	if e.Container == nil {
@@ -134,6 +149,23 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 			},
 		}
 		if mustStart {
+			// Transient mounts only make sense on images that will be running processes
+			if len(e.TransientMounts) > 0 {
+				volumeName, err := randSeq(imageSafeCharacters, 24)
+				if err != nil {
+					return err
+				}
+				v, err := e.Client.CreateVolume(docker.CreateVolumeOptions{Name: volumeName})
+				if err != nil {
+					return fmt.Errorf("unable to create volume to mount secrets: %v", err)
+				}
+				defer e.cleanupVolume(volumeName)
+				sharedMount = v.Mountpoint
+				opts.HostConfig = &docker.HostConfig{
+					Binds: []string{sharedMount + ":/tmp/__temporarymount"},
+				}
+			}
+
 			// TODO: windows support
 			if len(e.Command) > 0 {
 				opts.Config.Cmd = e.Command
@@ -149,7 +181,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 		}
 		container, err := e.Client.CreateContainer(opts)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to create build container: %v", err)
 		}
 		e.Container = container
 
@@ -157,10 +189,41 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 		defer e.Cleanup()
 	}
 
+	// copy any source content into the temporary mount path
+	if mustStart && len(e.TransientMounts) > 0 {
+		var copies []Copy
+		for i, mount := range e.TransientMounts {
+			source := mount.SourcePath
+			copies = append(copies, Copy{
+				Src:  source,
+				Dest: []string{path.Join("/tmp/__temporarymount", strconv.Itoa(i))},
+			})
+		}
+		if err := e.Copy(copies...); err != nil {
+			return fmt.Errorf("unable to copy build context into container: %v", err)
+		}
+	}
+
 	// TODO: lazy start
 	if mustStart && !e.Container.State.Running {
-		if err := e.Client.StartContainer(e.Container.ID, e.HostConfig); err != nil {
-			return err
+		var hostConfig docker.HostConfig
+		if e.HostConfig != nil {
+			hostConfig = *e.HostConfig
+		}
+
+		// mount individual items temporarily
+		for i, mount := range e.TransientMounts {
+			if len(sharedMount) == 0 {
+				return fmt.Errorf("no mount point available for temporary mounts")
+			}
+			hostConfig.Binds = append(
+				hostConfig.Binds,
+				fmt.Sprintf("%s:%s:%s", path.Join(sharedMount, strconv.Itoa(i)), mount.DestinationPath, "ro"),
+			)
+		}
+
+		if err := e.Client.StartContainer(e.Container.ID, &hostConfig); err != nil {
+			return fmt.Errorf("unable to start build container: %v", err)
 		}
 		// TODO: is this racy? may have to loop wait in the actual run step
 	}
@@ -182,7 +245,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	if mustStart {
 		glog.V(4).Infof("Stopping container %s ...", e.Container.ID)
 		if err := e.Client.StopContainer(e.Container.ID, 0); err != nil {
-			return err
+			return fmt.Errorf("unable to stop build container: %v", err)
 		}
 	}
 
@@ -209,7 +272,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 		Tag:        tag,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to commit build container: %v", err)
 	}
 	e.Image = image
 	glog.V(4).Infof("Committed %s to %s", e.Container.ID, e.Image.ID)
@@ -230,7 +293,7 @@ func (e *ClientExecutor) Cleanup() error {
 		Force:         true,
 	})
 	if _, ok := err.(*docker.NoSuchContainer); err != nil && !ok {
-		return err
+		return fmt.Errorf("unable to cleanup build container: %v", err)
 	}
 	e.Container = nil
 	return nil
@@ -243,7 +306,7 @@ func (e *ClientExecutor) CreateScratchImage() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := fmt.Sprintf("scratch-%s", random)
+	name := fmt.Sprintf("scratch%s", random)
 
 	buf := &bytes.Buffer{}
 	w := tar.NewWriter(buf)
@@ -274,6 +337,11 @@ func randSeq(source string, n int) (string, error) {
 		random[i] = source[random[i]%byte(len(source))]
 	}
 	return string(random), nil
+}
+
+// cleanupVolume attempts to remove the provided volume
+func (e *ClientExecutor) cleanupVolume(name string) error {
+	return e.Client.RemoveVolume(name)
 }
 
 // CleanupImage attempts to remove the provided image.
@@ -321,7 +389,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	for _, config := range auth {
 		// TODO: handle IDs?
 		pullImageOptions := docker.PullImageOptions{
-			Repository:    from,
+			Repository:    repository,
 			Tag:           tag,
 			OutputStream:  imageprogress.NewPullWriter(outputProgress),
 			RawJSONStream: true,
@@ -338,7 +406,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 		continue
 	}
 	if lastErr != nil {
-		return nil, lastErr
+		return nil, fmt.Errorf("unable to pull image (from: %s, tag: %s): %v", repository, tag, lastErr)
 	}
 
 	return e.Client.InspectImage(from)
@@ -448,7 +516,15 @@ func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownl
 			closer = append(closer, func() error { return os.RemoveAll(base) })
 		}
 	} else {
-		base = e.Directory
+		if filepath.IsAbs(src) {
+			base = filepath.Dir(src)
+			src, err = filepath.Rel(base, src)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			base = e.Directory
+		}
 		infos, err = CalcCopyInfo(src, base, allowDecompression, true)
 	}
 	if err != nil {

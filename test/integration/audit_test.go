@@ -36,6 +36,7 @@ func setupAuditTest(t *testing.T) (*kclient.Client, *client.Client) {
 
 func TestBasicFunctionalityWithAudit(t *testing.T) {
 	kubeClient, _ := setupAuditTest(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	if _, err := kubeClient.Pods(kapi.NamespaceDefault).Watch(kapi.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)

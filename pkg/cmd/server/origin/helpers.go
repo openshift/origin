@@ -13,3 +13,10 @@ func restInPeace(s rest.StandardStorage, err error) rest.StandardStorage {
 	}
 	return s
 }
+
+func updateInPeace(s rest.Updater, err error) rest.Updater {
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return s
+}

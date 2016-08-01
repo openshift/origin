@@ -21,8 +21,7 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	config.WorkingSourceDir = targetSourceDir
 	var info *api.SourceInfo
 	hasRef := len(config.Ref) > 0
-	hasSubmodules := !config.DisableRecursive
-	cloneConfig := api.CloneConfig{Quiet: true, Recursive: hasSubmodules && !hasRef}
+	cloneConfig := api.CloneConfig{Quiet: true, Recursive: !config.IgnoreSubmodules && !hasRef}
 
 	if c.ValidCloneSpec(config.Source) {
 		if len(config.ContextDir) > 0 {
@@ -34,12 +33,12 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 
 		// If we have a specific checkout ref, use submodule update instead of recursive
 		// Otherwise the versions will be incorrect.
-		if hasRef && hasSubmodules {
+		if hasRef && !config.IgnoreSubmodules {
 			glog.V(2).Infof("Cloning sources (deferring submodule init) into %q", targetSourceDir)
-		} else if cloneConfig.Recursive {
-			glog.V(2).Infof("Cloning sources and all Git submodules into %q", targetSourceDir)
+		} else if !hasRef && !config.IgnoreSubmodules {
+			glog.V(2).Infof("Cloning sources and all Git submodules (recursive) into %q", targetSourceDir)
 		} else {
-			glog.V(2).Infof("Cloning sources into %q", targetSourceDir)
+			glog.V(2).Infof("Cloning sources (ignoring submodules) into %q", targetSourceDir)
 		}
 
 		if err := c.Clone(config.Source, targetSourceDir, cloneConfig); err != nil {
@@ -52,7 +51,7 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 				return nil, err
 			}
 			glog.V(1).Infof("Checked out %q", config.Ref)
-			if hasSubmodules {
+			if !config.IgnoreSubmodules {
 				if err := c.SubmoduleUpdate(targetSourceDir, true, true); err != nil {
 					return nil, err
 				}

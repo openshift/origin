@@ -11,6 +11,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
+	"github.com/openshift/origin/pkg/cmd/admin/migrate"
+	migrateimages "github.com/openshift/origin/pkg/cmd/admin/migrate/images"
+	migratestorage "github.com/openshift/origin/pkg/cmd/admin/migrate/storage"
 	"github.com/openshift/origin/pkg/cmd/admin/network"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -25,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const adminLong = `
@@ -34,7 +36,7 @@ Administrative Commands
 Commands for managing a cluster are exposed here. Many administrative
 actions involve interaction with the command-line client as well.`
 
-func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *cobra.Command {
+func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
@@ -82,6 +84,12 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 				diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
 				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out),
+				migrate.NewCommandMigrate(
+					migrate.MigrateRecommendedName, fullName+" "+migrate.MigrateRecommendedName, f, out,
+					// Migration commands
+					migrateimages.NewCmdMigrateImageReferences("image-references", fullName+" "+migrate.MigrateRecommendedName+" image-references", f, in, out, errout),
+					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, in, out, errout),
+				),
 			},
 		},
 		{
@@ -127,7 +135,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer, errout io.Writer) *co
 	)
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName, version.Options{}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{}))
 	}
 
 	return cmds

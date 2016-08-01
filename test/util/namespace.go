@@ -8,7 +8,6 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/watch"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -46,7 +45,7 @@ func DeleteAndWaitForNamespaceTermination(c *kclient.Client, name string) error 
 	if err := c.Namespaces().Delete(name); err != nil {
 		return err
 	}
-	_, err = cmd.Until(30*time.Second, w, func(event watch.Event) (bool, error) {
+	_, err = watch.Until(30*time.Second, w, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Deleted {
 			return false, nil
 		}

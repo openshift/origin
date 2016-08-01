@@ -41,7 +41,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 		Example:    fmt.Sprintf(importImageExample, fullName),
 		SuggestFor: []string{"image"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, out))
 			kcmdutil.CheckErr(opts.Validate(cmd))
 			kcmdutil.CheckErr(opts.Run())
 		},
@@ -68,6 +68,8 @@ type ImportImageOptions struct {
 	Tag       string
 	Target    string
 
+	CommandName string
+
 	// helpers
 	out      io.Writer
 	osClient client.Interface
@@ -76,7 +78,9 @@ type ImportImageOptions struct {
 
 // Complete turns a partially defined ImportImageOptions into a solvent structure
 // which can be validated and used for aa import.
-func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, commandName string, out io.Writer) error {
+	o.CommandName = commandName
+
 	if len(args) > 0 {
 		o.Target = args[0]
 	}
@@ -186,7 +190,7 @@ func (o *ImportImageOptions) Run() error {
 		if _, ok := err.(importError); ok {
 			return err
 		}
-		return fmt.Errorf("unable to determine if the import completed successfully - please run 'oc describe -n %s imagestream/%s' to see if the tags were updated as expected: %v", stream.Namespace, stream.Name, err)
+		return fmt.Errorf("unable to determine if the import completed successfully - please run '%s describe -n %s imagestream/%s' to see if the tags were updated as expected: %v", o.CommandName, stream.Namespace, stream.Name, err)
 	}
 
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")

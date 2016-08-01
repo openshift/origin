@@ -318,8 +318,13 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	if err != nil {
 		return nil, err
 	}
+	config = internal.(*configapi.MasterConfig)
 
-	return internal.(*configapi.MasterConfig), nil
+	// When creating a new config, use Protobuf
+	configapi.SetProtobufClientDefaults(config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	configapi.SetProtobufClientDefaults(config.MasterClients.ExternalKubernetesClientConnectionOverrides)
+
+	return config, nil
 }
 
 func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, error) {

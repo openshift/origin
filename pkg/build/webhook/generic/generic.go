@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
@@ -54,7 +55,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		}
 	}
 
-	if req.Body != nil && contentType == "application/json" {
+	if req.Body != nil && (contentType == "application/json" || contentType == "application/yaml") {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return nil, envvars, false, err
@@ -65,8 +66,15 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		}
 
 		var data api.GenericWebHookEvent
+		if contentType == "application/yaml" {
+			body, err = yaml.ToJSON(body)
+			if err != nil {
+				glog.V(4).Infof("Error converting payload to json %v, but continuing with build", err)
+				return nil, envvars, true, nil
+			}
+		}
 		if err = json.Unmarshal(body, &data); err != nil {
-			glog.V(4).Infof("Error unmarshaling json %v, but continuing", err)
+			glog.V(4).Infof("Error unmarshalling payload %v, but continuing with build", err)
 			return nil, envvars, true, nil
 		}
 		if len(data.Env) > 0 && trigger.AllowEnv {

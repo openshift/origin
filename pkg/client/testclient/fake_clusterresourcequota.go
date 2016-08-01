@@ -57,3 +57,19 @@ func (c *FakeClusterResourceQuotas) Delete(name string) error {
 func (c *FakeClusterResourceQuotas) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("clusterresourcequotas", opts))
 }
+
+func (c *FakeClusterResourceQuotas) UpdateStatus(inObj *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error) {
+	action := ktestclient.UpdateActionImpl{}
+	action.Verb = "update"
+	action.Resource = "clusterresourcequotas"
+	action.Subresource = "status"
+	action.Object = inObj
+
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*quotaapi.ClusterResourceQuota), err
+
+}

@@ -39,6 +39,7 @@ func (s imageStrategy) PrepareForCreate(obj runtime.Object) {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 
+	// clear signature fields that will be later set by server once it's able to parse the content
 	s.clearSignatureDetails(newImage)
 }
 
@@ -65,7 +66,7 @@ func (imageStrategy) Canonicalize(obj runtime.Object) {
 // It extracts the latest info from the manifest and sets that on the object. It allows a user
 // to update the manifest so that it matches the digest (in case an older server stored a manifest
 // that was malformed, it can always be corrected).
-func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newImage := obj.(*api.Image)
 	oldImage := old.(*api.Image)
 
@@ -73,7 +74,6 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
 	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
 	newImage.DockerImageLayers = oldImage.DockerImageLayers
-	newImage.Signatures = oldImage.Signatures
 
 	if oldImage.DockerImageSignatures != nil {
 		newImage.DockerImageSignatures = nil
@@ -108,6 +108,9 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	if err := api.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
+
+	// clear signature fields that will be later set by server once it's able to parse the content
+	s.clearSignatureDetails(newImage)
 }
 
 // ValidateUpdate is the default update validation for an end user.

@@ -20,7 +20,6 @@ var reLine = regexp.MustCompile("^\\s*(\\w+)\\s+(\\w+)\\s+(.+)$")
 func main() {
 	log.SetFlags(0)
 
-	dir := flag.String("dir", "", "the directory that contains the binary; if empty, the same as the first argument")
 	prefix := flag.String("prefix", "", "the function prefix to scan for; if not specified will use *<dirBasename>.Test*")
 	help := flag.Bool("help", false, "display help")
 	flag.Parse()
@@ -35,19 +34,9 @@ func main() {
 		log.Fatalf("Must specify the name of a single directory, e.g. ./test/integration")
 	}
 
-	path := args[0]
-	_ = args[1:]
-	base := filepath.Base(path)
-
-	execDir := path
-	if len(*dir) > 0 {
-		execDir = *dir
-	}
-
-	pkg := filepath.Join(execDir, fmt.Sprintf("%s.test", base))
-	test, err := filepath.Abs(pkg)
+	test, err := filepath.Abs(args[0])
 	if err != nil {
-		log.Fatalf("Unable to make path %q absolute: %v", execDir, err)
+		log.Fatalf("Unable to make path %q absolute: %v", args[0], err)
 	}
 	if _, err := os.Stat(test); err != nil {
 		log.Fatalf("No test executable %q exits, did you run `go test -c` on the named package?", test)
@@ -93,10 +82,6 @@ func main() {
 		parts := strings.Split(last, ".")
 		if len(parts) != 2 {
 			//log.Printf("bad_name: %s", last)
-			continue
-		}
-		if parts[0] != base {
-			//log.Printf("ignore: %s", last)
 			continue
 		}
 

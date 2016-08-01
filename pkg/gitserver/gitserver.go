@@ -238,7 +238,7 @@ func NewEnvironmentConfig() (*Config, error) {
 				return true, nil
 			}
 			req := &authapi.LocalSubjectAccessReview{
-				Action: authapi.AuthorizationAttributes{
+				Action: authapi.Action{
 					Verb:     "get",
 					Group:    kapi.GroupName,
 					Resource: "pods",

@@ -21,7 +21,7 @@ func TestAuthorizer(t *testing.T) {
 func TestCacheKey(t *testing.T) {
 	tests := map[string]struct {
 		Context kapi.Context
-		Attrs   authorizer.AuthorizationAttributes
+		Attrs   authorizer.Action
 
 		ExpectedKey string
 		ExpectedErr bool
@@ -48,7 +48,7 @@ func TestCacheKey(t *testing.T) {
 				NonResourceURL:    true,
 				URL:               "/abc",
 			},
-			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","url":"/abc","user":"me","verb":"v"}`,
+			ExpectedKey: `{"apiGroup":"ag","apiVersion":"av","groups":["group1","group2"],"namespace":"myns","nonResourceURL":true,"resource":"r","resourceName":"rn","scopes":null,"url":"/abc","user":"me","verb":"v"}`,
 		},
 	}
 
@@ -80,7 +80,7 @@ func TestCacheKeyFields(t *testing.T) {
 	// These are results we don't expect to be in the cache key
 	expectedMissingKeys := sets.NewString("requestattributes")
 
-	attrType := reflect.TypeOf((*authorizer.AuthorizationAttributes)(nil)).Elem()
+	attrType := reflect.TypeOf((*authorizer.Action)(nil)).Elem()
 	for i := 0; i < attrType.NumMethod(); i++ {
 		name := attrType.Method(i).Name
 		name = strings.TrimPrefix(name, "Get")

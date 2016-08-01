@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -369,6 +370,12 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 					},
 					LivenessProbe:  livenessProbe,
 					ReadinessProbe: readinessProbe,
+					Resources: kapi.ResourceRequirements{
+						Requests: kapi.ResourceList{
+							kapi.ResourceCPU:    resource.MustParse("100m"),
+							kapi.ResourceMemory: resource.MustParse("256Mi"),
+						},
+					},
 				},
 			},
 			Volumes: append(volumes, kapi.Volume{

@@ -18,7 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	cmderr "github.com/openshift/origin/pkg/cmd/errors"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -58,6 +60,8 @@ type LoginOptions struct {
 	Token string
 
 	PathOptions *kclientcmd.PathOptions
+
+	CommandName string
 }
 
 // Gather all required information in a comprehensive order.
@@ -311,9 +315,9 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	case 0:
 		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
-    oc new-project <projectname>
+    %s new-project <projectname>
 
-`)
+`, o.CommandName)
 		o.Project = ""
 
 	case 1:
@@ -342,7 +346,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		}
 		o.Project = current.Name
 
-		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
+		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with '%s project <projectname>':\n\n", o.CommandName)
 		for _, p := range projects.List() {
 			if o.Project == p {
 				fmt.Fprintf(o.Out, "  * %s\n", p)
@@ -394,7 +398,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	}
 
 	if err := kclientcmd.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
-		return false, err
+		if !os.IsPermission(err) {
+			return false, err
+		}
+
+		out := &bytes.Buffer{}
+		cmderr.PrintError(errors.ErrKubeConfigNotWriteable(o.PathOptions.GetDefaultFilename(), o.PathOptions.IsExplicitFile(), err), out)
+		return false, fmt.Errorf("%v", out)
 	}
 
 	created := false

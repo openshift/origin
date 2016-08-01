@@ -208,7 +208,8 @@ To use a different suffix, specify it with `--routing-suffix`.
 
 ## Specifying Images to Use
 
-By default `oc cluster up` uses `openshift/origin:latest` as its OpenShift image and `openshift-origin-${component}:latest` for 
+By default `oc cluster up` uses `openshift/origin:[released-version]` as its OpenShift image (where [released-version]
+corresponds to the release of the `oc` client) and `openshift-origin-${component}:[released-version]` for
 other images created by the OpenShift cluster (registry, router, builders, etc). It is possible to use a different set of 
 images by specifying the version and/or the image prefix.
 

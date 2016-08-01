@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -22,6 +20,7 @@ import (
 
 func TestExternalKube(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// Start one OpenShift master as "cluster1" to play the external kube server
 	cluster1MasterConfig, cluster1AdminConfigFile, err := testserver.StartTestMasterAPI()
 	if err != nil {

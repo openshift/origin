@@ -211,7 +211,7 @@ func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild
 	}
 	imageUser := extractUser(imageUserSpec)
 	if !user.IsUserAllowed(imageUser, &uids) {
-		return errors.NewBuilderUserNotAllowedError(imageName, false)
+		return errors.NewUserNotAllowedError(imageName, false)
 	}
 	if isOnbuild {
 		cmds, err := d.GetOnBuild(imageName)
@@ -219,7 +219,7 @@ func CheckAllowedUser(d Docker, imageName string, uids user.RangeList, isOnbuild
 			return err
 		}
 		if !isOnbuildAllowed(cmds, &uids) {
-			return errors.NewBuilderUserNotAllowedError(imageName, true)
+			return errors.NewUserNotAllowedError(imageName, true)
 		}
 	}
 	return nil
@@ -283,6 +283,27 @@ func GetBuilderImage(config *api.Config) (*PullResult, error) {
 	}
 
 	return r, nil
+}
+
+// GetRuntimeImage processes the config and performs operations necessary to make
+// the Docker image specified as RuntimeImage available locally.
+func GetRuntimeImage(config *api.Config, docker Docker) error {
+	pullPolicy := config.RuntimeImagePullPolicy
+	if len(pullPolicy) == 0 {
+		pullPolicy = api.DefaultRuntimeImagePullPolicy
+	}
+
+	pullResult, err := PullImage(config.RuntimeImage, docker, pullPolicy, false)
+	if err != nil {
+		return err
+	}
+
+	err = CheckAllowedUser(docker, config.RuntimeImage, config.AllowedUIDs, pullResult.OnBuild)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetDefaultDockerConfig() *api.DockerConfig {

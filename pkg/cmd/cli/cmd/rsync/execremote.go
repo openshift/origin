@@ -28,17 +28,19 @@ var _ executor = &remoteExecutor{}
 func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.Writer) error {
 	glog.V(3).Infof("Remote executor running command: %s", strings.Join(command, " "))
 	execOptions := &kubecmd.ExecOptions{
-		In:            in,
-		Out:           out,
-		Err:           errOut,
-		Stdin:         in != nil,
-		Executor:      &kubecmd.DefaultRemoteExecutor{},
-		Client:        e.Client,
-		Config:        e.Config,
-		PodName:       e.PodName,
-		ContainerName: e.ContainerName,
-		Namespace:     e.Namespace,
-		Command:       command,
+		StreamOptions: kubecmd.StreamOptions{
+			Namespace:     e.Namespace,
+			PodName:       e.PodName,
+			ContainerName: e.ContainerName,
+			In:            in,
+			Out:           out,
+			Err:           errOut,
+			Stdin:         in != nil,
+		},
+		Executor: &kubecmd.DefaultRemoteExecutor{},
+		Client:   e.Client,
+		Config:   e.Config,
+		Command:  command,
 	}
 	err := execOptions.Validate()
 	if err != nil {

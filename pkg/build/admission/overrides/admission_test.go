@@ -51,6 +51,9 @@ func TestBuildOverrideForcePull(t *testing.T) {
 				if pod.Spec.Containers[0].ImagePullPolicy != kapi.PullAlways {
 					t.Errorf("%s (%s): image pull policy is not PullAlways", test.name, op)
 				}
+				if pod.Spec.InitContainers[0].ImagePullPolicy != kapi.PullAlways {
+					t.Errorf("%s (%s): image pull policy is not PullAlways", test.name, op)
+				}
 			case strategy.DockerStrategy != nil:
 				if strategy.DockerStrategy.ForcePull == false {
 					t.Errorf("%s (%s): force pull was false", test.name, op)

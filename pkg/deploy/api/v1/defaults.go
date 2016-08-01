@@ -100,8 +100,10 @@ func SetDefaults_RollingDeploymentStrategyParams(obj *RollingDeploymentStrategyP
 func SetDefaults_DeploymentConfig(obj *DeploymentConfig) {
 	for _, t := range obj.Spec.Triggers {
 		if t.ImageChangeParams != nil {
-			t.ImageChangeParams.From.Kind = "ImageStreamTag"
-			if len(t.ImageChangeParams.From.Name) > 0 && len(t.ImageChangeParams.From.Namespace) == 0 {
+			if len(t.ImageChangeParams.From.Kind) == 0 {
+				t.ImageChangeParams.From.Kind = "ImageStreamTag"
+			}
+			if len(t.ImageChangeParams.From.Namespace) == 0 {
 				t.ImageChangeParams.From.Namespace = obj.Namespace
 			}
 		}

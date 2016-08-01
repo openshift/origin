@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
@@ -272,7 +273,7 @@ func GetAvailablePods(pods []api.Pod, minReadySeconds int32) int32 {
 	available := int32(0)
 	for i := range pods {
 		pod := pods[i]
-		if kdeplutil.IsPodAvailable(&pod, minReadySeconds) {
+		if kdeplutil.IsPodAvailable(&pod, minReadySeconds, time.Now()) {
 			available++
 		}
 	}

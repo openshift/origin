@@ -77,7 +77,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.4",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""

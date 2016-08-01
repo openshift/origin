@@ -47,6 +47,8 @@ accesstoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-tok
 os::cmd::expect_success_and_text "curl -k -XPOST -H 'Content-Type: application/json' -H 'Authorization: Bearer ${accesstoken}' ${API_SCHEME}://${API_HOST}:${API_PORT}/oapi/v1/namespaces/cmd-authentication/localsubjectaccessreviews -d @${OS_ROOT}/test/testdata/authentication/localsubjectaccessreview.json" '"kind": "SubjectAccessReviewResponse"'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n cmd-authentication --ignore-scopes" 'yes'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n cmd-authentication" 'no'
+os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews --token='${accesstoken}' -n cmd-authentication" 'no'
+os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews --token='${accesstoken}' -n cmd-authentication --ignore-scopes" 'yes'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n cmd-authentication --scopes='role:admin:*'" 'yes'
 os::cmd::expect_success_and_text "oc policy can-i --list --token='${accesstoken}' -n cmd-authentication --scopes='role:admin:*'" 'get.*pods'
 os::cmd::expect_success_and_not_text "oc policy can-i --list --token='${accesstoken}' -n cmd-authentication" 'get.*pods'

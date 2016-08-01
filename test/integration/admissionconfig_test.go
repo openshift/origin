@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -189,6 +187,7 @@ func setupAdmissionPluginTestConfig(t *testing.T, value string) string {
 }
 
 func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPlugins(t, "plugin1", "plugin2", "plugin3")
 	kubeClient, _ := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
@@ -204,6 +203,7 @@ func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
 }
 
 func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
 	configFile := setupAdmissionPluginTestConfig(t, "plugin1configvalue")
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
@@ -222,6 +222,7 @@ func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 }
 
 func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	kubeClient, _ := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
@@ -241,6 +242,7 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 }
 
 func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPlugins(t, "plugin1", "plugin2", "plugin3")
 	_, openshiftClient := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
@@ -256,6 +258,7 @@ func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
 }
 
 func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
 	configFile := setupAdmissionPluginTestConfig(t, "plugin2configvalue")
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
@@ -274,6 +277,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 }
 
 func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	_, openshiftClient := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
@@ -294,6 +298,8 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 
 func TestAlwaysPullImagesOn(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -343,6 +349,8 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 
 func TestAlwaysPullImagesOff(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, kubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)

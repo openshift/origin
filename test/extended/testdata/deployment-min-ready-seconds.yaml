@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: minreadytest
+spec:
+  replicas: 2
+  minReadySeconds: 500
+  selector:
+    name: minreadytest
+  template:
+    metadata:
+      labels:
+        name: minreadytest
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "10000"

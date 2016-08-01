@@ -25,7 +25,7 @@ const (
 	sourceSecretMountPath          = "/var/run/secrets/openshift.io/source"
 )
 
-var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL"}
+var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
 
 // FatalError is an error which can't be retried.
 type FatalError string

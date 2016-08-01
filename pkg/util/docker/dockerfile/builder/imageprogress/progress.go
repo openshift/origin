@@ -60,7 +60,7 @@ func layerStatusFromDockerString(dockerStatus string) layerStatus {
 		return statusDownloading
 	case "Extracting", "Verifying Checksum", "Download complete":
 		return statusExtracting
-	case "Pull complete", "Already exists", "Pushed":
+	case "Pull complete", "Already exists", "Pushed", "Layer already exists":
 		return statusComplete
 	default:
 		return statusPending

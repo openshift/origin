@@ -177,6 +177,12 @@ func DeepCopy_v1_ImageList(in ImageList, out *ImageList, c *conversion.Cloner) e
 }
 
 func DeepCopy_v1_ImageSignature(in ImageSignature, out *ImageSignature, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := api_v1.DeepCopy_v1_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
 	out.Type = in.Type
 	if in.Content != nil {
 		in, out := in.Content, &out.Content

@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -34,6 +32,7 @@ import (
 
 func TestImageStreamImport(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -197,6 +196,7 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 	}
 
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	// start regular HTTP servers
 	requireAuth := false
@@ -318,6 +318,7 @@ func TestImageStreamImportOfV1ImageFromV2Repository(t *testing.T) {
 
 func TestImageStreamImportAuthenticated(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, true, &count))
@@ -465,7 +466,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		}
 		tag, ok := is.Spec.Tags["latest"]
 		if !ok {
-			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation)
+			t.Fatalf("object at generation %d did not have tag latest: %#v", is.Generation, is)
 		}
 		tagGen := tag.Generation
 		if is.Generation != expectedGen || tagGen == nil || *tagGen != expectedGen {
@@ -484,6 +485,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 // repository.
 func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, false, &count))
@@ -560,7 +562,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 			}
 			expectedTags := []string{"latest", "v2"}[i]
 			if image.Tag != expectedTags {
-				t.Errorf("unexpected tag at position %d (%s != %s)", i, image.Tag, expectedTags[i])
+				t.Errorf("unexpected tag at position %d (%s != %s)", i, image.Tag, expectedTags)
 			}
 		}
 	}
@@ -584,6 +586,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 // error occurs writes the error only once (instead of every interval)
 func TestImageStreamImportScheduled(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	written := make(chan struct{}, 1)
 	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -706,14 +709,14 @@ func TestImageStreamImportScheduled(t *testing.T) {
 
 	tag, ok := change.Spec.Tags["latest"]
 	if !ok {
-		t.Fatalf("object at generation %d did not have tag latest: %#v", change.Generation)
+		t.Fatalf("object at generation %d did not have tag latest: %#v", change.Generation, change)
 	}
 	if gen := tag.Generation; gen == nil || *gen != 2 {
 		t.Fatalf("object at generation %d had spec tag: %#v", change.Generation, tag)
 	}
 	items := change.Status.Tags["latest"].Items
 	if len(items) != 2 {
-		t.Fatalf("object at generation %d should have two tagged images", change.Generation, change.Status.Tags["latest"])
+		t.Fatalf("object at generation %d should have two tagged images: %#v", change.Generation, change.Status.Tags["latest"])
 	}
 	if items[0].Image != phpDigest || items[0].DockerImageReference != url.Host+"/test/image@"+phpDigest {
 		t.Fatalf("expected tagged image: %#v", items[0])

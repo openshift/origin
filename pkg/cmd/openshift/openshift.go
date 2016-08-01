@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
@@ -27,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -69,7 +69,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "oc", "osc":
 		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
 	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, out, errout)
+		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
 	case "kubectl":
 		cmd = cli.NewCmdKubectl(basename, out)
 	case "kube-apiserver":
@@ -109,14 +109,16 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
+	f := clientcmd.New(pflag.NewFlagSet("", pflag.ContinueOnError))
+
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", out, errout))
+	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
-	root.AddCommand(version.NewVersionCommand(name, version.Options{PrintEtcdVersion: true}))
+	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true}))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly

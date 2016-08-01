@@ -59,6 +59,8 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these
 	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
+	// ATM image signature doesn't provide any human readable information
+	reflect.TypeOf(&imageapi.ImageSignature{}),
 
 	// these resources can't be "GET"ed, so you can't make a describer for them
 	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),

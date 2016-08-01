@@ -13,7 +13,12 @@ OS_OUTPUT_GOPATH ?= 1
 
 export GOFLAGS
 export TESTFLAGS
+# If set to 1, create an isolated GOPATH inside _output using symlinks to avoid
+# other packages being accidentally included. Defaults to on.
 export OS_OUTPUT_GOPATH
+# May be used to set additional arguments passed to the image build commands for
+# mounting secrets specific to a build environment.
+export OS_BUILD_IMAGE_ARGS
 
 # Build code.
 #
@@ -121,17 +126,22 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end: build
+	hack/env hack/verify-generated-protobuf.sh # Test the protobuf serializations when we know Docker is available
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 
 # Run tools tests.
 #
 # Example:
-#   make test-cmd
+#   make test-tools
 test-tools:
 	hack/test-tools.sh
 .PHONY: test-tools
 
+# Run assets tests.
+#
+# Example:
+#   make test-assets  
 test-assets:
 ifeq ($(TEST_ASSETS),true)
 	hack/test-assets.sh

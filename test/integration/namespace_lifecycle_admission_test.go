@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -11,6 +9,7 @@ import (
 
 func TestNamespaceLifecycleAdmission(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)

@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -15,6 +13,7 @@ import (
 
 func TestOAuthDisabled(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// Build master config
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {

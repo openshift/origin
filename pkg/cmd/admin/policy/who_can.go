@@ -94,7 +94,7 @@ func resourceFor(mapper meta.RESTMapper, resourceArg string) unversioned.GroupVe
 }
 
 func (o *whoCanOptions) run() error {
-	authorizationAttributes := authorizationapi.AuthorizationAttributes{
+	authorizationAttributes := authorizationapi.Action{
 		Verb:         o.verb,
 		Group:        o.resource.Group,
 		Resource:     o.resource.Resource,
@@ -136,6 +136,10 @@ func (o *whoCanOptions) run() error {
 		fmt.Printf("Groups: none\n\n")
 	} else {
 		fmt.Printf("Groups: %s\n\n", strings.Join(resourceAccessReviewResponse.Groups.List(), "\n        "))
+	}
+
+	if len(resourceAccessReviewResponse.EvaluationError) != 0 {
+		fmt.Printf("Error during evaluation, results may not be complete: %s\n", resourceAccessReviewResponse.EvaluationError)
 	}
 
 	return nil

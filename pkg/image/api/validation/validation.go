@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
@@ -67,9 +68,30 @@ func validateImage(image *api.Image, fldPath *field.Path) field.ErrorList {
 	return result
 }
 
-func validateImageSignature(signature *api.ImageSignature, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
+func ValidateImageUpdate(newImage, oldImage *api.Image) field.ErrorList {
+	result := validation.ValidateObjectMetaUpdate(&newImage.ObjectMeta, &oldImage.ObjectMeta, field.NewPath("metadata"))
+	result = append(result, ValidateImage(newImage)...)
 
+	return result
+}
+
+// ValidateImageSignature ensures that given signatures is valid.
+func ValidateImageSignature(signature *api.ImageSignature) field.ErrorList {
+	return validateImageSignature(signature, nil)
+}
+
+func validateImageSignature(signature *api.ImageSignature, fldPath *field.Path) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&signature.ObjectMeta, false, oapi.MinimalNameRequirements, fldPath.Child("metadata"))
+	if len(signature.Labels) > 0 {
+		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("labels"), "signature labels cannot be set"))
+	}
+	if len(signature.Annotations) > 0 {
+		allErrs = append(allErrs, field.Forbidden(fldPath.Child("metadata").Child("annotations"), "signature annotations cannot be set"))
+	}
+
+	if _, _, err := api.SplitImageSignatureName(signature.Name); err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("metadata").Child("name"), signature.Name, "name must be of format <imageName>@<signatureName>"))
+	}
 	if len(signature.Type) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("type"), ""))
 	}
@@ -113,11 +135,19 @@ func validateImageSignature(signature *api.ImageSignature, fldPath *field.Path) 
 	return allErrs
 }
 
-func ValidateImageUpdate(newImage, oldImage *api.Image) field.ErrorList {
-	result := validation.ValidateObjectMetaUpdate(&newImage.ObjectMeta, &oldImage.ObjectMeta, field.NewPath("metadata"))
-	result = append(result, ValidateImage(newImage)...)
+// ValidateImageSignatureUpdate ensures that the new ImageSignature is valid.
+func ValidateImageSignatureUpdate(newImageSignature, oldImageSignature *api.ImageSignature) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newImageSignature.ObjectMeta, &oldImageSignature.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateImageSignature(newImageSignature)...)
 
-	return result
+	if newImageSignature.Type != oldImageSignature.Type {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("type"), "cannot change signature type"))
+	}
+	if !bytes.Equal(newImageSignature.Content, oldImageSignature.Content) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("content"), "cannot change signature content"))
+	}
+
+	return allErrs
 }
 
 // ValidateImageStream tests required fields for an ImageStream.

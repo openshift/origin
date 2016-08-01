@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -29,6 +27,7 @@ import (
 // processed.  Reload should similarly suppressed on subsequent
 // resyncs.
 func TestRouterReloadSuppressionOnSync(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	stressRouter(
 		t,
 		// Allow the test to be configured to enable experimentation

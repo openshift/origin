@@ -31,6 +31,7 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&Image{},
 		&ImageList{},
 		&DockerImage{},
+		&ImageSignature{},
 		&ImageStream{},
 		&ImageStreamList{},
 		&ImageStreamMapping{},
@@ -44,6 +45,7 @@ func addKnownTypes(scheme *runtime.Scheme) {
 func (obj *Image) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }
 func (obj *ImageList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
 func (obj *DockerImage) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *ImageSignature) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
 func (obj *ImageStream) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
 func (obj *ImageStreamList) GetObjectKind() unversioned.ObjectKind    { return &obj.TypeMeta }
 func (obj *ImageStreamMapping) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

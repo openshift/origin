@@ -6,34 +6,37 @@ OpenShift Application Platform
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
 [![Jenkins](https://ci.openshift.redhat.com/jenkins/buildStatus/icon?job=devenv_ami)](https://ci.openshift.redhat.com/jenkins/job/devenv_ami/)
 [![Join the chat at freenode:openshift-dev](https://img.shields.io/badge/irc-freenode%3A%20%23openshift--dev-blue.svg)](http://webchat.freenode.net/?channels=%23openshift-dev)
+[![Licensed under Apache License version 2.0](https://img.shields.io/github/license/openshift/origin.svg?maxAge=2592000)](https://www.apache.org/licenses/LICENSE-2.0)
 
-OpenShift Origin is a distribution of [Kubernetes](https://kubernetes.io) optimized for continuous application development and multi-tenant deployment.  Origin adds developer and operations-centric tools on top of Kubernetes to enable rapid application development, easy deployment and scaling, and long-term lifecycle maintenance for small and large teams.
+***OpenShift Origin*** is a distribution of [Kubernetes](https://kubernetes.io) optimized for continuous application development and multi-tenant deployment.  Origin adds developer and operations-centric tools on top of Kubernetes to enable rapid application development, easy deployment and scaling, and long-term lifecycle maintenance for small and large teams.
 
 [![Watch the full asciicast](docs/openshift-intro.gif)](https://asciinema.org/a/49402)
 
 **Features:**
 
-* Easily build applications with integrated service discovery, DNS, load balancing, failover, health checking, persistent storage, and fast scaling
-* Push source code to your Git repository and automatically roll out containerized applications (micro or macro)
-* Easy to use client and web console for building and monitoring applications
-* Centralized administration and management of an entire stack, team, or organization
-  * Templatize the components of your system, reuse them, and iteratively deploy them over time
-  * Roll out changes to software stacks to your entire organization in a controlled fashion
-* Team and user isolation of containers, builds, and network communication in an easy multi-tenant system
-  * Allow developers to run containers securely with fine-grained controls in production
-  * Limit, track, and manage the developers and teams on the platform
-* Integrated Docker registry, automatic edge load balancing, cluster logging, and integrated metrics
+* Easily build applications with integrated service discovery and persistent storage.
+* Quickly and easily scale applications to handle periods of increased demand.
+  * Support for automatic high availability, load balancing, health checking, and failover.
+* Push source code to your Git repository and automatically deploy containerized applications.
+* Web console and command-line client for building and monitoring applications.
+* Centralized administration and management of an entire stack, team, or organization.
+  * Create reusable templates for components of your system, and iteratively deploy them over time.
+  * Roll out modifications to software stacks to your entire organization in a controlled fashion.
+  * Integration with your existing authentication mechanisms, including LDAP, Active Directory, and public OAuth providers such as GitHub.
+* Multi-tenancy support, including team and user isolation of containers, builds, and network communication.
+  * Allow developers to run containers securely with fine-grained controls in production.
+  * Limit, track, and manage the developers and teams on the platform.
+* Integrated Docker registry, automatic edge load balancing, cluster logging, and integrated metrics.
 
 **Learn More:**
 
-* **[Public Documentation](http://docs.openshift.org/latest/welcome/index.html)**
-* The **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
+* **[Public Documentation](https://docs.openshift.org/latest/welcome/)**
+  * **[API Documentation](https://docs.openshift.org/latest/rest_api/openshift_v1.html)**
 * **[Technical Architecture Presentation](https://docs.google.com/presentation/d/1Isp5UeQZTo3gh6e59FMYmMs_V9QIQeBelmbyHIJ1H_g/pub?start=false&loop=false&delayms=3000)**
 * **[System Architecture](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md)** design document
-* **[API Documentation](http://docs.openshift.org/latest/rest_api/openshift_v1.html)**
+* The **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
-
 
 Getting Started
 ---------------
@@ -78,7 +81,7 @@ FAQ
     for building applications in containers.  Our goal is to do most of that work upstream, with
     integration and final packaging occurring in Origin.
 
-    You can run the core Kubernetes server components with `openshift start kube`, use `kubectl` via
+    You can run the core Kubernetes server components with `openshift start kubernetes`, use `kubectl` via
     `openshift kube`, and the Origin release zips include versions of `kubectl`, `kubelet`,
     `kube-apiserver`, and other core components. You can see the version of Kubernetes included with
     Origin via `openshift version`.
@@ -93,16 +96,20 @@ FAQ
 
 3. What can I run on Origin?
 
-    Origin is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of Origin can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.org/latest/using_images/s2i_images/overview.html). Our available images are:
+    Origin is designed to run any existing Docker images.  Additionally, you can define builds that will produce new Docker images using a `Dockerfile`.
 
-    * [Ruby](https://github.com/openshift/sti-ruby)
-    * [Python](https://github.com/openshift/sti-python)
-    * [NodeJS](https://github.com/openshift/sti-nodejs)
-    * [PHP](https://github.com/openshift/sti-php)
-    * [Perl](https://github.com/openshift/sti-perl)
-    * [Wildfly](https://github.com/openshift/wildfly-8-centos)
+    However, the real magic of Origin is [Source-to-Image (S2I)](https://github.com/openshift/source-to-image) builds, which allow developers to simply provide an application source repository containing code to build and run.  It works by combining an existing S2I-enabled Docker image with application source to produce a new runnable image for your application.
 
-    Your application image can be easily extended with a database service with our [database images](http://docs.openshift.org/latest/using_images/db_images/overview.html). Our available database images are:
+    We are continuing to grow the [ecosystem of Source-to-Image builder images](https://docs.openshift.org/latest/using_images/s2i_images/overview.html) and it's straightforward to [create your own](https://blog.openshift.com/create-s2i-builder-image/).  Some of our available images include:
+
+    * [Ruby](https://github.com/sclorg/s2i-ruby-container)
+    * [Python](https://github.com/sclorg/s2i-python-container)
+    * [Node.js](https://github.com/sclorg/s2i-nodejs-container)
+    * [PHP](https://github.com/sclorg/s2i-php-container)
+    * [Perl](https://github.com/sclorg/s2i-perl-container)
+    * [WildFly](https://github.com/openshift-s2i/s2i-wildfly)
+
+    Your application image can be easily extended with a database service with our [database images](https://docs.openshift.org/latest/using_images/db_images/overview.html):
 
     * [MySQL](https://github.com/openshift/mysql)
     * [MongoDB](https://github.com/openshift/mongodb)
@@ -140,6 +147,62 @@ FAQ
     Versions of Docker distributed by the Docker team don't allow containers to mount volumes on the host and write to them (mount propagation is private). Kubernetes manages volumes and uses them to expose secrets into containers, which Origin uses to give containers the tokens they need to access the API and run deployments and builds. Until mount propagation is configurable in Docker you must use Docker on Fedora, CentOS, or RHEL (which have a patch to allow mount propagation) or run Origin outside of a container. Tracked in [this issue](https://github.com/openshift/origin/issues/3072).
 
 
+Alpha and Unsupported Kubernetes Features
+-----------------------------------------
+
+Some features from upstream Kubernetes are not yet enabled in Origin, for reasons including supportability, security, or limitations in the upstream feature.
+
+Kubernetes Definitions:
+
+* Alpha
+  * The feature is available, but no guarantees are made about backwards compatibility or whether data is preserved when feature moves to Beta.
+  * The feature may have significant bugs and is suitable for testing and prototyping.
+  * The feature may be replaced or significantly redesigned in the future.
+  * No migration to Beta is generally provided other than documentation of the change.
+* Beta
+  * The feature is available and generally agreed to solve the desired solution, but may need stabilization or additional feedback.
+  * The feature is potentially suitable for limited production use under constrained circumstances.
+  * The feature is unlikely to be replaced or removed, although it is still possible for feature changes that require migration.
+
+OpenShift uses these terms in the same fashion as Kubernetes, and adds four more:
+
+* Not Yet Secure
+  * Features which are not yet enabled because they have significant security or stability risks to the cluster
+  * Generally this applies to features which may allow escalation or denial-of-service behavior on the platform
+  * In some cases this is applied to new features which have not had time for full security review
+* Potentially Insecure
+  * Features that require additional work to be properly secured in a multi-user environment
+  * These features are only enabled for cluster admins by default and we do not recommend enabling them for untrusted users
+  * We generally try to identify and fix these within 1 release of their availability
+* Tech Preview
+  * Features that are considered unsupported for various reasons are known as 'tech preview' in our documentation
+  * Kubernetes Alpha and Beta features are considered tech preview, although occasionally some features will be graduated early
+  * Any tech preview feature is not supported in OpenShift Container Platform except through exemption
+* Disabled Pending Migration
+  * These are features that are new in Kubernetes but which originated in OpenShift, and thus need migrations for existing users
+  * We generally try to minimize the impact of features introduced upstream to Kubernetes on OpenShift users by providing seamless
+    migration for existing clusters.
+  * Generally these are addressed within 1 Kubernetes release
+
+The list of features that qualify under these labels is described below, along with additional context for why.
+
+Feature | Kubernetes | OpenShift | Justification
+------- | ---------- | --------- | -------------
+Third Party Resources | Alpha (1.3) | Not Yet Secure (1.2, 1.3) | Third party resources are still under active development upstream.<br>Known issues include failure to clean up resources in etcd, which may result in a denial of service attack against the cluster.<br>We are considering enabling them for development environments only.
+Garbage Collection | Alpha (1.3) | Not Yet Secure (1.3) | Garbage collection will automatically delete related resources on the server, and thus given the potential for data loss we are waiting for GC to graduate to beta and have a full release cycle of testing before enabling it in Origin.<br>At the current time, it is possible for a malicious user to trick another user into deleting a sensitive resource (like a quota or limit resource) during deletion, which must be addressed prior to enablement.
+Pet Sets | Alpha (1.3) | Tech Preview (1.3) | Pet Sets are still being actively developed and no backwards compatibility is guaranteed. Also, Pet Sets allow users to create PVCs indirectly, and more security controls are needed to limit the potential impact on the cluster.
+Init Containers | Alpha (1.3) | Tech Preview (1.3) | Init containers are properly secured, but are not officially part of the Kubernetes API and may change without notice.
+Federated Clusters | Beta (1.3) | Tech Preview (1.3) | A Kubernetes federation server may be used against Origin clusters with the appropriate credentials today.<br>Known issues include tenant support in federation and the ability to have consistent access control between federation and normal clusters.<br>No Origin specific binary is being distributed for federation at this time.
+Deployment | Alpha (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.2)<br>Tech Preview (1.3) | OpenShift launched with DeploymentConfigs, a more fully featured Deployment object. We plan to enable upstream Deployments with automatic migrations to Deployment Configs so that existing clusters continue to function as normal without a migration, and so that existing client tools automatically display Deployments.<br>Deployment Configs are a superset of Deployment features.
+Replica Sets | Beta (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.2)<br>Tech Preview (1.3) | Replica Sets perform the same function as Replication Controllers, but have a more powerful label syntax. We are working upstream to enable a migration path forward for clusters with existing Replication Controllers deployed to be automatically migratable to Replica Sets, in order to ease the transition for clients and tooling that depend on RCs.
+Ingress | Alpha (1.1)<br>Beta (1.2, 1.3) | Disabled Pending Migration (1.2, 1.3) | OpenShift launched with Routes, a more full featured Ingress object. We plan to enable upstream Ingresses with automatic migrations to Routes so that existing clusters continue to function as normal without a migration, and so that existing client tools automatically display Ingresses.<br>Upstream ingress controllers are not supported, since the integrated router is production supported with a superset of Ingress functionality.
+PodSecurityPolicy | Alpha (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.3)<br>Not Yet Secure (1.3) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
+PodAntiAffinitySelectors | Alpha (1.3) | Not Yet Secure (1.3)<br>Tech Preview (1.4?) | End users are not allowed to set PodAntiAffinitySelectors that are not the node name due to the possibility of attacking the scheduler via denial of service.|
+NetworkPolicy | Beta (1.3) | Tech Preview (1.3) | OpenShift's default network plugins (`redhat/openshift-ovs-subnet` and `redhat/openshift-ovs-multitenant`) do not support NetworkPolicy yet, but if you use a third-party network plugin, it might.
+
+Please contact us if this list omits a feature supported in Kubernetes which does not run in Origin.
+
+
 Contributing
 ------------
 
@@ -154,7 +217,7 @@ See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for
 If you want to run the test suite, make sure you have your environment set up, and from the `origin` directory run:
 
 ```
-# run the unit tests
+# run the verifiers, unit tests, and command tests
 $ make check
 
 # run a command-line integration test suite
