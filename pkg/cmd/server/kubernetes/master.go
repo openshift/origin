@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/deployment"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -258,6 +259,14 @@ func (c *MasterConfig) RunReplicationController(client *client.Client) {
 		int(c.ControllerManager.LookupCacheSizeForRC),
 	)
 	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
+}
+
+func (c *MasterConfig) RunDeploymentController(client *client.Client) {
+	controller := deployment.NewDeploymentController(
+		clientadapter.FromUnversionedClient(client),
+		kctrlmgr.ResyncPeriod(c.ControllerManager),
+	)
+	go controller.Run(int(c.ControllerManager.ConcurrentDeploymentSyncs), utilwait.NeverStop)
 }
 
 // RunJobController starts the Kubernetes job controller sync loop
