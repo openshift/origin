@@ -89,10 +89,14 @@ func rsyncFlagsFromOptions(o *RsyncOptions) []string {
 		flags = append(flags, "--delete")
 	}
 	if len(o.RsyncInclude) > 0 {
-		flags = append(flags, fmt.Sprintf("--include=%s", o.RsyncInclude))
+		for _, include := range o.RsyncInclude {
+			flags = append(flags, fmt.Sprintf("--include=%s", include))
+		}
 	}
 	if len(o.RsyncExclude) > 0 {
-		flags = append(flags, fmt.Sprintf("--exclude=%s", o.RsyncExclude))
+		for _, exclude := range o.RsyncExclude {
+			flags = append(flags, fmt.Sprintf("--exclude=%s", exclude))
+		}
 	}
 	if o.RsyncProgress {
 		flags = append(flags, "--progress")
