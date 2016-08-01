@@ -11,6 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/term"
 
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -24,9 +25,11 @@ This command will attempt to start a shell session in a pod for the specified re
 It works with pods, deployment configs, jobs, daemon sets, and replication controllers.
 Any of the aforementioned resources (apart from pods) will be resolved to a ready pod.
 It will default to the first container if none is specified, and will attempt to use
-'/bin/bash' as the default shell. You may pass an optional command after the resource name,
+'/bin/sh' as the default shell. You may pass an optional command after the resource name,
 which will be executed instead of a login shell. A TTY will be automatically allocated
-if standard input is interactive - use -t and -T to override.
+if standard input is interactive - use -t and -T to override. A TERM variable is sent
+to the environment where the shell (or command) will be executed. By default its value
+is the same as the TERM variable from the local environment; if not set, 'xterm' is used.
 
 Note, some containers may not include a shell - use '%[1]s exec' if you need to run commands
 directly.`
@@ -145,5 +148,9 @@ func (o *RshOptions) Validate() error {
 
 // Run starts a remote shell session on the server
 func (o *RshOptions) Run() error {
+	// Insert the TERM into the command to be run
+	term := fmt.Sprintf("TERM=%s", util.Env("TERM", "xterm"))
+	o.Command = append([]string{"env", term}, o.Command...)
+
 	return o.ExecOptions.Run()
 }

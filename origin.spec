@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2983a259392412fd4cdf84fff6101d457151fe44
+%global commit d3e98640a3826b1669d939198b26a406f46c5f43
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.11+2983a25 -X github.com/openshift/origin/pkg/version.commitFromGit=2983a25 -X github.com/openshift/origin/pkg/version.buildDate=2016-07-29T15:04:21Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-07-29T15:04:21Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.12+d3e9864 -X github.com/openshift/origin/pkg/version.commitFromGit=d3e9864 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-01T15:04:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-01T15:04:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.12
+Version:        3.3.0.13
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,16 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Aug 01 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.13
+- rsh: Insert a TERM variable into the command to be run
+  (jonh.wendell@redhat.com)
+- e2e test: remove PodCheckDns flake (lmeyer@redhat.com)
+- oc secrets: rename `add` to `link` and add `unlink` (sgallagh@redhat.com)
+- Return nil directly instead of err when err is nil
+  (zhao.xiangpeng@zte.com.cn)
+- Extended tests for kerberos (mkhan@redhat.com)
+- UPSTREAM: 29134: Improve quota controller performance (decarr@redhat.com)
+
 * Fri Jul 29 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.12
 - Avoid to create an API client if not needed (ffranz@redhat.com)
 - bump(github.com/openshift/source-to-image):
