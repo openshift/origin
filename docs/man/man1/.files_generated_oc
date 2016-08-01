@@ -170,10 +170,12 @@ oc-rsync.1
 oc-run.1
 oc-scale.1
 oc-secrets-add.1
+oc-secrets-link.1
 oc-secrets-new-basicauth.1
 oc-secrets-new-dockercfg.1
 oc-secrets-new-sshauth.1
 oc-secrets-new.1
+oc-secrets-unlink.1
 oc-secrets.1
 oc-serviceaccounts-get-token.1
 oc-serviceaccounts-new-token.1

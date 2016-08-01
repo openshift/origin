@@ -147,7 +147,7 @@ func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
 		return err
 	}
 	log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
-	return err
+	return nil
 }
 
 func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
@@ -164,7 +164,7 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 		return err
 	}
 	log.Infof("Created ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
-	return err
+	return nil
 }
 
 func validateClusterNetwork(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {

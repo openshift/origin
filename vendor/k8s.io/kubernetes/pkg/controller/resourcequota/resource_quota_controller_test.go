@@ -123,12 +123,7 @@ func TestSyncResourceQuota(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	expectedActionSet := sets.NewString(
-		strings.Join([]string{"list", "replicationcontrollers", ""}, "-"),
-		strings.Join([]string{"list", "services", ""}, "-"),
 		strings.Join([]string{"list", "pods", ""}, "-"),
-		strings.Join([]string{"list", "resourcequotas", ""}, "-"),
-		strings.Join([]string{"list", "secrets", ""}, "-"),
-		strings.Join([]string{"list", "persistentvolumeclaims", ""}, "-"),
 		strings.Join([]string{"update", "resourcequotas", "status"}, "-"),
 	)
 	actionSet := sets.NewString()
@@ -210,12 +205,7 @@ func TestSyncResourceQuotaSpecChange(t *testing.T) {
 	}
 
 	expectedActionSet := sets.NewString(
-		strings.Join([]string{"list", "replicationcontrollers", ""}, "-"),
-		strings.Join([]string{"list", "services", ""}, "-"),
 		strings.Join([]string{"list", "pods", ""}, "-"),
-		strings.Join([]string{"list", "resourcequotas", ""}, "-"),
-		strings.Join([]string{"list", "secrets", ""}, "-"),
-		strings.Join([]string{"list", "persistentvolumeclaims", ""}, "-"),
 		strings.Join([]string{"update", "resourcequotas", "status"}, "-"),
 	)
 	actionSet := sets.NewString()
@@ -286,12 +276,7 @@ func TestSyncResourceQuotaNoChange(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 	expectedActionSet := sets.NewString(
-		strings.Join([]string{"list", "replicationcontrollers", ""}, "-"),
-		strings.Join([]string{"list", "services", ""}, "-"),
 		strings.Join([]string{"list", "pods", ""}, "-"),
-		strings.Join([]string{"list", "resourcequotas", ""}, "-"),
-		strings.Join([]string{"list", "secrets", ""}, "-"),
-		strings.Join([]string{"list", "persistentvolumeclaims", ""}, "-"),
 	)
 	actionSet := sets.NewString()
 	for _, action := range kubeClient.Actions() {
