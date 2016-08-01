@@ -102,6 +102,10 @@ func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Wri
 }
 
 func (o *ExtractOptions) Validate() error {
+	// determine if output location is valid before continuing
+	if _, err := os.Stat(o.TargetDirectory); err != nil {
+		return err
+	}
 	return nil
 }
 

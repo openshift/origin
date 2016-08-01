@@ -44,6 +44,7 @@ os::cmd::expect_failure_and_text "oc extract secret/dockercfg secret/dockercfg -
 os::cmd::expect_success_and_text "oc extract secret/dockercfg secret/dockercfg --to '${workingdir}' --confirm" '.dockercfg'
 os::cmd::expect_success_and_text "oc extract secret/dockercfg --to '${workingdir}' --confirm" '.dockercfg'
 os::cmd::expect_success "oc extract secret/dockercfg --to '${workingdir}' --confirm | xargs rm"
+os::cmd::expect_failure_and_text "oc extract secret/dockercfg --to missing-dir" "stat missing-dir: no such file or directory"
 
 # attach secrets to service account
 # single secret with prefix
