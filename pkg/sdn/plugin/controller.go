@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -51,8 +50,8 @@ func getPluginVersion(multitenant bool) []string {
 func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
 	var found bool
 
-	kexec := kexec.New()
-	itx := ipcmd.NewTransaction(kexec, LBR)
+	exec := kexec.New()
+	itx := ipcmd.NewTransaction(exec, LBR)
 	addrs, err := itx.GetAddresses()
 	itx.EndTransaction()
 	if err != nil {
@@ -69,7 +68,7 @@ func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
 		return false
 	}
 
-	otx := ovs.NewTransaction(kexec, BR)
+	otx := ovs.NewTransaction(exec, BR)
 	flows, err := otx.DumpFlows()
 	otx.EndTransaction()
 	if err != nil {
@@ -148,8 +147,8 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 
 	mtuStr := fmt.Sprint(mtu)
 
-	kexec := kexec.New()
-	itx := ipcmd.NewTransaction(kexec, LBR)
+	exec := kexec.New()
+	itx := ipcmd.NewTransaction(exec, LBR)
 	itx.SetLink("down")
 	itx.IgnoreError()
 	itx.DeleteLink()
@@ -179,7 +178,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(kexec, VLINUXBR)
+	itx = ipcmd.NewTransaction(exec, VLINUXBR)
 	itx.DeleteLink()
 	itx.IgnoreError()
 	itx.AddLink("mtu", mtuStr, "type", "veth", "peer", "name", VOVSBR, "mtu", mtuStr)
@@ -190,7 +189,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(kexec, VOVSBR)
+	itx = ipcmd.NewTransaction(exec, VOVSBR)
 	itx.SetLink("up")
 	itx.SetLink("txqueuelen", "0")
 	err = itx.EndTransaction()
@@ -198,14 +197,14 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(kexec, LBR)
+	itx = ipcmd.NewTransaction(exec, LBR)
 	itx.AddSlave(VLINUXBR)
 	err = itx.EndTransaction()
 	if err != nil {
 		return false, err
 	}
 
-	otx := ovs.NewTransaction(kexec, BR)
+	otx := ovs.NewTransaction(exec, BR)
 	otx.AddBridge("fail-mode=secure", "protocols=OpenFlow13")
 	otx.AddPort(VXLAN, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
 	otx.AddPort(TUN, 2, "type=internal")
@@ -277,7 +276,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(kexec, TUN)
+	itx = ipcmd.NewTransaction(exec, TUN)
 	itx.AddAddress(gwCIDR)
 	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
 	itx.SetLink("mtu", mtuStr)
@@ -290,7 +289,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 
 	// Clean up docker0 since docker won't
-	itx = ipcmd.NewTransaction(kexec, "docker0")
+	itx = ipcmd.NewTransaction(exec, "docker0")
 	itx.SetLink("down")
 	itx.IgnoreError()
 	itx.DeleteLink()
@@ -319,7 +318,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 
 	// Table 253: rule version; note action is hex bytes separated by '.'
-	otx = ovs.NewTransaction(kexec, BR)
+	otx = ovs.NewTransaction(exec, BR)
 	pluginVersion := getPluginVersion(plugin.multitenant)
 	otx.AddFlow("%s, %s%s.%s", VERSION_TABLE, VERSION_ACTION, pluginVersion[0], pluginVersion[1])
 	err = otx.EndTransaction()
