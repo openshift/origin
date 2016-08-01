@@ -39,6 +39,7 @@ import (
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/persistentvolume"
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
+	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	volumecontroller "k8s.io/kubernetes/pkg/controller/volume"
@@ -235,6 +236,16 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	allPlugins = append(allPlugins, vsphere_volume.ProbeVolumePlugins()...)
 
 	return allPlugins
+}
+
+func (c *MasterConfig) RunReplicaSetController(client *client.Client) {
+	controller := replicasetcontroller.NewReplicaSetController(
+		clientadapter.FromUnversionedClient(client),
+		kctrlmgr.ResyncPeriod(c.ControllerManager),
+		replicasetcontroller.BurstReplicas,
+		int(c.ControllerManager.LookupCacheSizeForRC),
+	)
+	go controller.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
