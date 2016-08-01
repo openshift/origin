@@ -36,12 +36,12 @@ import (
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
-	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/persistentvolume"
 	podautoscalercontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
-	volumecontroller "k8s.io/kubernetes/pkg/controller/volume"
+	attachdetachcontroller "k8s.io/kubernetes/pkg/controller/volume/attachdetach"
+	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/volume/persistentvolume"
 
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
@@ -170,7 +170,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 	volumeController.Run()
 
 	attachDetachController, err :=
-		volumecontroller.NewAttachDetachController(
+		attachdetachcontroller.NewAttachDetachController(
 			clientadapter.FromUnversionedClient(client),
 			c.Informers.Pods().Informer(),
 			c.Informers.Nodes().Informer(),
