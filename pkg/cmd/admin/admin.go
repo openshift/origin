@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/prune"
 	"github.com/openshift/origin/pkg/cmd/admin/registry"
 	"github.com/openshift/origin/pkg/cmd/admin/router"
+	"github.com/openshift/origin/pkg/cmd/admin/top"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
@@ -90,6 +91,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 					migrateimages.NewCmdMigrateImageReferences("image-references", fullName+" "+migrate.MigrateRecommendedName+" image-references", f, in, out, errout),
 					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, in, out, errout),
 				),
+				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, out),
 			},
 		},
 		{
