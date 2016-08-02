@@ -33,13 +33,13 @@ function cleanup()
 	set +e
 	dump_container_logs
 
-	# pull information out of the server log so that we can get failure management in jenkins to highlight it and 
+	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
     grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/container-origin.log
 
 
 	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
-	if [[ -n "${ADMIN_KUBECONFIG:-}" ]]; then
+		oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
 		oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
 	fi
 
