@@ -16,7 +16,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sysctl"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 const (
@@ -254,7 +257,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	otx.AddFlow("table=5, priority=200, ip, nw_dst=%s, actions=goto_table:7", localSubnetCIDR)
 	otx.AddFlow("table=5, priority=100, arp, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
 	otx.AddFlow("table=5, priority=100, ip, nw_dst=%s, actions=goto_table:8", clusterNetworkCIDR)
-	otx.AddFlow("table=5, priority=0, ip, actions=output:2")
+	otx.AddFlow("table=5, priority=0, ip, actions=goto_table:9")
 	otx.AddFlow("table=5, priority=0, arp, actions=drop")
 
 	// Table 6: ARP to container, filled in by openshift-sdn-ovs
@@ -270,6 +273,10 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	// eg, "table=8, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	// eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	otx.AddFlow("table=8, priority=0, actions=drop")
+
+	// Table 9: egress network policy dispatch; edited by updateEgressNetworkPolicy()
+	// eg, "table=9, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
+	otx.AddFlow("table=9, priority=0, actions=output:2")
 
 	err = otx.EndTransaction()
 	if err != nil {
@@ -327,6 +334,155 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 
 	return true, nil
+}
+
+func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
+	policies, err := plugin.registry.GetEgressNetworkPolicies()
+	if err != nil {
+		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
+	}
+
+	for _, policy := range policies {
+		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
+		if err != nil {
+			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
+			continue
+		}
+		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], &policy)
+	}
+
+	for vnid := range plugin.egressPolicies {
+		err := plugin.updateEgressNetworkPolicy(vnid)
+		if err != nil {
+			return err
+		}
+	}
+
+	go utilwait.Forever(plugin.watchEgressNetworkPolicies, 0)
+	return nil
+}
+
+func (plugin *OsdnNode) watchEgressNetworkPolicies() {
+	eventQueue := plugin.registry.RunEventQueue(EgressNetworkPolicies)
+
+	for {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for EgressNetworkPolicy: %v", err))
+			return
+		}
+		policy := obj.(*osapi.EgressNetworkPolicy)
+
+		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
+		if err != nil {
+			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
+			continue
+		}
+
+		policies := plugin.egressPolicies[vnid]
+		for i, oldPolicy := range policies {
+			if oldPolicy.UID == policy.UID {
+				policies = append(policies[:i], policies[i+1:]...)
+				break
+			}
+		}
+		if eventType != watch.Deleted && len(policy.Spec.Egress) > 0 {
+			policies = append(policies, policy)
+		}
+		plugin.egressPolicies[vnid] = policies
+
+		err = plugin.updateEgressNetworkPolicy(vnid)
+		if err != nil {
+			utilruntime.HandleError(err)
+			return
+		}
+	}
+}
+
+func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) error {
+	var policy *osapi.EgressNetworkPolicy
+
+	policies := plugin.egressPolicies[oldVnid]
+	for i, oldPolicy := range policies {
+		if oldPolicy.Namespace == namespace {
+			policy = oldPolicy
+			plugin.egressPolicies[oldVnid] = append(policies[:i], policies[i+1:]...)
+			err := plugin.updateEgressNetworkPolicy(oldVnid)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+
+	if policy != nil {
+		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], policy)
+		err := plugin.updateEgressNetworkPolicy(newVnid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func policyNames(policies []*osapi.EgressNetworkPolicy) string {
+	names := make([]string, len(policies))
+	for i, policy := range policies {
+		names[i] = policy.Namespace + ":" + policy.Name
+	}
+	return strings.Join(names, ", ")
+}
+
+func (plugin *OsdnNode) updateEgressNetworkPolicy(vnid uint32) error {
+	otx := ovs.NewTransaction(kexec.New(), BR)
+
+	policies := plugin.egressPolicies[vnid]
+	namespaces := plugin.vnids.GetNamespaces(vnid)
+	if len(policies) == 0 {
+		otx.DeleteFlows("table=9, reg0=%d", vnid)
+	} else if vnid == 0 {
+		glog.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies))
+	} else if len(namespaces) > 1 {
+		glog.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", "))
+		otx.DeleteFlows("table=9, reg0=%d", vnid)
+		otx.AddFlow("table=9, reg0=%d, priority=1, actions=drop", vnid)
+	} else if len(policies) > 1 {
+		glog.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies))
+		otx.DeleteFlows("table=9, reg0=%d", vnid)
+		otx.AddFlow("table=9, reg0=%d, priority=1, actions=drop", vnid)
+	} else /* vnid != 0 && len(policies) == 1 */ {
+		// Temporarily drop all outgoing traffic, to avoid race conditions while modifying the other rules
+		otx.AddFlow("table=9, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
+		otx.DeleteFlows("table=9, reg0=%d, cookie=0/1", vnid)
+
+		for i, rule := range policies[0].Spec.Egress {
+			priority := len(policies[0].Spec.Egress) - i
+
+			var action string
+			if rule.Type == osapi.EgressNetworkPolicyRuleAllow {
+				action = "output:2"
+			} else {
+				action = "drop"
+			}
+
+			var dst string
+			if rule.To.CIDRSelector == "0.0.0.0/32" {
+				dst = ""
+			} else {
+				dst = fmt.Sprintf(", nw_dst=%s", rule.To.CIDRSelector)
+			}
+
+			otx.AddFlow("table=9, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
+		}
+		otx.DeleteFlows("table=9, reg0=%d, cookie=1/1", vnid)
+	}
+
+	err := otx.EndTransaction()
+	if err != nil {
+		return fmt.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
+	}
+	return nil
 }
 
 func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {

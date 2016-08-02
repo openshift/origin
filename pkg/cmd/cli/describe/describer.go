@@ -31,6 +31,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -62,6 +63,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
 		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
 		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
+		sdnapi.Kind("EgressNetworkPolicy"):            &EgressNetworkPolicyDescriber{c},
 	}
 	return m
 }
@@ -1485,4 +1487,24 @@ func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings
 		return "", err
 	}
 	return DescribeClusterQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(quota))
+}
+
+type EgressNetworkPolicyDescriber struct {
+	osClient client.Interface
+}
+
+// Describe returns the description of an EgressNetworkPolicy
+func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	c := d.osClient.EgressNetworkPolicies(namespace)
+	policy, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, policy.ObjectMeta)
+		for _, rule := range policy.Spec.Egress {
+			fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
+		}
+		return nil
+	})
 }

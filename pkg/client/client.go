@@ -34,6 +34,7 @@ type Interface interface {
 	HostSubnetsInterface
 	NetNamespacesInterface
 	ClusterNetworkingInterface
+	EgressNetworkPoliciesNamespacer
 	IdentitiesInterface
 	UsersInterface
 	GroupsInterface
@@ -143,6 +144,11 @@ func (c *Client) NetNamespaces() NetNamespaceInterface {
 // ClusterNetwork provides a REST client for ClusterNetworking
 func (c *Client) ClusterNetwork() ClusterNetworkInterface {
 	return newClusterNetwork(c)
+}
+
+// EgressNetworkPolicies provides a REST client for EgressNetworkPolicy
+func (c *Client) EgressNetworkPolicies(namespace string) EgressNetworkPolicyInterface {
+	return newEgressNetworkPolicy(c, namespace)
 }
 
 // Users provides a REST client for User
