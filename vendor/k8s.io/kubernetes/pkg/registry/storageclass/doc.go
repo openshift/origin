@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,20 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package unversioned
-
-type DaemonSetExpansion interface{}
-
-type HorizontalPodAutoscalerExpansion interface{}
-
-type IngressExpansion interface{}
-
-type JobExpansion interface{}
-
-type PodSecurityPolicyExpansion interface{}
-
-type ThirdPartyResourceExpansion interface{}
-
-type ReplicaSetExpansion interface{}
-
-type StorageClassExpansion interface{}
+// Package storageClass provides Registry interface and its REST
+// implementation for storing storageclass api objects.
+package storageclass

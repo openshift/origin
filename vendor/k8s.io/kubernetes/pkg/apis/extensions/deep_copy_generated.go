@@ -79,6 +79,8 @@ func init() {
 		DeepCopy_extensions_Scale,
 		DeepCopy_extensions_ScaleSpec,
 		DeepCopy_extensions_ScaleStatus,
+		DeepCopy_extensions_StorageClass,
+		DeepCopy_extensions_StorageClassList,
 		DeepCopy_extensions_SupplementalGroupsStrategyOptions,
 		DeepCopy_extensions_ThirdPartyResource,
 		DeepCopy_extensions_ThirdPartyResourceData,
@@ -856,6 +858,47 @@ func DeepCopy_extensions_ScaleStatus(in ScaleStatus, out *ScaleStatus, c *conver
 		}
 	} else {
 		out.Selector = nil
+	}
+	return nil
+}
+
+func DeepCopy_extensions_StorageClass(in StorageClass, out *StorageClass, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := api.DeepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
+	out.Provisioner = in.Provisioner
+	if in.Parameters != nil {
+		in, out := in.Parameters, &out.Parameters
+		*out = make(map[string]string)
+		for key, val := range in {
+			(*out)[key] = val
+		}
+	} else {
+		out.Parameters = nil
+	}
+	return nil
+}
+
+func DeepCopy_extensions_StorageClassList(in StorageClassList, out *StorageClassList, c *conversion.Cloner) error {
+	if err := unversioned.DeepCopy_unversioned_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := unversioned.DeepCopy_unversioned_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := in.Items, &out.Items
+		*out = make([]StorageClass, len(in))
+		for i := range in {
+			if err := DeepCopy_extensions_StorageClass(in[i], &(*out)[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
 	}
 	return nil
 }
