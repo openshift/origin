@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -223,7 +224,12 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
 		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.RESTClient), cacheDir, time.Duration(10*time.Minute))
 
-		mapper := restmapper.NewDiscoveryRESTMapper(cachedDiscoverClient)
+		// if we can't find the server version or its too old to have Kind information in the discovery doc, skip the discovery RESTMapper
+		// and use our hardcoded levels
+		mapper := registered.RESTMapper()
+		if serverVersion, err := cachedDiscoverClient.ServerVersion(); err == nil && useDiscoveryRESTMapper(serverVersion.GitVersion) {
+			mapper = restmapper.NewDiscoveryRESTMapper(cachedDiscoverClient)
+		}
 		mapper = NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: mapper})
 		return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
 	}
@@ -561,6 +567,20 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	return w
+}
+
+// useDiscoveryRESTMapper checks the server version to see if its recent enough to have
+// enough discovery information avaiable to reliably build a RESTMapper.  If not, use the
+// hardcoded mapper in this client (legacy behavior)
+func useDiscoveryRESTMapper(serverVersion string) bool {
+	serverSemVer, err := semver.Parse(serverVersion[1:])
+	if err != nil {
+		return false
+	}
+	if serverSemVer.LT(semver.MustParse("1.3.0")) {
+		return false
+	}
+	return true
 }
 
 // overlyCautiousIllegalFileCharacters matches characters that *might* not be supported.  Windows is really restrictive, so this is really restrictive
