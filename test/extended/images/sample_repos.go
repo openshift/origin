@@ -40,9 +40,10 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 			g.It(fmt.Sprintf("should build a "+c.repoName+" image and run it in a pod"), func() {
 				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-				exutil.CheckOpenShiftNamespaceImageStreams(oc)
+				err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By(fmt.Sprintf("calling oc new-app with the " + c.repoName + " example template"))
-				err := oc.Run("new-app").Args("-f", c.templateURL).Execute()
+				err = oc.Run("new-app").Args("-f", c.templateURL).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// all the templates automatically start a build.
