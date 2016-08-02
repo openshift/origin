@@ -159,6 +159,11 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		return fetchErr
 	}
 
+	errs := []error{}
+	if fetchErr != nil {
+		errs = append(errs, fetchErr)
+	}
+
 	if (len(o.Output) != 0) && !o.Confirmed {
 		list := &kapi.List{}
 		for _, item := range changedClusterRoleBindings {
@@ -167,13 +172,15 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		mapper, _ := f.Object(false)
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 		if err := fn(list); err != nil {
-			return kutilerrors.NewAggregate([]error{fetchErr, err})
+			errs = append(errs, err)
+			return kutilerrors.NewAggregate(errs)
 		}
 	}
 
 	if o.Confirmed {
 		if err := o.ReplaceChangedRoleBindings(changedClusterRoleBindings); err != nil {
-			return kutilerrors.NewAggregate([]error{fetchErr, err})
+			errs = append(errs, err)
+			return kutilerrors.NewAggregate(errs)
 		}
 	}
 
