@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
-	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
+	"github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/cmd/admin/validate"
 	"github.com/openshift/origin/pkg/cmd/cli"
