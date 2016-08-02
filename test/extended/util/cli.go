@@ -276,6 +276,12 @@ func (c *CLI) printCmd() string {
 	return strings.Join(c.finalArgs, " ")
 }
 
+type ExitError struct {
+	Cmd    string
+	StdErr string
+	*exec.ExitError
+}
+
 // Output executes the command and return the output as string
 func (c *CLI) Output() (string, error) {
 	if c.verbose {
@@ -292,7 +298,7 @@ func (c *CLI) Output() (string, error) {
 		return trimmed, nil
 	case *exec.ExitError:
 		e2e.Logf("Error running %v:\n%s", cmd, trimmed)
-		return trimmed, err
+		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: trimmed}
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
