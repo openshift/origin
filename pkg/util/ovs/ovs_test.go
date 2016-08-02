@@ -52,13 +52,18 @@ func ensureTestResults(t *testing.T, fexec *exec.FakeExec) {
 
 func TestTransactionSuccess(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
-	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
 
-	otx := NewTransaction(fexec, "br0")
+	ovsif, err := New(fexec, "br0")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	otx := ovsif.NewTransaction()
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
-	err := otx.EndTransaction()
+	err = otx.EndTransaction()
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
 	}
@@ -68,12 +73,17 @@ func TestTransactionSuccess(t *testing.T) {
 
 func TestTransactionFailure(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
 
-	otx := NewTransaction(fexec, "br0")
+	ovsif, err := New(fexec, "br0")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+
+	otx := ovsif.NewTransaction()
 	otx.AddFlow("flow1")
 	otx.AddFlow("flow2")
-	err := otx.EndTransaction()
+	err = otx.EndTransaction()
 	if err == nil {
 		t.Fatalf("Failed to get expected error")
 	}
@@ -83,7 +93,7 @@ func TestTransactionFailure(t *testing.T) {
 
 func TestDumpFlows(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 dump-flows br0", `OFPST_FLOW reply (OF1.3) (xid=0x2):
+	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 dump-flows br0", `OFPST_FLOW reply (OF1.3) (xid=0x2):
  cookie=0x0, duration=13271.779s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=192.168.1.0/24 actions=set_field:0a:7b:e6:19:11:cf->eth_dst,output:2
  cookie=0x0, duration=13271.776s, table=0, n_packets=1, n_bytes=42, priority=100,arp,arp_tpa=192.168.1.0/24 actions=set_field:10.19.17.34->tun_dst,output:1
  cookie=0x3, duration=13267.277s, table=0, n_packets=788539827, n_bytes=506520926762, priority=100,ip,nw_dst=192.168.2.2 actions=output:3
@@ -93,9 +103,11 @@ func TestDumpFlows(t *testing.T) {
  cookie=0x0, duration=13284.67s, table=0, n_packets=782815611, n_bytes=179416494325, priority=50 actions=output:2
 `, nil)
 
-	otx := NewTransaction(fexec, "br0")
-	flows, err := otx.DumpFlows()
-	otx.EndTransaction()
+	ovsif, err := New(fexec, "br0")
+	if err != nil {
+		t.Fatalf("Unexpected error from ovs.New(): %v", err)
+	}
+	flows, err := ovsif.DumpFlows()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -112,11 +124,8 @@ func TestDumpFlows(t *testing.T) {
 
 func TestOVSMissing(t *testing.T) {
 	fexec := missingSetup()
-	otx := NewTransaction(fexec, "br0")
-	otx.AddFlow("flow1")
-	otx.AddFlow("flow2")
-	err := otx.EndTransaction()
-	if err == nil {
+	ovsif, err := New(fexec, "br0")
+	if err == nil || ovsif != nil {
 		t.Fatalf("Unexpectedly did not get error")
 	}
 	if err.Error() != "OVS is not installed" {
