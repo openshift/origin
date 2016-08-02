@@ -24,12 +24,16 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&HostSubnetList{},
 		&NetNamespace{},
 		&NetNamespaceList{},
+		&EgressNetworkPolicy{},
+		&EgressNetworkPolicyList{},
 	)
 }
 
-func (obj *ClusterNetwork) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
-func (obj *ClusterNetworkList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
-func (obj *HostSubnet) GetObjectKind() unversioned.ObjectKind         { return &obj.TypeMeta }
-func (obj *HostSubnetList) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
-func (obj *NetNamespace) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
-func (obj *NetNamespaceList) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
+func (obj *ClusterNetwork) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
+func (obj *ClusterNetworkList) GetObjectKind() unversioned.ObjectKind      { return &obj.TypeMeta }
+func (obj *HostSubnet) GetObjectKind() unversioned.ObjectKind              { return &obj.TypeMeta }
+func (obj *HostSubnetList) GetObjectKind() unversioned.ObjectKind          { return &obj.TypeMeta }
+func (obj *NetNamespace) GetObjectKind() unversioned.ObjectKind            { return &obj.TypeMeta }
+func (obj *NetNamespaceList) GetObjectKind() unversioned.ObjectKind        { return &obj.TypeMeta }
+func (obj *EgressNetworkPolicy) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
+func (obj *EgressNetworkPolicyList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

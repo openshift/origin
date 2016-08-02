@@ -14,7 +14,7 @@ import (
 )
 
 func TestExport(t *testing.T) {
-	exporter := &defaultExporter{}
+	exporter := &DefaultExporter{}
 
 	baseSA := &kapi.ServiceAccount{}
 	baseSA.Name = "my-sa"

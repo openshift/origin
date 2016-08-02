@@ -301,6 +301,23 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 			o.Expect(result).NotTo(o.ContainSubstring("image-streams-rhel7.json"))
 		})
 
+		g.It("should honor multiple --exclude flags", func() {
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=application-template-custombuild.json --exclude=application-template-dockerbuild.json", sourcePath2, podName))
+			err := oc.Run("rsync").Args(
+				sourcePath2,
+				fmt.Sprintf("%s:/tmp", podName),
+				"--exclude=application-template-custombuild.json",
+				"--exclude=application-template-dockerbuild.json").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying that files are copied to the container")
+			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/sample-app").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-custombuild.json"))
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-dockerbuild.json"))
+			o.Expect(result).To(o.ContainSubstring("application-template-stibuild.json"))
+		})
+
 		g.It("should honor the --include flag", func() {
 			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=image-streams-rhel7.json", sourcePath1, podName))
 			err := oc.Run("rsync").Args(
@@ -315,6 +332,24 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(result).To(o.ContainSubstring("image-streams-rhel7.json"))
 			o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.json"))
+		})
+
+		g.It("should honor multiple --include flags", func() {
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp --exclude=*.json --include=application-template-custombuild.json --include=application-template-dockerbuild.json", sourcePath2, podName))
+			err := oc.Run("rsync").Args(
+				sourcePath2,
+				fmt.Sprintf("%s:/tmp", podName),
+				"--exclude=*.json",
+				"--include=application-template-custombuild.json",
+				"--include=application-template-dockerbuild.json").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying that files are copied to the container")
+			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/sample-app").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(result).To(o.ContainSubstring("application-template-custombuild.json"))
+			o.Expect(result).To(o.ContainSubstring("application-template-dockerbuild.json"))
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-stibuild.json"))
 		})
 
 		g.It("should honor the --progress flag", func() {

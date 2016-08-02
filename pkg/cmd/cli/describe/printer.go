@@ -57,9 +57,10 @@ var (
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
-	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
-	netNamespaceColumns   = []string{"NAME", "NETID"}
-	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
+	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
+	netNamespaceColumns        = []string{"NAME", "NETID"}
+	clusterNetworkColumns      = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
+	egressNetworkPolicyColumns = []string{"NAME"}
 
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
 )
@@ -131,6 +132,8 @@ func NewHumanReadablePrinter(printOptions *kctl.PrintOptions) *kctl.HumanReadabl
 	p.Handler(netNamespaceColumns, printNetNamespace)
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
+	p.Handler(egressNetworkPolicyColumns, printEgressNetworkPolicy)
+	p.Handler(egressNetworkPolicyColumns, printEgressNetworkPolicyList)
 
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuota)
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuotaList)
@@ -947,6 +950,27 @@ func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, opts kctl.PrintO
 func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, opts kctl.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printClusterNetwork(&item, w, opts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printEgressNetworkPolicy(n *sdnapi.EgressNetworkPolicy, w io.Writer, opts kctl.PrintOptions) error {
+	if opts.WithNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", n.Namespace); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "%s\n", n.Name); err != nil {
+		return err
+	}
+	return nil
+}
+
+func printEgressNetworkPolicyList(list *sdnapi.EgressNetworkPolicyList, w io.Writer, opts kctl.PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printEgressNetworkPolicy(&item, w, opts); err != nil {
 			return err
 		}
 	}

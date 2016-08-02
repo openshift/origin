@@ -353,6 +353,7 @@ var map_KubernetesMasterConfig = map[string]string{
 	"admissionConfig":          "AdmissionConfig contains admission control plugin configuration.",
 	"apiServerArguments":       "APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
 	"controllerArguments":      "ControllerArguments are key value pairs that will be passed directly to the Kube controller manager that match the controller manager's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
+	"schedulerArguments":       "SchedulerArguments are key value pairs that will be passed directly to the Kube scheduler that match the scheduler's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
 }
 
 func (KubernetesMasterConfig) SwaggerDoc() map[string]string {

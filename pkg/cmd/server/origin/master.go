@@ -76,6 +76,7 @@ import (
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
+	egressnetworkpolicyetcd "github.com/openshift/origin/pkg/sdn/registry/egressnetworkpolicy/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	"github.com/openshift/origin/pkg/service"
@@ -426,6 +427,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	clusterNetworkStorage, err := clusternetworketcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
+	egressNetworkPolicyStorage, err := egressnetworkpolicyetcd.NewREST(c.RESTOptionsGetter)
+	checkStorageErr(err)
 
 	userStorage, err := useretcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -588,9 +591,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
 
-		"hostSubnets":     hostSubnetStorage,
-		"netNamespaces":   netNamespaceStorage,
-		"clusterNetworks": clusterNetworkStorage,
+		"hostSubnets":           hostSubnetStorage,
+		"netNamespaces":         netNamespaceStorage,
+		"clusterNetworks":       clusterNetworkStorage,
+		"egressNetworkPolicies": egressNetworkPolicyStorage,
 
 		"users":                userStorage,
 		"groups":               groupStorage,

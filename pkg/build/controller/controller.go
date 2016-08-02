@@ -452,7 +452,5 @@ func setBuildPodNameAnnotation(build *buildapi.Build, podName string) {
 	if build.Annotations == nil {
 		build.Annotations = map[string]string{}
 	}
-	if _, hasAnnotation := build.Annotations[buildapi.BuildPodNameAnnotation]; !hasAnnotation {
-		build.Annotations[buildapi.BuildPodNameAnnotation] = podName
-	}
+	build.Annotations[buildapi.BuildPodNameAnnotation] = podName
 }

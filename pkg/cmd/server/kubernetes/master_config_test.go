@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	"k8s.io/kubernetes/pkg/util/diff"
+	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -135,6 +136,43 @@ func TestCMServerDefaults(t *testing.T) {
 				LeaseDuration: unversioned.Duration{Duration: 15 * time.Second},
 				RenewDeadline: unversioned.Duration{Duration: 10 * time.Second},
 				RetryPeriod:   unversioned.Duration{Duration: 2 * time.Second},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(defaults, expectedDefaults) {
+		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
+		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesMasterConfig and update expectedDefaults")
+	}
+}
+
+func TestSchedulerServerDefaults(t *testing.T) {
+	defaults := scheduleroptions.NewSchedulerServer()
+
+	// This is a snapshot of the default config
+	// If the default changes (new fields are added, or default values change), we want to know
+	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
+	expectedDefaults := &scheduleroptions.SchedulerServer{
+		KubeSchedulerConfiguration: componentconfig.KubeSchedulerConfiguration{
+			Port:                           10251, // disabled
+			Address:                        "0.0.0.0",
+			AlgorithmProvider:              "DefaultProvider",
+			ContentType:                    "application/vnd.kubernetes.protobuf",
+			KubeAPIQPS:                     50,
+			KubeAPIBurst:                   100,
+			SchedulerName:                  "default-scheduler",
+			HardPodAffinitySymmetricWeight: 1,
+			FailureDomains:                 "kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region",
+			LeaderElection: componentconfig.LeaderElectionConfiguration{
+				LeaseDuration: unversioned.Duration{
+					Duration: 15 * time.Second,
+				},
+				RenewDeadline: unversioned.Duration{
+					Duration: 10 * time.Second,
+				},
+				RetryPeriod: unversioned.Duration{
+					Duration: 2 * time.Second,
+				},
 			},
 		},
 	}
