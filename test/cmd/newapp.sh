@@ -70,6 +70,9 @@ os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-
 # verify the existing app label on an object is overridden by new-app
 os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
 
+# verify that a template can be passed in stdin
+os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
+
 # check search
 os::cmd::expect_success_and_text 'oc new-app --search mysql' "Tags:\s+5.5, 5.6, latest"
 os::cmd::expect_success_and_text 'oc new-app --search ruby-helloworld-sample' 'ruby-helloworld-sample'
