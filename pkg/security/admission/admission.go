@@ -136,7 +136,7 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 
 	errs := field.ErrorList{}
 
-	psc, err := provider.CreatePodSecurityContext(pod)
+	psc, generatedAnnotations, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
 		errs = append(errs, field.Invalid(field.NewPath("spec", "securityContext"), pod.Spec.SecurityContext, err.Error()))
 	}
@@ -145,7 +145,10 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 	// set for container generation/validation.  We will reset to original post container
 	// validation.
 	originalPSC := pod.Spec.SecurityContext
+	originalAnnotations := pod.Annotations
+
 	pod.Spec.SecurityContext = psc
+	pod.Annotations = generatedAnnotations
 	errs = append(errs, provider.ValidatePodSecurityContext(pod, field.NewPath("spec", "securityContext"))...)
 
 	// Note: this is not changing the original container, we will set container SCs later so long
@@ -176,6 +179,7 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 	if len(errs) > 0 {
 		// ensure psc is not mutated if there are errors
 		pod.Spec.SecurityContext = originalPSC
+		pod.Annotations = originalAnnotations
 		return errs
 	}
 

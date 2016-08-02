@@ -1499,6 +1499,117 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	testSCCAdmission(matchingPriorityAndScoreSCCOnePod, plugin, matchingPriorityAndScoreSCCOne.Name, t)
 }
 
+func TestAdmitSeccomp(t *testing.T) {
+	createPodWithSeccomp := func(podAnnotation, containerAnnotation string) *kapi.Pod {
+		pod := goodPod()
+		pod.Annotations = map[string]string{}
+		if podAnnotation != "" {
+			pod.Annotations[kapi.SeccompPodAnnotationKey] = podAnnotation
+		}
+		if containerAnnotation != "" {
+			pod.Annotations[kapi.SeccompContainerAnnotationKeyPrefix+"container"] = containerAnnotation
+		}
+		pod.Spec.Containers[0].Name = "container"
+		return pod
+	}
+
+	noSeccompSCC := restrictiveSCC()
+	noSeccompSCC.Name = "noseccomp"
+
+	seccompSCC := restrictiveSCC()
+	seccompSCC.Name = "seccomp"
+	seccompSCC.SeccompProfiles = []string{"foo"}
+
+	wildcardSCC := restrictiveSCC()
+	wildcardSCC.Name = "wildcard"
+	wildcardSCC.SeccompProfiles = []string{"*"}
+
+	tests := map[string]struct {
+		pod                   *kapi.Pod
+		sccs                  []*kapi.SecurityContextConstraints
+		shouldPass            bool
+		expectedPodAnnotation string
+		expectedSCC           string
+	}{
+		"no seccomp, no requests": {
+			pod:         goodPod(),
+			sccs:        []*kapi.SecurityContextConstraints{noSeccompSCC},
+			shouldPass:  true,
+			expectedSCC: noSeccompSCC.Name,
+		},
+		"no seccomp, bad container requests": {
+			pod:        createPodWithSeccomp("foo", "bar"),
+			sccs:       []*kapi.SecurityContextConstraints{noSeccompSCC},
+			shouldPass: false,
+		},
+		"seccomp, no requests": {
+			pod:                   goodPod(),
+			sccs:                  []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           seccompSCC.Name,
+		},
+		"seccomp, valid pod annotation, no container annotation": {
+			pod:                   createPodWithSeccomp("foo", ""),
+			sccs:                  []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           seccompSCC.Name,
+		},
+		"seccomp, no pod annotation, valid container annotation": {
+			pod:                   createPodWithSeccomp("", "foo"),
+			sccs:                  []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           seccompSCC.Name,
+		},
+		"seccomp, valid pod annotation, invalid container annotation": {
+			pod:        createPodWithSeccomp("foo", "bar"),
+			sccs:       []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass: false,
+		},
+		"wild card, no requests": {
+			pod:         goodPod(),
+			sccs:        []*kapi.SecurityContextConstraints{wildcardSCC},
+			shouldPass:  true,
+			expectedSCC: wildcardSCC.Name,
+		},
+		"wild card, requests": {
+			pod:                   createPodWithSeccomp("foo", "bar"),
+			sccs:                  []*kapi.SecurityContextConstraints{wildcardSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           wildcardSCC.Name,
+		},
+	}
+
+	for k, v := range tests {
+		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+
+		if v.shouldPass {
+			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
+			if !ok {
+				t.Errorf("expected to find the validated annotation on the pod for the scc but found none")
+				return
+			}
+			if validatedSCC != v.expectedSCC {
+				t.Errorf("should have validated against %s but found %s", v.expectedSCC, validatedSCC)
+			}
+
+			if len(v.expectedPodAnnotation) > 0 {
+				annotation, found := v.pod.Annotations[kapi.SeccompPodAnnotationKey]
+				if !found {
+					t.Errorf("%s expected to have pod annotation for seccomp but found none", k)
+				}
+				if found && annotation != v.expectedPodAnnotation {
+					t.Errorf("%s expected pod annotation to be %s but found %s", k, v.expectedPodAnnotation, annotation)
+				}
+			}
+		}
+	}
+
+}
+
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC string, t *testing.T) {
