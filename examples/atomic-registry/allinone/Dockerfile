@@ -4,8 +4,6 @@ MAINTAINER Aaron Weitekamp <aweiteka@redhat.com>
 ADD install.sh run.sh uninstall.sh /container/bin/
 ADD registry-console-template.yaml \
     registry-login-template.html \
-    registry-newproject-template-shared.json \
-    registry-newproject-template-unshared.json \
     /container/etc/origin/
 
 LABEL name="projectatomic/atomic-registry-quickstart" \

@@ -74,13 +74,6 @@ $CMD oc patch service registry-console -p \
      '{ "spec": { "type": "NodePort", "selector": {"name": "registry-console"}, "ports": [ {"name": "https", "nodePort": 443, "port": 9000, "targetPort": 9090}, {"name": "http", "nodePort": 80, "port": 9000, "targetPort": 9090} ] }}'
 
 set +x
-echo "Updating default project configuration"
-set -x
-$CMD oc create -f /etc/origin/registry/registry-newproject-template-shared.json
-$CMD oc create -f /etc/origin/registry/registry-newproject-template-unshared.json
-sed -i 's/  projectRequestTemplate:.*$/  projectRequestTemplate: "default\/registry-newproject-template-shared"/' /etc/origin/master/master-config.yaml
-
-set +x
 echo "Restarting API server"
 set -x
 chroot /host docker restart origin

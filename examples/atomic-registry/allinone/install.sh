@@ -26,8 +26,6 @@ mkdir -p /host/etc/origin/registry/bin
 mkdir -p /host/etc/origin/master/site
 cp /container/bin/* /host/etc/origin/registry/bin/.
 cp /container/etc/origin/registry-console-template.yaml /host/etc/origin/registry/.
-cp /container/etc/origin/registry-newproject-template-shared.json /host/etc/origin/registry/.
-cp /container/etc/origin/registry-newproject-template-unshared.json /host/etc/origin/registry/.
 cp /container/etc/origin/registry-login-template.html /host/etc/origin/master/site/.
 # Create registry UI service certificates -- TODO: use this cert
 cat /etc/origin/master/master.server.crt /etc/origin/master/master.server.key > /etc/origin/registry/master.server.cert
