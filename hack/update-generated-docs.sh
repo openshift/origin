@@ -36,8 +36,8 @@ if [[ -z "$genman" ]]; then
 fi
 
 OUTPUT_DIR_REL=${1:-""}
-OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/generated"
-MAN_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/man/man1"
+OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}docs/generated"
+MAN_OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}docs/man/man1"
 
 mkdir -p "${OUTPUT_DIR}" || echo $? > /dev/null
 mkdir -p "${MAN_OUTPUT_DIR}" || echo $? > /dev/null
