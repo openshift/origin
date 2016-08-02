@@ -2,6 +2,7 @@ package builder
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -123,5 +124,24 @@ func TestGetStrategyError(t *testing.T) {
 	})
 	if err := s2iBuilder.Build(); err != expErr {
 		t.Errorf("s2iBuilder.Build() = %v; want %v", err, expErr)
+	}
+}
+
+func TestCopyToVolumeList(t *testing.T) {
+	newArtifacts := []api.ImageSourcePath{
+		{
+			SourcePath:     "/path/to/source",
+			DestinationDir: "path/to/destination",
+		},
+	}
+	volumeList := s2iapi.VolumeList{
+		s2iapi.VolumeSpec{
+			Source:      "/path/to/source",
+			Destination: "path/to/destination",
+		},
+	}
+	newVolumeList := copyToVolumeList(newArtifacts)
+	if !reflect.DeepEqual(volumeList, newVolumeList) {
+		t.Errorf("Expected artifacts mapping to match %#v, got %#v instead!", volumeList, newVolumeList)
 	}
 }
