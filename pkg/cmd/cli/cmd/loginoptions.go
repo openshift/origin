@@ -245,9 +245,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 
 							o.Config = clientConfig
 
-							if key == o.StartingKubeConfig.CurrentContext {
-								fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
-							}
+							fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
 
 							return nil
 						}
