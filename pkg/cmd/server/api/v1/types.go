@@ -970,8 +970,10 @@ type KubernetesMasterConfig struct {
 	ServicesNodePortRange string `json:"servicesNodePortRange"`
 	// StaticNodeNames is the list of nodes that are statically known
 	StaticNodeNames []string `json:"staticNodeNames"`
+
 	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string `json:"schedulerConfigFile"`
+
 	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
 	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
 	PodEvictionTimeout string `json:"podEvictionTimeout"`
@@ -990,6 +992,10 @@ type KubernetesMasterConfig struct {
 	// the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid
 	// configurations.
 	ControllerArguments ExtendedArguments `json:"controllerArguments"`
+	// SchedulerArguments are key value pairs that will be passed directly to the Kube scheduler that match the scheduler's
+	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
+	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
+	SchedulerArguments ExtendedArguments `json:"schedulerArguments"`
 }
 
 // CertInfo relates a certificate with a private key

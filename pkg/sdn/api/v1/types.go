@@ -80,3 +80,54 @@ type NetNamespaceList struct {
 	// Items is the list of net namespaces
 	Items []NetNamespace `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// EgressNetworkPolicyRuleType indicates whether an EgressNetworkPolicyRule allows or denies traffic
+type EgressNetworkPolicyRuleType string
+
+const (
+	EgressNetworkPolicyRuleAllow EgressNetworkPolicyRuleType = "Allow"
+	EgressNetworkPolicyRuleDeny  EgressNetworkPolicyRuleType = "Deny"
+)
+
+// EgressNetworkPolicyPeer specifies a target to apply egress network policy to
+type EgressNetworkPolicyPeer struct {
+	// cidrSelector is the CIDR range to allow/deny traffic to
+	CIDRSelector string `json:"cidrSelector" protobuf:"bytes,1,rep,name=cidrSelector"`
+}
+
+// EgressNetworkPolicyRule contains a single egress network policy rule
+type EgressNetworkPolicyRule struct {
+	// type marks this as an "Allow" or "Deny" rule
+	Type EgressNetworkPolicyRuleType `json:"type" protobuf:"bytes,1,rep,name=type"`
+	// to is the target that traffic is allowed/denied to
+	To EgressNetworkPolicyPeer `json:"to" protobuf:"bytes,2,rep,name=to"`
+}
+
+// EgressNetworkPolicySpec provides a list of policies on outgoing network traffic
+type EgressNetworkPolicySpec struct {
+	// egress contains the list of egress policy rules
+	Egress []EgressNetworkPolicyRule `json:"egress" protobuf:"bytes,1,rep,name=egress"`
+}
+
+// EgressNetworkPolicy describes the current egress network policy for a Namespace. When using
+// the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address
+// outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's
+// namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy
+// is present) then the traffic will be allowed by default.
+type EgressNetworkPolicy struct {
+	unversioned.TypeMeta `json:",inline"`
+	// metadata for EgressNetworkPolicy
+	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// spec is the specification of the current egress network policy
+	Spec EgressNetworkPolicySpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
+}
+
+// EgressNetworkPolicyList is a collection of EgressNetworkPolicy
+type EgressNetworkPolicyList struct {
+	unversioned.TypeMeta `json:",inline"`
+	// metadata for EgressNetworkPolicyList
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// items is the list of policies
+	Items []EgressNetworkPolicy `json:"items" protobuf:"bytes,2,rep,name=items"`
+}

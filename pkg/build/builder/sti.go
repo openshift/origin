@@ -90,7 +90,7 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 // Build executes STI build based on configured builder, S2I builder factory and S2I config validator
 func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy == nil {
-		return fmt.Errorf("the source to image builder must be used with the source strategy")
+		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
 	var push bool
@@ -222,7 +222,13 @@ func (s *S2IBuilder) Build() error {
 		return errors.New(buffer.String())
 	}
 
-	// If DockerCfgPath is provided in api.Config, then attempt to read the the
+	if s.build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
+		runtimeImageName := s.build.Spec.Strategy.SourceStrategy.RuntimeImage.Name
+		config.RuntimeImage = runtimeImageName
+		config.RuntimeAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(runtimeImageName, dockercfg.PullAuthType)
+		config.RuntimeArtifacts = copyToVolumeList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
+	}
+	// If DockerCfgPath is provided in api.Config, then attempt to read the
 	// dockercfg file and get the authentication for pulling the builder image.
 	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
 	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
@@ -371,4 +377,16 @@ func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
 		config.HTTPSProxy = proxyURL
 	}
 	return config, nil
+}
+
+// copyToVolumeList copies the artifacts set in the build config to the
+// VolumeList struct in the s2iapi.Config
+func copyToVolumeList(artifactsMapping []api.ImageSourcePath) (volumeList s2iapi.VolumeList) {
+	for _, mappedPath := range artifactsMapping {
+		volumeList = append(volumeList, s2iapi.VolumeSpec{
+			Source:      mappedPath.SourcePath,
+			Destination: mappedPath.DestinationDir,
+		})
+	}
+	return
 }

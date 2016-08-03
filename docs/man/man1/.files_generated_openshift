@@ -75,6 +75,9 @@ openshift-admin-prune.1
 openshift-admin-registry.1
 openshift-admin-router.1
 openshift-admin-taint.1
+openshift-admin-top-images.1
+openshift-admin-top-imagestreams.1
+openshift-admin-top.1
 openshift-admin-uncordon.1
 openshift-admin.1
 openshift-cli-adm-build-chain.1
@@ -154,6 +157,9 @@ openshift-cli-adm-prune.1
 openshift-cli-adm-registry.1
 openshift-cli-adm-router.1
 openshift-cli-adm-taint.1
+openshift-cli-adm-top-images.1
+openshift-cli-adm-top-imagestreams.1
+openshift-cli-adm-top.1
 openshift-cli-adm-uncordon.1
 openshift-cli-adm.1
 openshift-cli-annotate.1

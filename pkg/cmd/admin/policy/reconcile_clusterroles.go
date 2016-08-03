@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -237,16 +238,19 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationap
 
 // ReplaceChangedRoles will reconcile all the changed roles back to the recommended bootstrap policy
 func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*authorizationapi.ClusterRole) error {
+	errs := []error{}
 	for i := range changedRoles {
 		role, err := o.RoleClient.Get(changedRoles[i].Name)
 		if err != nil && !kapierrors.IsNotFound(err) {
-			return err
+			errs = append(errs, err)
+			continue
 		}
 
 		if kapierrors.IsNotFound(err) {
 			createdRole, err := o.RoleClient.Create(changedRoles[i])
 			if err != nil {
-				return err
+				errs = append(errs, err)
+				continue
 			}
 
 			fmt.Fprintf(o.Out, "clusterrole/%s\n", createdRole.Name)
@@ -256,11 +260,12 @@ func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*autho
 		role.Rules = changedRoles[i].Rules
 		updatedRole, err := o.RoleClient.Update(role)
 		if err != nil {
-			return err
+			errs = append(errs, err)
+			continue
 		}
 
 		fmt.Fprintf(o.Out, "clusterrole/%s\n", updatedRole.Name)
 	}
 
-	return nil
+	return kerrors.NewAggregate(errs)
 }

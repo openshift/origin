@@ -49,7 +49,7 @@ func KillExistingSocat() error {
 
 func SaveSocatPid(pid int) error {
 	parentDir := filepath.Dir(SocatPidFile)
-	err := os.MkdirAll(parentDir, 0644)
+	err := os.MkdirAll(parentDir, 0755)
 	if err != nil {
 		return err
 	}

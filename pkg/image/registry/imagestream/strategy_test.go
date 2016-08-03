@@ -43,7 +43,9 @@ func (u *fakeUser) GetGroups() []string {
 }
 
 func (u *fakeUser) GetExtra() map[string][]string {
-	return map[string][]string{}
+	return map[string][]string{
+		authorizationapi.ScopesKey: {"a", "b"},
+	}
 }
 
 type fakeDefaultRegistry struct {
@@ -311,11 +313,12 @@ func TestTagVerifier(t *testing.T) {
 			expectedSar := &authorizationapi.SubjectAccessReview{
 				Action: authorizationapi.Action{
 					Verb:         "get",
-					Resource:     "imagestreams",
+					Resource:     "imagestreams/layers",
 					ResourceName: "otherstream",
 				},
 				User:   "user",
 				Groups: sets.NewString("group1"),
+				Scopes: []string{"a", "b"},
 			}
 			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: unexpected SAR request: %s", name, diff.ObjectDiff(e, a))

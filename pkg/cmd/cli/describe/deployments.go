@@ -241,6 +241,10 @@ func printDeploymentConfigSpec(kc kclient.Interface, dc deployapi.DeploymentConf
 	}
 	formatString(w, "Replicas", fmt.Sprintf("%d%s", spec.Replicas, test))
 
+	if spec.Paused {
+		formatString(w, "Paused", "yes")
+	}
+
 	// Autoscaling info
 	printAutoscalingInfo(deployapi.Resource("DeploymentConfig"), dc.Namespace, dc.Name, kc, w)
 

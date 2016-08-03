@@ -31,7 +31,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/security/admission"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
@@ -803,7 +803,7 @@ func validateServiceAccount(client *kclient.Client, ns string, serviceAccount st
 	// get set of sccs applicable to the service account
 	userInfo := serviceaccount.UserInfo(ns, serviceAccount, "")
 	for _, scc := range sccList.Items {
-		if admission.ConstraintAppliesTo(&scc, userInfo) {
+		if oscc.ConstraintAppliesTo(&scc, userInfo) {
 			switch {
 			case hostPorts && scc.AllowHostPorts:
 				return nil

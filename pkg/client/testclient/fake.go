@@ -201,6 +201,11 @@ func (c *Fake) ClusterNetwork() client.ClusterNetworkInterface {
 	return &FakeClusterNetwork{Fake: c}
 }
 
+// EgressNetworkPolicies provides a fake REST client for EgressNetworkPolicies
+func (c *Fake) EgressNetworkPolicies(namespace string) client.EgressNetworkPolicyInterface {
+	return &FakeEgressNetworkPolicy{Fake: c, Namespace: namespace}
+}
+
 // Templates provides a fake REST client for Templates
 func (c *Fake) Templates(namespace string) client.TemplateInterface {
 	return &FakeTemplates{Fake: c, Namespace: namespace}

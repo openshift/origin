@@ -203,7 +203,7 @@ func newCompletionCommand(name, fullName string) *cobra.Command {
 	out := os.Stdout
 
 	completion := &cobra.Command{
-		Use:     "completion SHELL",
+		Use:     fmt.Sprintf("%s SHELL", name),
 		Short:   "Output shell completion code for the given shell (bash or zsh)",
 		Long:    completion_long,
 		Example: completion_example,

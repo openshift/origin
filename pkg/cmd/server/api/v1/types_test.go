@@ -184,6 +184,7 @@ kubernetesMasterConfig:
   proxyClientInfo:
     certFile: ""
     keyFile: ""
+  schedulerArguments: null
   schedulerConfigFile: ""
   servicesNodePortRange: ""
   servicesSubnet: ""

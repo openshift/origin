@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/plugin/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -19,10 +20,16 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 )
 
+type proxyFirewallItem struct {
+	policy osapi.EgressNetworkPolicyRuleType
+	net    *net.IPNet
+}
+
 type ovsProxyPlugin struct {
 	registry  *Registry
 	podsByIP  map[string]*kapi.Pod
 	podsMutex sync.Mutex
+	firewall  map[string][]proxyFirewallItem
 
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 }
@@ -36,6 +43,7 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 	return &ovsProxyPlugin{
 		registry: newRegistry(osClient, kClient),
 		podsByIP: make(map[string]*kapi.Pod),
+		firewall: make(map[string][]proxyFirewallItem),
 	}, nil
 }
 
@@ -50,13 +58,59 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 		return err
 	}
 
+	policies, err := proxy.registry.GetEgressNetworkPolicies()
+	if err != nil {
+		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
+	}
+	for _, policy := range policies {
+		proxy.updateNetworkPolicy(policy)
+	}
+
 	for _, pod := range pods {
 		proxy.trackPod(&pod)
 	}
 
 	go utilwait.Forever(proxy.watchPods, 0)
+	go utilwait.Forever(proxy.watchEgressNetworkPolicies, 0)
 
 	return nil
+}
+
+func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
+	eventQueue := proxy.registry.RunEventQueue(EgressNetworkPolicies)
+
+	for {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for EgressNetworkPolicy: %v", err))
+			return
+		}
+		policy := obj.(*osapi.EgressNetworkPolicy)
+		if eventType == watch.Deleted {
+			policy.Spec.Egress = nil
+		}
+		proxy.updateNetworkPolicy(*policy)
+		// FIXME: poke the endpoint-syncer somehow...
+	}
+}
+
+func (proxy *ovsProxyPlugin) updateNetworkPolicy(policy osapi.EgressNetworkPolicy) {
+	firewall := make([]proxyFirewallItem, len(policy.Spec.Egress))
+	for i, rule := range policy.Spec.Egress {
+		_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
+		if err != nil {
+			// should have been caught by validation
+			glog.Errorf("Illegal CIDR value %q in EgressNetworkPolicy rule", rule.To.CIDRSelector)
+			return
+		}
+		firewall[i] = proxyFirewallItem{rule.Type, cidr}
+	}
+
+	if len(firewall) > 0 {
+		proxy.firewall[policy.Namespace] = firewall
+	} else {
+		delete(proxy.firewall, policy.Namespace)
+	}
 }
 
 func (proxy *ovsProxyPlugin) watchPods() {
@@ -127,6 +181,15 @@ func (proxy *ovsProxyPlugin) unTrackPod(pod *kapi.Pod) {
 	}
 }
 
+func (proxy *ovsProxyPlugin) firewallBlocksIP(namespace string, ip net.IP) bool {
+	for _, item := range proxy.firewall[namespace] {
+		if item.net.Contains(ip) {
+			return item.policy == osapi.EgressNetworkPolicyRuleDeny
+		}
+	}
+	return false
+}
+
 func (proxy *ovsProxyPlugin) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
 	ni, err := proxy.registry.GetNetworkInfo()
 	if err != nil {
@@ -145,8 +208,7 @@ EndpointLoop:
 				if ni.ServiceNetwork.Contains(IP) {
 					glog.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 					continue EndpointLoop
-				}
-				if ni.ClusterNetwork.Contains(IP) {
+				} else if ni.ClusterNetwork.Contains(IP) {
 					podInfo, ok := proxy.getTrackedPod(addr.IP)
 					if !ok {
 						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
@@ -154,6 +216,11 @@ EndpointLoop:
 					}
 					if podInfo.ObjectMeta.Namespace != ns {
 						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podInfo.ObjectMeta.Namespace)
+						continue EndpointLoop
+					}
+				} else {
+					if proxy.firewallBlocksIP(ns, IP) {
+						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to firewalled destination (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop
 					}
 				}

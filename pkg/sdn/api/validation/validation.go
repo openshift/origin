@@ -117,3 +117,29 @@ func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) field.ErrorList {
 func ValidateNetNamespaceUpdate(obj *sdnapi.NetNamespace, old *sdnapi.NetNamespace) field.ErrorList {
 	return validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 }
+
+// ValidateEgressNetworkPolicy tests if required fields in the EgressNetworkPolicy are set.
+func ValidateEgressNetworkPolicy(policy *sdnapi.EgressNetworkPolicy) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&policy.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+
+	for i, rule := range policy.Spec.Egress {
+		if rule.Type != sdnapi.EgressNetworkPolicyRuleAllow && rule.Type != sdnapi.EgressNetworkPolicyRuleDeny {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("type"), rule.Type, "invalid policy type"))
+		}
+
+		_, _, err := net.ParseCIDR(rule.To.CIDRSelector)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to"), rule.To.CIDRSelector, err.Error()))
+		}
+	}
+
+	if len(policy.Spec.Egress) > sdnapi.EgressNetworkPolicyMaxRules {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress"), "", ("too many egress rules (max 50)")))
+	}
+
+	return allErrs
+}
+
+func ValidateEgressNetworkPolicyUpdate(obj *sdnapi.EgressNetworkPolicy, old *sdnapi.EgressNetworkPolicy) field.ErrorList {
+	return validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+}

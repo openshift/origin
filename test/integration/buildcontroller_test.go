@@ -383,7 +383,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	openshiftConfig.BuildControllerClients()
 
 	for i := 0; i < counts.BuildControllers; i++ {
-		openshiftConfig.RunBuildController()
+		openshiftConfig.RunBuildController(openshiftConfig.Informers)
 	}
 	for i := 0; i < counts.BuildPodControllers; i++ {
 		openshiftConfig.RunBuildPodController()

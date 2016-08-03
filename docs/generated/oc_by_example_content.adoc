@@ -680,6 +680,32 @@ oc adm taint nodes foo dedicated-
 ====
 
 
+== oc adm top images
+Show usage statistics for Images
+
+====
+
+[options="nowrap"]
+----
+  # Show usage statistics for Images
+  oc adm top images
+----
+====
+
+
+== oc adm top imagestreams
+Show usage statistics for ImageStreams
+
+====
+
+[options="nowrap"]
+----
+  # Show usage statistics for ImageStreams
+  oc adm top imagestreams
+----
+====
+
+
 == oc adm uncordon
 Mark node as schedulable
 

@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d3e98640a3826b1669d939198b26a406f46c5f43
+%global commit d4406c8b748f26229a0b69029ff18eda31875b47
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.12+d3e9864 -X github.com/openshift/origin/pkg/version.commitFromGit=d3e9864 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-01T15:04:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-01T15:04:00Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.13+d4406c8 -X github.com/openshift/origin/pkg/version.commitFromGit=d4406c8 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-03T13:48:53Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-03T13:48:53Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.13
+Version:        3.3.0.14
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -474,6 +474,100 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Aug 03 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.14
+- Fix doc link (wang.yuexiao@zte.com.cn)
+- Bump origin-web-console (b0dc7d5) (jforrest@redhat.com)
+- Adds a flag to allow skipping config writes when creating a project
+  (ffranz@redhat.com)
+- add back missing integration tests (deads@redhat.com)
+- clusterquota: prove image stream work with cluster quota (mfojtik@redhat.com)
+- add back missing integration tests (deads@redhat.com)
+- cluster up: suggest 'cluster down' message (cewong@redhat.com)
+- add extended builds functionality (ipalade@redhat.com)
+- Display original cmd and stderr in extended test (mfojtik@redhat.com)
+- Improve bootstrap policy overwrite error handling (jliggitt@redhat.com)
+- Aggregate reconcile errors (jliggitt@redhat.com)
+- Make AddRole tolerate races on role additions (jliggitt@redhat.com)
+- Improve role/rolebinding virtual storage (jliggitt@redhat.com)
+- Fix panic in rolebinding reconcile error message (jliggitt@redhat.com)
+- generated code (pweil@redhat.com)
+- SCC seccomp admission (pweil@redhat.com)
+- UPSTREAM: <carry>: SCC seccomp support (pweil@redhat.com)
+- using a unused parameter (Yanqiang Miao)
+- Add paused field in deployment config describer (mfojtik@redhat.com)
+- mv oc projects tests to separate file (jvallejo@redhat.com)
+- Bump origin-web-console (d68bf15) (jforrest@redhat.com)
+- new-app: accept template on stdin (cewong@redhat.com)
+- UPSTREAM: 29588: Properly apply quota for init containers
+  (ccoleman@redhat.com)
+- oc rsync: allow multiple include or exclude patterns (cewong@redhat.com)
+- Change package names for upstream volume controllers in master.go
+  (pmorie@gmail.com)
+- UPSTREAM: 29673: Fix mount collision timeout issue (pmorie@gmail.com)
+- UPSTREAM: 29641: Fix wrapped volume race (pmorie@gmail.com)
+- UPSTREAM: 28939: Allow mounts to run in parallel for non-attachable volumes
+  (pmorie@gmail.com)
+- UPSTREAM: 28409: Reorganize volume controllers and manager (pmorie@gmail.com)
+- UPSTREAM: 28153: Fixed goroutinemap race on Wait() (pmorie@gmail.com)
+- UPSTREAM: 24797: add enhanced volume and mount logging for block devices
+  (pmorie@gmail.com)
+- UPSTREAM: 28584: Add spec.Name to the configmap GetVolumeName
+  (pmorie@gmail.com)
+- remove accidentally checked in openshift.local.config (bparees@redhat.com)
+- UPSTREAM: 29171: Fix order of determineContainerIP args (pmorie@gmail.com)
+- handle nil reference to o.Attach.Err (jvallejo@redhat.com)
+- UPSTREAM: 29485: Assume volume detached if node doesn't exist
+  (pmorie@gmail.com)
+- UPSTREAM: 24385: golint fixes for aws cloudprovider (pmorie@gmail.com)
+- UPSTREAM: 29240: Pass nodeName to VolumeManager instead of hostName
+  (pmorie@gmail.com)
+- UPSTREAM: 29031: Wait for PD detach on PD E2E to prevent kernel err
+  (pmorie@gmail.com)
+- UPSTREAM: 28404: Move ungraceful PD tests out of flaky (pmorie@gmail.com)
+- UPSTREAM: 28181: Add two pd tests with default grace period
+  (pmorie@gmail.com)
+- UPSTREAM: 28090: Mark "RW PD, remove it, then schedule" test flaky
+  (pmorie@gmail.com)
+- UPSTREAM: 28048: disable flaky PD test (pmorie@gmail.com)
+- UPSTREAM: 29077: Fix "PVC Volume not detached if pod deleted via namespace
+  deletion" issue (pmorie@gmail.com)
+- enable deployments (deads@redhat.com)
+- cluster up: fix incorrect directory permissions (cewong@redhat.com)
+- Handle local source as binary when git is not available (cewong@redhat.com)
+- enable replicasets (deads@redhat.com)
+- Move image administrative commands tests to admin.sh (maszulik@redhat.com)
+- oadm top command generated changes (maszulik@redhat.com)
+- Add oadm top command for analyzing image and imagestream usage
+  (maszulik@redhat.com)
+- remove unnecessary export (deads@redhat.com)
+- Bug 1325069 - Sort status tags according to semver (maszulik@redhat.com)
+- Support scheduler config options so custom schedulers can be used
+  (ccoleman@redhat.com)
+- Check pull access when tagging imagestreams (jliggitt@redhat.com)
+- to remove singleton and to fix
+  TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI (salvatore-
+  dario.minonne@amadeus.com)
+- update the URL of git server (li.guangxu@zte.com.cn)
+- Kerberos Extended Test Improvements (mkhan@redhat.com)
+- update hardcoded "oc" cmd suggestion in cmd output (jvallejo@redhat.com)
+- check that dest exists before attempting to extract (jvallejo@redhat.com)
+- Support EgressNetworkPolicy in SDN plugin (danw@redhat.com)
+- Make SDN plugin track vnid->Namespaces mapping (in addition to the reverse)
+  (danw@redhat.com)
+- Update generated code (danw@redhat.com)
+- Add EgressNetworkPolicy (danw@redhat.com)
+- Always set pod name annotation on build (cewong@redhat.com)
+- SCC admission with sharedIndexInformer (salvatore-dario.minonne@amadeus.com)
+- use legacy restmapper against undiscoverable servers (deads@redhat.com)
+- fix bz1355721 (bmeng@redhat.com)
+- `env_file` option of docker-compose support (surajssd009005@gmail.com)
+- testing (bparees@redhat.com)
+- Changing defaultExporter to be public (DefaultExporter) (mdame@redhat.com)
+- Don't use "kexec" as both a package name and a variable name
+  (danw@redhat.com)
+- Use randomness for REGISTRY_HTTP_SECRET in projectatomic/atomic-registry-
+  install (schmidt.simon@gmail.com)
+
 * Mon Aug 01 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.13
 - rsh: Insert a TERM variable into the command to be run
   (jonh.wendell@redhat.com)
