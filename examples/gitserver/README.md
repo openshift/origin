@@ -65,7 +65,7 @@ a 'git clone' of the repository.
    In this case, the URL of your git server will be the host name used by the route; something like: 
    
    ```
-   http://git-myproject.infra.openshift.com
+   http://git-myproject.router.default.svc.cluster.local
    ```
   
    Alternatively, if your router is not functional, you can port-forward the git-server pod to your local machine.
@@ -91,7 +91,7 @@ a 'git clone' of the repository.
    provide credentials to the Git Server is by using a custom credential helper that will 
    send your OpenShift token by default to the server.
    ```sh
-   $ git config --global credential.http://git-myproject.infra.openshift.com.helper \
+   $ git config --global credential.http://git-myproject.router.default.svc.cluster.local.helper \
          '!f() { echo "username=$(oc whoami)"; echo "password=$(oc whoami -t)"; }; f'
    ```
 
@@ -107,7 +107,7 @@ a 'git clone' of the repository.
 
    # add a remote for your git server
    $ cd ruby-hello-world
-   $ git remote add openshift http://git-myproject.infra.openshift.com/ruby-hello-world.git  
+   $ git remote add openshift http://git-myproject.router.default.svc.cluster.local/ruby-hello-world.git  
 
    # push the code to the git server
    $ git push openshift master
@@ -139,7 +139,7 @@ protocol to avoid transmission of source in plain text.
    metadata:
      name: git
    spec:
-     host: git-myproject.infra.openshift.com
+     host: git-myproject.router.default.svc.cluster.local
      tls:
        termination: edge
      to:
@@ -150,7 +150,7 @@ protocol to avoid transmission of source in plain text.
 2. If using a private certificate authority, configure your git client to use the private ca.crt file:
 
    ```sh
-   $ git config --global http.https://git-myproject.infra.openshift.com.sslCAInfo /path/to/ca.crt
+   $ git config --global http.https://git-myproject.router.default.svc.cluster.local.sslCAInfo /path/to/ca.crt
    ```
 
    where the key is http.[git server URL].sslCAInfo
@@ -243,3 +243,4 @@ oc set env dc/git BUILD_STRATEGY=source
 ```
 
 Valid values for BUILD_STRATEGY are "" (empty string), `source`, and `docker`.
+

@@ -19,6 +19,12 @@ const (
 	InfraReplicationControllerServiceAccountName = "replication-controller"
 	ReplicationControllerRoleName                = "system:replication-controller"
 
+	InfraReplicaSetControllerServiceAccountName = "replicaset-controller"
+	ReplicaSetControllerRoleName                = "system:replicaset-controller"
+
+	InfraDeploymentConfigControllerServiceAccountName = "deploymentconfig-controller"
+	DeploymentConfigControllerRoleName                = "system:deploymentconfig-controller"
+
 	InfraDeploymentControllerServiceAccountName = "deployment-controller"
 	DeploymentControllerRoleName                = "system:deployment-controller"
 
@@ -149,10 +155,10 @@ func init() {
 	}
 
 	err = InfraSAs.addServiceAccount(
-		InfraDeploymentControllerServiceAccountName,
+		InfraDeploymentConfigControllerServiceAccountName,
 		authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: DeploymentControllerRoleName,
+				Name: DeploymentConfigControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// DeploymentControllerFactory.deploymentLW
@@ -172,6 +178,45 @@ func init() {
 				},
 				// DeploymentController.recorder (EventBroadcaster)
 				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraDeploymentControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: DeploymentControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch", "update"),
+					Resources: sets.NewString("deployments"),
+				},
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("deployments/status"),
+				},
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("list", "watch", "get", "create", "update", "delete"),
+					Resources: sets.NewString("replicasets"),
+				},
+				{
+					APIGroups: []string{""},
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				{
+					APIGroups: []string{""},
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
@@ -216,6 +261,38 @@ func init() {
 					Resources: sets.NewString("pods"),
 				},
 				// ReplicationManager.podControl.recorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraReplicaSetControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ReplicaSetControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch", "update"),
+					Resources: sets.NewString("replicasets"),
+				},
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("replicasets/status"),
+				},
+				{
+					Verbs:     sets.NewString("list", "watch", "create", "delete"),
+					Resources: sets.NewString("pods"),
+				},
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),

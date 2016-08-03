@@ -6,7 +6,7 @@
   - [Windows](#windows)
   - [Linux](#linux)
 - [Administrator Access](#administrator-access)
-- [Docker Machine](#docker-machine-details)
+- [Docker Machine](#docker-machine)
 - [Configuration](#configuration)
 - [Etcd Data](#etcd-data)
 - [Routing](#routing)

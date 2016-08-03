@@ -27,9 +27,10 @@ var _ = g.Describe("[images][python][Slow] hot deploy for openshift python image
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-			exutil.CheckOpenShiftNamespaceImageStreams(oc)
+			err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
-			err := oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
+			err = oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")

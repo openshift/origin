@@ -138,6 +138,13 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 			}
 		}
 
+		if list, isList := obj.(*kapi.List); isList && !isSingular {
+			if len(list.Items) == 1 {
+				obj = list.Items[0]
+				isSingular = true
+			}
+		}
+
 		if !isSingular {
 			errs = append(errs, fmt.Errorf("there is more than one object in %q", term))
 			continue

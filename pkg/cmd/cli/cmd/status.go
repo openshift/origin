@@ -67,7 +67,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 		Long:    fmt.Sprintf(statusLong, baseCLIName),
 		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := opts.Complete(f, cmd, args, out)
+			err := opts.Complete(f, cmd, baseCLIName, args, out)
 			kcmdutil.CheckErr(err)
 
 			if err := opts.Validate(); err != nil {
@@ -87,7 +87,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 }
 
 // Complete completes the options for the Openshift cli status command.
-func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseCLIName string, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "no arguments should be provided")
 	}
@@ -116,11 +116,17 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		o.namespace = namespace
 	}
 
+	if baseCLIName == "" {
+		baseCLIName = "oc"
+	}
+
 	o.describer = &describe.ProjectStatusDescriber{
 		K:       kclient,
 		C:       client,
 		Server:  config.Host,
 		Suggest: o.verbose,
+
+		CommandBaseName: baseCLIName,
 
 		// TODO: Remove these and reference them inside the markers using constants.
 		LogsCommandName:             o.logsCommandName,

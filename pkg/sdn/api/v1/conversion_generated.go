@@ -17,6 +17,16 @@ func init() {
 		Convert_api_ClusterNetwork_To_v1_ClusterNetwork,
 		Convert_v1_ClusterNetworkList_To_api_ClusterNetworkList,
 		Convert_api_ClusterNetworkList_To_v1_ClusterNetworkList,
+		Convert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy,
+		Convert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy,
+		Convert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList,
+		Convert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList,
+		Convert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer,
+		Convert_api_EgressNetworkPolicyPeer_To_v1_EgressNetworkPolicyPeer,
+		Convert_v1_EgressNetworkPolicyRule_To_api_EgressNetworkPolicyRule,
+		Convert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule,
+		Convert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec,
+		Convert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec,
 		Convert_v1_HostSubnet_To_api_HostSubnet,
 		Convert_api_HostSubnet_To_v1_HostSubnet,
 		Convert_v1_HostSubnetList_To_api_HostSubnetList,
@@ -115,6 +125,170 @@ func autoConvert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *sdn_api.Clu
 
 func Convert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *sdn_api.ClusterNetworkList, out *ClusterNetworkList, s conversion.Scope) error {
 	return autoConvert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in, out, s)
+}
+
+func autoConvert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in *EgressNetworkPolicy, out *sdn_api.EgressNetworkPolicy, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in *EgressNetworkPolicy, out *sdn_api.EgressNetworkPolicy, s conversion.Scope) error {
+	return autoConvert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in, out, s)
+}
+
+func autoConvert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in *sdn_api.EgressNetworkPolicy, out *EgressNetworkPolicy, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in *sdn_api.EgressNetworkPolicy, out *EgressNetworkPolicy, s conversion.Scope) error {
+	return autoConvert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in, out, s)
+}
+
+func autoConvert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *EgressNetworkPolicyList, out *sdn_api.EgressNetworkPolicyList, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]sdn_api.EgressNetworkPolicy, len(*in))
+		for i := range *in {
+			if err := Convert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *EgressNetworkPolicyList, out *sdn_api.EgressNetworkPolicyList, s conversion.Scope) error {
+	return autoConvert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in, out, s)
+}
+
+func autoConvert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *sdn_api.EgressNetworkPolicyList, out *EgressNetworkPolicyList, s conversion.Scope) error {
+	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := api.Convert_unversioned_ListMeta_To_unversioned_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]EgressNetworkPolicy, len(*in))
+		for i := range *in {
+			if err := Convert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func Convert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *sdn_api.EgressNetworkPolicyList, out *EgressNetworkPolicyList, s conversion.Scope) error {
+	return autoConvert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in, out, s)
+}
+
+func autoConvert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer(in *EgressNetworkPolicyPeer, out *sdn_api.EgressNetworkPolicyPeer, s conversion.Scope) error {
+	out.CIDRSelector = in.CIDRSelector
+	return nil
+}
+
+func Convert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer(in *EgressNetworkPolicyPeer, out *sdn_api.EgressNetworkPolicyPeer, s conversion.Scope) error {
+	return autoConvert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer(in, out, s)
+}
+
+func autoConvert_api_EgressNetworkPolicyPeer_To_v1_EgressNetworkPolicyPeer(in *sdn_api.EgressNetworkPolicyPeer, out *EgressNetworkPolicyPeer, s conversion.Scope) error {
+	out.CIDRSelector = in.CIDRSelector
+	return nil
+}
+
+func Convert_api_EgressNetworkPolicyPeer_To_v1_EgressNetworkPolicyPeer(in *sdn_api.EgressNetworkPolicyPeer, out *EgressNetworkPolicyPeer, s conversion.Scope) error {
+	return autoConvert_api_EgressNetworkPolicyPeer_To_v1_EgressNetworkPolicyPeer(in, out, s)
+}
+
+func autoConvert_v1_EgressNetworkPolicyRule_To_api_EgressNetworkPolicyRule(in *EgressNetworkPolicyRule, out *sdn_api.EgressNetworkPolicyRule, s conversion.Scope) error {
+	out.Type = sdn_api.EgressNetworkPolicyRuleType(in.Type)
+	if err := Convert_v1_EgressNetworkPolicyPeer_To_api_EgressNetworkPolicyPeer(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_EgressNetworkPolicyRule_To_api_EgressNetworkPolicyRule(in *EgressNetworkPolicyRule, out *sdn_api.EgressNetworkPolicyRule, s conversion.Scope) error {
+	return autoConvert_v1_EgressNetworkPolicyRule_To_api_EgressNetworkPolicyRule(in, out, s)
+}
+
+func autoConvert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule(in *sdn_api.EgressNetworkPolicyRule, out *EgressNetworkPolicyRule, s conversion.Scope) error {
+	out.Type = EgressNetworkPolicyRuleType(in.Type)
+	if err := Convert_api_EgressNetworkPolicyPeer_To_v1_EgressNetworkPolicyPeer(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule(in *sdn_api.EgressNetworkPolicyRule, out *EgressNetworkPolicyRule, s conversion.Scope) error {
+	return autoConvert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule(in, out, s)
+}
+
+func autoConvert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(in *EgressNetworkPolicySpec, out *sdn_api.EgressNetworkPolicySpec, s conversion.Scope) error {
+	if in.Egress != nil {
+		in, out := &in.Egress, &out.Egress
+		*out = make([]sdn_api.EgressNetworkPolicyRule, len(*in))
+		for i := range *in {
+			if err := Convert_v1_EgressNetworkPolicyRule_To_api_EgressNetworkPolicyRule(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Egress = nil
+	}
+	return nil
+}
+
+func Convert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(in *EgressNetworkPolicySpec, out *sdn_api.EgressNetworkPolicySpec, s conversion.Scope) error {
+	return autoConvert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(in, out, s)
+}
+
+func autoConvert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *sdn_api.EgressNetworkPolicySpec, out *EgressNetworkPolicySpec, s conversion.Scope) error {
+	if in.Egress != nil {
+		in, out := &in.Egress, &out.Egress
+		*out = make([]EgressNetworkPolicyRule, len(*in))
+		for i := range *in {
+			if err := Convert_api_EgressNetworkPolicyRule_To_v1_EgressNetworkPolicyRule(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Egress = nil
+	}
+	return nil
+}
+
+func Convert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *sdn_api.EgressNetworkPolicySpec, out *EgressNetworkPolicySpec, s conversion.Scope) error {
+	return autoConvert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in, out, s)
 }
 
 func autoConvert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *sdn_api.HostSubnet, s conversion.Scope) error {

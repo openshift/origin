@@ -6,16 +6,18 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	testingcore "k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
+
+	oscache "github.com/openshift/origin/pkg/client/cache"
 )
 
 // scc exec is a pass through to *constraint, so we only need to test that
 // it correctly limits its actions to certain conditions
 func TestExecAdmit(t *testing.T) {
-
 	goodPod := func() *kapi.Pod {
 		return &kapi.Pod{
 			Spec: kapi.PodSpec{
@@ -89,6 +91,10 @@ func TestExecAdmit(t *testing.T) {
 
 		// create the admission plugin
 		p := NewSCCExecRestrictions(tc)
+		p.constraintAdmission.sccLister = &oscache.IndexerToSecurityContextConstraintsLister{
+			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+		}
 
 		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)
@@ -109,6 +115,5 @@ func TestExecAdmit(t *testing.T) {
 		if v.shouldHaveClientAction && (len(tc.Actions()) == 0) {
 			t.Errorf("%s: no actions found", k)
 		}
-
 	}
 }

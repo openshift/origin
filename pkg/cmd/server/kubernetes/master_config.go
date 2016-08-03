@@ -35,6 +35,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	knet "k8s.io/kubernetes/pkg/util/net"
+	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -49,6 +50,7 @@ type MasterConfig struct {
 
 	Master            *master.Config
 	ControllerManager *cmapp.CMServer
+	SchedulerServer   *scheduleroptions.SchedulerServer
 	CloudProvider     cloudprovider.Interface
 
 	Informers shared.InformerFactory
@@ -119,6 +121,15 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
 	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cmserver.AddFlags); len(err) > 0 {
+		return nil, kerrors.NewAggregate(err)
+	}
+
+	// resolve extended arguments
+	// TODO: this should be done in config validation (along with the above) so we can provide
+	// proper errors
+	schedulerserver := scheduleroptions.NewSchedulerServer()
+	schedulerserver.PolicyConfigFile = options.KubernetesMasterConfig.SchedulerConfigFile
+	if err := cmdflags.Resolve(options.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 
@@ -273,6 +284,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Master:            m,
 		ControllerManager: cmserver,
 		CloudProvider:     cloud,
+		SchedulerServer:   schedulerserver,
 		Informers:         informers,
 	}
 

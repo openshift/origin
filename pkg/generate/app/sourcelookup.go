@@ -259,7 +259,7 @@ func (r *SourceRepository) RemoteURL() (*url.URL, bool, error) {
 	case "file":
 		gitRepo := git.NewRepository()
 		remote, ok, err := gitRepo.GetOriginURL(r.url.Path)
-		if err != nil {
+		if err != nil && err != git.ErrGitNotAvailable {
 			return nil, false, err
 		}
 		if !ok {

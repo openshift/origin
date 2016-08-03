@@ -41,7 +41,40 @@ var TestContext e2e.TestContextType
 
 const pvPrefix = "pv-"
 
-//CheckOpenShiftNamespaceImageStreams is a temporary workaround for the intermittent
+// WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
+func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
+	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
+	scan := func() bool {
+		for _, lang := range langs {
+			is, err := oc.REST().ImageStreams("openshift").Get(lang)
+			if err != nil {
+				return false
+			}
+			for tag := range is.Spec.Tags {
+				if _, ok := is.Status.Tags[tag]; !ok {
+					return false
+				}
+			}
+		}
+		return true
+	}
+
+	success := false
+	for i := 0; i < 10; i++ {
+		success = scan()
+		if success {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	if success {
+		return nil
+	}
+	DumpImageStreams(oc)
+	return fmt.Errorf("Failed to import expected imagestreams")
+}
+
+// CheckOpenShiftNamespaceImageStreams is a temporary workaround for the intermittent
 // issue seen in extended tests where *something* is deleteing the pre-loaded, languange
 // imagestreams from the OpenShift namespace
 func CheckOpenShiftNamespaceImageStreams(oc *CLI) {

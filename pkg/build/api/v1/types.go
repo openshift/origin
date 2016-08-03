@@ -479,6 +479,18 @@ type SourceBuildStrategy struct {
 
 	// forcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty" protobuf:"varint,6,opt,name=forcePull"`
+
+	// runtimeImage is an optional image that is used to run an application
+	// without unneeded dependencies installed. The building of the application
+	// is still done in the builder image but, post build, you can copy the
+	// needed artifacts in the runtime image for use.
+	RuntimeImage *kapi.ObjectReference `json:"runtimeImage,omitempty" protobuf:"bytes,7,opt,name=runtimeImage"`
+
+	// runtimeArtifacts specifies a list of source/destination pairs that will be
+	// copied from the builder to the runtime image. sourcePath can be a file or
+	// directory. destinationDir must be a directory. destinationDir can also be
+	// empty or equal to ".", in this case it just refers to the root of WORKDIR.
+	RuntimeArtifacts []ImageSourcePath `json:"runtimeArtifacts,omitempty" protobuf:"bytes,8,rep,name=runtimeArtifacts"`
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
