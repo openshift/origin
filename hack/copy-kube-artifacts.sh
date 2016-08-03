@@ -65,6 +65,7 @@ rsync -av \
   --exclude='*' \
   --prune-empty-dirs \
   $KUBE_ROOT/vendor/ $GODEP_ROOT <<EOF
+/github.com/onsi/ginkgo/ginkgo/**.go
 /github.com/golang/mock/gomock/**.go
 /github.com/google/cadvisor/info/v1/test/**.go
 EOF
