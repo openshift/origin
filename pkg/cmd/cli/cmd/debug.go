@@ -348,6 +348,7 @@ func (o *DebugOptions) Debug() error {
 			return err
 		}
 		fmt.Fprintf(o.Attach.Err, "Waiting for pod to start ...\n")
+
 		switch containerRunningEvent, err := watch.Until(o.Timeout, w, kclient.PodContainerRunning(o.Attach.ContainerName)); {
 		// api didn't error right away but the pod wasn't even created
 		case kapierrors.IsNotFound(err):
@@ -356,8 +357,8 @@ func (o *DebugOptions) Debug() error {
 				msg += fmt.Sprintf(" on node %q", o.NodeName)
 			}
 			return fmt.Errorf(msg)
-		// switch to logging output
-		case err == kclient.ErrPodCompleted, !o.Attach.Stdin:
+			// switch to logging output
+		case err == kclient.ErrPodCompleted, err == kclient.ErrContainerTerminated, !o.Attach.Stdin:
 			_, err := kcmd.LogsOptions{
 				Object: pod,
 				Options: &kapi.PodLogOptions{
