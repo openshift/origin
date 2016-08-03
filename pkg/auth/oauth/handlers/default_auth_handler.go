@@ -48,8 +48,9 @@ const (
 
 	useRedirectParam = "idp"
 
+	// Allow the CLI to request a full User Agent page view
 	// http://openid.net/specs/openid-connect-implicit-1_0.html#RequestParameters
-	displayRequestParam            = "display"
+	displayRequestParamKey         = "display"
 	displayRequestParamShowUIValue = "page"
 )
 
@@ -87,7 +88,7 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 	}
 
 	// Should we challenge because the client is asking us to display the authentication and consent UI consistent with a full User Agent page view
-	forceChallenge := req.URL.Query().Get(displayRequestParam) == displayRequestParamShowUIValue
+	forceChallenge := req.URL.Query().Get(displayRequestParamKey) == displayRequestParamShowUIValue
 
 	if forceChallenge || client.RespondWithChallenges {
 		errors := []error{}

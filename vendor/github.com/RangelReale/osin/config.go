@@ -57,6 +57,9 @@ type ServerConfig struct {
 	// Separator to support multiple URIs in Client.GetRedirectUri().
 	// If blank (the default), don't allow multiple URIs.
 	RedirectUriSeparator string
+
+	// If true and the redirect URI is a local address, then any port will be considered valid
+	AllowAnyLocalPort bool
 }
 
 // NewServerConfig returns a new ServerConfig with default configuration

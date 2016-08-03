@@ -3,9 +3,12 @@ package osin
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 )
+
+var LocalAddresses = []string{"localhost", "127.0.0.1", "::1"}
 
 // error returned when validation don't match
 type UriValidationError string
@@ -21,7 +24,7 @@ func newUriValidationError(msg string, base string, redirect string) UriValidati
 // ValidateUriList validates that redirectUri is contained in baseUriList.
 // baseUriList may be a string separated by separator.
 // If separator is blank, validate only 1 URI.
-func ValidateUriList(baseUriList string, redirectUri string, separator string) error {
+func ValidateUriList(baseUriList string, redirectUri string, separator string, allowAnyLocalPort bool) error {
 	// make a list of uris
 	var slist []string
 	if separator != "" {
@@ -32,7 +35,7 @@ func ValidateUriList(baseUriList string, redirectUri string, separator string) e
 	}
 
 	for _, sitem := range slist {
-		err := ValidateUri(sitem, redirectUri)
+		err := ValidateUri(sitem, redirectUri, allowAnyLocalPort)
 		// validated, return no error
 		if err == nil {
 			return nil
@@ -48,7 +51,7 @@ func ValidateUriList(baseUriList string, redirectUri string, separator string) e
 }
 
 // ValidateUri validates that redirectUri is contained in baseUri
-func ValidateUri(baseUri string, redirectUri string) error {
+func ValidateUri(baseUri string, redirectUri string, allowAnyLocalPort bool) error {
 	if baseUri == "" || redirectUri == "" {
 		return errors.New("urls cannot be blank.")
 	}
@@ -74,8 +77,33 @@ func ValidateUri(baseUri string, redirectUri string) error {
 	if base.Scheme != redirect.Scheme {
 		return newUriValidationError("scheme mismatch", baseUri, redirectUri)
 	}
-	if base.Host != redirect.Host {
+
+	baseHost, basePort, err := net.SplitHostPort(base.Host)
+	if err != nil {
+		return err
+	}
+
+	redirectHost, redirectPort, err := net.SplitHostPort(redirect.Host)
+	if err != nil {
+		return err
+	}
+
+	if baseHost != redirectHost {
 		return newUriValidationError("host mismatch", baseUri, redirectUri)
+	}
+
+	canUseAnyPort := false
+	if allowAnyLocalPort {
+		for _, address := range LocalAddresses {
+			if baseHost == address {
+				canUseAnyPort = true
+				break
+			}
+		}
+	}
+
+	if basePort != redirectPort && !canUseAnyPort {
+		return newUriValidationError("port mismatch", baseUri, redirectUri)
 	}
 
 	// allow exact path matches
