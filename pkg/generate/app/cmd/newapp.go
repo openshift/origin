@@ -357,22 +357,25 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 }
 
 // buildTemplates converts a set of resolved, valid references into references to template objects.
-func (c *AppConfig) buildTemplates(components app.ComponentReferences, environment app.Environment) ([]runtime.Object, error) {
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, environment app.Environment) (string, []runtime.Object, error) {
 	objects := []runtime.Object{}
-
+	name := ""
 	for _, ref := range components {
 		tpl := ref.Input().ResolvedMatch.Template
 
 		glog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
 		result, err := TransformTemplate(tpl, c.OSClient, c.OriginNamespace, environment)
 		if err != nil {
-			return nil, err
+			return name, nil, err
+		}
+		if len(name) == 0 {
+			name = tpl.Name
 		}
 		objects = append(objects, result.Objects...)
 
 		DescribeGeneratedTemplate(c.Out, ref.Input().String(), result, c.OriginNamespace)
 	}
-	return objects, nil
+	return name, objects, nil
 }
 
 // fakeSecretAccessor is used during dry runs of installation
@@ -661,13 +664,16 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	objects = app.AddServices(objects, false)
 
-	templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), app.Environment(parameters))
+	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), app.Environment(parameters))
 	if err != nil {
 		return nil, err
 	}
 	objects = append(objects, templateObjects...)
 
 	name = c.Name
+	if len(name) == 0 {
+		name = templateName
+	}
 	if len(name) == 0 {
 		for _, pipeline := range pipelines {
 			if pipeline.Deployment != nil {
