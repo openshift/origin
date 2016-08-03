@@ -2,32 +2,18 @@ package placeholderchallenger
 
 import (
 	"fmt"
-	"net/http"
 
+	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	oauthhandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 )
 
-type placeholderChallenger struct {
-	tokenRequestURL string
-}
-
-// New returns an AuthenticationChallenger that responds with a warning and link to the web UI for requesting a token
+// New returns an AuthenticationChallenger that responds with an error and link to the web UI for requesting a token
 func New(url string) oauthhandlers.AuthenticationChallenger {
-	return placeholderChallenger{url}
-}
-
-// AuthenticationChallenge returns a header that indicates a basic auth challenge for the supplied realm
-func (c placeholderChallenger) AuthenticationChallenge(req *http.Request) (http.Header, error) {
-	headers := http.Header{}
-	headers.Add("Warning",
-		fmt.Sprintf(
-			`%s %s "You must obtain an API token by visiting %s"`,
-			oauthhandlers.WarningHeaderMiscCode,
-			oauthhandlers.WarningHeaderOpenShiftSource,
-			c.tokenRequestURL,
-		),
+	errorDescription := fmt.Sprintf(
+		`%s %s "You must obtain an API token by visiting %s"`,
+		oauthhandlers.WarningHeaderMiscCode,
+		oauthhandlers.WarningHeaderOpenShiftSource,
+		url,
 	)
-	headers.Add("Link", fmt.Sprintf(`<%s>; rel="related"`, c.tokenRequestURL))
-
-	return headers, nil
+	return redirector.NewChallenger(nil, url+"?error=interaction_required&error_description="+errorDescription)
 }
