@@ -47,6 +47,7 @@ echo "OPENSHIFT_OAUTH_PROVIDER_URL=https://${INSTALL_HOST}:8443" >> /host/etc/sy
 echo "REGISTRY_HOST=${INSTALL_HOST}:5000" >> /host/etc/sysconfig/atomic-registry-console
 # generate random secret for multi-registry shared storage deployment
 echo "REGISTRY_HTTP_SECRET=$(head -c 64 /dev/urandom | base64 -w0)" >> /host/etc/sysconfig/atomic-registry
+echo "DOCKER_REGISTRY_SERVICE_HOST=${INSTALL_HOST}" >> /host/etc/sysconfig/atomic-registry
 
 # load updated systemd unit files
 chroot /host systemctl daemon-reload
