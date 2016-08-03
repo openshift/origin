@@ -12,6 +12,7 @@ import (
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
 	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	_ "github.com/openshift/origin/pkg/image/admission"
+	_ "github.com/openshift/origin/pkg/image/admission/restricted"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
@@ -42,6 +43,7 @@ var (
 func init() {
 	defaultOffPlugins.Insert("AlwaysPullImages")
 	defaultOnPlugins.Insert("ClusterResourceQuota")
+	defaultOnPlugins.Insert("ImageBlacklist")
 	admission.PluginEnabledFn = IsAdmissionPluginActivated
 }
 
