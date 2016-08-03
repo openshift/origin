@@ -654,7 +654,7 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 // commit/reload should be skipped.
 func (r *templateRouter) SetSkipCommit(skipCommit bool) {
 	if r.skipCommit != skipCommit {
-		glog.V(4).Infof("Updating skip commit to: %s", skipCommit)
+		glog.V(4).Infof("Updating skip commit to: %t", skipCommit)
 		r.skipCommit = skipCommit
 	}
 }

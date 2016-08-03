@@ -347,7 +347,7 @@ func TestProjectStatus(t *testing.T) {
 			o.Add(obj)
 		}
 		oc, kc := testclient.NewFixtureClients(o)
-		d := ProjectStatusDescriber{C: oc, K: kc, Server: "https://example.com:8443", Suggest: true, LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
+		d := ProjectStatusDescriber{C: oc, K: kc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)

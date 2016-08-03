@@ -1953,6 +1953,28 @@ func (m *SourceBuildStrategy) MarshalTo(data []byte) (int, error) {
 		data[i] = 0
 	}
 	i++
+	if m.RuntimeImage != nil {
+		data[i] = 0x3a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.RuntimeImage.Size()))
+		n61, err := m.RuntimeImage.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n61
+	}
+	if len(m.RuntimeArtifacts) > 0 {
+		for _, msg := range m.RuntimeArtifacts {
+			data[i] = 0x42
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
 	return i, nil
 }
 
@@ -2005,11 +2027,11 @@ func (m *SourceRevision) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintGenerated(data, i, uint64(m.Git.Size()))
-		n61, err := m.Git.MarshalTo(data[i:])
+		n62, err := m.Git.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n61
+		i += n62
 	}
 	return i, nil
 }
@@ -2689,6 +2711,16 @@ func (m *SourceBuildStrategy) Size() (n int) {
 	n += 1 + l + sovGenerated(uint64(l))
 	n += 2
 	n += 2
+	if m.RuntimeImage != nil {
+		l = m.RuntimeImage.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	if len(m.RuntimeArtifacts) > 0 {
+		for _, e := range m.RuntimeArtifacts {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -8508,6 +8540,70 @@ func (m *SourceBuildStrategy) Unmarshal(data []byte) error {
 				}
 			}
 			m.ForcePull = bool(v != 0)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimeImage", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RuntimeImage == nil {
+				m.RuntimeImage = &k8s_io_kubernetes_pkg_api_v1.ObjectReference{}
+			}
+			if err := m.RuntimeImage.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuntimeArtifacts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuntimeArtifacts = append(m.RuntimeArtifacts, ImageSourcePath{})
+			if err := m.RuntimeArtifacts[len(m.RuntimeArtifacts)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGenerated(data[iNdEx:])

@@ -48,6 +48,7 @@ items:
     - bindings
     - componentstatuses
     - configmaps
+    - egressnetworkpolicies
     - endpoints
     - events
     - limitranges
@@ -483,8 +484,12 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
     - horizontalpodautoscalers
     - jobs
+    - replicasets
+    - replicasets/scale
     - replicationcontrollers/scale
     verbs:
     - create
@@ -840,8 +845,12 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
     - horizontalpodautoscalers
     - jobs
+    - replicasets
+    - replicasets/scale
     - replicationcontrollers/scale
     verbs:
     - create
@@ -1104,8 +1113,12 @@ items:
     - extensions
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
     - horizontalpodautoscalers
     - jobs
+    - replicasets
+    - replicasets/scale
     verbs:
     - get
     - list
@@ -1879,6 +1892,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - egressnetworkpolicies
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - clusternetworks
     verbs:
     - get
@@ -2264,6 +2286,59 @@ items:
   metadata:
     creationTimestamp: null
     name: system:deployment-controller
+  rules:
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - deployments
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - deployments/status
+    verbs:
+    - update
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - replicasets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:deploymentconfig-controller
   rules:
   - apiGroups:
     - ""
@@ -2710,6 +2785,48 @@ items:
     - create
     - delete
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:replicaset-controller
+  rules:
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - replicasets
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - replicasets/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null

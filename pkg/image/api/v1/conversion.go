@@ -209,7 +209,7 @@ func Convert_api_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string]n
 	for key := range *in {
 		allKeys = append(allKeys, key)
 	}
-	sort.Strings(allKeys)
+	newer.PrioritizeTags(allKeys)
 
 	for _, key := range allKeys {
 		newTagEventList := (*in)[key]

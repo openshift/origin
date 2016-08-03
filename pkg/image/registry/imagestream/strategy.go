@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -433,19 +432,18 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 			continue
 		}
 
-		subjectAccessReview := authorizationapi.SubjectAccessReview{
+		// Make sure this user can pull the specified image before allowing them to tag it into another imagestream
+		subjectAccessReview := authorizationapi.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
 			Action: authorizationapi.Action{
 				Verb:         "get",
 				Group:        api.GroupName,
-				Resource:     "imagestreams",
+				Resource:     "imagestreams/layers",
 				ResourceName: streamName,
 			},
-			User:   user.GetName(),
-			Groups: sets.NewString(user.GetGroups()...),
-		}
+		})
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
 		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
-		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, &subjectAccessReview)
+		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
 			errors = append(errors, field.Forbidden(fromPath, fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)))
 			continue

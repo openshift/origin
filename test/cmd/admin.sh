@@ -481,4 +481,20 @@ os::cmd::expect_success_and_text 'oc describe identity test-idp:test-uid' 'test-
 os::cmd::expect_success_and_text 'oc describe user     test-cmd-user' 'test-idp:test-uid'
 os::test::junit::declare_suite_end
 
+# images
+os::test::junit::declare_suite_start "cmd/admin/images"
+
+# import image and check its information
+os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/stable-busybox.yaml"
+os::cmd::expect_success_and_text "oadm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+yes\W+0.65MiB"
+os::cmd::expect_success_and_text "oadm top imagestreams" "default/busybox\W+0.65MiB\W+1\W+1"
+
+# log in as an image-pruner and test that oadm prune images works against the atomic binary
+os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"
+os::cmd::expect_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u pruner -p anything"
+os::cmd::expect_success_and_text "oadm prune images" "Dry run enabled - no modifications will be made. Add --confirm to remove images"
+
+echo "images: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end

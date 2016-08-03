@@ -25,4 +25,10 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	); err != nil {
 		panic(err)
 	}
+
+	if err := scheme.AddFieldLabelConversionFunc("v1", "EgressNetworkPolicy",
+		oapi.GetFieldLabelConversionFunc(api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}), nil),
+	); err != nil {
+		panic(err)
+	}
 }

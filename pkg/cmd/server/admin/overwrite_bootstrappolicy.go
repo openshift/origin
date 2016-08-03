@@ -9,12 +9,14 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
@@ -173,14 +175,30 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 		}
 		runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder())
 
+		// For each object, we attempt the following to maximize our ability to persist the desired objects, while minimizing etcd write thrashing:
+		// 1. Create the object (no-ops if the object already exists)
+		// 2. If the object already exists, attempt to update the object (no-ops if an identical object is already persisted)
+		// 3. If we encounter any error updating, delete and recreate
+		errs := []error{}
 		for _, item := range template.Objects {
 			switch t := item.(type) {
 			case *authorizationapi.Role:
 				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
-					roleStorage.Delete(ctx, t.Name, nil)
-					if _, err := roleStorage.CreateRoleWithEscalation(ctx, t); err != nil {
-						return err
+					// Attempt to create
+					_, err := roleStorage.CreateRoleWithEscalation(ctx, t)
+					// Unconditional replace if it already exists
+					if kapierrors.IsAlreadyExists(err) {
+						_, _, err = roleStorage.UpdateRoleWithEscalation(ctx, t)
+					}
+					// Delete and recreate as a last resort
+					if err != nil {
+						roleStorage.Delete(ctx, t.Name, nil)
+						_, err = roleStorage.CreateRoleWithEscalation(ctx, t)
+					}
+					// Gather any error
+					if err != nil {
+						errs = append(errs, err)
 					}
 				} else {
 					fmt.Fprintf(out, "Overwrite role %s/%s\n", t.Namespace, t.Name)
@@ -191,9 +209,20 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 			case *authorizationapi.RoleBinding:
 				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
-					roleBindingStorage.Delete(ctx, t.Name, nil)
-					if _, err := roleBindingStorage.CreateRoleBindingWithEscalation(ctx, t); err != nil {
-						return err
+					// Attempt to create
+					_, err := roleBindingStorage.CreateRoleBindingWithEscalation(ctx, t)
+					// Unconditional replace if it already exists
+					if kapierrors.IsAlreadyExists(err) {
+						_, _, err = roleBindingStorage.UpdateRoleBindingWithEscalation(ctx, t)
+					}
+					// Delete and recreate as a last resort
+					if err != nil {
+						roleBindingStorage.Delete(ctx, t.Name, nil)
+						_, err = roleBindingStorage.CreateRoleBindingWithEscalation(ctx, t)
+					}
+					// Gather any error
+					if err != nil {
+						errs = append(errs, err)
 					}
 				} else {
 					fmt.Fprintf(out, "Overwrite role binding %s/%s\n", t.Namespace, t.Name)
@@ -205,9 +234,20 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 			case *authorizationapi.ClusterRole:
 				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
-					clusterRoleStorage.Delete(ctx, t.Name, nil)
-					if _, err := clusterRoleStorage.CreateClusterRoleWithEscalation(ctx, t); err != nil {
-						return err
+					// Attempt to create
+					_, err := clusterRoleStorage.CreateClusterRoleWithEscalation(ctx, t)
+					// Unconditional replace if it already exists
+					if kapierrors.IsAlreadyExists(err) {
+						_, _, err = clusterRoleStorage.UpdateClusterRoleWithEscalation(ctx, t)
+					}
+					// Delete and recreate as a last resort
+					if err != nil {
+						clusterRoleStorage.Delete(ctx, t.Name, nil)
+						_, err = clusterRoleStorage.CreateClusterRoleWithEscalation(ctx, t)
+					}
+					// Gather any error
+					if err != nil {
+						errs = append(errs, err)
 					}
 				} else {
 					fmt.Fprintf(out, "Overwrite role %s/%s\n", t.Namespace, t.Name)
@@ -218,9 +258,20 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 			case *authorizationapi.ClusterRoleBinding:
 				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
-					clusterRoleBindingStorage.Delete(ctx, t.Name, nil)
-					if _, err := clusterRoleBindingStorage.CreateClusterRoleBindingWithEscalation(ctx, t); err != nil {
-						return err
+					// Attempt to create
+					_, err := clusterRoleBindingStorage.CreateClusterRoleBindingWithEscalation(ctx, t)
+					// Unconditional replace if it already exists
+					if kapierrors.IsAlreadyExists(err) {
+						_, _, err = clusterRoleBindingStorage.UpdateClusterRoleBindingWithEscalation(ctx, t)
+					}
+					// Delete and recreate as a last resort
+					if err != nil {
+						clusterRoleBindingStorage.Delete(ctx, t.Name, nil)
+						_, err = clusterRoleBindingStorage.CreateClusterRoleBindingWithEscalation(ctx, t)
+					}
+					// Gather any error
+					if err != nil {
+						errs = append(errs, err)
 					}
 				} else {
 					fmt.Fprintf(out, "Overwrite role binding %s/%s\n", t.Namespace, t.Name)
@@ -230,13 +281,13 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 				}
 
 			default:
-				return fmt.Errorf("only roles and rolebindings may be created in this mode, not: %v", reflect.TypeOf(t))
+				errs = append(errs, fmt.Errorf("only roles and rolebindings may be created in this mode, not: %v", reflect.TypeOf(t)))
 			}
 		}
 		if !change {
 			fmt.Fprintf(out, "To make the changes described above, pass --force\n")
 		}
-		return nil
+		return kerrors.NewAggregate(errs)
 	})
 }
 

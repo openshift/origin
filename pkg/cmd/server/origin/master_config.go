@@ -847,7 +847,7 @@ func (c *MasterConfig) DeploymentConfigScaleClient() *kclient.Client {
 
 // DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}

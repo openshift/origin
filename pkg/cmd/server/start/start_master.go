@@ -561,6 +561,14 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
+		_, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for replication controller: %v", err)
+		}
+		_, _, deploymentClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for deployment controller: %v", err)
+		}
 		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
@@ -606,6 +614,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
+		kc.RunReplicaSetController(rsClient)
+		kc.RunDeploymentController(deploymentClient)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 
@@ -635,7 +645,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 	// no special order
 	if configapi.IsBuildEnabled(&oc.Options) {
-		oc.RunBuildController()
+		oc.RunBuildController(oc.Informers)
 		oc.RunBuildPodController()
 		oc.RunBuildConfigChangeController()
 		oc.RunBuildImageChangeTriggerController()

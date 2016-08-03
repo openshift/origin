@@ -76,6 +76,8 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/basicresources/status"
 os::cmd::expect_success_and_text 'openshift cli status -h' 'openshift cli describe buildConfig'
 os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+os::cmd::expect_success_and_text 'oc status' 'oc new-app'
+os::cmd::expect_success_and_text 'openshift cli status' 'openshift cli new-app'
 echo "status help output: ok"
 os::test::junit::declare_suite_end
 
@@ -338,17 +340,6 @@ os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
 os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server: You may not request a new project via this API'
-
-# test oc projects
-os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
-os::cmd::expect_success_and_text 'oc projects' 'You have access'
-# log in as a test user and expect no projects
-os::cmd::expect_success 'oc login -u test -p test'
-os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
-# add a project and expect text for a single project
-os::cmd::expect_success_and_text 'oc new-project test4; sleep 2; oc projects' 'You have one project on this server: "test4".'
-os::cmd::expect_success_and_text 'oc new-project test5; sleep 2; oc projects' 'You have access'
-echo 'projects command ok'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly

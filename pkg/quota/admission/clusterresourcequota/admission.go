@@ -65,7 +65,7 @@ const (
 // are persisted by the server this admission controller is intercepting
 func NewClusterResourceQuota() (admission.Interface, error) {
 	return &clusterQuotaAdmission{
-		Handler:     admission.NewHandler(admission.Create),
+		Handler:     admission.NewHandler(admission.Create, admission.Update),
 		lockFactory: NewDefaultLockFactory(),
 	}, nil
 }

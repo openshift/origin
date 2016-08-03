@@ -328,10 +328,14 @@ func (o *DebugOptions) Debug() error {
 	o.Attach.InterruptParent = interrupt.New(
 		func(os.Signal) { os.Exit(1) },
 		func() {
-			fmt.Fprintf(o.Attach.Err, "\nRemoving debug pod ...\n")
+			stderr := o.Attach.Err
+			if stderr == nil {
+				stderr = os.Stderr
+			}
+			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
 			if err := o.Attach.Client.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
-					fmt.Fprintf(o.Attach.Err, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
+					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
 			}
 		},
