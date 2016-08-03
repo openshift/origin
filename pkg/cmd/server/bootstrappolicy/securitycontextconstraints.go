@@ -22,6 +22,10 @@ const (
 	SecurityContextConstraintHostMountAndAnyUID     = "hostmount-anyuid"
 	SecurityContextConstraintHostMountAndAnyUIDDesc = "hostmount-anyuid provides all the features of the restricted SCC but allows host mounts and any UID by a pod.  This is primarily used by the persistent volume recycler. WARNING: this SCC allows host file system access as any UID, including UID 0.  Grant with caution."
 
+	// SecurityContextConstraintSystemLogger is used as the name for the system default host mount + any UID scc.
+	SecurityContextConstraintSystemLogger     = "system-logger"
+	SecurityContextConstraintSystemLoggerDesc = "system-logger provides all the features of the restricted SCC but allows host mounts, sets the container_logger_t selinux type, and any UID by a pod.  WARNING: this SCC allows host file system access as any UID, including UID 0.  Grant with caution."
+
 	// SecurityContextConstraintHostNS is used as the name for the system default scc
 	// that grants access to all host ns features.
 	SecurityContextConstraintHostNS     = "hostaccess"
@@ -125,6 +129,35 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				// by the admission controller.  If namespaces are not annotated creating the strategy
 				// will fail.
 				Type: kapi.SELinuxStrategyMustRunAs,
+			},
+			RunAsUser: kapi.RunAsUserStrategyOptions{
+				// This strategy requires that annotations on the namespace which will be populated
+				// by the admission controller.  If namespaces are not annotated creating the strategy
+				// will fail.
+				Type: kapi.RunAsUserStrategyRunAsAny,
+			},
+			FSGroup: kapi.FSGroupStrategyOptions{
+				Type: kapi.FSGroupStrategyRunAsAny,
+			},
+			SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+				Type: kapi.SupplementalGroupsStrategyRunAsAny,
+			},
+		},
+		// SecurityContextConstraintSystemLogger is the same as the restricted scc but allows
+		// the use of the hostPath and NFS plugins, setting the correct selinux type, and running as any UID.
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: SecurityContextConstraintSystemLogger,
+				Annotations: map[string]string{
+					DescriptionAnnotation: SecurityContextConstraintSystemLoggerDesc,
+				},
+			},
+			Volumes: []kapi.FSType{kapi.FSTypeHostPath, kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim, kapi.FSTypeNFS},
+			SELinuxContext: kapi.SELinuxContextStrategyOptions{
+				Type: kapi.SELinuxStrategyMustRunAs,
+				SELinuxOptions: &kapi.SELinuxOptions{
+					Type: "container_logger_t",
+				},
 			},
 			RunAsUser: kapi.RunAsUserStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated

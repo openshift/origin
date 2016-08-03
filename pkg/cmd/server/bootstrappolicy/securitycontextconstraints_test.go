@@ -17,6 +17,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 		SecurityContextConstraintHostNS,
 		SecurityContextConstraintsAnyUID,
 		SecurityContextConstraintsHostNetwork,
+		SecurityContextConstraintSystemLogger,
 	}
 	expectedGroups, expectedUsers := getExpectedAccess()
 	expectedVolumes := []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim}
