@@ -47,6 +47,10 @@ const (
 	warningHeaderDateIndex  = 4
 
 	useRedirectParam = "idp"
+
+	// http://openid.net/specs/openid-connect-implicit-1_0.html#RequestParameters
+	displayRequestParam            = "display"
+	displayRequestParamShowUIValue = "page"
 )
 
 var (
@@ -82,7 +86,10 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 		return false, fmt.Errorf("apiClient data was not an oauthapi.OAuthClient")
 	}
 
-	if client.RespondWithChallenges {
+	// Should we challenge because the client is asking us to display the authentication and consent UI consistent with a full User Agent page view
+	forceChallenge := req.URL.Query().Get(displayRequestParam) == displayRequestParamShowUIValue
+
+	if forceChallenge || client.RespondWithChallenges {
 		errors := []error{}
 		headers := http.Header(make(map[string][]string))
 		for _, challengingHandler := range authHandler.challengers {
