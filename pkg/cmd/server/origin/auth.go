@@ -76,6 +76,7 @@ const (
 	OpenShiftWebConsoleClientID  = "openshift-web-console"
 	OpenShiftBrowserClientID     = "openshift-browser-client"
 	OpenShiftCLIClientID         = "openshift-challenging-client"
+	localhostListenerAddress     = "http://localhost"
 )
 
 // InstallAPI registers endpoints for an OAuth2 server into the provided mux,
@@ -318,7 +319,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
 			Secret:                uuid.New(),
 			RespondWithChallenges: true,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint), localhostListenerAddress},
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
 		if err := ensureOAuthClient(cliClient, clientRegistry, false); err != nil {
