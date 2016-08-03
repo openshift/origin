@@ -90,10 +90,10 @@ services that are bound to those ports (80 and 443).
 
 
 #### Example using the host network
-    $ docker run --rm -it --net=host openshift/origin-haproxy-router --master $kube-master-url
+	$ docker run --rm -it --net=host openshift/origin-haproxy-router --master $kube-master-url
 
 #### Example using the container network and exposing ports 80 and 443.
-    $ docker run --rm -it -p 80:80 -p 443:443 openshift/origin-haproxy-router --master $kube-master-url
+	$ docker run --rm -it -p 80:80 -p 443:443 openshift/origin-haproxy-router --master $kube-master-url
 
 example of kube-master-url : https://10.0.2.15:8443
 
@@ -300,14 +300,14 @@ same lookup.  Doing multiple pings show the resolution swapping between IP addre
     ;hello-openshift.shard1.v3.rhcloud.com. IN A
 
     ;; ANSWER SECTION:
-    hello-openshift.shard1.v3.rhcloud.com. 300 IN A    10.245.2.2
-    hello-openshift.shard1.v3.rhcloud.com. 300 IN A    10.245.2.3
+    hello-openshift.shard1.v3.rhcloud.com. 300 IN A	10.245.2.2
+    hello-openshift.shard1.v3.rhcloud.com. 300 IN A	10.245.2.3
 
     ;; AUTHORITY SECTION:
-    v3.rhcloud.com.        300    IN    NS    ns1.v3.rhcloud.com.
+    v3.rhcloud.com.		300	IN	NS	ns1.v3.rhcloud.com.
 
     ;; ADDITIONAL SECTION:
-    ns1.v3.rhcloud.com.    300    IN    A    127.0.0.1
+    ns1.v3.rhcloud.com.	300	IN	A	127.0.0.1
 
     ;; Query time: 5 msec
     ;; SERVER: 10.245.2.3#53(10.245.2.3)
@@ -332,7 +332,7 @@ When building the routes you use the scripts in the `${OPENSHIFT ORIGIN PROJECT}
 base images and the router image.  When complete you should have a `openshift/origin-haproxy-router` container that shows
 in `docker images` that is ready to use.
 
-    $ hack/build-base-images.sh
+	$ hack/build-base-images.sh
     $ hack/build-images.sh
 
 ## Dev - router internals
