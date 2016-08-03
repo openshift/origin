@@ -28,6 +28,12 @@
 %{!?ldflags:
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
+# os_git_vars needed to run hack scripts during rpm builds
+# TODO Automatically generate these using tito
+#  For man pages, blank is fine
+%{!?os_git_vars:
+%global os_git_vars OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
+}
 
 %if 0%{?fedora} || 0%{?epel}
 %global make_redistributable 0
@@ -205,6 +211,13 @@ pushd images/pod/
     go build -ldflags "%{ldflags}" pod.go
 popd
 
+# Create/Update man pages
+# Could use hack/update-generated-docs.sh but takes twice as long
+%{os_git_vars} hack/build-go.sh tools/genman
+output/local/bin/linux/amd64/genman docs/man/man1 oc
+output/local/bin/linux/amd64/genman docs/man/man1 oadm
+output/local/bin/linux/amd64/genman docs/man/man1 openshift
+
 %install
 
 install -d %{buildroot}%{_bindir}
@@ -250,7 +263,7 @@ for cmd in \
     openshift-sti-build \
     origin
 do
-    ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
+    ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
 
 ln -s oc %{buildroot}%{_bindir}/kubectl
@@ -266,9 +279,13 @@ install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
 install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
 install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
-install -d -m 0755 %{buildroot}%{_mandir}/man7
 
-# Patch the manpage for tuned profiles on aos
+# Install man1 man pages
+install -d -m 0755 %{buildroot}%{_mandir}/man1
+install -m 0644 docs/man/man1/* %{buildroot}%{_mandir}/man1/
+
+# Patch and install the manpage for tuned profiles on aos
+install -d -m 0755 %{buildroot}%{_mandir}/man7
 %if "%{dist}" == ".el7aos"
 %{__sed} -e 's|origin-node|atomic-openshift-node|g' \
  -e 's|ORIGIN_NODE|ATOMIC_OPENSHIFT_NODE|' \
@@ -292,9 +309,12 @@ install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
-# Generate atomic-enterprise bash completions
-%{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
+for bin in oadm oc openshift atomic-enterprise
+do
+  echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
+  %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
+  chmod 644 %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
+done
 
 # Install origin-accounting
 install -d -m 755 %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
@@ -327,6 +347,8 @@ install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfd
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
+%{_mandir}/man1/oadm*
+%{_mandir}/man1/openshift*
 
 %pre
 # If /etc/openshift exists and /etc/origin doesn't, symlink it to /etc/origin
@@ -466,6 +488,7 @@ fi
 %{_bindir}/oc
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
+%{_mandir}/man1/oc*
 
 %if 0%{?make_redistributable}
 %files clients-redistributable
