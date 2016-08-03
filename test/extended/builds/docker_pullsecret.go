@@ -35,29 +35,16 @@ var _ = g.Describe("[builds][pullsecret][Conformance] docker build using a pull 
 			err := oc.Run("create").Args("-f", buildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("starting a test build")
-			out, err := oc.Run("start-build").Args("docker-build").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
+			g.By("starting a build")
+			br, err := exutil.StartBuildAndWait(oc, "docker-build")
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting the build succeeds")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("docker-build", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertSuccess()
 
 			g.By("starting a second build that pulls the image from the first build")
-			out, err = oc.Run("start-build").Args("docker-build-pull").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
+			br, err = exutil.StartBuildAndWait(oc, "docker-build-pull")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertSuccess()
 
-			g.By("expecting the build succeeds")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "docker-build-pull-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("docker-build-pull", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 })

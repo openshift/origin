@@ -25,20 +25,12 @@ var _ = g.Describe("[builds] build have source revision metadata", func() {
 
 	g.Describe("started build", func() {
 		g.It("should contain source revision information", func() {
-			g.By("starting the build with")
-			out, err := oc.Run("start-build").Args("sample-build").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("starting the build")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build")
+			br.AssertSuccess()
 
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "sample-build-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("sample-build", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("verifying the build %q status", "sample-build-1"))
-			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			g.By(fmt.Sprintf("verifying the status of %q", br.BuildPath))
+			build, err := oc.REST().Builds(oc.Namespace()).Get(br.Build.Name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Spec.Revision).NotTo(o.BeNil())
 			o.Expect(build.Spec.Revision.Git).NotTo(o.BeNil())

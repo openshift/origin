@@ -38,16 +38,8 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			buildName, err := oc.Run("start-build").Args("test").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", buildName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("o.Expecting the S2I build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, err := exutil.StartBuildAndWait(oc, "test")
+			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
 			imageRef, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
@@ -75,16 +67,8 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			buildName, err := oc.Run("start-build").Args("test").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", buildName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("o.Expecting the Docker build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, err := exutil.StartBuildAndWait(oc, "test")
+			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
 			imageRef, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")

@@ -158,9 +158,10 @@ os::test::junit::declare_suite_start "cmd/builds/start-build"
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-buildcli.json'
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
-started="$(oc start-build ruby-sample-build-invalidtag)"
+# Use basename to transform "build/build-name" into "build-name"
+started="$(basename $(oc start-build -o=name ruby-sample-build-invalidtag))"
 os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
-frombuild="$(oc start-build --from-build="${started}")"
+frombuild="$(basename $(oc start-build -o=name --from-build="${started}"))"
 os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
@@ -180,9 +181,9 @@ os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
 # Cancel all builds from a build configuration
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
-lastbuild=$(oc start-build bc/ruby-sample-build)
-os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build \"${lastbuild}\" cancelled"
-os::cmd::expect_success_and_text "oc get builds ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+lastbuild="$(basename $(oc start-build -o=name bc/ruby-sample-build))"
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "\"${lastbuild}\" cancelled"
+os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
 builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
 for state in $builds; do
   os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"

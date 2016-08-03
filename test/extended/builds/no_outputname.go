@@ -25,23 +25,13 @@ var _ = g.Describe("[builds][Conformance] build without output image", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting build to pass without an output image reference specified")
-			out, err := oc.Run("start-build").Args("test-docker").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "test-docker-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test-docker", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, err := exutil.StartBuildAndWait(oc, "test-docker")
+			br.AssertSuccess()
 
 			g.By("verifying the build test-docker-1 output")
-			buildLog, err := oc.Run("logs").Args("-f", "bc/test-docker").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
+			buildLog, err := br.Logs()
+			fmt.Fprintf(g.GinkgoWriter, "\nBuild log:\n%s\n", buildLog)
 			o.Expect(err).NotTo(o.HaveOccurred())
-
 			o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
 		})
 
@@ -50,20 +40,12 @@ var _ = g.Describe("[builds][Conformance] build without output image", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting build to pass without an output image reference specified")
-			out, err := oc.Run("start-build").Args("test-sti").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "test-sti-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test-sti", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, err := exutil.StartBuildAndWait(oc, "test-sti")
+			br.AssertSuccess()
 
 			g.By("verifying the build test-sti-1 output")
-			buildLog, err := oc.Run("logs").Args("-f", "bc/test-sti").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nbuild log:\n%s\n", buildLog)
+			buildLog, err := br.Logs()
+			fmt.Fprintf(g.GinkgoWriter, "\nBuild log:\n%s\n", buildLog)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
