@@ -296,6 +296,10 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 # Generate atomic-enterprise bash completions
 %{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
 
+# Install origin-accounting
+install -d -m 755 %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
+install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
+
 %files
 %doc README.md
 %license LICENSE
@@ -399,6 +403,7 @@ fi
 
 %files node
 %{_unitdir}/%{name}-node.service
+%{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
@@ -407,6 +412,10 @@ fi
 
 %post node
 %systemd_post %{name}-node.service
+# If accounting is not currently enabled systemd reexec
+if [[ `systemctl show docker %{name}-node | grep -q -e CPUAccounting=no -e MemoryAccounting=no; echo $?` == 0 ]]; then
+  systemctl daemon-reexec
+fi
 
 %preun node
 %systemd_preun %{name}-node.service
