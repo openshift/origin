@@ -509,7 +509,11 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 
 	if redirectors.Count() > 0 && len(challengers) == 0 {
 		// Add a default challenger that will warn and give a link to the web browser token-granting location
-		challengers["placeholder"] = placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
+		placeholder, err := placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
+		if err != nil {
+			return nil, err
+		}
+		challengers["placeholder"] = placeholder
 	}
 
 	var selectProviderTemplateFile string
