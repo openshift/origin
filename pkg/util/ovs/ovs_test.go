@@ -28,20 +28,32 @@ func missingSetup() *exec.FakeExec {
 	}
 }
 
-func addTestResult(fexec *exec.FakeExec, command string, output string, err error) {
+func addTestResult(t *testing.T, fexec *exec.FakeExec, command string, output string, err error) {
 	fcmd := exec.FakeCmd{
 		CombinedOutputScript: []exec.FakeCombinedOutputAction{
 			func() ([]byte, error) { return []byte(output), err },
 		},
 	}
 	fexec.CommandScript = append(fexec.CommandScript,
-		func(cmd string, args ...string) exec.Cmd { return exec.InitFakeCmd(&fcmd, cmd, args...) })
+		func(cmd string, args ...string) exec.Cmd {
+			execCommand := strings.Join(append([]string{cmd}, args...), " ")
+			if execCommand != command {
+				t.Fatalf("Unexpected command: wanted %q got %q", command, execCommand)
+			}
+			return exec.InitFakeCmd(&fcmd, cmd, args...)
+		})
+}
+
+func ensureTestResults(t *testing.T, fexec *exec.FakeExec) {
+	if fexec.CommandCalls != len(fexec.CommandScript) {
+		t.Fatalf("Only used %d of %d expected commands", fexec.CommandCalls, len(fexec.CommandScript))
+	}
 }
 
 func TestTransactionSuccess(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
-	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
+	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
+	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
 
 	otx := NewTransaction(fexec, "br0")
 	otx.AddFlow("flow1")
@@ -50,11 +62,13 @@ func TestTransactionSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error from command: %v", err)
 	}
+
+	ensureTestResults(t, fexec)
 }
 
 func TestTransactionFailure(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
+	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
 
 	otx := NewTransaction(fexec, "br0")
 	otx.AddFlow("flow1")
@@ -63,11 +77,13 @@ func TestTransactionFailure(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Failed to get expected error")
 	}
+
+	ensureTestResults(t, fexec)
 }
 
 func TestDumpFlows(t *testing.T) {
 	fexec := normalSetup()
-	addTestResult(fexec, "/usr/bin/ovs-ofctl -O OpenFlow13 dump-flows br0", `OFPST_FLOW reply (OF1.3) (xid=0x2):
+	addTestResult(t, fexec, "/sbin/ovs-ofctl -O OpenFlow13 dump-flows br0", `OFPST_FLOW reply (OF1.3) (xid=0x2):
  cookie=0x0, duration=13271.779s, table=0, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=192.168.1.0/24 actions=set_field:0a:7b:e6:19:11:cf->eth_dst,output:2
  cookie=0x0, duration=13271.776s, table=0, n_packets=1, n_bytes=42, priority=100,arp,arp_tpa=192.168.1.0/24 actions=set_field:10.19.17.34->tun_dst,output:1
  cookie=0x3, duration=13267.277s, table=0, n_packets=788539827, n_bytes=506520926762, priority=100,ip,nw_dst=192.168.2.2 actions=output:3
@@ -90,6 +106,8 @@ func TestDumpFlows(t *testing.T) {
 	if len(flows) != 7 {
 		t.Fatalf("Unexpected number of flows (%d)", len(flows))
 	}
+
+	ensureTestResults(t, fexec)
 }
 
 func TestOVSMissing(t *testing.T) {
