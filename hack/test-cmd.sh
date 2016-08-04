@@ -327,13 +327,19 @@ for test in "${tests[@]}"; do
   echo
   echo "++ ${test}"
   name=$(basename ${test} .sh)
+  namespace="cmd-${name}"
 
+  os::test::junit::declare_suite_start "cmd/${namespace}-namespace-setup"
   # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
-  oc project ${CLUSTER_ADMIN_CONTEXT}
-  oc new-project "cmd-${name}"
+  os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
+  os::cmd::expect_success "oc new-project '${namespace}'"
+  # wait for the project cache to catch up and correctly list us in the new project
+  os::cmd::try_until_text "oc get projects -o name" "project/${namespace}"
+  os::test::junit::declare_suite_end
+
   ${test}
   oc project ${CLUSTER_ADMIN_CONTEXT}
-  oc delete project "cmd-${name}"
+  oc delete project "${namespace}"
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
 done
 
