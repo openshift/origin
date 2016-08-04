@@ -21,6 +21,8 @@ import (
 // Corresponds to the header expected by basic-auth challenging authenticators
 const CSRFTokenHeader = "X-CSRF-Token"
 
+var interactionRequiredError = errors.New("interaction_required")
+
 // ChallengeHandler handles responses to WWW-Authenticate challenges.
 type ChallengeHandler interface {
 	// CanHandle returns true if the handler recognizes a challenge it thinks it can handle.
@@ -156,11 +158,20 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 
 			// OAuth response case (access_token or error parameter)
 			accessToken, err := oauthAuthorizeResult(redirectURL)
-			if err != nil {
+
+			switch err {
+			case interactionRequiredError:
+				token, err := browserOauthAuthorizeResult(requestURL)
+				if err != nil {
+					return "", err
+				}
+				return token, nil
+			default:
 				return "", err
 			}
+
 			if len(accessToken) > 0 {
-				return accessToken, err
+				return accessToken, nil // TODO why was this err?
 			}
 
 			// Non-OAuth response, just follow the URL
@@ -186,7 +197,11 @@ func oauthAuthorizeResult(location string) (string, error) {
 		return "", err
 	}
 
-	if errorCode := u.Query().Get("error"); len(errorCode) > 0 {
+	errorCode := u.Query().Get("error")
+	if errorCode == interactionRequiredError.Error() {
+		return "", interactionRequiredError
+	}
+	if len(errorCode) > 0 {
 		errorDescription := u.Query().Get("error_description")
 		return "", errors.New(errorCode + " " + errorDescription)
 	}
@@ -201,6 +216,14 @@ func oauthAuthorizeResult(location string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func browserOauthAuthorizeResult(location string) (string, error) {
+	url := location + fmt.Sprintf("&display=page&redirect_uri=http://127.0.0.1:%d&state=%s", 80, "state") // TODO do this better
+	// Start local server
+	// Open browser to url
+	// Extract token from response
+	return "token", nil
 }
 
 func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header) (*http.Response, error) {

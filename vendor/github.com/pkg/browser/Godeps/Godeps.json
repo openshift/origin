@@ -1,0 +1,11 @@
+{
+	"ImportPath": "github.com/openshift/origin/vendor/github.com/pkg/browser",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/pkg/browser",
+			"Rev": "9302be274faad99162b9d48ec97b24306872ebb0"
+		}
+	]
+}
