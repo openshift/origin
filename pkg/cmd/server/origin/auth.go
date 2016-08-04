@@ -319,7 +319,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
 			Secret:                uuid.New(),
 			RespondWithChallenges: true,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint), localListenerAddress},
+			RedirectURIs:          []string{localListenerAddress},
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
 		if err := ensureOAuthClient(cliClient, clientRegistry, false); err != nil {
