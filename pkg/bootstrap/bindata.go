@@ -2740,7 +2740,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:9.4",
+                "name": "postgresql:9.5",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2980,7 +2980,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:9.4",
+                "name": "postgresql:9.5",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""

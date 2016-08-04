@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"time"
@@ -49,6 +50,10 @@ func WaitForQueryOutputSatisfies(oc *CLI, d Database, timeout time.Duration, adm
 			out, err = d.Query(oc, query)
 		}
 		if _, ok := err.(*ExitError); ok {
+			// Ignore exit errors
+			return false, nil
+		}
+		if _, ok := err.(*exec.ExitError); ok {
 			// Ignore exit errors
 			return false, nil
 		}
