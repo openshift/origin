@@ -11,35 +11,35 @@ By associating projects to owners using structured labels, it becomes possible t
 // ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to 
 // synthetic ResourceQuota object to allow quota evaluation re-use.
 type ClusterResourceQuota struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+    unversioned.TypeMeta
+    kapi.ObjectMeta
 
-	// Spec defines the desired quota
-	Spec ClusterResourceQuotaSpec
+    // Spec defines the desired quota
+    Spec ClusterResourceQuotaSpec
 
-	// Status defines the actual enforced quota and its current usage
-	Status ClusterResourceQuotaStatus
+    // Status defines the actual enforced quota and its current usage
+    Status ClusterResourceQuotaStatus
 }
 
 type ClusterResourceQuotaSpec struct {
-	// Selector is the label selector used to match projects.  It is not allowed to be empty
-	// and should only select active projects on the scale of dozens (though it can select 
-	// many more less active projects).  These projects will contend on object creation through
-	// this resource.
-	Selector map[string]string
+    // Selector is the label selector used to match projects.  It is not allowed to be empty
+    // and should only select active projects on the scale of dozens (though it can select 
+    // many more less active projects).  These projects will contend on object creation through
+    // this resource.
+    Selector map[string]string
 
-	// Spec defines the desired quota
-	Quota kapi.ResourceQuotaSpec
+    // Spec defines the desired quota
+    Quota kapi.ResourceQuotaSpec
 }
 
 type ClusterResourceQuotaStatus struct {
-	// Overall defines the actual enforced quota and its current usage across all namespaces
-	Overall kapi.ResourceQuotaStatus
+    // Overall defines the actual enforced quota and its current usage across all namespaces
+    Overall kapi.ResourceQuotaStatus
 
-	// ByNamespace slices the usage by namespace.  This division allows for quick resolution of 
-	// deletion reconcilation inside of a single namespace without requiring a recalculation 
-	// across all namespaces.  This map can be used to pull the deltas for a given namespace.
-	ByNamespace map[string]kapi.ResourceQuotaStatus
+    // ByNamespace slices the usage by namespace.  This division allows for quick resolution of 
+    // deletion reconcilation inside of a single namespace without requiring a recalculation 
+    // across all namespaces.  This map can be used to pull the deltas for a given namespace.
+    ByNamespace map[string]kapi.ResourceQuotaStatus
 }
 ```
 

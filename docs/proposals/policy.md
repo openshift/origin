@@ -19,64 +19,64 @@ Policy extends the existing authorization rules in Kubernetes (https://github.co
 There are four fundamental roles: view, edit, admin, and cluster-admin.  Viewers are able to see all resources.  Editors are able to view and edit all resources, except ones related to policy and membership.  Admins are able to modify anything everything except policy rules.  Cluster-admins can modify aything.  The roles are expressed like this:
 ```
 {
-	"kind": "role",
-	"name": "view",
-	"namespace": "master",
-	"rules": [
-		{ "verbs": ["get", "list", "watch"], "resources": ["resourcegroup:exposedopenshift", "resourcegroup:allkube"] }
-	]
+    "kind": "role",
+    "name": "view",
+    "namespace": "master",
+    "rules": [
+        { "verbs": ["get", "list", "watch"], "resources": ["resourcegroup:exposedopenshift", "resourcegroup:allkube"] }
+    ]
 }
 {
-	"kind": "role",
-	"name": "edit",
-	"namespace": "master",
-	"rules": [
-		{ "verbs": ["get", "list", "watch", "create", "update", "delete"], "resources": ["resourcegroup:exposedopenshift", "resourcegroup:exposedkube"] }
-		{ "verbs": ["get", "list", "watch"], "resources": ["resourcegroup:allkube"] }
-	]
+    "kind": "role",
+    "name": "edit",
+    "namespace": "master",
+    "rules": [
+        { "verbs": ["get", "list", "watch", "create", "update", "delete"], "resources": ["resourcegroup:exposedopenshift", "resourcegroup:exposedkube"] }
+        { "verbs": ["get", "list", "watch"], "resources": ["resourcegroup:allkube"] }
+    ]
 }
 {
-	"kind": "role",
-	"name": "admin",
-	"namespace": "master",
-	"rules": [
-		{ "verbs": ["get", "list", "watch", "create", "update", "delete"], "resources": ["resourcegroup:exposedopenshift", "resourcegroup:granter", "resourcegroup:exposedkube"] }
-		{ "verbs": ["get", "list", "watch"], "resources": ["resourcegroup:policy", "resourcegroup:allkube"] }
-	]
+    "kind": "role",
+    "name": "admin",
+    "namespace": "master",
+    "rules": [
+        { "verbs": ["get", "list", "watch", "create", "update", "delete"], "resources": ["resourcegroup:exposedopenshift", "resourcegroup:granter", "resourcegroup:exposedkube"] }
+        { "verbs": ["get", "list", "watch"], "resources": ["resourcegroup:policy", "resourcegroup:allkube"] }
+    ]
 }
 {
-	"kind": "role",
-	"name": "cluster-admin",
-	"namespace": "master",
-	"rules": [
-		{ "verbs": ["*"], "resources": ["*"] }
-	]
+    "kind": "role",
+    "name": "cluster-admin",
+    "namespace": "master",
+    "rules": [
+        { "verbs": ["*"], "resources": ["*"] }
+    ]
 }
 ```
 
 `Clark` is the cluster admin: the guy who owns the openshift installation.  `Clark` creates a project `hammer` and assigns `Hubert` as the project admin using the predefined role.  The permissions are expressed like this:
 ```
 {
-	"kind": "roleBinding",
-	"name": "ProjectAdmins",
-	"namespace": "hammer",
-	"roleRef": {
-		"namespace": "master",
-		"name": "admin"
-	}
-	"userNames": ["Hubert"]
+    "kind": "roleBinding",
+    "name": "ProjectAdmins",
+    "namespace": "hammer",
+    "roleRef": {
+        "namespace": "master",
+        "name": "admin"
+    }
+    "userNames": ["Hubert"]
 }
 ```
 
 `Hubert` now has the power to manage policy on the `hammer` project.  He can grant permission to users who should have access.  In this case, he grants edit permission to `Edgar` using the predefined role.
 ```
 {
-	"kind": "roleBinding",
-	"name": "Editors",
-	"namespace": "hammer",
-	"referencesGlobalRole": true,
-	"roleName": "edit",
-	"userNames": ["Edgar"]
+    "kind": "roleBinding",
+    "name": "Editors",
+    "namespace": "hammer",
+    "referencesGlobalRole": true,
+    "roleName": "edit",
+    "userNames": ["Edgar"]
 }
 ```
 
@@ -106,70 +106,70 @@ These are the types used in the policy example above.  They allow us: to quickly
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
-	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
-	Verbs util.StringSet
-	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
-	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions runtime.EmbeddedObject
-	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
-	Resources util.StringSet
-	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
-	ResourceNames util.StringSet
+    // Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
+    Verbs util.StringSet
+    // AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
+    // If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
+    AttributeRestrictions runtime.EmbeddedObject
+    // Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
+    Resources util.StringSet
+    // ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+    ResourceNames util.StringSet
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
-	kapi.TypeMeta
-	kapi.ObjectMeta
+    kapi.TypeMeta
+    kapi.ObjectMeta
 
-	// Rules holds all the PolicyRules for this Role
-	Rules []PolicyRule
+    // Rules holds all the PolicyRules for this Role
+    Rules []PolicyRule
 }
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type RoleBinding struct {
-	kapi.TypeMeta
-	kapi.ObjectMeta
+    kapi.TypeMeta
+    kapi.ObjectMeta
 
-	// Users holds all the usernames directly bound to the role
-	Users util.StringSet
-	// Groups holds all the groups directly bound to the role
-	Groups util.StringSet
+    // Users holds all the usernames directly bound to the role
+    Users util.StringSet
+    // Groups holds all the groups directly bound to the role
+    Groups util.StringSet
 
-	// Since Policy is a singleton, this is sufficient knowledge to locate a role
-	// RoleRefs can only reference the current namespace and the global namespace
-	// If the RoleRef cannot be resolved, the Authorizer must return an error.
-	RoleRef kapi.ObjectReference
+    // Since Policy is a singleton, this is sufficient knowledge to locate a role
+    // RoleRefs can only reference the current namespace and the global namespace
+    // If the RoleRef cannot be resolved, the Authorizer must return an error.
+    RoleRef kapi.ObjectReference
 }
 
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
 type Policy struct {
-	kapi.TypeMeta
-	kapi.ObjectMeta
+    kapi.TypeMeta
+    kapi.ObjectMeta
 
-	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified util.Time
+    // LastModified is the last time that any part of the Policy was created, updated, or deleted
+    LastModified util.Time
 
-	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles map[string]Role
+    // Roles holds all the Roles held by this Policy, mapped by Role.Name
+    Roles map[string]Role
 }
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
 type PolicyBinding struct {
-	kapi.TypeMeta
-	kapi.ObjectMeta
+    kapi.TypeMeta
+    kapi.ObjectMeta
 
-	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified util.Time
+    // LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
+    LastModified util.Time
 
-	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
-	PolicyRef kapi.ObjectReference
-	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings map[string]RoleBinding
+    // PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
+    PolicyRef kapi.ObjectReference
+    // RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
+    RoleBindings map[string]RoleBinding
 }
 ```
 
@@ -204,10 +204,10 @@ This API answers the question: which users and groups can perform the specified 
 ```
 // input
 {
-	"kind": "ResourceAccessReview",
-	"apiVersion": "v1",
-	"verb": "list",
-	"resource": "replicationcontrollers"
+    "kind": "ResourceAccessReview",
+    "apiVersion": "v1",
+    "verb": "list",
+    "resource": "replicationcontrollers"
 }
 
 // POSTed like this
@@ -217,11 +217,11 @@ accessReviewResult, err := Client.ResourceAccessReviews(namespace).Create(resour
 
 // output
 {
-	"kind": "ResourceAccessReviewResponse",
-	"apiVersion": "v1",
-	"namespace": "default"
-	"users": ["Clark", "Hubert"],
-	"groups": ["cluster-admins"]
+    "kind": "ResourceAccessReviewResponse",
+    "apiVersion": "v1",
+    "namespace": "default"
+    "users": ["Clark", "Hubert"],
+    "groups": ["cluster-admins"]
 }
 ```
 
@@ -230,28 +230,28 @@ The actual Go objects look like this:
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
 // action specified by spec
 type ResourceAccessReview struct {
-	kapi.TypeMeta
+    kapi.TypeMeta
 
-	// Verb is one of: get, list, watch, create, update, delete
-	Verb string
-	// Resource is one of the existing resource types
-	Resource string
-	// Content is the actual content of the request for create and update
-	Content runtime.EmbeddedObject
-	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
-	ResourceName string
+    // Verb is one of: get, list, watch, create, update, delete
+    Verb string
+    // Resource is one of the existing resource types
+    Resource string
+    // Content is the actual content of the request for create and update
+    Content runtime.EmbeddedObject
+    // ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+    ResourceName string
 }
 
 // ResourceAccessReviewResponse describes who can perform the action
 type ResourceAccessReviewResponse struct {
-	kapi.TypeMeta
+    kapi.TypeMeta
 
-	// Namespace is the namespace used for the access review
-	Namespace string
-	// Users is the list of users who can perform the action
-	Users util.StringSet
-	// Groups is the list of groups who can perform the action
-	Groups util.StringSet
+    // Namespace is the namespace used for the access review
+    Namespace string
+    // Users is the list of users who can perform the action
+    Users util.StringSet
+    // Groups is the list of groups who can perform the action
+    Groups util.StringSet
 }
 ```
 Verbs are the standard RESTStorage verbs: get, list, watch, create, update, and delete.
@@ -261,16 +261,16 @@ This API answers the question: can a user or group (use authenticated user if no
 ```
 // input
 {
-	"kind": "SubjectAccessReview",
-	"apiVersion": "v1",
-	"verb": "create",
-	"resource": "pods",
-	"user": "Clark",
-	"content": {
-		"kind": "pods",
-		"apiVersion": "v1"
-		// rest of pod content
-	}
+    "kind": "SubjectAccessReview",
+    "apiVersion": "v1",
+    "verb": "create",
+    "resource": "pods",
+    "user": "Clark",
+    "content": {
+        "kind": "pods",
+        "apiVersion": "v1"
+        // rest of pod content
+    }
 }
 
 // POSTed like this
@@ -280,10 +280,10 @@ accessReviewResult, err := Client.SubjectAccessReviews(namespace).Create(subject
 
 // output
 {
-	"kind": "SubjectAccessReviewResponse",
-	"apiVersion": "v1",
-	"namespace": "default",
-	"allowed": true
+    "kind": "SubjectAccessReviewResponse",
+    "apiVersion": "v1",
+    "namespace": "default",
+    "allowed": true
 }
 ```
 
@@ -291,32 +291,32 @@ The actual Go objects look like this:
 ```
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
-	kapi.TypeMeta
+    kapi.TypeMeta
 
-	// Verb is one of: get, list, watch, create, update, delete
-	Verb string
-	// Resource is one of the existing resource types
-	Resource string
-	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
-	User string
-	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	Groups util.StringSet
-	// Content is the actual content of the request for create and update
-	Content runtime.EmbeddedObject
-	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
-	ResourceName string
+    // Verb is one of: get, list, watch, create, update, delete
+    Verb string
+    // Resource is one of the existing resource types
+    Resource string
+    // User is optional.  If both User and Groups are empty, the current authenticated user is used.
+    User string
+    // Groups is optional.  Groups is the list of groups to which the User belongs.
+    Groups util.StringSet
+    // Content is the actual content of the request for create and update
+    Content runtime.EmbeddedObject
+    // ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
+    ResourceName string
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
 type SubjectAccessReviewResponse struct {
-	kapi.TypeMeta
+    kapi.TypeMeta
 
-	// Namespace is the namespace used for the access review
-	Namespace string
-	// Allowed is required.  True if the action would be allowed, false otherwise.
-	Allowed bool
-	// Reason is optional.  It indicates why a request was allowed or denied.
-	Reason string
+    // Namespace is the namespace used for the access review
+    Namespace string
+    // Allowed is required.  True if the action would be allowed, false otherwise.
+    Allowed bool
+    // Reason is optional.  It indicates why a request was allowed or denied.
+    Reason string
 }
 ```
 
@@ -325,31 +325,31 @@ type SubjectAccessReviewResponse struct {
 ### Runtime Authorization Types
 ```
 type Authorizer interface{
-	// Authorize indicates whether an action is allowed or not and optionally a reason for allowing or denying.
-	Authorize(a AuthorizationAttributes) (allowed bool, reason string, err error)
+    // Authorize indicates whether an action is allowed or not and optionally a reason for allowing or denying.
+    Authorize(a AuthorizationAttributes) (allowed bool, reason string, err error)
 
-	// GetAllowedSubjects takes a set of attributes, ignores the UserInfo() and returns back
-	// the users and groups who are allowed to make a request that has those attributes.  This
-	// API enables the ResourceBasedReview requests below
-	GetAllowedSubjects(attributes AuthorizationAttributes) (users util.StringSet, groups util.StringSet, error)
+    // GetAllowedSubjects takes a set of attributes, ignores the UserInfo() and returns back
+    // the users and groups who are allowed to make a request that has those attributes.  This
+    // API enables the ResourceBasedReview requests below
+    GetAllowedSubjects(attributes AuthorizationAttributes) (users util.StringSet, groups util.StringSet, error)
 }
 
 // AuthorizationAttributeBuilder takes a request and creates AuthorizationAttributes.
 // Since the attributes returned can vary based on verb type, AuthorizationAttributeBuilders
 // are paired with Authorizers during registration.
 type AuthorizationAttributeBuilder interface{
-	GetAttributes(request http.Request) (AuthorizationAttributes, error)
+    GetAttributes(request http.Request) (AuthorizationAttributes, error)
 }
 
 type AuthorizationAttributes interface{
-	GetUserInfo() UserInfo  // includes GetName() string GetGroups() []string
-	GetVerb() string
-	GetNamespace() string
-	GetResourceKind() string
-	GetResourceName() string
-	// GetRequestAttributes is of type interface{} because different verbs and different
-	// Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements
-	GetRequestAttributes() interface{}
+    GetUserInfo() UserInfo  // includes GetName() string GetGroups() []string
+    GetVerb() string
+    GetNamespace() string
+    GetResourceKind() string
+    GetResourceName() string
+    // GetRequestAttributes is of type interface{} because different verbs and different
+    // Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements
+    GetRequestAttributes() interface{}
 }
 ```
 A single Authorizer/AuthorizationAttributeBuilder pair may be registered with the apiserver.
@@ -364,14 +364,14 @@ We can continue the simple example from above with `Clark` the cluster admin, `H
 By default, `Hubert` does not have sufficient power to create new Roles because there is not an existing Policy object in the `hammer` namespace.  `Hubert` has rights to create Roles, but the requests don't work because no existing Policy object exist.  `Clark` must first create a Policy and a PolicyBinding object:
 ```
 {
-	"kind": "Policy",
-	"name": "Policy",
-	"namespace": "hammer"
+    "kind": "Policy",
+    "name": "Policy",
+    "namespace": "hammer"
 }
 {
-	"kind": "PolicyBinding",
-	"name": "hammer",
-	"namespace": "hammer"
+    "kind": "PolicyBinding",
+    "name": "hammer",
+    "namespace": "hammer"
 }
 ```
 
@@ -380,23 +380,23 @@ Once those container resources are created, `Hubert` can now create Roles and Ro
 `Hubert` wants to create a bot that only has permission to touch labels on DeploymentConfigs.  He can create a role like this (note that a role is required because we want to have a set of two rules):
 ```
 {
-	"kind": "role",
-	"name": "deploymentConfigLabelers",
-	"namespace": "hammer",
-	"rules": [
-		{ "verbs": ["watch", "list", "get"], "resources": ["deploymentconfigs"] },
-		{ "verbs": ["update"], "resources": ["deploymentconfigs"], "attributeRestrictions" : {"fieldsMutatable": ["labels"]} }
-	]
+    "kind": "role",
+    "name": "deploymentConfigLabelers",
+    "namespace": "hammer",
+    "rules": [
+        { "verbs": ["watch", "list", "get"], "resources": ["deploymentconfigs"] },
+        { "verbs": ["update"], "resources": ["deploymentconfigs"], "attributeRestrictions" : {"fieldsMutatable": ["labels"]} }
+    ]
 }
 {
-	"kind": "roleBinding",
-	"name": "DeploymentConfigLabelerBots",
-	"namespace": "hammer",
-	"roleRef": {
-		"namespace": "hammer",
-		"name": "deploymentConfigLabelers"
-	}
-	"userNames": ["ProtectorBot", "DeprotectorBot"]
+    "kind": "roleBinding",
+    "name": "DeploymentConfigLabelerBots",
+    "namespace": "hammer",
+    "roleRef": {
+        "namespace": "hammer",
+        "name": "deploymentConfigLabelers"
+    }
+    "userNames": ["ProtectorBot", "DeprotectorBot"]
 }
 ```
 
@@ -404,28 +404,28 @@ Once those container resources are created, `Hubert` can now create Roles and Ro
 In addition to constraining basic resources, there are some rules that are more difficult to request.  For some of these, it is easier to build a special evaluation method than trying to specify a generic set of property to express the restriction.  One way to express this is to create a rule for each individual pod that allows that particular kubelet use to access it.  This results in a tremendous number of rules and a lot of churn in the rules themselves.  Rather than do this, we can add a special kind of AttributeRestriction to a single rule.
 ```
 {
-	"kind": "role",
-	"name": "kubelet",
-	"namespace": "master",
-	"rules": [
-		{
-			"verbs": ["*"],
-			"resources": ["pods"],
-			"attributeRestrictions": {
-				"kind": "sameMinionRestriction"
-			}
-		},
-	]
+    "kind": "role",
+    "name": "kubelet",
+    "namespace": "master",
+    "rules": [
+        {
+            "verbs": ["*"],
+            "resources": ["pods"],
+            "attributeRestrictions": {
+                "kind": "sameMinionRestriction"
+            }
+        },
+    ]
 }
 {
-	"kind": "roleBinding",
-	"name": "Kubelets",
-	"namespace": "master",
-	"roleRef": {
-		"namespace": "master",
-		"name": "kubelet"
-	}
-	"userNames": ["kubelet-01", "kubelet-02"]
+    "kind": "roleBinding",
+    "name": "Kubelets",
+    "namespace": "master",
+    "roleRef": {
+        "namespace": "master",
+        "name": "kubelet"
+    }
+    "userNames": ["kubelet-01", "kubelet-02"]
 }
 ```
 
@@ -433,19 +433,19 @@ When Authorizer.Authorize() is called, it will see a
 ```
 // pretend authorizationAttributes
 {
-	"user": "kubelet",
-	"verb": "get",
-	"namespace": "pod's namespace",
-	"resourceKind": "pod"
+    "user": "kubelet",
+    "verb": "get",
+    "namespace": "pod's namespace",
+    "resourceKind": "pod"
 }
 
 // kubelet policy rule it extracted based on the role
 {
-	"verbs": ["*"],
-	"resources": ["Pod"],
-	"attributeRestrictions": {
-		"kind": "sameMinionRestriction"
-	}
+    "verbs": ["*"],
+    "resources": ["Pod"],
+    "attributeRestrictions": {
+        "kind": "sameMinionRestriction"
+    }
 },
 
 ```
@@ -454,11 +454,11 @@ Based on this information, the authorizer will know that it has to locate and ev
 // pseudo code
 switch policyRule.AttributeRestrictions.(type){
 case "sameMinionRestriction":
-	// check to see if the user is kubelet, if not fail
-	// check which minion the kubelet is running on
-	// get the pod that the minion is trying to modify
-	// check to see if that pod is running on the same minion as the kubelet
-	// if so, return authorized.  if not, return denied
+    // check to see if the user is kubelet, if not fail
+    // check which minion the kubelet is running on
+    // get the pod that the minion is trying to modify
+    // check to see if that pod is running on the same minion as the kubelet
+    // if so, return authorized.  if not, return denied
 }
 
 // do normal resource kind restrictions
