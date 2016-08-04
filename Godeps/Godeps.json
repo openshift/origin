@@ -1896,6 +1896,26 @@
 			"Rev": "7ca2aa4873aea7cb4265b1726acb24b90d8726c6"
 		},
 		{
+			"ImportPath": "github.com/openshift/imagebuilder",
+			"Rev": "5a8e7d9be33db899875d7c9effb8c6027618867a"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/dockerclient",
+			"Rev": "5a8e7d9be33db899875d7c9effb8c6027618867a"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/imageprogress",
+			"Rev": "5a8e7d9be33db899875d7c9effb8c6027618867a"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/signal",
+			"Rev": "5a8e7d9be33db899875d7c9effb8c6027618867a"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/strslice",
+			"Rev": "5a8e7d9be33db899875d7c9effb8c6027618867a"
+		},
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
 			"Comment": "v1.1.1",
 			"Rev": "724c0ddaacec2fad31a05ac2d2175cd9ad7136c6"
