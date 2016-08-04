@@ -249,8 +249,20 @@ os::cmd::expect_success_and_text "oc set env bc --all --list" "FOO=bar"
 os::cmd::expect_success_and_text "oc set env bc --all FOO-" "updated"
 os::cmd::expect_success "oc create secret generic mysecret --from-literal='foo.bar=secret'"
 os::cmd::expect_success_and_text "oc set env --from=secret/mysecret --prefix=PREFIX_ dc/test-deployment-config" "updated"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "PREFIX_FOO_BAR="
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "PREFIX_FOO_BAR from secret mysecret, key foo.bar"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list --resolve" "PREFIX_FOO_BAR=secret"
 os::cmd::expect_success "oc delete secret mysecret"
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "error retrieving reference for PREFIX_FOO_BAR"
+# switch to view user to ensure view-only users can't get secrets through env var resolution
+new="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > $new"
+export KUBECONFIG=$new
+project=$(oc project -q)
+os::cmd::expect_success 'oc policy add-role-to-user view view-user'
+os::cmd::expect_success 'oc login -u view-user -p anything'
+os::cmd::try_until_success 'oc project ${project}'
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "cannot get secrets in project"
+oc login -u system:admin
 # clean up
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
