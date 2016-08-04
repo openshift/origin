@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	goruntime "runtime"
 	"sort"
 	"strings"
 	"time"
@@ -236,6 +238,8 @@ func (o *NewAppOptions) Run() error {
 
 		return printHumanReadableQueryResult(result, out, o.CommandName)
 	}
+
+	checkGitInstalled(out)
 
 	result, err := config.Run()
 	if err := handleRunError(err, o.CommandName, o.CommandPath); err != nil {
@@ -844,4 +848,15 @@ func (r *configSecretRetriever) CACert() (string, error) {
 		return string(data), nil
 	}
 	return "", nil
+}
+
+func checkGitInstalled(w io.Writer) {
+	gitBinary := "git"
+	if goruntime.GOOS == "windows" {
+		gitBinary = "git.exe"
+	}
+	_, err := exec.LookPath(gitBinary)
+	if err != nil {
+		fmt.Fprintf(w, "warning: Cannot find git. Ensure that it is installed and in your path. Git is required to work with git repositories.\n")
+	}
 }
