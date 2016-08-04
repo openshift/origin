@@ -27,7 +27,7 @@ class OriginBuilder(Builder):
 
     def _get_rpmbuild_dir_options(self):
         git_hash = get_latest_commit()
-        cmd = '. ./hack/common.sh ; echo $(os::build::ldflags)'
+        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; echo $(os::build::ldflags)'
         ldflags = run_command("bash -c '{0}'".format(cmd))
 
         return ('--define "_topdir %s" --define "_sourcedir %s" --define "_builddir %s" '
@@ -55,7 +55,32 @@ class OriginBuilder(Builder):
             )
             # Custom Openshift v3 stuff follows, everything above is the standard
             # builder
-            cmd = '. ./hack/common.sh ; echo $(os::build::ldflags)'
+            
+            ## Fixup os_git_vars
+            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_COMMIT}'
+            os_git_commit = run_command("bash -c '{0}'".format(cmd))
+            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_VERSION}'
+            os_git_version = run_command("bash -c '{0}'".format(cmd))
+            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_MAJOR}'
+            os_git_major = run_command("bash -c '{0}'".format(cmd))
+            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_MINOR}'
+            os_git_minor = run_command("bash -c '{0}'".format(cmd))
+            print("OS_GIT_COMMIT::{0}".format(os_git_commit))
+            print("OS_GIT_VERSION::{0}".format(os_git_version))
+            print("OS_GIT_MAJOR::{0}".format(os_git_major))
+            print("OS_GIT_MINOR::{0}".format(os_git_minor))
+            update_os_git_vars = \
+                    "sed -i 's|^%global os_git_vars .*$|%global os_git_vars OS_GIT_VERSION={0} OS_GIT_COMMIT={1} OS_GIT_MAJOR={2} OS_GIT_MINOR={3}|' {4}".format(
+                        os_git_version,
+                        os_git_commit,
+                        os_git_major,
+                        os_git_minor,
+                        self.spec_file
+                    )
+            output = run_command(update_os_git_vars)
+
+            ## Fixup ldflags
+            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; echo $(os::build::ldflags)'
             ldflags = run_command("bash -c '{0}'".format(cmd))
             print("LDFLAGS::{0}".format(ldflags))
             update_ldflags = \
@@ -63,7 +88,6 @@ class OriginBuilder(Builder):
                         ' '.join([ldflag.strip() for ldflag in ldflags.split()]),
                         self.spec_file
                     )
-            # FIXME - output is never used
             output = run_command(update_ldflags)
 
             # Add bundled deps for Fedora Guidelines as per:

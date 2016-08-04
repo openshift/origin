@@ -305,6 +305,7 @@ os::build::internal::build_binaries() {
         eval "platform_goflags=(${!platform_goflags_envvar:-})"
 
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
+          -pkgdir ${GOPATH}/src/${OS_GO_PACKAGE} \
           "${goflags[@]:+${goflags[@]}}" "${platform_goflags[@]:+${platform_goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "${nonstatics[@]}"

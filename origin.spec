@@ -18,19 +18,13 @@
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refector_version 3.0.2.900
 %global golang_version 1.6.2
-# %commit and %ldflags are intended to be set by tito custom builders provided
+# %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
 %global commit 86b5e46426ba828f49195af21c56f7c6674b48f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
-# ldflags from hack/common.sh os::build:ldflags
-%{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
-}
 # os_git_vars needed to run hack scripts during rpm builds
-# TODO Automatically generate these using tito
-#  For man pages, blank is fine
 %{!?os_git_vars:
 %global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
 }
@@ -175,42 +169,11 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %setup -q
 
 %build
+# Create Binaries
+%{os_git_vars} hack/build-cross.sh
 
-# Don't judge me for this ... it's so bad.
-mkdir _build
-
-# Horrid hack because golang loves to just bundle everything
-pushd _build
-    mkdir -p src/github.com/openshift
-    ln -s $(dirs +1 -l) src/%{import_path}
-popd
-
-
-# Gaming the GOPATH to include the third party bundled libs at build
-# time.
-mkdir _thirdpartyhacks
-pushd _thirdpartyhacks
-    ln -s \
-        $(dirs +1 -l)/vendor/ \
-            src
-popd
-export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
-# Build all linux components we care about
-go install -ldflags "%{ldflags}" %{import_path}/cmd/dockerregistry
-go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/openshift
-go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/oc
-go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test/extended
-
-%if 0%{?make_redistributable}
-# Build clients for other platforms
-GOOS=windows GOARCH=386 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
-GOOS=darwin GOARCH=amd64 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
-%endif
-
-#Build our pod
-pushd images/pod/
-    go build -ldflags "%{ldflags}" pod.go
-popd
+# Create extended.test
+%{os_git_vars} hack/build-go.sh test/extended/extended.test
 
 # Create/Update man pages
 %{os_git_vars} hack/update-generated-docs.sh
@@ -223,21 +186,21 @@ install -d %{buildroot}%{_bindir}
 for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
-  install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
+  install -p -m 755 _output/local/bin/linux/amd64/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 _build/bin/extended.test %{buildroot}%{_libexecdir}/%{name}/
+install -p -m 755 _output/local/bin/linux/amd64/extended.test %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
 install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
-install -p -m 755 _build/bin/oc %{buildroot}%{_datadir}/%{name}/linux/oc
-install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
-install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+install -p -m 755 _output/local/bin/linux/amd64/oc %{buildroot}%{_datadir}/%{name}/linux/oc
+install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
+install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 %endif
 
-#Install pod
-install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
+# Install pod
+install -p -m 755 _output/local/bin/linux/amd64/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 
