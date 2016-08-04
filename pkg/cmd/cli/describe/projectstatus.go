@@ -185,7 +185,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, "", 0, describeServiceInServiceGroup(f, service, exposes...)...)
 
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
-				printLines(out, indent, 1, describeDeploymentInServiceGroup(local, dcPipeline)...)
+				printLines(out, indent, 1, describeDeploymentInServiceGroup(local, dcPipeline, graphview.MaxRecentContainerRestartsForRC(g, dcPipeline.ActiveDeployment))...)
 			}
 
 		rcNode:
@@ -212,7 +212,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		for _, standaloneDC := range standaloneDCs {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDC)...)
+			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDC, graphview.MaxRecentContainerRestartsForRC(g, standaloneDC.ActiveDeployment))...)
 		}
 
 		for _, standaloneImage := range standaloneImages {
@@ -466,7 +466,7 @@ func describeAllProjectsOnServer(f formatter, server string) string {
 	return fmt.Sprintf("Showing all projects on server %s\n", server)
 }
 
-func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentConfigPipeline) []string {
+func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentConfigPipeline, restartCount int32) []string {
 	local := namespacedFormatter{currentNamespace: deploy.Deployment.Namespace}
 
 	includeLastPass := deploy.ActiveDeployment == nil
@@ -482,7 +482,7 @@ func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentCo
 			lines = append(lines, segments[1])
 		}
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, maxDisplayDeployments)...)
+		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, restartCount, maxDisplayDeployments)...)
 		return lines
 	}
 
@@ -494,7 +494,7 @@ func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentCo
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(local, image, deploy.Deployment.Namespace))
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, maxDisplayDeployments)...)
+		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, restartCount, maxDisplayDeployments)...)
 	}
 	return lines
 }
@@ -892,7 +892,7 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, count int) []string {
+func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, restartCount int32, count int) []string {
 	if dcNode == nil {
 		return nil
 	}
@@ -912,7 +912,7 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 	}
 
 	for i, deployment := range deploymentsToPrint {
-		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test))
+		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test, restartCount))
 
 		switch {
 		case count == -1:
@@ -928,7 +928,7 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 	return out
 }
 
-func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bool) string {
+func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bool, restartCount int32) string {
 	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
 	status := deployutil.DeploymentStatusFor(deploy)
 	version := deployutil.DeploymentVersionFor(deploy)
@@ -944,31 +944,31 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first, test bo
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false, restartCount))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
-		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
+		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first, restartCount))
 	case deployapi.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"
 		}
-		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(deploy, false, restartCount))
 	default:
-		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(deploy, false))
+		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(deploy, false, restartCount))
 	}
 }
 
 func describeRCStatus(rc *kapi.ReplicationController) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
-	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc, false))
+	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc, false, 0))
 }
 
-func describePodSummaryInline(rc *kapi.ReplicationController, includeEmpty bool) string {
-	s := describePodSummary(rc, includeEmpty)
+func describePodSummaryInline(rc *kapi.ReplicationController, includeEmpty bool, restartCount int32) string {
+	s := describePodSummary(rc, includeEmpty, restartCount)
 	if len(s) == 0 {
 		return s
 	}
@@ -983,8 +983,12 @@ func describePodSummaryInline(rc *kapi.ReplicationController, includeEmpty bool)
 	return fmt.Sprintf(" - %s%s", s, change)
 }
 
-func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool) string {
+func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool, restartCount int32) string {
 	actual, requested := rc.Status.Replicas, rc.Spec.Replicas
+	restartWarn := ""
+	if restartCount > 0 {
+		restartWarn = fmt.Sprintf(" (warning: %d restarts)", restartCount)
+	}
 	if actual == requested {
 		switch {
 		case actual == 0:
@@ -993,12 +997,12 @@ func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool) strin
 			}
 			return "0 pods"
 		case actual > 1:
-			return fmt.Sprintf("%d pods", actual)
+			return fmt.Sprintf("%d pods", actual) + restartWarn
 		default:
-			return "1 pod"
+			return "1 pod" + restartWarn
 		}
 	}
-	return fmt.Sprintf("%d/%d pods", actual, requested)
+	return fmt.Sprintf("%d/%d pods", actual, requested) + restartWarn
 }
 
 func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (string, bool) {
