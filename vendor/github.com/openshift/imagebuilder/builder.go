@@ -1,4 +1,4 @@
-package builder
+package imagebuilder
 
 import (
 	"bytes"
@@ -32,6 +32,7 @@ type Run struct {
 type Executor interface {
 	Copy(copies ...Copy) error
 	Run(run Run, config docker.Config) error
+	UnrecognizedInstruction(step *Step) error
 }
 
 type logExecutor struct{}
@@ -48,6 +49,11 @@ func (logExecutor) Run(run Run, config docker.Config) error {
 	return nil
 }
 
+func (logExecutor) UnrecognizedInstruction(step *Step) error {
+	log.Printf("Unknown instruction: %s", strings.ToUpper(step.Command))
+	return nil
+}
+
 type noopExecutor struct{}
 
 func (noopExecutor) Copy(copies ...Copy) error {
@@ -55,6 +61,10 @@ func (noopExecutor) Copy(copies ...Copy) error {
 }
 
 func (noopExecutor) Run(run Run, config docker.Config) error {
+	return nil
+}
+
+func (noopExecutor) UnrecognizedInstruction(step *Step) error {
 	return nil
 }
 
@@ -103,7 +113,7 @@ func (b *Builder) Step() *Step {
 func (b *Builder) Run(step *Step, exec Executor) error {
 	fn, ok := evaluateTable[step.Command]
 	if !ok {
-		return fmt.Errorf("Unknown instruction: %s", strings.ToUpper(step.Command))
+		return exec.UnrecognizedInstruction(step)
 	}
 	if err := fn(b, step.Args, step.Attrs, step.Original); err != nil {
 		return err
@@ -290,4 +300,33 @@ func ParseDockerignore(root string) ([]string, error) {
 		return excludes, fmt.Errorf("error reading .dockerignore: '%s'", err)
 	}
 	return strings.Split(string(ignore), "\n"), nil
+}
+
+// ExportEnv creates an export statement for a shell that contains all of the
+// provided environment.
+func ExportEnv(env []string) string {
+	if len(env) == 0 {
+		return ""
+	}
+	out := "export"
+	for _, e := range env {
+		out += " " + BashQuote(e)
+	}
+	return out + "; "
+}
+
+// BashQuote escapes the provided string and surrounds it with double quotes.
+// TODO: verify that these are all we have to escape.
+func BashQuote(env string) string {
+	out := []rune{'"'}
+	for _, r := range env {
+		switch r {
+		case '$', '\\', '"':
+			out = append(out, '\\', r)
+		default:
+			out = append(out, r)
+		}
+	}
+	out = append(out, '"')
+	return string(out)
 }

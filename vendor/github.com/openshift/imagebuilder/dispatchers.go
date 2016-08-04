@@ -1,4 +1,4 @@
-package builder
+package imagebuilder
 
 // This file contains the dispatchers for each command. Note that
 // `nullDispatch` is not actually a command, but support for commands we parse
@@ -17,8 +17,8 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/signal"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/strslice"
+	"github.com/openshift/imagebuilder/signal"
+	"github.com/openshift/imagebuilder/strslice"
 )
 
 // dispatch with no layer / parsing. This is effectively not a command.

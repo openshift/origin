@@ -1,4 +1,4 @@
-package builder
+package imagebuilder
 
 import (
 	"fmt"
@@ -7,40 +7,6 @@ import (
 	"runtime"
 	"strings"
 )
-
-// isURL returns true if the string appears to be a URL.
-func isURL(s string) bool {
-	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
-}
-
-// exportEnv creates an export statement for a shell that contains all of the
-// provided environment.
-func exportEnv(env []string) string {
-	if len(env) == 0 {
-		return ""
-	}
-	out := "export"
-	for _, e := range env {
-		out += " " + bashQuote(e)
-	}
-	return out + "; "
-}
-
-// bashQuote escapes the provided string and surrounds it with double quotes.
-// TODO: verify that these are all we have to escape.
-func bashQuote(env string) string {
-	out := []rune{'"'}
-	for _, r := range env {
-		switch r {
-		case '$', '\\', '"':
-			out = append(out, '\\', r)
-		default:
-			out = append(out, r)
-		}
-	}
-	out = append(out, '"')
-	return string(out)
-}
 
 // hasEnvName returns true if the provided environment contains the named ENV var.
 func hasEnvName(env []string, name string) bool {

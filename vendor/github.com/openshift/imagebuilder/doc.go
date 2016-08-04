@@ -3,4 +3,4 @@
 // single layer.
 //
 // TODO: full windows support
-package builder
+package imagebuilder

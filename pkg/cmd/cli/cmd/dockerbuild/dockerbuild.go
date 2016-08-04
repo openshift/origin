@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -15,9 +16,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
+	dockerbuilder "github.com/openshift/imagebuilder/dockerclient"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder"
 )
 
 const (
@@ -46,7 +47,7 @@ type DockerbuildOptions struct {
 
 	MountSpecs []string
 
-	Mounts         []builder.Mount
+	Mounts         []dockerbuilder.Mount
 	Directory      string
 	Tag            string
 	DockerfilePath string
@@ -101,13 +102,13 @@ func (o *DockerbuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		o.DockerfilePath = filepath.Join(o.Directory, "Dockerfile")
 	}
 
-	var mounts []builder.Mount
+	var mounts []dockerbuilder.Mount
 	for _, s := range o.MountSpecs {
 		segments := strings.Split(s, ":")
 		if len(segments) != 2 {
 			return kcmdutil.UsageError(cmd, "--mount must be of the form SOURCE:DEST")
 		}
-		mounts = append(mounts, builder.Mount{SourcePath: segments[0], DestinationPath: segments[1]})
+		mounts = append(mounts, dockerbuilder.Mount{SourcePath: segments[0], DestinationPath: segments[1]})
 	}
 	o.Mounts = mounts
 
@@ -132,13 +133,23 @@ func (o *DockerbuildOptions) Run() error {
 		return err
 	}
 	defer f.Close()
-	e := builder.NewClientExecutor(o.Client)
+	e := dockerbuilder.NewClientExecutor(o.Client)
 	e.Out, e.ErrOut = o.Out, o.Err
 	e.AllowPull = o.AllowPull
 	e.Directory = o.Directory
 	e.TransientMounts = o.Mounts
 	e.Tag = o.Tag
-	e.AuthFn = o.Keyring.Lookup
+	e.AuthFn = func(image string) ([]dockertypes.AuthConfig, bool) {
+		auth, ok := o.Keyring.Lookup(image)
+		if !ok {
+			return nil, false
+		}
+		var engineAuth []dockertypes.AuthConfig
+		for _, c := range auth {
+			engineAuth = append(engineAuth, c.AuthConfig)
+		}
+		return engineAuth, true
+	}
 	e.LogFn = func(format string, args ...interface{}) {
 		if glog.V(2) {
 			glog.Infof("Builder: "+format, args...)

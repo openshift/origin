@@ -1,4 +1,4 @@
-package builder
+package dockerclient
 
 import (
 	"archive/tar"
@@ -13,15 +13,15 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/credentialprovider"
-
 	"github.com/docker/docker/builder/parser"
+	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
+	"github.com/openshift/imagebuilder"
+	"github.com/openshift/imagebuilder/imageprogress"
 )
 
 // Mount represents a binding between the current system and the destination client
@@ -46,6 +46,9 @@ type ClientExecutor struct {
 	// AllowPull when set will pull images that are not present on
 	// the daemon.
 	AllowPull bool
+	// IgnoreUnrecognizedInstructions, if true, allows instructions
+	// that are not yet supported to be ignored (will be printed)
+	IgnoreUnrecognizedInstructions bool
 	// TransientMounts are a set of mounts from outside the build
 	// to the inside that will not be part of the final image. Any
 	// content created inside the mount's destinationPath will be
@@ -67,7 +70,7 @@ type ClientExecutor struct {
 
 	// AuthFn will handle authenticating any docker pulls if Image
 	// is set to nil.
-	AuthFn func(name string) ([]credentialprovider.LazyAuthConfiguration, bool)
+	AuthFn func(name string) ([]dockertypes.AuthConfig, bool)
 	// HostConfig is used to start the container (if necessary).
 	HostConfig *docker.HostConfig
 	// LogFn is an optional command to log information to the end user
@@ -76,7 +79,10 @@ type ClientExecutor struct {
 
 // NewClientExecutor creates a client executor.
 func NewClientExecutor(client *docker.Client) *ClientExecutor {
-	return &ClientExecutor{Client: client}
+	return &ClientExecutor{
+		Client: client,
+		LogFn:  func(string, ...interface{}) {},
+	}
 }
 
 // Build is a helper method to perform a Docker build against the
@@ -86,11 +92,11 @@ func NewClientExecutor(client *docker.Client) *ClientExecutor {
 // any containers it creates directly, and set the e.Image.ID field
 // to the generated image.
 func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
-	b := NewBuilder()
+	b := imagebuilder.NewBuilder()
 	b.Args = args
 
 	if e.Excludes == nil {
-		excludes, err := ParseDockerignore(e.Directory)
+		excludes, err := imagebuilder.ParseDockerignore(e.Directory)
 		if err != nil {
 			return err
 		}
@@ -111,7 +117,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	}
 	// load the image
 	if e.Image == nil {
-		if from == NoBaseImageSpecifier {
+		if from == imagebuilder.NoBaseImageSpecifier {
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("building from scratch images is not supported")
 			}
@@ -191,10 +197,10 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 
 	// copy any source content into the temporary mount path
 	if mustStart && len(e.TransientMounts) > 0 {
-		var copies []Copy
+		var copies []imagebuilder.Copy
 		for i, mount := range e.TransientMounts {
 			source := mount.SourcePath
-			copies = append(copies, Copy{
+			copies = append(copies, imagebuilder.Copy{
 				Src:  source,
 				Dest: []string{path.Join("/tmp/__temporarymount", strconv.Itoa(i))},
 			})
@@ -375,7 +381,7 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	// TODO: we may want to abstract looping over multiple credentials
 	auth, _ := e.AuthFn(repository)
 	if len(auth) == 0 {
-		auth = append(auth, credentialprovider.LazyAuthConfiguration{})
+		auth = append(auth, dockertypes.AuthConfig{})
 	}
 
 	if e.LogFn != nil {
@@ -412,26 +418,34 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	return e.Client.InspectImage(from)
 }
 
+func (e *ClientExecutor) UnrecognizedInstruction(step *imagebuilder.Step) error {
+	if e.IgnoreUnrecognizedInstructions {
+		e.LogFn("warning: Unknown instruction: %s", strings.ToUpper(step.Command))
+		return nil
+	}
+	return fmt.Errorf("Unknown instruction: %s", strings.ToUpper(step.Command))
+}
+
 // Run executes a single Run command against the current container using exec().
 // Since exec does not allow ENV or WORKINGDIR to be set, we force the execution of
 // the user command into a shell and perform those operations before. Since RUN
 // requires /bin/sh, we can use both 'cd' and 'export'.
-func (e *ClientExecutor) Run(run Run, config docker.Config) error {
+func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	args := make([]string, len(run.Args))
 	copy(args, run.Args)
 
 	if runtime.GOOS == "windows" {
 		if len(config.WorkingDir) > 0 {
-			args[0] = fmt.Sprintf("cd %s && %s", bashQuote(config.WorkingDir), args[0])
+			args[0] = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), args[0])
 		}
 		// TODO: implement windows ENV
 		args = append([]string{"cmd", "/S", "/C"}, args...)
 	} else {
 		if len(config.WorkingDir) > 0 {
-			args[0] = fmt.Sprintf("cd %s && %s", bashQuote(config.WorkingDir), args[0])
+			args[0] = fmt.Sprintf("cd %s && %s", imagebuilder.BashQuote(config.WorkingDir), args[0])
 		}
 		if len(config.Env) > 0 {
-			args[0] = exportEnv(config.Env) + args[0]
+			args[0] = imagebuilder.ExportEnv(config.Env) + args[0]
 		}
 		args = append([]string{"/bin/sh", "-c"}, args...)
 	}
@@ -464,7 +478,7 @@ func (e *ClientExecutor) Run(run Run, config docker.Config) error {
 	return nil
 }
 
-func (e *ClientExecutor) Copy(copies ...Copy) error {
+func (e *ClientExecutor) Copy(copies ...imagebuilder.Copy) error {
 	container := e.Container
 	for _, c := range copies {
 		// TODO: reuse source

@@ -1,4 +1,4 @@
-package builder
+package dockerclient
 
 import (
 	"fmt"
@@ -149,4 +149,9 @@ func containsWildcards(name string) bool {
 		}
 	}
 	return false
+}
+
+// isURL returns true if the string appears to be a URL.
+func isURL(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }
