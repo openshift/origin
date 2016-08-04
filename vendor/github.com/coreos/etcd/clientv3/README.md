@@ -16,11 +16,11 @@ Create client using `clientv3.New`:
 
 ```go
 cli, err := clientv3.New(clientv3.Config{
-	Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
-	DialTimeout: 5 * time.Second,
+    Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
+    DialTimeout: 5 * time.Second,
 })
 if err != nil {
-	// handle error!
+    // handle error!
 }
 defer cli.Close()
 ```
@@ -57,15 +57,15 @@ Here is the example code to handle client errors:
 ```go
 resp, err := kvc.Put(ctx, "", "")
 if err != nil {
-	if err == context.Canceled {
-		// ctx is canceled by another routine
-	} else if err == context.DeadlineExceeded {
-		// ctx is attached with a deadline and it exceeded
-	} else if verr, ok := err.(*v3rpc.ErrEmptyKey); ok {
-		// process (verr.Errors)
-	} else {
-		// bad cluster endpoints, which are not etcd servers
-	}
+    if err == context.Canceled {
+        // ctx is canceled by another routine
+    } else if err == context.DeadlineExceeded {
+        // ctx is attached with a deadline and it exceeded
+    } else if verr, ok := err.(*v3rpc.ErrEmptyKey); ok {
+        // process (verr.Errors)
+    } else {
+        // bad cluster endpoints, which are not etcd servers
+    }
 }
 ```
 

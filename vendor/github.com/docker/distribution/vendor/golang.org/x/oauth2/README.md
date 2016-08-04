@@ -38,27 +38,27 @@ If you don't want to update your entire app to use the new App Engine packages,
 you may use both sets of packages in parallel, using only the new packages
 with the `oauth2` package.
 
-	import (
-		"golang.org/x/net/context"
-		"golang.org/x/oauth2"
-		"golang.org/x/oauth2/google"
-		newappengine "google.golang.org/appengine"
-		newurlfetch "google.golang.org/appengine/urlfetch"
+    import (
+        "golang.org/x/net/context"
+        "golang.org/x/oauth2"
+        "golang.org/x/oauth2/google"
+        newappengine "google.golang.org/appengine"
+        newurlfetch "google.golang.org/appengine/urlfetch"
 
-		"appengine"
-	)
+        "appengine"
+    )
 
-	func handler(w http.ResponseWriter, r *http.Request) {
-		var c appengine.Context = appengine.NewContext(r)
-		c.Infof("Logging a message with the old package")
+    func handler(w http.ResponseWriter, r *http.Request) {
+        var c appengine.Context = appengine.NewContext(r)
+        c.Infof("Logging a message with the old package")
 
-		var ctx context.Context = newappengine.NewContext(r)
-		client := &http.Client{
-			Transport: &oauth2.Transport{
-				Source: google.AppEngineTokenSource(ctx, "scope"),
-				Base:   &newurlfetch.Transport{Context: ctx},
-			},
-		}
-		client.Get("...")
-	}
+        var ctx context.Context = newappengine.NewContext(r)
+        client := &http.Client{
+            Transport: &oauth2.Transport{
+                Source: google.AppEngineTokenSource(ctx, "scope"),
+                Base:   &newurlfetch.Transport{Context: ctx},
+            },
+        }
+        client.Get("...")
+    }
 

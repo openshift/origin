@@ -92,36 +92,36 @@ avenues are available for support:
 
 <table>
 <tr>
-	<th align="left">
-	IRC
-	</th>
-	<td>
-	#docker-distribution on FreeNode
-	</td>
+    <th align="left">
+    IRC
+    </th>
+    <td>
+    #docker-distribution on FreeNode
+    </td>
 </tr>
 <tr>
-	<th align="left">
-	Issue Tracker
-	</th>
-	<td>
-	github.com/docker/distribution/issues
-	</td>
+    <th align="left">
+    Issue Tracker
+    </th>
+    <td>
+    github.com/docker/distribution/issues
+    </td>
 </tr>
 <tr>
-	<th align="left">
-	Google Groups
-	</th>
-	<td>
-	https://groups.google.com/a/dockerproject.org/forum/#!forum/distribution
-	</td>
+    <th align="left">
+    Google Groups
+    </th>
+    <td>
+    https://groups.google.com/a/dockerproject.org/forum/#!forum/distribution
+    </td>
 </tr>
 <tr>
-	<th align="left">
-	Mailing List
-	</th>
-	<td>
-	docker@dockerproject.org
-	</td>
+    <th align="left">
+    Mailing List
+    </th>
+    <td>
+    docker@dockerproject.org
+    </td>
 </tr>
 </table>
 

@@ -63,13 +63,13 @@ And then I set that in my command definition:
 
 ```go
 cmds := &cobra.Command{
-	Use:   "kubectl",
-	Short: "kubectl controls the Kubernetes cluster manager",
-	Long: `kubectl controls the Kubernetes cluster manager.
+    Use:   "kubectl",
+    Short: "kubectl controls the Kubernetes cluster manager",
+    Long: `kubectl controls the Kubernetes cluster manager.
 
 Find more information at https://github.com/GoogleCloudPlatform/kubernetes.`,
-	Run: runHelp,
-	BashCompletionFunction: bash_completion_func,
+    Run: runHelp,
+    BashCompletionFunction: bash_completion_func,
 }
 ```
 
@@ -83,15 +83,15 @@ In the above example "pod" was assumed to already be typed. But if you want `kub
 validArgs []string = { "pod", "node", "service", "replicationcontroller" }
 
 cmd := &cobra.Command{
-	Use:     "get [(-o|--output=)json|yaml|template|...] (RESOURCE [NAME] | RESOURCE/NAME ...)",
-	Short:   "Display one or many resources",
-	Long:    get_long,
-	Example: get_example,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := RunGet(f, out, cmd, args)
-		util.CheckErr(err)
-	},
-	ValidArgs: validArgs,
+    Use:     "get [(-o|--output=)json|yaml|template|...] (RESOURCE [NAME] | RESOURCE/NAME ...)",
+    Short:   "Display one or many resources",
+    Long:    get_long,
+    Example: get_example,
+    Run: func(cmd *cobra.Command, args []string) {
+        err := RunGet(f, out, cmd, args)
+        util.CheckErr(err)
+    },
+    ValidArgs: validArgs,
 }
 ```
 
@@ -111,8 +111,8 @@ argAliases []string = { "pods", "nodes", "services", "svc", "replicationcontroll
 
 cmd := &cobra.Command{
     ...
-	ValidArgs:  validArgs,
-	ArgAliases: argAliases
+    ValidArgs:  validArgs,
+    ArgAliases: argAliases
 }
 ```
 
@@ -148,19 +148,19 @@ and you'll get something like
 In this example we use --filename= and expect to get a json or yaml file as the argument. To make this easier we annotate the --filename flag with valid filename extensions.
 
 ```go
-	annotations := []string{"json", "yaml", "yml"}
-	annotation := make(map[string][]string)
-	annotation[cobra.BashCompFilenameExt] = annotations
+    annotations := []string{"json", "yaml", "yml"}
+    annotation := make(map[string][]string)
+    annotation[cobra.BashCompFilenameExt] = annotations
 
-	flag := &pflag.Flag{
-		Name:        "filename",
-		Shorthand:   "f",
-		Usage:       usage,
-		Value:       value,
-		DefValue:    value.String(),
-		Annotations: annotation,
-	}
-	cmd.Flags().AddFlag(flag)
+    flag := &pflag.Flag{
+        Name:        "filename",
+        Shorthand:   "f",
+        Usage:       usage,
+        Value:       value,
+        DefValue:    value.String(),
+        Annotations: annotation,
+    }
+    cmd.Flags().AddFlag(flag)
 ```
 
 Now when you run a command with this filename flag you'll get something like
@@ -179,15 +179,15 @@ Similar to the filename completion and filtering usingn cobra.BashCompFilenameEx
 a custom flag completion function with cobra.BashCompCustom:
 
 ```go
-	annotation := make(map[string][]string)
-	annotation[cobra.BashCompFilenameExt] = []string{"__kubectl_get_namespaces"}
+    annotation := make(map[string][]string)
+    annotation[cobra.BashCompFilenameExt] = []string{"__kubectl_get_namespaces"}
 
-	flag := &pflag.Flag{
-		Name:        "namespace",
-		Usage:       usage,
-		Annotations: annotation,
-	}
-	cmd.Flags().AddFlag(flag)
+    flag := &pflag.Flag{
+        Name:        "namespace",
+        Usage:       usage,
+        Annotations: annotation,
+    }
+    cmd.Flags().AddFlag(flag)
 ```
 
 In addition add the `__handle_namespace_flag` implementation in the `BashCompletionFunction`

@@ -14,11 +14,11 @@ Groups are cluster-scoped sets of users that are managed by cluster-admins and m
 ```
 // Group contains the set of users that belong to a given Group.  The name may not contain ":"
 type Group struct {
-	kapi.TypeMeta
-	kapi.ObjectMeta
+    kapi.TypeMeta
+    kapi.ObjectMeta
 
-	// Users is a list of Users that are members of the Group
-	Users util.StringSet
+    // Users is a list of Users that are members of the Group
+    Users util.StringSet
 }
 ```
 

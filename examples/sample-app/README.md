@@ -34,16 +34,16 @@ At this stage of OpenShift 3 development, there are a few things that you will n
 **VAGRANT USERS**:
 If you haven't already, fire up a Vagrant instance, where since a OpenShift compile is occurring in a subsequent step below, you need to override the default amount of memory assigned to the VM.
 
-	$ vagrant up
-	$ vagrant ssh
+    $ vagrant up
+    $ vagrant ssh
 
 Inside of your Vagrant instance, the path to the origin directory is `/data/src/github.com/openshift/origin`.
 
-	$ cd /data/src/github.com/openshift/origin
+    $ cd /data/src/github.com/openshift/origin
 
 Run an advance build of the OpenShift binaries before continuing:
 
-	$ make clean build
+    $ make clean build
 
 This will set up a go workspace locally and will build all go components.  It is not necessary to make the docker and firewall changes, instead [jump to the next section](#application-build-deploy-and-update-flow).
 
@@ -346,14 +346,14 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 16. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
-	- - -
-	**VAGRANT USERS:**
-	Open a new terminal and enter this command to forward the application port to a port on your workstation:
+    - - -
+    **VAGRANT USERS:**
+    Open a new terminal and enter this command to forward the application port to a port on your workstation:
 
-		$ vagrant ssh -- -L 9999:172.30.17.4:5432 (or 9999:whatever IP address was reported above)
+        $ vagrant ssh -- -L 9999:172.30.17.4:5432 (or 9999:whatever IP address was reported above)
 
-	You can now confirm the application is accessible on port 5432 by going to http://127.0.0.1:9999.  Note that port 9999 is arbitrary.
-	- - -
+    You can now confirm the application is accessible on port 5432 by going to http://127.0.0.1:9999.  Note that port 9999 is arbitrary.
+    - - -
 
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 

@@ -68,7 +68,7 @@ First create a `datastore.Client` to use throughout your application:
 ```go
 client, err := datastore.NewClient(ctx, "my-project-id")
 if err != nil {
-	log.Fatalln(err)
+    log.Fatalln(err)
 }
 ```
 
@@ -76,20 +76,20 @@ Then use that client to interact with the API:
 
 ```go
 type Post struct {
-	Title       string
-	Body        string `datastore:",noindex"`
-	PublishedAt time.Time
+    Title       string
+    Body        string `datastore:",noindex"`
+    PublishedAt time.Time
 }
 keys := []*datastore.Key{
-	datastore.NewKey(ctx, "Post", "post1", 0, nil),
-	datastore.NewKey(ctx, "Post", "post2", 0, nil),
+    datastore.NewKey(ctx, "Post", "post1", 0, nil),
+    datastore.NewKey(ctx, "Post", "post2", 0, nil),
 }
 posts := []*Post{
-	{Title: "Post 1", Body: "...", PublishedAt: time.Now()},
-	{Title: "Post 2", Body: "...", PublishedAt: time.Now()},
+    {Title: "Post 1", Body: "...", PublishedAt: time.Now()},
+    {Title: "Post 2", Body: "...", PublishedAt: time.Now()},
 }
 if _, err := client.PutMulti(ctx, keys, posts); err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -106,7 +106,7 @@ First create a `storage.Client` to use throughout your application:
 ```go
 client, err := storage.NewClient(ctx)
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -114,12 +114,12 @@ if err != nil {
 // Read the object1 from bucket.
 rc, err := client.Bucket("bucket").Object("object1").NewReader(ctx)
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 defer rc.Close()
 body, err := ioutil.ReadAll(rc)
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -136,15 +136,15 @@ https://godoc.org/google.golang.org/cloud/pubsub
 ```go
 // Publish "hello world" on topic1.
 msgIDs, err := pubsub.Publish(ctx, "topic1", &pubsub.Message{
-	Data: []byte("hello world"),
+    Data: []byte("hello world"),
 })
 if err != nil {
-	log.Println(err)
+    log.Println(err)
 }
 // Pull messages via subscription1.
 msgs, err := pubsub.Pull(ctx, "subscription1", 1)
 if err != nil {
-	log.Println(err)
+    log.Println(err)
 }
 ```
 

@@ -22,7 +22,7 @@ Package ini provides INI file read and write functionality in Go.
 
 ## Installation
 
-	go get gopkg.in/ini.v1
+    go get gopkg.in/ini.v1
 
 ## Getting Started
 
@@ -132,10 +132,10 @@ To validate key value on the fly:
 
 ```go
 val := cfg.Section("").Key("key name").Validate(func(in string) string {
-	if len(in) == 0 {
-		return "default"
-	}
-	return in
+    if len(in) == 0 {
+        return "default"
+    }
+    return in
 })
 ```
 
@@ -216,11 +216,11 @@ That's cool, how about continuation lines?
 ```ini
 [advance]
 two_lines = how about \
-	continuation lines?
+    continuation lines?
 lots_of_lines = 1 \
-	2 \
-	3 \
-	4
+    2 \
+    3 \
+    4
 ```
 
 Piece of cake!
@@ -318,8 +318,8 @@ FULL_NAME = github.com/go-ini/%(NAME)s
 ```
 
 ```go
-cfg.Section("author").Key("GITHUB").String()		// https://github.com/Unknwon
-cfg.Section("package").Key("FULL_NAME").String()	// github.com/go-ini/ini
+cfg.Section("author").Key("GITHUB").String()        // https://github.com/Unknwon
+cfg.Section("package").Key("FULL_NAME").String()    // github.com/go-ini/ini
 ```
 
 ### Parent-child Sections
@@ -338,7 +338,7 @@ CLONE_URL = https://%(IMPORT_PATH)s
 ```
 
 ```go
-cfg.Section("package.sub").Key("CLONE_URL").String()	// https://gopkg.in/ini.v1
+cfg.Section("package.sub").Key("CLONE_URL").String()    // https://gopkg.in/ini.v1
 ```
 
 ### Auto-increment Key Names
@@ -353,7 +353,7 @@ If key name is `-` in data source, then it would be seen as special syntax for a
 ```
 
 ```go
-cfg.Section("features").KeyStrings()	// []{"#1", "#2", "#3"}
+cfg.Section("features").KeyStrings()    // []{"#1", "#2", "#3"}
 ```
 
 ### Map To Struct
@@ -373,34 +373,34 @@ Cities = HangZhou, Boston
 
 ```go
 type Note struct {
-	Content string
-	Cities  []string
+    Content string
+    Cities  []string
 }
 
 type Person struct {
-	Name string
-	Age  int `ini:"age"`
-	Male bool
-	Born time.Time
-	Note
-	Created time.Time `ini:"-"`
+    Name string
+    Age  int `ini:"age"`
+    Male bool
+    Born time.Time
+    Note
+    Created time.Time `ini:"-"`
 }
 
 func main() {
-	cfg, err := ini.Load("path/to/ini")
-	// ...
-	p := new(Person)
-	err = cfg.MapTo(p)
-	// ...
+    cfg, err := ini.Load("path/to/ini")
+    // ...
+    p := new(Person)
+    err = cfg.MapTo(p)
+    // ...
 
-	// Things can be simpler.
-	err = ini.MapTo(p, "path/to/ini")
-	// ...
+    // Things can be simpler.
+    err = ini.MapTo(p, "path/to/ini")
+    // ...
 
-	// Just map a section? Fine.
-	n := new(Note)
-	err = cfg.Section("Note").MapTo(n)
-	// ...
+    // Just map a section? Fine.
+    n := new(Note)
+    err = cfg.Section("Note").MapTo(n)
+    // ...
 }
 ```
 
@@ -411,7 +411,7 @@ Assign it before you map to struct. It will keep the value as it is if the key i
 ```go
 // ...
 p := &Person{
-	Name: "Joe",
+    Name: "Joe",
 }
 // ...
 ```
@@ -424,30 +424,30 @@ Why not?
 
 ```go
 type Embeded struct {
-	Dates  []time.Time `delim:"|"`
-	Places []string
-	None   []int
+    Dates  []time.Time `delim:"|"`
+    Places []string
+    None   []int
 }
 
 type Author struct {
-	Name      string `ini:"NAME"`
-	Male      bool
-	Age       int
-	GPA       float64
-	NeverMind string `ini:"-"`
-	*Embeded
+    Name      string `ini:"NAME"`
+    Male      bool
+    Age       int
+    GPA       float64
+    NeverMind string `ini:"-"`
+    *Embeded
 }
 
 func main() {
-	a := &Author{"Unknwon", true, 21, 2.8, "",
-		&Embeded{
-			[]time.Time{time.Now(), time.Now()},
-			[]string{"HangZhou", "Boston"},
-			[]int{},
-		}}
-	cfg := ini.Empty()
-	err = ini.ReflectFrom(cfg, a)
-	// ...
+    a := &Author{"Unknwon", true, 21, 2.8, "",
+        &Embeded{
+            []time.Time{time.Now(), time.Now()},
+            []string{"HangZhou", "Boston"},
+            []int{},
+        }}
+    cfg := ini.Empty()
+    err = ini.ReflectFrom(cfg, a)
+    // ...
 }
 ```
 
@@ -478,19 +478,19 @@ To use them:
 
 ```go
 type Info struct {
-	PackageName string
+    PackageName string
 }
 
 func main() {
-	err = ini.MapToWithMapper(&Info{}, ini.TitleUnderscore, []byte("packag_name=ini"))
-	// ...
+    err = ini.MapToWithMapper(&Info{}, ini.TitleUnderscore, []byte("packag_name=ini"))
+    // ...
 
-	cfg, err := ini.Load([]byte("PACKAGE_NAME=ini"))
-	// ...
-	info := new(Info)
-	cfg.NameMapper = ini.AllCapsUnderscore
-	err = cfg.MapTo(info)
-	// ...
+    cfg, err := ini.Load([]byte("PACKAGE_NAME=ini"))
+    // ...
+    info := new(Info)
+    cfg.NameMapper = ini.AllCapsUnderscore
+    err = cfg.MapTo(info)
+    // ...
 }
 ```
 
@@ -502,17 +502,17 @@ Any embedded struct is treated as a section by default, and there is no automati
 
 ```go
 type Child struct {
-	Age string
+    Age string
 }
 
 type Parent struct {
-	Name string
-	Child
+    Name string
+    Child
 }
 
 type Config struct {
-	City string
-	Parent
+    City string
+    Parent
 }
 ```
 
@@ -532,17 +532,17 @@ What if, yes, I'm paranoid, I want embedded struct to be in the same section. We
 
 ```go
 type Child struct {
-	Age string
+    Age string
 }
 
 type Parent struct {
-	Name string
-	Child `ini:"Parent"`
+    Name string
+    Child `ini:"Parent"`
 }
 
 type Config struct {
-	City string
-	Parent
+    City string
+    Parent
 }
 ```
 

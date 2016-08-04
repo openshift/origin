@@ -8,14 +8,14 @@ Running tests
 
 From the top-level origin directory, run
 
-	$ test/extended/<some_script>.sh
+    $ test/extended/<some_script>.sh
 
 Where \<some_script\>.sh is one of the bucket scripts such as "core.sh".
 
 You can further narrow the set of tests being run by passing `--ginkgo.focus="some string"` where "some string" corresponds to
 the description of the test you want to run.  For example one of the s2i tests (sti_incremental.go) defines:
 
-	var _ = g.Describe("builds: s2i incremental build with push and pull to authenticated registry", func() {
+    var _ = g.Describe("builds: s2i incremental build with push and pull to authenticated registry", func() {
 
 So you can write a focus filter that includes this test by passing `--ginkgo.focus="s2i incremental"`.
 
@@ -47,8 +47,8 @@ access to the Kubernetes [E2E framework](https://github.com/openshift/origin/tre
 * [**`hack/test-extended/[group]/run.sh`**](../../hack/test-extended) is the shell script that sets up any needed dependencies and then launches the extended tests whose top level ginkgo spec's Describe call reference the [group](#groups-vs-packages)
 * [**`test/extended/extended_test.go`**](extended_test.go) is a runner for all extended test packages. Look inside this file to see how you can add new extended test Go package to be compiled:
 ```go
-	_ "github.com/openshift/origin/test/extended/builds"
-	_ "github.com/openshift/origin/test/extended/images"
+    _ "github.com/openshift/origin/test/extended/builds"
+    _ "github.com/openshift/origin/test/extended/images"
 ```
 
 Groups vs. packages
@@ -117,11 +117,11 @@ import (
 )
 
 var _ = g.Describe("[<test bucket>] <Testing scenario>", func() {
-	defer g.GinkgoRecover()
-	var (
-		oc = exutil.NewCLI("test-name", exutil.KubeConfigPath())
-		testFixture = filepath.Join("testdata", "test.json")
-	)
+    defer g.GinkgoRecover()
+    var (
+        oc = exutil.NewCLI("test-name", exutil.KubeConfigPath())
+        testFixture = filepath.Join("testdata", "test.json")
+    )
 })
 ```
 
@@ -129,17 +129,17 @@ The test suite should be organized into lower-level Ginkgo describe(s) container
 
 ```go
 var _ = g.Describe("[default] STI build", func() {
-	defer GinkgoRecover()
-	var (
-		stiBuildFixture = filepath.Join("testdata", "test-build.json")
-		oc              = exutil.NewCLI("build-sti", kubeConfigPath())
-	)
+    defer GinkgoRecover()
+    var (
+        stiBuildFixture = filepath.Join("testdata", "test-build.json")
+        oc              = exutil.NewCLI("build-sti", kubeConfigPath())
+    )
 
-	g.Describe("Building from a template", func() {
-		g.It(fmt.Sprintf("should create a image from %q template", stiBuildFixture), func() {
-			...
-		}
-	}
+    g.Describe("Building from a template", func() {
+        g.It(fmt.Sprintf("should create a image from %q template", stiBuildFixture), func() {
+            ...
+        }
+    }
 }
 ```
 

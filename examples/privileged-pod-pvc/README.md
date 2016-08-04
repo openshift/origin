@@ -104,7 +104,7 @@ $ oc rsh <pod_name>
 
 Examine the output for the gluster volume.
     
-	192.168.59.102:gv0 on /mnt/gluster type fuse.gluster (rw,relatime,user_id=0,group_id=0,default_permissions,allow_other,max_read=131072)
+    192.168.59.102:gv0 on /mnt/gluster type fuse.gluster (rw,relatime,user_id=0,group_id=0,default_permissions,allow_other,max_read=131072)
 
 
 **That's it!**

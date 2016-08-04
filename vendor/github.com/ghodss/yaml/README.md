@@ -18,10 +18,10 @@ This package uses [go-yaml v2](https://github.com/go-yaml/yaml) and therefore su
 
 ```
 BAD:
-	exampleKey: !!binary gIGC
+    exampleKey: !!binary gIGC
 
 GOOD:
-	exampleKey: gIGC
+    exampleKey: gIGC
 ... and decode the base64 data in your code.
 ```
 
@@ -45,41 +45,41 @@ Usage is very similar to the JSON library:
 
 ```go
 import (
-	"fmt"
+    "fmt"
 
-	"github.com/ghodss/yaml"
+    "github.com/ghodss/yaml"
 )
 
 type Person struct {
-	Name string `json:"name"`  // Affects YAML field names too.
-	Age int `json:"name"`
+    Name string `json:"name"`  // Affects YAML field names too.
+    Age int `json:"name"`
 }
 
 func main() {
-	// Marshal a Person struct to YAML.
-	p := Person{"John", 30}
-	y, err := yaml.Marshal(p)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
-	}
-	fmt.Println(string(y))
-	/* Output:
-	name: John
-	age: 30
-	*/
+    // Marshal a Person struct to YAML.
+    p := Person{"John", 30}
+    y, err := yaml.Marshal(p)
+    if err != nil {
+        fmt.Printf("err: %v\n", err)
+        return
+    }
+    fmt.Println(string(y))
+    /* Output:
+    name: John
+    age: 30
+    */
 
-	// Unmarshal the YAML back into a Person struct.
-	var p2 Person
-	err := yaml.Unmarshal(y, &p2)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
-	}
-	fmt.Println(p2)
-	/* Output:
-	{John 30}
-	*/
+    // Unmarshal the YAML back into a Person struct.
+    var p2 Person
+    err := yaml.Unmarshal(y, &p2)
+    if err != nil {
+        fmt.Printf("err: %v\n", err)
+        return
+    }
+    fmt.Println(p2)
+    /* Output:
+    {John 30}
+    */
 }
 ```
 
@@ -87,30 +87,30 @@ func main() {
 
 ```go
 import (
-	"fmt"
+    "fmt"
 
-	"github.com/ghodss/yaml"
+    "github.com/ghodss/yaml"
 )
 func main() {
-	j := []byte(`{"name": "John", "age": 30}`)
-	y, err := yaml.JSONToYAML(j)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
-	}
-	fmt.Println(string(y))
-	/* Output:
-	name: John
-	age: 30
-	*/
-	j2, err := yaml.YAMLToJSON(y)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
-	}
-	fmt.Println(string(j2))
-	/* Output:
-	{"age":30,"name":"John"}
-	*/
+    j := []byte(`{"name": "John", "age": 30}`)
+    y, err := yaml.JSONToYAML(j)
+    if err != nil {
+        fmt.Printf("err: %v\n", err)
+        return
+    }
+    fmt.Println(string(y))
+    /* Output:
+    name: John
+    age: 30
+    */
+    j2, err := yaml.YAMLToJSON(y)
+    if err != nil {
+        fmt.Printf("err: %v\n", err)
+        return
+    }
+    fmt.Println(string(j2))
+    /* Output:
+    {"age":30,"name":"John"}
+    */
 }
 ```

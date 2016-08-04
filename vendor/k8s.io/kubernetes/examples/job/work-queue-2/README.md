@@ -236,20 +236,20 @@ Now wait a bit, then check on the job.
 
 ```console
 $ ./kubectl describe jobs/job-wq-2 
-Name:		job-wq-2
-Namespace:	default
-Image(s):	gcr.io/exampleproject/job-wq-2
-Selector:	app in (job-wq-2)
-Parallelism:	2
-Completions:	Unset
-Start Time:	Mon, 11 Jan 2016 17:07:59 -0800
-Labels:		app=job-wq-2
-Pods Statuses:	1 Running / 0 Succeeded / 0 Failed
+Name:        job-wq-2
+Namespace:    default
+Image(s):    gcr.io/exampleproject/job-wq-2
+Selector:    app in (job-wq-2)
+Parallelism:    2
+Completions:    Unset
+Start Time:    Mon, 11 Jan 2016 17:07:59 -0800
+Labels:        app=job-wq-2
+Pods Statuses:    1 Running / 0 Succeeded / 0 Failed
 No volumes.
 Events:
-  FirstSeen	LastSeen	Count	From			SubobjectPath	Type		Reason			Message
-  ---------	--------	-----	----			-------------	--------	------			-------
-  33s		33s		1	{job-controller }			Normal		SuccessfulCreate	Created pod: job-wq-2-lglf8
+  FirstSeen    LastSeen    Count    From            SubobjectPath    Type        Reason            Message
+  ---------    --------    -----    ----            -------------    --------    ------            -------
+  33s        33s        1    {job-controller }            Normal        SuccessfulCreate    Created pod: job-wq-2-lglf8
 
 
 $ kubectl logs pods/job-wq-2-7r7b2

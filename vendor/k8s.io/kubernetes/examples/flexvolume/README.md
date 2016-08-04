@@ -62,9 +62,9 @@ following format.
 
 ```
 {
-	"status": "<Success/Failure>",
-	"message": "<Reason for success/failure>",
-	"device": "<Path to the device attached. This field is valid only for attach calls>"
+    "status": "<Success/Failure>",
+    "message": "<Reason for success/failure>",
+    "device": "<Path to the device attached. This field is valid only for attach calls>"
 }
 ```
 

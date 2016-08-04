@@ -3,8 +3,8 @@ How to use Swagger UI with go-restful
 
 Get the Swagger UI sources (version 1.2 only)
 
-	git clone https://github.com/wordnik/swagger-ui.git
-	
+    git clone https://github.com/wordnik/swagger-ui.git
+    
 The project contains a "dist" folder.
 Its contents has all the Swagger UI files you need.
 
@@ -13,14 +13,14 @@ You need to change that to match your WebService JSON endpoint  e.g. `http://loc
 
 Now, you can install the Swagger WebService for serving the Swagger specification in JSON.
 
-	config := swagger.Config{
-		WebServices:    restful.RegisteredWebServices(),
-		ApiPath:        "/apidocs.json",
-		SwaggerPath:     "/apidocs/",
-		SwaggerFilePath: "/Users/emicklei/Projects/swagger-ui/dist"}
-	swagger.InstallSwaggerService(config)		
-	
-	
+    config := swagger.Config{
+        WebServices:    restful.RegisteredWebServices(),
+        ApiPath:        "/apidocs.json",
+        SwaggerPath:     "/apidocs/",
+        SwaggerFilePath: "/Users/emicklei/Projects/swagger-ui/dist"}
+    swagger.InstallSwaggerService(config)        
+    
+    
 Documenting Structs
 --
 
@@ -33,38 +33,38 @@ Currently there are 2 ways to document your structs in the go-restful Swagger.
 ###### By using the SwaggerDoc method
 Here is an example with an `Address` struct and the documentation for each of the fields. The `""` is a special entry for **documenting the struct itself**.
 
-	type Address struct {
-		Country  string `json:"country,omitempty"`
-		PostCode int    `json:"postcode,omitempty"`
-	}
+    type Address struct {
+        Country  string `json:"country,omitempty"`
+        PostCode int    `json:"postcode,omitempty"`
+    }
 
-	func (Address) SwaggerDoc() map[string]string {
-		return map[string]string{
-			"":         "Address doc",
-			"country":  "Country doc",
-			"postcode": "PostCode doc",
-		}
-	}
+    func (Address) SwaggerDoc() map[string]string {
+        return map[string]string{
+            "":         "Address doc",
+            "country":  "Country doc",
+            "postcode": "PostCode doc",
+        }
+    }
 
 This example will generate a JSON like this
 
-	{
-		"Address": {
-			"id": "Address",
-			"description": "Address doc",
-			"properties": {
-				"country": {
-				"type": "string",
-				"description": "Country doc"
-				},
-				"postcode": {
-				"type": "integer",
-				"format": "int32",
-				"description": "PostCode doc"
-				}
-			}
-		}
-	}
+    {
+        "Address": {
+            "id": "Address",
+            "description": "Address doc",
+            "properties": {
+                "country": {
+                "type": "string",
+                "description": "Country doc"
+                },
+                "postcode": {
+                "type": "integer",
+                "format": "int32",
+                "description": "PostCode doc"
+                }
+            }
+        }
+    }
 
 **Very Important Notes:**
 - `SwaggerDoc()` is using a **NON-Pointer** receiver (e.g. func (Address) and not func (*Address))

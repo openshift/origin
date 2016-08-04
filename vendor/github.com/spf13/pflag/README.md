@@ -190,12 +190,12 @@ It is possible to set a custom flag name 'normalization function.' It allows fla
 
 ``` go
 func wordSepNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
-	from := []string{"-", "_"}
-	to := "."
-	for _, sep := range from {
-		name = strings.Replace(name, sep, to, -1)
-	}
-	return pflag.NormalizedName(name)
+    from := []string{"-", "_"}
+    to := "."
+    for _, sep := range from {
+        name = strings.Replace(name, sep, to, -1)
+    }
+    return pflag.NormalizedName(name)
 }
 
 myFlagSet.SetNormalizeFunc(wordSepNormalizeFunc)
@@ -205,12 +205,12 @@ myFlagSet.SetNormalizeFunc(wordSepNormalizeFunc)
 
 ``` go
 func aliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
-	switch name {
-	case "old-flag-name":
-		name = "new-flag-name"
-		break
-	}
-	return pflag.NormalizedName(name)
+    switch name {
+    case "old-flag-name":
+        name = "new-flag-name"
+        break
+    }
+    return pflag.NormalizedName(name)
 }
 
 myFlagSet.SetNormalizeFunc(aliasNormalizeFunc)
