@@ -213,15 +213,6 @@ func (s *S2IBuilder) Build() error {
 		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
 
-	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
-		var buffer bytes.Buffer
-		for _, ve := range errs {
-			buffer.WriteString(ve.Error())
-			buffer.WriteString(", ")
-		}
-		return errors.New(buffer.String())
-	}
-
 	if s.build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
 		runtimeImageName := s.build.Spec.Strategy.SourceStrategy.RuntimeImage.Name
 		config.RuntimeImage = runtimeImageName
@@ -232,6 +223,15 @@ func (s *S2IBuilder) Build() error {
 	// dockercfg file and get the authentication for pulling the builder image.
 	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
 	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
+
+	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
+		var buffer bytes.Buffer
+		for _, ve := range errs {
+			buffer.WriteString(ve.Error())
+			buffer.WriteString(", ")
+		}
+		return errors.New(buffer.String())
+	}
 
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
 	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
