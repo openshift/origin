@@ -28,9 +28,27 @@ func validPodSpec() kapi.PodSpec {
 
 func invalidPodSpec() kapi.PodSpec {
 	return kapi.PodSpec{
-		Containers:    []kapi.Container{{}},
+		Containers:         []kapi.Container{{}},
+		RestartPolicy:      kapi.RestartPolicyAlways,
+		DNSPolicy:          kapi.DNSClusterFirst,
+		ServiceAccountName: "svct",
+	}
+}
+
+func validPodSpecNoServiceAccountName() kapi.PodSpec {
+	activeDeadlineSeconds := int64(1)
+	return kapi.PodSpec{
+		Volumes: []kapi.Volume{
+			{Name: "vol", VolumeSource: kapi.VolumeSource{EmptyDir: &kapi.EmptyDirVolumeSource{}}},
+		},
+		Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
 		RestartPolicy: kapi.RestartPolicyAlways,
-		DNSPolicy:     kapi.DNSClusterFirst,
+		NodeSelector: map[string]string{
+			"key": "value",
+		},
+		NodeName:              "foobar",
+		DNSPolicy:             kapi.DNSClusterFirst,
+		ActiveDeadlineSeconds: &activeDeadlineSeconds,
 	}
 }
 
@@ -94,6 +112,13 @@ func TestValidatePodSecurityPolicySubjectReview(t *testing.T) {
 			Spec: securityapi.PodSecurityPolicySubjectReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: invalidPodSpec(),
+				},
+			},
+		},
+		"[spec.user: Required value, spec.groups: Required value, spec.template.spec.serviceaccountname: Required value]": {
+			Spec: securityapi.PodSecurityPolicySubjectReviewSpec{
+				Template: kapi.PodTemplateSpec{
+					Spec: validPodSpecNoServiceAccountName(),
 				},
 			},
 		},

@@ -19,6 +19,11 @@ func ValidatePodSecurityPolicySubjectReview(podSecurityPolicySubjectReview *secu
 func validatePodSecurityPolicySubjectReviewSpec(podSecurityPolicySubjectReviewSpec *securityapi.PodSecurityPolicySubjectReviewSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicySubjectReviewSpec.Template.Spec, fldPath.Child("podSpec"))...)
+	if len(podSecurityPolicySubjectReviewSpec.User) == 0 && len(podSecurityPolicySubjectReviewSpec.Groups) == 0 && len(podSecurityPolicySubjectReviewSpec.Template.Spec.ServiceAccountName) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("user"), ""))
+		allErrs = append(allErrs, field.Required(fldPath.Child("groups"), ""))
+		allErrs = append(allErrs, field.Required(fldPath.Child("template").Child("spec").Child("serviceaccountname"), ""))
+	}
 	return allErrs
 }
 
