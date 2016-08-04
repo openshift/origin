@@ -76,7 +76,7 @@ const (
 	OpenShiftWebConsoleClientID  = "openshift-web-console"
 	OpenShiftBrowserClientID     = "openshift-browser-client"
 	OpenShiftCLIClientID         = "openshift-challenging-client"
-	localListenerAddress         = "http://127.0.0.1" // TODO which local IP do we want?
+	localListenerAddress         = "http://127.0.0.1:80" // TODO which local IP do we want?
 )
 
 // InstallAPI registers endpoints for an OAuth2 server into the provided mux,
