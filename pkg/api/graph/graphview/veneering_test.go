@@ -78,7 +78,7 @@ func TestBareRCGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	kubeedges.AddAllExposedPodEdges(g)
-	kubeedges.AddAllManagedByRCPodEdges(g)
+	kubeedges.AddAllManagedByControllerPodEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -399,7 +399,7 @@ func TestGraph(t *testing.T) {
 	}
 
 	for _, bareDCPipeline := range bareDCPipelines {
-		t.Logf("from %s", bareDCPipeline.Deployment.Name)
+		t.Logf("from %s", bareDCPipeline.Deployment.DeploymentConfig.Name)
 		for _, path := range bareDCPipeline.Images {
 			t.Logf("  %v", path)
 		}
@@ -413,7 +413,7 @@ func TestGraph(t *testing.T) {
 		indent := "  "
 
 		for _, deployment := range serviceGroup.DeploymentConfigPipelines {
-			t.Logf("%sdeployment %s", indent, deployment.Deployment.Name)
+			t.Logf("%sdeployment %s", indent, deployment.Deployment.DeploymentConfig.Name)
 			for _, image := range deployment.Images {
 				t.Logf("%s  image %s", indent, image.Image.ImageSpec())
 				if image.Build != nil {

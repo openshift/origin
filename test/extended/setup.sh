@@ -206,6 +206,7 @@ readonly CONFORMANCE_TESTS=(
   "\[networking\]\[router\]"
   "Ensure supplemental groups propagate to docker"
   "EmptyDir"
+  "PetSet"
   "PrivilegedPod should test privileged pod"
   "Pods should support remote command execution"
   "Pods should support retrieving logs from the container"

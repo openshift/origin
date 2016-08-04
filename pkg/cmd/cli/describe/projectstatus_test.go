@@ -270,6 +270,22 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
 		},
+		"with pet sets": {
+			Path: "../../../../test/testdata/app-scenarios/petset.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"svc/galera[default] (headless):3306",
+				"petset/mysql manages erkules/galera:basic, created less than a second ago - 3 pods",
+				"* pod/mysql-1[default] has restarted 7 times",
+			},
+			Time: mustParseTime("2015-04-07T04:12:25Z"),
+		},
 		"restarting pod": {
 			Path: "../../../api/graph/test/restarting-pod.yaml",
 			Extra: []runtime.Object{
