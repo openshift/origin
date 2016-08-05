@@ -32,7 +32,7 @@
 # TODO Automatically generate these using tito
 #  For man pages, blank is fine
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
+%global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
 }
 
 %if 0%{?fedora} || 0%{?epel}
