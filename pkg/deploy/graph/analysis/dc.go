@@ -103,7 +103,7 @@ func FindDeploymentConfigReadinessWarnings(g osgraph.Graph, f osgraph.Namer, set
 Node:
 	for _, uncastDcNode := range g.NodesByKind(deploygraph.DeploymentConfigNodeKind) {
 		dcNode := uncastDcNode.(*deploygraph.DeploymentConfigNode)
-		if t := dcNode.Spec.Template; t != nil && len(t.Spec.Containers) > 0 {
+		if t := dcNode.DeploymentConfig.Spec.Template; t != nil && len(t.Spec.Containers) > 0 {
 			for _, container := range t.Spec.Containers {
 				if container.ReadinessProbe != nil {
 					continue Node

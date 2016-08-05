@@ -15,7 +15,7 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 
-	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
+	"github.com/openshift/imagebuilder/imageprogress"
 )
 
 var (

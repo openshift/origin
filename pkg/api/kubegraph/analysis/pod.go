@@ -77,7 +77,7 @@ func FindRestartingPods(g osgraph.Graph, f osgraph.Namer, logsCommandName, secur
 						f.ResourceName(podNode)),
 					Suggestion: osgraph.Suggestion(suggestion),
 				})
-			case containerRestartedRecently(containerStatus, nowFn()):
+			case ContainerRestartedRecently(containerStatus, nowFn()):
 				markers = append(markers, osgraph.Marker{
 					Node: podNode,
 
@@ -120,7 +120,7 @@ func containerCrashLoopBackOff(status kapi.ContainerStatus) bool {
 	return status.State.Waiting != nil && status.State.Waiting.Reason == "CrashLoopBackOff"
 }
 
-func containerRestartedRecently(status kapi.ContainerStatus, now unversioned.Time) bool {
+func ContainerRestartedRecently(status kapi.ContainerStatus, now unversioned.Time) bool {
 	if status.RestartCount == 0 {
 		return false
 	}

@@ -17,10 +17,11 @@
 #   krb5-workstation
 #   git
 ## COMMON VARIABLES ##
-source ose.conf
+#source ose.conf
 
 ## LOCAL VARIABLES ##
-DIST_GIT_BRANCH="rhaos-3.2-rhel-7"
+MAJOR_RELEASE="3.2"
+DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
 SCRATCH_OPTION=""
@@ -54,7 +55,7 @@ usage() {
   echo "  --notlatest         :: Do not tag or push as latest, still do channel latest" >&2
   echo "  --scratch           :: Do a scratch build" >&2
   echo "  --message [message] :: Git commit message" >&2
-  echo "  --group [group]     :: Which group list to use (base sti metrics logging misc rhscl all)" >&2
+  echo "  --group [group]     :: Which group list to use (base sti database metrics logging misc rhscl all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
@@ -84,20 +85,37 @@ add_group_to_list() {
   case ${1} in
     base)
       add_to_list openshift-enterprise-base-docker
-      add_to_list openshift-enterprise-openvswitch-docker
-      add_to_list openshift-enterprise-pod-docker
-      add_to_list aos3-installation-docker
-      add_to_list openshift-enterprise-docker
-      add_to_list openshift-enterprise-haproxy-router-base-docker
-      add_to_list openshift-enterprise-dockerregistry-docker
-      add_to_list openshift-enterprise-keepalived-ipfailover-docker
-      add_to_list openshift-enterprise-recycler-docker
-      add_to_list aos-f5-router-docker
-      add_to_list openshift-enterprise-deployer-docker
-      add_to_list openshift-enterprise-node-docker
-      add_to_list openshift-enterprise-sti-builder-docker
-      add_to_list openshift-enterprise-docker-builder-docker
-      add_to_list openshift-enterprise-haproxy-router-docker
+      if [ ${MAJOR_RELEASE} == "3.3" ] ; then
+        add_to_list openshift-enterprise-pod-docker
+        add_to_list aos3-installation-docker
+        add_to_list openshift-enterprise-docker
+        add_to_list openshift-enterprise-dockerregistry-docker
+        add_to_list openshift-enterprise-egress-router-docker
+        add_to_list openshift-enterprise-keepalived-ipfailover-docker
+        add_to_list openshift-enterprise-openvswitch-docker
+        add_to_list openshift-enterprise-recycler-docker
+        add_to_list aos-f5-router-docker
+        add_to_list openshift-enterprise-deployer-docker
+        add_to_list openshift-enterprise-haproxy-router-docker
+        add_to_list openshift-enterprise-node-docker
+        add_to_list openshift-enterprise-sti-builder-docker
+        add_to_list openshift-enterprise-docker-builder-docker
+      else
+        add_to_list openshift-enterprise-openvswitch-docker
+        add_to_list openshift-enterprise-pod-docker
+        add_to_list aos3-installation-docker
+        add_to_list openshift-enterprise-docker
+        add_to_list openshift-enterprise-haproxy-router-base-docker
+        add_to_list openshift-enterprise-dockerregistry-docker
+        add_to_list openshift-enterprise-keepalived-ipfailover-docker
+        add_to_list openshift-enterprise-recycler-docker
+        add_to_list aos-f5-router-docker
+        add_to_list openshift-enterprise-deployer-docker
+        add_to_list openshift-enterprise-node-docker
+        add_to_list openshift-enterprise-sti-builder-docker
+        add_to_list openshift-enterprise-docker-builder-docker
+        add_to_list openshift-enterprise-haproxy-router-docker
+      fi
       ;;
     sti)
       add_to_list openshift-sti-base-docker
@@ -107,15 +125,20 @@ add_group_to_list() {
       add_to_list openshift-sti-python-docker
       add_to_list openshift-sti-ruby-docker
       ;;
-    misc)
-      add_to_list openshift-jenkins-docker
+    database)
       add_to_list openshift-mongodb-docker
       add_to_list openshift-mysql-docker
       add_to_list openshift-postgresql-docker
+      ;;
+    misc)
+      add_to_list openshift-jenkins-docker
       add_to_list image-inspector-docker
       ;;
     logging)
       add_to_list logging-auth-proxy-docker
+      if [ ${MAJOR_RELEASE} == "3.3" ] ; then
+        add_to_list logging-curator-docker
+      fi
       add_to_list logging-deployment-docker
       add_to_list logging-elasticsearch-docker
       add_to_list logging-fluentd-docker
@@ -147,6 +170,10 @@ setup_dist_git() {
   if ! klist &>/dev/null ; then
     echo "Error: Kerberos token not found." ; popd &>/dev/null ; exit 1
   fi
+  if [ "${VERBOSE}" == "TRUE" ] ; then
+    echo "  ** setup_dist_git **"
+    echo " container:  ${container} branch: ${branch} "
+  fi
   rhpkg clone "${container}" &>/dev/null
   pushd ${container} >/dev/null
   rhpkg switch-branch "$branch" &>/dev/null
@@ -154,6 +181,10 @@ setup_dist_git() {
 }
 
 setup_git_repo() {
+  if [ "${VERBOSE}" == "TRUE" ] ; then
+    echo "  ** setup_git_repo **"
+    echo " git_repo: ${git_repo} "
+  fi
   pushd "${workingdir}" >/dev/null
   git clone -q ${git_repo} 2>/dev/null
   popd >/dev/null
@@ -301,7 +332,9 @@ show_git_diffs() {
       do
         myold_file=$(echo "${differ_line}" | awk '{print $2}')
         mynew_file=$(echo "${differ_line}" | awk '{print $4}')
-        diff -u ${myold_file} ${mynew_file}
+        if [ "${VERBOSE}" == "TRUE" ] ; then
+          diff -u ${myold_file} ${mynew_file}
+        fi
         cp -vf ${mynew_file} ${myold_file}
         git add ${myold_file}
       done
@@ -451,8 +484,8 @@ show_yaml() {
       version_trim=`echo ${package_version} | cut -d'.' -f-2`
       YAML_CHANNEL="${version_trim},"
     ;;
-    3.1 | 3.2 ) YAML_CHANNEL="v${version_check}," ;;
-    * ) YAML_CHANNEL="v3.1,v3.2," ;;
+    3.1 | 3.2 | 3.3 ) YAML_CHANNEL="v${version_check}," ;;
+    * ) YAML_CHANNEL="v3.1,v3.2,v3.3" ;;
   esac
   for image_name in ${docker_name_list}
   do
@@ -509,8 +542,8 @@ start_push_image() {
       v3. )
         version_trim_list=`echo ${version_version} | cut -d'.' -f-2`
       ;;
-      3.1 | 3.2 ) version_trim_list="v${version_check}" ;;
-      * ) version_trim_list="v3.1 v3.2" ;;
+      3.1 | 3.2 | 3.3 | 3.4 ) version_trim_list="v${version_check}" ;;
+      * ) version_trim_list="v3.1 v3.2 v3.3" ;;
     esac
     for version_trim in ${version_trim_list}
     do
@@ -522,23 +555,22 @@ start_push_image() {
    done
   fi
   if ! [ "${alt_name}" == "" ] ; then
-    trimmed_alt_name=$(echo "${alt_name}" | cut -d'/' -f2)
     if [ "${VERBOSE}" == "TRUE" ] ; then
       echo "----------"
-      echo "docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
-      echo "push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version}"
+      echo "docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version}"
+      echo "push_image ${PUSH_REGISTRY}/${alt_name}:${version_version}"
       echo "----------"
     fi
-    echo "  TAG/PUSH: ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} "
-    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} "
+    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
-    push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-      echo "  TAG/PUSH: ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest "
-      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest "
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
-      push_image ${PUSH_REGISTRY}/aep3/${trimmed_alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
     fi
   fi
@@ -656,16 +688,7 @@ case $key in
       add_group_to_list rhscl
       ;;
     --group)
-      group_input="$2"
-      if [ "${group_input}" == "all" ] ; then
-        add_group_to_list base
-        add_group_to_list sti
-        add_group_to_list misc
-        add_group_to_list logging
-        add_group_to_list metrics
-      else
-        add_group_to_list "${group_input}"
-      fi
+      export group_list="${group_list} $2"
       shift
       ;;
     --package)
@@ -694,6 +717,7 @@ case $key in
       ;;
     --branch)
       DIST_GIT_BRANCH="$2"
+      export MAJOR_RELEASE=`echo ${DIST_GIT_BRANCH}| cut -d'-' -f2`
       shift
       ;;
     --repo)
@@ -747,9 +771,27 @@ esac
 shift # past argument or value
 done
 
+# Setup variables
+source ose.conf
+
+# Setup groups
+for group_input in ${group_list}
+do
+  if [ "${group_input}" == "all" ] ; then
+    add_group_to_list base
+    add_group_to_list sti
+    add_group_to_list database
+    add_group_to_list misc
+    add_group_to_list logging
+    add_group_to_list metrics
+  else
+    add_group_to_list "${group_input}"
+  fi
+done
+
 # Setup directory
 if ! [ "${action}" == "test" ] && ! [ "${action}" == "list" ] ; then
-  workingdir=$(mktemp -d /var/tmp/rebuild-images-XXXXXX)
+  workingdir=$(mktemp -d /var/tmp/ose_images-XXXXXX)
   pushd "${workingdir}" &>/dev/null
   mkdir -p logs/done
   echo "::None::" >> logs/finished
@@ -779,6 +821,7 @@ else
   export parent=""
 fi
 
+# Do the work for each item in the list
 for unique_package in ${packagelist}
 do
   [ -z "${unique_package}" ] && continue
@@ -817,6 +860,8 @@ do
       if [ "${COMMIT_MESSAGE}" == "" ] ; then
         COMMIT_MESSAGE="Backporting dis-git Dockerfile changes to ose Dockerfile.product"
       fi
+      export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
+      export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
       echo "=== ${container} ==="
       docker_backfill
       ;;
@@ -880,9 +925,19 @@ do
   esac
 done
 
+# Do any post-work items that needs to be done.
 case "$action" in
   build_container | bump_and_build )
     wait_for_all_builds
+    BUILD_TOTAL=`cat ${workingdir}/logs/finished | wc -l`
+    let BUILD_TOTAL=${BUILD_TOTAL}-1
+    BUILD_FAIL=`cat ${workingdir}/logs/buildfailed | wc -l`
+    let BUILD_SUCCESS=${BUILD_TOTAL}-${BUILD_FAIL}
+    echo "===== BUILD RESULTS ====="
+    echo "Total Builds: ${BUILD_TOTAL}"
+    echo "Good Builds: ${BUILD_SUCCESS}"
+    echo "Fail Builds: ${BUILD_FAIL}"
+    cat ${workingdir}/logs/buildfailed | cut -d':' -f3
     ;;
   docker_backfill )
     pushd ${workingdir}/ose >/dev/null

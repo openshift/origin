@@ -26,7 +26,7 @@ func RelevantDeployments(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNo
 
 	sort.Sort(RecentDeploymentReferences(allDeployments))
 
-	if dcNode.DeploymentConfig.Status.LatestVersion == deployutil.DeploymentVersionFor(allDeployments[0]) {
+	if dcNode.DeploymentConfig.Status.LatestVersion == deployutil.DeploymentVersionFor(allDeployments[0].ReplicationController) {
 		return allDeployments[0], allDeployments[1:]
 	}
 

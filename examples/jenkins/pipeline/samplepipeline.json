@@ -82,11 +82,10 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "route-edge",
+        "name": "frontend",
         "creationTimestamp": null
       },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"

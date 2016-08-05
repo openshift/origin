@@ -26,7 +26,7 @@ function wait_for_app() {
   DB_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
-  os::cmd::try_until_text "oc get -n $1 pods" 'frontend.+Running' "$(( 2 * TIME_MIN ))"
+  os::cmd::try_until_text "oc get -n $1 pods -l name=frontend" 'Running' "$(( 2 * TIME_MIN ))"
   os::cmd::expect_success "oc logs dc/frontend -n $1"
 
   echo "[INFO] Waiting for frontend service to start"

@@ -21,12 +21,18 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d4406c8b748f26229a0b69029ff18eda31875b47
+%global commit 5a087fbcd0bbfb62a22650969652b7a8fd71fbec
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.13+d4406c8 -X github.com/openshift/origin/pkg/version.commitFromGit=d4406c8 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-03T13:48:53Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+57fb9ac -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-03T13:48:53Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.14+5a087fb -X github.com/openshift/origin/pkg/version.commitFromGit=5a087fb -X github.com/openshift/origin/pkg/version.buildDate=2016-08-05T18:35:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-05T18:35:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+}
+# os_git_vars needed to run hack scripts during rpm builds
+# TODO Automatically generate these using tito
+#  For man pages, blank is fine
+%{!?os_git_vars:
+%global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.14
+Version:        3.3.0.15
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -104,6 +110,7 @@ Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
 Requires:       ethtool
+Requires:       device-mapper-persistent-data >= 0.6.2
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
@@ -204,6 +211,9 @@ pushd images/pod/
     go build -ldflags "%{ldflags}" pod.go
 popd
 
+# Create/Update man pages
+%{os_git_vars} hack/update-generated-docs.sh
+
 %install
 
 install -d %{buildroot}%{_bindir}
@@ -249,7 +259,7 @@ for cmd in \
     openshift-sti-build \
     origin
 do
-    ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
+    ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
 
 ln -s oc %{buildroot}%{_bindir}/kubectl
@@ -265,9 +275,13 @@ install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
 install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
 install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
-install -d -m 0755 %{buildroot}%{_mandir}/man7
 
-# Patch the manpage for tuned profiles on aos
+# Install man1 man pages
+install -d -m 0755 %{buildroot}%{_mandir}/man1
+install -m 0644 docs/man/man1/* %{buildroot}%{_mandir}/man1/
+
+# Patch and install the manpage for tuned profiles on aos
+install -d -m 0755 %{buildroot}%{_mandir}/man7
 %if "%{dist}" == ".el7aos"
 %{__sed} -e 's|origin-node|atomic-openshift-node|g' \
  -e 's|ORIGIN_NODE|ATOMIC_OPENSHIFT_NODE|' \
@@ -291,9 +305,16 @@ install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
-# Generate atomic-enterprise bash completions
-%{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
+for bin in oadm oc openshift atomic-enterprise
+do
+  echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
+  %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
+  chmod 644 %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
+done
+
+# Install origin-accounting
+install -d -m 755 %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
+install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
 
 %files
 %doc README.md
@@ -322,6 +343,8 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
+%{_mandir}/man1/oadm*
+%{_mandir}/man1/openshift*
 
 %pre
 # If /etc/openshift exists and /etc/origin doesn't, symlink it to /etc/origin
@@ -398,6 +421,7 @@ fi
 
 %files node
 %{_unitdir}/%{name}-node.service
+%{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
@@ -406,6 +430,10 @@ fi
 
 %post node
 %systemd_post %{name}-node.service
+# If accounting is not currently enabled systemd reexec
+if [[ `systemctl show docker %{name}-node | grep -q -e CPUAccounting=no -e MemoryAccounting=no; echo $?` == 0 ]]; then
+  systemctl daemon-reexec
+fi
 
 %preun node
 %systemd_preun %{name}-node.service
@@ -456,6 +484,7 @@ fi
 %{_bindir}/oc
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
+%{_mandir}/man1/oc*
 
 %if 0%{?make_redistributable}
 %files clients-redistributable
@@ -474,6 +503,83 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Aug 05 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.15
+- Use hack/update-generated-docs.sh to update man pages in origin.spec
+  (tdawson@redhat.com)
+- Set OS_GIT_VERSION in spec file (tdawson@redhat.com)
+- UPSTREAM: google/cadvisor: 1411: Ensure minimum kernel version for thin_ls
+  (agoldste@redhat.com)
+- Remove unsupported DNS calls from tests (ccoleman@redhat.com)
+- UPSTREAM: 29655: No PetSet client (ccoleman@redhat.com)
+- Show PetSets in oc status (ccoleman@redhat.com)
+- DNS should support hostname annotations (ccoleman@redhat.com)
+- generate: debug command (ccoleman@redhat.com)
+- Debug should be able to skip init containers (ccoleman@redhat.com)
+- PetSet examples (ccoleman@redhat.com)
+- Enable petsets (ccoleman@redhat.com)
+- Bump origin-web-console (ef9f1a1) (jforrest@redhat.com)
+- Refactored the dependency between images and images-old-policy
+  (skuznets@redhat.com)
+- fix s2i config validation (ipalade@redhat.com)
+- regen docs and completions (sjenning@redhat.com)
+- follow reference values in 'oc env --list' (sjenning@redhat.com)
+- Update ose_iamges.sh script to work with 3.3 (tdawson@redhat.com)
+- UPSTREAM: 27392: allow watching old resources with kubectl
+  (sjenning@redhat.com)
+- Dockerfile builder moved to github.com/openshift/imagebuilder
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/imagebuilder):5a8e7d9be33db899875d7c9effb8c60276188
+  67a (ccoleman@redhat.com)
+- Switch to depend on docker imagebuilder (ccoleman@redhat.com)
+- Copy more kube artifacts (ccoleman@redhat.com)
+- bump(kubernetes):507d3a7b242634b131710cfdfd55e3a1531ffb1b
+  (ccoleman@redhat.com)
+- add istag create (deads@redhat.com)
+- Support image forcePull policy for runtime image when do extended build
+  (haowang@redhat.com)
+- UPSTREAM: 30021: add asserts for RecognizingDecoder and update protobuf
+  serializer to implement interface (pweil@redhat.com)
+- Print warning next to deployment with restarting pods (mfojtik@redhat.com)
+- Fix panic caused by invalid ip range (zhao.xiangpeng@zte.com.cn)
+- create app label based on template name, not buildconfig name
+  (bparees@redhat.com)
+- Added wait for project cache sync before test-cmd buckets start
+  (skuznets@redhat.com)
+- cluster up: use shared volumes in mac and windows (cewong@redhat.com)
+- Avoid test flakes when creating new projects (mkhan@redhat.com)
+- UPSTREAM: 29847: Race condition in scheduler predicates test
+  (ccoleman@redhat.com)
+- update config for unauth pull (aweiteka@redhat.com)
+- Bump origin-web-console (781f34f) (jforrest@redhat.com)
+- check for correct exiterr type on oc exec failures (bparees@redhat.com)
+- UPSTREAM: 29182: Use library code for scheduler predicates test
+  (ccoleman@redhat.com)
+- Upstream packages for Go 1.4 have been dropped (ccoleman@redhat.com)
+- switch to generated password for jenkins service (bparees@redhat.com)
+- Always output existing credentials message when reusing credentials on login
+  (jliggitt@redhat.com)
+- Fix debugging pods with multiple containers (ffranz@redhat.com)
+- UPSTREAM: 29952: handle container terminated but pod still running in
+  conditions (ffranz@redhat.com)
+- properly check for running app pod (bparees@redhat.com)
+- handle forbidden server errs on older server version (jvallejo@redhat.com)
+- Reorganize directories, test and Makefile (aweiteka@redhat.com)
+- add link to Manageing Security Context Contraints (li.guangxu@zte.com.cn)
+- Fix BZ1361024 (jtanenba@redhat.com)
+- Generate man pages and bash completion during rpm build (tdawson@redhat.com)
+- [RPMS] Require device-mapper-persistent-data >= 0.6.2 (sdodson@redhat.com)
+- UPSTREAM: 28539: Fix httpclient setup for gcp (decarr@redhat.com)
+- UPSTREAM: 28871: Do not use metadata server to know if on GCE
+  (decarr@redhat.com)
+- Removed namespace assumptions from test-cmd test cases (skuznets@redhat.com)
+- deploy: deep-copy only when mutating in the controllers (mkargaki@redhat.com)
+- deploy: remove redundant test deployment checks (mkargaki@redhat.com)
+- improve checking if systemd needs to be reexec'd (sdodson@redhat.com)
+- regen swagger spec (sjenning@redhat.com)
+- UPSTREAM: 28263: Allow specifying secret data using strings
+  (sjenning@redhat.com)
+- [RPMS] Enable CPU and Memory during node installation (sdodson@redhat.com)
+
 * Wed Aug 03 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.14
 - Fix doc link (wang.yuexiao@zte.com.cn)
 - Bump origin-web-console (b0dc7d5) (jforrest@redhat.com)
