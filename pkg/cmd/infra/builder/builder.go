@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	stiBuilderLong = `
+	s2iBuilderLong = `
 Perform a Source-to-Image build
 
 This command executes a Source-to-Image build using arguments passed via the environment.
@@ -25,14 +25,14 @@ This command executes a Docker build using arguments passed via the environment.
 It expects to be run inside of a container.`
 )
 
-// NewCommandSTIBuilder provides a CLI handler for STI build type
-func NewCommandSTIBuilder(name string) *cobra.Command {
+// NewCommandS2IBuilder provides a CLI handler for S2I build type
+func NewCommandS2IBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Run a Source-to-Image build",
-		Long:  stiBuilderLong,
+		Long:  s2iBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
-			err := cmd.RunSTIBuild(c.Out())
+			err := cmd.RunS2IBuild(c.Out())
 			kcmdutil.CheckErr(err)
 		},
 	}
