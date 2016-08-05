@@ -428,7 +428,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		CapDrop:         config.DropCapabilities,
 	}
 
-	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
+	go dockerpkg.StreamContainerIO(errReader, nil, glog.Info)
 	err = builder.docker.RunContainer(opts)
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewSaveArtifactsError(image, e.Output, err)
@@ -584,7 +584,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 
 	}(outReader)
 
-	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Error)
+	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Info)
 
 	err := builder.docker.RunContainer(opts)
 	if util.IsTimeoutError(err) {
