@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5a087fbcd0bbfb62a22650969652b7a8fd71fbec
+%global commit 0ecce3d0fa15f77ac3bc6fe5432bb7caa6e62343
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.14+5a087fb -X github.com/openshift/origin/pkg/version.commitFromGit=5a087fb -X github.com/openshift/origin/pkg/version.buildDate=2016-08-05T18:35:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-05T18:35:42Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.15+0ecce3d -X github.com/openshift/origin/pkg/version.commitFromGit=0ecce3d -X github.com/openshift/origin/pkg/version.buildDate=2016-08-05T19:55:51Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-05T19:55:51Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 # os_git_vars needed to run hack scripts during rpm builds
 # TODO Automatically generate these using tito
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.15
+Version:        3.3.0.16
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -504,6 +504,9 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Aug 05 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.16
+- Buildrequires rsync - due to hack scripts (tdawson@redhat.com)
+
 * Fri Aug 05 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.15
 - Use hack/update-generated-docs.sh to update man pages in origin.spec
   (tdawson@redhat.com)
