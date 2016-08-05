@@ -88,6 +88,8 @@ limitations under the License.
 		Scale
 		ScaleSpec
 		ScaleStatus
+		StorageClass
+		StorageClassList
 		SubresourceReference
 		SupplementalGroupsStrategyOptions
 		ThirdPartyResource
@@ -365,6 +367,14 @@ func (m *ScaleStatus) Reset()         { *m = ScaleStatus{} }
 func (m *ScaleStatus) String() string { return proto.CompactTextString(m) }
 func (*ScaleStatus) ProtoMessage()    {}
 
+func (m *StorageClass) Reset()         { *m = StorageClass{} }
+func (m *StorageClass) String() string { return proto.CompactTextString(m) }
+func (*StorageClass) ProtoMessage()    {}
+
+func (m *StorageClassList) Reset()         { *m = StorageClassList{} }
+func (m *StorageClassList) String() string { return proto.CompactTextString(m) }
+func (*StorageClassList) ProtoMessage()    {}
+
 func (m *SubresourceReference) Reset()         { *m = SubresourceReference{} }
 func (m *SubresourceReference) String() string { return proto.CompactTextString(m) }
 func (*SubresourceReference) ProtoMessage()    {}
@@ -453,6 +463,8 @@ func init() {
 	proto.RegisterType((*Scale)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.Scale")
 	proto.RegisterType((*ScaleSpec)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.ScaleSpec")
 	proto.RegisterType((*ScaleStatus)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.ScaleStatus")
+	proto.RegisterType((*StorageClass)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.StorageClass")
+	proto.RegisterType((*StorageClassList)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.StorageClassList")
 	proto.RegisterType((*SubresourceReference)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.SubresourceReference")
 	proto.RegisterType((*SupplementalGroupsStrategyOptions)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.SupplementalGroupsStrategyOptions")
 	proto.RegisterType((*ThirdPartyResource)(nil), "k8s.io.kubernetes.pkg.apis.extensions.v1beta1.ThirdPartyResource")
@@ -2895,6 +2907,91 @@ func (m *ScaleStatus) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+func (m *StorageClass) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *StorageClass) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+	n72, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n72
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Provisioner)))
+	i += copy(data[i:], m.Provisioner)
+	if len(m.Parameters) > 0 {
+		for k := range m.Parameters {
+			data[i] = 0x1a
+			i++
+			v := m.Parameters[k]
+			mapSize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
+			i = encodeVarintGenerated(data, i, uint64(mapSize))
+			data[i] = 0xa
+			i++
+			i = encodeVarintGenerated(data, i, uint64(len(k)))
+			i += copy(data[i:], k)
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(len(v)))
+			i += copy(data[i:], v)
+		}
+	}
+	return i, nil
+}
+
+func (m *StorageClassList) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *StorageClassList) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+	n73, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n73
+	if len(m.Items) > 0 {
+		for _, msg := range m.Items {
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
 func (m *SubresourceReference) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -2981,11 +3078,11 @@ func (m *ThirdPartyResource) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n72, err := m.ObjectMeta.MarshalTo(data[i:])
+	n74, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n72
+	i += n74
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Description)))
@@ -3023,11 +3120,11 @@ func (m *ThirdPartyResourceData) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n73, err := m.ObjectMeta.MarshalTo(data[i:])
+	n75, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n73
+	i += n75
 	if m.Data != nil {
 		data[i] = 0x12
 		i++
@@ -3055,11 +3152,11 @@ func (m *ThirdPartyResourceDataList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n74, err := m.ListMeta.MarshalTo(data[i:])
+	n76, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n74
+	i += n76
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -3093,11 +3190,11 @@ func (m *ThirdPartyResourceList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n75, err := m.ListMeta.MarshalTo(data[i:])
+	n77, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n75
+	i += n77
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -3995,6 +4092,38 @@ func (m *ScaleStatus) Size() (n int) {
 	}
 	l = len(m.TargetSelector)
 	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *StorageClass) Size() (n int) {
+	var l int
+	_ = l
+	l = m.ObjectMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Provisioner)
+	n += 1 + l + sovGenerated(uint64(l))
+	if len(m.Parameters) > 0 {
+		for k, v := range m.Parameters {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
+			n += mapEntrySize + 1 + sovGenerated(uint64(mapEntrySize))
+		}
+	}
+	return n
+}
+
+func (m *StorageClassList) Size() (n int) {
+	var l int
+	_ = l
+	l = m.ListMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	if len(m.Items) > 0 {
+		for _, e := range m.Items {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
 	return n
 }
 
@@ -12128,6 +12257,337 @@ func (m *ScaleStatus) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.TargetSelector = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *StorageClass) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StorageClass: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StorageClass: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Provisioner", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Provisioner = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Parameters", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var keykey uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				keykey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var stringLenmapkey uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLenmapkey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLenmapkey := int(stringLenmapkey)
+			if intStringLenmapkey < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postStringIndexmapkey := iNdEx + intStringLenmapkey
+			if postStringIndexmapkey > l {
+				return io.ErrUnexpectedEOF
+			}
+			mapkey := string(data[iNdEx:postStringIndexmapkey])
+			iNdEx = postStringIndexmapkey
+			var valuekey uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				valuekey |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			var stringLenmapvalue uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLenmapvalue |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLenmapvalue := int(stringLenmapvalue)
+			if intStringLenmapvalue < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+			if postStringIndexmapvalue > l {
+				return io.ErrUnexpectedEOF
+			}
+			mapvalue := string(data[iNdEx:postStringIndexmapvalue])
+			iNdEx = postStringIndexmapvalue
+			if m.Parameters == nil {
+				m.Parameters = make(map[string]string)
+			}
+			m.Parameters[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *StorageClassList) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StorageClassList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StorageClassList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Items = append(m.Items, StorageClass{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
