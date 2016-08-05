@@ -193,9 +193,11 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
 		glog.V(4).Infof("With force pull true, setting policies to %s", s2iapi.PullAlways)
 		config.BuilderPullPolicy = s2iapi.PullAlways
+		config.RuntimeImagePullPolicy = s2iapi.PullAlways
 	} else {
 		glog.V(4).Infof("With force pull false, setting policies to %s", s2iapi.PullIfNotPresent)
 		config.BuilderPullPolicy = s2iapi.PullIfNotPresent
+		config.RuntimeImagePullPolicy = s2iapi.PullIfNotPresent
 	}
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
