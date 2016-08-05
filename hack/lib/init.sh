@@ -10,6 +10,9 @@ if [[ -z "${OS_ROOT:-}" ]]; then
 	exit 1
 fi
 
+# Using no_proxy environment variables be sure to the connections to localhost in scripts will not be timed out when behind a proxy.
+export no_proxy=127.0.0.1,localhost
+
 library_files=( $( find "${OS_ROOT}/hack/lib" -type f -name '*.sh' -not -path '*/hack/lib/init.sh' ) )
 # TODO(skuzmets): Move the contents of the following files into respective library files.
 library_files+=( "${OS_ROOT}/hack/common.sh" )
