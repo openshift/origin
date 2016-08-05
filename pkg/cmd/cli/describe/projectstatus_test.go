@@ -24,7 +24,7 @@ func mustParseTime(t string) time.Time {
 
 func TestProjectStatus(t *testing.T) {
 	testCases := map[string]struct {
-		Path     string
+		File     string
 		Extra    []runtime.Object
 		ErrFn    func(error) bool
 		Contains []string
@@ -52,7 +52,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"empty service": {
-			Path: "../../../../test/testdata/app-scenarios/k8s-service-with-nothing.json",
+			File: "k8s-service-with-nothing.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -67,7 +67,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"service with RC": {
-			Path: "../../../../test/testdata/app-scenarios/k8s-unserviced-rc.json",
+			File: "k8s-unserviced-rc.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -83,7 +83,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"rc with unmountable and missing secrets": {
-			Path: "../../../../pkg/api/graph/test/bad_secret_with_just_rc.yaml",
+			File: "bad_secret_with_just_rc.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -98,7 +98,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"dueling rcs": {
-			Path: "../../../../pkg/api/graph/test/dueling-rcs.yaml",
+			File: "dueling-rcs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "dueling-rc", Namespace: ""},
@@ -111,7 +111,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"service with pod": {
-			Path: "../../../../pkg/api/graph/test/service-with-pod.yaml",
+			File: "service-with-pod.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -126,7 +126,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"standalone rc": {
-			Path: "../../../../pkg/api/graph/test/bare-rc.yaml",
+			File: "bare-rc.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -140,7 +140,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"unstarted build": {
-			Path: "../../../../test/testdata/app-scenarios/new-project-no-build.yaml",
+			File: "new-project-no-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -159,7 +159,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"unpushable build": {
-			Path: "../../../../pkg/api/graph/test/unpushable-build.yaml",
+			File: "unpushable-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -171,7 +171,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"bare-bc-can-push": {
-			Path: "../../../../pkg/api/graph/test/bare-bc-can-push.yaml",
+			File: "bare-bc-can-push.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -187,7 +187,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-12-17T20:36:15Z"),
 		},
 		"cyclical build": {
-			Path: "../../../../pkg/api/graph/test/circular.yaml",
+			File: "circular.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -201,7 +201,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"running build": {
-			Path: "../../../../test/testdata/app-scenarios/new-project-one-build.yaml",
+			File: "new-project-one-build.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -220,7 +220,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
 		"a/b test DeploymentConfig": {
-			Path: "../../../../test/testdata/app-scenarios/new-project-two-deployment-configs.yaml",
+			File: "new-project-two-deployment-configs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -240,7 +240,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
 		"with real deployments": {
-			Path: "../../../../test/testdata/app-scenarios/new-project-deployed-app.yaml",
+			File: "new-project-deployed-app.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -271,7 +271,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
 		},
 		"with pet sets": {
-			Path: "../../../../test/testdata/app-scenarios/petset.yaml",
+			File: "petset.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -287,7 +287,7 @@ func TestProjectStatus(t *testing.T) {
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
 		},
 		"restarting pod": {
-			Path: "../../../api/graph/test/restarting-pod.yaml",
+			File: "restarting-pod.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -302,7 +302,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"cross namespace reference": {
-			Path: "../../../api/graph/test/different-project-image-deployment.yaml",
+			File: "different-project-image-deployment.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -316,7 +316,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"monopod": {
-			Path: "../../../../test/testdata/app-scenarios/k8s-lonely-pod.json",
+			File: "k8s-lonely-pod.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -330,7 +330,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"deploys single pod": {
-			Path: "../../../../test/testdata/simple-deployment.yaml",
+			File: "simple-deployment.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -354,8 +354,9 @@ func TestProjectStatus(t *testing.T) {
 			return time.Now()
 		}
 		o := ktestclient.NewObjects(kapi.Scheme, kapi.Codecs.UniversalDecoder())
-		if len(test.Path) > 0 {
-			if err := ktestclient.AddObjectsFromPath(test.Path, o, kapi.Codecs.UniversalDecoder()); err != nil {
+		if len(test.File) > 0 {
+			// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
+			if err := ktestclient.AddObjectsFromPath("../../../../pkg/api/graph/test/"+test.File, o, kapi.Codecs.UniversalDecoder()); err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 			}
 		}
