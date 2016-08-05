@@ -212,11 +212,7 @@ pushd images/pod/
 popd
 
 # Create/Update man pages
-# Could use hack/update-generated-docs.sh but takes twice as long
-%{os_git_vars} hack/build-go.sh tools/genman
-output/local/bin/linux/amd64/genman docs/man/man1 oc
-output/local/bin/linux/amd64/genman docs/man/man1 oadm
-output/local/bin/linux/amd64/genman docs/man/man1 openshift
+%{os_git_vars} hack/update-generated-docs.sh
 
 %install
 
