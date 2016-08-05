@@ -11,6 +11,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"time"
+
 	"github.com/openshift/origin/pkg/cmd/util/browsercmd"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -247,6 +249,7 @@ func browserOauthAuthorizeResult(location string) (string, error) {
 	// Start local server
 	// Open browser to url
 	// Extract token from response
+	time.Sleep(10 * time.Second)
 	return "token", errors.New("always dies")
 }
 
