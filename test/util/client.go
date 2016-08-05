@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,9 +18,11 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 
@@ -79,6 +83,42 @@ func GetClientForUser(clientConfig restclient.Config, username string) (*client.
 	}
 
 	return osClient, kubeClient, &userClientConfig, nil
+}
+
+func GetScopedClientForUser(adminClient *client.Client, clientConfig restclient.Config, username string, scopes []string) (*client.Client, *kclient.Client, *restclient.Config, error) {
+	// make sure the user exists
+	if _, _, _, err := GetClientForUser(clientConfig, username); err != nil {
+		return nil, nil, nil, err
+	}
+	user, err := adminClient.Users().Get(username)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	token := &oauthapi.OAuthAccessToken{
+		ObjectMeta:  kapi.ObjectMeta{Name: fmt.Sprintf("%s-token-plus-some-padding-here-to-make-the-limit-%d", username, rand.Int())},
+		ClientName:  origin.OpenShiftCLIClientID,
+		ExpiresIn:   86400,
+		Scopes:      scopes,
+		RedirectURI: "https://127.0.0.1:12000/oauth/token/implicit",
+		UserName:    user.Name,
+		UserUID:     string(user.UID),
+	}
+	if _, err := adminClient.OAuthAccessTokens().Create(token); err != nil {
+		return nil, nil, nil, err
+	}
+
+	scopedConfig := clientcmd.AnonymousClientConfig(&clientConfig)
+	scopedConfig.BearerToken = token.Name
+	kubeClient, err := kclient.New(&scopedConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	osClient, err := client.New(&scopedConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return osClient, kubeClient, &scopedConfig, nil
 }
 
 func GetClientForServiceAccount(adminClient *kclient.Client, clientConfig restclient.Config, namespace, name string) (*client.Client, *kclient.Client, *restclient.Config, error) {
