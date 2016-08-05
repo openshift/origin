@@ -55,7 +55,7 @@ We highly recommend trying out the [Origin walkthrough](https://github.com/opens
 
 ### Origin API
 
-The Origin API is located on each server at `https://<host>:8443/oapi/v1`. These APIs are described via [Swagger v1.2](https://www.swagger.io) at `https://<host>:8443/swaggerapi/oapi/v1`. For more, [see the API documentation](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
+The Origin API is located on each server at `https://<host>:8443/oapi/v1`. These APIs are described via [Swagger v1.2](https://www.swagger.io) at `https://<host>:8443/swaggerapi/oapi/v1`. For more, [see the API documentation](https://docs.openshift.org/latest/rest_api/openshift_v1.html).
 
 ### Kubernetes
 
@@ -63,7 +63,7 @@ If you're looking for more information about using Kubernetes or the lower level
 
 * [Kubernetes Getting Started](https://github.com/kubernetes/kubernetes/blob/master/README.md)
 * [Kubernetes Documentation](https://github.com/kubernetes/kubernetes/blob/master/docs/README.md)
-* [Kubernetes API](http://docs.openshift.org/latest/rest_api/kubernetes_v1.html)
+* [Kubernetes API](https://docs.openshift.org/latest/rest_api/kubernetes_v1.html)
 
 ### Troubleshooting
 
@@ -111,9 +111,9 @@ FAQ
 
     Your application image can be easily extended with a database service with our [database images](https://docs.openshift.org/latest/using_images/db_images/overview.html):
 
-    * [MySQL](https://github.com/openshift/mysql)
-    * [MongoDB](https://github.com/openshift/mongodb)
-    * [PostgreSQL](https://github.com/openshift/postgresql)
+    * [MySQL](https://github.com/sclorg/mysql-container)
+    * [MongoDB](https://github.com/sclorg/mongodb-container)
+    * [PostgreSQL](https://github.com/sclorg/postgresql-container)
 
 4. Why doesn't my Docker image run on OpenShift?
 
