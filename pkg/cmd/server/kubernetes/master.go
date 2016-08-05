@@ -155,20 +155,15 @@ func (c *MasterConfig) RunNamespaceController(kubeClient internalclientset.Inter
 
 func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, namespace, recyclerImageName, recyclerServiceAccountName string) {
 	s := c.ControllerManager
-	provisioner, err := kctrlmgr.NewVolumeProvisioner(c.CloudProvider, s.VolumeConfiguration)
-	if err != nil {
-		glog.Fatal("A Provisioner could not be created, but one was expected. Provisioning will not work. This functionality is considered an early Alpha version.")
-	}
-
 	volumeController := persistentvolumecontroller.NewPersistentVolumeController(
 		clientadapter.FromUnversionedClient(client),
 		s.PVClaimBinderSyncPeriod.Duration,
-		provisioner,
-		probeRecyclableVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName),
+		probeControllerVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName),
 		c.CloudProvider,
 		s.ClusterName,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		s.VolumeConfiguration.EnableDynamicProvisioning,
+		"",
 	)
 	volumeController.Run()
 
@@ -188,8 +183,8 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 	}
 }
 
-// probeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
-func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName string) []volume.VolumePlugin {
+// probeControllerVolumePlugins collects all persistent volume plugins into an easy to use list.
+func probeControllerVolumePlugins(config componentconfig.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName string) []volume.VolumePlugin {
 	uid := int64(0)
 	defaultScrubPod := volume.NewPersistentVolumeRecyclerPodTemplate()
 	defaultScrubPod.Namespace = namespace
@@ -215,6 +210,7 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 		RecyclerMinimumTimeout:   int(config.PersistentVolumeRecyclerConfiguration.MinimumTimeoutHostPath),
 		RecyclerTimeoutIncrement: int(config.PersistentVolumeRecyclerConfiguration.IncrementTimeoutHostPath),
 		RecyclerPodTemplate:      defaultScrubPod,
+		ProvisioningEnabled:      config.EnableHostPathProvisioning,
 	}
 	if err := kctrlmgr.AttemptToLoadRecycler(config.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath, &hostPathConfig); err != nil {
 		glog.Fatalf("Could not create hostpath recycler pod from file %s: %+v", config.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathHostPath, err)

@@ -386,20 +386,17 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 		}
 	}
 
-	provisioner, err := NewVolumeProvisioner(cloud, s.VolumeConfiguration)
-	if err != nil {
-		glog.Fatal("A Provisioner could not be created, but one was expected. Provisioning will not work. This functionality is considered an early Alpha version.")
-	}
-
 	volumeController := persistentvolumecontroller.NewPersistentVolumeController(
 		clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "persistent-volume-binder")),
 		s.PVClaimBinderSyncPeriod.Duration,
-		provisioner,
-		ProbeRecyclableVolumePlugins(s.VolumeConfiguration),
+		ProbeControllerVolumePlugins(cloud, s.VolumeConfiguration),
 		cloud,
 		s.ClusterName,
-		nil, nil, nil,
+                // volumeSource, claimSource, classSource, eventRecorder
+		nil, nil, nil, nil,
 		s.VolumeConfiguration.EnableDynamicProvisioning,
+                // deault storageClass
+                "",
 	)
 	volumeController.Run()
 	time.Sleep(wait.Jitter(s.ControllerStartInterval.Duration, ControllerStartJitter))

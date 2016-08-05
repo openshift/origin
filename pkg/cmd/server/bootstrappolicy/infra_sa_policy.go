@@ -510,6 +510,12 @@ func init() {
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
+				// PersistentVolumeController.syncClaim() -> provisionClaim()
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("storageclasses"),
+				},
 			},
 		},
 	)

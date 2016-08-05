@@ -2760,6 +2760,14 @@ items:
     - create
     - patch
     - update
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - storageclasses
+    verbs:
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
