@@ -12,33 +12,33 @@ objects.  By associating projects to owners using structured labels, it becomes 
 // ResourceQuota allocations to the set of selected projects from exceeding set limits.  If a single project is selected by multiple
 // ResourceQuotaAllocations, then the most restrictive limit wins.
 type ResourceQuotaAllocation struct{
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+    unversioned.TypeMeta
+    kapi.ObjectMeta
 
-	Spec ResourceQuotaAllocationSpec
-	Status ResourceQuotaAllocationStatus
+    Spec ResourceQuotaAllocationSpec
+    Status ResourceQuotaAllocationStatus
 }
 
 type ResourceQuotaAllocationSpec struct{
-	// Selector is used to find the set of projects that this ResourceQuotaAllocation is for
-	Selector extensions.LabelSelector
+    // Selector is used to find the set of projects that this ResourceQuotaAllocation is for
+    Selector extensions.LabelSelector
 
-	// Allocation is the description of the maximum quota sizes allowed across all the selected projects
-	Allocation kapi.ResourceQuotaSpec
+    // Allocation is the description of the maximum quota sizes allowed across all the selected projects
+    Allocation kapi.ResourceQuotaSpec
 }
 
 type ResourceQuotaAllocationStatus struct{
-	// Allocated is the current state of usage across all selected projects
-	Allocated kapi.ResourceQuotaStatus
+    // Allocated is the current state of usage across all selected projects
+    Allocated kapi.ResourceQuotaStatus
 
-	// UsedByProject makes association for users a little easier AND it allows us to update only when needed.
-	UsedByProject NamespacedResourceList
+    // UsedByProject makes association for users a little easier AND it allows us to update only when needed.
+    UsedByProject NamespacedResourceList
 }
 
 type NamespacedResourceList struct{
-	Namespace string
+    Namespace string
 
-	Used kapi.ResourceList
+    Used kapi.ResourceList
 }
 
 ```
