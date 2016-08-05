@@ -1,95 +1,5 @@
 apiVersion: v1
 items:
-- apiVersion: apps/v1alpha1
-  kind: PetSet
-  metadata:
-    creationTimestamp: 2016-07-21T15:53:09Z
-    generation: 3
-    labels:
-      app: mysql
-    name: mysql
-    namespace: default
-    resourceVersion: "6790"
-    selfLink: /apis/apps/v1alpha1/namespaces/default/petsets/mysql
-    uid: 3900c985-4f5b-11e6-b8a1-080027242396
-  spec:
-    replicas: 3
-    selector:
-      matchLabels:
-        app: mysql
-    serviceName: galera
-    template:
-      metadata:
-        annotations:
-          pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
-          pod.alpha.kubernetes.io/initialized: "true"
-        creationTimestamp: null
-        labels:
-          app: mysql
-      spec:
-        containers:
-        - args:
-          - --defaults-file=/etc/mysql/my-galera.cnf
-          - --user=root
-          image: erkules/galera:basic
-          imagePullPolicy: IfNotPresent
-          name: mysql
-          ports:
-          - containerPort: 3306
-            name: mysql
-            protocol: TCP
-          - containerPort: 4444
-            name: sst
-            protocol: TCP
-          - containerPort: 4567
-            name: replication
-            protocol: TCP
-          - containerPort: 4568
-            name: ist
-            protocol: TCP
-          readinessProbe:
-            exec:
-              command:
-              - sh
-              - -c
-              - mysql -u root -e 'show databases;'
-            failureThreshold: 3
-            initialDelaySeconds: 15
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          volumeMounts:
-          - mountPath: /var/lib/
-            name: datadir
-          - mountPath: /etc/mysql
-            name: config
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - emptyDir: {}
-          name: config
-        - emptyDir: {}
-          name: workdir
-    volumeClaimTemplates:
-    - metadata:
-        annotations:
-          volume.alpha.kubernetes.io/storage-class: anything
-        creationTimestamp: null
-        name: datadir
-      spec:
-        accessModes:
-        - ReadWriteOnce
-        resources:
-          requests:
-            storage: 10Gi
-      status:
-        phase: Pending
-  status:
-    replicas: 3
 - apiVersion: v1
   kind: Service
   metadata:
@@ -492,5 +402,95 @@ items:
     phase: Running
     podIP: 172.17.0.4
     startTime: 2016-07-27T03:00:58Z
+- apiVersion: apps/v1alpha1
+  kind: PetSet
+  metadata:
+    creationTimestamp: 2016-07-21T15:53:09Z
+    generation: 3
+    labels:
+      app: mysql
+    name: mysql
+    namespace: default
+    resourceVersion: "6790"
+    selfLink: /apis/apps/v1alpha1/namespaces/default/petsets/mysql
+    uid: 3900c985-4f5b-11e6-b8a1-080027242396
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: mysql
+    serviceName: galera
+    template:
+      metadata:
+        annotations:
+          pod.alpha.kubernetes.io/init-containers: '[{"name":"install","image":"gcr.io/google_containers/galera-install:0.1","args":["--work-dir=/work-dir"],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"},{"name":"bootstrap","image":"debian:jessie","command":["/work-dir/peer-finder"],"args":["-on-start=\"/work-dir/on-start.sh\"","-service=galera"],"env":[{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.namespace"}}}],"resources":{},"volumeMounts":[{"name":"workdir","mountPath":"/work-dir"},{"name":"config","mountPath":"/etc/mysql"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}]'
+          pod.alpha.kubernetes.io/initialized: "true"
+        creationTimestamp: null
+        labels:
+          app: mysql
+      spec:
+        containers:
+        - args:
+          - --defaults-file=/etc/mysql/my-galera.cnf
+          - --user=root
+          image: erkules/galera:basic
+          imagePullPolicy: IfNotPresent
+          name: mysql
+          ports:
+          - containerPort: 3306
+            name: mysql
+            protocol: TCP
+          - containerPort: 4444
+            name: sst
+            protocol: TCP
+          - containerPort: 4567
+            name: replication
+            protocol: TCP
+          - containerPort: 4568
+            name: ist
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - mysql -u root -e 'show databases;'
+            failureThreshold: 3
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/lib/
+            name: datadir
+          - mountPath: /etc/mysql
+            name: config
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - emptyDir: {}
+          name: config
+        - emptyDir: {}
+          name: workdir
+    volumeClaimTemplates:
+    - metadata:
+        annotations:
+          volume.alpha.kubernetes.io/storage-class: anything
+        creationTimestamp: null
+        name: datadir
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+      status:
+        phase: Pending
+  status:
+    replicas: 3
 kind: List
 metadata: {}
