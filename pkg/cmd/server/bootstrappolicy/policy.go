@@ -222,6 +222,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
+				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("policies", "policybindings").RuleOrDie(),
@@ -276,6 +278,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
+				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("petsets").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(buildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
@@ -321,6 +325,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicasets", "replicasets/scale",
 					"deployments", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("petsets").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup).Resources("builds/log").RuleOrDie(),

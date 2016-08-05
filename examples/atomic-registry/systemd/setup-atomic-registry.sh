@@ -13,7 +13,7 @@ $CMD atomic-registry-master oadm registry
 # pause for components to create
 sleep 3
 # we don't need the kubernetes components created during bootstrapping
-$CMD atomic-registry-master oc delete dc,service docker-registry
+$CMD atomic-registry-master oc delete dc docker-registry
 # Get the service account token for registry to connect to master API
 set -x
 TOKEN_NAME=$($CMD atomic-registry-master oc get sa registry --template '{{ $secret := index .secrets 0 }} {{ $secret.name }}')

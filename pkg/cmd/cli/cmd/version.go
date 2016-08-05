@@ -35,6 +35,7 @@ type VersionOptions struct {
 	ClientConfig kclientcmd.ClientConfig
 	Clients      func() (*client.Client, *kclient.Client, error)
 
+	IsServer            bool
 	PrintEtcdVersion    bool
 	PrintClientFeatures bool
 }
@@ -94,7 +95,9 @@ func (o VersionOptions) RunVersion() error {
 		fmt.Printf("features: %s\n", strings.Join(features, " "))
 	}
 
-	if o.ClientConfig == nil {
+	// do not attempt to print server info if already running cmd as the server
+	// or if no client config is present
+	if o.ClientConfig == nil || o.IsServer {
 		return nil
 	}
 
@@ -126,26 +129,32 @@ func (o VersionOptions) RunVersion() error {
 		}
 
 		ocVersionBody, err := oClient.Get().AbsPath("/version/openshift").Do().Raw()
-		if err != nil && !(kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err)) {
+		if kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err) {
+			return
+		}
+		if err != nil {
 			done <- err
 			return
 		}
 		var ocServerInfo version.Info
 		err = json.Unmarshal(ocVersionBody, &ocServerInfo)
-		if err != nil {
+		if err != nil && len(ocVersionBody) > 0 {
 			done <- err
 			return
 		}
 		oVersion = fmt.Sprintf("%v", ocServerInfo)
 
 		kubeVersionBody, err := kClient.Get().AbsPath("/version").Do().Raw()
-		if err != nil && !(kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err)) {
+		if kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err) {
+			return
+		}
+		if err != nil {
 			done <- err
 			return
 		}
 		var kubeServerInfo kubeversion.Info
 		err = json.Unmarshal(kubeVersionBody, &kubeServerInfo)
-		if err != nil {
+		if err != nil && len(kubeVersionBody) > 0 {
 			done <- err
 			return
 		}
@@ -165,9 +174,15 @@ func (o VersionOptions) RunVersion() error {
 		return fmt.Errorf("%s", "error: server took too long to respond with version information.")
 	}
 
-	fmt.Fprintf(o.Out, "\n%s%s\n", "Server ", versionHost)
-	fmt.Fprintf(o.Out, "OpenShift %s\n", oVersion)
-	fmt.Fprintf(o.Out, "Kubernetes %s\n", kVersion)
+	if oVersion != "" || kVersion != "" {
+		fmt.Fprintf(o.Out, "\n%s%s\n", "Server ", versionHost)
+	}
+	if oVersion != "" {
+		fmt.Fprintf(o.Out, "openshift %s\n", oVersion)
+	}
+	if kVersion != "" {
+		fmt.Fprintf(o.Out, "kubernetes %s\n", kVersion)
+	}
 
 	return nil
 }

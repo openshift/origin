@@ -11167,6 +11167,53 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "v1.ImageStreamTag",
+      "method": "POST",
+      "summary": "create a ImageStreamTag",
+      "nickname": "createNamespacedImageStreamTag",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ImageStreamTag",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ImageStreamTag"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -11446,6 +11493,45 @@
         "code": 200,
         "message": "OK",
         "responseModel": "v1.ImageStreamTagList"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.ImageStreamTag",
+      "method": "POST",
+      "summary": "create a ImageStreamTag",
+      "nickname": "createNamespacedImageStreamTag",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ImageStreamTag",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ImageStreamTag"
        }
       ],
       "produces": [
@@ -25238,6 +25324,10 @@
      "data": {
       "type": "object",
       "description": "Data contains the secret data. Each key must be a valid DNS_SUBDOMAIN or leading dot followed by valid DNS_SUBDOMAIN. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4"
+     },
+     "stringData": {
+      "type": "object",
+      "description": "stringData allows specifying non-binary secret data in string form. It is provided as a write-only convenience method. All keys and values are merged into the data field on write, overwriting any existing values. It is never output when reading from the API."
      },
      "type": {
       "type": "string",

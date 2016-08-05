@@ -6,7 +6,7 @@ LABEL name="projectatomic/atomic-registry-install" \
       url="https://projectatomic.io/registry" \
       summary="Systemd installation container for Atomic Registry" \
       description="This image installs Atomic Registry on a single host as systemd unit files. Atomic Registry is an open source enterprise registry solution based on the Origin project featuring single sign-on (SSO) user experience, a robust web interface and advanced role-based access control (RBAC)." \
-      INSTALL='docker run -it --rm \
+      INSTALL='docker run -i --rm \
                 --privileged \
                 --net=host \
                 -v /etc/atomic-registry/:/etc/atomic-registry/ \
@@ -14,7 +14,7 @@ LABEL name="projectatomic/atomic-registry-install" \
                 -v /:/host \
                 --entrypoint /usr/bin/install.sh \
                 $IMAGE' \
-      UNINSTALL='docker run -it --rm \
+      UNINSTALL='docker run -i --rm \
                 --privileged \
                 -v /:/host \
                 --entrypoint /usr/bin/uninstall.sh \

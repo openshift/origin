@@ -3160,6 +3160,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "tags": "instant-app,jenkins"
     }
   },
+  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.",
   "objects": [
     {
       "kind": "Route",
@@ -3393,13 +3394,14 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
     {
       "name": "JENKINS_PASSWORD",
       "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins user.",
+      "description": "Password for the Jenkins 'admin' user.",
       "generate": "expression",
-      "value": "password"
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
     }
   ],
   "labels": {
-    "template": "jenkins-ephemeral-template"
+    "template": "jenkins-pipeline-template"
   }
 }
 `)
@@ -3503,11 +3505,10 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "route-edge",
+        "name": "frontend",
         "creationTimestamp": null
       },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"

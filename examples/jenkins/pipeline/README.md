@@ -40,6 +40,14 @@ jenkins template represented by jenkinstemplate.json by running these commands a
     You should not need to access the jenkins console for anything, but if you want to configure settings or watch the execution,
     here are the steps to do so:
 
+    First you must determine the jenkins password which was randomly generated for you:
+
+        $ oc env dc/jenkins --list | grep JENKINS_PASSWORD
+
+    The value will appear as:
+
+        JENKINS_PASSWORD=faUXMOFUhRYXO2Gx
+
     If you have a router running (`oc cluster up` provides one), run:
 
         $ oc get route
@@ -48,7 +56,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     If you do not have a router, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
 
-    The login/password are `admin/password`.
+    Login with the user name is `admin` and the password as determined above.
 
 6. Launch a new build
 

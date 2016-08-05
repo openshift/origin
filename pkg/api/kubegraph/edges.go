@@ -20,8 +20,8 @@ import (
 const (
 	// ExposedThroughServiceEdgeKind goes from a PodTemplateSpec or a Pod to Service.  The head should make the service's selector.
 	ExposedThroughServiceEdgeKind = "ExposedThroughService"
-	// ManagedByRCEdgeKind goes from Pod to ReplicationController when the Pod satisfies the ReplicationController's label selector
-	ManagedByRCEdgeKind = "ManagedByRC"
+	// ManagedByControllerEdgeKind goes from Pod to controller when the Pod satisfies a controller's label selector
+	ManagedByControllerEdgeKind = "ManagedByController"
 	// MountedSecretEdgeKind goes from PodSpec to Secret indicating that is or will be a request to mount a volume with the Secret.
 	MountedSecretEdgeKind = "MountedSecret"
 	// MountableSecretEdgeKind goes from ServiceAccount to Secret indicating that the SA allows the Secret to be mounted
@@ -91,31 +91,36 @@ func AddAllExposedPodEdges(g osgraph.MutableUniqueGraph) {
 	}
 }
 
-// AddManagedByRCPodEdges ensures that a directed edge exists between an RC and all the pods
+// AddManagedByControllerPodEdges ensures that a directed edge exists between a controller and all the pods
 // in the graph that match the label selector
-func AddManagedByRCPodEdges(g osgraph.MutableUniqueGraph, rcNode *kubegraph.ReplicationControllerNode) {
-	if rcNode.Spec.Selector == nil {
+func AddManagedByControllerPodEdges(g osgraph.MutableUniqueGraph, to graph.Node, namespace string, selector map[string]string) {
+	if selector == nil {
 		return
 	}
-	query := labels.SelectorFromSet(rcNode.Spec.Selector)
+	query := labels.SelectorFromSet(selector)
 	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodNode:
-			if target.Namespace != rcNode.Namespace {
+			if target.Namespace != namespace {
 				continue
 			}
 			if query.Matches(labels.Set(target.Labels)) {
-				g.AddEdge(target, rcNode, ManagedByRCEdgeKind)
+				g.AddEdge(target, to, ManagedByControllerEdgeKind)
 			}
 		}
 	}
 }
 
-// AddAllManagedByRCPodEdges calls AddManagedByRCPodEdges for every ServiceNode in the graph
-func AddAllManagedByRCPodEdges(g osgraph.MutableUniqueGraph) {
+// AddAllManagedByControllerPodEdges calls AddManagedByControllerPodEdges for every node in the graph
+// TODO: should do this through an interface (selects pods)
+func AddAllManagedByControllerPodEdges(g osgraph.MutableUniqueGraph) {
 	for _, node := range g.(graph.Graph).Nodes() {
-		if rcNode, ok := node.(*kubegraph.ReplicationControllerNode); ok {
-			AddManagedByRCPodEdges(g, rcNode)
+		switch cast := node.(type) {
+		case *kubegraph.ReplicationControllerNode:
+			AddManagedByControllerPodEdges(g, cast, cast.ReplicationController.Namespace, cast.ReplicationController.Spec.Selector)
+		case *kubegraph.PetSetNode:
+			// TODO: refactor to handle expanded selectors (along with ReplicaSets and Deployments)
+			AddManagedByControllerPodEdges(g, cast, cast.PetSet.Namespace, cast.PetSet.Spec.Selector.MatchLabels)
 		}
 	}
 }

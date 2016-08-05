@@ -510,6 +510,20 @@ items:
     - list
     - watch
   - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -871,6 +885,20 @@ items:
     - list
     - watch
   - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -1128,6 +1156,15 @@ items:
     attributeRestrictions: null
     resources:
     - daemonsets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets
     verbs:
     - get
     - list
@@ -2580,6 +2617,69 @@ items:
     - deletecollection
     - get
     - list
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    creationTimestamp: null
+    name: system:pet-set-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets
+    verbs:
+    - get
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - petsets/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - create
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:

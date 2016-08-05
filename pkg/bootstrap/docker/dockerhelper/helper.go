@@ -17,8 +17,8 @@ import (
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 
+	"github.com/openshift/imagebuilder/imageprogress"
 	starterrors "github.com/openshift/origin/pkg/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile/builder/imageprogress"
 )
 
 const openShiftInsecureCIDR = "172.30.0.0/16"

@@ -232,7 +232,7 @@ backend be_edge_http_{{$cfgIdx}}
       {{ end }}
     {{ end }}
 
-{{ if index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections" }}
+{{ if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
   stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
   tcp-request content track-sc2 src
   {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }} 

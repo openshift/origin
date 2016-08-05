@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -54,6 +55,9 @@ const (
 
 	InfraServiceLoadBalancerControllerServiceAccountName = "service-load-balancer-controller"
 	ServiceLoadBalancerControllerRoleName                = "system:service-load-balancer-controller"
+
+	InfraPetSetControllerServiceAccountName = "pet-set-controller"
+	PetSetControllerRoleName                = "system:pet-set-controller"
 
 	ServiceServingCertServiceAccountName = "service-serving-cert-controller"
 	ServiceServingCertControllerRoleName = "system:service-serving-cert-controller"
@@ -700,6 +704,62 @@ func init() {
 				},
 				// ServiceController.eventRecorder
 				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraPetSetControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: PetSetControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// PetSetController.podCache.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// PetSetController.cache.ListWatch
+				{
+					APIGroups: []string{apps.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("petsets"),
+				},
+				// PetSetController.petClient
+				{
+					APIGroups: []string{apps.GroupName},
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("petsets"),
+				},
+				{
+					APIGroups: []string{apps.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("petsets/status"),
+				},
+				// PetSetController.podClient
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "create", "delete", "update"),
+					Resources: sets.NewString("pods"),
+				},
+				// PetSetController.petClient (PVC)
+				// This is an escalating client and we must admission check the petset
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "create"), // future "delete"
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PetSetController.eventRecorder
+				{
+					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},

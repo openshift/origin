@@ -623,6 +623,7 @@ func TestHandleScenarios(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 
+		var updatedConfig *deployapi.DeploymentConfig
 		deployments := map[string]kapi.ReplicationController{}
 		toStore := []kapi.ReplicationController{}
 		for _, template := range test.before {
@@ -632,6 +633,11 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		oc := &testclient.Fake{}
+		oc.AddReactor("update", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+			dc := action.(ktestclient.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+			updatedConfig = dc
+			return true, dc, nil
+		})
 		kc := &ktestclient.Fake{}
 		kc.AddReactor("create", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			rc := action.(ktestclient.CreateAction).GetObject().(*kapi.ReplicationController)
@@ -711,6 +717,10 @@ func TestHandleScenarios(t *testing.T) {
 		}
 		sort.Sort(deployutil.ByLatestVersionDesc(expectedDeployments))
 		sort.Sort(deployutil.ByLatestVersionDesc(actualDeployments))
+
+		if updatedConfig != nil {
+			config = updatedConfig
+		}
 
 		if e, a := test.expectedReplicas, config.Spec.Replicas; e != a {
 			t.Errorf("expected config replicas to be %d, got %d", e, a)

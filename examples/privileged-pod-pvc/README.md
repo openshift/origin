@@ -114,5 +114,5 @@ Examine the output for the gluster volume.
 For more info on:
 
 * Setting pv/pvc's for other volume providers see [Configuring Persistent Storage](https://docs.openshift.org/latest/install_config/persistent_storage/index.html)
-* SCC's, see [Manageing Security Context Contraints]()
+* SCC's, see [Managing Security Context Contraints](https://docs.openshift.org/latest/admin_guide/manage_scc.html)
 

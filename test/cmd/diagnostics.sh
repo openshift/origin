@@ -34,7 +34,7 @@ os::cmd::expect_success 'oadm diagnostics ClusterRoleBindings ClusterRoles Confi
 # DiagnosticPod can't run without Docker, would just time out. Exercise flags instead.
 os::cmd::expect_success "oadm diagnostics DiagnosticPod --prevent-modification --images=foo"
 os::cmd::expect_success "oadm diagnostics MasterConfigCheck NodeConfigCheck ServiceExternalIPs --master-config=${MASTER_CONFIG_DIR}/master-config.yaml --node-config=${NODE_CONFIG_DIR}/node-config.yaml"
-os::cmd::expect_success_and_text 'oadm diagnostics ClusterRegistry' "DClu1002 from diagnostic ClusterRegistry"
+os::cmd::expect_failure_and_text 'oadm diagnostics ClusterRegistry' "DClu1006 from diagnostic ClusterRegistry"
 # MasterNode fails in test, possibly because the hostname doesn't resolve? Disabled
 #os::cmd::expect_success_and_text 'oadm diagnostics MasterNode'  'Network plugin does not require master to also run node'
 # ClusterRouter fails differently depending on whether other tests have run first, so don't test for specific error
