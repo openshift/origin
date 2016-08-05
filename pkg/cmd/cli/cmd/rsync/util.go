@@ -80,6 +80,11 @@ func rsyncFlagsFromOptions(o *RsyncOptions) []string {
 	if o.RsyncNoPerms {
 		flags = append(flags, "--no-perms")
 	}
+	if len(o.RsyncExtraFlags) > 0 {
+		for _, extraFlag := range o.RsyncExtraFlags {
+			flags = append(flags, extraFlag)
+		}
+	}
 	return flags
 }
 
@@ -96,6 +101,11 @@ func rsyncSpecificFlags(o *RsyncOptions) []string {
 	}
 	if o.RsyncNoPerms {
 		flags = append(flags, "--no-perms")
+	}
+	if len(o.RsyncExtraFlags) > 0 {
+		for _, extraFlag := range o.RsyncExtraFlags {
+			flags = append(flags, extraFlag)
+		}
 	}
 	return flags
 }

@@ -392,5 +392,29 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 				"--no-perms").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+		g.It("should honor arbitrary flags specified after --", func() {
+			g.By("Creating a temporary file with excluded file names")
+			tempFile, err := ioutil.TempFile("", "rsync")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = fmt.Fprintf(tempFile, "application-template-custombuild.json\napplication-template-dockerbuild.json\n")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = tempFile.Close()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("Calling oc rsync %s %s:/tmp -- --exclude-from=%s", sourcePath2, podName, tempFile.Name()))
+			err = oc.Run("rsync").Args(
+				sourcePath2,
+				fmt.Sprintf("%s:/tmp", podName),
+				"--",
+				fmt.Sprintf("--exclude-from=%s", tempFile.Name())).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("Verifying that files are copied to the container")
+			result, err := oc.Run("rsh").Args(podName, "ls", "/tmp/sample-app").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-custombuild.json"))
+			o.Expect(result).NotTo(o.ContainSubstring("application-template-dockerbuild.json"))
+			o.Expect(result).To(o.ContainSubstring("application-template-stibuild.json"))
+		})
 	})
 })

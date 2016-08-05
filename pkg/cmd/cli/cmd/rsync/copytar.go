@@ -116,7 +116,7 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 	glog.V(3).Infof("Copying files with tar")
 
 	if len(r.IgnoredFlags) > 0 {
-		fmt.Fprintf(errOut, "Ignoring the following flags because they only apply to rsync: %s\n", strings.Join(r.IgnoredFlags, ", "))
+		return fmt.Errorf("these flags only apply to rsync: %s\n", strings.Join(r.IgnoredFlags, ", "))
 	}
 
 	if r.Delete {

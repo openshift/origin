@@ -77,10 +77,11 @@ type RsyncOptions struct {
 	Delete        bool
 	Watch         bool
 
-	RsyncInclude  []string
-	RsyncExclude  []string
-	RsyncProgress bool
-	RsyncNoPerms  bool
+	RsyncInclude    []string
+	RsyncExclude    []string
+	RsyncProgress   bool
+	RsyncNoPerms    bool
+	RsyncExtraFlags []string
 
 	Out    io.Writer
 	ErrOut io.Writer
@@ -93,12 +94,13 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 		ErrOut: errOut,
 	}
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SOURCE DESTINATION", name),
+		Use:     fmt.Sprintf("%s [options] SOURCE DESTINATION -- [rsync-options]", name),
 		Short:   "Copy files between local filesystem and a pod",
 		Long:    rsyncLong,
 		Example: fmt.Sprintf(rsyncExample, parent+" "+name),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, c, args))
+			argsLenAtDash := c.ArgsLenAtDash()
+			kcmdutil.CheckErr(o.Complete(f, c, args, argsLenAtDash))
 			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.RunRsync())
 		},
@@ -172,8 +174,12 @@ func (o *RsyncOptions) determineStrategy(f *clientcmd.Factory, cmd *cobra.Comman
 }
 
 // Complete verifies command line arguments and loads data from the command environment
-func (o *RsyncOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
-	switch n := len(args); {
+func (o *RsyncOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, argsLenAtDash int) error {
+	n := argsLenAtDash
+	if n == -1 {
+		n = len(args)
+	}
+	switch {
 	case n == 0:
 		cmd.Help()
 		fallthrough
@@ -182,6 +188,8 @@ func (o *RsyncOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	case n > 2:
 		return kcmdutil.UsageError(cmd, "only SOURCE_DIR and POD:DESTINATION_DIR should be specified as arguments")
 	}
+
+	o.RsyncExtraFlags = args[2:]
 
 	// Set main command arguments
 	var err error
