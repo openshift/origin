@@ -32,7 +32,7 @@
 # TODO Automatically generate these using tito
 #  For man pages, blank is fine
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
+%global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -62,6 +62,7 @@ Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.
 BuildRequires:  systemd
 BuildRequires:  golang = %{golang_version}
 BuildRequires:  krb5-devel
+BuildRequires:  rsync
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
 Obsoletes:      openshift < %{package_refector_version}
@@ -212,11 +213,7 @@ pushd images/pod/
 popd
 
 # Create/Update man pages
-# Could use hack/update-generated-docs.sh but takes twice as long
-%{os_git_vars} hack/build-go.sh tools/genman
-output/local/bin/linux/amd64/genman docs/man/man1 oc
-output/local/bin/linux/amd64/genman docs/man/man1 oadm
-output/local/bin/linux/amd64/genman docs/man/man1 openshift
+%{os_git_vars} hack/update-generated-docs.sh
 
 %install
 
