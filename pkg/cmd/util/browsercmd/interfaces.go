@@ -8,7 +8,7 @@ type Handler interface {
 }
 
 type Server interface {
-	Start(Handler) (uint16, error)
+	Start(Handler) (string, error)
 	Stop() error
 }
 

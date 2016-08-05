@@ -11,17 +11,27 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/cmd/util/browsercmd"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-// CSRFTokenHeader is a marker header that indicates we are not a browser that got tricked into requesting basic auth
-// Corresponds to the header expected by basic-auth challenging authenticators
-const CSRFTokenHeader = "X-CSRF-Token"
+const (
+	// CSRFTokenHeader is a marker header that indicates we are not a browser that got tricked into requesting basic auth
+	// Corresponds to the header expected by basic-auth challenging authenticators
+	CSRFTokenHeader     = "X-CSRF-Token"
+	interactionRequired = "interaction_required"
+)
 
-var interactionRequiredError = errors.New("interaction_required")
+type interactionRequiredError struct {
+	description string
+}
+
+func (e *interactionRequiredError) Error() string {
+	return e.description
+}
 
 // ChallengeHandler handles responses to WWW-Authenticate challenges.
 type ChallengeHandler interface {
@@ -159,11 +169,12 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 			// OAuth response case (access_token or error parameter)
 			accessToken, err := oauthAuthorizeResult(redirectURL)
 
-			switch err {
-			case interactionRequiredError:
-				token, err := browserOauthAuthorizeResult(requestURL)
-				if err != nil {
-					return "", err
+			switch err := err.(type) {
+			case *interactionRequiredError:
+				token, browserError := browserOauthAuthorizeResult(requestURL)
+				if browserError != nil {
+					glog.V(4).Infof("browser error: %v", browserError) // TODO what level to use?
+					return "", err                                     // log the browser error but show the actual err
 				}
 				return token, nil
 			default:
@@ -198,11 +209,12 @@ func oauthAuthorizeResult(location string) (string, error) {
 	}
 
 	errorCode := u.Query().Get("error")
-	if errorCode == interactionRequiredError.Error() {
-		return "", interactionRequiredError
+	errorDescription := u.Query().Get("error_description")
+
+	if errorCode == interactionRequired {
+		return "", &interactionRequiredError{description: errorDescription}
 	}
 	if len(errorCode) > 0 {
-		errorDescription := u.Query().Get("error_description")
 		return "", errors.New(errorCode + " " + errorDescription)
 	}
 
@@ -219,11 +231,23 @@ func oauthAuthorizeResult(location string) (string, error) {
 }
 
 func browserOauthAuthorizeResult(location string) (string, error) {
-	url := location + fmt.Sprintf("&display=page&redirect_uri=http://127.0.0.1:%d&state=%s", 80, "state") // TODO do this better
+	var server browsercmd.Server = &browsercmd.ServerImplementation{}
+	var handler browsercmd.Handler = nil
+	port, err := server.Start(handler)
+	defer server.Stop()
+	if err != nil {
+		return "", err
+	}
+	var browser browsercmd.Browser = &browsercmd.BrowserImplementation{}
+	url := location + fmt.Sprintf("&display=page&redirect_uri=http://127.0.0.1:%s&state=%s", port, "state") // TODO do this better
+	err = browser.Open(url)
+	if err != nil {
+		return "", err
+	}
 	// Start local server
 	// Open browser to url
 	// Extract token from response
-	return "token", nil
+	return "token", errors.New("always dies")
 }
 
 func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header) (*http.Response, error) {
