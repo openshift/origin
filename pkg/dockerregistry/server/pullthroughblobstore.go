@@ -20,8 +20,9 @@ import (
 type pullthroughBlobStore struct {
 	distribution.BlobStore
 
-	repo          *repository
-	digestToStore map[string]distribution.BlobStore
+	repo                       *repository
+	digestToStore              map[string]distribution.BlobStore
+	pullFromInsecureRegistries bool
 }
 
 var _ distribution.BlobStore = &pullthroughBlobStore{}
@@ -84,7 +85,7 @@ func (r *pullthroughBlobStore) Stat(ctx context.Context, dgst digest.Digest) (di
 // r.digestToStore saves the store.
 func (r *pullthroughBlobStore) proxyStat(ctx context.Context, retriever importer.RepositoryRetriever, ref imageapi.DockerImageReference, dgst digest.Digest) (distribution.Descriptor, error) {
 	context.GetLogger(r.repo.ctx).Infof("Trying to stat %q from %q", dgst, ref.Exact())
-	repo, err := retriever.Repository(ctx, ref.RegistryURL(), ref.RepositoryName(), false)
+	repo, err := retriever.Repository(ctx, ref.RegistryURL(), ref.RepositoryName(), r.pullFromInsecureRegistries)
 	if err != nil {
 		context.GetLogger(r.repo.ctx).Errorf("Error getting remote repository for image %q: %v", ref.Exact(), err)
 		return distribution.Descriptor{}, err
