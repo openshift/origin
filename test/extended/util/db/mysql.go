@@ -40,7 +40,7 @@ func (m MySQL) IsReady(oc *util.CLI) (bool, error) {
 		"mysqladmin -h 127.0.0.1 -uroot ping").Output()
 	if err != nil {
 		switch err.(type) {
-		case *exec.ExitError:
+		case *util.ExitError, *exec.ExitError:
 			return false, nil
 		default:
 			return false, err

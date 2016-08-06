@@ -51,7 +51,7 @@ func executeShellCommand(oc *util.CLI, podName string, command string) (string, 
 	out, err := oc.Run("exec").Args(podName, "--", "bash", "-c", command).Output()
 	if err != nil {
 		switch err.(type) {
-		case *exec.ExitError:
+		case *util.ExitError, *exec.ExitError:
 			return "", nil
 		default:
 			return "", err
