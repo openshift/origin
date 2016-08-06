@@ -190,6 +190,8 @@ func (o *NewBuildOptions) Run() error {
 	config := o.Config
 	out := o.Out
 
+	checkGitInstalled(out)
+
 	result, err := config.Run()
 	if err != nil {
 		return handleBuildError(err, o.CommandName, o.CommandPath)
