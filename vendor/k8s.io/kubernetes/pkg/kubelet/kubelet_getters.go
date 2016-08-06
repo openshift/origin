@@ -218,3 +218,10 @@ func (kl *Kubelet) GetHostIP() (net.IP, error) {
 	}
 	return nodeutil.GetNodeHostIP(node)
 }
+
+// GetExtraSupplementalGroupsForPod returns a list of the extra
+// supplemental groups for the Pod. These extra supplemental groups come
+// from annotations on persistent volumes that the pod depends on.
+func (kl *Kubelet) GetExtraSupplementalGroupsForPod(pod *api.Pod) []int64 {
+	return kl.volumeManager.GetExtraSupplementalGroupsForPod(pod)
+}
