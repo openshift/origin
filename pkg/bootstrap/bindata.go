@@ -76,7 +76,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Ruby applications",
+              "description": "Build and run Ruby 2.3 applications",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby",
@@ -146,7 +146,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run NodeJS applications",
+              "description": "Build and run NodeJS 4 applications",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs",
@@ -201,7 +201,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Perl applications",
+              "description": "Build and run Perl 5.20 applications",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl",
@@ -257,7 +257,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run PHP applications",
+              "description": "Build and run PHP 5.6 applications",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php",
@@ -312,7 +312,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Python applications",
+              "description": "Build and run Python 3.5 applications",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -397,7 +397,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly",
+              "description": "Build and run Java applications on Wildfly 10.0",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"jee,java",
@@ -467,7 +467,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MySQL database",
+              "description": "Provides a MySQL v5.6 database",
               "iconClass": "icon-mysql-database",
               "tags": "mysql"
             },
@@ -516,7 +516,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MariaDB database",
+              "description": "Provides a MariaDB v10.1 database",
               "iconClass": "icon-mariadb",
               "tags": "mariadb"
             },
@@ -552,7 +552,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a PostgreSQL database",
+              "description": "Provides a PostgreSQL v9.5 database",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -614,7 +614,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MongoDB database",
+              "description": "Provides a MongoDB v3.2 database",
               "iconClass": "icon-mongodb",
               "tags": "mongodb"
             },
@@ -736,7 +736,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Ruby applications",
+              "description": "Build and run Ruby 2.3 applications",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby",
@@ -806,7 +806,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run NodeJS applications",
+              "description": "Build and run NodeJS 4 applications",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs",
@@ -835,7 +835,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "4",
             "annotations": {
-              "description": "Build and run NodeJS 4.x applications",
+              "description": "Build and run NodeJS 4 applications",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:4,nodejs",
@@ -861,7 +861,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Perl applications",
+              "description": "Build and run Perl 5.20 applications",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl",
@@ -917,7 +917,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run PHP applications",
+              "description": "Build and run PHP 5.6 applications",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php",
@@ -972,7 +972,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Python applications",
+              "description": "Build and run Python 3.5 applications",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -1057,7 +1057,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MySQL database",
+              "description": "Provides a MySQL v5.6 database",
               "iconClass": "icon-mysql-database",
               "tags": "mysql"
             },
@@ -1106,7 +1106,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MariaDB database",
+              "description": "Provides a MariaDB v10.1 database",
               "iconClass": "icon-mariadb",
               "tags": "mariadb"
             },
@@ -1142,7 +1142,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a PostgreSQL database",
+              "description": "Provides a PostgreSQL v9.5 database",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -1204,7 +1204,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MongoDB database",
+              "description": "Provides a MongoDB v3.2 database",
               "iconClass": "icon-mongodb",
               "tags": "mongodb"
             },
