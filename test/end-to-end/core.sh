@@ -44,6 +44,14 @@ function wait_for_app() {
   os::cmd::try_until_text "curl -s http://${FRONTEND_IP}:5432/keys/foo" "1337"
 }
 
+function remove_docker_images() {
+    local name="$1"
+    local tag="${2:-\S\+}"
+    local imageids=$(docker images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
+    os::cmd::expect_success_and_text "echo '${imageids}' | wc -w" '^[1-9][0-9]*$'
+    os::cmd::expect_success "docker rmi -f ${imageids}"
+}
+
 os::test::junit::declare_suite_start "end-to-end/core"
 
 echo "[INFO] openshift version: `openshift version`"
@@ -128,56 +136,67 @@ os::cmd::expect_success "docker tag -f centos/ruby-22-centos7:latest ${DOCKER_RE
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 echo "[INFO] Pushed ruby-22-centos7"
 
+# get image's digest
+rubyimagedigest=$(oc get -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].image}' is/ruby-22-centos7)
+# get a random, non-empty blob
+rubyimageblob=$(oc get isimage -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 1024.}}{{.name}},{{end}}{{end}}' ruby-22-centos7@${rubyimagedigest} | cut -d , -f 1)
+
 # verify remote images can be pulled directly from the local registry
 echo "[INFO] Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 
-echo "[INFO] Docker start with GCS"
+echo "[INFO] Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
 
+echo "[INFO] Docker pull from istag"
+os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
+os::cmd::expect_success "docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/hello-world:latest"
+
 # verify we can pull from tagged image (using tag)
-imageid=$(docker images | grep centos/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to the same image stream and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7:latest ruby-22-centos7:new-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-tag"
+remove_docker_images 'cache/hello-world'
+echo "[INFO] Tagging hello-world:latest to the same image stream and pulling it"
+os::cmd::expect_success "oc tag hello-world:latest hello-world:new-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-tag"
 echo "[INFO] The same image stream pull successful"
 
-imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to cross repository and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7:latest cross:repo-pull"
+remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-tag
+echo "[INFO] Tagging hello-world:latest to cross repository and pulling it"
+os::cmd::expect_success "oc tag hello-world:latest cross:repo-pull"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
 echo "[INFO] Cross repository pull successful"
 
-imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to cross namespace and pulling it"
-os::cmd::expect_success "oc tag cache/ruby-22-centos7:latest cross:namespace-pull -n custom"
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross" "repo-pull"
+echo "[INFO] Tagging hello-world:latest to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/hello-world:latest cross:namespace-pull -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 echo "[INFO] Cross namespace pull successful"
 
-# verify we can pull from tagged image (using imageid)
-imageid=$(docker images | grep custom/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-tagid=$(oc get istag ruby-22-centos7:latest --template={{.image.metadata.name}})
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to the same image stream and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} ruby-22-centos7:new-id-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-id-tag"
+# verify we can pull from tagged image (using image digest)
+remove_docker_images "${DOCKER_REGISTRY}/custom/cross"  namespace-pull
+imagedigest=$(oc get istag hello-world:latest --template={{.image.metadata.name}})
+echo "[INFO] Tagging hello-world@${imagedigest} to the same image stream and pulling it"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} hello-world:new-id-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-id-tag"
 echo "[INFO] The same image stream pull successful"
 
-imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross repository and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} cross:repo-pull-id"
+remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-id-tag
+echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
 echo "[INFO] Cross repository pull successful"
 
-imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross namespace and pulling it"
-os::cmd::expect_success "oc tag cache/ruby-22-centos7@${tagid} cross:namespace-pull-id -n custom"
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross" repo-pull-id
+echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it by id"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross@${imagedigest}"
+echo "[INFO] Cross repository pull successful"
+
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross"
+echo "[INFO] Tagging hello-world@${imagedigest} to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/hello-world@${imagedigest} cross:namespace-pull-id -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 echo "[INFO] Cross namespace pull successful"
 
@@ -191,7 +210,7 @@ echo "[INFO] Docker login as pusher to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
 echo "[INFO] Docker login successful"
 
-# Test anonymous registry access
+echo "[INFO] Anonymous registry access"
 # setup: log out of docker, log into openshift as e2e-user to run policy commands, tag image to use for push attempts
 os::cmd::expect_success 'oc login -u e2e-user'
 os::cmd::expect_success 'docker pull busybox'
@@ -215,13 +234,41 @@ os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:a
 os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+echo "[INFO] Anonymous registry access successfull"
 
 # log back into docker as e2e-user again
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
 
+os::cmd::expect_success "oc new-project crossmount"
+os::cmd::expect_success "oc create imagestream repo"
+
 echo "[INFO] Back to 'default' project with 'admin' user..."
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 os::cmd::expect_success_and_text 'oc whoami' 'system:admin'
+os::cmd::expect_success "oc tag --source docker centos/ruby-22-centos7:latest -n custom ruby-22-centos7:latest"
+os::cmd::expect_success 'oc policy add-role-to-user registry-viewer pusher -n custom'
+os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher -n crossmount'
+
+echo "[INFO] Docker cross-repo mount"
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "404 Not Found"
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/cache/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
+# 202 means that cross-repo mount has failed (in this case because of blob doesn't exist in the source repository), client needs to reupload the blob
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/hello-world'" "202 Accepted"
+# 201 means that blob has been cross mounted from given repository
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/ruby-22-centos7'" "201 Created"
+os::cmd::expect_success_and_text "oc get -n crossmount istag repo:_pullthrough_dep_${rubyimageblob:7:6}" "$rubyimagedigest"
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "200 OK"
+# check that the blob is linked now
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "200 OK"
+# remove pusher's permissions to read from the source repository
+os::cmd::expect_success "oc policy remove-role-from-user system:image-pusher pusher -n cache"
+# cross-repo mount failed because of access denied
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/ruby-22-centos7'" "202 Accepted"
+# wait until image is imported
+os::cmd::try_until_text "oc get -n custom is/ruby-22-centos7 --template='{{if .status.tags}}{{if gt (len .status.tags) 0}}tagged{{end}}{{end}}'" tagged $((20*TIME_SEC))
+# cross repo mount from a remote repository (cross-repo mount with pullthrough)
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=custom/ruby-22-centos7'" "201 Created"
+echo "[INFO] Docker cross-repo mount successful"
 
 # The build requires a dockercfg secret in the builder service account in order
 # to be able to push to the registry.  Make sure it exists first.

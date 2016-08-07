@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -29,6 +30,8 @@ import (
 )
 
 const (
+	// Environment variables
+
 	// DockerRegistryURLEnvVar is a mandatory environment variable name specifying url of internal docker
 	// registry. All references to pushed images will be prefixed with its value.
 	DockerRegistryURLEnvVar = "DOCKER_REGISTRY_URL"
@@ -46,6 +49,16 @@ const (
 	// AcceptSchema2EnvVar is a boolean environment variable that allows to accept manifest schema v2
 	// on manifest put requests.
 	AcceptSchema2EnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2"
+
+	// BlobRepositoryCacheTTLEnvVar  is an environment variable specifying an eviction timeout for <blob
+	// belongs to repository> entries. The higher the value, the faster queries but also a higher risk of
+	// leaking a blob that is no longer tagged in given repository.
+	BlobRepositoryCacheTTLEnvVar = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_BLOBREPOSITORYCACHETTL"
+
+	// Default values
+
+	defaultDigestToRepositoryCacheSize = 2048
+	defaultBlobRepositoryCacheTTL      = time.Minute * 10
 )
 
 var (
@@ -64,7 +77,7 @@ var (
 )
 
 func init() {
-	cache, err := newDigestToRepositoryCache(1024)
+	cache, err := newDigestToRepositoryCache(defaultDigestToRepositoryCacheSize)
 	if err != nil {
 		panic(err)
 	}
@@ -89,6 +102,7 @@ func init() {
 			if quotaEnforcing == nil {
 				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
 			}
+
 			return newRepositoryWithClient(registryOSClient, kClient, kClient, ctx, repo, options)
 		},
 	)
@@ -118,6 +132,8 @@ type repository struct {
 	pullthrough bool
 	// acceptschema2 allows to refuse the manifest schema version 2
 	acceptschema2 bool
+	// blobrepositorycachettl is an eviction timeout for <blob belongs to repository> entries of cachedLayers
+	blobrepositorycachettl time.Duration
 	// cachedLayers remembers a mapping of layer digest to repositories recently seen with that image to avoid
 	// having to check every potential upstream repository when a blob request is made. The cache is useful only
 	// when session affinity is on for the registry, but in practice the first pull will fill the cache.
@@ -140,14 +156,17 @@ func newRepositoryWithClient(
 		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)
 	}
 
-	pullthrough := getBoolOption("pullthrough", false, options)
-
-	acceptschema2 := false
-
-	if os.Getenv(AcceptSchema2EnvVar) != "" {
-		acceptschema2 = os.Getenv(AcceptSchema2EnvVar) == "true"
-	} else {
-		acceptschema2 = getBoolOption("acceptschema2", false, options)
+	acceptschema2, err := getBoolOption(AcceptSchema2EnvVar, "acceptschema2", false, options)
+	if err != nil {
+		context.GetLogger(ctx).Error(err)
+	}
+	blobrepositorycachettl, err := getDurationOption(BlobRepositoryCacheTTLEnvVar, "blobrepositorycachettl", defaultBlobRepositoryCacheTTL, options)
+	if err != nil {
+		context.GetLogger(ctx).Error(err)
+	}
+	pullthrough, err := getBoolOption("", "pullthrough", false, options)
+	if err != nil {
+		context.GetLogger(ctx).Error(err)
 	}
 
 	nameParts := strings.SplitN(repo.Named().Name(), "/", 2)
@@ -155,30 +174,23 @@ func newRepositoryWithClient(
 		return nil, fmt.Errorf("invalid repository name %q: it must be of the format <project>/<name>", repo.Named().Name())
 	}
 
+	context.GetLogger(ctx).Debugf(`making openshift repository [is=%q, acceptschema2=%t, pullthrough=%t]`, repo.Named().Name(), acceptschema2, pullthrough)
+
 	return &repository{
 		Repository: repo,
 
-		ctx:              ctx,
-		quotaClient:      quotaClient,
-		limitClient:      limitClient,
-		registryOSClient: registryOSClient,
-		registryAddr:     registryAddr,
-		namespace:        nameParts[0],
-		name:             nameParts[1],
-		pullthrough:      pullthrough,
-		acceptschema2:    acceptschema2,
-		cachedLayers:     cachedLayers,
+		ctx:                    ctx,
+		quotaClient:            quotaClient,
+		limitClient:            limitClient,
+		registryOSClient:       registryOSClient,
+		registryAddr:           registryAddr,
+		namespace:              nameParts[0],
+		name:                   nameParts[1],
+		acceptschema2:          acceptschema2,
+		blobrepositorycachettl: blobrepositorycachettl,
+		pullthrough:            pullthrough,
+		cachedLayers:           cachedLayers,
 	}, nil
-}
-
-func getBoolOption(name string, defval bool, options map[string]interface{}) bool {
-	if value, ok := options[name]; ok {
-		var b bool
-		if b, ok = value.(bool); ok {
-			return b
-		}
-	}
-	return defval
 }
 
 // Manifests returns r, which implements distribution.ManifestService.
@@ -271,7 +283,13 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest, options ...dis
 	}
 
 	ref := imageapi.DockerImageReference{Namespace: r.namespace, Name: r.name, Registry: r.registryAddr}
-	manifest, err := r.manifestFromImageWithCachedLayers(image, ref.DockerClientDefaults().Exact())
+	if managed := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; managed == "true" {
+		ref.Registry = ""
+	} else {
+		ref = ref.DockerClientDefaults()
+	}
+
+	manifest, err := r.manifestFromImageWithCachedLayers(image, ref.Exact())
 
 	return manifest, err
 }
@@ -485,6 +503,7 @@ func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 	if err != nil {
 		return err
 	}
+	ctx = WithRepository(ctx, r)
 	return ms.Delete(ctx, dgst)
 }
 
@@ -516,30 +535,56 @@ func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStr
 	return r.registryOSClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
-// rememberLayers caches the provided layers
-func (r *repository) rememberLayers(manifest distribution.Manifest, cacheName string) {
-	if !r.pullthrough {
+// rememberLayersOfImage caches the layer digests of given image
+func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName string) {
+	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 {
+		// image has no layers
 		return
 	}
+
+	if len(image.DockerImageLayers) > 0 {
+		for _, layer := range image.DockerImageLayers {
+			r.cachedLayers.RememberDigest(digest.Digest(layer.Name), r.blobrepositorycachettl, cacheName)
+		}
+		return
+	}
+
+	manifest, err := r.getManifestFromImage(image)
+	if err != nil {
+		context.GetLogger(r.ctx).Errorf("cannot remember layers of image %q: %v", image.Name, err)
+	}
+	r.rememberLayersOfManifest(manifest, cacheName)
+}
+
+// rememberLayersOfManifest caches the layer digests of given manifest
+func (r *repository) rememberLayersOfManifest(manifest distribution.Manifest, cacheName string) {
 	// remember the layers in the cache as an optimization to avoid searching all remote repositories
 	for _, layer := range manifest.References() {
-		r.cachedLayers.RememberDigest(layer.Digest, cacheName)
+		r.cachedLayers.RememberDigest(layer.Digest, r.blobrepositorycachettl, cacheName)
 	}
 }
 
 // manifestFromImageWithCachedLayers loads the image and then caches any located layers
 func (r *repository) manifestFromImageWithCachedLayers(image *imageapi.Image, cacheName string) (manifest distribution.Manifest, err error) {
-	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest {
-		manifest, err = r.deserializedManifestFromImage(image)
-	} else {
-		manifest, err = r.signedManifestFromImage(image)
-	}
-
+	manifest, err = r.getManifestFromImage(image)
 	if err != nil {
 		return
 	}
 
-	r.rememberLayers(manifest, cacheName)
+	r.rememberLayersOfManifest(manifest, cacheName)
+	return
+}
+
+// getManifestFromImage returns a manifest object constructed from a blob stored in the given image.
+func (r *repository) getManifestFromImage(image *imageapi.Image) (manifest distribution.Manifest, err error) {
+	switch image.DockerImageManifestMediaType {
+	case schema2.MediaTypeManifest:
+		manifest, err = deserializedManifestFromImage(image)
+	case schema1.MediaTypeManifest, "":
+		manifest, err = r.signedManifestFromImage(image)
+	default:
+		err = regapi.ErrorCodeManifestInvalid.WithDetail(fmt.Errorf("unknown manifest media type %q", image.DockerImageManifestMediaType))
+	}
 	return
 }
 
