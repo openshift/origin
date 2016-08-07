@@ -147,9 +147,9 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 		},
 		func(obj *configapi.JenkinsPipelineConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
-			if obj.Enabled == nil {
+			if obj.AutoProvisionEnabled == nil {
 				v := c.RandBool()
-				obj.Enabled = &v
+				obj.AutoProvisionEnabled = &v
 			}
 			if len(obj.TemplateNamespace) == 0 {
 				obj.TemplateNamespace = "value"
