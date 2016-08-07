@@ -29,6 +29,8 @@ type BuildController struct {
 	ImageStreamClient imageStreamClient
 	Recorder          record.EventRecorder
 	RunPolicies       []policy.RunPolicy
+	ServiceAccounts   kclient.ServiceAccountsNamespacer
+	Secrets           kclient.SecretsNamespacer
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -153,6 +155,119 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
 		return nil
 	}
+
+	/*
+
+		// BEGIN
+		serviceAccount := bc.Spec.ServiceAccount
+		builderSecrets, err := buildutil.FetchServiceAccountSecrets(bc.ServiceAccounts, bc.Secrets, bc.Namespace, serviceAccount)
+		if err != nil {
+			return nil, err
+		}
+		if build.Spec.Output.PushSecret == nil {
+			build.Spec.Output.PushSecret = g.resolveImageSecret(ctx, builderSecrets, build.Spec.Output.To, bc.Namespace)
+		}
+		strategyImageChangeTrigger := getStrategyImageChangeTrigger(bc)
+
+		// Resolve image source if present
+		for i, sourceImage := range build.Spec.Source.Images {
+			if sourceImage.PullSecret == nil {
+				sourceImage.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &sourceImage.From, bc.Namespace)
+			}
+
+			var sourceImageSpec string
+			// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
+			// use the imageid from the trigger rather than resolving it.
+			if strategyFrom := buildutil.GetInputReference(bc.Spec.Strategy); reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
+				strategyImageChangeTrigger != nil {
+				sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
+			} else {
+				refImageChangeTrigger := getImageChangeTriggerForRef(bc, &sourceImage.From)
+				// if there is no trigger associated with this imagesource, resolve the imagesource reference now.
+				// otherwise use the imageid from the imagesource trigger.
+				if refImageChangeTrigger == nil {
+					sourceImageSpec, err = g.resolveImageStreamReference(ctx, sourceImage.From, bc.Namespace)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					sourceImageSpec = refImageChangeTrigger.LastTriggeredImageID
+				}
+			}
+
+			sourceImage.From.Kind = "DockerImage"
+			sourceImage.From.Name = sourceImageSpec
+			sourceImage.From.Namespace = ""
+			build.Spec.Source.Images[i] = sourceImage
+		}
+
+		// If the Build is using a From reference instead of a resolved image, we need to resolve that From
+		// reference to a valid image so we can run the build.  Builds do not consume ImageStream references,
+		// only image specs.
+		var image string
+		if strategyImageChangeTrigger != nil {
+			image = strategyImageChangeTrigger.LastTriggeredImageID
+		}
+
+		switch {
+		case build.Spec.Strategy.SourceStrategy != nil:
+			if image == "" {
+				image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.SourceStrategy.From, build.Status.Config.Namespace)
+				if err != nil {
+					return nil, err
+				}
+			}
+			build.Spec.Strategy.SourceStrategy.From = kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: image,
+			}
+			if build.Spec.Strategy.SourceStrategy.PullSecret == nil {
+				build.Spec.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Strategy.SourceStrategy.From, bc.Namespace)
+			}
+			if build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
+				runtimeImageName, err := g.resolveImageStreamReference(ctx, *build.Spec.Strategy.SourceStrategy.RuntimeImage, build.Status.Config.Namespace)
+				if err != nil {
+					return nil, err
+				}
+				build.Spec.Strategy.SourceStrategy.RuntimeImage = &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: runtimeImageName,
+				}
+			}
+		case build.Spec.Strategy.DockerStrategy != nil &&
+			build.Spec.Strategy.DockerStrategy.From != nil:
+			if image == "" {
+				image, err = g.resolveImageStreamReference(ctx, *build.Spec.Strategy.DockerStrategy.From, build.Status.Config.Namespace)
+				if err != nil {
+					return nil, err
+				}
+			}
+			build.Spec.Strategy.DockerStrategy.From = &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: image,
+			}
+			if build.Spec.Strategy.DockerStrategy.PullSecret == nil {
+				build.Spec.Strategy.DockerStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Spec.Strategy.DockerStrategy.From, bc.Namespace)
+			}
+		case build.Spec.Strategy.CustomStrategy != nil:
+			if image == "" {
+				image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.CustomStrategy.From, build.Status.Config.Namespace)
+				if err != nil {
+					return nil, err
+				}
+			}
+			build.Spec.Strategy.CustomStrategy.From = kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: image,
+			}
+			if build.Spec.Strategy.CustomStrategy.PullSecret == nil {
+				build.Spec.Strategy.CustomStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Strategy.CustomStrategy.From, bc.Namespace)
+			}
+			updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, image)
+		}
+
+		// END
+	*/
 
 	// Set the output Docker image reference.
 	ref, err := bc.resolveOutputDockerImageReference(build)

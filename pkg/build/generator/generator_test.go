@@ -84,7 +84,7 @@ func TestInstantiateRetry(t *testing.T) {
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: Client{
+		Client: buildutil.BuildClientImpl{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
@@ -103,7 +103,7 @@ func TestInstantiateRetry(t *testing.T) {
 
 func TestInstantiateDeletingError(t *testing.T) {
 	source := mocks.MockSource()
-	generator := BuildGenerator{Client: Client{
+	generator := BuildGenerator{Client: buildutil.BuildClientImpl{
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 			bc := &buildapi.BuildConfig{
 				ObjectMeta: kapi.ObjectMeta{
@@ -160,7 +160,7 @@ func TestInstantiateDeletingError(t *testing.T) {
 // (because the request did not include one)
 func TestInstantiateBinaryRemoved(t *testing.T) {
 	generator := mockBuildGenerator()
-	client := generator.Client.(Client)
+	client := generator.Client.(buildutil.BuildClientImpl)
 	client.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 		bc := &buildapi.BuildConfig{
 			ObjectMeta: kapi.ObjectMeta{
@@ -211,7 +211,7 @@ func TestInstantiateBinaryRemoved(t *testing.T) {
 }
 
 func TestInstantiateGetBuildConfigError(t *testing.T) {
-	generator := BuildGenerator{Client: Client{
+	generator := BuildGenerator{Client: buildutil.BuildClientImpl{
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 			return nil, fmt.Errorf("get-error")
 		},
@@ -240,7 +240,7 @@ func TestInstantiateGenerateBuildError(t *testing.T) {
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: Client{
+		Client: buildutil.BuildClientImpl{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return nil, fmt.Errorf("get-error")
 			},
@@ -359,7 +359,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 			},
 		}
 		generator := mockBuildGeneratorForInstantiate()
-		client := generator.Client.(Client)
+		client := generator.Client.(buildutil.BuildClientImpl)
 		client.GetBuildConfigFunc =
 			func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return bc, nil
@@ -414,7 +414,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 
 func TestInstantiateWithLastVersion(t *testing.T) {
 	g := mockBuildGenerator()
-	c := g.Client.(Client)
+	c := g.Client.(buildutil.BuildClientImpl)
 	c.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 		bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
 		bc.Status.LastVersion = 1
@@ -445,7 +445,7 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 
 func TestInstantiateWithLabelsAndAnnotations(t *testing.T) {
 	g := mockBuildGenerator()
-	c := g.Client.(Client)
+	c := g.Client.(buildutil.BuildClientImpl)
 	c.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 		bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
 		bc.Status.LastVersion = 1
@@ -617,7 +617,7 @@ func TestFindImageTrigger(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-	generator := BuildGenerator{Client: Client{
+	generator := BuildGenerator{Client: buildutil.BuildClientImpl{
 		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
 			return nil
 		},
@@ -638,7 +638,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestCloneError(t *testing.T) {
-	generator := BuildGenerator{Client: Client{
+	generator := BuildGenerator{Client: buildutil.BuildClientImpl{
 		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
 			return nil, fmt.Errorf("get-error")
 		},
@@ -657,7 +657,7 @@ func TestCreateBuild(t *testing.T) {
 			Namespace: kapi.NamespaceDefault,
 		},
 	}
-	generator := BuildGenerator{Client: Client{
+	generator := BuildGenerator{Client: buildutil.BuildClientImpl{
 		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
 			return nil
 		},
@@ -696,7 +696,7 @@ func TestCreateBuildCreateError(t *testing.T) {
 			Namespace: kapi.NamespaceDefault,
 		},
 	}
-	generator := BuildGenerator{Client: Client{
+	generator := BuildGenerator{Client: buildutil.BuildClientImpl{
 		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
 			return fmt.Errorf("create-error")
 		},
@@ -826,7 +826,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: Client{
+		Client: buildutil.BuildClientImpl{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
 					ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
@@ -904,7 +904,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: Client{
+		Client: buildutil.BuildClientImpl{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
 					ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
@@ -981,7 +981,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: Client{
+		Client: buildutil.BuildClientImpl{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
 					ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
@@ -1389,7 +1389,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		ref, error := generator.resolveImageStreamReference(kapi.NewDefaultContext(), test.streamRef, "")
+		ref, error := buildutil.ResolveImageStreamReference(generator.Client, kapi.NewDefaultContext(), test.streamRef, "")
 		if error != nil {
 			if test.expectedSuccess {
 				t.Errorf("Scenario %d: Unexpected error %v", i, error)
@@ -1499,7 +1499,7 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 
 func mockBuildGeneratorForInstantiate() *BuildGenerator {
 	g := mockBuildGenerator()
-	c := g.Client.(Client)
+	c := g.Client.(buildutil.BuildClientImpl)
 	c.GetImageStreamTagFunc = func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 		return &imageapi.ImageStreamTag{
 			Image: imageapi.Image{
@@ -1521,7 +1521,7 @@ func mockBuildGenerator() *BuildGenerator {
 	return &BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: Client{
+		Client: buildutil.BuildClientImpl{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
