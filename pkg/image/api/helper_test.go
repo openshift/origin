@@ -638,7 +638,6 @@ func validImageWithManifestV2Data() Image {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "id",
 		},
-		DockerImageManifestMediaType: "application/vnd.docker.container.image.v1+json",
 		DockerImageConfig: `{
     "architecture": "amd64",
     "config": {
@@ -816,6 +815,7 @@ func TestImageWithMetadata(t *testing.T) {
 					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 1895},
 					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 0},
 				},
+				DockerImageManifestMediaType: "application/vnd.docker.distribution.manifest.v1+json",
 				DockerImageMetadata: DockerImage{
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
@@ -888,7 +888,7 @@ func TestImageWithMetadata(t *testing.T) {
 				},
 				DockerImageConfig:            validImageWithManifestV2Data().DockerImageConfig,
 				DockerImageManifest:          validImageWithManifestV2Data().DockerImageManifest,
-				DockerImageManifestMediaType: "application/vnd.docker.container.image.v1+json",
+				DockerImageManifestMediaType: "application/vnd.docker.distribution.manifest.v2+json",
 				DockerImageLayers: []ImageLayer{
 					{Name: "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 639152},
 					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
