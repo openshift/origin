@@ -72,6 +72,11 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 
 	a.applyBuildDefaults(build)
 
+	err = buildadmission.SetBuildLogLevel(attributes, build)
+	if err != nil {
+		return err
+	}
+
 	return buildadmission.SetBuild(attributes, build, version)
 }
 

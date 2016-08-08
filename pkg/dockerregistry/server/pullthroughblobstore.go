@@ -160,7 +160,7 @@ func (r *pullthroughBlobStore) findCandidateRepository(ctx context.Context, sear
 		if err != nil {
 			continue
 		}
-		r.repo.cachedLayers.RememberDigest(dgst, repo)
+		r.repo.cachedLayers.RememberDigest(dgst, r.repo.blobrepositorycachettl, repo)
 		context.GetLogger(r.repo.ctx).Infof("Found digest location by search %q in %q: %v", dgst, repo, err)
 		return desc, nil
 	}

@@ -17,7 +17,7 @@ type tokenHandler struct {
 }
 
 // NewTokenHandler returns a handler that implements the docker token protocol
-func NewTokenHandler(ctx context.Context, client *RegistryClient) http.Handler {
+func NewTokenHandler(ctx context.Context, client RegistryClient) http.Handler {
 	return &tokenHandler{
 		ctx:             ctx,
 		anonymousConfig: client.SafeClientConfig(),

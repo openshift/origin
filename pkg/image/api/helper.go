@@ -436,14 +436,14 @@ func ImageConfigMatchesImage(image *Image, imageConfig []byte) (bool, error) {
 	return v.Verified(), nil
 }
 
-// ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
-// from the raw DockerImageManifest data stored in the image.
+// ImageWithMetadata mutates the given image. It parses raw DockerImageManifest data stored in the image and
+// fills its DockerImageMetadata and other fields.
 func ImageWithMetadata(image *Image) error {
 	if len(image.DockerImageManifest) == 0 {
 		return nil
 	}
 
-	if len(image.DockerImageLayers) > 0 && image.DockerImageMetadata.Size > 0 {
+	if len(image.DockerImageLayers) > 0 && image.DockerImageMetadata.Size > 0 && len(image.DockerImageManifestMediaType) > 0 {
 		glog.V(5).Infof("Image metadata already filled for %s", image.Name)
 		// don't update image already filled
 		return nil
@@ -460,6 +460,8 @@ func ImageWithMetadata(image *Image) error {
 	case 0:
 		// legacy config object
 	case 1:
+		image.DockerImageManifestMediaType = schema1.MediaTypeManifest
+
 		if len(manifest.History) == 0 {
 			// should never have an empty history, but just in case...
 			return nil
@@ -520,6 +522,8 @@ func ImageWithMetadata(image *Image) error {
 			image.DockerImageMetadata.Size = v1Metadata.Size
 		}
 	case 2:
+		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
+
 		config := DockerImageConfig{}
 		if err := json.Unmarshal([]byte(image.DockerImageConfig), &config); err != nil {
 			return err

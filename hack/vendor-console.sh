@@ -41,6 +41,7 @@ else
     fi
     git checkout "${GIT_REF}"
     console_commit="$(git rev-parse --short HEAD)"
+    echo "Vendoring origin-web-console commit ${console_commit}"
   popd > /dev/null
 fi
 

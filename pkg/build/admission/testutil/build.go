@@ -9,19 +9,30 @@ type TestBuild buildapi.Build
 func Build() *TestBuild {
 	b := (*TestBuild)(&buildapi.Build{})
 	b.Name = "TestBuild"
-	b.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	b.WithDockerStrategy()
 	b.Spec.Source.Git = &buildapi.GitBuildSource{
 		URI: "http://test.build/source",
 	}
 	return b
 }
 
+// clearStrategy nil all strategies in the Spec since it is a
+// common pattern to detect strategy by testing for non-nil.
+func (b *TestBuild) clearStrategy() {
+	b.Spec.Strategy.DockerStrategy = nil
+	b.Spec.Strategy.SourceStrategy = nil
+	b.Spec.Strategy.CustomStrategy = nil
+	b.Spec.Strategy.JenkinsPipelineStrategy = nil
+}
+
 func (b *TestBuild) WithDockerStrategy() *TestBuild {
+	b.clearStrategy()
 	b.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 	return b
 }
 
 func (b *TestBuild) WithSourceStrategy() *TestBuild {
+	b.clearStrategy()
 	strategy := &buildapi.SourceBuildStrategy{}
 	strategy.From.Name = "builder/image"
 	strategy.From.Kind = "DockerImage"
@@ -30,6 +41,7 @@ func (b *TestBuild) WithSourceStrategy() *TestBuild {
 }
 
 func (b *TestBuild) WithCustomStrategy() *TestBuild {
+	b.clearStrategy()
 	strategy := &buildapi.CustomBuildStrategy{}
 	strategy.From.Name = "builder/image"
 	strategy.From.Kind = "DockerImage"
