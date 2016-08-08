@@ -377,7 +377,7 @@ type BuildStrategy struct {
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty" protobuf:"bytes,4,opt,name=customStrategy"`
 
 	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
-	// This strategy is experimental.
+	// This strategy is in tech preview.
 	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy `json:"jenkinsPipelineStrategy,omitempty" protobuf:"bytes,5,opt,name=jenkinsPipelineStrategy"`
 }
 
@@ -484,17 +484,19 @@ type SourceBuildStrategy struct {
 	// without unneeded dependencies installed. The building of the application
 	// is still done in the builder image but, post build, you can copy the
 	// needed artifacts in the runtime image for use.
+	// This field and the feature it enables are in tech preview.
 	RuntimeImage *kapi.ObjectReference `json:"runtimeImage,omitempty" protobuf:"bytes,7,opt,name=runtimeImage"`
 
 	// runtimeArtifacts specifies a list of source/destination pairs that will be
 	// copied from the builder to the runtime image. sourcePath can be a file or
 	// directory. destinationDir must be a directory. destinationDir can also be
 	// empty or equal to ".", in this case it just refers to the root of WORKDIR.
+	// This field and the feature it enables are in tech preview.
 	RuntimeArtifacts []ImageSourcePath `json:"runtimeArtifacts,omitempty" protobuf:"bytes,8,rep,name=runtimeArtifacts"`
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
-// This strategy is experimental.
+// This strategy is in tech preview.
 type JenkinsPipelineBuildStrategy struct {
 	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
 	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
