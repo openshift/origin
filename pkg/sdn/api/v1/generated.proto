@@ -39,42 +39,46 @@ message ClusterNetworkList {
   repeated ClusterNetwork items = 2;
 }
 
-// EgressNetworkPolicy describes the current egress network policy
+// EgressNetworkPolicy describes the current egress network policy for a Namespace. When using
+// the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address
+// outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's
+// namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy
+// is present) then the traffic will be allowed by default.
 message EgressNetworkPolicy {
-  // Standard object's metadata.
+  // metadata for EgressNetworkPolicy
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
-  // Spec is the specification of the current egress network policy
+  // spec is the specification of the current egress network policy
   optional EgressNetworkPolicySpec spec = 2;
 }
 
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 message EgressNetworkPolicyList {
-  // Standard object's metadata.
+  // metadata for EgressNetworkPolicyList
   optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
 
-  // Items is the list of firewalls
+  // items is the list of policies
   repeated EgressNetworkPolicy items = 2;
 }
 
-// EgressNetworkPolicyPeer specifies a target to apply egress policy to
+// EgressNetworkPolicyPeer specifies a target to apply egress network policy to
 message EgressNetworkPolicyPeer {
-  // CIDRSelector is the CIDR range to allow/deny traffic to
+  // cidrSelector is the CIDR range to allow/deny traffic to
   optional string cidrSelector = 1;
 }
 
 // EgressNetworkPolicyRule contains a single egress network policy rule
 message EgressNetworkPolicyRule {
-  // Type marks this as an "allow" or "deny" rule
+  // type marks this as an "Allow" or "Deny" rule
   optional string type = 1;
 
-  // To is the target that traffic is allowed/denied to
+  // to is the target that traffic is allowed/denied to
   optional EgressNetworkPolicyPeer to = 2;
 }
 
-// EgressNetworkPolicySpec provides a list of policies on outgoing traffic
+// EgressNetworkPolicySpec provides a list of policies on outgoing network traffic
 message EgressNetworkPolicySpec {
-  // Egress contains the list of egress policy rules
+  // egress contains the list of egress policy rules
   repeated EgressNetworkPolicyRule egress = 1;
 }
 
