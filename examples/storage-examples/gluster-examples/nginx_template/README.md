@@ -159,10 +159,10 @@ _Also, take note that for this simple example, we are simply creating a pod that
 
         [root@ose2 data2]# docker exec -it eefb2a76f6c5 bash 
         bash-4.3# ls 
-        bin  boot  dev	etc  home  lib	lib64  lost+found  media  mnt  opt  proc  root	run  sbin  srv	sys  tmp  usr  var 
+        bin  boot  dev    etc  home  lib    lib64  lost+found  media  mnt  opt  proc  root    run  sbin  srv    sys  tmp  usr  var 
         bash-4.3# cd /usr/share/nginx/html/test 
         bash-4.3# ls 
-        glusterfs-nginx  glusterfs-nginx-atomichost-mount  glusterfs-nginx-pvc	helloworld.html  test1	test2  test3 
+        glusterfs-nginx  glusterfs-nginx-atomichost-mount  glusterfs-nginx-pvc    helloworld.html  test1    test2  test3 
 
 
      From the Container:

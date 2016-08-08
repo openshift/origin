@@ -14,8 +14,8 @@ For example, instead of using `time.Sleep` directly:
 
 ```
 func my_func() {
-	time.Sleep(3 * time.Second)
-	do_something()
+    time.Sleep(3 * time.Second)
+    do_something()
 }
 ```
 
@@ -23,8 +23,8 @@ inject a clock and use its `Sleep` method instead:
 
 ```
 func my_func(clock clockwork.Clock) {
-	clock.Sleep(3 * time.Second)
-	do_something()
+    clock.Sleep(3 * time.Second)
+    do_something()
 }
 ```
 
@@ -32,20 +32,20 @@ Now you can easily test `my_func` with a `FakeClock`:
 
 ```
 func TestMyFunc(t *testing.T) {
-	c := clockwork.NewFakeClock()
+    c := clockwork.NewFakeClock()
 
-	// Start our sleepy function
-	my_func(c)
+    // Start our sleepy function
+    my_func(c)
 
-	// Ensure we wait until my_func is sleeping
-	c.BlockUntil(1)
+    // Ensure we wait until my_func is sleeping
+    c.BlockUntil(1)
 
-	assert_state()
+    assert_state()
 
-	// Advance the FakeClock forward in time
-	c.Advance(3)
+    // Advance the FakeClock forward in time
+    c.Advance(3)
 
-	assert_state()
+    assert_state()
 }
 ```
 

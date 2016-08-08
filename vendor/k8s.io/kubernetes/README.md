@@ -74,7 +74,7 @@ Kubernetes documentation is organized into several categories.
   - **User documentation**
     - for people who want to run programs on an existing Kubernetes cluster
     - in the [Kubernetes User Guide: Managing Applications](docs/user-guide/README.md)
-	*Tip: You can also view help documentation out on [http://kubernetes.io/docs/](http://kubernetes.io/docs/).*
+    *Tip: You can also view help documentation out on [http://kubernetes.io/docs/](http://kubernetes.io/docs/).*
     - the [Kubectl Command Line Interface](docs/user-guide/kubectl/kubectl.md) is a detailed reference on
       the `kubectl` CLI
     - [User FAQ](https://github.com/kubernetes/kubernetes/wiki/User-FAQ)

@@ -52,8 +52,8 @@ On the Kubernetes host, I got these in mount output
 
 ```console
     #mount |grep kub
-	/dev/rbd0 on /var/lib/kubelet/plugins/kubernetes.io/rbd/rbd/kube-image-foo type ext4 (ro,relatime,stripe=4096,data=ordered)
-	/dev/rbd0 on /var/lib/kubelet/pods/ec2166b4-de07-11e4-aaf5-d4bed9b39058/volumes/kubernetes.io~rbd/rbdpd type ext4 (ro,relatime,stripe=4096,data=ordered)
+    /dev/rbd0 on /var/lib/kubelet/plugins/kubernetes.io/rbd/rbd/kube-image-foo type ext4 (ro,relatime,stripe=4096,data=ordered)
+    /dev/rbd0 on /var/lib/kubelet/pods/ec2166b4-de07-11e4-aaf5-d4bed9b39058/volumes/kubernetes.io~rbd/rbdpd type ext4 (ro,relatime,stripe=4096,data=ordered)
 ```
 
  If you ssh to that machine, you can run `docker ps` to see the actual pod and `docker inspect` to see the volumes used by the container.

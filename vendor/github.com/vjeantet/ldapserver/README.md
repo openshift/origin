@@ -27,46 +27,46 @@ Feel free to contribute, comment :)
 package main
 
 import (
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
+    "log"
+    "os"
+    "os/signal"
+    "syscall"
 
-	ldap "github.com/vjeantet/ldapserver"
+    ldap "github.com/vjeantet/ldapserver"
 )
 
 func main() {
-	//LDAP handlers routes
-	routes := ldap.NewRouteMux()
-	routes.Bind(handleBind)
+    //LDAP handlers routes
+    routes := ldap.NewRouteMux()
+    routes.Bind(handleBind)
 
-	//Create a new LDAP Server
-	server := ldap.NewServer()
-	server.Handle(routes)
+    //Create a new LDAP Server
+    server := ldap.NewServer()
+    server.Handle(routes)
 
-	// listen on 10389
-	go server.ListenAndServe(":10389")
+    // listen on 10389
+    go server.ListenAndServe(":10389")
 
-	// When CTRL+C, SIGINT and SIGTERM signal occurs
-	// Then stop server gracefully
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
-	close(ch)
-	server.Stop()
+    // When CTRL+C, SIGINT and SIGTERM signal occurs
+    // Then stop server gracefully
+    ch := make(chan os.Signal)
+    signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+    <-ch
+    close(ch)
+    server.Stop()
 }
 
 func handleBind(w ldap.ResponseWriter, m *ldap.Message) {
-	r := m.GetBindRequest()
-	res := ldap.NewBindResponse(ldap.LDAPResultSuccess)
+    r := m.GetBindRequest()
+    res := ldap.NewBindResponse(ldap.LDAPResultSuccess)
 
-	if string(r.GetLogin()) == "myLogin" {
-		w.Write(res)
-		return
-	}
+    if string(r.GetLogin()) == "myLogin" {
+        w.Write(res)
+        return
+    }
 
-	res.ResultCode = ldap.LDAPResultInvalidCredentials
-	w.Write(res)
+    res.ResultCode = ldap.LDAPResultInvalidCredentials
+    w.Write(res)
 }
 ```
 

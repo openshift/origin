@@ -123,7 +123,7 @@ _Under volumes_
 
       From one of the Gluster cluster hosts:
 
-	
+    
         [root@gluster1 glusterfs-nginx-atomichost-mount]# ls 
         helloworld.html 
 

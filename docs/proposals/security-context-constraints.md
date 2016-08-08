@@ -81,51 +81,51 @@ account or by a group containing all service accounts.
 // SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will
 // be applied to a container.
 type SecurityContextConstraints struct {
-	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty"`
+    TypeMeta   `json:",inline"`
+    ObjectMeta `json:"metadata,omitempty"`
 
-	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
-	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer,omitempty" description:"allow containers to run as privileged"`
-	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
-	AllowedCapabilities []CapabilityType `json:"allowedCapabilities,omitempty" description:"capabilities that are allowed to be added"`
-	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin,omitempty" description:"allow the use of the host dir volume plugin"`
-	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
-	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
-	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" description:"strategy used to generate RunAsUser"`
+    // AllowPrivilegedContainer determines if a container can request to be run as privileged.
+    AllowPrivilegedContainer bool `json:"allowPrivilegedContainer,omitempty" description:"allow containers to run as privileged"`
+    // AllowedCapabilities is a list of capabilities that can be requested to add to the container.
+    AllowedCapabilities []CapabilityType `json:"allowedCapabilities,omitempty" description:"capabilities that are allowed to be added"`
+    // AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
+    AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin,omitempty" description:"allow the use of the host dir volume plugin"`
+    // SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
+    SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
+    // RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+    RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" description:"strategy used to generate RunAsUser"`
 
-	// The users who have permissions to use this security context constraints
-	Users []string `json:"users,omitempty" description:"users allowed to use this SecurityContextConstraints"`
-	// The groups that have permission to use this security context constraints
-	Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints"`
+    // The users who have permissions to use this security context constraints
+    Users []string `json:"users,omitempty" description:"users allowed to use this SecurityContextConstraints"`
+    // The groups that have permission to use this security context constraints
+    Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints"`
 }
 
 // SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
 type SELinuxContextStrategyOptions struct {
-	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
-	Type SELinuxContextStrategyType `json:"type,omitempty" description:"strategy used to generate the SELinux context"`
+    // Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
+    Type SELinuxContextStrategyType `json:"type,omitempty" description:"strategy used to generate the SELinux context"`
 
-	//TODO
+    //TODO
 }
 
 // RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
 type RunAsUserStrategyOptions struct {
-	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	Type RunAsUserStrategyType `json:"type,omitempty" description:"strategy used to generate RunAsUser"`
-	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
-	// namespace/service account allocated uids.
-	UID *int64 `json:"uid,omitempty" description:"the uid to always run as; required for MustRunAs"`
-	// AllocatedIDAnnotation provides an annotation that the strategy can look for if it should
-	// use a pre-allocated UID that exists on the namespace or service account.
-	AllocatedIDAnnotation string `json:"allocatedIDAnnotation,omitempty" description:"how the strategy can discover pre-allocated ids on the namespace or service account"`
-	// UIDRangeMin defines the min value for a strategy that allocates by range.
-	UIDRangeMin int64 `json:"uidRangeMin,omitempty" description:"min value for range based allocators"`
-	// UIDRangeMax defines the max value for a strategy that allocates by range.
-	UIDRangeMax int64 `json:"uidRangeMax,omitempty" description:"max value for range based allocators"`
-	// UIDRangeAnnotation provides an annotation that the strategy can look for if ranges
-	// are preallocated and assigned to the namespace or service account.
-	UIDRangeAnnotation string `json:"uidRangeAnnotation,omitempty" description:"how the strategy can discover pre-allocated ranges on the namespace or service account"`
+    // Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+    Type RunAsUserStrategyType `json:"type,omitempty" description:"strategy used to generate RunAsUser"`
+    // UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
+    // namespace/service account allocated uids.
+    UID *int64 `json:"uid,omitempty" description:"the uid to always run as; required for MustRunAs"`
+    // AllocatedIDAnnotation provides an annotation that the strategy can look for if it should
+    // use a pre-allocated UID that exists on the namespace or service account.
+    AllocatedIDAnnotation string `json:"allocatedIDAnnotation,omitempty" description:"how the strategy can discover pre-allocated ids on the namespace or service account"`
+    // UIDRangeMin defines the min value for a strategy that allocates by range.
+    UIDRangeMin int64 `json:"uidRangeMin,omitempty" description:"min value for range based allocators"`
+    // UIDRangeMax defines the max value for a strategy that allocates by range.
+    UIDRangeMax int64 `json:"uidRangeMax,omitempty" description:"max value for range based allocators"`
+    // UIDRangeAnnotation provides an annotation that the strategy can look for if ranges
+    // are preallocated and assigned to the namespace or service account.
+    UIDRangeAnnotation string `json:"uidRangeAnnotation,omitempty" description:"how the strategy can discover pre-allocated ranges on the namespace or service account"`
 }
 
 // SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
@@ -139,10 +139,10 @@ type RunAsUserStrategyType string
 // SecurityContextConstraintsAllocator provides the implementation to generate a new security
 // context based on constraints or validate an existing security context against constraints.
 type SecurityContextConstraintsAllocator interface {
-	// Create a SecurityContext based on the given constraints
-	CreateSecurityContext(pod *api.Pod, container *api.Container, constraints *api.SecurityContextConstraints) (*api.SecurityContext, error)
-	// Ensure a container's SecurityContext is in compliance with the given constraints
-	ValidateSecurityContext(pod *api.Pod, container *api.Container, constraints *api.SecurityContextConstraints) fielderrors.ValidationErrorList
+    // Create a SecurityContext based on the given constraints
+    CreateSecurityContext(pod *api.Pod, container *api.Container, constraints *api.SecurityContextConstraints) (*api.SecurityContext, error)
+    // Ensure a container's SecurityContext is in compliance with the given constraints
+    ValidateSecurityContext(pod *api.Pod, container *api.Container, constraints *api.SecurityContextConstraints) fielderrors.ValidationErrorList
 }
 
 const (
@@ -260,18 +260,18 @@ the settings fall within the allowed values or create a new value.
 ```go
 // SELinuxSecurityContextConstraintsStrategy defines the interface for all SELinux constraint strategies.
 type SELinuxSecurityContextConstraintsStrategy interface {
-	// Generate creates the SELinuxOptions based on constraint rules.
-	Generate(pod *api.Pod, container *api.Container)  (*api.SELinuxOptions, error)
-	// Validate ensures that the specified values fall within the range of the strategy.
-	Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
+    // Generate creates the SELinuxOptions based on constraint rules.
+    Generate(pod *api.Pod, container *api.Container)  (*api.SELinuxOptions, error)
+    // Validate ensures that the specified values fall within the range of the strategy.
+    Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
 }
 
 // RunAsUserSecurityContextConstraintsStrategy defines the interface for all uid constraint strategies.
 type RunAsUserSecurityContextConstraintsStrategy interface {
-	// Generate creates the uid based on policy rules.
-	Generate(pod *api.Pod, container *api.Container) (*int64, error)
-	// Validate ensures that the specified values fall within the range of the strategy.
-	Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
+    // Generate creates the uid based on policy rules.
+    Generate(pod *api.Pod, container *api.Container) (*int64, error)
+    // Validate ensures that the specified values fall within the range of the strategy.
+    Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
 }
 ```
 

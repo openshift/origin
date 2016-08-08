@@ -19,32 +19,32 @@ This library supports the parsing and verification as well as the generation and
 Parsing and verifying tokens is pretty straight forward.  You pass in the token and a function for looking up the key.  This is done as a callback since you may need to parse the token to find out what signing method and key was used.
 
 ```go
-	token, err := jwt.Parse(myToken, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-		return myLookupKey(token.Header["kid"])
-	})
+    token, err := jwt.Parse(myToken, func(token *jwt.Token) (interface{}, error) {
+        // Don't forget to validate the alg is what you expect:
+        if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+            return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+        }
+        return myLookupKey(token.Header["kid"])
+    })
 
-	if err == nil && token.Valid {
-		deliverGoodness("!")
-	} else {
-		deliverUtterRejection(":(")
-	}
+    if err == nil && token.Valid {
+        deliverGoodness("!")
+    } else {
+        deliverUtterRejection(":(")
+    }
 ```
-	
+    
 ## Create a token
 
 ```go
-	// Create the token
-	token := jwt.New(jwt.SigningMethodHS256)
-	// Set some claims
-	token.Claims["foo"] = "bar"
-	token.Claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
-	// Sign and get the complete encoded token as a string
-	tokenString, err := token.SignedString(mySigningKey)
-```	
+    // Create the token
+    token := jwt.New(jwt.SigningMethodHS256)
+    // Set some claims
+    token.Claims["foo"] = "bar"
+    token.Claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+    // Sign and get the complete encoded token as a string
+    tokenString, err := token.SignedString(mySigningKey)
+```    
 
 ## Project Status & Versioning
 

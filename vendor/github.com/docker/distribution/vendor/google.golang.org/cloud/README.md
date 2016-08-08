@@ -43,20 +43,20 @@ Cloud Datastore API with your project.
 
 ```go
 type Post struct {
-	Title       string
-	Body        string `datastore:",noindex"`
-	PublishedAt time.Time
+    Title       string
+    Body        string `datastore:",noindex"`
+    PublishedAt time.Time
 }
 keys := []*datastore.Key{
-	datastore.NewKey(ctx, "Post", "post1", 0, nil),
-	datastore.NewKey(ctx, "Post", "post2", 0, nil),
+    datastore.NewKey(ctx, "Post", "post1", 0, nil),
+    datastore.NewKey(ctx, "Post", "post2", 0, nil),
 }
 posts := []*Post{
-	{Title: "Post 1", Body: "...", PublishedAt: time.Now()},
-	{Title: "Post 2", Body: "...", PublishedAt: time.Now()},
+    {Title: "Post 1", Body: "...", PublishedAt: time.Now()},
+    {Title: "Post 2", Body: "...", PublishedAt: time.Now()},
 }
 if _, err := datastore.PutMulti(ctx, keys, posts); err != nil {
-	log.Println(err)
+    log.Println(err)
 }
 ```
 
@@ -73,12 +73,12 @@ and can be used to distribute large data objects to users via direct download.
 // Read the object1 from bucket.
 rc, err := storage.NewReader(ctx, "bucket", "object1")
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 slurp, err := ioutil.ReadAll(rc)
 rc.Close()
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -99,15 +99,15 @@ for building your own robust, global services.
 ```go
 // Publish "hello world" on topic1.
 msgIDs, err := pubsub.Publish(ctx, "topic1", &pubsub.Message{
-	Data: []byte("hello world"),
+    Data: []byte("hello world"),
 })
 if err != nil {
-	log.Println(err)
+    log.Println(err)
 }
 // Pull messages via subscription1.
 msgs, err := pubsub.Pull(ctx, "subscription1", 1)
 if err != nil {
-	log.Println(err)
+    log.Println(err)
 }
 ```
 

@@ -47,34 +47,34 @@ package main
 import "github.com/influxdb/influxdb/client"
 
 const (
-	MyHost        = "localhost"
-	MyPort        = 8086
-	MyDB          = "square_holes"
-	MyMeasurement = "shapes"
+    MyHost        = "localhost"
+    MyPort        = 8086
+    MyDB          = "square_holes"
+    MyMeasurement = "shapes"
 )
 
 func main() {
-	u, err := url.Parse(fmt.Sprintf("http://%s:%d", MyHost, MyPort))
-	if err != nil {
-		log.Fatal(err)
-	}
+    u, err := url.Parse(fmt.Sprintf("http://%s:%d", MyHost, MyPort))
+    if err != nil {
+        log.Fatal(err)
+    }
 
-	conf := client.Config{
-		URL:      *u,
-		Username: os.Getenv("INFLUX_USER"),
-		Password: os.Getenv("INFLUX_PWD"),
-	}
+    conf := client.Config{
+        URL:      *u,
+        Username: os.Getenv("INFLUX_USER"),
+        Password: os.Getenv("INFLUX_PWD"),
+    }
 
-	con, err := client.NewClient(conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+    con, err := client.NewClient(conf)
+    if err != nil {
+        log.Fatal(err)
+    }
 
-	dur, ver, err := con.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Happy as a Hippo! %v, %s", dur, ver)
+    dur, ver, err := con.Ping()
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Printf("Happy as a Hippo! %v, %s", dur, ver)
 }
 
 ```
@@ -96,38 +96,38 @@ retention policy never deletes any data it contains.
 
 ```go
 func writePoints(con *client.Client) {
-	var (
-		shapes     = []string{"circle", "rectangle", "square", "triangle"}
-		colors     = []string{"red", "blue", "green"}
-		sampleSize = 1000
-		pts        = make([]client.Point, sampleSize)
-	)
+    var (
+        shapes     = []string{"circle", "rectangle", "square", "triangle"}
+        colors     = []string{"red", "blue", "green"}
+        sampleSize = 1000
+        pts        = make([]client.Point, sampleSize)
+    )
 
-	rand.Seed(42)
-	for i := 0; i < sampleSize; i++ {
-		pts[i] = client.Point{
-			Measurement: "shapes",
-			Tags: map[string]string{
-				"color": strconv.Itoa(rand.Intn(len(colors))),
-				"shape": strconv.Itoa(rand.Intn(len(shapes))),
-			},
-			Fields: map[string]interface{}{
-				"value": rand.Intn(sampleSize),
-			},
-			Time: time.Now(),
-			Precision: "s",
-		}
-	}
+    rand.Seed(42)
+    for i := 0; i < sampleSize; i++ {
+        pts[i] = client.Point{
+            Measurement: "shapes",
+            Tags: map[string]string{
+                "color": strconv.Itoa(rand.Intn(len(colors))),
+                "shape": strconv.Itoa(rand.Intn(len(shapes))),
+            },
+            Fields: map[string]interface{}{
+                "value": rand.Intn(sampleSize),
+            },
+            Time: time.Now(),
+            Precision: "s",
+        }
+    }
 
-	bps := client.BatchPoints{
-		Points:          pts,
-		Database:        MyDB,
-		RetentionPolicy: "default",
-	}
-	_, err := con.Write(bps)
-	if err != nil {
-		log.Fatal(err)
-	}
+    bps := client.BatchPoints{
+        Points:          pts,
+        Database:        MyDB,
+        RetentionPolicy: "default",
+    }
+    _, err := con.Write(bps)
+    if err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
@@ -141,17 +141,17 @@ as follows:
 ```go
 // queryDB convenience function to query the database
 func queryDB(con *client.Client, cmd string) (res []client.Result, err error) {
-	q := client.Query{
-		Command:  cmd,
-		Database: MyDB,
-	}
-	if response, err := con.Query(q); err == nil {
-		if response.Error() != nil {
-			return res, response.Error()
-		}
-		res = response.Results
-	}
-	return
+    q := client.Query{
+        Command:  cmd,
+        Database: MyDB,
+    }
+    if response, err := con.Query(q); err == nil {
+        if response.Error() != nil {
+            return res, response.Error()
+        }
+        res = response.Results
+    }
+    return
 }
 ```
 
@@ -159,7 +159,7 @@ func queryDB(con *client.Client, cmd string) (res []client.Result, err error) {
 ```go
 _, err := queryDB(con, fmt.Sprintf("create database %s", MyDB))
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 ```
 
@@ -168,7 +168,7 @@ if err != nil {
 q := fmt.Sprintf("select count(%s) from %s", "value", MyMeasurement)
 res, err := queryDB(con, q)
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 count := res[0].Series[0].Values[0][1]
 log.Printf("Found a total of `%v records", count)
@@ -181,16 +181,16 @@ log.Printf("Found a total of `%v records", count)
 q := fmt.Sprintf("select * from %s limit %d", MyMeasurement, 20)
 res, err = queryDB(con, q)
 if err != nil {
-	log.Fatal(err)
+    log.Fatal(err)
 }
 
 for i, row := range res[0].Series[0].Values {
-	t, err := time.Parse(time.RFC3339, row[0].(string))
-	if err != nil {
-		log.Fatal(err)
-	}
-	val, err := row[1].(json.Number).Int64()
-	log.Printf("[%2d] %s: %03d\n", i, t.Format(time.Stamp), val)
+    t, err := time.Parse(time.RFC3339, row[0].(string))
+    if err != nil {
+        log.Fatal(err)
+    }
+    val, err := row[1].(json.Number).Int64()
+    log.Printf("[%2d] %s: %03d\n", i, t.Format(time.Stamp), val)
 }
 ```
 

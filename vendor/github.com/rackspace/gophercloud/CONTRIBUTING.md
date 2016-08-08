@@ -93,30 +93,30 @@ Here is a truncated example of mocked HTTP responses:
 
 ```go
 import (
-	"testing"
+    "testing"
 
-	th "github.com/rackspace/gophercloud/testhelper"
-	fake "github.com/rackspace/gophercloud/testhelper/client"
+    th "github.com/rackspace/gophercloud/testhelper"
+    fake "github.com/rackspace/gophercloud/testhelper/client"
 )
 
 func TestGet(t *testing.T) {
-	// Setup the HTTP request multiplexer and server
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
+    // Setup the HTTP request multiplexer and server
+    th.SetupHTTP()
+    defer th.TeardownHTTP()
 
-	th.Mux.HandleFunc("/networks/d32019d3-bc6e-4319-9c1d-6722fc136a22", func(w http.ResponseWriter, r *http.Request) {
-		// Test we're using the correct HTTP method
-		th.TestMethod(t, r, "GET")
+    th.Mux.HandleFunc("/networks/d32019d3-bc6e-4319-9c1d-6722fc136a22", func(w http.ResponseWriter, r *http.Request) {
+        // Test we're using the correct HTTP method
+        th.TestMethod(t, r, "GET")
 
-		// Test we're setting the auth token
-		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+        // Test we're setting the auth token
+        th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
 
-		// Set the appropriate headers for our mocked response
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+        // Set the appropriate headers for our mocked response
+        w.Header().Add("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
 
-		// Set the HTTP body
-		fmt.Fprintf(w, `
+        // Set the HTTP body
+        fmt.Fprintf(w, `
 {
     "network": {
         "status": "ACTIVE",
@@ -127,15 +127,15 @@ func TestGet(t *testing.T) {
         "id": "d32019d3-bc6e-4319-9c1d-6722fc136a22"
     }
 }
-			`)
-	})
+            `)
+    })
 
-	// Call our API operation
-	network, err := Get(fake.ServiceClient(), "d32019d3-bc6e-4319-9c1d-6722fc136a22").Extract()
+    // Call our API operation
+    network, err := Get(fake.ServiceClient(), "d32019d3-bc6e-4319-9c1d-6722fc136a22").Extract()
 
-	// Assert no errors and equality
-	th.AssertNoErr(t, err)
-	th.AssertEquals(t, n.Status, "ACTIVE")
+    // Assert no errors and equality
+    th.AssertNoErr(t, err)
+    th.AssertEquals(t, n.Status, "ACTIVE")
 }
 ```
 

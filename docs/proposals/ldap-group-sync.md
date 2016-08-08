@@ -51,7 +51,7 @@ An `LDAPGroupLister` determines what LDAP groups needs to be synced and outputs 
 // be paired with an LDAPGroupMemberExtractor that understands the format of the unique identifiers
 // returned to represent the LDAP groups to be synced.
 type LDAPGroupLister interface {
-	ListGroups() (groupUIDs []string, err error)
+    ListGroups() (groupUIDs []string, err error)
 }
 ```
 
@@ -61,9 +61,9 @@ An `LDAPGroupMemberExtractor` gathers information on an LDAP group based on an L
 ```go
 // LDAPGroupMemberExtractor retrieves data about an LDAP group from the LDAP server.
 type LDAPGroupMemberExtractor interface {
-	// ExtractMembers returns the list of LDAP first-class user entries that are members of the LDAP
-	// group specified by the groupUID
-	ExtractMembers(groupUID string) (members []*ldap.Entry, err error)
+    // ExtractMembers returns the list of LDAP first-class user entries that are members of the LDAP
+    // group specified by the groupUID
+    ExtractMembers(groupUID string) (members []*ldap.Entry, err error)
 }
 ```
 
@@ -73,7 +73,7 @@ The mapping of a LDAP member entry to an OpenShift `User` Name will be determini
 ```go
 // LDAPUserNameMapper maps an LDAP entry representing a user to the OpenShift User Name corresponding to it
 type LDAPUserNameMapper interface {
-	UserNameFor(ldapUser *ldap.Entry) (openShiftUserName string, err error)
+    UserNameFor(ldapUser *ldap.Entry) (openShiftUserName string, err error)
 }
 ```
 
@@ -90,7 +90,7 @@ type DeterministicUserIdentityMapper struct {
 }
 
 func (m *DeterministicUserIdentityMapper) UserFor(identity authapi.UserIdentityInfo) (user user.Info,
-	err error) {
+    err error) {
 }
 ```
 

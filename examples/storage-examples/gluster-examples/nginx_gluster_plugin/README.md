@@ -202,7 +202,7 @@ _Under volumes_
 
         bash-4.3# exit[root@OpenShift2 teststorage]# docker ps 
         CONTAINER ID        IMAGE                         COMMAND             CREATED             STATUS              PORTS               NAMES 
-        ec8c801fcd81        fedora/nginx                  "/usr/sbin/nginx"   29 minutes ago      Up 29 minutes                           k8s_glusterfs-nginx.6ed56923_glusterfs-nginx_default_c978d0b4-466b-11e5-	ae70-52540008f001_f97147d7                 
+        ec8c801fcd81        fedora/nginx                  "/usr/sbin/nginx"   29 minutes ago      Up 29 minutes                           k8s_glusterfs-nginx.6ed56923_glusterfs-nginx_default_c978d0b4-466b-11e5-    ae70-52540008f001_f97147d7                 
 
 
         docker exec -it 8dda35c5f9ad bash

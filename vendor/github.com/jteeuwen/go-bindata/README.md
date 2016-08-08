@@ -13,7 +13,7 @@ output being generated.
 
 To install the library and command line program, use the following:
 
-	go get -u github.com/jteeuwen/go-bindata/...
+    go get -u github.com/jteeuwen/go-bindata/...
 
 
 ### Usage
@@ -25,21 +25,21 @@ which allows quick access to the asset, based on its name.
 The simplest invocation generates a `bindata.go` file in the current
 working directory. It includes all assets from the `data` directory.
 
-	$ go-bindata data/
+    $ go-bindata data/
 
 To include all input sub-directories recursively, use the elipsis postfix
 as defined for Go import paths. Otherwise it will only consider assets in the
 input directory itself.
 
-	$ go-bindata data/...
+    $ go-bindata data/...
 
 To specify the name of the output file being generated, we use the following:
 
-	$ go-bindata -o myfile.go data/
+    $ go-bindata -o myfile.go data/
 
 Multiple input directories can be specified if necessary.
 
-	$ go-bindata dir1/... /path/to/dir2/... dir3
+    $ go-bindata dir1/... /path/to/dir2/... dir3
 
 
 The following paragraphs detail some of the command line options which can be 
@@ -56,12 +56,12 @@ To ignore files, pass in regexes using -ignore, for example:
 To access asset data, we use the `Asset(string) ([]byte, error)` function which
 is included in the generated output.
 
-	data, err := Asset("pub/style/foo.css")
-	if err != nil {
-		// Asset was not found.
-	}
+    data, err := Asset("pub/style/foo.css")
+    if err != nil {
+        // Asset was not found.
+    }
 
-	// use asset data
+    // use asset data
 
 
 ### Debug vs Release builds
@@ -161,15 +161,15 @@ the map keys and function names.
 
 For example, running without the `-prefix` flag, we get:
 
-	$ go-bindata /path/to/templates/
+    $ go-bindata /path/to/templates/
 
-	_bindata["/path/to/templates/foo.html"] = path_to_templates_foo_html
+    _bindata["/path/to/templates/foo.html"] = path_to_templates_foo_html
 
 Running with the `-prefix` flag, we get:
 
-	$ go-bindata -prefix "/path/to/" /path/to/templates/
+    $ go-bindata -prefix "/path/to/" /path/to/templates/
 
-	_bindata["templates/foo.html"] = templates_foo_html
+    _bindata["templates/foo.html"] = templates_foo_html
 
 
 ### Build tags

@@ -76,10 +76,10 @@ Next, we will check that we can discover the rabbitmq service:
 # Note the rabitmq-service has a DNS name, provided by Kubernetes:
 
 root@temp-loe07:/# nslookup rabbitmq-service
-Server:		10.0.0.10
-Address:	10.0.0.10#53
+Server:        10.0.0.10
+Address:    10.0.0.10#53
 
-Name:	rabbitmq-service.default.svc.cluster.local
+Name:    rabbitmq-service.default.svc.cluster.local
 Address: 10.0.147.152
 
 # Your address will vary.
@@ -274,26 +274,16 @@ Now wait a bit, then check on the job.
 
 ```console
 $ ./kubectl describe jobs/job-wq-1 
-Name:		job-wq-1
-Namespace:	default
-Image(s):	gcr.io/causal-jigsaw-637/job-wq-1
-Selector:	app in (job-wq-1)
-Parallelism:	4
-Completions:	8
-Labels:		app=job-wq-1
-Pods Statuses:	0 Running / 8 Succeeded / 0 Failed
+Name:        job-wq-1
+Namespace:    default
+Image(s):    gcr.io/causal-jigsaw-637/job-wq-1
+Selector:    app in (job-wq-1)
+Parallelism:    4
+Completions:    8
+Labels:        app=job-wq-1
+Pods Statuses:    0 Running / 8 Succeeded / 0 Failed
 No volumes.
 Events:
-  FirstSeen	LastSeen	Count	From	SubobjectPath	Reason			Message
-  ─────────	────────	─────	────	─────────────	──────			───────
-  27s		27s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-hcobb
-  27s		27s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-weytj
-  27s		27s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-qaam5
-  27s		27s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-b67sr
-  26s		26s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-xe5hj
-  15s		15s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-w2zqe
-  14s		14s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-d6ppa
-  14s		14s		1	{job }			SuccessfulCreate	Created pod: job-wq-1-p17e0
 ```
 
 All our pods succeeded.  Yay.
