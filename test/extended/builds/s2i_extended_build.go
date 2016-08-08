@@ -53,7 +53,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			})
 
 			g.By("running the build")
-			out, err := oc.Run("start-build").Args(buildConfigName).Output()
+			out, err := oc.Run("start-build").Args("--build-loglevel=5", buildConfigName).Output()
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			}
@@ -95,7 +95,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			out, err := oc.Run("start-build").Args(buildConfigName).Output()
+			out, err := oc.Run("start-build").Args("--build-loglevel=5", buildConfigName).Output()
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			}
@@ -137,7 +137,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			out, err := oc.Run("start-build").Args(buildConfigName).Output()
+			out, err := oc.Run("start-build").Args("--build-loglevel=5", buildConfigName).Output()
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
 			}

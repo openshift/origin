@@ -337,7 +337,7 @@ func (c *MasterConfig) RunNodeController() {
 	_, clusterCIDR, _ := net.ParseCIDR(s.ClusterCIDR)
 	_, serviceCIDR, _ := net.ParseCIDR(s.ServiceCIDR)
 
-	controller := nodecontroller.NewNodeController(
+	controller, err := nodecontroller.NewNodeController(
 		c.CloudProvider,
 		clientadapter.FromUnversionedClient(c.KubeClient),
 		s.PodEvictionTimeout.Duration,
@@ -356,6 +356,9 @@ func (c *MasterConfig) RunNodeController() {
 
 		s.AllocateNodeCIDRs,
 	)
+	if err != nil {
+		glog.Fatalf("Unable to start node controller: %v", err)
+	}
 
 	controller.Run(s.NodeSyncPeriod.Duration)
 }

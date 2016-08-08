@@ -13,7 +13,6 @@
 package server
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -33,32 +32,11 @@ const (
 // timeout. Caches will only be initialized if the given ttl is positive. Options are gathered from
 // configuration file and will be overriden by enforceQuota and projectCacheTTL environment variable values.
 func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL string, options map[string]interface{}) *quotaEnforcingConfig {
-	buildOptionValues := func(optionName string, override string) []string {
-		optValues := []string{}
-		if value, ok := options[optionName]; ok {
-			var res string
-			switch v := value.(type) {
-			case string:
-				res = v
-			case bool:
-				res = fmt.Sprintf("%t", v)
-			default:
-				res = fmt.Sprintf("%v", v)
-			}
-			if len(res) > 0 {
-				optValues = append(optValues, res)
-			}
-		}
-		if len(override) > 0 {
-			optValues = append(optValues, override)
-		}
-		return optValues
+	enforce, err := getBoolOption(EnforceQuotaEnvVar, "enforcequota", false, options)
+	if err != nil {
+		logrus.Error(err)
 	}
 
-	enforce := false
-	for _, s := range buildOptionValues("enforcequota", enforceQuota) {
-		enforce = s == "true"
-	}
 	if !enforce {
 		context.GetLogger(ctx).Info("quota enforcement disabled")
 		return &quotaEnforcingConfig{
@@ -67,14 +45,9 @@ func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL 
 		}
 	}
 
-	ttl := defaultProjectCacheTTL
-	for _, s := range buildOptionValues("projectcachettl", projectCacheTTL) {
-		parsed, err := time.ParseDuration(s)
-		if err != nil {
-			logrus.Errorf("failed to parse project cache ttl %q: %v", s, err)
-			continue
-		}
-		ttl = parsed
+	ttl, err := getDurationOption(ProjectCacheTTLEnvVar, "projectcachettl", defaultProjectCacheTTL, options)
+	if err != nil {
+		logrus.Error(err)
 	}
 
 	if ttl <= 0 {

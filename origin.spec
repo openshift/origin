@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 0ecce3d0fa15f77ac3bc6fe5432bb7caa6e62343
+%global commit 67b7a77f7159982fd2ab925769e54e0f7801cb21
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.15+0ecce3d -X github.com/openshift/origin/pkg/version.commitFromGit=0ecce3d -X github.com/openshift/origin/pkg/version.buildDate=2016-08-05T19:55:51Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-05T19:55:51Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.16+67b7a77 -X github.com/openshift/origin/pkg/version.commitFromGit=67b7a77 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-08T14:48:07Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-08T14:48:07Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 # os_git_vars needed to run hack scripts during rpm builds
 # TODO Automatically generate these using tito
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.16
+Version:        3.3.0.17
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -504,6 +504,45 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Aug 08 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.17
+- Bump origin-web-console (5ae75bb) (jforrest@redhat.com)
+- update help and option suggestions on cmds acting as root cmd
+  (jvallejo@redhat.com)
+- UPSTREAM: google/cadvisor: 1359: Make ThinPoolWatcher loglevel consistent
+  (agoldste@redhat.com)
+- UPSTREAM: 29961: Allow PVs to specify supplemental GIDs (agoldste@redhat.com)
+- UPSTREAM: 29576: Retry assigning CIDRs in case of failure
+  (agoldste@redhat.com)
+- UPSTREAM: 29246: Kubelet: Set PruneChildren when removing image
+  (agoldste@redhat.com)
+- UPSTREAM: 29063: Automated cherry pick of #28604 #29062 (agoldste@redhat.com)
+- Update RunNodeController to match upstream change (agoldste@redhat.com)
+- UPSTREAM: 28886: Add ForgetPod to SchedulerCache (agoldste@redhat.com)
+- UPSTREAM: 28294: kubectl: don't display empty list when trying to get a
+  single resource that isn't found (agoldste@redhat.com)
+- vendor console script says what commit its vendoring in the output
+  (jforrest@redhat.com)
+- switch postgres template to latest (9.5) version (bparees@redhat.com)
+- new-app: display warning if git not installed (cewong@redhat.com)
+- Create petset last in testdata (jliggitt@redhat.com)
+- Added unit tests for repository and blobdescriptorservice
+  (miminar@redhat.com)
+- Allow to mock default registry client (miminar@redhat.com)
+- e2e: added tests for cross-repo mounting (miminar@redhat.com)
+- e2e: speed-up docker repository pull tests (miminar@redhat.com)
+- Configurable blobrepositorycachettl value (miminar@redhat.com)
+- Cache blob <-> repository entries in registry with TTL (miminar@redhat.com)
+- Fixes docker call in CONTRIBUTING documentation (rymurphy@redhat.com)
+- Check for blob existence before serving (miminar@redhat.com)
+- Store media type in image (miminar@redhat.com)
+- UPSTREAM: docker/distribution: 1857: Provide stat descriptor for Create
+  method during cross-repo mount (jliggitt@redhat.com)
+- UPSTREAM: docker/distribution: 1757: Export storage.CreateOptions in top-
+  level package (miminar@redhat.com)
+- Preventing build from inheriting master log level (jupierce@redhat.com)
+- Update README URLs based on HTTP redirects (frankensteinbot@gmail.com)
+- update the output of quota example (li.guangxu@zte.com.cn)
+
 * Fri Aug 05 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.16
 - Buildrequires rsync - due to hack scripts (tdawson@redhat.com)
 

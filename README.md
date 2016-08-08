@@ -111,9 +111,9 @@ FAQ
 
     Your application image can be easily extended with a database service with our [database images](http://docs.openshift.com/enterprise/latest/using_images/db_images/overview.html). Our available database images are:
 
-    * [MySQL](https://github.com/openshift/mysql)
-    * [MongoDB](https://github.com/openshift/mongodb)
-    * [PostgreSQL](https://github.com/openshift/postgresql)
+    * [MySQL](https://github.com/sclorg/mysql-container)
+    * [MongoDB](https://github.com/sclorg/mongodb-container)
+    * [PostgreSQL](https://github.com/sclorg/postgresql-container)
 
 4. Why doesn't my Docker image run on OpenShift?
 

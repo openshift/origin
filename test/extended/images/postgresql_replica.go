@@ -21,10 +21,9 @@ var (
 	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
 	postgreSQLHelperName          = "postgresql-helper"
 	postgreSQLImages              = []string{
-		"openshift/postgresql-92-centos7",
-		"centos/postgresql-94-centos7",
-		"registry.access.redhat.com/openshift3/postgresql-92-rhel7",
-		"registry.access.redhat.com/rhscl/postgresql-94-rhel7",
+		"postgresql:9.2",
+		"postgresql:9.4",
+		"postgresql:9.5",
 	}
 )
 
@@ -77,7 +76,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
-		err = oc.Run("new-app").Args("-f", postgreSQLReplicationTemplate, "-p", fmt.Sprintf("POSTGRESQL_IMAGE=%s", image)).Execute()
+		err = oc.Run("new-app").Args("-f", postgreSQLReplicationTemplate, "-p", fmt.Sprintf("IMAGESTREAMTAG=%s", image)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
