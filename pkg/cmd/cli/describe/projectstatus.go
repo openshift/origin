@@ -1059,9 +1059,9 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, expo
 	port := describeServicePorts(spec)
 	switch {
 	case len(exposed) > 1:
-		return append([]string{fmt.Sprintf("%s (%s)", exposed[0], f.ResourceName(svc.Service))}, exposed[1:]...)
+		return append([]string{fmt.Sprintf("%s (%s - %s%s)", exposed[0], f.ResourceName(svc.Service), ip, port)}, exposed[1:]...)
 	case len(exposed) == 1:
-		return []string{fmt.Sprintf("%s (%s)", exposed[0], f.ResourceName(svc.Service))}
+		return []string{fmt.Sprintf("%s (%s - %s%s)", exposed[0], f.ResourceName(svc.Service), ip, port)}
 	case spec.Type == kapi.ServiceTypeNodePort:
 		return []string{fmt.Sprintf("%s (all nodes)%s", f.ResourceName(svc.Service), port)}
 	case ip == "None":
