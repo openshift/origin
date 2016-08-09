@@ -76,7 +76,7 @@ func NewClusterQuotaReconcilationController(options ClusterQuotaReconcilationCon
 		resyncPeriod: options.ResyncPeriod,
 		registry:     options.Registry,
 
-		queue: NewBucketingWorkQueue(),
+		queue: NewBucketingWorkQueue("controller_clusterquotareconcilationcontroller"),
 	}
 
 	// we need to trigger every time
@@ -113,6 +113,7 @@ func (c *ClusterQuotaReconcilationController) Run(workers int, stopCh <-chan str
 	case <-stopCh:
 		return
 	}
+	glog.V(4).Infof("Starting the cluster quota reconcilation controller workers")
 
 	// the controllers that replenish other resources to respond rapidly to state changes
 	for _, replenishmentController := range c.replenishmentControllers {
