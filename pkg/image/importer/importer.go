@@ -484,17 +484,24 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			continue
 		}
 		limiter.Accept()
-		desc, err := repo.Tags(ctx).Get(ctx, importTag.Name)
+
+		manifest, err := s.Get(ctx, "", distribution.WithTag(importTag.Name))
 		if err != nil {
-			glog.V(5).Infof("unable to get tag %q for repository %#v: %#v", importTag.Name, repository, err)
-			importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
-			continue
-		}
-		manifest, err := s.Get(ctx, desc.Digest)
-		if err != nil {
-			glog.V(5).Infof("unable to access digest %q for tag %q for repository %#v: %#v", desc.Digest, importTag.Name, repository, err)
-			importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
-			continue
+			glog.V(5).Infof("unable to get manifest by tag %q for repository %#v: %#v", importTag.Name, repository, err)
+			// try to resolve the tag and fetch manifest by digest instead
+			desc, getTagErr := repo.Tags(ctx).Get(ctx, importTag.Name)
+			if getTagErr != nil {
+				glog.V(5).Infof("unable to get tag %q for repository %#v: %#v", importTag.Name, repository, getTagErr)
+				importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
+				continue
+			}
+			m, getManifestErr := s.Get(ctx, desc.Digest)
+			if getManifestErr != nil {
+				glog.V(5).Infof("unable to access digest %q for tag %q for repository %#v: %#v", desc.Digest, importTag.Name, repository, getManifestErr)
+				importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
+				continue
+			}
+			manifest = m
 		}
 
 		if signedManifest, isSchema1 := manifest.(*schema1.SignedManifest); isSchema1 {
@@ -502,7 +509,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
 			imageConfig, err := b.Get(ctx, deserializedManifest.Config.Digest)
 			if err != nil {
-				glog.V(5).Infof("unable to access image config using digest %q for tag %q for repository %#v: %#v", desc.Digest, importTag.Name, repository, err)
+				glog.V(5).Infof("unable to access image config using digest %q for tag %q for repository %#v: %#v", deserializedManifest.Config.Digest, importTag.Name, repository, err)
 				importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
 				continue
 			}
