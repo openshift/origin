@@ -296,7 +296,27 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 	if err := d.copySecrets(secrets, dir); err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, dockerfilePath, noCache, tag, d.tar, auth, forcePull, d.cgLimits)
+
+	opts := docker.BuildImageOptions{
+		Name:           tag,
+		RmTmpContainer: true,
+		OutputStream:   os.Stdout,
+		Dockerfile:     dockerfilePath,
+		NoCache:        noCache,
+		Pull:           forcePull,
+	}
+	if d.cgLimits != nil {
+		opts.Memory = d.cgLimits.MemoryLimitBytes
+		opts.Memswap = d.cgLimits.MemorySwap
+		opts.CPUShares = d.cgLimits.CPUShares
+		opts.CPUPeriod = d.cgLimits.CPUPeriod
+		opts.CPUQuota = d.cgLimits.CPUQuota
+	}
+	if auth != nil {
+		opts.AuthConfigs = *auth
+	}
+
+	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
 // replaceLastFrom changes the last FROM instruction of node to point to the

@@ -12,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/interrupt"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 
 	"github.com/openshift/imagebuilder/imageprogress"
@@ -101,8 +100,11 @@ func removeImage(client DockerClient, name string) error {
 }
 
 // buildImage invokes a docker build on a particular directory
-func buildImage(client DockerClient, dir string, dockerfilePath string, noCache bool, tag string, tar tar.Tar, pullAuth *docker.AuthConfigurations, forcePull bool, cgLimits *s2iapi.CGroupLimits) error {
+func buildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.BuildImageOptions) error {
 	// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
+	if opts == nil {
+		return fmt.Errorf("%s", "build image options nil")
+	}
 	r, w := io.Pipe()
 	go func() {
 		defer utilruntime.HandleCrash()
@@ -112,27 +114,9 @@ func buildImage(client DockerClient, dir string, dockerfilePath string, noCache 
 		}
 	}()
 	defer w.Close()
-	glog.V(5).Infof("Invoking Docker build to create %q", tag)
-	opts := docker.BuildImageOptions{
-		Name:           tag,
-		RmTmpContainer: true,
-		OutputStream:   os.Stdout,
-		InputStream:    r,
-		Dockerfile:     dockerfilePath,
-		NoCache:        noCache,
-		Pull:           forcePull,
-	}
-	if cgLimits != nil {
-		opts.Memory = cgLimits.MemoryLimitBytes
-		opts.Memswap = cgLimits.MemorySwap
-		opts.CPUShares = cgLimits.CPUShares
-		opts.CPUPeriod = cgLimits.CPUPeriod
-		opts.CPUQuota = cgLimits.CPUQuota
-	}
-	if pullAuth != nil {
-		opts.AuthConfigs = *pullAuth
-	}
-	return client.BuildImage(opts)
+	opts.InputStream = r
+	glog.V(5).Infof("Invoking Docker build to create %q", opts.Name)
+	return client.BuildImage(*opts)
 }
 
 // tagImage uses the dockerClient to tag a Docker image with name. It is a
