@@ -17,7 +17,7 @@ pushd vendor/github.com/jteeuwen/go-bindata > /dev/null
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  "${GOPATH}/bin/go-bindata" -nocompress -nometadata -prefix "bootstrap" -pkg "bootstrap" \
+  "$(os::util::find-go-binary go-bindata)" -nocompress -nometadata -prefix "bootstrap" -pkg "bootstrap" \
                                    -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" -ignore "README.md" \
                                    ${EXAMPLES}/image-streams/... \
                                    ${EXAMPLES}/db-templates/... \
