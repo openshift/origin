@@ -125,10 +125,10 @@ val := cfg.Section("").Key("key name").String()
 
 ```go
 val := cfg.Section("").Key("key name").Validate(func(in string) string {
-	if len(in) == 0 {
-		return "default"
-	}
-	return in
+    if len(in) == 0 {
+        return "default"
+    }
+    return in
 })
 ```
 
@@ -209,11 +209,11 @@ Earth
 ```ini
 [advance]
 two_lines = how about \
-	continuation lines?
+    continuation lines?
 lots_of_lines = 1 \
-	2 \
-	3 \
-	4
+    2 \
+    3 \
+    4
 ```
 
 简直是小菜一碟！
@@ -311,8 +311,8 @@ FULL_NAME = github.com/go-ini/%(NAME)s
 ```
 
 ```go
-cfg.Section("author").Key("GITHUB").String()		// https://github.com/Unknwon
-cfg.Section("package").Key("FULL_NAME").String()	// github.com/go-ini/ini
+cfg.Section("author").Key("GITHUB").String()        // https://github.com/Unknwon
+cfg.Section("package").Key("FULL_NAME").String()    // github.com/go-ini/ini
 ```
 
 #### 读取父子分区
@@ -331,7 +331,7 @@ CLONE_URL = https://%(IMPORT_PATH)s
 ```
 
 ```go
-cfg.Section("package.sub").Key("CLONE_URL").String()	// https://gopkg.in/ini.v1
+cfg.Section("package.sub").Key("CLONE_URL").String()    // https://gopkg.in/ini.v1
 ```
 
 #### 读取自增键名
@@ -346,7 +346,7 @@ cfg.Section("package.sub").Key("CLONE_URL").String()	// https://gopkg.in/ini.v1
 ```
 
 ```go
-cfg.Section("features").KeyStrings()	// []{"#1", "#2", "#3"}
+cfg.Section("features").KeyStrings()    // []{"#1", "#2", "#3"}
 ```
 
 ### 映射到结构
@@ -366,34 +366,34 @@ Cities = HangZhou, Boston
 
 ```go
 type Note struct {
-	Content string
-	Cities  []string
+    Content string
+    Cities  []string
 }
 
 type Person struct {
-	Name string
-	Age  int `ini:"age"`
-	Male bool
-	Born time.Time
-	Note
-	Created time.Time `ini:"-"`
+    Name string
+    Age  int `ini:"age"`
+    Male bool
+    Born time.Time
+    Note
+    Created time.Time `ini:"-"`
 }
 
 func main() {
-	cfg, err := ini.Load("path/to/ini")
-	// ...
-	p := new(Person)
-	err = cfg.MapTo(p)
-	// ...
+    cfg, err := ini.Load("path/to/ini")
+    // ...
+    p := new(Person)
+    err = cfg.MapTo(p)
+    // ...
 
-	// 一切竟可以如此的简单。
-	err = ini.MapTo(p, "path/to/ini")
-	// ...
+    // 一切竟可以如此的简单。
+    err = ini.MapTo(p, "path/to/ini")
+    // ...
 
-	// 嗯哼？只需要映射一个分区吗？
-	n := new(Note)
-	err = cfg.Section("Note").MapTo(n)
-	// ...
+    // 嗯哼？只需要映射一个分区吗？
+    n := new(Note)
+    err = cfg.Section("Note").MapTo(n)
+    // ...
 }
 ```
 
@@ -402,7 +402,7 @@ func main() {
 ```go
 // ...
 p := &Person{
-	Name: "Joe",
+    Name: "Joe",
 }
 // ...
 ```
@@ -415,30 +415,30 @@ p := &Person{
 
 ```go
 type Embeded struct {
-	Dates  []time.Time `delim:"|"`
-	Places []string
-	None   []int
+    Dates  []time.Time `delim:"|"`
+    Places []string
+    None   []int
 }
 
 type Author struct {
-	Name      string `ini:"NAME"`
-	Male      bool
-	Age       int
-	GPA       float64
-	NeverMind string `ini:"-"`
-	*Embeded
+    Name      string `ini:"NAME"`
+    Male      bool
+    Age       int
+    GPA       float64
+    NeverMind string `ini:"-"`
+    *Embeded
 }
 
 func main() {
-	a := &Author{"Unknwon", true, 21, 2.8, "",
-		&Embeded{
-			[]time.Time{time.Now(), time.Now()},
-			[]string{"HangZhou", "Boston"},
-			[]int{},
-		}}
-	cfg := ini.Empty()
-	err = ini.ReflectFrom(cfg, a)
-	// ...
+    a := &Author{"Unknwon", true, 21, 2.8, "",
+        &Embeded{
+            []time.Time{time.Now(), time.Now()},
+            []string{"HangZhou", "Boston"},
+            []int{},
+        }}
+    cfg := ini.Empty()
+    err = ini.ReflectFrom(cfg, a)
+    // ...
 }
 ```
 
@@ -469,19 +469,19 @@ None =
 
 ```go
 type Info struct{
-	PackageName string
+    PackageName string
 }
 
 func main() {
-	err = ini.MapToWithMapper(&Info{}, ini.TitleUnderscore, []byte("packag_name=ini"))
-	// ...
+    err = ini.MapToWithMapper(&Info{}, ini.TitleUnderscore, []byte("packag_name=ini"))
+    // ...
 
-	cfg, err := ini.Load([]byte("PACKAGE_NAME=ini"))
-	// ...
-	info := new(Info)
-	cfg.NameMapper = ini.AllCapsUnderscore
-	err = cfg.MapTo(info)
-	// ...
+    cfg, err := ini.Load([]byte("PACKAGE_NAME=ini"))
+    // ...
+    info := new(Info)
+    cfg.NameMapper = ini.AllCapsUnderscore
+    err = cfg.MapTo(info)
+    // ...
 }
 ```
 
@@ -493,17 +493,17 @@ func main() {
 
 ```go
 type Child struct {
-	Age string
+    Age string
 }
 
 type Parent struct {
-	Name string
-	Child
+    Name string
+    Child
 }
 
 type Config struct {
-	City string
-	Parent
+    City string
+    Parent
 }
 ```
 
@@ -523,17 +523,17 @@ Age = 21
 
 ```go
 type Child struct {
-	Age string
+    Age string
 }
 
 type Parent struct {
-	Name string
-	Child `ini:"Parent"`
+    Name string
+    Child `ini:"Parent"`
 }
 
 type Config struct {
-	City string
-	Parent
+    City string
+    Parent
 }
 ```
 
