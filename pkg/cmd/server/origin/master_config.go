@@ -464,7 +464,9 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				// should have been caught with validation
 				return nil, err
 			}
-			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
+			// TODO need to disallow if a cloud provider is configured
+			allowIngressIP := len(options.NetworkConfig.IngressIPNetworkCIDR) > 0
+			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP))
 
 		case serviceadmit.RestrictedEndpointsPluginName:
 			// we need to set some customer parameters, so create by hand

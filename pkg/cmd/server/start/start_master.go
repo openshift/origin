@@ -675,6 +675,12 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	}
 	oc.RunServiceServingCertController(serviceServingCertClient)
 
+	_, _, ingressIPClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client: %v", err)
+	}
+	oc.RunIngressIPController(ingressIPClient)
+
 	glog.Infof("Started Origin Controllers")
 
 	return nil
