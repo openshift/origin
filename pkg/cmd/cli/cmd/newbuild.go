@@ -22,6 +22,9 @@ import (
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 )
 
+// NewBuildRecommendedCommandName is the recommended command name.
+const NewBuildRecommendedCommandName = "new-build"
+
 const (
 	newBuildLong = `
 Create a new build by specifying source code
@@ -40,38 +43,38 @@ You can use '%[1]s status' to check the progress.`
 	newBuildExample = `
   # Create a build config based on the source code in the current git repository (with a public
   # remote) and a Docker image
-  %[1]s new-build . --docker-image=repo/langimage
+  %[1]s %[2]s . --docker-image=repo/langimage
 
   # Create a NodeJS build config based on the provided [image]~[source code] combination
-  %[1]s new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
 
   # Create a build config from a remote repository using its beta2 branch
-  %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2
+  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta2
 
   # Create a build config using a Dockerfile specified as an argument
-  %[1]s new-build -D $'FROM centos:7\nRUN yum install -y httpd'
+  %[1]s %[2]s -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables
-  %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
+  %[1]s %[2]s https://github.com/openshift/ruby-hello-world RACK_ENV=development
 
   # Create a build config from a remote repository and inject the npmrc into a build
-  %[1]s new-build https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
+  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
 
   # Create a build config that gets its input from a remote repository and another Docker image
-  %[1]s new-build https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`
+  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`
 
 	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
 
 To build from an existing image stream tag or Docker image, provide the name of the image and
 the source code location:
 
-  %[1]s new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
 
 If you only specify the source repository location (local or remote), the command will look at
 the repo to determine the type, and then look for a matching image on your server or on the
 default Docker registry.
 
-  %[1]s new-build https://github.com/openshift/nodejs-ex.git
+  %[1]s %[2]s https://github.com/openshift/nodejs-ex.git
 
 will look for an image called "nodejs" in your current project, the 'openshift' project, or
 on the Docker Hub.
@@ -82,6 +85,7 @@ type NewBuildOptions struct {
 	Action configcmd.BulkAction
 	Config *newcmd.AppConfig
 
+	BaseName    string
 	CommandPath string
 	CommandName string
 
@@ -92,21 +96,22 @@ type NewBuildOptions struct {
 }
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
-func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
 	config.AddEnvironmentToBuild = true
-	options := &NewBuildOptions{Config: config}
+	o := &NewBuildOptions{Config: config}
 
 	cmd := &cobra.Command{
-		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
+		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | PATH | URL ...)", name),
 		Short:      "Create a new build configuration",
-		Long:       fmt.Sprintf(newBuildLong, fullName),
-		Example:    fmt.Sprintf(newBuildExample, fullName),
+		Long:       fmt.Sprintf(newBuildLong, baseName, name),
+		Example:    fmt.Sprintf(newBuildExample, baseName, name),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(fullName, f, c, args, out, in))
-			err := options.Run()
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, in))
+
+			err := o.RunNewBuild()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -135,14 +140,14 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringVar(&config.SourceImage, "source-image", "", "Specify an image to use as source for the build.  You must also specify --source-image-path.")
 	cmd.Flags().StringVar(&config.SourceImagePath, "source-image-path", "", "Specify the file or directory to copy from the source image and its destination in the build directory. Format: [source]:[destination-dir].")
 
-	options.Action.BindForOutput(cmd.Flags())
+	o.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
 // Complete sets any default behavior for the command
-func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer, in io.Reader) error {
+func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer, in io.Reader) error {
 	o.Out = out
 	o.ErrOut = c.OutOrStderr()
 	o.Output = kcmdutil.GetFlagString(c, "output")
@@ -164,8 +169,10 @@ func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cob
 
 	o.Config.DryRun = o.Action.DryRun
 
+	o.BaseName = baseName
 	o.CommandPath = c.CommandPath()
-	o.CommandName = fullName
+	o.CommandName = commandName
+
 	mapper, _ := f.Object(false)
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
 	o.LogsForObject = f.LogsForObject
@@ -185,8 +192,8 @@ func (o *NewBuildOptions) Complete(fullName string, f *clientcmd.Factory, c *cob
 	return nil
 }
 
-// Run contains all the necessary functionality for the OpenShift cli new-build command
-func (o *NewBuildOptions) Run() error {
+// RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
+func (o *NewBuildOptions) RunNewBuild() error {
 	config := o.Config
 	out := o.Out
 
@@ -194,7 +201,7 @@ func (o *NewBuildOptions) Run() error {
 
 	result, err := config.Run()
 	if err != nil {
-		return handleBuildError(err, o.CommandName, o.CommandPath)
+		return handleBuildError(err, o.BaseName, o.CommandName, o.CommandPath)
 	}
 
 	if len(config.Labels) == 0 && len(result.Name) > 0 {
@@ -234,7 +241,7 @@ func (o *NewBuildOptions) Run() error {
 	return nil
 }
 
-func handleBuildError(err error, fullName, commandPath string) error {
+func handleBuildError(err error, baseName, commandName, commandPath string) error {
 	if err == nil {
 		return nil
 	}
@@ -244,7 +251,7 @@ func handleBuildError(err error, fullName, commandPath string) error {
 	}
 	groups := errorGroups{}
 	for _, err := range errs {
-		transformBuildError(err, fullName, commandPath, groups)
+		transformBuildError(err, baseName, commandName, commandPath, groups)
 	}
 	buf := &bytes.Buffer{}
 	for _, group := range groups {
@@ -257,7 +264,7 @@ func handleBuildError(err error, fullName, commandPath string) error {
 	return fmt.Errorf(buf.String())
 }
 
-func transformBuildError(err error, fullName, commandPath string, groups errorGroups) {
+func transformBuildError(err error, baseName, commandName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
 		groups.Add(
@@ -281,8 +288,8 @@ func transformBuildError(err error, fullName, commandPath string, groups errorGr
 	}
 	switch err {
 	case newcmd.ErrNoInputs:
-		groups.Add("", "", usageError(commandPath, newBuildNoInput, fullName))
+		groups.Add("", "", usageError(commandPath, newBuildNoInput, baseName, commandName))
 		return
 	}
-	transformError(err, fullName, commandPath, groups)
+	transformError(err, baseName, commandName, commandPath, groups)
 }

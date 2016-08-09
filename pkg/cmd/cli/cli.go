@@ -97,8 +97,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Commands: []*cobra.Command{
 				cmd.NewCmdTypes(fullName, f, out),
 				loginCmd,
-				cmd.NewCmdRequestProject(fullName, "new-project", fullName+" login", fullName+" project", f, out),
-				cmd.NewCmdNewApplication(fullName, f, out),
+				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, out),
+				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, out),
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
 				cmd.NewCmdProjects(fullName, f, out),
@@ -113,7 +113,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				rollout.NewCmdRollout(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
-				cmd.NewCmdNewBuild(fullName, f, in, out),
+				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, in, out),
 				cmd.NewCmdStartBuild(fullName, f, in, out),
 				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, in, out),
 				cmd.NewCmdImportImage(fullName, f, out),
@@ -140,7 +140,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdLogs(cmd.LogsRecommendedName, fullName, f, out),
+				cmd.NewCmdLogs(cmd.LogsRecommendedCommandName, fullName, f, out),
 				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
 				cmd.NewCmdPortForward(fullName, f, out, errout),
