@@ -9,6 +9,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/cli"
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
+	_ "github.com/openshift/origin/test/extended/idling"
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/jenkins"
 	_ "github.com/openshift/origin/test/extended/jobs"

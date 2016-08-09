@@ -539,6 +539,7 @@ var map_NodeConfig = map[string]string{
 	"kubeletArguments":                "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"proxyArguments":                  "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"iptablesSyncPeriod":              "IPTablesSyncPeriod is how often iptable rules are refreshed",
+	"enableUnidling":                  "EnableUnidling controls whether or not the hybrid unidling proxy will be set up",
 	"volumeConfig":                    "VolumeConfig contains options for configuring volumes on the node.",
 }
 

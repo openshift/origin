@@ -144,6 +144,9 @@ type NodeConfig struct {
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 
+	// EnableUnidling controls whether or not the hybrid unidling proxy will be set up
+	EnableUnidling bool
+
 	// VolumeConfig contains options for configuring volumes on the node.
 	VolumeConfig NodeVolumeConfig
 }
