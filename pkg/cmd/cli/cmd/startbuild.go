@@ -456,7 +456,9 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 			if len(options.Commit) > 0 {
 				commit = options.Commit
 			}
-			info, gitErr := gitRefInfo(repo, clean, commit)
+
+			info, gitErr := gitRefInfo(repo, path, commit)
+
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
 				options.Message = info.GitSourceRevision.Message
@@ -468,36 +470,75 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 				glog.V(6).Infof("Unable to read Git info from %q: %v", clean, gitErr)
 			}
 
+			// NOTE: It's important that this stays false unless we change the
+			// path to something else, otherwise we will delete whatever path the
+			// user provided.
+			var usedTempDir bool = false
+			var tempDirectory string = ""
+
 			if asRepo {
+
+				var contextDir string = ""
 				fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
 				if gitErr != nil {
 					return nil, fmt.Errorf("the directory %q is not a valid Git repository: %v", clean, gitErr)
 				}
-				pr, pw := io.Pipe()
-				go func() {
-					if err := repo.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
-						pw.CloseWithError(fmt.Errorf("unable to create Git archive of %q for build: %v", clean, err))
-					} else {
-						pw.CloseWithError(io.EOF)
-					}
-				}()
-				r = pr
+
+				// If the user doesn't give us the root directory of the Git repo,
+				// we still want the command to work. However, as this may be
+				// unintended, we warn them.
+				if gitRootDir, err := repo.GetRootDir(path); filepath.Clean(gitRootDir) != filepath.Clean(path) && err == nil {
+					fmt.Fprintf(out, "WARNING: Using root dir %s for Git repository\n", gitRootDir)
+					contextDir, _ = filepath.Rel(gitRootDir, path)
+					path = gitRootDir
+				}
+
+				// Create a temp directory to move the repo contents to
+				tempDirectory, err := ioutil.TempDir(os.TempDir(), "oc_cloning_"+options.Commit)
+				if err != nil {
+					return nil, err
+				}
+
+				// We only want to grab the contents of the specified commit, with
+				// submodules included
+				cloneOptions := []string{"--recursive"}
+				if verbose := glog.V(3); !verbose {
+					cloneOptions = append(cloneOptions, "--quiet")
+				}
+
+				// Clone the repository to a temp directory for future tar-ing
+				if err := repo.CloneWithOptions(tempDirectory, path, cloneOptions...); err != nil {
+					return nil, err
+				}
+				if err := repo.Checkout(tempDirectory, commit); err != nil {
+					return nil, err
+				}
+
+				// We'll continue to use tar on the temp directory
+				path = filepath.Join(tempDirectory, contextDir)
+
+				usedTempDir = true
 
 			} else {
 				fmt.Fprintf(out, "Uploading directory %q as binary input for the build ...\n", clean)
-
-				pr, pw := io.Pipe()
-				go func() {
-					w := gzip.NewWriter(pw)
-					if err := tar.New().CreateTarStream(path, false, w); err != nil {
-						pw.CloseWithError(err)
-					} else {
-						w.Close()
-						pw.CloseWithError(io.EOF)
-					}
-				}()
-				r = pr
 			}
+
+			pr, pw := io.Pipe()
+			go func() {
+				w := gzip.NewWriter(pw)
+				if err := tar.New().CreateTarStream(path, false, w); err != nil {
+					pw.CloseWithError(err)
+				} else {
+					w.Close()
+					pw.CloseWithError(io.EOF)
+				}
+
+				if usedTempDir {
+					os.RemoveAll(tempDirectory)
+				}
+			}()
+			r = pr
+
 		} else {
 			f, err := os.Open(path)
 			if err != nil {
