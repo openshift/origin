@@ -166,6 +166,10 @@ func (s *S2IBuilder) Build() error {
 			scriptDownloadProxyConfig.HTTPSProxy)
 	}
 
+	var incremental bool
+	if s.build.Spec.Strategy.SourceStrategy.Incremental != nil {
+		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
+	}
 	config := &s2iapi.Config{
 		WorkingDir:     buildDir,
 		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -175,7 +179,7 @@ func (s *S2IBuilder) Build() error {
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
 		BuilderImage:       s.build.Spec.Strategy.SourceStrategy.From.Name,
-		Incremental:        s.build.Spec.Strategy.SourceStrategy.Incremental,
+		Incremental:        incremental,
 		IncrementalFromTag: pushTag,
 
 		Environment:       buildEnvVars(s.build),

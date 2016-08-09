@@ -512,7 +512,7 @@ type SourceBuildStrategy struct {
 	Scripts string
 
 	// Incremental flag forces the Source build to do incremental builds if true.
-	Incremental bool
+	Incremental *bool
 
 	// ForcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool
