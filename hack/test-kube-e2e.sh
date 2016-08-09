@@ -21,17 +21,7 @@
 #
 # KUBE_ROOT=../kubernetes hack/test-kube-e2e.sh --ginkgo.focus="Network.*intra"
 #
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(
-  unset CDPATH
-  origin_root=$(dirname "${BASH_SOURCE}")/..
-  cd "${origin_root}"
-  pwd
-)
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 KUBE_ROOT=${KUBE_ROOT:-""}
 

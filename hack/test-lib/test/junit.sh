@@ -2,15 +2,11 @@
 #
 # This script tests os::test::junit functionality.
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
 function exit_trap() {
     local return_code=$?
 
     end_time=$(date +%s)
-    
+
     if [[ "${return_code}" -eq "0" ]]; then
         verb="succeeded"
     else
@@ -24,9 +20,7 @@ function exit_trap() {
 trap exit_trap EXIT
 
 start_time=$(date +%s)
-OS_ROOT="$( dirname "${BASH_SOURCE}" )"/../../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$( dirname "${BASH_SOURCE}" )/../../lib/init.sh"
 
 # envars used to track these interactions are not propagated out of the subshells used to run these commands
 # therefore each os::cmd call is its own sandbox and complicated scenarios need to play out inside one call

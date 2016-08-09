@@ -2,16 +2,8 @@
 
 # This command checks that the built commands can function together for
 # simple scenarios.  It does not require Docker so it can run in travis.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-cd "${OS_ROOT}"
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::util::environment::setup_time_vars
 
 function cleanup()

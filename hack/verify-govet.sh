@@ -1,14 +1,8 @@
 #!/bin/bash
-
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::golang::verify_go_version
 
-cd "${OS_ROOT}"
 mkdir -p _output/govet
 
 os::build::setup_env

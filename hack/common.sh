@@ -3,24 +3,6 @@
 # This script provides common script functions for the hacks
 # Requires OS_ROOT to be set
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
-# The root of the build/dist directory
-readonly OS_ROOT=$(
-  unset CDPATH
-  os_root=$(dirname "${BASH_SOURCE}")/..
-
-  cd "${os_root}"
-  os_root=`pwd`
-  if [ -h "${os_root}" ]; then
-    readlink "${os_root}"
-  else
-    pwd
-  fi
-)
-
 readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.6}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
 

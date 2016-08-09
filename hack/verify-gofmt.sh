@@ -1,17 +1,7 @@
 #!/bin/bash
-
-# GoFmt apparently is changing @ head...
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::golang::verify_go_version
-
-cd "${OS_ROOT}"
 
 bad_files=$(find_files | xargs gofmt -s -l)
 if [[ -n "${bad_files}" ]]; then

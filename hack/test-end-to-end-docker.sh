@@ -2,14 +2,8 @@
 
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 echo "[INFO] Starting containerized end-to-end test"
 
@@ -33,7 +27,7 @@ function cleanup()
 	set +e
 	dump_container_logs
 
-	# pull information out of the server log so that we can get failure management in jenkins to highlight it and 
+	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
     grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/container-origin.log
 
