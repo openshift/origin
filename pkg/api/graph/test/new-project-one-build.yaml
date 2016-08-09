@@ -4,16 +4,17 @@ items:
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-2
+    name: sinatra-example-1
+    namespace: example
   spec:
     output:
       to:
         kind: ImageStreamTag
-        name: sinatra-example-2:latest
+        name: sinatra-example-1:latest
     resources: {}
     source:
       git:
-        uri: git://github.com/mfojtik/sinatra-example-2
+        uri: git://github.com/mfojtik/sinatra-example-1
       type: Git
     strategy:
       sourceStrategy:
@@ -29,16 +30,53 @@ items:
         secret: IDO5sRS52tsUq5hczU6o
       type: generic
   status:
-    lastVersion: 0
+    lastVersion: 1
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    name: sinatra-example-1
+    namespace: example
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: Build
+  metadata:
+    creationTimestamp: 2015-04-06T21:18:56Z
+    labels:
+      buildconfig: sinatra-example-1
+    name: sinatra-example-1-1
+    namespace: example
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sinatra-example-1:latest
+    resources: {}
+    source:
+      git:
+        uri: git://github.com/mfojtik/sinatra-example-1
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+      type: Source
+  status:
+    phase: Running
+    startTimestamp: 2015-04-06T21:19:03Z
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-2
+    name: sinatra-example-1
+    namespace: example
   spec:
     replicas: 1
     selector:
-      deploymentconfig: sinatra-example-2
+      deploymentconfig: sinatra-example-1
     strategy:
       resources: {}
       type: Recreate
@@ -46,13 +84,13 @@ items:
       metadata:
         creationTimestamp: null
         labels:
-          deploymentconfig: sinatra-example-2
+          deploymentconfig: sinatra-example-1
       spec:
         containers:
         - capabilities: {}
-          image: library/sinatra-example-2:latest
+          image: library/sinatra-example-1:latest
           imagePullPolicy: Always
-          name: sinatra-example-2
+          name: sinatra-example-1
           ports:
           - containerPort: 8080
             name: s-tcp-8080
@@ -69,38 +107,31 @@ items:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - sinatra-example-2
+        - sinatra-example-1
         from:
           kind: ImageStreamTag
-          name: sinatra-example-2:latest
+          name: sinatra-example-1:latest
         lastTriggeredImage: ""
       type: ImageChange
   status: {}
 - apiVersion: v1
-  kind: ImageStream
-  metadata:
-    creationTimestamp: 2015-04-06T21:18:56Z
-    name: sinatra-example-2
-  spec: {}
-  status:
-    dockerImageRepository: ""
-- apiVersion: v1
   kind: Service
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
-    name: sinatra-example-2
+    name: sinatra-example-1
+    namespace: example
   spec:
+    portalIP: 172.30.17.47
     ports:
     - nodePort: 0
       port: 8080
       protocol: TCP
       targetPort: 8080
     selector:
-      deploymentconfig: sinatra-example-2
+      deploymentconfig: sinatra-example-1
     sessionAffinity: None
     type: ClusterIP
   status:
     loadBalancer: {}
 kind: List
-metadata:
-  resourceVersion: "116"
+metadata: {}
