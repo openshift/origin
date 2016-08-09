@@ -10,6 +10,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 const (
@@ -69,9 +70,9 @@ func (i *IsolateOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		// TBD: Create or Update network namespace
-		// TODO: Fix this once we move VNID allocation to REST layer
-		errList = append(errList, fmt.Errorf("Project '%s' can not be isolated. Isolate project network feature yet to be implemented!", project.ObjectMeta.Name))
+		if err = i.Options.UpdatePodNetwork(project.Name, sdnapi.IsolatePodNetwork, ""); err != nil {
+			errList = append(errList, fmt.Errorf("Network isolation for project %q failed, error: %v", project.Name, err))
+		}
 	}
 	return kerrors.NewAggregate(errList)
 }
