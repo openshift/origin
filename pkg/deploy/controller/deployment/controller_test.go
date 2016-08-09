@@ -92,7 +92,7 @@ func okContainer() *kapi.Container {
 	}
 }
 
-// TestHandle_createPodOk ensures that a the deployer pod created in response
+// TestHandle_createPodOk ensures that a deployer pod created in response
 // to a new deployment is valid.
 func TestHandle_createPodOk(t *testing.T) {
 	var (
@@ -189,7 +189,7 @@ func TestHandle_createPodOk(t *testing.T) {
 	}
 }
 
-// TestHandle_createPodFail ensures that an an API failure while creating a
+// TestHandle_createPodFail ensures that an API failure while creating a
 // deployer pod results in a nonfatal error.
 func TestHandle_createPodFail(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
@@ -222,7 +222,7 @@ func TestHandle_createPodFail(t *testing.T) {
 }
 
 // TestHandle_deployerPodAlreadyExists ensures that attempts to create a
-// deployer pod which  was already created don't result in an error
+// deployer pod which was already created don't result in an error
 // (effectively skipping the handling as redundant).
 func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 	tests := []struct {
@@ -334,8 +334,8 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	}
 }
 
-// TestHandle_unrelatedPodAlreadyExists ensures that attempts to create a
-// deployer pod, when a pod with the same name but missing annotations results
+// TestHandle_unrelatedPodAlreadyExistsTestScaled ensures that attempts to create a
+// deployer pod, when a pod with the same name but be scaled to zero results
 // a transition to failed.
 func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
@@ -504,7 +504,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 
 }
 
-// TestHandle_cleanupPodOk ensures that deployer pods are cleaned up for
+// TestHandle_cleanupPodOkTest ensures that deployer pods are cleaned up for
 // deployments in a completed state on test deployment configs, and
 // replicas is set back to zero.
 func TestHandle_cleanupPodOkTest(t *testing.T) {
@@ -554,7 +554,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	}
 }
 
-// TestHandle_cleanupPodNoop ensures that an attempt to delete pods are not made
+// TestHandle_cleanupPodNoop ensures that an attempt to delete pods is not made
 // if the deployer pods are not listed based on a label query
 func TestHandle_cleanupPodNoop(t *testing.T) {
 	fake := &ktestclient.Fake{}
