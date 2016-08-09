@@ -1952,7 +1952,8 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
   ],
   "labels": {
     "template": "mongodb-ephemeral-template"
-  }
+  },
+  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
 }
 `)
 
@@ -2211,7 +2212,8 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
   ],
   "labels": {
     "template": "mongodb-persistent-template"
-  }
+  },
+  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
 }
 `)
 
