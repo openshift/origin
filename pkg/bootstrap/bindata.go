@@ -1468,7 +1468,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MariaDB Connection Username",
       "description": "Username for MariaDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -1476,15 +1476,15 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MariaDB user.",
+      "displayName": "MariaDB Connection Password",
+      "description": "Password for the MariaDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
     },
     {
       "name": "MYSQL_DATABASE",
-      "displayName": "MySQL Database Name",
+      "displayName": "MariaDB Database Name",
       "description": "Name of the MariaDB database accessed.",
       "value": "sampledb",
       "required": true
@@ -1686,7 +1686,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MariaDB Connection Username",
       "description": "Username for MariaDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -1694,15 +1694,15 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MariaDB user.",
+      "displayName": "MariaDB Connection Password",
+      "description": "Password for the MariaDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
     },
     {
       "name": "MYSQL_DATABASE",
-      "displayName": "MySQL Database Name",
+      "displayName": "MariaDB Database Name",
       "description": "Name of the MariaDB database accessed.",
       "value": "sampledb",
       "required": true
@@ -1920,7 +1920,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_USER",
-      "displayName": "MongoDB User",
+      "displayName": "MongoDB Connection Username",
       "description": "Username for MongoDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -1928,8 +1928,8 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_PASSWORD",
-      "displayName": "MongoDB Password",
-      "description": "Password for the MongoDB user.",
+      "displayName": "MongoDB Connection Password",
+      "description": "Password for the MongoDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2172,7 +2172,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_USER",
-      "displayName": "MongoDB User",
+      "displayName": "MongoDB Connection Username",
       "description": "Username for MongoDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2180,8 +2180,8 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_PASSWORD",
-      "displayName": "MongoDB Password",
-      "description": "Password for the MongoDB user.",
+      "displayName": "MongoDB Connection Password",
+      "description": "Password for the MongoDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2410,7 +2410,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MySQL Connection Username",
       "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2418,8 +2418,8 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MySQL user.",
+      "displayName": "MySQL Connection Password",
+      "description": "Password for the MySQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2628,7 +2628,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MySQL Connection Username",
       "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2636,8 +2636,8 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MySQL user.",
+      "displayName": "MySQL Connection Password",
+      "description": "Password for the MySQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2858,7 +2858,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_USER",
-      "displayName": "PostgreSQL User",
+      "displayName": "PostgreSQL Connection Username",
       "description": "Username for PostgreSQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2866,8 +2866,8 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "displayName": "PostgreSQL Password",
-      "description": "Password for the PostgreSQL user.",
+      "displayName": "PostgreSQL Connection Password",
+      "description": "Password for the PostgreSQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -3098,7 +3098,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_USER",
-      "displayName": "PostgreSQL User",
+      "displayName": "PostgreSQL Connection Username",
       "description": "Username for PostgreSQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -3106,8 +3106,8 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "displayName": "PostgreSQL Password",
-      "description": "Password for the PostgreSQL user.",
+      "displayName": "PostgreSQL Connection Password",
+      "description": "Password for the PostgreSQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
