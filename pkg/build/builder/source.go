@@ -267,6 +267,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 		Path:         sourceDir,
 	})
 	if err != nil {
+		tempFile.Close()
 		return err
 	}
 	if err := tempFile.Close(); err != nil {
