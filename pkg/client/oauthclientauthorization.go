@@ -15,6 +15,7 @@ type OAuthClientAuthorizationInterface interface {
 	Create(obj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error)
 	List(opts kapi.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error)
 	Get(name string) (*oauthapi.OAuthClientAuthorization, error)
+	Update(obj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error)
 	Delete(name string) error
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 }
@@ -32,6 +33,12 @@ func newOAuthClientAuthorizations(c *Client) *oauthClientAuthorizations {
 func (c *oauthClientAuthorizations) Create(obj *oauthapi.OAuthClientAuthorization) (result *oauthapi.OAuthClientAuthorization, err error) {
 	result = &oauthapi.OAuthClientAuthorization{}
 	err = c.r.Post().Resource("oAuthClientAuthorizations").Body(obj).Do().Into(result)
+	return
+}
+
+func (c *oauthClientAuthorizations) Update(obj *oauthapi.OAuthClientAuthorization) (result *oauthapi.OAuthClientAuthorization, err error) {
+	result = &oauthapi.OAuthClientAuthorization{}
+	err = c.r.Put().Resource("oAuthClientAuthorizations").Name(obj.Name).Body(obj).Do().Into(result)
 	return
 }
 

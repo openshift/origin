@@ -14,22 +14,25 @@ type Mux interface {
 
 // AuthorizeHandler populates an AuthorizeRequest or handles the request itself
 type AuthorizeHandler interface {
-	// HandleAuthorize populates an AuthorizeRequest (typically the Authorized and UserData fields)
-	// and returns false, or writes the response itself and returns true.
-	HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (handled bool, err error)
+	// HandleAuthorize does one of the following:
+	// 1. populates an AuthorizeRequest (typically the Authorized and UserData fields) and returns false
+	// 2. populates the error fields of a Response object and returns false
+	// 3. returns an internal server error and returns false
+	// 4. writes the response itself and returns true
+	HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (handled bool, err error)
 }
 
-type AuthorizeHandlerFunc func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error)
+type AuthorizeHandlerFunc func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error)
 
-func (f AuthorizeHandlerFunc) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
-	return f(ar, w)
+func (f AuthorizeHandlerFunc) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
+	return f(ar, resp, w)
 }
 
 type AuthorizeHandlers []AuthorizeHandler
 
-func (all AuthorizeHandlers) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+func (all AuthorizeHandlers) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 	for _, h := range all {
-		if handled, err := h.HandleAuthorize(ar, w); handled || err != nil {
+		if handled, err := h.HandleAuthorize(ar, resp, w); handled || err != nil {
 			return handled, err
 		}
 	}

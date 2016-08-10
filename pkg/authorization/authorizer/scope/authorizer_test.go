@@ -72,6 +72,18 @@ func TestAuthorize(t *testing.T) {
 			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", NonResourceURL: true, URL: "/api"},
 			expectedCalled: true,
 		},
+		{
+			name:           "user:full covers any resource",
+			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
+			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "update", Resource: "users", ResourceName: "harold"},
+			expectedCalled: true,
+		},
+		{
+			name:           "user:full covers any non-resource",
+			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
+			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "post", NonResourceURL: true, URL: "/foo/bar/baz"},
+			expectedCalled: true,
+		},
 	}
 
 	for _, tc := range testCases {

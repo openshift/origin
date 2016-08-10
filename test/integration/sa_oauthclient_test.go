@@ -2,18 +2,18 @@ package integration
 
 import (
 	"crypto/tls"
-	"encoding/base64"
-	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/http/httputil"
-	"net/url"
-	"regexp"
-	"strings"
+	"reflect"
 	"testing"
 	"time"
 
+	"golang.org/x/net/html"
+
 	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -23,11 +23,12 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	testutil "github.com/openshift/origin/test/util"
+	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -52,6 +53,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		}
 	}))
 	defer oauthServer.Close()
+	redirectURL := oauthServer.URL + "/oauthcallback"
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -74,6 +76,17 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	promptingClient, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		ObjectMeta:            kapi.ObjectMeta{Name: "prompting-client"},
+		Secret:                "prompting-client-secret",
+		RedirectURIs:          []string{redirectURL},
+		GrantMethod:           oauthapi.GrantHandlerPrompt,
+		RespondWithChallenges: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	// get the SA ready with redirect URIs and secret annotations
 	var defaultSA *kapi.ServiceAccount
 
@@ -86,7 +99,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		if defaultSA.Annotations == nil {
 			defaultSA.Annotations = map[string]string{}
 		}
-		defaultSA.Annotations[saoauth.OAuthRedirectURISecretAnnotationPrefix+"one"] = oauthServer.URL
+		defaultSA.Annotations[saoauth.OAuthRedirectURISecretAnnotationPrefix+"one"] = redirectURL
 		defaultSA.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
 		defaultSA, err = clusterAdminKubeClient.ServiceAccounts(projectName).Update(defaultSA)
 		return err
@@ -116,209 +129,315 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	oauthClientConfig := &osincli.ClientConfig{
-		ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-		ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-		AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-		TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-		RedirectUrl:  oauthServer.URL,
-		Scope:        scope.Join([]string{"user:info", "role:edit:" + projectName}),
-		SendClientSecretInParams: true,
+	promptApprovalSuccess := []string{
+		"GET /oauth/authorize",
+		"received challenge",
+		"GET /oauth/authorize",
+		"redirect to /oauth/approve",
+		"form",
+		"POST /oauth/approve",
+		"redirect to /oauth/authorize",
+		"redirect to /oauthcallback",
+		"code",
 	}
-	runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true)
-	clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+	noPromptSuccess := []string{
+		"GET /oauth/authorize",
+		"received challenge",
+		"GET /oauth/authorize",
+		"redirect to /oauthcallback",
+		"code",
+	}
 
-	oauthClientConfig = &osincli.ClientConfig{
-		ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-		ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-		AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-		TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-		RedirectUrl:  oauthServer.URL,
-		Scope:        scope.Join([]string{"user:info", "role:edit:other-ns"}),
-		SendClientSecretInParams: true,
-	}
-	runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, false, false)
-	clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+	// Test with a normal OAuth client
+	{
+		oauthClientConfig := &osincli.ClientConfig{
+			ClientId:                 promptingClient.Name,
+			ClientSecret:             promptingClient.Secret,
+			AuthorizeUrl:             clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:                 clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:              redirectURL,
+			SendClientSecretInParams: true,
+		}
+		t.Log("Testing unrestricted scope")
+		oauthClientConfig.Scope = ""
+		// approval steps are needed for unscoped access
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, promptApprovalSuccess)
+		// verify the persisted client authorization looks like we expect
+		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:" + oauthClientConfig.ClientId); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		} else if !reflect.DeepEqual(clientAuth.Scopes, []string{"user:full"}) {
+			t.Fatalf("Unexpected scopes: %v", clientAuth.Scopes)
+		} else {
+			// update the authorization to not contain any approved scopes
+			clientAuth.Scopes = nil
+			if _, err := clusterAdminClient.OAuthClientAuthorizations().Update(clientAuth); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+		}
+		// approval steps are needed again for unscoped access
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, promptApprovalSuccess)
+		// with the authorization stored, approval steps are skipped
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, noPromptSuccess)
 
-	oauthClientConfig = &osincli.ClientConfig{
-		ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-		ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
-		AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
-		TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
-		RedirectUrl:  oauthServer.URL,
-		Scope:        scope.Join([]string{"user:info"}),
-		SendClientSecretInParams: true,
+		// Approval step is needed again. Second time, the approval steps is not needed
+		t.Log("Testing restricted scope")
+		oauthClientConfig.Scope = "user:info"
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, promptApprovalSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, noPromptSuccess)
+
+		// Now request an unscoped token again, and no approval should be needed
+		t.Log("Testing unrestricted scope")
+		oauthClientConfig.Scope = ""
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, noPromptSuccess)
+
+		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
 	}
-	runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false)
-	clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+
+	{
+		oauthClientConfig := &osincli.ClientConfig{
+			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:  redirectURL,
+			Scope:        scope.Join([]string{"user:info", "role:edit:" + projectName}),
+			SendClientSecretInParams: true,
+		}
+		t.Log("Testing allowed scopes")
+		// First time, the approval steps are needed
+		// Second time, the approval steps are skipped
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, promptApprovalSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, noPromptSuccess)
+		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+	}
+
+	{
+		oauthClientConfig := &osincli.ClientConfig{
+			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:  redirectURL,
+			Scope:        scope.Join([]string{"user:info", "role:edit:other-ns"}),
+			SendClientSecretInParams: true,
+		}
+		t.Log("Testing disallowed scopes")
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, false, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"error:access_denied",
+		})
+		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+	}
+
+	{
+		t.Log("Testing invalid scopes")
+		oauthClientConfig := &osincli.ClientConfig{
+			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:  redirectURL,
+			Scope:        scope.Join([]string{"unknown-scope"}),
+			SendClientSecretInParams: true,
+		}
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, false, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"error:invalid_scope",
+		})
+		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+	}
+
+	{
+		t.Log("Testing allowed scopes with failed API call")
+		oauthClientConfig := &osincli.ClientConfig{
+			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
+			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
+			RedirectUrl:  redirectURL,
+			Scope:        scope.Join([]string{"user:info"}),
+			SendClientSecretInParams: true,
+		}
+		// First time, the approval is needed
+		// Second time, the approval is skipped
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, promptApprovalSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, noPromptSuccess)
+		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+	}
 }
 
-var grantCSRFRegex = regexp.MustCompile(`input type="hidden" name="csrf" value="([^"]*)"`)
-var grantThenRegex = regexp.MustCompile(`input type="hidden" name="then" value="([^"]*)"`)
+func drain(ch chan string) {
+	for {
+		select {
+		case <-ch:
+		default:
+			return
+		}
+	}
+}
 
-func runOAuthFlow(t *testing.T, clusterAdminClientConfig *restclient.Config, projectName string, oauthClientConfig *osincli.ClientConfig, authorizationCodes, authorizationErrors chan string, expectGrantSuccess, expectBuildSuccess bool) {
+type basicAuthTransport struct {
+	rt       http.RoundTripper
+	username string
+	password string
+}
+
+func (b *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if len(b.username) > 0 || len(b.password) > 0 {
+		req.SetBasicAuth(b.username, b.password)
+	}
+	return b.rt.RoundTrip(req)
+}
+
+func runOAuthFlow(
+	t *testing.T,
+	clusterAdminClientConfig *restclient.Config,
+	projectName string,
+	oauthClientConfig *osincli.ClientConfig,
+	authorizationCodes chan string,
+	authorizationErrors chan string,
+	expectGrantSuccess bool,
+	expectBuildSuccess bool,
+	expectOperations []string,
+) {
+	drain(authorizationCodes)
+	drain(authorizationErrors)
+
 	oauthRuntimeClient, err := osincli.NewClient(oauthClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	oauthRuntimeClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
+	testTransport := &basicAuthTransport{rt: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+	oauthRuntimeClient.Transport = testTransport
 
-	directHTTPClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	// make sure we're prompted for a password
 	authorizeRequest := oauthRuntimeClient.NewAuthorizeRequest(osincli.CODE)
-	authorizeURL := authorizeRequest.GetAuthorizeUrlWithParams("opaque-scope")
-	authorizeHTTPRequest, err := http.NewRequest("GET", authorizeURL.String(), nil)
+	req, err := http.NewRequest("GET", authorizeRequest.GetAuthorizeUrlWithParams("opaque-state").String(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	authorizeHTTPRequest.Header.Add("X-CSRF-Token", "csrf-01")
-	authorizeResponse, err := directHTTPClient.Do(authorizeHTTPRequest)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if authorizeResponse.StatusCode != http.StatusUnauthorized {
-		response, _ := httputil.DumpResponse(authorizeResponse, true)
-		t.Fatalf("didn't get an unauthorized:\n %v", string(response))
 	}
 
-	// first we should get a redirect to a grant flow
-	authenticatedAuthorizeHTTPRequest1, err := http.NewRequest("GET", authorizeURL.String(), nil)
-	authenticatedAuthorizeHTTPRequest1.Header.Add("X-CSRF-Token", "csrf-01")
-	authenticatedAuthorizeHTTPRequest1.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("harold:any-pass")))
-	authentictedAuthorizeResponse1, err := directHTTPClient.Transport.RoundTrip(authenticatedAuthorizeHTTPRequest1)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if authentictedAuthorizeResponse1.StatusCode != http.StatusFound {
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse1, true)
-		t.Fatalf("unexpected status :\n %v", string(response))
+	operations := []string{}
+	jar, _ := cookiejar.New(nil)
+	directHTTPClient := &http.Client{
+		Transport: testTransport,
+		CheckRedirect: func(redirectReq *http.Request, via []*http.Request) error {
+			glog.Infof("302 Location: %s", redirectReq.URL.String())
+			req = redirectReq
+			operations = append(operations, "redirect to "+redirectReq.URL.Path)
+			return nil
+		},
+		Jar: jar,
 	}
 
-	// second we get a webpage with a prompt.  Yeah, this next bit gets nasty
-	authenticatedAuthorizeHTTPRequest2, err := http.NewRequest("GET", clusterAdminClientConfig.Host+authentictedAuthorizeResponse1.Header.Get("Location"), nil)
-	authenticatedAuthorizeHTTPRequest2.Header.Add("X-CSRF-Token", "csrf-01")
-	authenticatedAuthorizeHTTPRequest2.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("harold:any-pass")))
-	authentictedAuthorizeResponse2, err := directHTTPClient.Transport.RoundTrip(authenticatedAuthorizeHTTPRequest2)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if authentictedAuthorizeResponse2.StatusCode != http.StatusOK {
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse2, true)
-		t.Fatalf("unexpected status :\n %v", string(response))
-	}
-	// have to parse the page to get the csrf value.  Yeah, that's nasty, I can't think of another way to do it without creating a new grant handler
-	body, err := ioutil.ReadAll(authentictedAuthorizeResponse2.Body)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !expectGrantSuccess {
-		if !strings.Contains(string(body), "requested illegal scopes") {
-			t.Fatalf("missing expected message: %v", string(body))
+	for {
+		glog.Infof("%s %s", req.Method, req.URL.String())
+		operations = append(operations, req.Method+" "+req.URL.Path)
+
+		// Always set the csrf header
+		req.Header.Set("X-CSRF-Token", "1")
+		resp, err := directHTTPClient.Do(req)
+		if err != nil {
+			glog.Infof("%#v", operations)
+			glog.Infof("%#v", jar)
+			glog.Errorf("Error %v\n%#v\n%#v", err, err, resp)
+			t.Errorf("Error %v\n%#v\n%#v", err, err, resp)
+			return
 		}
-		return
-	}
-	csrfMatches := grantCSRFRegex.FindStringSubmatch(string(body))
-	if len(csrfMatches) != 2 {
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse2, false)
-		t.Fatalf("unexpected body :\n %v\n%v", string(response), string(body))
-	}
-	thenMatches := grantThenRegex.FindStringSubmatch(string(body))
-	if len(thenMatches) != 2 {
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse2, false)
-		t.Fatalf("unexpected body :\n %v\n%v", string(response), string(body))
-	}
-	t.Logf("CSRF is %v", csrfMatches)
-	t.Logf("then is %v", thenMatches)
+		defer resp.Body.Close()
 
-	// third we respond and approve the grant, then let the transport follow redirects and give us the code
-	postBody := strings.NewReader(url.Values(map[string][]string{
-		"then":         {thenMatches[1]},
-		"csrf":         {csrfMatches[1]},
-		"client_id":    {oauthClientConfig.ClientId},
-		"user_name":    {"harold"},
-		"scopes":       {oauthClientConfig.Scope},
-		"redirect_uri": {clusterAdminClientConfig.Host},
-		"approve":      {"true"},
-	}).Encode())
-	authenticatedAuthorizeHTTPRequest3, err := http.NewRequest("POST", clusterAdminClientConfig.Host+origin.OpenShiftApprovePrefix, postBody)
-	authenticatedAuthorizeHTTPRequest3.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	authenticatedAuthorizeHTTPRequest3.Header.Add("X-CSRF-Token", csrfMatches[1])
-	authenticatedAuthorizeHTTPRequest3.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("harold:any-pass")))
-	for i := range authentictedAuthorizeResponse2.Cookies() {
-		cookie := authentictedAuthorizeResponse2.Cookies()[i]
-		authenticatedAuthorizeHTTPRequest3.AddCookie(cookie)
-	}
-	authentictedAuthorizeResponse3, err := directHTTPClient.Transport.RoundTrip(authenticatedAuthorizeHTTPRequest3)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if authentictedAuthorizeResponse3.StatusCode != http.StatusFound {
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse3, true)
-		t.Fatalf("unexpected status :\n %v", string(response))
-	}
+		// Save the current URL for reference
+		currentURL := req.URL
 
-	// fourth, the grant redirects us again to have us send the code to the server
-	authenticatedAuthorizeHTTPRequest4, err := http.NewRequest("GET", clusterAdminClientConfig.Host+authentictedAuthorizeResponse3.Header.Get("Location"), nil)
-	authenticatedAuthorizeHTTPRequest4.Header.Add("X-CSRF-Token", "csrf-01")
-	authenticatedAuthorizeHTTPRequest4.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("harold:any-pass")))
-	authentictedAuthorizeResponse4, err := directHTTPClient.Transport.RoundTrip(authenticatedAuthorizeHTTPRequest4)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if authentictedAuthorizeResponse4.StatusCode != http.StatusFound {
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse4, true)
-		t.Fatalf("unexpected status :\n %v", string(response))
-	}
+		if resp.StatusCode == 401 {
+			// Set up a username and password once we're challenged
+			testTransport.username = "harold"
+			testTransport.password = "any-pass"
+			operations = append(operations, "received challenge")
+			continue
+		}
 
-	authenticatedAuthorizeHTTPRequest5, err := http.NewRequest("GET", authentictedAuthorizeResponse4.Header.Get("Location"), nil)
-	authenticatedAuthorizeHTTPRequest5.Header.Add("X-CSRF-Token", "csrf-01")
-	authenticatedAuthorizeHTTPRequest5.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("harold:any-pass")))
-	authentictedAuthorizeResponse5, err := directHTTPClient.Do(authenticatedAuthorizeHTTPRequest5)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		if resp.StatusCode != 200 {
+			responseDump, _ := httputil.DumpResponse(resp, true)
+			t.Errorf("Unexpected response %s", string(responseDump))
+			return
+		}
+
+		doc, err := html.Parse(resp.Body)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		forms := htmlutil.GetElementsByTagName(doc, "form")
+		// if there's a single form, submit it
+		if len(forms) > 1 {
+			t.Errorf("More than one form encountered: %d", len(forms))
+			return
+		}
+		if len(forms) == 0 {
+			break
+		}
+		req, err = htmlutil.NewRequestFromForm(forms[0], currentURL)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		operations = append(operations, "form")
 	}
 
 	authorizationCode := ""
 	select {
 	case authorizationCode = <-authorizationCodes:
-	case <-time.After(10 * time.Second):
-		response, _ := httputil.DumpResponse(authentictedAuthorizeResponse5, true)
-		t.Fatalf("didn't get a code:\n %v", string(response))
+		operations = append(operations, "code")
+	case authorizationError := <-authorizationErrors:
+		operations = append(operations, "error:"+authorizationError)
+	case <-time.After(5 * time.Second):
+		t.Error("didn't get a code or an error")
 	}
 
-	accessRequest := oauthRuntimeClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, &osincli.AuthorizeData{Code: authorizationCode})
-	accessData, err := accessRequest.GetToken()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if !reflect.DeepEqual(operations, expectOperations) {
+		t.Errorf("Expected:\n%v\nGot\n%v", expectOperations, operations)
 	}
 
-	whoamiConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
-	whoamiConfig.BearerToken = accessData.AccessToken
-	whoamiClient, err := client.New(&whoamiConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	if len(authorizationCode) > 0 {
+		accessRequest := oauthRuntimeClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, &osincli.AuthorizeData{Code: authorizationCode})
+		accessData, err := accessRequest.GetToken()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
 
-	if _, err := whoamiClient.Builds(projectName).List(kapi.ListOptions{}); !kapierrors.IsForbidden(err) && !expectBuildSuccess {
-		t.Fatalf("unexpected error: %v", err)
-	}
+		whoamiConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+		whoamiConfig.BearerToken = accessData.AccessToken
+		whoamiClient, err := client.New(&whoamiConfig)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
 
-	user, err := whoamiClient.Users().Get("~")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if user.Name != "harold" {
-		t.Fatalf("expected %v, got %v", "harold", user.Name)
+		_, err = whoamiClient.Builds(projectName).List(kapi.ListOptions{})
+		if expectBuildSuccess && err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
+		if !expectBuildSuccess && !kapierrors.IsForbidden(err) {
+			t.Errorf("expected forbidden error, got %v", err)
+			return
+		}
+
+		user, err := whoamiClient.Users().Get("~")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
+		if user.Name != "harold" {
+			t.Errorf("expected %v, got %v", "harold", user.Name)
+			return
+		}
 	}
 }

@@ -26,7 +26,7 @@ func NewAuthorizeAuthenticator(request authenticator.Request, handler Authentica
 // HandleAuthorize implements osinserver.AuthorizeHandler to ensure the AuthorizeRequest is authenticated.
 // If the request is authenticated, UserData and Authorized are set and false is returned.
 // If the request is not authenticated, the auth handler is called and the request is not authorized
-func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 	info, ok, err := h.request.AuthenticateRequest(ar.HttpRequest)
 	if err != nil {
 		glog.V(4).Infof("OAuth authentication error: %v", err)
