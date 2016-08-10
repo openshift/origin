@@ -45,7 +45,7 @@ Upon receiving network traffic, the services (and any associated routes) will "w
 associated resources by scaling them back up to their previous scale.`
 
 	idleExample = `  # Idle the scalable controllers associated with the services listed in to-idle.txt
-  $ %[1]s idle -f to-idle.txt`
+  $ %[1]s idle --resource-names-file to-idle.txt`
 )
 
 // NewCmdStatus implements the OpenShift cli status command
