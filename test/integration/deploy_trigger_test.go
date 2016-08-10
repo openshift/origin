@@ -562,14 +562,6 @@ func TestTriggers_configChange(t *testing.T) {
 	assertEnvVarEquals("ENV1", "VAL1", deployment, t)
 
 	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		// submit a new config with an updated environment variable
-		config, err := osClient.DeploymentConfigs(namespace).Generate(config.Name)
-		if err != nil {
-			return err
-		}
-
-		config.Spec.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
-
 		// before we update the config, we need to update the state of the existing deployment
 		// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
 		// get this live or conflicts will never end up resolved
@@ -588,12 +580,22 @@ func TestTriggers_configChange(t *testing.T) {
 			t.Fatalf("expected watch event type %s, got %s", e, a)
 		}
 
-		if _, err := osClient.DeploymentConfigs(namespace).Update(config); err != nil {
-			return err
-		}
 		return nil
 	})
 	if retryErr != nil {
+		t.Fatal(retryErr)
+	}
+
+	if retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		// submit a new config with an updated environment variable
+		newConfig, err := osClient.DeploymentConfigs(namespace).Get(config.Name)
+		if err != nil {
+			return err
+		}
+		newConfig.Spec.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
+		_, err = osClient.DeploymentConfigs(namespace).Update(newConfig)
+		return err
+	}); retryErr != nil {
 		t.Fatal(retryErr)
 	}
 
