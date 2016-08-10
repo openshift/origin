@@ -64,14 +64,14 @@ verify: build
 	hack/verify-upstream-commits.sh
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
+	hack/verify-generated-bootstrap-bindata.sh
 	hack/verify-generated-deep-copies.sh
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-clientsets.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
-	hack/verify-generated-swagger-spec.sh
-	hack/verify-bootstrap-bindata.sh
 	hack/verify-generated-swagger-descriptions.sh
+	hack/verify-generated-swagger-spec.sh
 .PHONY: verify
 
 # Update all generated artifacts.
@@ -79,13 +79,14 @@ verify: build
 # Example:
 #   make update
 update: build
-	hack/update-generated-completions.sh
-	hack/update-generated-conversions.sh
+	hack/update-generated-bootstrap-bindata.sh
 	hack/update-generated-deep-copies.sh
+	hack/update-generated-conversions.sh
+	hack/update-generated-clientsets.sh
+	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
-	hack/update-generated-clientsets.sh
 .PHONY: update
 
 # Run unit tests.
