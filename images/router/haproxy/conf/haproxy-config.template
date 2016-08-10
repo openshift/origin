@@ -39,7 +39,12 @@ defaults
   option httplog
   log global
 {{ end }}
-  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_TIMEOUT" "")) }}
+  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "" }}
+{{ else }}
+  timeout http-request 10s
+{{ end }}
+  timeout http-keep-alive 30s
   timeout connect 5s
   timeout client 30s
   timeout server 30s
