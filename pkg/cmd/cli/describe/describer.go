@@ -640,9 +640,7 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.De
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
-		if len(imageStream.Spec.DockerImageRepository) > 0 {
-			formatString(out, "Imported From", imageStream.Spec.DockerImageRepository)
-		}
+		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
 		formatImageStreamTags(out, imageStream)
 		return nil
 	})
