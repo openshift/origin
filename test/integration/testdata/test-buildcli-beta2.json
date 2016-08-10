@@ -49,7 +49,6 @@
               "kind": "ImageStreamTag",
               "name": "ruby-22-centos-buildcli:valid"
             },
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-22-centos/master/.sti/bin",
             "incremental": true
           }
         },
@@ -92,7 +91,6 @@
               "kind": "ImageStreamTag",
               "name": "ruby-22-centos-buildcli:invalid"
             },
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-22-centos/master/.sti/bin",
             "incremental": true
           }
         },

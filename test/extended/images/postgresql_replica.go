@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	postgreSQLReplicationTemplate = "https://raw.githubusercontent.com/openshift/postgresql/master/examples/replica/postgresql_replica.json"
+	postgreSQLReplicationTemplate = "https://raw.githubusercontent.com/sclorg/postgresql-container/master/examples/replica/postgresql_replica.json"
 	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
 	postgreSQLHelperName          = "postgresql-helper"
 	postgreSQLImages              = []string{
