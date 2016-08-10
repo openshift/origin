@@ -253,7 +253,15 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 
 	decoder := f.Decoder(true)
 	err = o.svcBuilder.Do().Visit(func(info *resource.Info, err error) error {
-		endpoints := info.Object.(*api.Endpoints)
+		if err != nil {
+			return err
+		}
+
+		endpoints, isEndpoints := info.Object.(*api.Endpoints)
+		if !isEndpoints {
+			return fmt.Errorf("you must specify endpoints, not %vs", info.Mapping.Resource)
+		}
+
 		endpointsName := types.NamespacedName{
 			Namespace: endpoints.Namespace,
 			Name:      endpoints.Name,
