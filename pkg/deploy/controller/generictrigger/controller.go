@@ -213,6 +213,7 @@ func (c *DeploymentTriggerController) update(config *deployapi.DeploymentConfig,
 		config.Status.Details.Message = "caused by an image change"
 	}
 	_, err := c.dn.DeploymentConfigs(config.Namespace).UpdateStatus(config)
+	glog.V(5).Infof("Failed to update deployment config %s/%s status %+#v: %v", config.Namespace, config.Name, config.Status, err)
 	return err
 }
 
