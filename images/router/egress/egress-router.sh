@@ -15,23 +15,31 @@ if [ -z "${EGRESS_GATEWAY}" ]; then
     exit 1
 fi
 
+if [ -z "${EGRESS_OUT_IF}" ]; then
+    EGRESS_OUT_IF="eth0"
+fi
+
+if [ -z "${EGRESS_LOCAL_IF}" ]; then
+    EGRESS_LOCAL_IF="macvlan0"
+fi
+
 # The pod may die and get restarted; only try to add the
 # address/route/rules if they are not already there.
-if ! ip route get ${EGRESS_DESTINATION} | grep -q macvlan0; then
-    ip addr add ${EGRESS_SOURCE}/32 dev macvlan0
-    ip link set up dev macvlan0
-    ip route add ${EGRESS_GATEWAY}/32 dev macvlan0
-    ip route add ${EGRESS_DESTINATION}/32 via ${EGRESS_GATEWAY} dev macvlan0
+if ! ip route get ${EGRESS_DESTINATION} | grep -q ${EGRESS_LOCAL_IF}; then
+    ip addr add ${EGRESS_SOURCE}/32 dev ${EGRESS_LOCAL_IF}
+    ip link set up dev ${EGRESS_LOCAL_IF}
+    ip route add ${EGRESS_GATEWAY}/32 dev ${EGRESS_LOCAL_IF}
+    ip route add ${EGRESS_DESTINATION}/32 via ${EGRESS_GATEWAY} dev ${EGRESS_LOCAL_IF}
 
-    iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination ${EGRESS_DESTINATION}
+    iptables -t nat -A PREROUTING -i ${EGRESS_OUT_IF} -j DNAT --to-destination ${EGRESS_DESTINATION}
     iptables -t nat -A POSTROUTING -j SNAT --to-source ${EGRESS_SOURCE}
 fi
 
 # Update neighbor ARP caches in case another node previously had the IP. (This is
 # the same code ifup uses.)
-arping -q -A -c 1 -I macvlan0 ${EGRESS_SOURCE}
+arping -q -A -c 1 -I ${EGRESS_LOCAL_IF} ${EGRESS_SOURCE}
 ( sleep 2;
-  arping -q -U -c 1 -I macvlan0 ${EGRESS_SOURCE} || true ) > /dev/null 2>&1 < /dev/null &
+  arping -q -U -c 1 -I ${EGRESS_LOCAL_IF} ${EGRESS_SOURCE} || true ) > /dev/null 2>&1 < /dev/null &
 
 # Now we just wait until we are killed...
 #
