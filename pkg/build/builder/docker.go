@@ -169,7 +169,7 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	if err != nil {
 		return err
 	}
-
+	defer f.Close()
 	// Parse the Dockerfile.
 	node, err := parser.Parse(f)
 	if err != nil {
@@ -270,6 +270,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 	if err != nil {
 		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)
 	}
+	defer r.Close()
 	return docker.NewAuthConfigurations(r)
 
 }

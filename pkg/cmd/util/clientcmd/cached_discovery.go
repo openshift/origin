@@ -99,7 +99,7 @@ func (d *CachedDiscoveryClient) getCachedFile(filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	defer file.Close()
 	fileInfo, err := file.Stat()
 	if err != nil {
 		return nil, err

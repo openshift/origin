@@ -27,7 +27,7 @@ func TestNodeConfigNonTLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to read %v", configDirName)
 	}
-
+	defer configDir.Close()
 	fileNameSlice, err := configDir.Readdirnames(0)
 	if err != nil {
 		t.Fatalf("unable to read %v", configDirName)
@@ -53,7 +53,7 @@ func TestNodeConfigTLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to read %v", configDirName)
 	}
-
+	defer configDir.Close()
 	fileNameSlice, err := configDir.Readdirnames(0)
 	if err != nil {
 		t.Fatalf("unable to read %v", configDirName)
