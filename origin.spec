@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 67b7a77f7159982fd2ab925769e54e0f7801cb21
+%global commit db5beb0c8c036090863e203c5cf52703bb1a053d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.16+67b7a77 -X github.com/openshift/origin/pkg/version.commitFromGit=67b7a77 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-08T14:48:07Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-08T14:48:07Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.17+db5beb0 -X github.com/openshift/origin/pkg/version.commitFromGit=db5beb0 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-10T14:35:14Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-10T14:35:14Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 # os_git_vars needed to run hack scripts during rpm builds
 # TODO Automatically generate these using tito
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.17
+Version:        3.3.0.18
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -504,6 +504,49 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Aug 10 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.18
+- Merge remote-tracking branch upstream/master, bump origin-web-console 4a118e0
+  (tdawson@redhat.com)
+- Fix test compile error (jliggitt@redhat.com)
+- Add scope representing full user permissions, default token requests with
+  unspecified scope (jliggitt@redhat.com)
+- make build API validation compile (deads@redhat.com)
+- Fix openshift/origin-release:golang-1.4 image (agoldste@redhat.com)
+- Clean up test etcd data in test loops (jliggitt@redhat.com)
+- UPSTREAM: 29212: hpa: ignore scale targets whose replica count is 0
+  (sross@redhat.com)
+- Make HAProxy Router Aware of Idled Services (sross@redhat.com)
+- Introduce the Unidler Socket (sross@redhat.com)
+- Add the `oc idle` command (sross@redhat.com)
+- Introduce Unidling Controller (sross@redhat.com)
+- Introduce the Hybrid Proxy (sross@redhat.com)
+- Changed the userspace proxy to remove conntrack entries (bbennett@redhat.com)
+- Fork Kubernetes Userspace Proxy (sross@redhat.com)
+- Recognize gzipped empty layer when marking parents in oadm top images
+  (maszulik@redhat.com)
+- fix typo in deployment (wang.yuexiao@zte.com.cn)
+- Add link for details on controlling Docker options with systemd
+  (vichoudh@redhat.com)
+- Support network ingress on arbitrary ports (marun@redhat.com)
+- Use a consistent process for the official release (ccoleman@redhat.com)
+- Add MongoDB connection URL to template message (spadgett@redhat.com)
+- The docker-builder url is not found (yu.peng36@zte.com.cn)
+- fix rpm spec file to properly build man pages dynamically
+  (tdawson@redhat.com)
+- Make import image more efficient (miminar@redhat.com)
+- Remove allocated IPs from app-scenarios test data (jliggitt@redhat.com)
+- Isolate graph test data (jliggitt@redhat.com)
+- Bug 1281735 - remove the internal docker registry information from
+  imagestream (maszulik@redhat.com)
+- Add more info for test case (zhao.xiangpeng@zte.com.cn)
+- change "timeout server" to "timeout tunnel" for pass through routes
+  (jtanenba@redhat.com)
+- Drop the SDN endpoint filter pod watch (danw@redhat.com)
+- support for defaulting s2i incremental field at the cluster level
+  (bparees@redhat.com)
+- display build config dependencies more explicitly in oc status; also note
+  input images have scheduled imports (gmontero@redhat.com)
+
 * Mon Aug 08 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.17
 - Bump origin-web-console (5ae75bb) (jforrest@redhat.com)
 - update help and option suggestions on cmds acting as root cmd
