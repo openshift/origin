@@ -34,7 +34,7 @@ var (
 	imageColumns            = []string{"NAME", "DOCKER REF"}
 	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
+	imageStreamColumns      = []string{"NAME", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "TERMINATION", "LABELS"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
@@ -434,11 +434,7 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kctl.Print
 			return err
 		}
 	}
-	repo := stream.Spec.DockerImageRepository
-	if len(repo) == 0 {
-		repo = stream.Status.DockerImageRepository
-	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, repo, tags, latestTime); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s", name, tags, latestTime); err != nil {
 		return err
 	}
 	if err := appendItemLabels(stream.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
