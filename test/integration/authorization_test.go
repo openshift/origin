@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -26,6 +27,63 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
+
+func prettyPrintAction(act *authorizationapi.Action, defaultNamespaceStr string) string {
+	nsStr := fmt.Sprintf("in namespace %q", act.Namespace)
+	if act.Namespace == "" {
+		nsStr = defaultNamespaceStr
+	}
+
+	var resourceStr string
+	if act.Group == "" && act.Version == "" {
+		resourceStr = act.Resource
+	} else {
+		groupVer := kunvapi.GroupVersion{Group: act.Group, Version: act.Version}
+		resourceStr = fmt.Sprintf("%s/%s", act.Resource, groupVer.String())
+	}
+
+	var base string
+	if act.ResourceName == "" {
+		base = fmt.Sprintf("who can %s %s %s", act.Verb, resourceStr, nsStr)
+	} else {
+		base = fmt.Sprintf("who can %s the %s named %q %s", act.Verb, resourceStr, act.ResourceName, nsStr)
+	}
+
+	if act.Content != nil {
+		return fmt.Sprintf("%s with content %#v", base, act.Content)
+	}
+
+	return base
+}
+
+func prettyPrintReviewResponse(resp *authorizationapi.ResourceAccessReviewResponse) string {
+	nsStr := fmt.Sprintf("(in the namespace %q)\n", resp.Namespace)
+	if resp.Namespace == "" {
+		nsStr = "(in all namespaces)\n"
+	}
+
+	var usersStr string
+	if resp.Users.Len() > 0 {
+		userStrList := make([]string, 0, len(resp.Users))
+		for userName := range resp.Users {
+			userStrList = append(userStrList, fmt.Sprintf("    - %s\n", userName))
+		}
+
+		usersStr = fmt.Sprintf("  users:\n%s", strings.Join(userStrList, ""))
+	}
+
+	var groupsStr string
+	if resp.Groups.Len() > 0 {
+		groupStrList := make([]string, 0, len(resp.Groups))
+		for groupName := range resp.Groups {
+			groupStrList = append(groupStrList, fmt.Sprintf("    - %s\n", groupName))
+		}
+
+		groupsStr = fmt.Sprintf("  groups:\n%s", strings.Join(groupStrList, ""))
+	}
+
+	return fmt.Sprintf(nsStr + usersStr + groupsStr)
+}
 
 func TestClusterReaderCoverage(t *testing.T) {
 	testutil.RequireEtcd(t)
@@ -277,6 +335,9 @@ var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:m
 var globalClusterReaderUsers = sets.NewString("system:serviceaccount:openshift-infra:namespace-controller", "system:admin")
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
 
+// this list includes any other users who can get DeploymentConfigs
+var globalDeploymentConfigGetterUsers = sets.NewString("system:serviceaccount:openshift-infra:unidling-controller")
+
 type resourceAccessReviewTest struct {
 	description     string
 	clientInterface client.ResourceAccessReviewInterface
@@ -313,7 +374,7 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 			!reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) ||
 			!reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) ||
 			actualResponse.EvaluationError != test.response.EvaluationError {
-			failMessage = fmt.Sprintf("%s: %#v: expected %#v, got %#v", test.description, test.review, test.response, actualResponse)
+			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in any namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
 		}
 
@@ -366,7 +427,7 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 			!reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) ||
 			!reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) ||
 			actualResponse.EvaluationError != test.response.EvaluationError {
-			failMessage = fmt.Sprintf("%s: %#v: expected %#v, got %#v", test.description, test.review, test.response, actualResponse)
+			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in the current namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
 		}
 
@@ -451,6 +512,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -466,6 +528,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -493,6 +556,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -513,6 +577,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}

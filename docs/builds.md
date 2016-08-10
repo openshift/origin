@@ -81,7 +81,7 @@ Source-to-images (s2i) is a tool for building reproducible Docker images. It pro
 ### Custom Builds
 
 The custom build strategy is very similar to *Docker build* strategy, but users might
-customize the builder image that will be used for build execution. The *Docker build* uses [openshift/docker-builder](https://registry.hub.docker.com/u/openshift/docker-builder/) image by default. Using your own builder image allows you to customize your build process.
+customize the builder image that will be used for build execution. The *Docker build* uses [openshift/origin-docker-builder](https://hub.docker.com/r/openshift/origin-docker-builder/) image by default. Using your own builder image allows you to customize your build process.
 
 An example JSON of a custom build strategy:
 

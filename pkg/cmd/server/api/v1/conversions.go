@@ -130,6 +130,12 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			if obj.AuthConfig.AuthorizationCacheSize == 0 {
 				obj.AuthConfig.AuthorizationCacheSize = 1000
 			}
+
+			// EnableUnidling by default
+			if obj.EnableUnidling == nil {
+				v := true
+				obj.EnableUnidling = &v
+			}
 		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {
@@ -317,6 +323,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		},
 
 		api.Convert_resource_Quantity_To_resource_Quantity,
+		api.Convert_bool_To_Pointer_bool,
+		api.Convert_Pointer_bool_To_bool,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

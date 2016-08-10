@@ -35,6 +35,7 @@ dnsDomain: ""
 dnsIP: ""
 dockerConfig:
   execHandlerName: ""
+enableUnidling: false
 imageConfig:
   format: ""
   latest: false
@@ -199,6 +200,7 @@ networkConfig:
   clusterNetworkCIDR: ""
   externalIPNetworkCIDRs: null
   hostSubnetLength: 0
+  ingressIPNetworkCIDR: ""
   networkPluginName: ""
   serviceNetworkCIDR: ""
 oauthConfig:

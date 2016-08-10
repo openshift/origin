@@ -665,7 +665,7 @@ func validateRuntimeImage(sourceStrategy *buildapi.SourceBuildStrategy, fldPath 
 		return append(allErrs, field.Required(fldPath, "name"))
 	}
 
-	if sourceStrategy.Incremental {
+	if sourceStrategy.Incremental != nil && *sourceStrategy.Incremental {
 		return append(allErrs, field.Invalid(fldPath, sourceStrategy.Incremental, "incremental cannot be set to true with extended builds"))
 	}
 	return

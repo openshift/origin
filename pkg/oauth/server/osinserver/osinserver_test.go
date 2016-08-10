@@ -22,7 +22,7 @@ func TestClientCredentialFlow(t *testing.T) {
 	oauthServer := New(
 		NewDefaultServerConfig(),
 		storage,
-		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 			ar.Authorized = true
 			return false, nil
 		}),
@@ -65,7 +65,7 @@ func TestAuthorizeStartFlow(t *testing.T) {
 	oauthServer := New(
 		NewDefaultServerConfig(),
 		storage,
-		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+		AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 			ar.Authorized = true
 			return false, nil
 		}),

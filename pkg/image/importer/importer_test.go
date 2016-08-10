@@ -38,8 +38,9 @@ func TestImport(t *testing.T) {
 	}
 	insecureRetriever := &mockRetriever{
 		repo: &mockRepository{
-			getTagErr: fmt.Errorf("no such tag"),
-			getErr:    fmt.Errorf("no such digest"),
+			getTagErr:   fmt.Errorf("no such tag"),
+			getByTagErr: fmt.Errorf("no such manifest tag"),
+			getErr:      fmt.Errorf("no such digest"),
 		},
 	}
 	testCases := []struct {
@@ -65,8 +66,9 @@ func TestImport(t *testing.T) {
 		{
 			retriever: &mockRetriever{
 				repo: &mockRepository{
-					getTagErr: fmt.Errorf("no such tag"),
-					getErr:    fmt.Errorf("no such digest"),
+					getTagErr:   fmt.Errorf("no such tag"),
+					getByTagErr: fmt.Errorf("no such manifest tag"),
+					getErr:      fmt.Errorf("no such digest"),
 				},
 			},
 			isi: api.ImageStreamImport{
@@ -80,7 +82,7 @@ func TestImport(t *testing.T) {
 				},
 			},
 			expect: func(isi *api.ImageStreamImport, t *testing.T) {
-				if !expectStatusError(isi.Status.Images[0].Status, "Internal error occurred: no such tag") {
+				if !expectStatusError(isi.Status.Images[0].Status, "Internal error occurred: no such manifest tag") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[0].Status)
 				}
 				if !expectStatusError(isi.Status.Images[1].Status, "Internal error occurred: no such digest") {
@@ -167,7 +169,8 @@ func TestImport(t *testing.T) {
 						"3.1":   "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
 						"abc":   "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
 					},
-					getTagErr: fmt.Errorf("no such tag"),
+					getTagErr:   fmt.Errorf("no such tag"),
+					getByTagErr: fmt.Errorf("no such manifest tag"),
 				},
 			},
 			isi: api.ImageStreamImport{
@@ -186,7 +189,7 @@ func TestImport(t *testing.T) {
 				}
 				expectedTags := []string{"3", "v2", "v1", "3.1", "abc"}
 				for i, image := range isi.Status.Repository.Images {
-					if image.Status.Status != unversioned.StatusFailure || image.Status.Message != "Internal error occurred: no such tag" {
+					if image.Status.Status != unversioned.StatusFailure || image.Status.Message != "Internal error occurred: no such manifest tag" {
 						t.Errorf("unexpected status %d: %#v", i, isi.Status.Repository.Images)
 					}
 					if image.Tag != expectedTags[i] {

@@ -289,7 +289,7 @@ backend be_tcp_{{$cfgIdx}}
     {{ end }}
     {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
-  timeout server  {{$value}}
+  timeout tunnel  {{$value}}
       {{ end }}
     {{ end }}
   hash-type consistent

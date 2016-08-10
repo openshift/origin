@@ -37,7 +37,7 @@ func (r *mockRetriever) Repository(ctx gocontext.Context, registry *url.URL, rep
 }
 
 type mockRepository struct {
-	repoErr, getErr, getTagErr, tagErr, untagErr, allTagErr, err error
+	repoErr, getErr, getByTagErr, getTagErr, tagErr, untagErr, allTagErr, err error
 
 	blobs *mockBlobStore
 
@@ -59,6 +59,11 @@ func (r *mockRepository) Exists(ctx context.Context, dgst digest.Digest) (bool, 
 	return false, r.getErr
 }
 func (r *mockRepository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+	for _, option := range options {
+		if _, ok := option.(distribution.WithTagOption); ok {
+			return r.manifest, r.getByTagErr
+		}
+	}
 	return r.manifest, r.getErr
 }
 func (r *mockRepository) Delete(ctx context.Context, dgst digest.Digest) error {

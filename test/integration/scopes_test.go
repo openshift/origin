@@ -58,7 +58,7 @@ func TestScopedTokens(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
 		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
-		Scopes:     []string{scope.UserIndicator + scope.UserInfo},
+		Scopes:     []string{scope.UserInfo},
 		UserName:   userName,
 		UserUID:    string(haroldUser.UID),
 	}

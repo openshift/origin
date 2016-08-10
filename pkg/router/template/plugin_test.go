@@ -328,7 +328,7 @@ func TestHandleEndpoints(t *testing.T) {
 	}
 
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true)
+	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, controller.LogRejections)
@@ -442,7 +442,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 	}
 
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, false)
+	templatePlugin := newDefaultTemplatePlugin(router, false, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, controller.LogRejections)
@@ -488,7 +488,7 @@ func (r *fakeRejections) RecordRouteRejection(route *routeapi.Route, reason, mes
 func TestHandleRoute(t *testing.T) {
 	rejections := &fakeRejections{}
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true)
+	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, rejections)
@@ -666,7 +666,7 @@ func TestHandleRoute(t *testing.T) {
 func TestHandleRouteExtendedValidation(t *testing.T) {
 	rejections := &fakeRejections{}
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true)
+	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	extendedValidatorPlugin := controller.NewExtendedValidator(templatePlugin, rejections)
@@ -1019,7 +1019,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 
 func TestNamespaceScopingFromEmpty(t *testing.T) {
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	templatePlugin := newDefaultTemplatePlugin(router, true)
+	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, controller.LogRejections)
@@ -1080,7 +1080,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 
 func TestUnchangingEndpointsDoesNotCommit(t *testing.T) {
 	router := newTestRouter(make(map[string]ServiceAliasConfig))
-	plugin := newDefaultTemplatePlugin(router, true)
+	plugin := newDefaultTemplatePlugin(router, true, nil)
 	endpoints := &kapi.Endpoints{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",

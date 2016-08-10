@@ -5,6 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/docker/distribution/digest"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -201,6 +203,82 @@ func TestImagesTop(t *testing.T) {
 						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1"},
+							{Name: "layer2"},
+						},
+						DockerImageManifest: "non empty metadata",
+					},
+				},
+			},
+			streams: &imageapi.ImageStreamList{},
+			pods:    &kapi.PodList{},
+			expected: []Info{
+				imageInfo{
+					Image:           "image1",
+					ImageStreamTags: []string{},
+					Metadata:        true,
+					Parents:         []string{},
+					Usage:           []string{},
+				},
+				imageInfo{
+					Image:           "image2",
+					ImageStreamTags: []string{},
+					Metadata:        true,
+					Parents:         []string{"image1"},
+					Usage:           []string{},
+				},
+			},
+		},
+		"image parents with empty layer": {
+			images: &imageapi.ImageList{
+				Items: []imageapi.Image{
+					{
+						ObjectMeta:          kapi.ObjectMeta{Name: "image1"},
+						DockerImageLayers:   []imageapi.ImageLayer{{Name: "layer1"}},
+						DockerImageManifest: "non empty metadata",
+					},
+					{
+						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+						DockerImageLayers: []imageapi.ImageLayer{
+							{Name: "layer1"},
+							{Name: digest.DigestSha256EmptyTar},
+							{Name: "layer2"},
+						},
+						DockerImageManifest: "non empty metadata",
+					},
+				},
+			},
+			streams: &imageapi.ImageStreamList{},
+			pods:    &kapi.PodList{},
+			expected: []Info{
+				imageInfo{
+					Image:           "image1",
+					ImageStreamTags: []string{},
+					Metadata:        true,
+					Parents:         []string{},
+					Usage:           []string{},
+				},
+				imageInfo{
+					Image:           "image2",
+					ImageStreamTags: []string{},
+					Metadata:        true,
+					Parents:         []string{"image1"},
+					Usage:           []string{},
+				},
+			},
+		},
+		"image parents with gzipped empty layer": {
+			images: &imageapi.ImageList{
+				Items: []imageapi.Image{
+					{
+						ObjectMeta:          kapi.ObjectMeta{Name: "image1"},
+						DockerImageLayers:   []imageapi.ImageLayer{{Name: "layer1"}},
+						DockerImageManifest: "non empty metadata",
+					},
+					{
+						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+						DockerImageLayers: []imageapi.ImageLayer{
+							{Name: "layer1"},
+							{Name: digestSHA256GzippedEmptyTar},
 							{Name: "layer2"},
 						},
 						DockerImageManifest: "non empty metadata",

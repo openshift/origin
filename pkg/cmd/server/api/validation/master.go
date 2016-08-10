@@ -157,6 +157,12 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 			}
 		}
 	}
+	if len(config.NetworkConfig.IngressIPNetworkCIDR) > 0 {
+		cidr := config.NetworkConfig.IngressIPNetworkCIDR
+		if _, ipNet, err := net.ParseCIDR(cidr); err != nil || ipNet.IP.IsUnspecified() {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "ingressIPNetworkCIDR").Index(0), cidr, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
+		}
+	}
 
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
 

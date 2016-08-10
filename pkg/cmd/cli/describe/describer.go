@@ -303,7 +303,7 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 	if s.PullSecret != nil {
 		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
-	if s.Incremental {
+	if s.Incremental != nil && *s.Incremental {
 		formatString(out, "Incremental Build", "yes")
 	}
 	if s.ForcePull {
@@ -640,7 +640,9 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kctl.De
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
-		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
+		if len(imageStream.Spec.DockerImageRepository) > 0 {
+			formatString(out, "Imported From", imageStream.Spec.DockerImageRepository)
+		}
 		formatImageStreamTags(out, imageStream)
 		return nil
 	})
