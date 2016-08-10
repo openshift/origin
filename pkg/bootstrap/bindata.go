@@ -17,6 +17,7 @@
 // examples/quickstarts/django-postgresql.json
 // examples/quickstarts/nodejs-mongodb.json
 // examples/quickstarts/rails-postgresql.json
+// pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
 // DO NOT EDIT!
 
 package bootstrap
@@ -6448,6 +6449,43 @@ func examplesQuickstartsRailsPostgresqlJson() (*asset, error) {
 	return a, nil
 }
 
+var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
+apiVersion: v1
+executionRules:
+- name: execution-denied
+  # Reject all images that have the annotation images.openshift.io/deny-execution set to true.
+  # This annotation may be set by infrastructure that wishes to flag particular images as dangerous
+  onResources:
+  - resource: pods
+  - resource: builds
+  reject: true
+  matchImageAnnotations:
+  - key: images.openshift.io/deny-execution
+    value: "true"
+  allowResolutionFailure: true
+# To require that all images running on the platform be imported first, you may uncomment the
+# following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
+# unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that
+# digest has been imported via the import-image flow.
+#- name: require-imported-images
+#  allowResolutionFailure: false
+`)
+
+func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {
+	return _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, nil
+}
+
+func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml() (*asset, error) {
+	bytes, err := pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/image/admission/imagepolicy/api/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -6517,6 +6555,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/django-postgresql.json": examplesQuickstartsDjangoPostgresqlJson,
 	"examples/quickstarts/nodejs-mongodb.json": examplesQuickstartsNodejsMongodbJson,
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
+	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -6602,6 +6641,20 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"nodejs-mongodb.json": &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{
 			}},
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{
+			}},
+		}},
+	}},
+	"pkg": &bintree{nil, map[string]*bintree{
+		"image": &bintree{nil, map[string]*bintree{
+			"admission": &bintree{nil, map[string]*bintree{
+				"imagepolicy": &bintree{nil, map[string]*bintree{
+					"api": &bintree{nil, map[string]*bintree{
+						"v1": &bintree{nil, map[string]*bintree{
+							"default-policy.yaml": &bintree{pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, map[string]*bintree{
+							}},
+						}},
+					}},
+				}},
 			}},
 		}},
 	}},
