@@ -108,3 +108,23 @@ function os::util::format_seconds() {
 	printf '%02dh %02dm %02ds' "${hours}" "${minutes}" "${seconds}"
 }
 readonly -f os::util::format_seconds
+
+# os::util::find-go-binary locates a go install binary in GOPATH directories
+# Globals:
+#  - 1: GOPATH
+# Arguments:
+#  - 1: the go-binary to find
+# Return:
+#  None
+function os::util::find-go-binary() {
+  local binary_name="$1"
+
+  IFS=":"
+  for part in $GOPATH; do
+    if [[ -f "$part/bin/$binary_name" && -x "${part}/bin/${binary_name}" ]]; then
+      echo $part/bin/$binary_name
+      break
+    fi
+  done
+}
+readonly -f os::util::find-go-binary
