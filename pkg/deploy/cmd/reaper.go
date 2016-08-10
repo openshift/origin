@@ -4,12 +4,15 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -56,14 +59,21 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	)
 	// Determine if the deployment config controller noticed the pause.
 	if !configNotFound {
-		if err := wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-			dc, err := reaper.oc.DeploymentConfigs(namespace).Get(name)
-			if err != nil {
-				return false, err
+		watchOptions := kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", name), ResourceVersion: "0"}
+		watcher, err := reaper.oc.DeploymentConfigs(namespace).Watch(watchOptions)
+		if err != nil {
+			return err
+		}
+		_, err = watch.Until(reaper.timeout, watcher, func(event watch.Event) (bool, error) {
+			if event.Type != watch.Added && event.Type != watch.Modified {
+				return false, nil
 			}
+
+			dc := event.Object.(*deployapi.DeploymentConfig)
 			isPaused = dc.Spec.Paused
 			return dc.Status.ObservedGeneration >= config.Generation, nil
-		}); err != nil {
+		})
+		if err != nil {
 			return err
 		}
 
@@ -143,7 +153,7 @@ func (reaper *DeploymentConfigReaper) updateDeploymentWithRetries(namespace, nam
 		err    error
 	)
 	deploymentConfigs := reaper.oc.DeploymentConfigs(namespace)
-	resultErr := wait.Poll(10*time.Millisecond, 1*time.Minute, func() (bool, error) {
+	resultErr := wait.PollImmediate(10*time.Millisecond, 1*time.Minute, func() (bool, error) {
 		config, err = deploymentConfigs.Get(name)
 		if err != nil {
 			return false, err
