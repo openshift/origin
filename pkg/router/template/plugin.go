@@ -43,6 +43,7 @@ type TemplatePluginConfig struct {
 	ReloadInterval         time.Duration
 	DefaultCertificate     string
 	DefaultCertificatePath string
+	DefaultCertificateDir  string
 	StatsPort              int
 	StatsUsername          string
 	StatsPassword          string
@@ -133,6 +134,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		reloadInterval:         cfg.ReloadInterval,
 		defaultCertificate:     cfg.DefaultCertificate,
 		defaultCertificatePath: cfg.DefaultCertificatePath,
+		defaultCertificateDir:  cfg.DefaultCertificateDir,
 		statsUser:              cfg.StatsUsername,
 		statsPassword:          cfg.StatsPassword,
 		statsPort:              cfg.StatsPort,
