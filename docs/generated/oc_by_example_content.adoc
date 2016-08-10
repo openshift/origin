@@ -1909,19 +1909,6 @@ Switch to another project
 ====
 
 
-== oc projects
-Display existing projects
-
-====
-
-[options="nowrap"]
-----
-  # Display the projects that currently exist
-  oc
-----
-====
-
-
 == oc proxy
 Run a proxy to the Kubernetes API server
 

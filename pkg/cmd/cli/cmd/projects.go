@@ -50,9 +50,6 @@ Display information about the current active project and existing projects on th
 
 For advanced configuration, or to manage the contents of your config file, use the 'config'
 command.`
-
-	projectsExample = `  # Display the projects that currently exist
-  %[1]s`
 )
 
 // NewCmdProjects implements the OpenShift cli rollback command
@@ -60,10 +57,9 @@ func NewCmdProjects(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	options := &ProjectsOptions{}
 
 	cmd := &cobra.Command{
-		Use:     "projects",
-		Short:   "Display existing projects",
-		Long:    projectsLong,
-		Example: fmt.Sprintf(projectsExample, fullName),
+		Use:   "projects",
+		Short: "Display existing projects",
+		Long:  projectsLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
