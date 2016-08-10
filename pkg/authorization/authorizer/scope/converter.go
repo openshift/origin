@@ -79,12 +79,15 @@ var ScopeEvaluators = []ScopeEvaluator{
 // namespace:<namespace name>:<comma-delimited verbs>:<comma-delimited resources>
 
 const (
-	UserInfo        = "info"
-	UserAccessCheck = "check-access"
+	UserInfo        = UserIndicator + "info"
+	UserAccessCheck = UserIndicator + "check-access"
 
 	// UserListProject gives explicit permission to see the projects a user can see.  This is often used to prime secondary ACL systems
 	// unrelated to openshift and to display projects for selection in a secondary UI.
-	UserListProject = "list-projects"
+	UserListProject = UserIndicator + "list-projects"
+
+	// UserFull includes all permissions of the user
+	UserFull = UserIndicator + "full"
 )
 
 // user:<scope name>
@@ -96,9 +99,7 @@ func (userEvaluator) Handles(scope string) bool {
 
 func (userEvaluator) Validate(scope string) error {
 	switch scope {
-	case UserIndicator + UserInfo,
-		UserIndicator + UserAccessCheck,
-		UserIndicator + UserListProject:
+	case UserFull, UserInfo, UserAccessCheck, UserListProject:
 		return nil
 	}
 
@@ -107,12 +108,14 @@ func (userEvaluator) Validate(scope string) error {
 
 func (userEvaluator) Describe(scope string) string {
 	switch scope {
-	case UserIndicator + UserInfo:
-		return "Information about you, including: username, identity names, and group membership."
-	case UserIndicator + UserAccessCheck:
+	case UserInfo:
+		return "Information about you, including username, identity names, and group membership."
+	case UserAccessCheck:
 		return `Information about user privileges, e.g. "Can I create builds?"`
-	case UserIndicator + UserListProject:
+	case UserListProject:
 		return `See projects you're aware of and the metadata (display name, description, etc) about those projects.`
+	case UserFull:
+		return `Full access to the server with all of your permissions.`
 	default:
 		return fmt.Sprintf("unrecognized scope: %v", scope)
 	}
@@ -120,18 +123,23 @@ func (userEvaluator) Describe(scope string) string {
 
 func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	switch scope {
-	case UserIndicator + UserInfo:
+	case UserInfo:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("get"), APIGroups: []string{userapi.GroupName}, Resources: sets.NewString("users"), ResourceNames: sets.NewString("~")},
 		}, nil
-	case UserIndicator + UserAccessCheck:
+	case UserAccessCheck:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
-	case UserIndicator + UserListProject:
+	case UserListProject:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("list"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+		}, nil
+	case UserFull:
+		return []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("*"), APIGroups: []string{"*"}, Resources: sets.NewString("*")},
+			{Verbs: sets.NewString("*"), NonResourceURLs: sets.NewString("*")},
 		}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized scope: %v", scope)

@@ -85,15 +85,6 @@ func (registry *Registry) UpdateSubnet(hs *osapi.HostSubnet) (*osapi.HostSubnet,
 	return registry.oClient.HostSubnets().Update(hs)
 }
 
-func (registry *Registry) GetAllPods() ([]kapi.Pod, error) {
-	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return podList.Items, nil
-}
-
 func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
 	opts := kapi.ListOptions{

@@ -14,6 +14,7 @@ func TestAdmission(t *testing.T) {
 	svc := &kapi.Service{
 		ObjectMeta: kapi.ObjectMeta{Name: "test"},
 	}
+	var oldSvc *kapi.Service
 
 	_, ipv4, err := net.ParseCIDR("172.0.0.0/16")
 	if err != nil {
@@ -43,6 +44,8 @@ func TestAdmission(t *testing.T) {
 		externalIPs     []string
 		admit           bool
 		errFn           func(err error) bool
+		loadBalancer    bool
+		ingressIP       string
 	}{
 		{
 			admit:    true,
@@ -128,7 +131,6 @@ func TestAdmission(t *testing.T) {
 			op:          admission.Update,
 			testName:    "IP in range on update",
 		},
-
 		// other checks
 		{
 			admit:       false,
@@ -156,12 +158,65 @@ func TestAdmission(t *testing.T) {
 			op:          admission.Create,
 			testName:    "rejections can cover the entire range",
 		},
+		// Ingress IP checks
+		{
+			admit:        true,
+			externalIPs:  []string{"1.2.3.4"},
+			op:           admission.Update,
+			testName:     "Ingress ip allowed when external ips are disabled",
+			loadBalancer: true,
+			ingressIP:    "1.2.3.4",
+		},
+		{
+			admit:        true,
+			admits:       []*net.IPNet{ipv4},
+			externalIPs:  []string{"1.2.3.4", "172.0.0.1"},
+			op:           admission.Update,
+			testName:     "Ingress ip allowed when external ips are enabled",
+			loadBalancer: true,
+			ingressIP:    "1.2.3.4",
+		},
+		{
+			admit:        false,
+			admits:       []*net.IPNet{ipv4},
+			externalIPs:  []string{"1.2.3.4", "172.0.0.1"},
+			op:           admission.Update,
+			testName:     "Ingress ip not allowed for non-lb service",
+			loadBalancer: false,
+			ingressIP:    "1.2.3.4",
+		},
 	}
 	for _, test := range tests {
 		svc.Spec.ExternalIPs = test.externalIPs
-		handler := NewExternalIPRanger(test.rejects, test.admits)
+		allowIngressIP := len(test.ingressIP) > 0 || test.loadBalancer
+		handler := NewExternalIPRanger(test.rejects, test.admits, allowIngressIP)
 
-		err := handler.Admit(admission.NewAttributesRecord(svc, nil, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, nil))
+		if test.loadBalancer {
+			svc.Spec.Type = kapi.ServiceTypeLoadBalancer
+		} else {
+			svc.Spec.Type = kapi.ServiceTypeClusterIP
+		}
+
+		if len(test.ingressIP) > 0 {
+			// Provide an ingress ip via the previous object state
+			oldSvc = &kapi.Service{
+				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				Status: kapi.ServiceStatus{
+					LoadBalancer: kapi.LoadBalancerStatus{
+						Ingress: []kapi.LoadBalancerIngress{
+							{
+								IP: test.ingressIP,
+							},
+						},
+					},
+				},
+			}
+
+		} else {
+			oldSvc = nil
+		}
+
+		err := handler.Admit(admission.NewAttributesRecord(svc, oldSvc, kapi.Kind("Service").WithVersion("version"), "namespace", svc.ObjectMeta.Name, kapi.Resource("services").WithVersion("version"), "", test.op, nil))
 		if test.admit && err != nil {
 			t.Errorf("%s: expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {
@@ -180,7 +235,7 @@ func TestHandles(t *testing.T) {
 		admission.Connect: false,
 		admission.Delete:  false,
 	} {
-		ranger := NewExternalIPRanger(nil, nil)
+		ranger := NewExternalIPRanger(nil, nil, false)
 		if e, a := shouldHandle, ranger.Handles(op); e != a {
 			t.Errorf("%v: shouldHandle=%t, handles=%t", op, e, a)
 		}

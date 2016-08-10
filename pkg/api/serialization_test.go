@@ -33,6 +33,7 @@ import (
 	image "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/docker10"
 	"github.com/openshift/origin/pkg/image/api/dockerpre012"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 	route "github.com/openshift/origin/pkg/route/api"
@@ -416,6 +417,12 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			c.FuzzNoCustom(j)
 			j.Spec.Template.Spec.InitContainers = nil
 			j.Status.Template.Spec.InitContainers = nil
+		},
+		func(j *oauthapi.OAuthClientAuthorization, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if len(j.Scopes) == 0 {
+				j.Scopes = append(j.Scopes, "user:full")
+			}
 		},
 
 		func(j *runtime.Object, c fuzz.Continue) {

@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/RangelReale/osin"
 
 	"k8s.io/kubernetes/pkg/auth/user"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/api"
+	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/api/validation"
+	"github.com/openshift/origin/pkg/oauth/scope"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 )
 
 // GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
@@ -22,7 +29,7 @@ type GrantCheck struct {
 }
 
 // NewGrantCheck returns a new GrantCheck
-func NewGrantCheck(check GrantChecker, handler GrantHandler, errorHandler GrantErrorHandler) *GrantCheck {
+func NewGrantCheck(check GrantChecker, handler GrantHandler, errorHandler GrantErrorHandler) osinserver.AuthorizeHandler {
 	return &GrantCheck{check, handler, errorHandler}
 }
 
@@ -32,7 +39,7 @@ func NewGrantCheck(check GrantChecker, handler GrantHandler, errorHandler GrantE
 // If the requested scopes are not authorized, or an error occurs, AuthorizeRequest.Authorized is set to false.
 // If the response is written, true is returned.
 // If the response is not written, false is returned.
-func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 
 	// Requests must already be authorized before we will check grants
 	if !ar.Authorized {
@@ -44,7 +51,40 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseW
 
 	user, ok := ar.UserData.(user.Info)
 	if !ok || user == nil {
-		return h.errorHandler.GrantError(errors.New("the provided user data is not user.Info"), w, ar.HttpRequest)
+		utilruntime.HandleError(fmt.Errorf("the provided user data is not a user.Info object: %#v", user))
+		resp.SetError("server_error", "")
+		return false, nil
+	}
+
+	client, ok := ar.Client.GetUserData().(*oauthapi.OAuthClient)
+	if !ok || client == nil {
+		utilruntime.HandleError(fmt.Errorf("the provided client is not an *api.OAuthClient object: %#v", client))
+		resp.SetError("server_error", "")
+		return false, nil
+	}
+
+	// Normalize the scope request, and ensure all tokens contain a scope
+	scopes := scope.Split(ar.Scope)
+	if len(scopes) == 0 {
+		scopes = append(scopes, scopeauthorizer.UserFull)
+	}
+	ar.Scope = scope.Join(scopes)
+
+	// Validate the requested scopes
+	if scopeErrors := validation.ValidateScopes(scopes, nil); len(scopeErrors) > 0 {
+		resp.SetError("invalid_scope", scopeErrors.ToAggregate().Error())
+		return false, nil
+	}
+
+	invalidScopes := sets.NewString()
+	for _, scope := range scopes {
+		if err := scopeauthorizer.ValidateScopeRestrictions(client, scope); err != nil {
+			invalidScopes.Insert(scope)
+		}
+	}
+	if len(invalidScopes) > 0 {
+		resp.SetError("access_denied", fmt.Sprintf("scope denied: %s", strings.Join(invalidScopes.List(), " ")))
+		return false, nil
 	}
 
 	grant := &api.Grant{
@@ -57,7 +97,9 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, w http.ResponseW
 	// Check if the user has already authorized this grant
 	authorized, err := h.check.HasAuthorizedClient(user, grant)
 	if err != nil {
-		return h.errorHandler.GrantError(err, w, ar.HttpRequest)
+		utilruntime.HandleError(err)
+		resp.SetError("server_error", "")
+		return false, nil
 	}
 	if authorized {
 		ar.Authorized = true

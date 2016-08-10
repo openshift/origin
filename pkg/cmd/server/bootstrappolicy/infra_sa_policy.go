@@ -59,11 +59,17 @@ const (
 	InfraPetSetControllerServiceAccountName = "pet-set-controller"
 	PetSetControllerRoleName                = "system:pet-set-controller"
 
+	InfraUnidlingControllerServiceAccountName = "unidling-controller"
+	UnidlingControllerRoleName                = "system:unidling-controller"
+
 	ServiceServingCertServiceAccountName = "service-serving-cert-controller"
 	ServiceServingCertControllerRoleName = "system:service-serving-cert-controller"
 
 	InfraEndpointControllerServiceAccountName = "endpoint-controller"
 	EndpointControllerRoleName                = "system:endpoint-controller"
+
+	InfraServiceIngressIPControllerServiceAccountName = "service-ingress-ip-controller"
+	ServiceIngressIPControllerRoleName                = "system:service-ingress-ip-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -771,6 +777,55 @@ func init() {
 	}
 
 	err = InfraSAs.addServiceAccount(
+		InfraUnidlingControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: UnidlingControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{kapi.GroupName, extensions.GroupName},
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("replicationcontrollers/scale"),
+				},
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("replicasets/scale", "deployments/scale"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("deploymentconfigs/scale"),
+				},
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("events"),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("endpoints"),
+				},
+				// these are used to "manually" scale and annotate known objects, and should be
+				// removed once we can set the last-scale-reason field via the scale subresource
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("replicationcontrollers"),
+				},
+				{
+					APIGroups: []string{},
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("deploymentconfigs"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
 		ServiceServingCertServiceAccountName,
 		authorizationapi.ClusterRole{
 			ObjectMeta: kapi.ObjectMeta{
@@ -818,6 +873,43 @@ func init() {
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("create"),
 					Resources: sets.NewString("endpoints/restricted"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraServiceIngressIPControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ServiceIngressIPControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Listing and watching services
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("services"),
+				},
+				// IngressIPController.persistSpec changes the spec of the service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("services"),
+				},
+				// IngressIPController.persistStatus changes the status of the service
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("services/status"),
+				},
+				// IngressIPController.recorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},

@@ -99,7 +99,7 @@ update: build
 #
 # Example:
 #   make test-unit
-#   make test-unit WHAT=pkg/build GOFLAGS=-v
+#   make test-unit WHAT=pkg/build TESTFLAGS=-v
 test-unit:
 	TEST_KUBE=true GOTEST_FLAGS="$(TESTFLAGS)" hack/test-go.sh $(WHAT) $(TESTS)
 .PHONY: test-unit
@@ -141,7 +141,7 @@ test-tools:
 # Run assets tests.
 #
 # Example:
-#   make test-assets  
+#   make test-assets
 test-assets:
 ifeq ($(TEST_ASSETS),true)
 	hack/test-assets.sh
@@ -175,7 +175,7 @@ clean:
 	rm -rf $(OUT_DIR)
 .PHONY: clean
 
-# Build an official release of OpenShift, including the official images.
+# Build a release of OpenShift for linux/amd64 and the images that depend on it.
 #
 # Example:
 #   make release
@@ -194,22 +194,26 @@ release-binaries: clean
 	hack/extract-release.sh
 .PHONY: release-binaries
 
-# Release the integrated components for OpenShift, logging and metrics.
+# Release the integrated components for OpenShift, origin, logging, and metrics.
+# The current tag in the Origin release (the tag that points to HEAD) is used to
+# clone and build each component. Components must have a hack/release.sh script
+# which must accept env var OS_TAG as the tag to build. Each component should push
+# its own images. See hack/release.sh and hack/push-release.sh for an example of
+# the appropriate behavior.
+#
+# Prerequisites:
+# * you must be logged into the remote registry with the appropriate
+#   credentials to push.
+# * all repositories must have a Git tag equal to the current repositories tag of
+#   HEAD
+#
+# TODO: consider making hack/release.sh be a make target (make official-release).
 #
 # Example:
 #   make release-components
 release-components: clean
 	hack/release-components.sh
 .PHONY: release-components
-
-# Perform an official release. Requires HEAD of the repository to have a matching
-# tag. Will push images that are tagged tagged with the latest release commit.
-#
-# Example:
-#   make perform-official-release
-perform-official-release: | release-binaries release-components
-	OS_PUSH_ALWAYS="1" OS_PUSH_TAG="HEAD" OS_PUSH_LOCAL="1" hack/push-release.sh
-.PHONY: perform-official-release
 
 # Build the cross compiled release binaries
 #

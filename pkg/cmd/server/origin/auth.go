@@ -370,14 +370,14 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 	if c.SessionAuth != nil {
 		// The session needs to know the authorize flow is done so it can invalidate the session
-		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 			_ = c.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest)
 			return false, nil
 		})
 	}
 
 	// Otherwise return a no-op finalizer
-	return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+	return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 		return false, nil
 	})
 }

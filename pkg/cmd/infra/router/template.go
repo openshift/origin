@@ -185,12 +185,13 @@ func (o *TemplateRouterOptions) Run() error {
 		IncludeUDP:             o.RouterSelection.IncludeUDP,
 	}
 
-	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg)
+	oc, kc, err := o.Config.Clients()
 	if err != nil {
 		return err
 	}
 
-	oc, kc, err := o.Config.Clients()
+	svcFetcher := templateplugin.NewListWatchServiceLookup(kc, 10*time.Minute)
+	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, svcFetcher)
 	if err != nil {
 		return err
 	}
