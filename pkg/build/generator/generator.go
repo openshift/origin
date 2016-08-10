@@ -501,9 +501,6 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 			Kind: "DockerImage",
 			Name: image,
 		}
-		if build.Spec.Strategy.SourceStrategy.PullSecret == nil {
-			build.Spec.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Strategy.SourceStrategy.From, bc.Namespace)
-		}
 		if build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
 			runtimeImageName, err := g.resolveImageStreamReference(ctx, *build.Spec.Strategy.SourceStrategy.RuntimeImage, build.Status.Config.Namespace)
 			if err != nil {
@@ -513,6 +510,19 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 				Kind: "DockerImage",
 				Name: runtimeImageName,
 			}
+		}
+		if build.Spec.Strategy.SourceStrategy.PullSecret == nil {
+			// we have 3 different variations:
+			// 1) builder and runtime images use the same secret => use builder image secret
+			// 2) builder and runtime images use different secrets => use builder image secret
+			// 3) builder doesn't need a secret but runtime image requires it => use runtime image secret
+			// The case when both of the images don't use secret (equals to nil) is covered by the first variant.
+			pullSecret := g.resolveImageSecret(ctx, builderSecrets, &build.Spec.Strategy.SourceStrategy.From, bc.Namespace)
+			if pullSecret == nil {
+				pullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Spec.Strategy.SourceStrategy.RuntimeImage, bc.Namespace)
+			}
+
+			build.Spec.Strategy.SourceStrategy.PullSecret = pullSecret
 		}
 	case build.Spec.Strategy.DockerStrategy != nil &&
 		build.Spec.Strategy.DockerStrategy.From != nil:
