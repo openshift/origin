@@ -126,7 +126,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"build chains": {
-			Path: "../../../../pkg/api/graph/test/build-chains.json",
+			File: "build-chains.json",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
@@ -138,7 +138,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 		},
 		"scheduled image stream": {
-			Path: "../../../../pkg/api/graph/test/prereq-image-present-with-sched.yaml",
+			File: "prereq-image-present-with-sched.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{
 					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
