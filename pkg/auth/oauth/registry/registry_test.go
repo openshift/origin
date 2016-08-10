@@ -239,7 +239,7 @@ func TestRegistryAndServer(t *testing.T) {
 			ClientAuthorization: testCase.ClientAuth,
 		}
 		if testCase.ClientAuth == nil {
-			grant.Err = apierrs.NewNotFound(oapi.Resource("OAuthClientAuthorization"), "test:test")
+			grant.GetErr = apierrs.NewNotFound(oapi.Resource("OAuthClientAuthorization"), "test:test")
 		}
 		storage := registrystorage.New(access, authorize, client, NewUserConversion())
 		config := osinserver.NewDefaultServerConfig()
