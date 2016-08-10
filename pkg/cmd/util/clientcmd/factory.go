@@ -43,7 +43,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildreaper "github.com/openshift/origin/pkg/build/reaper"
+	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -330,7 +330,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if err != nil {
 				return nil, err
 			}
-			return buildreaper.NewBuildConfigReaper(oc), nil
+			return buildcmd.NewBuildConfigReaper(oc), nil
 		}
 		return kReaperFunc(mapping)
 	}
