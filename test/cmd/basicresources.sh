@@ -22,6 +22,8 @@ function escape_regex() {
   sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
 }
 
+project="$( oc project -q )"
+
 os::test::junit::declare_suite_start "cmd/basicresources"
 # This test validates basic resource retrieval and command interaction
 
@@ -122,6 +124,11 @@ os::cmd::expect_failure_and_not_text 'oc annotate pod hello-openshift descriptio
 os::cmd::expect_failure_and_text 'oc annotate pod hello-openshift hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
 os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
+
+# show-labels should work for projects
+os::cmd::expect_success "oc label namespace '${project}' foo=bar"
+os::cmd::expect_success_and_text "oc get project '${project}' --show-labels" "foo=bar"
+
 echo "label: ok"
 os::test::junit::declare_suite_end
 
