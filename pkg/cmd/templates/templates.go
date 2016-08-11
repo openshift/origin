@@ -31,6 +31,8 @@ const (
 		`{{$visibleFlags := visibleFlags (flagsNotIntersected .LocalFlags .PersistentFlags)}}` +
 		`{{$explicitlyExposedFlags := exposed .}}` +
 		`{{$optionsCmdFor := optionsCmdFor .}}` +
+		`{{$describeCmdFor := describeCmdFor .}}` +
+		`{{$hasContainerOption := hasContainerOption .}}` +
 		`{{$usageLine := usageLine .}}`
 
 	mainHelpTemplate = `{{.Long | trim}}
@@ -49,7 +51,8 @@ Examples:
 {{end}}{{end}}{{ if or $visibleFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
 Options:
 {{ if $visibleFlags.HasFlags}}{{flagsUsages $visibleFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if .HasSubCommands }}
-Use "{{$rootCmd}} <command> --help" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
+Use "{{$rootCmd}} <command> --help" for more information about a given command.{{end}}{{ if $optionsCmdFor}}{{ if $hasContainerOption}}
+Use "{{$describeCmdFor}} POD" to obtain container name values for that pod.{{end}}
 Use "{{$optionsCmdFor}}" for a list of global command-line options (applies to all commands).{{end}}`
 
 	optionsHelpTemplate = ``
