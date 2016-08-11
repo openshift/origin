@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/util/ovs"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrs "k8s.io/kubernetes/pkg/api/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sysctl"
@@ -36,6 +37,8 @@ const (
 	VXLAN    = "vxlan0"
 
 	VXLAN_PORT = "4789"
+
+	EgressNetworkPolicyFailureLabel = "network.openshift.io/not-enforcing-egress-network-policy"
 )
 
 func getPluginVersion(multitenant bool) []string {
@@ -336,10 +339,46 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	return true, nil
 }
 
+func (plugin *OsdnNode) updateEgressNetworkPolicyFailureLabel(failure bool) error {
+	node, err := plugin.registry.kClient.Nodes().Get(plugin.hostName)
+	if err != nil {
+		return err
+	}
+	if failure {
+		if node.Labels == nil {
+			node.Labels = make(map[string]string)
+		}
+		node.Labels[EgressNetworkPolicyFailureLabel] = "true"
+	} else {
+		label, ok := node.Labels[EgressNetworkPolicyFailureLabel]
+		if !ok || label != "true" {
+			return nil
+		}
+		delete(node.Labels, EgressNetworkPolicyFailureLabel)
+	}
+
+	_, err = plugin.registry.kClient.Nodes().UpdateStatus(node)
+	return err
+}
+
 func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 	policies, err := plugin.registry.GetEgressNetworkPolicies()
 	if err != nil {
-		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
+		if kapierrs.IsForbidden(err) {
+			// 1.3 node running with 1.2-bootstrapped policies
+			glog.Errorf("WARNING: EgressNetworkPolicy is not being enforced - please ensure your nodes have access to view EgressNetworkPolicy (eg, 'oadm policy reconcile-cluster-roles')")
+			err := plugin.updateEgressNetworkPolicyFailureLabel(true)
+			if err != nil {
+				return fmt.Errorf("could not update %q label on Node: %v", EgressNetworkPolicyFailureLabel, err)
+			}
+			return nil
+		}
+		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
+	} else {
+		err = plugin.updateEgressNetworkPolicyFailureLabel(false)
+		if err != nil {
+			glog.Warningf("could not remove %q label on Node: %v", EgressNetworkPolicyFailureLabel, err)
+		}
 	}
 
 	for _, policy := range policies {
