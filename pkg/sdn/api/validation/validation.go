@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"net"
 
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -134,7 +135,7 @@ func ValidateEgressNetworkPolicy(policy *sdnapi.EgressNetworkPolicy) field.Error
 	}
 
 	if len(policy.Spec.Egress) > sdnapi.EgressNetworkPolicyMaxRules {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress"), "", ("too many egress rules (max 50)")))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress"), "", fmt.Sprintf("too many egress rules (max %d)", sdnapi.EgressNetworkPolicyMaxRules)))
 	}
 
 	return allErrs
