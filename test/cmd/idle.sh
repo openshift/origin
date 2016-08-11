@@ -59,6 +59,7 @@ EOF
 
 os::test::junit::declare_suite_start "cmd/idle/by-name"
 setup_idling_resources
+os::cmd::expect_failure 'oc idle dc/idling-echo' # make sure manually passing non-endpoints resources fails
 os::cmd::expect_success_and_text 'oc idle idling-echo' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/idling-echo \(unidle to 2 replicas\)"
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq 'length == 1 and (.[0] | .replicas == 2 and .name == \"idling-echo\" and .kind == \"DeploymentConfig\")'" 'true'
