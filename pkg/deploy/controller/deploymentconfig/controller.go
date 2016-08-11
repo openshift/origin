@@ -178,7 +178,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			return c.updateStatus(config, existingDeployments)
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
-		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return fatalError(fmt.Sprintf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
 	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
 
