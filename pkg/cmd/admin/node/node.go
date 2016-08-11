@@ -36,6 +36,12 @@ list-pods: List all/selected pods on given/selected nodes. It can list the outpu
 	# Migrate selected pods
 	%[1]s <mynode> --evacuate --pod-selector="<service=myapp>"
 
+	# Migrate selected pods, use a grace period of 60 seconds
+	%[1]s <mynode> --evacuate --grace-period=60 --pod-selector="<service=myapp>"
+
+	# Migrate selected pods not backed by replication controller
+	%[1]s <mynode> --evacuate --force --pod-selector="<service=myapp>"
+
 	# Show pods that will be migrated
 	%[1]s <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
 

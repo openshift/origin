@@ -43,7 +43,7 @@ func (e *EvacuateOptions) AddFlags(cmd *cobra.Command) {
 
 	flags.BoolVar(&e.DryRun, flagDryRun, e.DryRun, "Show pods that will be migrated. Optional param for --evacuate")
 	flags.BoolVar(&e.Force, flagForce, e.Force, "Delete pods not backed by replication controller. Optional param for --evacuate")
-	flags.Int64Var(&e.GracePeriod, flagGracePeriod, e.GracePeriod, "Grace period (seconds) for pods being deleted. Optional param for --evacuate")
+	flags.Int64Var(&e.GracePeriod, flagGracePeriod, e.GracePeriod, "Grace period (seconds) for pods being deleted. Ignored if negative. Optional param for --evacuate")
 
 }
 
@@ -102,7 +102,11 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	errList := []error{}
 	firstPod := true
 	numPodsWithNoRC := 0
-	deleteOptions := e.makeDeleteOptions()
+
+	var deleteOptions *kapi.DeleteOptions
+	if e.GracePeriod >= 0 {
+		deleteOptions = e.makeDeleteOptions()
+	}
 
 	for _, pod := range pods.Items {
 		foundrc := false
