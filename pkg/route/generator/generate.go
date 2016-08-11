@@ -21,12 +21,12 @@ var _ kubectl.Generator = RouteGenerator{}
 // ParamNames returns the parameters required for generating a route
 func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 	return []kubectl.GeneratorParam{
-		{"labels", false},
-		{"default-name", true},
-		{"port", false},
-		{"name", false},
-		{"hostname", false},
-		{"path", false},
+		{Name: "labels", Required: false},
+		{Name: "default-name", Required: true},
+		{Name: "port", Required: false},
+		{Name: "name", Required: false},
+		{Name: "hostname", Required: false},
+		{Name: "path", Required: false},
 	}
 }
 
