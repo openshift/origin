@@ -325,7 +325,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	go dockerpkg.StreamContainerIO(outReader, nil, glog.V(0).Info)
 
 	errOutput := ""
-	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Error)
+	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Info)
 
 	// switch to the next stage of post executors steps
 	step.builder.postExecutorStage++
