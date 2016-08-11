@@ -102,5 +102,5 @@ type CircularOutputReferenceError struct {
 }
 
 func (e CircularOutputReferenceError) Error() string {
-	return fmt.Sprintf("output image of %q must be different than input", e.Reference)
+	return fmt.Sprintf("output image of %q should be different than input", e.Reference)
 }
