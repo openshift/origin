@@ -96,9 +96,9 @@ That covers most cases where cluster admins want to create projects and delegate
 
 Policy Evaluation
 In order to determine whether a request is authorized, the AuthorizationAttributes are tested in the following order:
-  1. all allow RoleBinding PolicyRules in the master namespace - short circuit on match
-  1. all allow RoleBinding PolicyRules in the namespace - short circuit on match
-  1. deny by default
+  1. All allow RoleBinding PolicyRules in the master namespace - short circuit on match
+  1. All allow RoleBinding PolicyRules in the namespace - short circuit on match
+  1. Deny by default
 
 ### Configtime Authorization Types
 These are the types used in the policy example above.  They allow us: to quickly find the policy rules that apply to namespace in etcd, to easily delegate project level control to a project admin, and to easily segregate all role control (a project admin can create/update/delete RoleBindings, but not Roles).
