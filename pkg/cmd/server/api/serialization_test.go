@@ -19,6 +19,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
 
 	// install all APIs
@@ -278,6 +279,18 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			c.FuzzNoCustom(obj)
 			if obj.NodeSelectorLabelBlacklist == nil {
 				obj.NodeSelectorLabelBlacklist = []string{"kubernetes.io/hostname"}
+			}
+		},
+		func(obj *imagepolicyapi.ImagePolicyConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(obj)
+			// TODO: enable once consumption and placement are round-trippable
+			obj.ConsumptionRules = nil
+			obj.PlacementRules = nil
+			for i := range obj.ExecutionRules {
+				if len(obj.ExecutionRules[i].OnResources) == 0 {
+					obj.ExecutionRules[i].OnResources = []unversioned.GroupResource{{Resource: "pods"}}
+				}
+				obj.ExecutionRules[i].MatchSignatures = nil
 			}
 		},
 		func(obj *configapi.GrantConfig, c fuzz.Continue) {
