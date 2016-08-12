@@ -302,12 +302,25 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		return err
 	}
 
-	projects, err := oClient.Projects().List(kapi.ListOptions{})
+	projectsList, err := oClient.Projects().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	projectsItems := projects.Items
+	projectsItems := projectsList.Items
+	projects := sets.String{}
+	for _, project := range projectsItems {
+		projects.Insert(project.Name)
+	}
+
+	if len(o.DefaultNamespace) > 0 && !projects.Has(o.DefaultNamespace) {
+		// Attempt a direct get of our current project in case it hasn't appeared in the list yet
+		if currentProject, err := oClient.Projects().Get(o.DefaultNamespace); err == nil {
+			// If we get it successfully, add it to the list
+			projectsItems = append(projectsItems, *currentProject)
+			projects.Insert(currentProject.Name)
+		}
+	}
 
 	switch len(projectsItems) {
 	case 0:
@@ -324,11 +337,6 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 
 	default:
-		projects := sets.String{}
-		for _, project := range projectsItems {
-			projects.Insert(project.Name)
-		}
-
 		namespace := o.DefaultNamespace
 		if !projects.Has(namespace) {
 			if namespace != kapi.NamespaceDefault && projects.Has(kapi.NamespaceDefault) {
