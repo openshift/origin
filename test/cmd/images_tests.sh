@@ -21,7 +21,8 @@ os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}"
 # some steps below require that we use system:admin privileges, but we don't
 # want to stomp on whatever context we were given when we started
 original_context="$( oc config current-context )"
-os::cmd::expect_success 'oc login -u system:admin'
+os::cmd::try_until_text "oc get project" "${project}"
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 cluster_admin_context="$( oc config current-context )"
 os::cmd::expect_success "oc config use-context '${original_context}'"
 
