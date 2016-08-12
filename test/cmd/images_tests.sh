@@ -53,13 +53,17 @@ os::cmd::expect_success_and_text 'oc get istag' 'wildfly'
 
 # create an image stream and post a mapping to it
 os::cmd::expect_success 'oc create imagestream test'
-os::cmd::expect_success 'oc create -f test/fixtures/mysql-image-stream-mapping.yaml'
+os::cmd::expect_success 'oc create -f test/testdata/mysql-image-stream-mapping.yaml'
 os::cmd::expect_success_and_text 'oc get istag/test:new --template="{{ index .image.dockerImageMetadata.Config.Entrypoint 0 }}"' "docker-entrypoint.sh"
 os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.image.metadata.name}' 'sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237'
 # reference should point to the current repository, and that repository should match the reported dockerImageRepository for pushes
 repository="$( oc get is/test -o jsonpath='{.status.dockerImageRepository}' )"
 os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.image.dockerImageReference}' "^$repository@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237"
 os::cmd::expect_success_and_text 'oc get istag/test:new -o jsonpath={.image.dockerImageReference}' "/$project/test@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237"
+
+repository="$( oc get is/test -o jsonpath='{.status.dockerImageRepository}' )"
+os::cmd::expect_success "oc annotate --context='${cluster_admin_context}' --overwrite image/sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237 images.openshift.io/deny-execution=true"
+os::cmd::expect_failure_and_text "oc run vulnerable --image=${repository}:new --restart=Never" 'spec.containers\[0\].image: Forbidden: this image is prohibited by policy'
 
 # test image stream tag operations
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.generation}' '2'
