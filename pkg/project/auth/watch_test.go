@@ -16,7 +16,7 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
-func newTestWatcher(user string, groups []string, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache) {
+func newTestWatcher(username string, groups []string, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache) {
 	objects := []runtime.Object{}
 	for i := range namespaces {
 		objects = append(objects, namespaces[i])
@@ -27,7 +27,7 @@ func newTestWatcher(user string, groups []string, namespaces ...*kapi.Namespace)
 	projectCache.Run()
 	fakeAuthCache := &fakeAuthCache{}
 
-	return NewUserProjectWatcher(user, groups, projectCache, fakeAuthCache, false), fakeAuthCache
+	return NewUserProjectWatcher(&user.DefaultInfo{Name: username, Groups: groups}, sets.NewString("*"), projectCache, fakeAuthCache, false), fakeAuthCache
 }
 
 type fakeAuthCache struct {
