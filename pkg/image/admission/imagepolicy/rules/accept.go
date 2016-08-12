@@ -124,6 +124,7 @@ func (r *executionAccepter) Accepts(attrs *ImagePolicyAttributes) bool {
 		if attrs.ExcludedRules.Has(rule.Name) && !rule.IgnoreNamespaceOverride {
 			continue
 		}
+
 		matches := matchImageCondition(&rule.ImageCondition, r.integratedRegistryMatcher, attrs)
 		glog.V(5).Infof("Validate image %v against rule %q: %t", attrs.Name, rule.Name, matches)
 		if matches {
