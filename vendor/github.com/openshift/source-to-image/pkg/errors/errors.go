@@ -21,6 +21,8 @@ const (
 	STIContainerError
 	SourcePathError
 	UserNotAllowedError
+	MissingGitBinaryError
+	EmptyGitRepositoryError
 )
 
 // Error represents an error thrown during STI execution
@@ -230,5 +232,26 @@ func NewUserNotAllowedError(image string, onbuild bool) error {
 		Message:    msg,
 		ErrorCode:  UserNotAllowedError,
 		Suggestion: fmt.Sprintf("modify image %q to use a numeric user within the allowed range or build without the --allowed-uids flag", image),
+	}
+}
+
+// NewMissingGitBinaryError returns a new error that indicates that we couldn't
+// find a Git binary in the path.
+func NewMissingGitBinaryError() error {
+	return Error{
+		Message:    "Git was not found in the PATH",
+		ErrorCode:  MissingGitBinaryError,
+		Suggestion: "Install Git from your distribution's vendor, or use --copy to ignore the repository.",
+	}
+}
+
+// NewEmptyGitRepositoryError returns a new error which indicates that a found
+// .git directory has no tracking information, e.g. if the user simply used
+// `git init` and forgot about the repository
+func NewEmptyGitRepositoryError(source string) error {
+	return Error{
+		Message:    fmt.Sprintf("The git repository \"%s\" has no tracking information or commits", source),
+		ErrorCode:  EmptyGitRepositoryError,
+		Suggestion: "Either commit files to the Git repository, remove the .git directory from the project, or use --copy to ignore the repository.",
 	}
 }

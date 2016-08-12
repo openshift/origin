@@ -151,7 +151,11 @@ func checkRemoteGit(gitClient GitClient, url string, initialTimeout time.Duratio
 // checkSourceURI performs a check on the URI associated with the build
 // to make sure that it is valid.
 func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) error {
-	if !s2igit.New().ValidCloneSpec(rawurl) {
+	ok, err := s2igit.New().ValidCloneSpec(rawurl)
+	if err != nil {
+		return fmt.Errorf("Invalid git source url %q: %v", rawurl, err)
+	}
+	if !ok {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
 	return checkRemoteGit(gitClient, rawurl, timeout)
