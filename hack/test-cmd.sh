@@ -77,7 +77,7 @@ trap "cleanup" EXIT
 set -e
 
 function find_tests {
-  find "${OS_ROOT}/test/cmd" -name '*.sh' -executable | grep -E "${1}" | sort -u
+  find "${OS_ROOT}/test/cmd" -name '*.sh' -not -wholename '*images_tests.sh' | grep -E "${1}" | sort -u
 }
 tests=( $(find_tests ${1:-.*}) )
 
