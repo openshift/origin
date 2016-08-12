@@ -31,7 +31,11 @@ func printHeader(out io.Writer, columns []string) {
 }
 
 func printArray(out io.Writer, values []string) {
-	printValue(out, strings.Join(values, ","))
+	if len(values) == 0 {
+		printValue(out, "<none>")
+	} else {
+		printValue(out, strings.Join(values, ", "))
+	}
 }
 
 func printValue(out io.Writer, value interface{}) {

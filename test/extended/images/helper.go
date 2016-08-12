@@ -14,7 +14,6 @@ import (
 	"time"
 
 	dockerclient "github.com/fsouza/go-dockerclient"
-	g "github.com/onsi/ginkgo"
 
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -145,10 +144,10 @@ func BuildAndPushImageOfSizeWithBuilder(
 		return err
 	}
 
-	out, err := oc.Run("start-build").Args(name, "--from-dir", tempDir, "--wait").Output()
-	fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
+	br, _ := exutil.StartBuildAndWait(oc, name, "--from-dir", tempDir)
+	br.AssertSuccess()
+	buildLog, logsErr := br.Logs()
 
-	buildLog, logsErr := oc.Run("logs").Args("bc/" + name).Output()
 	if match := reSuccessfulBuild.FindStringSubmatch(buildLog); len(match) > 1 {
 		defer dClient.RemoveImageExtended(match[1], dockerclient.RemoveImageOptions{Force: true})
 	}

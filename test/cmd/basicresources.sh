@@ -22,6 +22,8 @@ function escape_regex() {
   sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
 }
 
+project="$( oc project -q )"
+
 os::test::junit::declare_suite_start "cmd/basicresources"
 # This test validates basic resource retrieval and command interaction
 
@@ -122,6 +124,11 @@ os::cmd::expect_failure_and_not_text 'oc annotate pod hello-openshift descriptio
 os::cmd::expect_failure_and_text 'oc annotate pod hello-openshift hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
 os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
+
+# show-labels should work for projects
+os::cmd::expect_success "oc label namespace '${project}' foo=bar"
+os::cmd::expect_success_and_text "oc get project '${project}' --show-labels" "foo=bar"
+
 echo "label: ok"
 os::test::junit::declare_suite_end
 
@@ -298,15 +305,6 @@ os::cmd::expect_success 'oc create -f test/testdata/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
 echo "expose: ok"
-os::test::junit::declare_suite_end
-
-# Test that resource printer includes resource kind on multiple resources
-os::test::junit::declare_suite_start "cmd/basicresources/get"
-os::cmd::expect_success 'oc create imagestream test1'
-os::cmd::expect_success 'oc new-app node'
-os::cmd::expect_success_and_text 'oc get all' 'is/test1'
-os::cmd::expect_success_and_not_text 'oc get is' 'is/test1'
-echo "resource printer: ok"
 os::test::junit::declare_suite_end
 
 # Test OAuth access token describer

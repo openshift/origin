@@ -156,7 +156,7 @@
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MariaDB Connection Username",
       "description": "Username for MariaDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -164,15 +164,15 @@
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MariaDB user.",
+      "displayName": "MariaDB Connection Password",
+      "description": "Password for the MariaDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
     },
     {
       "name": "MYSQL_DATABASE",
-      "displayName": "MySQL Database Name",
+      "displayName": "MariaDB Database Name",
       "description": "Name of the MariaDB database accessed.",
       "value": "sampledb",
       "required": true

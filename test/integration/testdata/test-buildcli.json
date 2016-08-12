@@ -49,7 +49,6 @@
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7"
             },
-            "scripts": "https://raw.githubusercontent.com/centos/ruby-22-centos7/master/.sti/bin",
             "incremental": true
           }
         },
@@ -92,7 +91,6 @@
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7"
             },
-            "scripts": "https://raw.githubusercontent.com/openshift/sti-ruby/master/2.0/.sti/bin",
             "incremental": true
           }
         },

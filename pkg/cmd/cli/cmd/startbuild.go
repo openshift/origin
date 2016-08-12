@@ -20,6 +20,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
@@ -105,7 +106,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 	cmd.Flags().StringVar(&o.GitPostReceive, "git-post-receive", o.GitPostReceive, "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().StringVar(&o.GitRepository, "git-repository", o.GitRepository, "The path to the git repository for post-receive; defaults to the current directory")
 
-	// cmdutil.AddOutputFlagsForMutation(cmd)
+	kcmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -132,13 +133,15 @@ type StartBuildOptions struct {
 	GitRepository  string
 	GitPostReceive string
 
+	Mapper       meta.RESTMapper
 	Client       osclient.Interface
 	ClientConfig kclientcmd.ClientConfig
 
-	AsBinary  bool
-	EnvVar    []kapi.EnvVar
-	Name      string
-	Namespace string
+	AsBinary    bool
+	ShortOutput bool
+	EnvVar      []kapi.EnvVar
+	Name        string
+	Namespace   string
 }
 
 func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
@@ -147,6 +150,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 	o.ErrOut = cmd.Out()
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig
+	o.Mapper, _ = f.Object(false)
 
 	webhook := o.FromWebhook
 	buildName := o.FromBuild
@@ -154,6 +158,12 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 	fromDir := o.FromDir
 	fromRepo := o.FromRepo
 	buildLogLevel := o.LogLevel
+
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+	if outputFormat != "name" && outputFormat != "" {
+		return kcmdutil.UsageError(cmd, "Unsupported output format: %s", outputFormat)
+	}
+	o.ShortOutput = outputFormat == "name"
 
 	switch {
 	case len(webhook) > 0:
@@ -249,6 +259,7 @@ func (o *StartBuildOptions) Run() error {
 	if len(o.ListWebhooks) > 0 {
 		return o.RunListBuildWebHooks()
 	}
+
 	buildRequestCauses := []buildapi.BuildTriggerCause{}
 	request := &buildapi.BuildRequest{
 		TriggeredBy: append(buildRequestCauses,
@@ -302,8 +313,7 @@ func (o *StartBuildOptions) Run() error {
 		}
 	}
 
-	// TODO: support -o on this command
-	fmt.Fprintln(o.Out, newBuild.Name)
+	kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, "started")
 
 	var (
 		wg      sync.WaitGroup

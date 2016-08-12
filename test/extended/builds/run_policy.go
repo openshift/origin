@@ -1,7 +1,6 @@
 package builds
 
 import (
-	"fmt"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
@@ -46,12 +45,11 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			defer buildWatch.Stop()
 
 			// Start first build
-			out, err := oc.Run("start-build").Args(bcName).Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nfirst start-build output:\n%s\n", out)
-
+			stdout, _, err := exutil.StartBuild(oc, bcName, "-o=name")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(strings.TrimSpace(out)).ShouldNot(o.HaveLen(0))
-			startedBuilds = append(startedBuilds, strings.TrimSpace(out))
+			o.Expect(strings.TrimSpace(stdout)).ShouldNot(o.HaveLen(0))
+			// extract build name from "build/buildName" resource id
+			startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 
 			// Wait for it to become running
 			for {
@@ -64,11 +62,10 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			}
 
 			for i := 0; i < 2; i++ {
-				out, err := oc.Run("start-build").Args(bcName).Output()
-				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, out)
+				stdout, _, err = exutil.StartBuild(oc, bcName, "-o=name")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(strings.TrimSpace(out)).ShouldNot(o.HaveLen(0))
-				startedBuilds = append(startedBuilds, strings.TrimSpace(out))
+				o.Expect(strings.TrimSpace(stdout)).ShouldNot(o.HaveLen(0))
+				startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 			}
 
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -123,10 +120,9 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			buildVerified := map[string]bool{}
 
 			for i := 0; i < 3; i++ {
-				out, err := oc.Run("start-build").Args(bcName).Output()
-				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, out)
+				stdout, _, err := exutil.StartBuild(oc, bcName, "-o=name")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				startedBuilds = append(startedBuilds, strings.TrimSpace(out))
+				startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 			}
 
 			buildWatch, err := oc.REST().Builds(oc.Namespace()).Watch(kapi.ListOptions{
@@ -189,11 +185,10 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			defer buildWatch.Stop()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			out, err := oc.Run("start-build").Args(bcName).Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nfirst start-build output:\n%s\n", out)
-
+			stdout, _, err := exutil.StartBuild(oc, bcName, "-o=name")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			startedBuilds = append(startedBuilds, strings.TrimSpace(out))
+			startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
+
 			// Wait for the first build to become running
 			for {
 				event := <-buildWatch.ResultChan()
@@ -211,10 +206,9 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 			// Trigger two more builds
 			for i := 0; i < 2; i++ {
-				out, err := oc.Run("start-build").Args(bcName).Output()
-				fmt.Fprintf(g.GinkgoWriter, "\nstart-build %v output:\n%s\n", i, out)
+				stdout, _, err = exutil.StartBuild(oc, bcName, "-o=name")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				startedBuilds = append(startedBuilds, strings.TrimSpace(out))
+				startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 			}
 
 			// Verify that the first build will complete and the next build to run

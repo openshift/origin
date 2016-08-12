@@ -48,9 +48,9 @@ import (
 // NewClusterQuotaMappingController builds a mapping between namespaces and clusterresourcequotas
 func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
 	c := &ClusterQuotaMappingController{
-		namespaceQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		namespaceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "controller_clusterquotamappingcontroller_namespaces"),
 
-		quotaQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		quotaQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "controller_clusterquotamappingcontroller_clusterquotas"),
 
 		clusterQuotaMapper: NewClusterQuotaMapper(),
 	}

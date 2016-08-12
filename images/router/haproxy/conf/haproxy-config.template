@@ -39,7 +39,12 @@ defaults
   option httplog
   log global
 {{ end }}
-  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_TIMEOUT" "")) }}
+  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "" }}
+{{ else }}
+  timeout http-request 10s
+{{ end }}
+  timeout http-keep-alive 30s
   timeout connect 5s
   timeout client 30s
   timeout server 30s
@@ -268,7 +273,7 @@ backend be_edge_http_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}} weight {{ $weight }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} cookie {{$endpoint.IdHash}} weight {{ $weight }}
           {{ end }}
       {{ end }}
     {{ end }}{{/* end iterate over services */}}
@@ -297,7 +302,7 @@ backend be_tcp_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{ $weight }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} weight {{ $weight }}
         {{ end }}
       {{ end }}
     {{ end }}{{/* end iterate over services*/}}
@@ -326,7 +331,7 @@ backend be_secure_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{ $weight }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{ $weight }}
         {{ end }}
       {{ end }}
     {{ end }}

@@ -282,7 +282,7 @@ type ExitError struct {
 	*exec.ExitError
 }
 
-// Output executes the command and return the output as string
+// Output executes the command and returns stdout/stderr combined into one string
 func (c *CLI) Output() (string, error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
@@ -303,6 +303,39 @@ func (c *CLI) Output() (string, error) {
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
 		return "", nil
+	}
+}
+
+// Outputs executes the command and returns the stdout/stderr output as separate strings
+func (c *CLI) Outputs() (string, string, error) {
+	if c.verbose {
+		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
+	}
+	cmd := exec.Command(c.execPath, c.finalArgs...)
+	cmd.Stdin = c.stdin
+	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	//out, err := cmd.CombinedOutput()
+	var stdErrBuff, stdOutBuff bytes.Buffer
+	cmd.Stdout = &stdOutBuff
+	cmd.Stderr = &stdErrBuff
+	err := cmd.Run()
+
+	stdOutBytes := stdOutBuff.Bytes()
+	stdErrBytes := stdErrBuff.Bytes()
+	stdOut := strings.TrimSpace(string(stdOutBytes))
+	stdErr := strings.TrimSpace(string(stdErrBytes))
+	switch err.(type) {
+	case nil:
+		c.stdout = bytes.NewBuffer(stdOutBytes)
+		c.stderr = bytes.NewBuffer(stdErrBytes)
+		return stdOut, stdErr, nil
+	case *exec.ExitError:
+		e2e.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
+		return stdOut, stdErr, err
+	default:
+		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
+		// unreachable code
+		return "", "", nil
 	}
 }
 

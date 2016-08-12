@@ -95,7 +95,7 @@ func TestSetBuildLogLevel(t *testing.T) {
 
 	build = u.Build().WithSourceStrategy()
 	pod = u.Pod().WithEnvVar("BUILD", "foo")
-	build.Spec.Strategy.SourceStrategy.Env = []kapi.EnvVar{{"BUILD_LOGLEVEL", "7", nil}}
+	build.Spec.Strategy.SourceStrategy.Env = []kapi.EnvVar{{Name: "BUILD_LOGLEVEL", Value: "7", ValueFrom: nil}}
 	SetBuildLogLevel(pod.ToAttributes(), build.AsBuild())
 
 	if pod.Spec.Containers[0].Args[0] != "--loglevel=7" {

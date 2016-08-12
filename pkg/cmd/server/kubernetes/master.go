@@ -224,7 +224,7 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	nfsConfig := volume.VolumeConfig{
 		RecyclerMinimumTimeout:   int(config.PersistentVolumeRecyclerConfiguration.MinimumTimeoutNFS),
 		RecyclerTimeoutIncrement: int(config.PersistentVolumeRecyclerConfiguration.IncrementTimeoutNFS),
-		RecyclerPodTemplate:      volume.NewPersistentVolumeRecyclerPodTemplate(),
+		RecyclerPodTemplate:      defaultScrubPod,
 	}
 	if err := kctrlmgr.AttemptToLoadRecycler(config.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS, &nfsConfig); err != nil {
 		glog.Fatalf("Could not create NFS recycler pod from file %s: %+v", config.PersistentVolumeRecyclerConfiguration.PodTemplateFilePathNFS, err)

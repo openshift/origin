@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -60,6 +61,7 @@ func TestStartBuildWebHook(t *testing.T) {
 		Out:          buf,
 		ClientConfig: cfg,
 		FromWebhook:  server.URL + "/webhook",
+		Mapper:       registered.RESTMapper(),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
@@ -93,6 +95,7 @@ func TestStartBuildWebHookHTTPS(t *testing.T) {
 		Out:          buf,
 		ClientConfig: cfg,
 		FromWebhook:  server.URL + "/webhook",
+		Mapper:       registered.RESTMapper(),
 	}
 	if err := o.Run(); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
 		t.Fatalf("unexpected non-error: %v", err)
@@ -128,6 +131,7 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 		ClientConfig:   cfg,
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: f.Name(),
+		Mapper:         registered.RESTMapper(),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -1576,7 +1576,7 @@ Idle scalable resources
 [options="nowrap"]
 ----
   # Idle the scalable controllers associated with the services listed in to-idle.txt
-  $ oc idle -f to-idle.txt
+  $ oc idle --resource-names-file to-idle.txt
 ----
 ====
 
@@ -1905,19 +1905,6 @@ Switch to another project
 
   # Display the project currently in use
   oc project
-----
-====
-
-
-== oc projects
-Display existing projects
-
-====
-
-[options="nowrap"]
-----
-  # Display the projects that currently exist
-  oc
 ----
 ====
 

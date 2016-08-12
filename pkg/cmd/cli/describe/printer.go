@@ -34,7 +34,7 @@ var (
 	imageColumns            = []string{"NAME", "DOCKER REF"}
 	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamColumns      = []string{"NAME", "TAGS", "UPDATED"}
+	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "TERMINATION", "LABELS"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
@@ -317,6 +317,11 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kctl.PrintOpti
 	from := describeSourceShort(bc.Spec.CommonSpec)
 
 	if bc.Spec.Strategy.CustomStrategy != nil {
+		if opts.WithNamespace {
+			if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {
+				return err
+			}
+		}
 		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildapi.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
@@ -434,7 +439,11 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kctl.Print
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s", name, tags, latestTime); err != nil {
+	repo := stream.Spec.DockerImageRepository
+	if len(repo) == 0 {
+		repo = stream.Status.DockerImageRepository
+	}
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, repo, tags, latestTime); err != nil {
 		return err
 	}
 	if err := appendItemLabels(stream.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -454,7 +463,10 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, opts k
 
 func printProject(project *projectapi.Project, w io.Writer, opts kctl.PrintOptions) error {
 	name := formatResourceName(opts.Kind, project.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s", name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
+	if err := appendItemLabels(project.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
 	return err
 }
 

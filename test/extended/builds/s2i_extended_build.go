@@ -28,7 +28,6 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 
 		g.It("should use assemble-runtime script from the source repository", func() {
 			const buildConfigName = "java-extended-build-from-repo"
-			const buildName = buildConfigName + "-1"
 
 			g.By("creating build config")
 			err := oc.Run("create").Args("-f", scriptsFromRepoBc).Execute()
@@ -53,22 +52,11 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			})
 
 			g.By("running the build")
-			out, err := oc.Run("start-build").Args("--build-loglevel=5", buildConfigName).Output()
+			br, _ := exutil.StartBuildAndWait(oc, buildConfigName, "--build-loglevel=5")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
 			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs(buildConfigName, oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			buildLog, err := oc.Run("logs").Args("--follow", "build/"+buildName).Output()
-			if err != nil {
-				e2e.Failf("Failed to fetch build logs of %q: %v", buildLog, err)
+				e2e.Failf("Failed to fetch build logs: %v", err)
 			}
 
 			g.By("expecting that .s2i/bin/assemble-runtime was executed")
@@ -88,29 +76,17 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 
 		g.It("should use assemble-runtime script from URL", func() {
 			const buildConfigName = "java-extended-build-from-url"
-			const buildName = buildConfigName + "-1"
 
 			g.By("creating build config")
 			err := oc.Run("create").Args("-f", scriptsFromUrlBc).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			out, err := oc.Run("start-build").Args("--build-loglevel=5", buildConfigName).Output()
+			br, _ := exutil.StartBuildAndWait(oc, buildConfigName, "--build-loglevel=5")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
 			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs(buildConfigName, oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			buildLog, err := oc.Run("logs").Args("--follow", "build/"+buildName).Output()
-			if err != nil {
-				e2e.Failf("Failed to fetch build logs of %q: %v", buildLog, err)
+				e2e.Failf("Failed to fetch build logs: %v", err)
 			}
 
 			g.By("expecting that .s2i/bin/assemble-runtime was executed")
@@ -137,22 +113,11 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			out, err := oc.Run("start-build").Args("--build-loglevel=5", buildConfigName).Output()
+			br, _ := exutil.StartBuildAndWait(oc, buildConfigName, "--build-loglevel=5")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
 			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs(buildConfigName, oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			buildLog, err := oc.Run("logs").Args("--follow", "build/"+buildName).Output()
-			if err != nil {
-				e2e.Failf("Failed to fetch build logs of %q: %v", buildLog, err)
+				e2e.Failf("Failed to fetch build logs: %v", err)
 			}
 
 			g.By("expecting that .s2i/bin/assemble-runtime was executed")

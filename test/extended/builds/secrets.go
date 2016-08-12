@@ -1,7 +1,6 @@
 package builds
 
 import (
-	"fmt"
 	"path/filepath"
 
 	g "github.com/onsi/ginkgo"
@@ -43,16 +42,8 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting the test source build")
-			out, err := oc.Run("start-build").Args("test", "--from-dir", sourceBuildBinDir).Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "test-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", sourceBuildBinDir)
+			br.AssertSuccess()
 
 			g.By("getting the image name")
 			image, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
@@ -86,16 +77,8 @@ var _ = g.Describe("[builds][Slow] can use build secrets", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting the test docker build")
-			out, err := oc.Run("start-build").Args("test", "--from-file", dockerBuildDockerfile).Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "test-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-file", dockerBuildDockerfile)
+			br.AssertSuccess()
 
 			g.By("getting the image name")
 			image, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")

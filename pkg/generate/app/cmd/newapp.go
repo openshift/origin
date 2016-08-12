@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -716,20 +717,151 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	}, nil
 }
 
+// followRefToDockerImage follows a buildconfig...To/From reference until it
+// terminates in docker image information. This can include dereferencing chains
+// of ImageStreamTag references that already exist or which are being created.
+// ref is the reference to To/From to follow. If ref is an ImageStreamTag
+// that is following another ImageStreamTag, isContext should be set to the
+// parent IS. Finally, objects is the list of objects that new-app is creating
+// to support the buildconfig. It returns a reference to a terminal DockerImage
+// or nil if one could not be determined (a valid, non-error outcome). err
+// is only used to indicate that the follow encountered a severe error
+// (e.g malformed data).
+func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext *imageapi.ImageStream, objects app.Objects) (*kapi.ObjectReference, error) {
+
+	if ref == nil {
+		return nil, fmt.Errorf("Unable to follow nil")
+	}
+
+	if ref.Kind == "DockerImage" {
+		// Make a shallow copy so we don't modify the ObjectReference properties that
+		// new-app/build created.
+		copy := *ref
+		// Namespace should not matter here. The DockerImage URL will include project
+		// information if it is relevant.
+		copy.Namespace = ""
+
+		// DockerImage names may or may not have a tag suffix. Add :latest if there
+		// is no tag so that string comparison will behave as expected.
+		if !strings.Contains(copy.Name, ":") {
+			copy.Name += ":" + imageapi.DefaultImageTag
+		}
+		return &copy, nil
+	}
+
+	if ref.Kind != "ImageStreamTag" {
+		return nil, fmt.Errorf("Unable to follow reference type: %q", ref.Kind)
+	}
+
+	isNS := ref.Namespace
+	if len(isNS) == 0 {
+		isNS = c.OriginNamespace
+	}
+
+	// Otherwise, we are tracing an IST reference
+	isName, isTag, ok := imageapi.SplitImageStreamTag(ref.Name)
+	if !ok {
+		if isContext == nil {
+			return nil, fmt.Errorf("Unable to parse ImageStreamTag reference: %q", ref.Name)
+		}
+		// Otherwise, we are following a tag that references another tag in the same ImageStream.
+		isName = isContext.Name
+		isTag = ref.Name
+	} else {
+		// The imagestream is usually being created alongside the buildconfig
+		// when new-build is being used, so scan objects being created for it.
+		for _, check := range objects {
+			if is2, ok := check.(*imageapi.ImageStream); ok {
+				if is2.Name == isName {
+					isContext = is2
+					break
+				}
+			}
+		}
+
+		if isContext == nil {
+			var err error
+			isContext, err = c.OSClient.ImageStreams(isNS).Get(isName)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to check for circular build input/outputs: %v", err)
+			}
+		}
+	}
+
+	// Dereference ImageStreamTag to see what it is pointing to
+	target := isContext.Spec.Tags[isTag].From
+
+	if target == nil {
+		if isContext.Spec.DockerImageRepository == "" {
+			// Otherwise, this appears to be a new IS, created by new-app, with very little information
+			// populated. We cannot resolve a DockerImage.
+			return nil, nil
+		}
+		// Legacy InputStream without tag support? Spoof what we need.
+		imageName := isContext.Spec.DockerImageRepository + ":" + isTag
+		return &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: imageName,
+		}, nil
+	}
+
+	return c.followRefToDockerImage(target, isContext, objects)
+}
+
 // checkCircularReferences ensures there are no builds that can trigger themselves
 // due to an imagechangetrigger that matches the output destination of the image.
 // objects is a list of api objects produced by new-app.
 func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
-	for _, obj := range objects {
+	for i, obj := range objects {
+
+		if glog.V(5) {
+			json, _ := json.MarshalIndent(obj, "", "\t")
+			glog.Infof("\n\nCycle check input object %v:\n%v\n", i, string(json))
+		}
+
 		if bc, ok := obj.(*buildapi.BuildConfig); ok {
 			input := buildutil.GetInputReference(bc.Spec.Strategy)
-			if bc.Spec.Output.To != nil && input != nil &&
-				reflect.DeepEqual(input, bc.Spec.Output.To) {
-				ns := input.Namespace
-				if len(ns) == 0 {
-					ns = c.OriginNamespace
+			output := bc.Spec.Output.To
+
+			if output == nil || input == nil {
+				return nil
+			}
+
+			dockerInput, err := c.followRefToDockerImage(input, nil, objects)
+			if err != nil {
+				glog.Warningf("Unable to check for circular build input: %v", err)
+				return nil
+			}
+			glog.V(5).Infof("Post follow input:\n%#v\n", dockerInput)
+
+			dockerOutput, err := c.followRefToDockerImage(output, nil, objects)
+			if err != nil {
+				glog.Warningf("Unable to check for circular build output: %v", err)
+				return nil
+			}
+			glog.V(5).Infof("Post follow:\n%#v\n", dockerOutput)
+
+			if dockerInput != nil && dockerOutput != nil {
+				if reflect.DeepEqual(dockerInput, dockerOutput) {
+					return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s", dockerInput.Name)}
 				}
-				return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s/%s", ns, input.Name)}
+			}
+
+			// If it is not possible to follow input and output out to DockerImages,
+			// it is likely they are referencing newly created ImageStreams. Just
+			// make sure they are not the same image stream.
+			inCopy := *input
+			outCopy := *output
+			for _, ref := range []*kapi.ObjectReference{&inCopy, &outCopy} {
+				// Some code paths add namespace and others don't. Make things
+				// consistent.
+				if len(ref.Namespace) == 0 {
+					ref.Namespace = c.OriginNamespace
+				}
+			}
+
+			if reflect.DeepEqual(inCopy, outCopy) {
+				return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s/%s", inCopy.Namespace, inCopy.Name)}
 			}
 		}
 	}
