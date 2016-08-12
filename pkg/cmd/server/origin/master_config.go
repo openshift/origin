@@ -67,6 +67,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/controller/shared"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
+	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -75,6 +77,7 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
@@ -120,6 +123,9 @@ type MasterConfig struct {
 
 	// ImageFor is a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
+	// RegistryNameFn retrieves the name of the integrated registry, or false if no such registry
+	// is available.
+	RegistryNameFn imageapi.DefaultRegistryFunc
 
 	// TODO: remove direct access to EtcdHelper, require selecting by providing target resource
 	EtcdHelper storage.Interface
@@ -199,6 +205,13 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
+	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClient.Services(kapi.NamespaceDefault).Get)
+	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+	}
+
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	groupStorage, err := groupstorage.NewREST(restOptsGetter)
@@ -230,6 +243,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		RESTClientConfig:      *privilegedLoopbackClientConfig,
 		Informers:             informerFactory,
 		ClusterQuotaMapper:    clusterQuotaMappingController.GetClusterQuotaMapper(),
+		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 	}
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, kubeClientSet, pluginInitializer)
 
@@ -271,7 +285,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ControllerPlug:      plug,
 		ControllerPlugStart: plugStart,
 
-		ImageFor:            imageTemplate.ExpandOrDie,
+		ImageFor:       imageTemplate.ExpandOrDie,
+		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+
 		EtcdHelper:          etcdHelper,
 		KubeletClientConfig: kubeletClientConfig,
 
@@ -308,6 +324,7 @@ var (
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
+		imagepolicy.PluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
@@ -340,6 +357,7 @@ var (
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
+		imagepolicy.PluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",

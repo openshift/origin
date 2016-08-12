@@ -21,7 +21,7 @@ type Node struct {
 
 // DOTAttributes implements an attribute getter for the DOT encoding
 func (n Node) DOTAttributes() []dot.Attribute {
-	return []dot.Attribute{{"label", fmt.Sprintf("%q", n.UniqueName)}}
+	return []dot.Attribute{{Key: "label", Value: fmt.Sprintf("%q", n.UniqueName)}}
 }
 
 // ExistenceChecker is an interface for those nodes that can be created without a backing object.
@@ -96,7 +96,7 @@ func (e Edge) IsKind(kind string) bool {
 
 // DOTAttributes implements an attribute getter for the DOT encoding
 func (e Edge) DOTAttributes() []dot.Attribute {
-	return []dot.Attribute{{"label", fmt.Sprintf("%q", strings.Join(e.Kinds().List(), ","))}}
+	return []dot.Attribute{{Key: "label", Value: fmt.Sprintf("%q", strings.Join(e.Kinds().List(), ","))}}
 }
 
 type GraphDescriber interface {

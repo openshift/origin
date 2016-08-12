@@ -45,7 +45,7 @@ Upon receiving network traffic, the services (and any associated routes) will "w
 associated resources by scaling them back up to their previous scale.`
 
 	idleExample = `  # Idle the scalable controllers associated with the services listed in to-idle.txt
-  $ %[1]s idle -f to-idle.txt`
+  $ %[1]s idle --resource-names-file to-idle.txt`
 )
 
 // NewCmdStatus implements the OpenShift cli status command
@@ -253,7 +253,15 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 
 	decoder := f.Decoder(true)
 	err = o.svcBuilder.Do().Visit(func(info *resource.Info, err error) error {
-		endpoints := info.Object.(*api.Endpoints)
+		if err != nil {
+			return err
+		}
+
+		endpoints, isEndpoints := info.Object.(*api.Endpoints)
+		if !isEndpoints {
+			return fmt.Errorf("you must specify endpoints, not %vs", info.Mapping.Resource)
+		}
+
 		endpointsName := types.NamespacedName{
 			Namespace: endpoints.Namespace,
 			Name:      endpoints.Name,

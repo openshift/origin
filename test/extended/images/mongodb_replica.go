@@ -16,7 +16,7 @@ var _ = g.Describe("[images][mongodb] openshift mongodb replication", func() {
 	defer g.GinkgoRecover()
 
 	const (
-		templatePath         = "https://raw.githubusercontent.com/openshift/mongodb/master/2.4/examples/replica/mongodb-clustered.json"
+		templatePath         = "https://raw.githubusercontent.com/sclorg/mongodb-container/master/2.4/examples/replica/mongodb-clustered.json"
 		deploymentConfigName = "mongodb"
 		expectedValue        = `{ "status" : "passed" }`
 		insertCmd            = "db.bar.save(" + expectedValue + ")"

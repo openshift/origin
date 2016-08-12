@@ -1,4 +1,4 @@
-package reaper
+package cmd
 
 import (
 	"fmt"

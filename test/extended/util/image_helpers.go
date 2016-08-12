@@ -87,33 +87,6 @@ func VerifyImagesDifferent(comp1, comp2, strategy string) {
 	o.Ω(retIDs[0] != retIDs[1]).Should(o.BeTrue())
 }
 
-//WaitForBuild is a wrapper for WaitForABuild in this package; adds some ginkgo based debug
-func WaitForBuild(context, buildConfig, buildName string, oc *CLI) error {
-	fmt.Fprintf(g.GinkgoWriter, "%s:   waiting for %s", context, buildName)
-	err := WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFn, CheckBuildFailedFn)
-	fmt.Fprintf(g.GinkgoWriter, "%s   done waiting for %s", context, buildName)
-	if err != nil {
-		DumpBuildLogs(buildConfig, oc)
-	}
-	return err
-}
-
-//StartBuildFromJSON creates a build config from the supplied json file (not a template) and then starts a build, using the supplied oc/cli client for both operations; ginkgo error checking included
-func StartBuildFromJSON(jsonFile, buildPrefix string, oc *CLI) {
-	err := oc.Run("create").Args("-f", jsonFile).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	out, berr := oc.Run("start-build").Args(buildPrefix).Output()
-	fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-	o.Expect(berr).NotTo(o.HaveOccurred())
-}
-
-//StartBuild starts a build, with the assumption that the build config was previously created
-func StartBuild(buildPrefix string, oc *CLI) {
-	out, err := oc.Run("start-build").Args(buildPrefix).Output()
-	fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
 //CreateResource creates the resources from the supplied json file (not a template); ginkgo error checking included
 func CreateResource(jsonFilePath string, oc *CLI) error {
 	err := oc.Run("create").Args("-f", jsonFilePath).Execute()

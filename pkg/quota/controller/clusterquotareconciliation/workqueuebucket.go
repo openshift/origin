@@ -18,9 +18,9 @@ type BucketingWorkQueue interface {
 	ShutDown()
 }
 
-func NewBucketingWorkQueue() BucketingWorkQueue {
+func NewBucketingWorkQueue(name string) BucketingWorkQueue {
 	return &workQueueBucket{
-		queue:      workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
 		work:       map[interface{}][]interface{}{},
 		dirtyWork:  map[interface{}][]interface{}{},
 		inProgress: map[interface{}]bool{},

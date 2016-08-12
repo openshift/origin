@@ -202,7 +202,7 @@ var map_BuildStrategy = map[string]string{
 	"dockerStrategy":          "dockerStrategy holds the parameters to the Docker build strategy.",
 	"sourceStrategy":          "sourceStrategy holds the parameters to the Source build strategy.",
 	"customStrategy":          "customStrategy holds the parameters to the Custom build strategy",
-	"jenkinsPipelineStrategy": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is experimental.",
+	"jenkinsPipelineStrategy": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is in tech preview.",
 }
 
 func (BuildStrategy) SwaggerDoc() map[string]string {
@@ -383,7 +383,7 @@ func (ImageSourcePath) SwaggerDoc() map[string]string {
 }
 
 var map_JenkinsPipelineBuildStrategy = map[string]string{
-	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is experimental.",
+	"":                "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is in tech preview.",
 	"jenkinsfilePath": "JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.",
 	"jenkinsfile":     "Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.",
 }
@@ -420,8 +420,8 @@ var map_SourceBuildStrategy = map[string]string{
 	"scripts":          "scripts is the location of Source scripts",
 	"incremental":      "incremental flag forces the Source build to do incremental builds if true.",
 	"forcePull":        "forcePull describes if the builder should pull the images from registry prior to building.",
-	"runtimeImage":     "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed. The building of the application is still done in the builder image but, post build, you can copy the needed artifacts in the runtime image for use.",
-	"runtimeArtifacts": "runtimeArtifacts specifies a list of source/destination pairs that will be copied from the builder to the runtime image. sourcePath can be a file or directory. destinationDir must be a directory. destinationDir can also be empty or equal to \".\", in this case it just refers to the root of WORKDIR.",
+	"runtimeImage":     "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed. The building of the application is still done in the builder image but, post build, you can copy the needed artifacts in the runtime image for use. This field and the feature it enables are in tech preview.",
+	"runtimeArtifacts": "runtimeArtifacts specifies a list of source/destination pairs that will be copied from the builder to the runtime image. sourcePath can be a file or directory. destinationDir must be a directory. destinationDir can also be empty or equal to \".\", in this case it just refers to the root of WORKDIR. This field and the feature it enables are in tech preview.",
 }
 
 func (SourceBuildStrategy) SwaggerDoc() map[string]string {

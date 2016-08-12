@@ -32,6 +32,7 @@ usage statistics.`
 
 	topImagesExample = `  # Show usage statistics for Images
   %[1]s %[2]s`
+	maxImageIDLength = 20
 )
 
 // NewCmdTopImages implements the OpenShift cli top images command.
@@ -127,7 +128,15 @@ var _ Info = &imageInfo{}
 func (i imageInfo) PrintLine(out io.Writer) {
 	printValue(out, i.Image)
 	printArray(out, i.ImageStreamTags)
-	printArray(out, i.Parents)
+	shortParents := make([]string, len(i.Parents))
+	for i, p := range i.Parents {
+		if len(p) > maxImageIDLength {
+			shortParents[i] = p[:maxImageIDLength-3] + "..."
+		} else {
+			shortParents[i] = p
+		}
+	}
+	printArray(out, shortParents)
 	printArray(out, i.Usage)
 	printBool(out, i.Metadata)
 	printSize(out, i.Storage)

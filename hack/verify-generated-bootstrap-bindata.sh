@@ -14,7 +14,7 @@ echo "===== Verifying Generated Bootstrap Bindata ====="
 TMP_GENERATED_BOOTSTRAP_DIR="_output/verify-bootstrap-bindata"
 
 echo "Generating bootstrap bindata..."
-if ! output=`OUTPUT_ROOT=${TMP_GENERATED_BOOTSTRAP_DIR} ${OS_ROOT}/hack/gen-bootstrap-bindata.sh 2>&1`
+if ! output=`OUTPUT_ROOT=${TMP_GENERATED_BOOTSTRAP_DIR} ${OS_ROOT}/hack/update-generated-bootstrap-bindata.sh 2>&1`
 then
 	echo "FAILURE: Generation of fresh bindata failed:"
 	echo "$output"
@@ -29,6 +29,6 @@ if [[ $ret -eq 0 ]]
 then
   echo "SUCCESS: Generated bootstrap bindata up to date."
 else
-  echo "FAILURE: Generated bootstrap bindata out of date. Please run hack/gen-bootstrap-bindata.sh"
+  echo "FAILURE: Generated bootstrap bindata out of date. Please run hack/update-generated-bootstrap-bindata.sh"
   exit 1
 fi
