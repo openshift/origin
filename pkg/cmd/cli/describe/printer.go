@@ -317,6 +317,11 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kctl.PrintOpti
 	from := describeSourceShort(bc.Spec.CommonSpec)
 
 	if bc.Spec.Strategy.CustomStrategy != nil {
+		if opts.WithNamespace {
+			if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {
+				return err
+			}
+		}
 		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildapi.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
