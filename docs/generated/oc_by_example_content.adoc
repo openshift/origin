@@ -409,6 +409,22 @@ Update the stored version of API objects
 ====
 
 
+== oc adm pod-network isolate-projects
+Isolate project network
+
+====
+
+[options="nowrap"]
+----
+	# Provide isolation for project p1
+	oc adm pod-network isolate-projects <p1>
+
+	# Allow all projects with label name=top-secret to have their own isolated project network
+	oc adm pod-network isolate-projects --selector='name=top-secret'
+----
+====
+
+
 == oc adm pod-network join-projects
 Join project network
 

@@ -1,22 +1,28 @@
-.TH "OC ADM" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OADM POD-NETWORK" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-oc adm pod\-network \- Manage pod network
+oadm pod\-network isolate\-projects \- Isolate project network
 
 
 .SH SYNOPSIS
 .PP
-\fBoc adm pod\-network\fP [OPTIONS]
+\fBoadm pod\-network isolate\-projects\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Manage pod network in the cluster
+Isolate project network
 
 .PP
-This command provides common pod network operations for administrators.
+Allows projects to isolate their network from other projects when using the redhat/openshift\-ovs\-multitenant network plugin.
+
+
+.SH OPTIONS
+.PP
+\fB\-\-selector\fP=""
+    Label selector to filter projects. Either pass one/more projects as arguments or use this project selector
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -85,9 +91,24 @@ This command provides common pod network operations for administrators.
     The name of the kubeconfig user to use
 
 
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+	# Provide isolation for project p1
+	oadm pod\-network isolate\-projects <p1>
+
+	# Allow all projects with label name=top\-secret to have their own isolated project network
+	oadm pod\-network isolate\-projects \-\-selector='name=top\-secret'
+
+.fi
+.RE
+
+
 .SH SEE ALSO
 .PP
-\fBoc\-adm(1)\fP, \fBoc\-adm\-pod\-network\-isolate\-projects(1)\fP, \fBoc\-adm\-pod\-network\-join\-projects(1)\fP, \fBoc\-adm\-pod\-network\-make\-projects\-global(1)\fP,
+\fBoadm\-pod\-network(1)\fP,
 
 
 .SH HISTORY
