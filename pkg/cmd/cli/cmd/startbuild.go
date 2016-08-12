@@ -147,7 +147,7 @@ type StartBuildOptions struct {
 func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.Out()
+	o.ErrOut = cmd.OutOrStderr()
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig
 	o.Mapper, _ = f.Object(false)

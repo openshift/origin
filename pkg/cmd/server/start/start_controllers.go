@@ -35,17 +35,17 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 		Long:  fmt.Sprintf(controllersLong, basename, name),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
 			if len(options.ConfigFile) == 0 {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, "--config is required for this command"))
+				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, "--config is required for this command"))
 				return
 			}
 
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -54,9 +54,9 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
