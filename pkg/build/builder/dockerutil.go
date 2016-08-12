@@ -161,7 +161,7 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 		return fmt.Errorf("create container %q: %v", createOpts.Name, err)
 	}
 
-	containerName := containerNameOrID(c)
+	containerName := getContainerNameOrID(c)
 
 	removeContainer := func() {
 		glog.V(4).Infof("Removing container %q ...", containerName)
@@ -201,7 +201,7 @@ func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, lo
 	return interrupt.New(nil, removeContainer).Run(startWaitContainer)
 }
 
-func containerNameOrID(c *docker.Container) string {
+func getContainerNameOrID(c *docker.Container) string {
 	if c.Name != "" {
 		return c.Name
 	}

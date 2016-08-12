@@ -207,7 +207,8 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	}
 
 	// check if we specify a commit, ref, or branch to check out
-	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
+	usingRevision := revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0
+	usingRef := len(gitSource.Ref) != 0 || usingRevision
 
 	// Recursive clone if we're not going to checkout a ref and submodule update later
 	glog.V(3).Infof("Cloning source from %s", gitSource.URI)
@@ -222,7 +223,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	if usingRef {
 		commit := gitSource.Ref
 
-		if revision != nil && revision.Git != nil && revision.Git.Commit != "" {
+		if usingRevision {
 			commit = revision.Git.Commit
 		}
 
@@ -313,7 +314,7 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 	exists := true
 	if !forcePull {
 		_, err := dockerClient.InspectImage(image)
-		if err != nil && err == docker.ErrNoSuchImage {
+		if err == docker.ErrNoSuchImage {
 			exists = false
 		} else if err != nil {
 			return err
@@ -323,7 +324,7 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 	if !exists || forcePull {
 		glog.V(0).Infof("Pulling image %q ...", image)
 		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
-			return fmt.Errorf("error pulling image %v: %v", image, err)
+			return fmt.Errorf("error pulling image %q: %v", image, err)
 		}
 	}
 
