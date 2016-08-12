@@ -12,10 +12,10 @@ OpenShift cluster admins need a way to sync their OpenShift `Groups` to external
 
 ## Supported LDAP Group Schemas
 1. Groups as first-class LDAP entries with an attribute containing a list of members:
-  1. members listed with their DN in the attribute
+  1. Members listed with their DN in the attribute
   * members listed with some other UID in the attribute
 * Users as first-class LDAP entries with an attribute containing a list of groups they are a member of:
-  1. groups listed by a unique name, with no additional group metadata in the LDAP server
+  1. Groups listed by a unique name, with no additional group metadata in the LDAP server
   * groups listed by DN, with the first-class group entries holding additional metadata
   * groups listed by some other UID, with the first-class group entries holding additional metadata
 

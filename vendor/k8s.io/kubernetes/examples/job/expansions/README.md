@@ -55,7 +55,7 @@ We also put the same label on the pod template so that we can check on all Pods 
 with a single command.
 After the job is created, the system will add more labels that distinguish one Job's pods
 from another Job's pods.
-Note that the label key `jobgroup` is not special to Kubernetes. you can pick your own label scheme.
+Note that the label key `jobgroup` is not special to Kubernetes. You can pick your own label scheme.
 
 Next, expand the template into multiple files, one for each item to be processed.
 
