@@ -17,15 +17,15 @@ jenkins template represented by jenkinstemplate.json by running these commands a
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/jenkinstemplate.json -n openshift
 
-2. login as a normal user (any username is fine)
+2. Login as a normal user (any username is fine)
 
         $ oc login
 
-3. create a project for your user named "pipelineproject"
+3. Create a project for your user named "pipelineproject"
 
         $ oc new-project pipelineproject
 
-4. run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
+4. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
         If you used cluster up:
         $ oc new-app jenkins-pipeline-example

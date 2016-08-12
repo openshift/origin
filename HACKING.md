@@ -389,7 +389,7 @@ found in our `Godeps/Godeps.json` in the declaration of any Kubernetes package.
 If in the process of rebasing manually you found any corner case not attended by the `hack/rebase-kube.sh`
 script, make sure you update it accordingly to help future rebases.
 
-### 3. cherry-pick upstream changes pushed to the Origin repo
+### 3. Cherry-pick upstream changes pushed to the Origin repo
 
 Eventually during the development cycle we introduce changes to dependencies right in the Origin
 repository. This is not a largely recommended practice, but it's useful if we need something that,
