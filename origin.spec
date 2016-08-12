@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit db5beb0c8c036090863e203c5cf52703bb1a053d
+%global commit 9ec27c295c47ddd292d6248ff8074a67d29fcf39
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.17+db5beb0 -X github.com/openshift/origin/pkg/version.commitFromGit=db5beb0 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-10T14:35:14Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-10T14:35:14Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.18+9ec27c2 -X github.com/openshift/origin/pkg/version.commitFromGit=9ec27c2 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-12T14:04:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-12T14:04:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 # os_git_vars needed to run hack scripts during rpm builds
 # TODO Automatically generate these using tito
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.18
+Version:        3.3.0.19
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -504,6 +504,52 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Aug 12 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.19
+- Merge remote-tracking branch upstream/master, bump origin-web-console 01e7f6b
+  (tdawson@redhat.com)
+- mark extended builds experimental (bparees@redhat.com)
+- the tmpfile may be not closed when function DownloadFromContainer returns err
+  (li.guangxu@zte.com.cn)
+- Improving circular dependency checking for new-build (jupierce@redhat.com)
+- Adding -o=name to start-build (jupierce@redhat.com)
+- add tests; mv printer tests to separate file (jvallejo@redhat.com)
+- Add the default image policy to bootstrap bindata (ccoleman@redhat.com)
+- Make hack commands more consistent and add policy to bindata
+  (ccoleman@redhat.com)
+- Enable a simple image policy admission controller (ccoleman@redhat.com)
+- Make DefaultRegistryFunc and PodSpec extraction generic (ccoleman@redhat.com)
+- Fix govet complains (maszulik@redhat.com)
+- Change go version detection logic (maszulik@redhat.com)
+- Bump origin-web-console (233c7f3) (jforrest@redhat.com)
+- Bug 1363630 - Print shortened parent ID in oadm top images
+  (maszulik@redhat.com)
+- Revert "Bug 1281735 - remove the internal docker registry information from
+  imagestream" (ccoleman@redhat.com)
+- fix broken paths and redirects for s2i containers (ipalade@redhat.com)
+- show namespace for custom strategy bc (jvallejo@redhat.com)
+- remove redundant example from `oc projects` (jvallejo@redhat.com)
+- SourceStrategy: assign PullSecret when only RuntimeImage needs it.
+  (vsemushi@redhat.com)
+- Fix `oc idle` help text (sross@redhat.com)
+- Ensure only endpoints are specified in `oc idle` (sross@redhat.com)
+- add unit tests for s2iProxyConfig and buildEnvVars (ipalade@redhat.com)
+- add test case (jvallejo@redhat.com)
+- UPSTREAM: 30162: return err on oc run --image with invalid value
+  (jvallejo@redhat.com)
+- show project labels (deads@redhat.com)
+- add metrics to clusterquota controllers (deads@redhat.com)
+- UPSTREAM: 30296: add metrics for workqueues (deads@redhat.com)
+- Mark ingress as tech-preview in README (mfojtik@redhat.com)
+- go-binddata can not found when GOPATH is a list of directories
+  (li.guangxu@zte.com.cn)
+- refactor function parameters (li.guangxu@zte.com.cn)
+- Addressing the issues identified in BZ 1341312 (erich@redhat.com)
+- diagnostics: fix bug 1359771 (lmeyer@redhat.com)
+- make db user/password parameter description clearer (bparees@redhat.com)
+- Use default scrub pod template for NFS recycler (mawong@redhat.com)
+- move cmd tools to common build cmd package (bparees@redhat.com)
+- fix some bugs with ROUTER_SLOW_LORIS_TIMEOUT (jtanenba@redhat.com)
+
 * Wed Aug 10 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.18
 - Merge remote-tracking branch upstream/master, bump origin-web-console 4a118e0
   (tdawson@redhat.com)
