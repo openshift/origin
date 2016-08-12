@@ -5,15 +5,7 @@
 #
 #   $ source hack/export-certs.sh ./openshift.local.config/master/admin
 #   $ curl $CURL_ARGS <a protected URL>
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-
-set -e
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 DEF="${1:-}"
 CERT_DIR="${CERT_DIR:-$DEF}"

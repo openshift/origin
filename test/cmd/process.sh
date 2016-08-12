@@ -1,12 +1,6 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
 (
@@ -24,16 +18,16 @@ os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be
 # fail to pass a filename or template by name
 os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
 # can't ask for parameters and try process the template
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --value=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -v someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -o someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template' 
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template' 
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --value=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -v someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -l someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --output=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -o someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --output-version=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-output-version'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --raw' '\-\-parameters flag does not process the template, can.t be used with \-\-raw'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters --template=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
+os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
 
 # providing a value more than once should fail
 os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'

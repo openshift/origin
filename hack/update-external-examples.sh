@@ -4,12 +4,7 @@
 # so they can be included directly in our repository.
 # Feeds off a README.md file with well defined syntax that informs this
 # script how to pull the file down.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # For now the only external examples are in examples/quickstarts.
 QUICKSTARTS_DIR="${OS_ROOT}/examples/quickstarts"

@@ -1,14 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 

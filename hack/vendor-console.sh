@@ -8,13 +8,7 @@
 #                        directory will be used.
 #   - CONSOLE_REPO_PATH: specifies a directory path to look for the web console repo.  If not set it is assumed to be
 #                        a sibling to this repository.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 CONSOLE_REPO_PATH=${CONSOLE_REPO_PATH:-$OS_ROOT/../origin-web-console}
 if [[ ! -d "$CONSOLE_REPO_PATH" ]]; then

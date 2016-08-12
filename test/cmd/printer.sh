@@ -1,12 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Test that resource printer includes resource kind on multiple resources

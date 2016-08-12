@@ -5,17 +5,8 @@
 # Set OS_PUSH_BASE_IMAGES=true to push base images
 # Set OS_PUSH_BASE_REGISTRY to prefix the destination images
 #
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # Allow a release to be repushed with a tag
 tag="${OS_PUSH_TAG:-}"

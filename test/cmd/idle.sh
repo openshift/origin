@@ -1,12 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -16,7 +9,7 @@ trap os::test::junit::reconcile_output EXIT
   exit 0
 ) &>/dev/null
 
-project=$(oc project -q)
+project="$(oc project -q)"
 idled_at_annotation='idling.alpha.openshift.io/idled-at'
 unidle_target_annotation='idling.alpha.openshift.io/unidle-targets'
 idled_at_template="{{index .metadata.annotations \"${idled_at_annotation}\"}}"
@@ -29,13 +22,16 @@ setup_idling_resources() {
     os::cmd::expect_success 'oc create -f test/extended/testdata/idling-echo-server.yaml'
     os::cmd::expect_success 'oc describe deploymentconfigs idling-echo'
     os::cmd::try_until_success 'oc describe endpoints idling-echo'
-    local endpoints_json=$(oc get endpoints idling-echo -o json)
+    local endpoints_json
+    endpoints_json="$(oc get endpoints idling-echo -o json)"
     os::cmd::expect_success 'oc delete service idling-echo'
     os::cmd::expect_success "echo '${endpoints_json}' | oc create -f -"
     os::cmd::expect_success 'oc describe endpoints idling-echo'
     # deployer pod won't work, so just scale up the rc ourselves
     os::cmd::expect_success 'oc scale replicationcontroller idling-echo-1 --replicas=2'
-    pod_name=$(oc get pod -l app=idling-echo -o go-template='{{ (index .items 0).metadata.name }}')
+    os::cmd::try_until_text "oc get pod -l app=idling-echo -o go-template='{{ len .items }}'" "2"
+    local pod_name
+    pod_name="$(oc get pod -l app=idling-echo -o go-template='{{ (index .items 0).metadata.name }}')"
     fake_endpoints_patch=$(cat <<EOF
 {
     "subsets": [{
