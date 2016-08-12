@@ -45,16 +45,8 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			buildName, err := oc.Run("start-build").Args("test").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", buildName)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("test", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, _ := exutil.StartBuildAndWait(oc, "test")
+			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
 			imageName, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")

@@ -36,19 +36,11 @@ var _ = g.Describe("[builds][Conformance] s2i build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			out, err := oc.Run("start-build").Args("s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota")).Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nstart-build output:\n%s\n", out)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "s2i-build-quota-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("s2i-build-quota", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			br, _ := exutil.StartBuildAndWait(oc, "s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
+			br.AssertSuccess()
 
 			g.By("expecting the build logs to contain the correct cgroups values")
-			buildLog, err := oc.Run("logs").Args(fmt.Sprintf("build/s2i-build-quota-1")).Output()
+			buildLog, err := br.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(buildLog).To(o.ContainSubstring("MEMORY=209715200"))
 			o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=209715200"))
