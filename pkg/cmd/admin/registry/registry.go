@@ -240,7 +240,7 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 
 	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, cmd.Out()
+	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, cmd.OutOrStderr()
 	opts.Config.Action.Bulk.Op = configcmd.Create
 	opts.out = out
 	opts.cmd = cmd

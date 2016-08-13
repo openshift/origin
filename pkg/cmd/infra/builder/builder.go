@@ -32,7 +32,7 @@ func NewCommandS2IBuilder(name string) *cobra.Command {
 		Short: "Run a Source-to-Image build",
 		Long:  s2iBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
-			err := cmd.RunS2IBuild(c.Out())
+			err := cmd.RunS2IBuild(c.OutOrStderr())
 			kcmdutil.CheckErr(err)
 		},
 	}
@@ -48,7 +48,7 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 		Short: "Run a Docker build",
 		Long:  dockerBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
-			err := cmd.RunDockerBuild(c.Out())
+			err := cmd.RunDockerBuild(c.OutOrStderr())
 			kcmdutil.CheckErr(err)
 		},
 	}

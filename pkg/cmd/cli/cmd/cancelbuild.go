@@ -88,7 +88,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, in io.Reader, out 
 func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.Out()
+	o.ErrOut = cmd.OutOrStderr()
 	o.ReportError = func(err error) {
 		o.HasError = true
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())

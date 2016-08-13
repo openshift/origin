@@ -116,9 +116,9 @@ func (options *NodeOptions) Run(c *cobra.Command, args []string) {
 	if err := options.StartNode(); err != nil {
 		if kerrors.IsInvalid(err) {
 			if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-				fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
+				fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
 				for _, cause := range details.Causes {
-					fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
+					fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
 				}
 				os.Exit(255)
 			}
