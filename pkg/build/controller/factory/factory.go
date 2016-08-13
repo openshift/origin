@@ -498,7 +498,6 @@ func (lw *buildDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) 
 		}
 		if err != nil && kerrors.IsNotFound(err) {
 			build = nil
-
 		}
 		if build == nil {
 			deletedBuild := &buildapi.Build{
@@ -572,6 +571,10 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 		glog.V(5).Infof("Found build %s/%s", build.Namespace, build.Name)
 		if buildutil.IsBuildComplete(&build) {
 			glog.V(5).Infof("Ignoring build %s/%s because it is complete", build.Namespace, build.Name)
+			continue
+		}
+		if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+			glog.V(5).Infof("Ignoring build %s/%s because it is a pipeline build", build.Namespace, build.Name)
 			continue
 		}
 		pod, err := lw.KubeClient.Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))

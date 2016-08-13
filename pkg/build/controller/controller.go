@@ -373,9 +373,13 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 	}
 	build := obj.(*buildapi.Build)
 
+	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+		glog.V(4).Infof("Build %s/%s is a pipeline build, ignoring", build.Namespace, build.Name)
+		return nil
+	}
 	// If build was cancelled, we'll leave HandleBuild to update the build
 	if build.Status.Cancelled {
-		glog.V(4).Infof("Cancelation for build was already triggered, ignoring")
+		glog.V(4).Infof("Cancelation for build %s/%s was already triggered, ignoring", build.Namespace, build.Name)
 		return nil
 	}
 
@@ -407,6 +411,10 @@ type BuildDeleteController struct {
 // HandleBuildDeletion deletes a build pod if the corresponding build has been deleted
 func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling deletion of build %s", build.Name)
+	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
+		return nil
+	}
 	podName := buildapi.GetBuildPodName(build)
 	pod, err := bc.PodManager.GetPod(build.Namespace, podName)
 	if err != nil && !errors.IsNotFound(err) {
