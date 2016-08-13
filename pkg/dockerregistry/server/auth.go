@@ -3,8 +3,10 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	context "github.com/docker/distribution/context"
@@ -13,6 +15,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -36,8 +39,15 @@ func (d deferredErrors) Empty() bool {
 const (
 	OpenShiftAuth = "openshift"
 
-	RealmKey      = "realm"
-	TokenRealmKey = "token-realm"
+	RealmKey         = "realm"
+	TokenRealmKey    = "token-realm"
+	ClientRetriesKey = "client-retries"
+	ClientDelayKey   = "client-delay"
+)
+
+var (
+	clientRetries = 5
+	clientDelay   = 1*time.Second
 )
 
 // RegistryClient encapsulates getting access to the OpenShift API.
@@ -156,6 +166,18 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 	}
 
 	tokenRealm, _ := options[TokenRealmKey].(string)
+
+	if v, ok := options[ClientRetriesKey].(int); ok {
+		clientRetries = v
+	}
+
+	if v, ok := options[ClientDelayKey].(string); ok {
+		delay, err := time.ParseDuration(v)
+		if err != nil {
+			return nil, err
+		}
+		clientDelay = delay
+	}
 
 	return &AccessController{realm: realm, tokenRealm: tokenRealm, config: DefaultRegistryClient.SafeClientConfig()}, nil
 }
@@ -368,16 +390,32 @@ func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error
 	return token, nil
 }
 
-func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) error {
-	if _, err := client.Users().Get("~"); err != nil {
-		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
-		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
-			return ErrOpenShiftAccessDenied
-		}
-		return err
+func isTemporaryNetError(err error) bool {
+	if e, ok := err.(net.Error); ok && e != nil {
+		return e.Temporary() || e.Timeout()
 	}
+	return false
+}
 
-	return nil
+func verifyError(err error) error {
+	switch {
+	case kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err):
+		return ErrOpenShiftAccessDenied
+	case kerrors.IsServerTimeout(err) || isTemporaryNetError(err):
+		return nil
+	}
+	return err
+}
+
+func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) error {
+	return withExponentialBackoff(func() error {
+		_, err := client.Users().Get("~")
+		if err != nil {
+			context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
+			return err
+		}
+		return nil
+	})
 }
 
 func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
@@ -389,22 +427,18 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 			ResourceName: imageRepo,
 		},
 	}
-	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
-
-	if err != nil {
-		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
-		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
+	return withExponentialBackoff(func() error {
+		response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
+		if err != nil {
+			context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
+			return err
+		}
+		if !response.Allowed {
+			context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
 			return ErrOpenShiftAccessDenied
 		}
-		return err
-	}
-
-	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
-		return ErrOpenShiftAccessDenied
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
@@ -415,17 +449,37 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 			Resource: "images",
 		},
 	}
-	response, err := client.SubjectAccessReviews().Create(&sar)
-	if err != nil {
-		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
-		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
+	return withExponentialBackoff(func() error {
+		response, err := client.SubjectAccessReviews().Create(&sar)
+		if err != nil {
+			context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
+			return err
+		}
+		if !response.Allowed {
+			context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
 			return ErrOpenShiftAccessDenied
 		}
-		return err
+		return nil
+	})
+}
+
+func withExponentialBackoff(handler func() error) (err error) {
+	backoff := wait.Backoff{
+		Duration: clientDelay,
+		Factor:   1.5,
+		Jitter:   0.2,
+		Steps:    clientRetries,
 	}
-	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
-		return ErrOpenShiftAccessDenied
+	waitErr := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		err = handler()
+		if err == nil {
+			return true, nil
+		}
+		err = verifyError(err)
+		return false, err
+	})
+	if waitErr != nil {
+		err = waitErr
 	}
-	return nil
+	return
 }
