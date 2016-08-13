@@ -135,6 +135,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
+	cmd.Flags().BoolVar(&config.ForcePull, "force-pull", false, "Force pull of all images before running them")
 	return cmd
 }
 
@@ -152,6 +153,7 @@ type ClientStartConfig struct {
 	ImageVersion              string
 	Image                     string
 	DockerMachine             string
+	ForcePull                 bool
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
 	ShouldInstallMetrics      bool
@@ -447,7 +449,7 @@ func (c *ClientStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error
 // CheckOpenShiftImage checks whether the OpenShift image exists. If not it tells the
 // Docker daemon to pull it.
 func (c *ClientStartConfig) CheckOpenShiftImage(out io.Writer) error {
-	return c.DockerHelper().CheckAndPull(c.openShiftImage(), out)
+	return c.DockerHelper().CheckAndPull(c.openShiftImage(), c.ForcePull, out)
 }
 
 // CheckDockerInsecureRegistry checks whether the Docker daemon is using the right --insecure-registry argument
@@ -556,6 +558,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		LogLevel:          c.ServerLogLevel,
 		DNSPort:           c.DNSPort,
 		PortForwarding:    c.PortForwarding,
+		ForcePull:         c.ForcePull,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
