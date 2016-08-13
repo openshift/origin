@@ -267,11 +267,12 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		targetScalablesSet[v] = struct{}{}
 	}
 
-	deleteIdledAtAnnotation := func(annotations map[string]string) {
+	deleteIdlingAnnotations := func(_ int32, annotations map[string]string) {
 		delete(annotations, unidlingapi.IdledAtAnnotation)
+		delete(annotations, unidlingapi.PreviousScaleAnnotation)
 	}
 
-	scaleAnnotater := unidlingutil.NewScaleAnnotater(c.scaleNamespacer, c.dcNamespacer, c.rcNamespacer, deleteIdledAtAnnotation)
+	scaleAnnotater := unidlingutil.NewScaleAnnotater(c.scaleNamespacer, c.dcNamespacer, c.rcNamespacer, deleteIdlingAnnotations)
 
 	for _, scalableRef := range targetScalables {
 		var scale *kextapi.Scale

@@ -9,6 +9,10 @@ const (
 	// objects associated with the idled endpoints
 	UnidleTargetAnnotation = "idling.alpha.openshift.io/unidle-targets"
 
+	// PreviousScaleAnnotation contains the previous scale of a scalable object
+	// (currently only applied by the idler)
+	PreviousScaleAnnotation = "idling.alpha.openshift.io/previous-scale"
+
 	// NeedPodsReason is the reason for the event emitted to indicate that endpoints should be unidled
 	NeedPodsReason = "NeedPods"
 )
