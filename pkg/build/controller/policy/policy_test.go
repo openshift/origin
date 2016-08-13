@@ -24,6 +24,10 @@ func (f *fakeBuildClient) List(namespace string, opts kapi.ListOptions) (*builda
 	return f.builds, nil
 }
 
+func (f *fakeBuildClient) UpdateStatus(namespace string, build *buildapi.Build) error {
+	return f.Update(namespace, build)
+}
+
 func (f *fakeBuildClient) Update(namespace string, build *buildapi.Build) error {
 	// Make sure every update fails at least once with conflict to ensure build updates are
 	// retried.
@@ -67,7 +71,7 @@ func TestForBuild(t *testing.T) {
 		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(builds)
-	policies := GetAllRunPolicies(client, client)
+	policies := GetAllRunPolicies(client, client, client)
 
 	if policy := ForBuild(&builds[0], policies); policy != nil {
 		if _, ok := policy.(*ParallelPolicy); !ok {

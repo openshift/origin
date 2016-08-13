@@ -246,10 +246,11 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
-		KubeClient:   kclient,
-		OSClient:     osclient,
-		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
-		BuildLister:  buildclient.NewOSClientBuildClient(osclient),
+		KubeClient:         kclient,
+		OSClient:           osclient,
+		BuildUpdater:       buildclient.NewOSClientBuildClient(osclient),
+		BuildStatusUpdater: buildclient.NewOSClientBuildClient(osclient),
+		BuildLister:        buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
@@ -277,9 +278,9 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 func (c *MasterConfig) RunBuildPodController() {
 	osclient, kclient := c.BuildPodControllerClients()
 	factory := buildcontrollerfactory.BuildPodControllerFactory{
-		OSClient:     osclient,
-		KubeClient:   kclient,
-		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
+		OSClient:           osclient,
+		KubeClient:         kclient,
+		BuildStatusUpdater: buildclient.NewOSClientBuildClient(osclient),
 	}
 	controller := factory.Create()
 	controller.Run()

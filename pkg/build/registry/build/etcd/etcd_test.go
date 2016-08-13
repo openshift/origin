@@ -17,7 +17,7 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	storage, _, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage))
 	if err != nil {
 		t.Fatal(err)
 	}

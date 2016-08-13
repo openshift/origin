@@ -14,12 +14,13 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
+// REST implements the REST endpoint for Builds
 type REST struct {
 	*registry.Store
 }
 
 // NewStorage returns a RESTStorage object that will work against Build objects.
-func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
+func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, *StatusREST, error) {
 	prefix := "/builds"
 
 	store := &registry.Store{
@@ -46,15 +47,19 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	detailsStore := *store
 	detailsStore.UpdateStrategy = build.DetailsStrategy
 
-	return &REST{store}, &DetailsREST{&detailsStore}, nil
+	statusStore := *store
+	statusStore.UpdateStrategy = build.StatusStrategy
+
+	return &REST{store}, &DetailsREST{&detailsStore}, &StatusREST{&statusStore}, nil
 }
 
+// DetailsREST implements the REST endpoint for Build details
 type DetailsREST struct {
 	store *registry.Store
 }
@@ -66,5 +71,30 @@ func (r *DetailsREST) New() runtime.Object {
 
 // Update finds a resource in the storage and updates it.
 func (r *DetailsREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
+}
+
+// Get retrieves the object from the storage. It is required to support Patch.
+func (r *DetailsREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	return r.store.Get(ctx, name)
+}
+
+// StatusREST implements the REST endpoint for Build status
+type StatusREST struct {
+	store *registry.Store
+}
+
+// New returns an empty object that can be used with Update after request data has been put into it.
+func (r *StatusREST) New() runtime.Object {
+	return r.store.New()
+}
+
+// Get retrieves the object from the storage. It is required to support Patch.
+func (r *StatusREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	return r.store.Get(ctx, name)
+}
+
+// Update finds a resource in the storage and updates it.
+func (r *StatusREST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo)
 }

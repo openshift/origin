@@ -2227,6 +2227,7 @@ items:
     attributeRestrictions: null
     resources:
     - builds
+    - builds/status
     verbs:
     - update
   - apiGroups:

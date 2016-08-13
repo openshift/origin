@@ -28,7 +28,7 @@ func TestCreateInstantiate(t *testing.T) {
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
 			},
 			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {

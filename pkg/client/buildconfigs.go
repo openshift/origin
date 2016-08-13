@@ -33,6 +33,7 @@ type BuildConfigInterface interface {
 	InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error)
 
 	WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error)
+	UpdateStatus(build *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 }
 
 // buildConfigs implements BuildConfigsNamespacer interface
@@ -92,6 +93,13 @@ func (c *buildConfigs) Create(build *buildapi.BuildConfig) (result *buildapi.Bui
 func (c *buildConfigs) Update(build *buildapi.BuildConfig) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
 	err = c.r.Put().Namespace(c.ns).Resource("buildConfigs").Name(build.Name).Body(build).Do().Into(result)
+	return
+}
+
+// UpdateStatus updates the buildconfig status on the server. Returns the server's representation of the buildconfig and error if one occurs.
+func (c *buildConfigs) UpdateStatus(build *buildapi.BuildConfig) (result *buildapi.BuildConfig, err error) {
+	result = &buildapi.BuildConfig{}
+	err = c.r.Put().Namespace(c.ns).Resource("buildConfigs").Name(build.Name).SubResource("status").Body(build).Do().Into(result)
 	return
 }
 

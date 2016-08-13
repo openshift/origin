@@ -43,6 +43,15 @@ func TestBuildAdmission(t *testing.T) {
 			expectAccept:     true,
 		},
 		{
+			name:           "allowed build status",
+			object:         testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
+			kind:           buildapi.Kind("Build"),
+			resource:       buildsResource,
+			subResource:    "status",
+			reviewResponse: reviewResponse(false, "cannot create buildconfig of type source"),
+			expectAccept:   true,
+		},
+		{
 			name:             "allowed source build clone",
 			object:           testBuildRequest("buildname"),
 			responseObject:   testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
@@ -90,6 +99,15 @@ func TestBuildAdmission(t *testing.T) {
 			reviewResponse:   reviewResponse(true, ""),
 			expectAccept:     true,
 			expectedResource: authorizationapi.DockerBuildResource,
+		},
+		{
+			name:           "allowed build config status",
+			object:         testBuildConfig(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
+			kind:           buildapi.Kind("BuildConfig"),
+			resource:       buildConfigsResource,
+			subResource:    "status",
+			reviewResponse: reviewResponse(false, "cannot create buildconfig of type source"),
+			expectAccept:   true,
 		},
 		{
 			name:             "allowed build config instantiate",

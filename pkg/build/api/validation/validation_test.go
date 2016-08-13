@@ -13,8 +13,8 @@ import (
 	_ "github.com/openshift/origin/pkg/build/api/install"
 )
 
-func TestBuildValidationSuccess(t *testing.T) {
-	build := &buildapi.Build{
+func testBuild() *buildapi.Build {
+	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -39,8 +39,41 @@ func TestBuildValidationSuccess(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
+}
+
+func TestBuildValidationSuccess(t *testing.T) {
+	build := testBuild()
 	if result := ValidateBuild(build); len(result) > 0 {
 		t.Errorf("Unexpected validation error returned %v", result)
+	}
+}
+
+func TestValidateBuildDetailsUpdate(t *testing.T) {
+	older := testBuild()
+	newer := testBuild()
+
+	// Ensure that revision update is not allowed when already set
+	older.Spec.CommonSpec.Revision = &buildapi.SourceRevision{}
+	newer.Spec.CommonSpec.Revision = &buildapi.SourceRevision{}
+	errs := ValidateBuildDetailsUpdate(newer, older)
+	if len(errs) == 0 {
+		t.Errorf("no error returned when a revision already exists")
+	}
+
+	// Ensure that an update is not allowed with null revision
+	older.Spec.CommonSpec.Revision = nil
+	newer.Spec.CommonSpec.Revision = nil
+	errs = ValidateBuildDetailsUpdate(newer, older)
+	if len(errs) == 0 {
+		t.Errorf("no error returned when newer doesn't include a revision")
+	}
+
+	// Ensure that a valid update is allowed
+	older.Spec.CommonSpec.Revision = nil
+	newer.Spec.CommonSpec.Revision = &buildapi.SourceRevision{}
+	errs = ValidateBuildDetailsUpdate(newer, older)
+	if len(errs) != 0 {
+		t.Errorf("expected no error, got: %v", errs)
 	}
 }
 
@@ -278,6 +311,12 @@ func newDefaultParameters() buildapi.BuildSpec {
 	}
 }
 
+func cancelledBuildSpec() buildapi.BuildSpec {
+	spec := newDefaultParameters()
+	spec.Cancelled = true
+	return spec
+}
+
 func newNonDefaultParameters() buildapi.BuildSpec {
 	o := newDefaultParameters()
 	o.Source.Git.URI = "changed"
@@ -309,6 +348,28 @@ func TestValidateBuildUpdate(t *testing.T) {
 		T      field.ErrorType
 		F      string
 	}{
+		"cancelled": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       cancelledBuildSpec(),
+			},
+		},
+		"uncancel": {
+			Old: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       cancelledBuildSpec(),
+			},
+			Update: &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
+				Spec:       newDefaultParameters(),
+			},
+			T: field.ErrorTypeInvalid,
+			F: "spec.cancelled",
+		},
 		"changed spec": {
 			Old: &buildapi.Build{
 				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
@@ -381,6 +442,12 @@ func TestValidateBuildUpdate(t *testing.T) {
 
 	for k, v := range errorCases {
 		errs := ValidateBuildUpdate(v.Update, v.Old)
+		if len(v.T) == 0 {
+			if len(errs) > 0 {
+				t.Errorf("%s: unexpected failure %v", k, errs)
+			}
+			continue
+		}
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.Update)
 			continue
@@ -2508,6 +2575,259 @@ func TestDiffBuildSpec(t *testing.T) {
 		}
 		if diff != test.expected {
 			t.Errorf("%s: expected: %s, got: %s", test.name, test.expected, diff)
+		}
+	}
+}
+
+func TestBuildStatusUpdateValidation(t *testing.T) {
+	testBC := func() *buildapi.BuildConfig {
+		obj := &buildapi.BuildConfig{}
+		obj.Name = "buildconfig"
+		obj.Namespace = "test"
+		obj.Spec.CommonSpec.Source.Git = &buildapi.GitBuildSource{
+			URI: "https://github.com/test/source.git",
+		}
+		return obj
+	}
+	addGeneric := func(bc *buildapi.BuildConfig, secret string, allowEnv bool) {
+		bc.Spec.Triggers = append(bc.Spec.Triggers, buildapi.BuildTriggerPolicy{
+			Type: buildapi.GenericWebHookBuildTriggerType,
+			GenericWebHook: &buildapi.WebHookTrigger{
+				Secret:   secret,
+				AllowEnv: allowEnv,
+			},
+		})
+	}
+	addGithub := func(bc *buildapi.BuildConfig, secret string, allowEnv bool) {
+		bc.Spec.Triggers = append(bc.Spec.Triggers, buildapi.BuildTriggerPolicy{
+			Type: buildapi.GitHubWebHookBuildTriggerType,
+			GitHubWebHook: &buildapi.WebHookTrigger{
+				Secret:   secret,
+				AllowEnv: allowEnv,
+			},
+		})
+	}
+	addImage := func(bc *buildapi.BuildConfig, from *kapi.ObjectReference, lastTriggeredID string) {
+		bc.Spec.Triggers = append(bc.Spec.Triggers, buildapi.BuildTriggerPolicy{
+			Type: buildapi.ImageChangeBuildTriggerType,
+			ImageChange: &buildapi.ImageChangeTrigger{
+				From:                 from,
+				LastTriggeredImageID: lastTriggeredID,
+			},
+		})
+	}
+	image := func(kind string, namespace string, name string) *kapi.ObjectReference {
+		return &kapi.ObjectReference{
+			Name:      name,
+			Namespace: namespace,
+			Kind:      kind,
+		}
+	}
+	tests := []struct {
+		name            string
+		older           func() *buildapi.BuildConfig
+		newer           func() *buildapi.BuildConfig
+		expectError     bool
+		expectErrorType field.ErrorType
+		expectErrorPath string
+	}{
+		{
+			name: "valid bc with same triggers",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "githubsecret", true)
+				addImage(bc, image("ImageStreamTag", "", "test:tag"), "")
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "githubsecret", true)
+				addImage(bc, image("ImageStreamTag", "", "test:tag"), "")
+				return bc
+			},
+		},
+		{
+			name: "invalid with different trigger length",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "secret2", false)
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid with different trigger type",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addImage(bc, image("ImageStreamTag", "", "test:tag"), "")
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid same trigger type, null generic",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				bc.Spec.Triggers[0].GenericWebHook = nil
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid same trigger type, null github",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", false)
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", false)
+				bc.Spec.Triggers[1].GitHubWebHook = nil
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid same trigger type, null image",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", false)
+				addImage(bc, image("ImageStreamTag", "", "test:tag"), "")
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", false)
+				addImage(bc, image("ImageStreamTag", "", "test:tag"), "")
+				bc.Spec.Triggers[2].ImageChange = nil
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid same trigger type, different generic",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret2", false)
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid same trigger type, different github",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", false)
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", true)
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "invalid same trigger type, different image ref",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", true)
+				addImage(bc, image("ImageStreamTag", "test", "image1:latest"), "")
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", true)
+				addImage(bc, image("ImageStreamTag", "test", "image2:latest"), "")
+				return bc
+			},
+			expectError:     true,
+			expectErrorType: field.ErrorTypeInvalid,
+			expectErrorPath: "spec",
+		},
+		{
+			name: "valid same image trigger type, different lastTriggeredID",
+			older: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", true)
+				addImage(bc, image("ImageStreamTag", "test", "image1:latest"), "original_last_triggered")
+				return bc
+			},
+			newer: func() *buildapi.BuildConfig {
+				bc := testBC()
+				addGeneric(bc, "testsecret", false)
+				addGithub(bc, "testsecret2", true)
+				addImage(bc, image("ImageStreamTag", "test", "image1:latest"), "new_last_triggered")
+				return bc
+			},
+		},
+	}
+
+	for _, test := range tests {
+		result := ValidateBuildConfigStatusUpdate(test.older(), test.newer())
+		if len(result) > 0 && !test.expectError {
+			t.Errorf("%s: did not expect an error. Got: %v", test.name, result)
+			continue
+		}
+		if test.expectError {
+			if len(result) == 0 {
+				t.Errorf("%s: expected an error but did not get any.", test.name)
+				continue
+			}
+			if result[0].Type != test.expectErrorType {
+				t.Errorf("%s: expected error of type %s. Got %s", test.name, test.expectErrorType, result[0].Type)
+			}
+			if result[0].Field != test.expectErrorPath {
+				t.Errorf("%s: expected error field %s. Got %s", test.name, test.expectErrorPath, result[0].Field)
+			}
 		}
 	}
 }

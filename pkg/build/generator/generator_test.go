@@ -69,7 +69,7 @@ func TestInstantiateBinary(t *testing.T) {
 
 // TODO(agoldste): I'm not sure the intent of this test. Using the previous logic for
 // the generator, which would try to update the build config before creating
-// the build, I can see why the UpdateBuildConfigFunc is set up to return an
+// the build, I can see why the UpdateBuildConfigStatusFunc is set up to return an
 // error, but nothing is checking the value of instantiationCalls. We could
 // update this test to fail sooner, when the build is created, but that's
 // already handled by TestCreateBuildCreateError. We may just want to delete
@@ -88,7 +88,7 @@ func TestInstantiateRetry(t *testing.T) {
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				instantiationCalls++
 				return fmt.Errorf("update-error")
 			},
@@ -364,7 +364,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 			func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return bc, nil
 			}
-		client.UpdateBuildConfigFunc =
+		client.UpdateBuildConfigStatusFunc =
 			func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				bc = buildConfig
 				return nil
@@ -862,7 +862,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 				}, nil
 			},
 
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
 			},
 		}}
@@ -939,7 +939,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 					},
 				}, nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
 			},
 		}}
@@ -1016,7 +1016,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 					},
 				}, nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
 			},
 		}}
@@ -1525,7 +1525,7 @@ func mockBuildGenerator() *BuildGenerator {
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
 			},
 			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {

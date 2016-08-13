@@ -391,7 +391,7 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigStatusFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return instantiator.buildConfigUpdater.Update(buildConfig)
 			},
 			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {

@@ -193,7 +193,7 @@ func (o *CancelBuildOptions) Run() error {
 		go func(build *buildapi.Build) {
 			defer wg.Done()
 			err := wait.Poll(500*time.Millisecond, 30*time.Second, func() (bool, error) {
-				build.Status.Cancelled = true
+				build.Spec.Cancelled = true
 				_, err := o.BuildClient.Update(build)
 				switch {
 				case err == nil:

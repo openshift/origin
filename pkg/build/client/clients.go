@@ -6,38 +6,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-// BuildConfigGetter provides methods for getting BuildConfigs
-type BuildConfigGetter interface {
-	Get(namespace, name string) (*buildapi.BuildConfig, error)
+// BuildStatusUpdater provides methods for updating the status of Builds.
+type BuildStatusUpdater interface {
+	UpdateStatus(namespace string, build *buildapi.Build) error
 }
 
-// BuildConfigUpdater provides methods for updating BuildConfigs
-type BuildConfigUpdater interface {
-	Update(buildConfig *buildapi.BuildConfig) error
-}
-
-// OSClientBuildConfigClient delegates get and update operations to the OpenShift client interface
-type OSClientBuildConfigClient struct {
-	Client osclient.Interface
-}
-
-// NewOSClientBuildConfigClient creates a new build config client that uses an openshift client to create and get BuildConfigs
-func NewOSClientBuildConfigClient(client osclient.Interface) *OSClientBuildConfigClient {
-	return &OSClientBuildConfigClient{Client: client}
-}
-
-// Get returns a BuildConfig using the OpenShift client.
-func (c OSClientBuildConfigClient) Get(namespace, name string) (*buildapi.BuildConfig, error) {
-	return c.Client.BuildConfigs(namespace).Get(name)
-}
-
-// Update updates a BuildConfig using the OpenShift client.
-func (c OSClientBuildConfigClient) Update(buildConfig *buildapi.BuildConfig) error {
-	_, err := c.Client.BuildConfigs(buildConfig.Namespace).Update(buildConfig)
-	return err
-}
-
-// BuildUpdater provides methods for updating existing Builds.
 type BuildUpdater interface {
 	Update(namespace string, build *buildapi.Build) error
 }
@@ -60,6 +33,12 @@ func NewOSClientBuildClient(client osclient.Interface) *OSClientBuildClient {
 // Update updates builds using the OpenShift client.
 func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) error {
 	_, e := c.Client.Builds(namespace).Update(build)
+	return e
+}
+
+// UpdateStatus updates build status using the OpenShift client.
+func (c OSClientBuildClient) UpdateStatus(namespace string, build *buildapi.Build) error {
+	_, e := c.Client.Builds(namespace).UpdateStatus(build)
 	return e
 }
 

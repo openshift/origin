@@ -127,6 +127,7 @@ type BuildStatus struct {
 	Phase BuildPhase `json:"phase" protobuf:"bytes,1,opt,name=phase,casttype=BuildPhase"`
 
 	// cancelled describes if a cancel event was triggered for the build.
+	// +genconversion=false
 	Cancelled bool `json:"cancelled,omitempty" protobuf:"varint,2,opt,name=cancelled"`
 
 	// reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.

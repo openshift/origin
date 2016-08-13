@@ -33,7 +33,7 @@ import (
 const maxRetries = 60
 
 // limitedLogAndRetry stops retrying after maxTimeout, failing the build.
-func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.Duration) controller.RetryFunc {
+func limitedLogAndRetry(buildupdater buildclient.BuildStatusUpdater, maxTimeout time.Duration) controller.RetryFunc {
 	return func(obj interface{}, err error, retries controller.Retry) bool {
 		isFatal := strategy.IsFatal(err)
 		build := obj.(*buildapi.Build)
@@ -50,7 +50,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 		build.Status.CompletionTimestamp = &now
 		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
 		utilruntime.HandleError(err)
-		if err := buildupdater.Update(build.Namespace, build); err != nil {
+		if err := buildupdater.UpdateStatus(build.Namespace, build); err != nil {
 			// retry update, but only on error other than NotFound
 			return !kerrors.IsNotFound(err)
 		}
@@ -63,6 +63,7 @@ type BuildControllerFactory struct {
 	OSClient            osclient.Interface
 	KubeClient          kclient.Interface
 	BuildUpdater        buildclient.BuildUpdater
+	BuildStatusUpdater  buildclient.BuildStatusUpdater
 	BuildLister         buildclient.BuildLister
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
@@ -81,11 +82,11 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
-		BuildUpdater:      factory.BuildUpdater,
-		BuildLister:       factory.BuildLister,
-		ImageStreamClient: client,
-		PodManager:        client,
-		RunPolicies:       policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater),
+		BuildStatusUpdater: factory.BuildStatusUpdater,
+		BuildLister:        factory.BuildLister,
+		ImageStreamClient:  client,
+		PodManager:         client,
+		RunPolicies:        policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater, factory.BuildStatusUpdater),
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
 			SourceBuildStrategy: factory.SourceBuildStrategy,
@@ -99,7 +100,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			limitedLogAndRetry(factory.BuildStatusUpdater, 30*time.Minute),
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
@@ -112,7 +113,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 						build.Status.Reason = buildapi.StatusReasonError
 					}
 					build.Status.Message = msg
-					if err := buildController.BuildUpdater.Update(build.Namespace, build); err != nil {
+					if err := buildController.BuildStatusUpdater.UpdateStatus(build.Namespace, build); err != nil {
 						glog.V(2).Infof("Failed to update status message of Build %s/%s: %v", build.Namespace, build.Name, err)
 					}
 					buildController.Recorder.Eventf(build, kapi.EventTypeWarning, "HandleBuildError", "Build has error: %v", err)
@@ -154,9 +155,9 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 
 // BuildPodControllerFactory construct BuildPodController objects
 type BuildPodControllerFactory struct {
-	OSClient     osclient.Interface
-	KubeClient   kclient.Interface
-	BuildUpdater buildclient.BuildUpdater
+	OSClient           osclient.Interface
+	KubeClient         kclient.Interface
+	BuildStatusUpdater buildclient.BuildStatusUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 
@@ -195,10 +196,10 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildPodController := &buildcontroller.BuildPodController{
-		BuildStore:   factory.buildStore,
-		BuildUpdater: factory.BuildUpdater,
-		SecretClient: factory.KubeClient,
-		PodManager:   client,
+		BuildStore:         factory.buildStore,
+		BuildStatusUpdater: factory.BuildStatusUpdater,
+		SecretClient:       factory.KubeClient,
+		PodManager:         client,
 	}
 
 	return &controller.RetryController{
@@ -246,8 +247,8 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 	cache.NewReflector(&buildPodDeleteLW{client, queue}, &kapi.Pod{}, queue, 5*time.Minute).RunUntil(factory.Stop)
 
 	buildPodDeleteController := &buildcontroller.BuildPodDeleteController{
-		BuildStore:   factory.buildStore,
-		BuildUpdater: factory.BuildUpdater,
+		BuildStore:         factory.buildStore,
+		BuildStatusUpdater: factory.BuildStatusUpdater,
 	}
 
 	return &controller.RetryController{

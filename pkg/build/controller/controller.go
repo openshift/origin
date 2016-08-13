@@ -22,13 +22,13 @@ import (
 
 // BuildController watches build resources and manages their state
 type BuildController struct {
-	BuildUpdater      buildclient.BuildUpdater
-	BuildLister       buildclient.BuildLister
-	PodManager        podManager
-	BuildStrategy     BuildStrategy
-	ImageStreamClient imageStreamClient
-	Recorder          record.EventRecorder
-	RunPolicies       []policy.RunPolicy
+	BuildStatusUpdater buildclient.BuildStatusUpdater
+	BuildLister        buildclient.BuildLister
+	PodManager         podManager
+	BuildStrategy      BuildStrategy
+	ImageStreamClient  imageStreamClient
+	Recorder           record.EventRecorder
+	RunPolicies        []policy.RunPolicy
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -72,7 +72,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	build.Status.Message = ""
 	now := unversioned.Now()
 	build.Status.CompletionTimestamp = &now
-	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+	if err := bc.BuildStatusUpdater.UpdateStatus(build.Namespace, build); err != nil {
 		return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
@@ -103,7 +103,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 
 	// A cancelling event was triggered for the build, delete its pod and update build status.
-	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
+	if build.Spec.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
 		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
 		if err := bc.CancelBuild(build); err != nil {
 			build.Status.Reason = buildapi.StatusReasonCancelBuildFailed
@@ -125,7 +125,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 		return err
 	}
 
-	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+	if err := bc.BuildStatusUpdater.UpdateStatus(build.Namespace, build); err != nil {
 		// This is not a retryable error because the build has been created.  The worst case
 		// outcome of not updating the buildconfig is that we might rerun a build for the
 		// same "new" imageid change in the future, which is better than guaranteeing we
@@ -140,7 +140,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 // build.Message.
 func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	// If a cancelling event was triggered for the build, update build status.
-	if build.Status.Cancelled {
+	if build.Spec.Cancelled {
 		glog.V(4).Infof("Cancelling build %s/%s.", build.Namespace, build.Name)
 		build.Status.Phase = buildapi.BuildPhaseCancelled
 		build.Status.Reason = ""
@@ -262,10 +262,10 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 
 // BuildPodController watches pods running builds and manages the build state
 type BuildPodController struct {
-	BuildStore   cache.Store
-	BuildUpdater buildclient.BuildUpdater
-	SecretClient kclient.SecretsNamespacer
-	PodManager   podManager
+	BuildStore         cache.Store
+	BuildStatusUpdater buildclient.BuildStatusUpdater
+	SecretClient       kclient.SecretsNamespacer
+	PodManager         podManager
 }
 
 // HandlePod updates the state of the build based on the pod state
@@ -340,7 +340,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			now := unversioned.Now()
 			build.Status.StartTimestamp = &now
 		}
-		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+		if err := bc.BuildStatusUpdater.UpdateStatus(build.Namespace, build); err != nil {
 			return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 		glog.V(4).Infof("Build %s/%s status was updated %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
@@ -355,8 +355,8 @@ func isBuildCancellable(build *buildapi.Build) bool {
 
 // BuildPodDeleteController watches pods running builds and updates the build if the pod is deleted
 type BuildPodDeleteController struct {
-	BuildStore   cache.Store
-	BuildUpdater buildclient.BuildUpdater
+	BuildStore         cache.Store
+	BuildStatusUpdater buildclient.BuildStatusUpdater
 }
 
 // HandleBuildPodDeletion sets the status of a build to error if the build pod has been deleted
@@ -374,7 +374,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 	build := obj.(*buildapi.Build)
 
 	// If build was cancelled, we'll leave HandleBuild to update the build
-	if build.Status.Cancelled {
+	if build.Spec.Cancelled {
 		glog.V(4).Infof("Cancelation for build was already triggered, ignoring")
 		return nil
 	}
@@ -392,8 +392,8 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		build.Status.Message = "The pod for this build was deleted before the build completed."
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
-		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
-			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
+		if err := bc.BuildStatusUpdater.UpdateStatus(build.Namespace, build); err != nil {
+			return fmt.Errorf("Failed to update build status %s/%s: %v", build.Namespace, build.Name, err)
 		}
 	}
 	return nil

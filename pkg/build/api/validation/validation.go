@@ -11,6 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
@@ -32,6 +33,25 @@ func ValidateBuild(build *buildapi.Build) field.ErrorList {
 	return allErrs
 }
 
+func buildSpecSemanticEqualities() conversion.Equalities {
+	// Copy base semantic funcs
+	funcs := []interface{}{}
+	for _, fv := range kapi.Semantic.Equalities {
+		funcs = append(funcs, fv.Interface())
+	}
+	// Add func to whitelist Cancelled flag
+	funcs = append(funcs, func(a, b buildapi.BuildSpec) bool {
+		// Set the Cancelled flag to the same value to white-list
+		a.Cancelled = b.Cancelled
+
+		// Compare with original semantic set of equalities which do not include this function
+		return kapi.Semantic.DeepEqual(a, b)
+	})
+	return conversion.EqualitiesOrDie(funcs...)
+}
+
+var buildSpecSemantic = buildSpecSemanticEqualities()
+
 func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&build.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))...)
@@ -41,7 +61,11 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "phase"), build.Status.Phase, "phase cannot be updated from a terminal state"))
 	}
-	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
+	// Cancelled is a one-way flag, cannot be unset
+	if older.Spec.Cancelled && !build.Spec.Cancelled {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "cancelled"), build.Spec.Cancelled, "cancelled cannot be changed once set"))
+	}
+	if !buildSpecSemantic.DeepEqual(build.Spec, older.Spec) {
 		diff, err := diffBuildSpec(build.Spec, older.Spec)
 		if err != nil {
 			glog.V(2).Infof("Error calculating build spec patch: %v", err)
@@ -51,6 +75,25 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), "content of spec is not printed out, please refer to the details", detail))
 	}
 
+	return allErrs
+}
+
+// ValidateBuildDetailsUpdate validates build details update
+func ValidateBuildDetailsUpdate(build *buildapi.Build, older *buildapi.Build) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if older.Spec.Revision != nil {
+		// If there was already a revision, then return an error
+		allErrs = append(allErrs, field.Duplicate(field.NewPath("status", "revision"), older.Spec.Revision))
+	}
+	if build.Spec.Revision == nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "revision"), nil, "cannot set an empty revision in build status"))
+	}
+	return allErrs
+}
+
+// ValidateBuildStatusUpdate validates a build status update
+func ValidateBuildStatusUpdate(build *buildapi.Build, older *buildapi.Build) field.ErrorList {
+	allErrs := field.ErrorList{}
 	return allErrs
 }
 
@@ -68,6 +111,26 @@ func diffBuildSpec(newer buildapi.BuildSpec, older buildapi.BuildSpec) (string, 
 		return "", fmt.Errorf("error encoding older: %v", err)
 	}
 	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &v1.Build{})
+	if err != nil {
+		return "", fmt.Errorf("error creating a strategic patch: %v", err)
+	}
+	return string(patch), nil
+}
+
+func diffBuildConfigSpec(newer buildapi.BuildConfigSpec, older buildapi.BuildConfigSpec) (string, error) {
+	codec := kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion)
+	newerObj := &buildapi.BuildConfig{Spec: newer}
+	olderObj := &buildapi.BuildConfig{Spec: older}
+
+	newerJSON, err := runtime.Encode(codec, newerObj)
+	if err != nil {
+		return "", fmt.Errorf("error encoding newer: %v", err)
+	}
+	olderJSON, err := runtime.Encode(codec, olderObj)
+	if err != nil {
+		return "", fmt.Errorf("error encoding older: %v", err)
+	}
+	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &v1.BuildConfig{})
 	if err != nil {
 		return "", fmt.Errorf("error creating a strategic patch: %v", err)
 	}
@@ -126,6 +189,41 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 	return allErrs
 }
 
+func buildConfigSpecSemanticEqualities() conversion.Equalities {
+	// Copy base semantic funcs
+	funcs := []interface{}{}
+	for _, fv := range kapi.Semantic.Equalities {
+		funcs = append(funcs, fv.Interface())
+	}
+	// Add func to whitelist LastTriggeredImageID
+	funcs = append(funcs, func(a, b buildapi.ImageChangeTrigger) bool {
+		// Set the LastTriggeredImageID to the same value to white-list
+		a.LastTriggeredImageID = b.LastTriggeredImageID
+
+		// Compare with original semantic set of equalities which do not include this function
+		return kapi.Semantic.DeepEqual(a, b)
+	})
+	return conversion.EqualitiesOrDie(funcs...)
+}
+
+var buildConfigSpecSemantic = buildConfigSpecSemanticEqualities()
+
+// ValidateBuildConfigStatusUpdate validates a status update for a BuildConfig
+func ValidateBuildConfigStatusUpdate(config *buildapi.BuildConfig, older *buildapi.BuildConfig) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if !buildConfigSpecSemantic.DeepEqual(config.Spec, older.Spec) {
+		diff, err := diffBuildConfigSpec(config.Spec, older.Spec)
+		if err != nil {
+			glog.V(2).Infof("Error calculating build config spec patch: %v", err)
+			diff = "[unknown]"
+		}
+		detail := fmt.Sprintf("spec is immutable, diff: %s", diff)
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), "content of spec is not printed out, please refer to the details", detail))
+	}
+	return allErrs
+}
+
+// ValidateBuildConfigUpdate validates an update for a BuildConfig
 func ValidateBuildConfigUpdate(config *buildapi.BuildConfig, older *buildapi.BuildConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&config.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))...)

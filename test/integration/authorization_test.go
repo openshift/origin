@@ -160,6 +160,8 @@ func TestClusterReaderCoverage(t *testing.T) {
 		imageapi.Resource("imagestreamimports"), imageapi.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),
 		kapi.Resource("pods/attach"), kapi.Resource("namespaces/finalize"),
+		kapi.Resource("builds/status"),
+		kapi.Resource("buildconfigs/status"),
 	}
 	for _, resource := range nonreadingResources {
 		delete(allResources, resource)
