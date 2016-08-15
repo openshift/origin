@@ -162,11 +162,12 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 	_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 	o.Expect(err).ToNot(o.HaveOccurred())
 
-	g.By("Ensuring the scale is zero")
+	g.By("Ensuring the scale is zero (and stays zero)")
 	objName := resources[resourceName][0]
-	replicas, err := oc.Run("get").Args(resourceName+"/"+objName, "--output=jsonpath=\"{.spec.replicas}\"").Output()
-	o.Expect(err).ToNot(o.HaveOccurred())
-	o.Expect(replicas).To(o.ContainSubstring("0"))
+	// make sure we don't get woken up by an incorrect router health check or anything like that
+	o.Consistently(func() (string, error) {
+		return oc.Run("get").Args(resourceName+"/"+objName, "--output=jsonpath=\"{.spec.replicas}\"").Output()
+	}, 5*time.Second, 500*time.Millisecond).Should(o.ContainSubstring("0"))
 
 	g.By("Fetching the service and checking the annotations are present")
 	serviceName := resources["service"][0]
