@@ -50,4 +50,9 @@ if has index.pl cpanfile; then
   exit 0
 fi
 
+if has project.json; then
+  echo "${prefix}dotnet"
+  exit 0
+fi
+
 exit 1

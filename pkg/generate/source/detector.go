@@ -28,21 +28,8 @@ var DefaultDetectors = Detectors{
 	DetectPython,
 	DetectPerl,
 	DetectScala,
-}
-
-type sourceDetector struct {
-	detectors []DetectorFunc
-}
-
-// DetectSource returns source information from a given directory using
-// a set of Detectors
-func (s Detectors) DetectSource(dir string) (*Info, bool) {
-	for _, d := range s {
-		if info, found := d(dir); found {
-			return info, true
-		}
-	}
-	return nil, false
+	DetectDotNet,
+	DetectLiteralDotNet,
 }
 
 // DetectRuby detects Ruby source
@@ -75,9 +62,19 @@ func DetectPerl(dir string) (*Info, bool) {
 	return detect("perl", dir, "index.pl", "cpanfile")
 }
 
-// DetectScala  detects Scala source
+// DetectScala detects Scala source
 func DetectScala(dir string) (*Info, bool) {
 	return detect("scala", dir, "build.sbt")
+}
+
+// DetectDotNet detects .NET source and matches it to a dotnet supported annotatin or dotnet imagestream name
+func DetectDotNet(dir string) (*Info, bool) {
+	return detect("dotnet", dir, "project.json")
+}
+
+// DetectLiteralDotNet detects .NET source and matches it to a .net supported annotation
+func DetectLiteralDotNet(dir string) (*Info, bool) {
+	return detect(".net", dir, "project.json")
 }
 
 // detect returns an Info object with the given platform if the source at dir contains any of the argument files
