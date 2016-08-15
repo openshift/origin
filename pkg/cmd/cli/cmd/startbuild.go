@@ -417,7 +417,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	return nil
 }
 
-func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client osclient.BuildConfigInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
+func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client osclient.BuildConfigInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
 	count := 0
 	asDir, asFile, asRepo := len(fromDir) > 0, len(fromFile) > 0, len(fromRepo) > 0
 	if asDir {
@@ -431,6 +431,10 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 	}
 	if count > 1 {
 		return nil, fmt.Errorf("only one of --from-file, --from-repo, or --from-dir may be specified")
+	}
+
+	if asRepo && !git.IsGitInstalled() {
+		return nil, fmt.Errorf("cannot find git. Git is required to start a build from a repository. If git is not available, use --from-dir instead.")
 	}
 
 	var r io.Reader
@@ -472,7 +476,7 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			if len(options.Commit) > 0 {
 				commit = options.Commit
 			}
-			info, gitErr := gitRefInfo(git, clean, commit)
+			info, gitErr := gitRefInfo(repo, clean, commit)
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
 				options.Message = info.GitSourceRevision.Message
@@ -491,7 +495,7 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 				}
 				pr, pw := io.Pipe()
 				go func() {
-					if err := git.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
+					if err := repo.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
 						pw.CloseWithError(fmt.Errorf("unable to create Git archive of %q for build: %v", clean, err))
 					} else {
 						pw.CloseWithError(io.EOF)
