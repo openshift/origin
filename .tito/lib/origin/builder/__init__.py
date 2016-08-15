@@ -55,7 +55,7 @@ class OriginBuilder(Builder):
             )
             # Custom Openshift v3 stuff follows, everything above is the standard
             # builder
-            cmd = '. ./hack/common.sh ; echo $(os::build::ldflags)'
+            cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; echo $(os::build::ldflags)'
             ldflags = run_command("bash -c '{0}'".format(cmd))
             print("LDFLAGS::{0}".format(ldflags))
             update_ldflags = \
