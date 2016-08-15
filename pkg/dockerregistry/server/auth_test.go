@@ -1,10 +1,12 @@
 package server
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -84,14 +86,15 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 
 // TestAccessController tests complete integration of the v2 registry auth package.
 func TestAccessController(t *testing.T) {
-	options := map[string]interface{}{
+	defaultOptions := map[string]interface{}{
 		"addr":        "https://openshift-example.com/osapi",
 		"apiVersion":  latest.Version,
 		RealmKey:      "myrealm",
-		TokenRealmKey: "https://tokenrealm.com/token",
+		TokenRealmKey: "http://tokenrealm.com",
 	}
 
 	tests := map[string]struct {
+		options            map[string]interface{}
 		access             []auth.Access
 		basicToken         string
 		bearerToken        string
@@ -107,7 +110,20 @@ func TestAccessController(t *testing.T) {
 			basicToken:        "",
 			expectedError:     ErrTokenRequired,
 			expectedChallenge: true,
-			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Bearer realm="https://tokenrealm.com/token"`}},
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Bearer realm="http://tokenrealm.com/openshift/token"`}},
+		},
+		"no token, autodetected tokenrealm": {
+			options: map[string]interface{}{
+				"addr":        "https://openshift-example.com/osapi",
+				"apiVersion":  latest.Version,
+				RealmKey:      "myrealm",
+				TokenRealmKey: "",
+			},
+			access:            []auth.Access{},
+			basicToken:        "",
+			expectedError:     ErrTokenRequired,
+			expectedChallenge: true,
+			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Bearer realm="https://openshift-example.com/openshift/token"`}},
 		},
 		"invalid registry token": {
 			access: []auth.Access{{
@@ -317,11 +333,22 @@ func TestAccessController(t *testing.T) {
 	}
 
 	for k, test := range tests {
+		options := test.options
+		if options == nil {
+			options = defaultOptions
+		}
+		reqURL, err := url.Parse(options["addr"].(string))
+		if err != nil {
+			t.Fatal(err)
+		}
 		req, err := http.NewRequest("GET", options["addr"].(string), nil)
 		if err != nil {
 			t.Errorf("%s: %v", k, err)
 			continue
 		}
+		// Simulate a secure request to the specified server
+		req.Host = reqURL.Host
+		req.TLS = &tls.ConnectionState{ServerName: reqURL.Host}
 		if len(test.basicToken) > 0 {
 			req.Header.Set("Authorization", fmt.Sprintf("Basic %s", test.basicToken))
 		}

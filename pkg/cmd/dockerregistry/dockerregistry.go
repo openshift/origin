@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"time"
 
@@ -47,28 +46,6 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("Error parsing configuration file: %s", err)
 	}
 
-	tokenPath := "/openshift/token"
-
-	// If needed, generate and populate the token realm URL in the config.
-	// Must be done prior to instantiating the app, so our auth provider has the config available.
-	_, usingOpenShiftAuth := config.Auth[server.OpenShiftAuth]
-	_, hasTokenRealm := config.Auth[server.OpenShiftAuth][server.TokenRealmKey].(string)
-	if usingOpenShiftAuth && !hasTokenRealm {
-		registryHost := os.Getenv(server.DockerRegistryURLEnvVar)
-		if len(registryHost) == 0 {
-			log.Fatalf("%s is required", server.DockerRegistryURLEnvVar)
-		}
-		tokenURL := &url.URL{Scheme: "https", Host: registryHost, Path: tokenPath}
-		if len(config.HTTP.TLS.Certificate) == 0 {
-			tokenURL.Scheme = "http"
-		}
-
-		if config.Auth[server.OpenShiftAuth] == nil {
-			config.Auth[server.OpenShiftAuth] = configuration.Parameters{}
-		}
-		config.Auth[server.OpenShiftAuth][server.TokenRealmKey] = tokenURL.String()
-	}
-
 	ctx := context.Background()
 	ctx, err = configureLogging(ctx, config)
 	if err != nil {
@@ -82,8 +59,16 @@ func Execute(configFile io.Reader) {
 	app := handlers.NewApp(ctx, config)
 
 	// Add a token handling endpoint
-	if usingOpenShiftAuth {
-		app.NewRoute().Methods("GET").PathPrefix(tokenPath).Handler(server.NewTokenHandler(ctx, server.DefaultRegistryClient))
+	if options, usingOpenShiftAuth := config.Auth[server.OpenShiftAuth]; usingOpenShiftAuth {
+		tokenRealm, err := server.TokenRealm(options)
+		if err != nil {
+			log.Fatalf("error setting up token auth: %s", err)
+		}
+		err = app.NewRoute().Methods("GET").PathPrefix(tokenRealm.Path).Handler(server.NewTokenHandler(ctx, server.DefaultRegistryClient)).GetError()
+		if err != nil {
+			log.Fatalf("error setting up token endpoint at %q: %v", tokenRealm.Path, err)
+		}
+		log.Debugf("configured token endpoint at %q", tokenRealm.String())
 	}
 
 	// TODO add https scheme
