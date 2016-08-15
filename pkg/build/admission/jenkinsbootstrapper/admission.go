@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return NewJenkingsBootstrapper(c.Core()), nil
 	})
 }
