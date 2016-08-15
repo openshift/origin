@@ -1,19 +1,12 @@
 #!/usr/bin/env bash
 #
 # Extended tests for logging in using GSSAPI
-
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 starttime="$(date +%s)"
 
 project_name='gssapiproxy'
 test_name="test-extended/${project_name}"
-
-OS_ROOT="$(dirname "${BASH_SOURCE}")/../.."
-cd "${OS_ROOT}"
-source hack/lib/init.sh
 
 os::build::setup_env
 
@@ -21,7 +14,6 @@ os::util::environment::setup_time_vars
 os::util::environment::setup_all_server_vars "${test_name}"
 os::util::environment::use_sudo
 
-os::log::stacktrace::install
 os::log::start_system_logger
 
 ensure_iptables_or_die

@@ -7,15 +7,7 @@
 # This script accepts the following parameters as environment variables:
 #  - VERIFY:  run the script to verify current documentation
 #  - DRY_RUN: print which files would be generated and exit
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-cd "${OS_ROOT}"
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # read in envar options
 verify="${VERIFY:-}"

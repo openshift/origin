@@ -36,16 +36,18 @@ completion of openshift commands.
   openshift completion bash > bash\_completion.sh
   source bash\_completion.sh
 
-  # The above example depends on the bash\-completion
-framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+  # The above example depends on the bash\-completion framework.
+  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash\-completion
   source $(brew \-\-prefix)/etc/bash\_completion
   openshift completion bash > bash\_completion.sh
   source bash\_completion.sh
 
-  # In zsh, the following will load openshift cli zsh completion:
+  # In zsh*, the following will load openshift cli zsh completion:
   source <(openshift completion zsh)
+
+  * zsh completions are only supported in versions of zsh >= 5.2
 
 .fi
 .RE

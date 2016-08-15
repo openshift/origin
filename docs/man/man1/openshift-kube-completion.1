@@ -230,7 +230,7 @@ completion of kubectl commands.
     The name of the kubeconfig user to use
 
 .PP
-\fB\-\-v\fP=0
+\fB\-v\fP, \fB\-\-v\fP=0
     log level for V logs
 
 .PP
@@ -253,10 +253,11 @@ $ brew install bash\-completion
 $ source $(brew \-\-prefix)/etc/bash\_completion
 $ source <(kubectl completion bash)
 
-If you use zsh, the following will load kubectl zsh completion:
+If you use zsh*, the following will load kubectl zsh completion:
 
 $ source <(kubectl completion zsh)
 
+* zsh completions are only supported in versions of zsh >= 5.2
 
 .fi
 .RE

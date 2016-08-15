@@ -532,7 +532,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	}
 
 	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.Out()
+	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.OutOrStderr()
 	cfg.Action.Bulk.Op = configcmd.Create
 
 	var clusterIP string
@@ -567,7 +567,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if !cfg.Action.ShouldPrint() {
 			return err
 		}
-		fmt.Fprintf(cmd.Out(), "error: %v\n", err)
+		fmt.Fprintf(cmd.OutOrStderr(), "error: %v\n", err)
 		defaultOutputErr = cmdutil.ErrExit
 	}
 
@@ -611,7 +611,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if len(cfg.StatsPassword) == 0 {
 		cfg.StatsPassword = generateStatsPassword()
 		if !cfg.Action.ShouldPrint() {
-			fmt.Fprintf(cmd.Out(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+			fmt.Fprintf(cmd.OutOrStderr(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 	}
 

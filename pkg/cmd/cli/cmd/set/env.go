@@ -368,7 +368,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, containerMatch)
 			if len(containers) == 0 {
-				fmt.Fprintf(cmd.Out(), "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
+				fmt.Fprintf(cmd.OutOrStderr(), "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
 				return nil
 			}
 			for _, c := range containers {
@@ -421,7 +421,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 					}
 					sort.Strings(errs)
 					for _, err := range errs {
-						fmt.Fprintln(cmd.Out(), err)
+						fmt.Fprintln(cmd.OutOrStderr(), err)
 					}
 				}
 			}
@@ -458,7 +458,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			}
 		}
 		if err != nil {
-			fmt.Fprintf(cmd.Out(), "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+			fmt.Fprintf(cmd.OutOrStderr(), "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
 			continue
 		}
 	}
@@ -523,7 +523,7 @@ updates:
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patchBytes)
 		if err != nil {
-			handlePodUpdateError(cmd.Out(), err, "environment variables")
+			handlePodUpdateError(cmd.OutOrStderr(), err, "environment variables")
 			failed = true
 			continue
 		}

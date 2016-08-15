@@ -187,7 +187,7 @@ func NewCmdNewApplication(commandName string, f *clientcmd.Factory, out io.Write
 // Complete sets any default behavior for the command
 func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
 	o.Out = out
-	o.ErrOut = c.Out()
+	o.ErrOut = c.OutOrStderr()
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)

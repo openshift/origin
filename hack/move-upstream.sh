@@ -6,17 +6,7 @@
 #  2. Set TARGET_BRANCH for the new branch to work in
 #  3. In your kube git directory, set the current branch to the level to want to apply patches to
 #  4. Run `hack/move-upstream.sh master...<commit hash you want to start pulling patches from>`
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"

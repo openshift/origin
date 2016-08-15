@@ -3,15 +3,7 @@
 # This scripts starts the OpenShift server with a default configuration.
 # The OpenShift Docker registry and router are installed.
 # It will run all tests that are imported into test/extended.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-cd "${OS_ROOT}"
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 os::util::environment::setup_all_server_vars "test-extended-alternate-launches/"
 reset_tmp_dir

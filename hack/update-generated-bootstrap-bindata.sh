@@ -1,13 +1,6 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 EXAMPLES=examples
 OUTPUT_PARENT=${OUTPUT_ROOT:-$OS_ROOT}

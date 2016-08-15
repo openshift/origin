@@ -144,7 +144,7 @@ func (templater *templater) UsageFunc(exposedFlags ...string) func(*cobra.Comman
 		})
 
 		template.Must(t.Parse(templater.UsageTemplate))
-		return t.Execute(c.Out(), c)
+		return t.Execute(c.OutOrStderr(), c)
 	}
 }
 

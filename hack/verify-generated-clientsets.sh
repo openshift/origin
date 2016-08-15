@@ -1,12 +1,6 @@
 #!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-
-cd "${OS_ROOT}"
 echo "===== Verifying Generated Client sets ====="
 output=$(VERIFY=true ${OS_ROOT}/hack/update-generated-clientsets.sh 2>&1)
 

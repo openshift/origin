@@ -1,14 +1,7 @@
 #!/bin/bash
 #
 # This script will run all test scripts that are in test/extended.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 test_scripts=`find test/extended -maxdepth 1 -name "*.sh" -not  \( -name "all.sh" \)`
 
