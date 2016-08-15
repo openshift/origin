@@ -89,6 +89,10 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	if err != nil {
 		return err
 	}
+	if len(pods.Items) == 0 {
+		fmt.Fprint(e.Options.ErrWriter, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
+		return nil
+	}
 	rcs, err := e.Options.Kclient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
