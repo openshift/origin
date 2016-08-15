@@ -575,7 +575,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 				// we're ignoring ErrClosedPipe, as this is information
 				// the docker container ended streaming logs
 				if glog.Is(2) && err != io.ErrClosedPipe && err != io.EOF {
-					glog.Errorf("Error reading docker stdout, %v", err)
+					glog.Errorf("Error reading docker stdout, %#v", err)
 				}
 				break
 			}
