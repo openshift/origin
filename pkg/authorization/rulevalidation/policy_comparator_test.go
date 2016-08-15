@@ -344,6 +344,7 @@ func rulesMatch(expectedRules, actualRules []authorizationapi.PolicyRule) bool {
 		for _, actualRule := range actualRules {
 			if reflect.DeepEqual(expectedRule, actualRule) {
 				found = true
+				break
 			}
 		}
 
