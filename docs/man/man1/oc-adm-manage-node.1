@@ -44,7 +44,7 @@ list\-pods: List all/selected pods on given/selected nodes. It can list the outp
 
 .PP
 \fB\-\-grace\-period\fP=30
-    Grace period (seconds) for pods being deleted. Optional param for \-\-evacuate
+    Grace period (seconds) for pods being deleted. Ignored if negative. Optional param for \-\-evacuate
 
 .PP
 \fB\-\-list\-pods\fP=false
@@ -173,6 +173,12 @@ list\-pods: List all/selected pods on given/selected nodes. It can list the outp
 
 	# Migrate selected pods
 	oc adm manage\-node <mynode> \-\-evacuate \-\-pod\-selector="<service=myapp>"
+
+	# Migrate selected pods, use a grace period of 60 seconds
+	oc adm manage\-node <mynode> \-\-evacuate \-\-grace\-period=60 \-\-pod\-selector="<service=myapp>"
+
+	# Migrate selected pods not backed by replication controller
+	oc adm manage\-node <mynode> \-\-evacuate \-\-force \-\-pod\-selector="<service=myapp>"
 
 	# Show pods that will be migrated
 	oc adm manage\-node <mynode> \-\-evacuate \-\-dry\-run \-\-pod\-selector="<service=myapp>"
