@@ -61,6 +61,29 @@ items:
     ports:
     - targetPort: 8080
 
+# a route that has multiple services but all weights are zero
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: zeroweightroute
+    labels:
+      test: router
+      select: weighted
+    annotations:
+      haproxy.router.openshift.io/balance: roundrobin
+  spec:
+    host: zeroweight.example.com
+    to:
+      name: weightedendpoints1
+      kind: Service
+      weight: 0
+    alternateBackends:
+    - name: weightedendpoints2
+      kind: Service
+      weight: 0
+    ports:
+    - targetPort: 8080
+
 # two services that can be routed to
 - apiVersion: v1
   kind: Service

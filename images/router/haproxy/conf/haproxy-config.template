@@ -288,7 +288,8 @@ backend be_edge_http_{{$cfgIdx}}
   {{ end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+      {{ if ne $weight 0 }}
+        {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
             {{ with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
               {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
@@ -304,7 +305,8 @@ backend be_edge_http_{{$cfgIdx}}
               {{ end }}
             {{ end }}
           {{ end }}
-      {{ end }}
+        {{ end }}
+      {{ end }}{{/* end if weight != 0 */}}
     {{ end }}{{/* end iterate over services */}}
   {{ end }}{{/* end if tls==edge/none */}}
 
@@ -329,8 +331,9 @@ backend be_tcp_{{$cfgIdx}}
   hash-type consistent
   timeout check 5000ms
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
-        {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+      {{ if ne $weight 0 }}
+        {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+          {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
             {{ with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
               {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
   server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{$healthIntv}} weight {{$weight}}
@@ -344,8 +347,9 @@ backend be_tcp_{{$cfgIdx}}
   server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{$weight}}
               {{ end }}
             {{ end }}
-        {{ end }}
-      {{ end }}
+          {{ end }}{{/* end range endpointsForAlias */}}
+        {{ end }}{{/* end get ServiceUnit from serviceUnitName */}}
+      {{ end }}{{/* end if weight != 0 */}}
     {{ end }}{{/* end iterate over services*/}}
   {{ end }}{{/*end tls==passthrough*/}}
 
@@ -375,8 +379,9 @@ backend be_secure_{{$cfgIdx}}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
-        {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+      {{ if ne $weight 0 }}
+        {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+          {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
             {{ with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
               {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
   server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{$healthIntv}} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
@@ -389,10 +394,11 @@ backend be_secure_{{$cfgIdx}}
               {{ else }}
   server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
               {{ end }}
-            {{ end }}
-        {{ end }}
-      {{ end }}
-    {{ end }}
+            {{ end }}{{/* end get health interval annotation */}}
+          {{ end }}{{/* end range endpointsForAlias */}}
+        {{ end }}{{/* end get serviceUnit from its name */}}
+      {{ end }}{{/* end if weight != 0 */}}
+    {{ end }}{{/* end range over serviceUnitNames */}}
   {{ end }}{{/* end tls==reencrypt */}}
 {{ end }}{{/* end loop over routes */}}
 {{ end }}{{/* end haproxy config template */}}
