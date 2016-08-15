@@ -162,7 +162,7 @@ func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.Res
 	redirectURL.RawQuery = url.Values{
 		"then":         {req.URL.String()},
 		"client_id":    {grant.Client.GetId()},
-		"scopes":       {grant.Scope},
+		"scope":        {grant.Scope},
 		"redirect_uri": {grant.RedirectURI},
 	}.Encode()
 	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
