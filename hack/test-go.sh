@@ -19,11 +19,6 @@
 #  - JUNIT_REPORT:        toggles the creation of jUnit XML from the test output and changes this script's output behavior
 #                         to use the 'junitreport' tool for summarizing the tests.
 #  - DLV_DEBUG            toggles running tests using delve debugger
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 function exit_trap() {
     local return_code=$?
 
@@ -42,10 +37,7 @@ function exit_trap() {
 trap exit_trap EXIT
 
 start_time=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-cd "${OS_ROOT}"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 os::util::environment::setup_tmpdir_vars "test-go"
 

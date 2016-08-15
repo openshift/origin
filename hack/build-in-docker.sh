@@ -2,20 +2,14 @@
 
 # This script build the sources in openshift/origin-release image using
 # the Fedora environment and Go compiler.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-function absolute_path() { 
+function absolute_path() {
   pushd . > /dev/null
   [ -d "$1" ] && cd "$1" && dirs -l +0
   popd > /dev/null
 }
 
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 origin_path="src/github.com/openshift/origin"
 
 # TODO: Remove this check and fix the docker command instead after the

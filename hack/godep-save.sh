@@ -13,10 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 pin-godep() {
   pushd "${GOPATH}/src/github.com/tools/godep" > /dev/null
@@ -24,8 +21,6 @@ pin-godep() {
     "${GODEP}" go install
   popd > /dev/null
 }
-
-ORIGIN_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 # build the godep tool
 # Again go get stinks, hence || true
@@ -43,6 +38,4 @@ REQUIRED_BINS=(
   "./..."
 )
 
-pushd "${ORIGIN_ROOT}" > /dev/null
 "${GODEP}" save -t "${REQUIRED_BINS[@]}"
-popd > /dev/null

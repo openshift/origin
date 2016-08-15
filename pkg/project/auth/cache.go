@@ -17,6 +17,8 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -228,6 +230,10 @@ func (ac *AuthorizationCache) RemoveWatcher(watcher CacheWatcher) {
 	}
 }
 
+func (ac *AuthorizationCache) GetClusterPolicyLister() client.SyncedClusterPoliciesListerInterface {
+	return ac.clusterPolicyLister
+}
+
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
 func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) sets.String {
 	namespaceSet := sets.NewString()
@@ -430,14 +436,22 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 		}
 	}
 
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], ac.clusterPolicyLister.ClusterPolicies())
+	if err != nil {
+		return nil, err
+	}
+
 	namespaceList := &kapi.NamespaceList{}
 	for key := range keys {
-		namespace, exists, err := ac.namespaceStore.GetByKey(key)
+		namespaceObj, exists, err := ac.namespaceStore.GetByKey(key)
 		if err != nil {
 			return nil, err
 		}
 		if exists {
-			namespaceList.Items = append(namespaceList.Items, *namespace.(*kapi.Namespace))
+			namespace := *namespaceObj.(*kapi.Namespace)
+			if allowedNamespaces.Has("*") || allowedNamespaces.Has(namespace.Name) {
+				namespaceList.Items = append(namespaceList.Items, namespace)
+			}
 		}
 	}
 	return namespaceList, nil

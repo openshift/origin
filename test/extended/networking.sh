@@ -2,10 +2,7 @@
 
 # This script runs the networking e2e tests. See CONTRIBUTING.adoc for
 # documentation.
-
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 if [[ -n "${OPENSHIFT_VERBOSE_OUTPUT:-}" ]]; then
   set -o xtrace
@@ -14,10 +11,6 @@ fi
 
 # Ensure that subshells inherit bash settings (specifically xtrace)
 export SHELLOPTS
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
 
 # These strings filter the available tests.
 #

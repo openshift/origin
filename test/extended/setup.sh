@@ -1,4 +1,4 @@
-  #!/bin/bash
+#!/bin/bash
 #
 # This abstracts starting up an extended server.
 
@@ -21,9 +21,6 @@ function os::test::extended::focus {
 #   and then tests are executed.  Tests that depend on fine grained setup should
 #   be done in other contexts.
 function os::test::extended::setup {
-  source "${OS_ROOT}/hack/lib/init.sh"
-  os::log::stacktrace::install
-
   # build binaries
   if [[ -z $(os::build::find-binary ginkgo) ]]; then
     hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo

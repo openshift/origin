@@ -29,7 +29,7 @@ type EtcdOptions struct {
 
 const etcdLong = `Start an etcd server for testing.
 
-This command starts an etcd server based on the config for testing.  It is not 
+This command starts an etcd server based on the config for testing.  It is not
 Intended for production use.  Running
 
   %[1]s start %[2]s
@@ -53,9 +53,9 @@ func NewCommandStartEtcdServer(name, basename string, out io.Writer) (*cobra.Com
 			if err := options.StartEtcdServer(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}

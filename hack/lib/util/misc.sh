@@ -121,8 +121,9 @@ function os::util::find-go-binary() {
 
   IFS=":"
   for part in $GOPATH; do
-    if [[ -f "$part/bin/$binary_name" && -x "${part}/bin/${binary_name}" ]]; then
-      echo $part/bin/$binary_name
+  	local binary="${part}/bin/${binary_name}"
+    if [[ -f "${binary}" && -x "${binary}" ]]; then
+      echo "${binary}"
       break
     fi
   done

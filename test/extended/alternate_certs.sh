@@ -1,15 +1,7 @@
 #!/bin/bash
 #
 # This scripts starts the OpenShift server with custom TLS certs, and verifies generated kubeconfig files can be used to talk to it.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-cd "${OS_ROOT}"
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
 os::util::environment::setup_all_server_vars "test-extended-alternate-certs/"
 reset_tmp_dir
@@ -52,8 +44,8 @@ os::cmd::expect_success "openshift start --master=https://localhost:${API_PORT} 
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
 os::util::sed "s/:4001$/:${ETCD_PORT}/g" master/master-config.yaml
 os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" master/master-config.yaml
-# replace top-level namedCertificates config 
-os::util::sed 's#^  namedCertificates: null#  namedCertificates: [{"certFile":"custom.crt","keyFile":"custom.key","names":["localhost"]}]#' master/master-config.yaml 
+# replace top-level namedCertificates config
+os::util::sed 's#^  namedCertificates: null#  namedCertificates: [{"certFile":"custom.crt","keyFile":"custom.key","names":["localhost"]}]#' master/master-config.yaml
 
 # Start master
 OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \

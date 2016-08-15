@@ -4,17 +4,8 @@
 # No registry or router is setup.
 # It is intended to test cli commands that may require docker and therefore
 # cannot be run under Travis.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 os::util::environment::setup_time_vars
-
-cd "${OS_ROOT}"
 
 os::build::setup_env
 

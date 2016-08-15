@@ -1,15 +1,8 @@
 #!/bin/bash
-
-set -o errexit
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::golang::verify_go_version
 os::golang::verify_golint_version
-
-cd "${OS_ROOT}"
 
 arg="${1:-""}"
 bad_files=""

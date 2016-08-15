@@ -6,19 +6,9 @@
 # NOTE:  you only need to run this script if your code changes are part of
 # any images OpenShift runs internally such as origin-sti-builder, origin-docker-builder,
 # origin-deployer, etc.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 source "${OS_ROOT}/contrib/node/install-sdn.sh"
-os::log::stacktrace::install
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
 
 if [[ "${OS_RELEASE:-}" == "n" ]]; then
   # Use local binaries

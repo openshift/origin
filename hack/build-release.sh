@@ -4,18 +4,8 @@
 # image to be built prior to executing this command via hack/build-base-images.sh.
 
 # NOTE:   only committed code is built.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 context="${OS_ROOT}/_output/buildenv-context"
 
