@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9ec27c295c47ddd292d6248ff8074a67d29fcf39
+%global commit 90f27c3a3e92c671e0fa4da620bd5aea3ebd22e3
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.18+9ec27c2 -X github.com/openshift/origin/pkg/version.commitFromGit=9ec27c2 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-12T14:04:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-12T14:04:49Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.19+90f27c3 -X github.com/openshift/origin/pkg/version.commitFromGit=90f27c3 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-15T15:07:23Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-15T15:07:23Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 # os_git_vars needed to run hack scripts during rpm builds
 # TODO Automatically generate these using tito
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.19
+Version:        3.3.0.21
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -504,6 +504,52 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Aug 15 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.21
+- Need to set OS_ROOT for tito (tdawson@redhat.com)
+- The first letter should be capitalized (yu.peng36@zte.com.cn)
+- bump(github.com/AaronO/go-git-http) 34209cf6cd947cfa52063bcb0f6d43cfa50c5566
+  (cewong@redhat.com)
+- don't do pod deletion management for pipeline builds (bparees@redhat.com)
+- Bump origin-web-console (1e55231) (jforrest@redhat.com)
+- Updated bash preamble in test/cmd/run.sh (skuznets@redhat.com)
+- Update generated docs and completions (ffranz@redhat.com)
+- Fixes required by latest version of Cobra (ffranz@redhat.com)
+- bump(github.com/spf13/cobra): f62e98d28ab7ad31d707ba837a966378465c7b57
+  (ffranz@redhat.com)
+- bump(github.com/spf13/pflag): 1560c1005499d61b80f865c04d39ca7505bf7f0b
+  (ffranz@redhat.com)
+- Avoid using bsdtar for extraction during build (joesmith@redhat.com)
+- Removed executable check from test-cmd test filter (skuznets@redhat.com)
+- Remain in the current project at login if possible (jliggitt@redhat.com)
+- Moved shared init code into hack/lib/init.sh (skuznets@redhat.com)
+- respect scopes in list/watch projects (deads@redhat.com)
+- Add zsh compatibility note to `completion` help (jvallejo@redhat.com)
+- UPSTREAM: 30460: Add zsh compatibility note `completion` cmd help
+  (jvallejo@redhat.com)
+
+* Mon Aug 15 2016 Troy Dawson <tdawson@redhat.com>
+- Need to set OS_ROOT for tito (tdawson@redhat.com)
+- The first letter should be capitalized (yu.peng36@zte.com.cn)
+- bump(github.com/AaronO/go-git-http) 34209cf6cd947cfa52063bcb0f6d43cfa50c5566
+  (cewong@redhat.com)
+- don't do pod deletion management for pipeline builds (bparees@redhat.com)
+- Bump origin-web-console (1e55231) (jforrest@redhat.com)
+- Updated bash preamble in test/cmd/run.sh (skuznets@redhat.com)
+- Update generated docs and completions (ffranz@redhat.com)
+- Fixes required by latest version of Cobra (ffranz@redhat.com)
+- bump(github.com/spf13/cobra): f62e98d28ab7ad31d707ba837a966378465c7b57
+  (ffranz@redhat.com)
+- bump(github.com/spf13/pflag): 1560c1005499d61b80f865c04d39ca7505bf7f0b
+  (ffranz@redhat.com)
+- Avoid using bsdtar for extraction during build (joesmith@redhat.com)
+- Removed executable check from test-cmd test filter (skuznets@redhat.com)
+- Remain in the current project at login if possible (jliggitt@redhat.com)
+- Moved shared init code into hack/lib/init.sh (skuznets@redhat.com)
+- respect scopes in list/watch projects (deads@redhat.com)
+- Add zsh compatibility note to `completion` help (jvallejo@redhat.com)
+- UPSTREAM: 30460: Add zsh compatibility note `completion` cmd help
+  (jvallejo@redhat.com)
+
 * Fri Aug 12 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.19
 - Merge remote-tracking branch upstream/master, bump origin-web-console 01e7f6b
   (tdawson@redhat.com)
