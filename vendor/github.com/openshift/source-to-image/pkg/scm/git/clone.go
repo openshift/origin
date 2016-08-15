@@ -23,7 +23,12 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	hasRef := len(config.Ref) > 0
 	cloneConfig := api.CloneConfig{Quiet: true, Recursive: !config.IgnoreSubmodules && !hasRef}
 
-	if c.ValidCloneSpec(config.Source) {
+	ok, err := c.ValidCloneSpec(config.Source)
+	if err != nil {
+		return nil, err
+	}
+
+	if ok {
 		if len(config.ContextDir) > 0 {
 			targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
 			glog.V(1).Infof("Downloading %q (%q) ...", config.Source, config.ContextDir)

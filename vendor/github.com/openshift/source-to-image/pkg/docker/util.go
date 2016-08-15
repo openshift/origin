@@ -80,7 +80,8 @@ func LoadAndGetImageRegistryAuth(dockerCfg io.Reader, imageName string) client.A
 }
 
 // StreamContainerIO takes data from the Reader and redirects to the log function (typically we pass in
-// glog.Error for stderr and glog.Info for stdout
+// glog.Error for stderr and glog.Info for stdout. The caller should wrap glog functions in a closure
+// to ensure accurate line numbers are reported: https://github.com/openshift/source-to-image/issues/558 .
 func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...interface{})) {
 	scanner := bufio.NewReader(errStream)
 	for {

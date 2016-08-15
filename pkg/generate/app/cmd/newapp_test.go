@@ -3,9 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -20,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 	image "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	"github.com/openshift/source-to-image/pkg/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -233,7 +232,7 @@ func templateList() *templateapi.TemplateList {
 }
 
 func TestEnsureHasSource(t *testing.T) {
-	gitLocalDir := createLocalGitDirectory(t)
+	gitLocalDir := test.CreateLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
 
 	tests := []struct {
@@ -330,15 +329,6 @@ func TestEnsureHasSource(t *testing.T) {
 			}
 		}
 	}
-}
-
-func createLocalGitDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
-	if err != nil {
-		t.Error(err)
-	}
-	os.Mkdir(filepath.Join(dir, ".git"), 0600)
-	return dir
 }
 
 // mockSourceRepositories is a set of mocked source repositories used for
