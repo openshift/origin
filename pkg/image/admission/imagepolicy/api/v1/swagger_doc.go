@@ -23,7 +23,7 @@ var map_ImageCondition = map[string]string{
 	"invertMatch":             "InvertMatch means the value of the condition is logically inverted (true -> false, false -> true).",
 	"matchIntegratedRegistry": "MatchIntegratedRegistry will only match image sources that originate from the configured integrated registry.",
 	"matchRegistries":         "MatchRegistries will match image references that point to the provided registries. The image registry must match at least one of these strings.",
-	"allowResolutionFailure":  "AllowResolutionFailure allows the subsequent conditions to be bypassed if the integrated registry does not have access to image metadata (no image exists matching the image digest).",
+	"skipOnResolutionFailure": "SkipOnResolutionFailure allows the subsequent conditions to be bypassed if the integrated registry does not have access to image metadata (no image exists matching the image digest).",
 	"matchDockerImageLabels":  "MatchDockerImageLabels checks against the resolved image for the presence of a Docker label. All conditions must match.",
 	"matchImageLabels":        "MatchImageLabels checks against the resolved image for a label. All conditions must match.",
 	"matchImageAnnotations":   "MatchImageAnnotations checks against the resolved image for an annotation. All conditions must match.",
@@ -34,9 +34,8 @@ func (ImageCondition) SwaggerDoc() map[string]string {
 }
 
 var map_ImageExecutionPolicyRule = map[string]string{
-	"":        "ImageExecutionPolicyRule determines whether a provided image may be used on the platform.",
-	"resolve": "Resolve indicates that images referenced by this resource must be resolved",
-	"reject":  "Reject means this rule, if it matches the condition, will cause an immediate failure. No other rules will be considered.",
+	"":       "ImageExecutionPolicyRule determines whether a provided image may be used on the platform.",
+	"reject": "Reject means this rule, if it matches the condition, will cause an immediate failure. No other rules will be considered.",
 }
 
 func (ImageExecutionPolicyRule) SwaggerDoc() map[string]string {
@@ -45,6 +44,7 @@ func (ImageExecutionPolicyRule) SwaggerDoc() map[string]string {
 
 var map_ImagePolicyConfig = map[string]string{
 	"":               "ImagePolicyConfig is the configuration for control of images running on the platform.",
+	"resolveImages":  "ResolveImages indicates what kind of image resolution should be done.  If a rewriting policy is chosen, then the image pull specs will be updated.",
 	"executionRules": "ExecutionRules determine whether the use of an image is allowed in an object with a pod spec. By default, these rules only apply to pods, but may be extended to other resource types. If all execution rules are negations, the default behavior is allow all. If any execution rule is an allow, the default behavior is to reject all.",
 }
 

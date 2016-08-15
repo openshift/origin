@@ -46,4 +46,29 @@ func TestValidation(t *testing.T) {
 	}); len(errs) == 0 {
 		t.Fatal(errs)
 	}
+
+	if errs := Validate(&api.ImagePolicyConfig{
+		ResolveImages: api.DoNotAttempt,
+		ExecutionRules: []api.ImageExecutionPolicyRule{
+			{ImageCondition: api.ImageCondition{Name: "test", MatchDockerImageLabels: []api.ValueCondition{{}}}},
+		},
+	}); len(errs) == 0 {
+		t.Fatal(errs)
+	}
+	if errs := Validate(&api.ImagePolicyConfig{
+		ResolveImages: api.DoNotAttempt,
+		ExecutionRules: []api.ImageExecutionPolicyRule{
+			{ImageCondition: api.ImageCondition{Name: "test", MatchImageLabels: []unversioned.LabelSelector{{}}}},
+		},
+	}); len(errs) == 0 {
+		t.Fatal(errs)
+	}
+	if errs := Validate(&api.ImagePolicyConfig{
+		ResolveImages: api.DoNotAttempt,
+		ExecutionRules: []api.ImageExecutionPolicyRule{
+			{ImageCondition: api.ImageCondition{Name: "test", MatchImageAnnotations: []api.ValueCondition{{}}}},
+		},
+	}); len(errs) == 0 {
+		t.Fatal(errs)
+	}
 }

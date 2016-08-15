@@ -6451,6 +6451,11 @@ func examplesQuickstartsRailsPostgresqlJson() (*asset, error) {
 
 var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
 apiVersion: v1
+# To require that all images running on the platform be imported first, you may uncomment the
+# following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
+# unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that
+# digest has been imported via the import-image flow.
+#resolveImages: Required
 executionRules:
 - name: execution-denied
   # Reject all images that have the annotation images.openshift.io/deny-execution set to true.
@@ -6462,13 +6467,8 @@ executionRules:
   matchImageAnnotations:
   - key: images.openshift.io/deny-execution
     value: "true"
-  allowResolutionFailure: true
-# To require that all images running on the platform be imported first, you may uncomment the
-# following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
-# unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that
-# digest has been imported via the import-image flow.
-#- name: require-imported-images
-#  allowResolutionFailure: false
+  skipOnResolutionFailure: true
+
 `)
 
 func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {

@@ -26,5 +26,21 @@ func Validate(config *api.ImagePolicyConfig) field.ErrorList {
 			}
 		}
 	}
+
+	// if you don't attempt resolution, you'll never be able to pass any rule that logically requires it
+	if config.ResolveImages == api.DoNotAttempt {
+		for i, rule := range config.ExecutionRules {
+			if len(rule.MatchDockerImageLabels) > 0 {
+				allErrs = append(allErrs, field.Invalid(field.NewPath(api.PluginName, "executionRules").Index(i).Child("matchDockerImageLabels"), rule.MatchDockerImageLabels, "images are not being resolved, this condition will always fail"))
+			}
+			if len(rule.MatchImageLabels) > 0 {
+				allErrs = append(allErrs, field.Invalid(field.NewPath(api.PluginName, "executionRules").Index(i).Child("matchImageLabels"), rule.MatchImageLabels, "images are not being resolved, this condition will always fail"))
+			}
+			if len(rule.MatchImageAnnotations) > 0 {
+				allErrs = append(allErrs, field.Invalid(field.NewPath(api.PluginName, "executionRules").Index(i).Child("matchImageAnnotations"), rule.MatchImageAnnotations, "images are not being resolved, this condition will always fail"))
+			}
+		}
+	}
+
 	return allErrs
 }

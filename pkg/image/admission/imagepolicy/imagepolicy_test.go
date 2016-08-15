@@ -332,8 +332,9 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 func TestAdmissionResolution(t *testing.T) {
 	onResources := []unversioned.GroupResource{{Resource: "pods"}}
 	p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+		ResolveImages: api.AttemptRewrite,
 		ExecutionRules: []api.ImageExecutionPolicyRule{
-			{ImageCondition: api.ImageCondition{OnResources: onResources}, Resolve: true},
+			{ImageCondition: api.ImageCondition{OnResources: onResources}},
 			{Reject: true, ImageCondition: api.ImageCondition{
 				OnResources:     onResources,
 				MatchRegistries: []string{"index.docker.io"},
@@ -596,8 +597,9 @@ func TestAdmissionResolveImages(t *testing.T) {
 	for i, test := range testCases {
 		onResources := []unversioned.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
 		p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+			ResolveImages: api.RequiredRewrite,
 			ExecutionRules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: onResources}, Resolve: true},
+				{ImageCondition: api.ImageCondition{OnResources: onResources}},
 			},
 		})
 		if err != nil {
