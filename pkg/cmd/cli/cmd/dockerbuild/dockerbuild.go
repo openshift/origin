@@ -168,7 +168,7 @@ func (o *DockerbuildOptions) Run() error {
 
 func stripLeadingError(err error) error {
 	if err == nil {
-		return err
+		return nil
 	}
 	if strings.HasPrefix(err.Error(), "Error: ") {
 		return fmt.Errorf(strings.TrimPrefix(err.Error(), "Error: "))
