@@ -129,6 +129,8 @@ func (templater *templater) UsageFunc(exposedFlags ...string) func(*cobra.Comman
 			"rootCmd":             templater.rootCmdName,
 			"isRootCmd":           templater.isRootCmd,
 			"optionsCmdFor":       templater.optionsCmdFor,
+			"describeCmdFor":      templater.describeCmdFor,
+			"hasContainerOption":  templater.hasContainerOption,
 			"usageLine":           templater.usageLine,
 			"exposed": func(c *cobra.Command) *flag.FlagSet {
 				exposed := flag.NewFlagSet("exposed", flag.ContinueOnError)
@@ -187,6 +189,21 @@ func (t *templater) rootCmd(c *cobra.Command) *cobra.Command {
 		panic("nil root cmd")
 	}
 	return t.RootCmd
+}
+
+func (t *templater) hasContainerOption(c *cobra.Command) bool {
+	if flag := c.Flags().Lookup("container"); flag != nil {
+		return true
+	}
+	return false
+}
+
+func (t *templater) describeCmdFor(c *cobra.Command) string {
+	if !c.Runnable() {
+		return ""
+	}
+
+	return t.RootCmd.CommandPath() + " describe"
 }
 
 func (t *templater) optionsCmdFor(c *cobra.Command) string {
