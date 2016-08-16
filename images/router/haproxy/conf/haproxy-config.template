@@ -344,6 +344,11 @@ backend be_secure_{{$cfgIdx}}
     {{ end }}
 
   timeout check 5000ms
+  http-request set-header X-Forwarded-Host %[req.hdr(host)]
+  http-request set-header X-Forwarded-Port %[dst_port]
+  http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
+  http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
