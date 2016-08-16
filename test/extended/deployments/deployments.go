@@ -33,6 +33,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		brokenDeploymentFixture         = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployment-history-limit.yaml")
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
+		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -239,6 +240,20 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 				o.Expect(out).To(o.ContainSubstring("--> Success"))
 			}
+		})
+	})
+
+	g.Describe("with multiple image change triggers", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should run a successful deployment [Conformance]", func() {
+			_, name, err := createFixture(oc, multipleICTFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 	})
 
