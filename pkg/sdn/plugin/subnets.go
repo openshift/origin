@@ -44,7 +44,15 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	return nil
 }
 
-func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
+func (master *OsdnMaster) updateNodePodCIDR(node *kapi.Node, hs *osapi.HostSubnet) error {
+	node.Spec.PodCIDR = hs.Subnet
+	_, err := master.registry.UpdateNode(node)
+	return err
+}
+
+func (master *OsdnMaster) addNode(node *kapi.Node, nodeIP string) error {
+	nodeName := node.ObjectMeta.Name
+
 	// Validate node IP before proceeding
 	if err := master.registry.ValidateNodeIP(nodeIP); err != nil {
 		return err
@@ -62,6 +70,11 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 			if err != nil {
 				return fmt.Errorf("Error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
+
+			if err = master.updateNodePodCIDR(node, sub); err != nil {
+				return fmt.Errorf("Error updating node PodCIDR for node %s: %v", nodeName, err)
+			}
+
 			log.Infof("Updated HostSubnet %s", hostSubnetToString(sub))
 			return nil
 		}
@@ -78,6 +91,12 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 		master.subnetAllocator.ReleaseNetwork(sn)
 		return fmt.Errorf("Error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
 	}
+
+	if err = master.updateNodePodCIDR(node, sub); err != nil {
+		master.subnetAllocator.ReleaseNetwork(sn)
+		return fmt.Errorf("Error updating node PodCIDR for node %s: %v", nodeName, err)
+	}
+
 	log.Infof("Created HostSubnet %s", hostSubnetToString(sub))
 	return nil
 }
@@ -137,7 +156,7 @@ func (master *OsdnMaster) watchNodes() {
 			// Node status is frequently updated by kubelet, so log only if the above condition is not met
 			log.V(5).Infof("Watch %s event for Node %q", strings.Title(string(eventType)), name)
 
-			err = master.addNode(name, nodeIP)
+			err = master.addNode(node, nodeIP)
 			if err != nil {
 				log.Errorf("Error creating subnet for node %s, ip %s: %v", name, nodeIP, err)
 				continue
