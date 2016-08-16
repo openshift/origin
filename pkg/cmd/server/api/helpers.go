@@ -568,3 +568,15 @@ func HasKubernetesAPIVersion(config KubernetesMasterConfig, groupVersion unversi
 	enabledVersions := GetEnabledAPIVersionsForGroup(config, groupVersion.Group)
 	return sets.NewString(enabledVersions...).Has(groupVersion.Version)
 }
+
+func CIDRsOverlap(cidr1, cidr2 string) bool {
+	_, ipNet1, err := net.ParseCIDR(cidr1)
+	if err != nil {
+		return false
+	}
+	_, ipNet2, err := net.ParseCIDR(cidr2)
+	if err != nil {
+		return false
+	}
+	return ipNet1.Contains(ipNet2.IP) || ipNet2.Contains(ipNet1.IP)
+}
