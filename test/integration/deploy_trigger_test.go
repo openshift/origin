@@ -296,9 +296,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	var newConfig *deployapi.DeploymentConfig
 	t.Log("Waiting for the initial deploymentconfig update in response to the imagestream update")
 
-	// TODO: Once https://github.com/openshift/origin/pull/9349 is merged, we can stop waiting for the image
-	// change controller ie. we can reduce this
-	timeout := time.After(2 * time.Minute)
+	timeout := time.After(30 * time.Second)
 
 	// This is the initial deployment with automatic=false in its ICT - it should be updated to pullSpec
 out:
@@ -446,9 +444,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		t.Fatalf("Couldn't create deploymentconfig: %v", err)
 	}
 
-	// TODO: Once https://github.com/openshift/origin/pull/9349 is merged, we can stop waiting for the image
-	// change controller ie. we can reduce this
-	timeout := time.After(2 * time.Minute)
+	timeout := time.After(30 * time.Second)
 
 	t.Log("Should not trigger a new deployment in response to the first imagestream update")
 	createTagEvent(imageStream.Name, imageapi.DefaultImageTag, updatedImage, updatedPullSpec)
