@@ -263,6 +263,20 @@ func IsReachable(config *api.Config) bool {
 	return d.Ping() == nil
 }
 
+func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config *api.Config, forcePull bool) (*PullResult, error) {
+	r, err := PullImage(image, docker, pullPolicy, forcePull)
+	if err != nil {
+		return nil, err
+	}
+
+	err = CheckAllowedUser(docker, image, config.AllowedUIDs, r.OnBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 // GetBuilderImage processes the config and performs operations necessary to make
 // the Docker image specified as BuilderImage available locally.
 // It returns information about the base image, containing metadata necessary
@@ -273,17 +287,19 @@ func GetBuilderImage(config *api.Config) (*PullResult, error) {
 		return nil, err
 	}
 
-	r, err := PullImage(config.BuilderImage, d, config.BuilderPullPolicy, config.ForcePull)
+	return pullAndCheck(config.BuilderImage, d, config.BuilderPullPolicy, config, config.ForcePull)
+}
+
+// GetRebuildImage obtains the metadata information for the image
+// specified in a s2i rebuild operation.  Assumptions are made that
+// the build is available locally since it should have been previously built.
+func GetRebuildImage(config *api.Config) (*PullResult, error) {
+	d, err := New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
 		return nil, err
 	}
 
-	err = CheckAllowedUser(d, config.BuilderImage, config.AllowedUIDs, r.OnBuild)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
+	return pullAndCheck(config.Tag, d, config.BuilderPullPolicy, config, config.ForcePull)
 }
 
 // GetRuntimeImage processes the config and performs operations necessary to make
@@ -294,17 +310,8 @@ func GetRuntimeImage(config *api.Config, docker Docker) error {
 		pullPolicy = api.DefaultRuntimeImagePullPolicy
 	}
 
-	pullResult, err := PullImage(config.RuntimeImage, docker, pullPolicy, false)
-	if err != nil {
-		return err
-	}
-
-	err = CheckAllowedUser(docker, config.RuntimeImage, config.AllowedUIDs, pullResult.OnBuild)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := pullAndCheck(config.RuntimeImage, docker, pullPolicy, config, false)
+	return err
 }
 
 func GetDefaultDockerConfig() *api.DockerConfig {
