@@ -31,7 +31,7 @@ type DeploymentConfigReaper struct {
 // pause marks the deployment configuration as paused to avoid triggering new
 // deployments.
 func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return reaper.updateDeploymentWithRetries(namespace, name, func(d *deployapi.DeploymentConfig) {
+	return client.UpdateConfigWithRetries(reaper.oc, namespace, name, func(d *deployapi.DeploymentConfig) {
 		d.Spec.RevisionHistoryLimit = kutil.Int32Ptr(0)
 		d.Spec.Replicas = 0
 		d.Spec.Paused = true
@@ -133,32 +133,4 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	}
 
 	return reaper.oc.DeploymentConfigs(namespace).Delete(name)
-}
-
-type updateConfigFunc func(d *deployapi.DeploymentConfig)
-
-func (reaper *DeploymentConfigReaper) updateDeploymentWithRetries(namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
-	var (
-		config *deployapi.DeploymentConfig
-		err    error
-	)
-	deploymentConfigs := reaper.oc.DeploymentConfigs(namespace)
-	resultErr := wait.Poll(10*time.Millisecond, 1*time.Minute, func() (bool, error) {
-		config, err = deploymentConfigs.Get(name)
-		if err != nil {
-			return false, err
-		}
-		// Apply the update, then attempt to push it to the apiserver.
-		applyUpdate(config)
-		config, err = deploymentConfigs.Update(config)
-		if err != nil {
-			// Retry only on update conflict
-			if kerrors.IsConflict(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		return true, nil
-	})
-	return config, resultErr
 }
