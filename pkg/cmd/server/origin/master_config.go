@@ -246,6 +246,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 	}
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, kubeClientSet, pluginInitializer)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: look up storage by resource
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
