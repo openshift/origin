@@ -187,7 +187,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, "", 0, describeServiceInServiceGroup(f, service, exposes...)...)
 
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
-				printLines(out, indent, 1, describeDeploymentInServiceGroup(local, dcPipeline, graphview.MaxRecentContainerRestartsForRC(g, dcPipeline.ActiveDeployment))...)
+				printLines(out, indent, 1, describeDeploymentInServiceGroup(local, dcPipeline, func(rc *kubegraph.ReplicationControllerNode) int32 {
+					return graphview.MaxRecentContainerRestartsForRC(g, rc)
+				})...)
 			}
 
 			for _, node := range service.FulfillingPetSets {
@@ -224,7 +226,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		for _, standaloneDC := range standaloneDCs {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDC, graphview.MaxRecentContainerRestartsForRC(g, standaloneDC.ActiveDeployment))...)
+			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDC, func(rc *kubegraph.ReplicationControllerNode) int32 {
+				return graphview.MaxRecentContainerRestartsForRC(g, rc)
+			})...)
 		}
 
 		for _, standaloneImage := range standaloneImages {
@@ -480,7 +484,7 @@ func describeAllProjectsOnServer(f formatter, server string) string {
 	return fmt.Sprintf("Showing all projects on server %s\n", server)
 }
 
-func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentConfigPipeline, restartCount int32) []string {
+func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentConfigPipeline, restartFn func(*kubegraph.ReplicationControllerNode) int32) []string {
 	local := namespacedFormatter{currentNamespace: deploy.Deployment.DeploymentConfig.Namespace}
 
 	includeLastPass := deploy.ActiveDeployment == nil
@@ -496,7 +500,7 @@ func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentCo
 			lines = append(lines, segments[1])
 		}
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, restartCount, maxDisplayDeployments)...)
+		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, restartFn, maxDisplayDeployments)...)
 		return lines
 	}
 
@@ -508,7 +512,7 @@ func describeDeploymentInServiceGroup(f formatter, deploy graphview.DeploymentCo
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(local, image, deploy.Deployment.DeploymentConfig.Namespace))
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
-		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, restartCount, maxDisplayDeployments)...)
+		lines = append(lines, describeDeployments(local, deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, restartFn, maxDisplayDeployments)...)
 	}
 	return lines
 }
@@ -930,7 +934,7 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, restartCount int32, count int) []string {
+func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, restartFn func(*kubegraph.ReplicationControllerNode) int32, count int) []string {
 	if dcNode == nil {
 		return nil
 	}
@@ -950,8 +954,11 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 	}
 
 	for i, deployment := range deploymentsToPrint {
+		restartCount := int32(0)
+		if restartFn != nil {
+			restartCount = restartFn(deployment)
+		}
 		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test, restartCount))
-
 		switch {
 		case count == -1:
 			if deployutil.DeploymentStatusFor(deployment.ReplicationController) == deployapi.DeploymentStatusComplete {
