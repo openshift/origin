@@ -62,6 +62,7 @@ func validateNewNetwork(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) 
 
 func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateClusterNetwork(obj)...)
 
 	if obj.Network != old.Network {
 		err := validateNewNetwork(obj, old)
@@ -96,6 +97,7 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 
 func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateHostSubnet(obj)...)
 
 	if obj.Subnet != old.Subnet {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), obj.Subnet, "cannot change the subnet lease midflight."))
@@ -116,10 +118,7 @@ func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) field.ErrorList {
 
 func ValidateNetNamespaceUpdate(obj *sdnapi.NetNamespace, old *sdnapi.NetNamespace) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
-
-	if err := sdnapi.ValidVNID(obj.NetID); err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), obj.NetID, err.Error()))
-	}
+	allErrs = append(allErrs, ValidateNetNamespace(obj)...)
 	return allErrs
 }
 
@@ -146,5 +145,7 @@ func ValidateEgressNetworkPolicy(policy *sdnapi.EgressNetworkPolicy) field.Error
 }
 
 func ValidateEgressNetworkPolicyUpdate(obj *sdnapi.EgressNetworkPolicy, old *sdnapi.EgressNetworkPolicy) field.ErrorList {
-	return validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateEgressNetworkPolicy(obj)...)
+	return allErrs
 }
