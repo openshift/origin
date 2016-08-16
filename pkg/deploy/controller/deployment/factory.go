@@ -109,24 +109,30 @@ func (c *DeploymentController) addReplicationController(obj interface{}) {
 }
 
 func (c *DeploymentController) updateReplicationController(old, cur interface{}) {
-	rc := cur.(*kapi.ReplicationController)
-	// Filter out all unrelated replication controllers.
-	if !deployutil.IsOwnedByConfig(rc) {
+	// A periodic relist will send update events for all known controllers.
+	curRC := cur.(*kapi.ReplicationController)
+	oldRC := old.(*kapi.ReplicationController)
+	if curRC.ResourceVersion == oldRC.ResourceVersion {
 		return
 	}
 
-	c.enqueueReplicationController(rc)
+	// Filter out all unrelated replication controllers.
+	if !deployutil.IsOwnedByConfig(curRC) {
+		return
+	}
+
+	c.enqueueReplicationController(curRC)
 }
 
 func (c *DeploymentController) updatePod(old, cur interface{}) {
-	// A periodic relist will send update events for all known controllers.
-	if kapi.Semantic.DeepEqual(old, cur) {
+	// A periodic relist will send update events for all known pods.
+	curPod := cur.(*kapi.Pod)
+	oldPod := old.(*kapi.Pod)
+	if curPod.ResourceVersion == oldPod.ResourceVersion {
 		return
 	}
 
-	pod := cur.(*kapi.Pod)
-
-	if rc, err := c.rcForDeployerPod(pod); err == nil && rc != nil {
+	if rc, err := c.rcForDeployerPod(curPod); err == nil && rc != nil {
 		c.enqueueReplicationController(rc)
 	}
 }
