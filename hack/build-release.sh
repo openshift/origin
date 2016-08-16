@@ -24,9 +24,7 @@ trap "os::build::environment::cleanup ${container}" EXIT
   os::build::get_version_vars
   echo "++ Building release ${OS_GIT_VERSION}"
 )
-os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
-# Get the command output
-docker cp "${container}:/go/src/github.com/openshift/origin/_output/local/releases" "${OS_OUTPUT}"
+OS_BUILD_ENV_PRESERVE=_output/local/releases os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
