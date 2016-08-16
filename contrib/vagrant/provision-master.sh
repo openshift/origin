@@ -9,6 +9,7 @@ os::provision::build-etcd "${OS_ROOT}" "${SKIP_BUILD}"
 
 os::provision::base-install "${OS_ROOT}" "${CONFIG_ROOT}"
 
+NODE_NETWORK_PLUGIN="${NETWORK_PLUGIN}"
 if [[ "${SDN_NODE}" = "true" ]]; then
   # Running an sdn node on the master when using an openshift sdn
   # plugin ensures connectivity between the openshift service and
@@ -20,9 +21,13 @@ if [[ "${SDN_NODE}" = "true" ]]; then
   NODE_IPS+=(127.0.0.1)
   # Force the addition of a hosts entry for the sdn node.
   os::provision::add-to-hosts-file "${MASTER_IP}" "${SDN_NODE_NAME}" 1
+
+  # In case of openshift network plugins, node will auto detect the
+  # network plugin from master.
+  NODE_NETWORK_PLUGIN=""
 fi
 
-os::provision::init-certs "${CONFIG_ROOT}" "${NETWORK_PLUGIN}" \
+os::provision::init-certs "${CONFIG_ROOT}" "${NODE_NETWORK_PLUGIN}" \
   "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
 
 # Copy configuration to local storage when the configuration path is
