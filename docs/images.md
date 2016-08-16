@@ -9,7 +9,7 @@ Adding information related to images - image repositories, the images themselves
 - Another component could automatically rebuild your image after an upstream change
 - Being able to identify the important resource to watch without having to configure the remote system to notify you of changes is a valuable abstraction
 
-**Example**: You create a new image based on SomeUser/AwesomeImage:latest. When the “latest” upstream tag is updated to point at a new image ID, you may want to be notified of the upstream change, and/or have your downstream image automatically rebuilt in response to the upstream update.
+**Example**: You create a new image based on SomeUser/AwesomeImage:latest. When the "latest" upstream tag is updated to point at a new image ID, you may want to be notified of the upstream change, and/or have your downstream image automatically rebuilt in response to the upstream update.
 
 ### Use case: modify image metadata without creating additional images
 - Metadata for images = environment variables, exposed ports, memory & CPU restrictions, etc.
@@ -27,7 +27,7 @@ Adding information related to images - image repositories, the images themselves
 ### Use case: consistent view of images over time
 - Allows metadata about a particular version of an image that was used in a deployment to be captured for audit / historical review
 
-### Use case: track image changes over time / “deployment contract”
+### Use case: track image changes over time / "deployment contract"
 - An image’s metadata can be seen as a deployment contract - what environment variables are used, what ports are exposed, etc.
 - A deployment component could generate new a pod template when an image repository changes and compare it to the running pod to ensure nothing will break based on metadata changes
 
@@ -41,14 +41,14 @@ Adding information related to images - image repositories, the images themselves
 
 **Example**: A PaaS operator pre-configures a set of image repositories from various Docker registries that can be shared by all of the PaaS’s users. Users go to one place to select images instead of searching on the Internet for a registry + image repository.
 
-### Use case: track referenced and “in-use” images and remove unused images
+### Use case: track referenced and "in-use" images and remove unused images
 - Images will accumulate over time, and many of them will no longer be referenced/used by any active or recent deployments
 - Add ability to keep track of which images are possibly no longer relevant so they can be removed
 
 ### Use case: prevent users from using more than a reasonable amount of image layer storage on disk
 - This is more of a registry use case, but depending on how things are implemented, it could be relevant to the image component
 - This is presumably only talking about layers unique to the user’s image
-- “Reasonable amount” should be large enough to work for most users
+- "Reasonable amount" should be large enough to work for most users
 - The goal is to prevent bad actors from trying to fill up the system with huge garbage images (denial of service)
 
 ### Use case: be able to specify and control how many previous versions of an image that should be preserved
