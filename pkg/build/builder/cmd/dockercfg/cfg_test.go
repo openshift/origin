@@ -61,14 +61,3 @@ func TestReadDockerConfigJson(t *testing.T) {
 		t.Errorf("Unexpected Email value: %s", authConfs[0].Email)
 	}
 }
-
-func TestGetCredentials(t *testing.T) {
-	testStr := "dGVzdDpwYXNzd29yZA==" // test:password
-	uname, pass, err := getCredentials(testStr)
-	if err != nil {
-		t.Errorf("Unexpected error getting credentials: %v", err)
-	}
-	if uname != "test" && pass != "password" {
-		t.Errorf("Unexpected username and password: %s,%s", uname, pass)
-	}
-}
