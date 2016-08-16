@@ -269,7 +269,7 @@ func (o MasterOptions) RunMaster() error {
 	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
-			glog.Warningf("%v", warning)
+			glog.Warningf("Warning: %v, master start will continue.", warning)
 		}
 	}
 	if len(validationResults.Errors) != 0 {
