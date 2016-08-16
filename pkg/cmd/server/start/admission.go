@@ -42,7 +42,7 @@ var (
 
 func init() {
 	defaultOffPlugins.Insert("AlwaysPullImages")
-	defaultOnPlugins.Insert("ClusterResourceQuota")
+	defaultOnPlugins.Insert("openshift.io/ClusterResourceQuota")
 	admission.PluginEnabledFn = IsAdmissionPluginActivated
 }
 

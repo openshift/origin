@@ -312,7 +312,7 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
-		"JenkinsBootstrapper",
+		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		quotaadmission.PluginName,
@@ -340,7 +340,7 @@ var (
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
-		"ClusterResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 
 	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
@@ -350,7 +350,7 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
-		"JenkinsBootstrapper",
+		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		"RunOnceDuration",
@@ -373,7 +373,7 @@ var (
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
-		"ClusterResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 )
 

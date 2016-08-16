@@ -18,7 +18,7 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
-const PluginName = "OriginResourceQuota"
+const PluginName = "openshift.io/OriginResourceQuota"
 
 func init() {
 	admission.RegisterPlugin(PluginName,

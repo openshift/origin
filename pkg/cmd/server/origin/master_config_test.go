@@ -16,7 +16,7 @@ func TestQuotaAdmissionPluginsAreLast(t *testing.T) {
 		t.Errorf("KubeAdmissionPlugins must have %s as the next to last plugin", quotaadmission.PluginName)
 	}
 
-	if KubeAdmissionPlugins[kubeLen-1] != "ClusterResourceQuota" {
+	if KubeAdmissionPlugins[kubeLen-1] != "openshift.io/ClusterResourceQuota" {
 		t.Errorf("KubeAdmissionPlugins must have ClusterResourceQuota as the last plugin")
 	}
 
@@ -25,7 +25,7 @@ func TestQuotaAdmissionPluginsAreLast(t *testing.T) {
 		t.Errorf("combinedAdmissionControlPlugins must have %s as the next to last plugin", quotaadmission.PluginName)
 	}
 
-	if combinedAdmissionControlPlugins[combinedLen-1] != "ClusterResourceQuota" {
+	if combinedAdmissionControlPlugins[combinedLen-1] != "openshift.io/ClusterResourceQuota" {
 		t.Errorf("combinedAdmissionControlPlugins must have ClusterResourceQuota as the last plugin")
 	}
 }
