@@ -1,7 +1,6 @@
 package dockercfg
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -142,18 +141,5 @@ func readDockerConfigJson(filePath string) (cfg credentialprovider.DockerConfig,
 		return
 	}
 	cfg = config.Auths
-	return
-}
-
-// getCredentials parses an auth string inside a dockercfg file into
-// a username and password
-func getCredentials(auth string) (username, password string, err error) {
-	creds, err := base64.StdEncoding.DecodeString(auth)
-	if err != nil {
-		return
-	}
-	unamepass := strings.Split(string(creds), ":")
-	username = unamepass[0]
-	password = unamepass[1]
 	return
 }
