@@ -328,7 +328,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		if err != nil {
 			return fmt.Errorf("registry does not exist; could not load TLS private key file %q: %v", opts.Config.ServingKeyPath, err)
 		}
-		servingCert = data
+		servingKey = data
 	}
 
 	env := app.Environment{}
