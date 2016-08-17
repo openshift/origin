@@ -3,7 +3,8 @@ package generictrigger
 import (
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"github.com/golang/glog"
+
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
@@ -12,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 
-	"github.com/golang/glog"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -95,8 +95,14 @@ func (c *DeploymentTriggerController) addDeploymentConfig(obj interface{}) {
 }
 
 func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{}) {
-	dc := cur.(*deployapi.DeploymentConfig)
-	c.enqueueDeploymentConfig(dc)
+	// A periodic relist will send update events for all known configs.
+	newDc := cur.(*deployapi.DeploymentConfig)
+	oldDc := old.(*deployapi.DeploymentConfig)
+	if newDc.ResourceVersion == oldDc.ResourceVersion {
+		return
+	}
+
+	c.enqueueDeploymentConfig(newDc)
 }
 
 // addImageStream enqueues the deployment configs that point to the new image stream.
@@ -115,13 +121,14 @@ func (c *DeploymentTriggerController) addImageStream(obj interface{}) {
 // updateImageStream enqueues the deployment configs that point to the updated image stream.
 func (c *DeploymentTriggerController) updateImageStream(old, cur interface{}) {
 	// A periodic relist will send update events for all known streams.
-	if kapi.Semantic.DeepEqual(old, cur) {
+	newStream := cur.(*imageapi.ImageStream)
+	oldStream := old.(*imageapi.ImageStream)
+	if newStream.ResourceVersion == oldStream.ResourceVersion {
 		return
 	}
 
-	stream := cur.(*imageapi.ImageStream)
-	glog.V(4).Infof("Image stream %q updated.", stream.Name)
-	dcList, err := c.dcStore.GetConfigsForImageStream(stream)
+	glog.V(4).Infof("Image stream %q updated.", newStream.Name)
+	dcList, err := c.dcStore.GetConfigsForImageStream(newStream)
 	if err != nil {
 		return
 	}

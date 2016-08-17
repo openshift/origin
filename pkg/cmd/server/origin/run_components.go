@@ -334,11 +334,7 @@ func (c *MasterConfig) RunDeploymentController() {
 		env,
 		c.EtcdHelper.Codec(),
 	)
-
-	// TODO: Make the stop channel actually work.
-	stopCh := make(chan struct{})
-	// TODO: Make the number of workers configurable.
-	go controller.Run(5, stopCh)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunDeploymentConfigController starts the deployment config controller process.
@@ -349,10 +345,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
 	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.EtcdHelper.Codec())
-	// TODO: Make the stop channel actually work.
-	stopCh := make(chan struct{})
-	// TODO: Make the number of workers configurable.
-	go controller.Run(5, stopCh)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunDeploymentTriggerController starts the deployment trigger controller process.
@@ -362,18 +355,17 @@ func (c *MasterConfig) RunDeploymentTriggerController() {
 	osclient, kclient := c.DeploymentTriggerControllerClients()
 
 	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, kclient, c.EtcdHelper.Codec())
-	// TODO: Make the stop channel actually work.
-	stopCh := make(chan struct{})
-	// TODO: Make the number of workers configurable.
-	go controller.Run(5, stopCh)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	osclient := c.DeploymentImageChangeTriggerControllerClient()
-	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
-	controller := factory.Create()
-	controller.Run()
+	dcInfomer := c.Informers.DeploymentConfigs().Informer()
+	streamInformer := c.Informers.ImageStreams().Informer()
+	osclient, _ := c.DeploymentTriggerControllerClients()
+
+	controller := imagechangecontroller.NewImageChangeController(dcInfomer, streamInformer, osclient)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunSDNController runs openshift-sdn if the said network plugin is provided

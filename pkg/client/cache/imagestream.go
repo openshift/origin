@@ -1,11 +1,14 @@
 package cache
 
 import (
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
 
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -25,6 +28,28 @@ func (s *StoreToImageStreamLister) List() ([]*imageapi.ImageStream, error) {
 
 func (s *StoreToImageStreamLister) ImageStreams(namespace string) storeImageStreamsNamespacer {
 	return storeImageStreamsNamespacer{s.Indexer, namespace}
+}
+
+// GetStreamsForConfig returns all the image streams that the provided deployment config points to.
+func (s *StoreToImageStreamLister) GetStreamsForConfig(config *deployapi.DeploymentConfig) []*imageapi.ImageStream {
+	var streams []*imageapi.ImageStream
+
+	for _, t := range config.Spec.Triggers {
+		if t.Type != deployapi.DeploymentTriggerOnImageChange {
+			continue
+		}
+
+		from := t.ImageChangeParams.From
+		name, _, _ := imageapi.SplitImageStreamTag(from.Name)
+		stream, err := s.ImageStreams(from.Namespace).Get(name)
+		if err != nil {
+			glog.Infof("Cannot retrieve image stream %s/%s: %v", from.Namespace, name, err)
+			continue
+		}
+		streams = append(streams, stream)
+	}
+
+	return streams
 }
 
 type storeImageStreamsNamespacer struct {
