@@ -248,7 +248,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			obj, err = original.(*api.ImageStream), nil
 		} else {
 			if glog.V(4) {
-				glog.V(4).Infof("updated stream %s", diff.ObjectDiff(original, stream))
+				glog.V(4).Infof("updating stream %s", diff.ObjectDiff(original, stream))
 			}
 			stream.Annotations[api.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream, kapi.Scheme))
@@ -264,7 +264,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			var limitErr error
 			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream, kapi.Scheme))
 			if limitErr != nil {
-				return nil, limitErr
+				utilruntime.HandleError(fmt.Errorf("failed to record limit exceeded status in image stream %s/%s: %v", stream.Namespace, stream.Name, limitErr))
 			}
 		}
 
