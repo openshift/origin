@@ -6,12 +6,12 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -144,48 +144,43 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 	return projectList, nil
 }
 
-func (p *ProjectOptions) GetNetNamespaces() (*sdnapi.NetNamespaceList, error) {
-	netNamespaces, err := p.Oclient.NetNamespaces().List(kapi.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return netNamespaces, nil
-}
+func (p *ProjectOptions) validateNetNamespace(netns *sdnapi.NetNamespace) error {
+	// Timeout: 10 secs
+	retries := 20
+	retryInterval := 500 * time.Millisecond
 
-func (p *ProjectOptions) GetNetID(name string) (uint32, error) {
-	var netID uint32
-	netNamespaces, err := p.GetNetNamespaces()
-	if err != nil {
-		return netID, err
-	}
+	for i := 0; i < retries; i++ {
+		updatedNetNs, err := p.Oclient.NetNamespaces().Get(netns.NetName)
+		if err != nil {
+			return err
+		}
 
-	for _, netNs := range netNamespaces.Items {
-		if name == netNs.ObjectMeta.Name {
-			return netNs.NetID, nil
+		switch _, _, err := sdnapi.GetChangePodNetworkAnnotation(updatedNetNs); err {
+		case sdnapi.ErrorPodNetworkAnnotationNotFound:
+			return nil
+		default:
+			time.Sleep(retryInterval)
 		}
 	}
-	return netID, fmt.Errorf("Net ID not found for project: %s", name)
+	return fmt.Errorf("failed to apply pod network change for project %q", netns.NetName)
 }
 
-func (p *ProjectOptions) CreateOrUpdateNetNamespace(name string, id uint32) error {
-	netns, err := p.Oclient.NetNamespaces().Get(name)
+func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetworkAction, args string) error {
+	// Get corresponding NetNamespace for given namespace
+	netns, err := p.Oclient.NetNamespaces().Get(nsName)
 	if err != nil {
-		// Create netns
-		netns := newNetNamespace(name, id)
-		_, err = p.Oclient.NetNamespaces().Create(netns)
-	} else if netns.NetID != id {
-		// Update netns
-		netns.NetID = id
-		_, err = p.Oclient.NetNamespaces().Update(netns)
+		return err
 	}
-	return err
-}
 
-func newNetNamespace(name string, id uint32) *sdnapi.NetNamespace {
-	return &sdnapi.NetNamespace{
-		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
-		ObjectMeta: kapi.ObjectMeta{Name: name},
-		NetName:    name,
-		NetID:      id,
+	// Apply pod network change intent
+	sdnapi.SetChangePodNetworkAnnotation(netns, action, args)
+
+	// Update NetNamespace object
+	_, err = p.Oclient.NetNamespaces().Update(netns)
+	if err != nil {
+		return err
 	}
+
+	// Validate SDN controller applied or rejected the intent
+	return p.validateNetNamespace(netns)
 }

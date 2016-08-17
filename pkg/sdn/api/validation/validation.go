@@ -108,14 +108,19 @@ func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) fi
 func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&netnamespace.ObjectMeta, false, oapi.MinimalNameRequirements, field.NewPath("metadata"))
 
-	if netnamespace.NetID < 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), netnamespace.NetID, "invalid Net ID: cannot be negative"))
+	if err := sdnapi.ValidVNID(netnamespace.NetID); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), netnamespace.NetID, err.Error()))
 	}
 	return allErrs
 }
 
 func ValidateNetNamespaceUpdate(obj *sdnapi.NetNamespace, old *sdnapi.NetNamespace) field.ErrorList {
-	return validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+
+	if err := sdnapi.ValidVNID(obj.NetID); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), obj.NetID, err.Error()))
+	}
+	return allErrs
 }
 
 // ValidateEgressNetworkPolicy tests if required fields in the EgressNetworkPolicy are set.

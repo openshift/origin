@@ -2,10 +2,14 @@ package plugin
 
 import (
 	"testing"
+
+	"k8s.io/kubernetes/pkg/util/sets"
+
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-func TestVnidMap(t *testing.T) {
-	vmap := newVnidMap()
+func TestNodeVNIDMap(t *testing.T) {
+	vmap := newNodeVNIDMap()
 
 	// empty vmap
 
@@ -15,10 +19,10 @@ func TestVnidMap(t *testing.T) {
 
 	// set vnids, non-overlapping
 
-	vmap.SetVNID("alpha", 1)
-	vmap.SetVNID("bravo", 2)
-	vmap.SetVNID("charlie", 3)
-	vmap.SetVNID("delta", 4)
+	vmap.setVNID("alpha", 1)
+	vmap.setVNID("bravo", 2)
+	vmap.setVNID("charlie", 3)
+	vmap.setVNID("delta", 4)
 
 	checkExists(t, vmap, "alpha", 1)
 	checkExists(t, vmap, "bravo", 2)
@@ -35,11 +39,11 @@ func TestVnidMap(t *testing.T) {
 
 	// unset vnids
 
-	id, err := vmap.UnsetVNID("alpha")
+	id, err := vmap.unsetVNID("alpha")
 	if id != 1 || err != nil {
 		t.Fatalf("Unexpected failure: %d, %v", id, err)
 	}
-	id, err = vmap.UnsetVNID("charlie")
+	id, err = vmap.unsetVNID("charlie")
 	if id != 3 || err != nil {
 		t.Fatalf("Unexpected failure: %d, %v", id, err)
 	}
@@ -49,11 +53,11 @@ func TestVnidMap(t *testing.T) {
 	checkNotExists(t, vmap, "charlie")
 	checkExists(t, vmap, "delta", 4)
 
-	id, err = vmap.UnsetVNID("alpha")
+	id, err = vmap.unsetVNID("alpha")
 	if err == nil {
 		t.Fatalf("Unexpected success: %d", id)
 	}
-	id, err = vmap.UnsetVNID("echo")
+	id, err = vmap.unsetVNID("echo")
 	if err == nil {
 		t.Fatalf("Unexpected success: %d", id)
 	}
@@ -67,8 +71,8 @@ func TestVnidMap(t *testing.T) {
 
 	// change vnids
 
-	vmap.SetVNID("bravo", 1)
-	vmap.SetVNID("delta", 2)
+	vmap.setVNID("bravo", 1)
+	vmap.setVNID("delta", 2)
 
 	checkExists(t, vmap, "bravo", 1)
 	checkExists(t, vmap, "delta", 2)
@@ -82,12 +86,12 @@ func TestVnidMap(t *testing.T) {
 
 	// overlapping vnids
 
-	vmap.SetVNID("echo", 3)
-	vmap.SetVNID("foxtrot", 5)
-	vmap.SetVNID("golf", 1)
-	vmap.SetVNID("hotel", 1)
-	vmap.SetVNID("india", 1)
-	vmap.SetVNID("juliet", 3)
+	vmap.setVNID("echo", 3)
+	vmap.setVNID("foxtrot", 5)
+	vmap.setVNID("golf", 1)
+	vmap.setVNID("hotel", 1)
+	vmap.setVNID("india", 1)
+	vmap.setVNID("juliet", 3)
 
 	checkExists(t, vmap, "bravo", 1)
 	checkExists(t, vmap, "delta", 2)
@@ -108,15 +112,15 @@ func TestVnidMap(t *testing.T) {
 
 	// deleting with overlapping vnids
 
-	id, err = vmap.UnsetVNID("golf")
+	id, err = vmap.unsetVNID("golf")
 	if err != nil {
 		t.Fatalf("Unexpected failure: %d, %v", id, err)
 	}
-	id, err = vmap.UnsetVNID("echo")
+	id, err = vmap.unsetVNID("echo")
 	if err != nil {
 		t.Fatalf("Unexpected failure: %d, %v", id, err)
 	}
-	id, err = vmap.UnsetVNID("juliet")
+	id, err = vmap.unsetVNID("juliet")
 	if err != nil {
 		t.Fatalf("Unexpected failure: %d, %v", id, err)
 	}
@@ -137,27 +141,23 @@ func TestVnidMap(t *testing.T) {
 	checkNamespaces(t, vmap, 5, []string{"foxtrot"})
 
 	checkAllocatedVNIDs(t, vmap, []uint32{1, 2, 5})
-
 }
 
-func checkExists(t *testing.T, vmap *vnidMap, name string, expected uint32) {
+func checkExists(t *testing.T, vmap *nodeVNIDMap, name string, expected uint32) {
 	id, err := vmap.GetVNID(name)
 	if id != expected || err != nil {
 		t.Fatalf("Unexpected failure: %d, %v", id, err)
 	}
-	if !vmap.CheckVNID(id) {
-		t.Fatalf("Unexpected failure")
-	}
 }
 
-func checkNotExists(t *testing.T, vmap *vnidMap, name string) {
+func checkNotExists(t *testing.T, vmap *nodeVNIDMap, name string) {
 	id, err := vmap.GetVNID(name)
 	if err == nil {
 		t.Fatalf("Unexpected success: %d", id)
 	}
 }
 
-func checkNamespaces(t *testing.T, vmap *vnidMap, vnid uint32, match []string) {
+func checkNamespaces(t *testing.T, vmap *nodeVNIDMap, vnid uint32, match []string) {
 	namespaces := vmap.GetNamespaces(vnid)
 	if len(namespaces) != len(match) {
 		t.Fatalf("Wrong number of namespaces: %v vs %v", namespaces, match)
@@ -176,14 +176,24 @@ func checkNamespaces(t *testing.T, vmap *vnidMap, vnid uint32, match []string) {
 	}
 }
 
-func checkAllocatedVNIDs(t *testing.T, vmap *vnidMap, match []uint32) {
-	vnids := vmap.GetAllocatedVNIDs()
-	if len(vnids) != len(match) {
-		t.Fatalf("Wrong number of VNIDs: %v vs %v", vnids, match)
+func checkAllocatedVNIDs(t *testing.T, vmap *nodeVNIDMap, match []uint32) {
+	ids := []uint32{}
+	idSet := sets.Int{}
+	for _, id := range vmap.ids {
+		if id != osapi.GlobalVNID {
+			if !idSet.Has(int(id)) {
+				ids = append(ids, id)
+				idSet.Insert(int(id))
+			}
+		}
 	}
+	if len(ids) != len(match) {
+		t.Fatalf("Wrong number of VNIDs: %d vs %d", len(ids), len(match))
+	}
+
 	for _, m := range match {
 		found := false
-		for _, n := range vnids {
+		for _, n := range ids {
 			if n == m {
 				found = true
 				break
