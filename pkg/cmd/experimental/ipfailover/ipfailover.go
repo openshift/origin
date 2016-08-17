@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -56,6 +62,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 			ErrOut: errout,
 		},
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
+		ServiceAccount:   "ipfailover",
 		Selector:         ipfailover.DefaultSelector,
 		ServicePort:      ipfailover.DefaultServicePort,
 		WatchPort:        ipfailover.DefaultWatchPort,
@@ -96,6 +103,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
+	cmd.Flags().MarkDeprecated("credentials", "use --service-account to specify the service account the ipfailover pod will use to make API calls")
 
 	options.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -146,6 +154,10 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 		return err
 	}
 
+	if len(options.ServiceAccount) == 0 {
+		return fmt.Errorf("you must specify a service account for the ipfailover pod with --service-account, it cannot be blank")
+	}
+
 	options.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	options.Action.Bulk.Op = configcmd.Create
 
@@ -163,18 +175,53 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 		return err
 	}
 
-	if options.Action.ShouldPrint() {
-		mapper, _ := f.Object(false)
-		return cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, options.Action.Out)(list)
-	}
-
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
+	}
+	_, kClient, err := f.Clients()
+	if err != nil {
+		return fmt.Errorf("error getting client: %v", err)
+	}
+	if err := validateServiceAccount(kClient, namespace, options.ServiceAccount); err != nil {
+		return fmt.Errorf("ipfailover could not be created; %v", err)
+	}
+
+	configList := []runtime.Object{
+		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: options.ServiceAccount}},
+	}
+
+	list.Items = append(configList, list.Items...)
+
+	if options.Action.ShouldPrint() {
+		mapper, _ := f.Object(false)
+		return cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, options.Action.Out)(list)
 	}
 
 	if errs := options.Action.WithMessage(fmt.Sprintf("Creating IP failover %s", name), "created").Run(list, namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 	return nil
+}
+
+func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string) error {
+
+	sccList, err := client.SecurityContextConstraints().List(kapi.ListOptions{})
+	if err != nil {
+		if !errors.IsUnauthorized(err) {
+			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)
+		}
+	}
+
+	for _, scc := range sccList.Items {
+		if scc.AllowPrivilegedContainer {
+			for _, user := range scc.Users {
+				if strings.Contains(user, serviceAccount) {
+					return nil
+				}
+			}
+		}
+	}
+	errMsg := "service account %q does not have sufficient privileges, grant access with oadm policy add-scc-to-user %s -z %s"
+	return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintPrivileged, serviceAccount)
 }
