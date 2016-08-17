@@ -1,4 +1,4 @@
-package images
+package imageapis
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -24,7 +25,7 @@ const (
 	waitTimeout = time.Second * 30
 )
 
-var _ = g.Describe("[images] openshift resource quota admission", func() {
+var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("resourcequota-admission", exutil.KubeConfigPath())
 
@@ -58,25 +59,25 @@ var _ = g.Describe("[images] openshift resource quota admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "refused", imageSize, 1, outSink, false)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "refused", imageSize, 1, outSink, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 1)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag1", imageSize, 1, outSink, true)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag1", imageSize, 1, outSink, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err := waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image to existing image stream %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag2", imageSize, 1, outSink, true)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag2", imageSize, 1, outSink, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "refused", imageSize, 1, outSink, false)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "refused", imageSize, 1, outSink, false)
 
 		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -84,14 +85,14 @@ var _ = g.Describe("[images] openshift resource quota admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "tag1", imageSize, 1, outSink, true)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "tag1", imageSize, 1, outSink, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "refused", imageSize, 1, outSink, false)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "refused", imageSize, 1, outSink, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting first image stream")
@@ -108,7 +109,7 @@ var _ = g.Describe("[images] openshift resource quota admission", func() {
 		o.Expect(assertQuotasEqual(used, kapi.ResourceList{imageapi.ResourceImageStreams: resource.MustParse("1")})).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, err = BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "tag", imageSize, 1, outSink, true)
+		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "tag", imageSize, 1, outSink, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -208,8 +209,8 @@ func waitForLimitSync(oc *exutil.CLI, hardLimit kapi.ResourceList) error {
 		waitTimeout)
 }
 
-// deleteTestImagesAndStreams deletes test images built in current and shared namespaces. It also deletes
-// shared projects.
+// deleteTestImagesAndStreams deletes test images built in current and shared
+// namespaces. It also deletes shared projects.
 func deleteTestImagesAndStreams(oc *exutil.CLI) {
 	for _, projectName := range []string{
 		oc.Namespace() + "-s2",
