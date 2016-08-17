@@ -8,6 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -244,5 +245,36 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 		}
 
 		g.AddEdge(hpaNode, syntheticNode, ScalingEdgeKind)
+	}
+}
+
+func BelongsToDeployment(d *extensions.Deployment, rs *extensions.ReplicaSet) bool {
+	selector, err := unversioned.LabelSelectorAsSelector(d.Spec.Selector)
+	if err != nil {
+		return false
+	}
+	return selector.Matches(labels.Set(rs.Spec.Template.Labels))
+}
+
+func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *kubegraph.DeploymentNode) *kubegraph.DeploymentNode {
+	for _, n := range g.(graph.Graph).Nodes() {
+		if rsNode, ok := n.(*kubegraph.ReplicaSetNode); ok {
+			if rsNode.ReplicaSet.Namespace != node.Deployment.Namespace {
+				continue
+			}
+			if BelongsToDeployment(node.Deployment, rsNode.ReplicaSet) {
+				g.AddEdge(node, rsNode, "Deployment")
+			}
+		}
+	}
+
+	return node
+}
+
+func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).Nodes() {
+		if dNode, ok := node.(*kubegraph.DeploymentNode); ok {
+			AddDeploymentEdges(g, dNode)
+		}
 	}
 }

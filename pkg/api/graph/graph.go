@@ -115,6 +115,11 @@ type Interface interface {
 	Edges() []graph.Edge
 }
 
+type NodeDescriber interface {
+	Object() interface{}
+	Kind() string
+}
+
 type Namer interface {
 	ResourceName(obj interface{}) string
 }
