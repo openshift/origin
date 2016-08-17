@@ -119,6 +119,8 @@ func AddAllManagedByControllerPodEdges(g osgraph.MutableUniqueGraph) {
 		switch cast := node.(type) {
 		case *kubegraph.ReplicationControllerNode:
 			AddManagedByControllerPodEdges(g, cast, cast.ReplicationController.Namespace, cast.ReplicationController.Spec.Selector)
+		case *kubegraph.ReplicaSetNode:
+			AddManagedByControllerPodEdges(g, cast, cast.ReplicaSet.Namespace, cast.ReplicaSet.Spec.Selector.MatchLabels)
 		case *kubegraph.PetSetNode:
 			// TODO: refactor to handle expanded selectors (along with ReplicaSets and Deployments)
 			AddManagedByControllerPodEdges(g, cast, cast.PetSet.Namespace, cast.PetSet.Spec.Selector.MatchLabels)
