@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # This script builds the base and release images for use by the release build and image builds.
-#
-# Set OS_IMAGE_PUSH=true to push images to a registry
-#
+
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 

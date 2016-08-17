@@ -23,7 +23,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("ClusterResourceQuota",
+	admission.RegisterPlugin("openshift.io/ClusterResourceQuota",
 		func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 			return NewClusterResourceQuota()
 		})

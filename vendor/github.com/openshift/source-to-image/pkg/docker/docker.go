@@ -704,7 +704,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 	// is trying to set an entrypoint, ignore it.  We only want to
 	// set the entrypoint if we need to override a default entrypoint
 	// in the image.  This allows us to still work with a minimal image
-	// that does not contain "/bin/env" since we don't attempt to override
+	// that does not contain "/usr/bin/env" since we don't attempt to override
 	// the entrypoint.
 	if len(opts.Entrypoint) != 0 {
 		entrypoint, err := d.GetImageEntrypoint(image)

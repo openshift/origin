@@ -83,7 +83,12 @@ func (a *saOAuthClientAdapter) GetClient(ctx kapi.Context, name string) (*oautha
 
 func getScopeRestrictionsFor(namespace, name string) []oauthapi.ScopeRestriction {
 	return []oauthapi.ScopeRestriction{
-		{ExactValues: []string{scopeauthorizer.UserInfo, scopeauthorizer.UserAccessCheck}},
+		{ExactValues: []string{
+			scopeauthorizer.UserInfo,
+			scopeauthorizer.UserAccessCheck,
+			scopeauthorizer.UserListScopedProjects,
+			scopeauthorizer.UserListAllProjects,
+		}},
 		{ClusterRole: &oauthapi.ClusterRoleScopeRestriction{RoleNames: []string{"*"}, Namespaces: []string{namespace}, AllowEscalation: true}},
 	}
 }

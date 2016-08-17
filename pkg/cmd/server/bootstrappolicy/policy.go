@@ -645,10 +645,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: RegistryAdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule(readWrite...).Groups(kapiGroup).Resources("serviceaccounts", "secrets").RuleOrDie(),
 				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),
-
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("rolebindings", "roles").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("policies", "policybindings").RuleOrDie(),
@@ -665,6 +665,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: RegistryEditorRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule(readWrite...).Groups(kapiGroup).Resources("serviceaccounts", "secrets").RuleOrDie(),
 				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreamimages", "imagestreammappings", "imagestreams", "imagestreams/secrets", "imagestreamtags").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreamimports").RuleOrDie(),
 				authorizationapi.NewRule("get", "update").Groups(imageGroup).Resources("imagestreams/layers").RuleOrDie(),

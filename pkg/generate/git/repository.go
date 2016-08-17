@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -378,8 +379,7 @@ func timedCommand(timeout time.Duration, name, dir string, env []string, args ..
 
 	// check whether git was available in the first place
 	if err != nil {
-		_, err := exec.LookPath(name)
-		if err != nil {
+		if !isBinaryInstalled(name) {
 			return "", "", ErrGitNotAvailable
 		}
 	}
@@ -464,4 +464,20 @@ func IsExitCode(err error, exitCode int) bool {
 		return false
 	}
 	return false
+}
+
+func gitBinary() string {
+	if runtime.GOOS == "windows" {
+		return "git.exe"
+	}
+	return "git"
+}
+
+func IsGitInstalled() bool {
+	return isBinaryInstalled(gitBinary())
+}
+
+func isBinaryInstalled(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
 }

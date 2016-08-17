@@ -2,6 +2,7 @@ package integration
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -129,25 +130,6 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	promptApprovalSuccess := []string{
-		"GET /oauth/authorize",
-		"received challenge",
-		"GET /oauth/authorize",
-		"redirect to /oauth/approve",
-		"form",
-		"POST /oauth/approve",
-		"redirect to /oauth/authorize",
-		"redirect to /oauthcallback",
-		"code",
-	}
-	noPromptSuccess := []string{
-		"GET /oauth/authorize",
-		"received challenge",
-		"GET /oauth/authorize",
-		"redirect to /oauthcallback",
-		"code",
-	}
-
 	// Test with a normal OAuth client
 	{
 		oauthClientConfig := &osincli.ClientConfig{
@@ -161,7 +143,18 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Log("Testing unrestricted scope")
 		oauthClientConfig.Scope = ""
 		// approval steps are needed for unscoped access
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, promptApprovalSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauth/approve",
+			"form",
+			"POST /oauth/approve",
+			"redirect to /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:user:full",
+		})
 		// verify the persisted client authorization looks like we expect
 		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:" + oauthClientConfig.ClientId); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -175,20 +168,90 @@ func TestSAAsOAuthClient(t *testing.T) {
 			}
 		}
 		// approval steps are needed again for unscoped access
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, promptApprovalSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauth/approve",
+			"form",
+			"POST /oauth/approve",
+			"redirect to /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:user:full",
+		})
 		// with the authorization stored, approval steps are skipped
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, noPromptSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:user:full",
+		})
 
-		// Approval step is needed again. Second time, the approval steps is not needed
+		// Approval step is needed again
 		t.Log("Testing restricted scope")
-		oauthClientConfig.Scope = "user:info"
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, promptApprovalSuccess)
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, noPromptSuccess)
+		oauthClientConfig.Scope = "user:info user:check-access"
+		// filter to disapprove of granting the user:check-access scope
+		deniedScope := false
+		inputFilter := func(inputType, name, value string) bool {
+			if inputType == "checkbox" && name == "scope" && value == "user:check-access" {
+				deniedScope = true
+				return false
+			}
+			return true
+		}
+		// our token only gets the approved one
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, inputFilter, authorizationCodes, authorizationErrors, true, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauth/approve",
+			"form",
+			"POST /oauth/approve",
+			"redirect to /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:user:info",
+		})
+		if !deniedScope {
+			t.Errorf("Expected form filter to deny user:info scope")
+		}
+		// second time, we approve all, and our token gets all requested scopes
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauth/approve",
+			"form",
+			"POST /oauth/approve",
+			"redirect to /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:" + oauthClientConfig.Scope,
+		})
+		// third time, the approval steps is not needed, and the token gets all requested scopes
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:" + oauthClientConfig.Scope,
+		})
 
 		// Now request an unscoped token again, and no approval should be needed
 		t.Log("Testing unrestricted scope")
 		oauthClientConfig.Scope = ""
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, noPromptSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:user:full",
+		})
 
 		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
 	}
@@ -206,8 +269,26 @@ func TestSAAsOAuthClient(t *testing.T) {
 		t.Log("Testing allowed scopes")
 		// First time, the approval steps are needed
 		// Second time, the approval steps are skipped
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, promptApprovalSuccess)
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, true, noPromptSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauth/approve",
+			"form",
+			"POST /oauth/approve",
+			"redirect to /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:" + oauthClientConfig.Scope,
+		})
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:" + oauthClientConfig.Scope,
+		})
 		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
 	}
 
@@ -222,7 +303,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			SendClientSecretInParams: true,
 		}
 		t.Log("Testing disallowed scopes")
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, false, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -243,7 +324,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			Scope:        scope.Join([]string{"unknown-scope"}),
 			SendClientSecretInParams: true,
 		}
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, false, false, []string{
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, false, false, []string{
 			"GET /oauth/authorize",
 			"received challenge",
 			"GET /oauth/authorize",
@@ -266,8 +347,26 @@ func TestSAAsOAuthClient(t *testing.T) {
 		}
 		// First time, the approval is needed
 		// Second time, the approval is skipped
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, promptApprovalSuccess)
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, authorizationCodes, authorizationErrors, true, false, noPromptSuccess)
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauth/approve",
+			"form",
+			"POST /oauth/approve",
+			"redirect to /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:" + oauthClientConfig.Scope,
+		})
+		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, false, []string{
+			"GET /oauth/authorize",
+			"received challenge",
+			"GET /oauth/authorize",
+			"redirect to /oauthcallback",
+			"code",
+			"scope:" + oauthClientConfig.Scope,
+		})
 		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
 	}
 }
@@ -300,6 +399,7 @@ func runOAuthFlow(
 	clusterAdminClientConfig *restclient.Config,
 	projectName string,
 	oauthClientConfig *osincli.ClientConfig,
+	inputFilter htmlutil.InputFilterFunc,
 	authorizationCodes chan string,
 	authorizationErrors chan string,
 	expectGrantSuccess bool,
@@ -382,7 +482,7 @@ func runOAuthFlow(
 		if len(forms) == 0 {
 			break
 		}
-		req, err = htmlutil.NewRequestFromForm(forms[0], currentURL)
+		req, err = htmlutil.NewRequestFromForm(forms[0], currentURL, inputFilter)
 		if err != nil {
 			t.Error(err)
 			return
@@ -400,10 +500,6 @@ func runOAuthFlow(
 		t.Error("didn't get a code or an error")
 	}
 
-	if !reflect.DeepEqual(operations, expectOperations) {
-		t.Errorf("Expected:\n%v\nGot\n%v", expectOperations, operations)
-	}
-
 	if len(authorizationCode) > 0 {
 		accessRequest := oauthRuntimeClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, &osincli.AuthorizeData{Code: authorizationCode})
 		accessData, err := accessRequest.GetToken()
@@ -411,6 +507,7 @@ func runOAuthFlow(
 			t.Errorf("unexpected error: %v", err)
 			return
 		}
+		operations = append(operations, fmt.Sprintf("scope:%v", accessData.ResponseData["scope"]))
 
 		whoamiConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 		whoamiConfig.BearerToken = accessData.AccessToken
@@ -440,4 +537,9 @@ func runOAuthFlow(
 			return
 		}
 	}
+
+	if !reflect.DeepEqual(operations, expectOperations) {
+		t.Errorf("Expected:\n%#v\nGot\n%#v", expectOperations, operations)
+	}
+
 }

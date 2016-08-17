@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 var errRejectByPolicy = fmt.Errorf("this image is prohibited by policy")
@@ -47,6 +48,12 @@ func accept(accepter rules.Accepter, resolver imageResolver, m meta.ImageReferen
 			// use the most generic policy rule here because we don't even know the image name
 			if attrs == nil {
 				attrs = &rules.ImagePolicyAttributes{}
+
+				// an objectref that is DockerImage ref will have a name that corresponds to its pull spec.  We can parse that
+				// to a docker image ref
+				if ref != nil && ref.Kind == "DockerImage" {
+					attrs.Name, _ = imageapi.ParseDockerImageReference(ref.Name)
+				}
 			}
 			attrs.Resource = gr
 			attrs.ExcludedRules = excludedRules

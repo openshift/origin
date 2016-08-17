@@ -165,8 +165,13 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 		return nil, err
 	}
 
+	labels := map[string]string{
+		"ipfailover": name,
+	}
 	podTemplate := &kapi.PodTemplateSpec{
-		ObjectMeta: kapi.ObjectMeta{Labels: selector},
+		ObjectMeta: kapi.ObjectMeta{
+			Labels: labels,
+		},
 		Spec: kapi.PodSpec{
 			SecurityContext: &kapi.PodSecurityContext{
 				HostNetwork: true,
@@ -177,11 +182,10 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 			ServiceAccountName: options.ServiceAccount,
 		},
 	}
-
 	return &dapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
-			Labels: selector,
+			Labels: labels,
 		},
 		Spec: dapi.DeploymentConfigSpec{
 			Strategy: dapi.DeploymentStrategy{
@@ -193,7 +197,6 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 			//       kubernetes would remove the need for this
 			//       manual intervention.
 			Replicas: options.Replicas,
-			Selector: selector,
 			Template: podTemplate,
 			Triggers: []dapi.DeploymentTriggerPolicy{
 				{Type: dapi.DeploymentTriggerOnConfigChange},

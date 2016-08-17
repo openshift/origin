@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
 type deferredErrors map[string]error
@@ -36,13 +38,15 @@ func (d deferredErrors) Empty() bool {
 const (
 	OpenShiftAuth = "openshift"
 
+	defaultTokenPath = "/openshift/token"
+
 	RealmKey      = "realm"
-	TokenRealmKey = "token-realm"
+	TokenRealmKey = "tokenrealm"
 )
 
 // RegistryClient encapsulates getting access to the OpenShift API.
 type RegistryClient interface {
-	// Clients return the authenticated client to use with the server.
+	// Clients return the authenticated clients to use with the server.
 	Clients() (client.Interface, kclient.Interface, error)
 	// SafeClientConfig returns a client config without authentication info.
 	SafeClientConfig() restclient.Config
@@ -113,7 +117,7 @@ func DeferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
 
 type AccessController struct {
 	realm      string
-	tokenRealm string
+	tokenRealm *url.URL
 	config     restclient.Config
 }
 
@@ -147,6 +151,36 @@ var (
 	ErrUnsupportedResource = errors.New("unsupported resource")
 )
 
+// TokenRealm returns the template URL to use as the token realm redirect.
+// An empty scheme/host in the returned URL means to match the scheme/host on incoming requests.
+func TokenRealm(options map[string]interface{}) (*url.URL, error) {
+	if options[TokenRealmKey] == nil {
+		// If not specified, default to "/openshift/token", auto-detecting the scheme and host
+		return &url.URL{Path: defaultTokenPath}, nil
+	}
+
+	tokenRealmString, ok := options[TokenRealmKey].(string)
+	if !ok {
+		return nil, fmt.Errorf("%s config option must be a string, got %T", TokenRealmKey, options[TokenRealmKey])
+	}
+
+	tokenRealm, err := url.Parse(tokenRealmString)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing URL in %s config option: %v", TokenRealmKey, err)
+	}
+	if len(tokenRealm.RawQuery) > 0 || len(tokenRealm.Fragment) > 0 {
+		return nil, fmt.Errorf("%s config option may not contain query parameters or a fragment", TokenRealmKey)
+	}
+	if len(tokenRealm.Path) > 0 {
+		return nil, fmt.Errorf("%s config option may not contain a path (%q was specified)", TokenRealmKey, tokenRealm.Path)
+	}
+
+	// pin to "/openshift/token"
+	tokenRealm.Path = defaultTokenPath
+
+	return tokenRealm, nil
+}
+
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
 	log.Info("Using Origin Auth handler")
 	realm, ok := options[RealmKey].(string)
@@ -155,7 +189,10 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 		realm = "origin"
 	}
 
-	tokenRealm, _ := options[TokenRealmKey].(string)
+	tokenRealm, err := TokenRealm(options)
+	if err != nil {
+		return nil, err
+	}
 
 	return &AccessController{realm: realm, tokenRealm: tokenRealm, config: DefaultRegistryClient.SafeClientConfig()}, nil
 }
@@ -193,17 +230,34 @@ func (ac *tokenAuthChallenge) SetHeaders(w http.ResponseWriter) {
 }
 
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
-func (ac *AccessController) wrapErr(err error) error {
+func (ac *AccessController) wrapErr(ctx context.Context, err error) error {
 	switch err {
 	case ErrTokenRequired:
 		// Challenge for errors that involve missing tokens
-		if len(ac.tokenRealm) > 0 {
-			// Direct to token auth if we've been given a place to direct to
-			return &tokenAuthChallenge{realm: ac.tokenRealm, err: err}
-		} else {
-			// Otherwise just send the basic challenge
+		if ac.tokenRealm == nil {
+			// Send the basic challenge if we don't have a place to redirect
 			return &authChallenge{realm: ac.realm, err: err}
 		}
+
+		if len(ac.tokenRealm.Scheme) > 0 && len(ac.tokenRealm.Host) > 0 {
+			// Redirect to token auth if we've been given an absolute URL
+			return &tokenAuthChallenge{realm: ac.tokenRealm.String(), err: err}
+		}
+
+		// Auto-detect scheme/host from request
+		req, reqErr := context.GetRequest(ctx)
+		if reqErr != nil {
+			return reqErr
+		}
+		scheme, host := httprequest.SchemeHost(req)
+		tokenRealmCopy := *ac.tokenRealm
+		if len(tokenRealmCopy.Scheme) == 0 {
+			tokenRealmCopy.Scheme = scheme
+		}
+		if len(tokenRealmCopy.Host) == 0 {
+			tokenRealmCopy.Host = host
+		}
+		return &tokenAuthChallenge{realm: tokenRealmCopy.String(), err: err}
 	case ErrTokenInvalid, ErrOpenShiftAccessDenied:
 		// Challenge for errors that involve tokens or access denied
 		return &authChallenge{realm: ac.realm, err: err}
@@ -224,25 +278,25 @@ func (ac *AccessController) wrapErr(err error) error {
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
 	req, err := context.GetRequest(ctx)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		return nil, ac.wrapErr(ctx, err)
 	}
 
 	bearerToken, err := getOpenShiftAPIToken(ctx, req)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		return nil, ac.wrapErr(ctx, err)
 	}
 
 	copied := ac.config
 	copied.BearerToken = bearerToken
 	osClient, err := client.New(&copied)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		return nil, ac.wrapErr(ctx, err)
 	}
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
 		if err := verifyOpenShiftUser(ctx, osClient); err != nil {
-			return nil, ac.wrapErr(err)
+			return nil, ac.wrapErr(ctx, err)
 		}
 	}
 
@@ -262,7 +316,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		case "repository":
 			imageStreamNS, imageStreamName, err := getNamespaceName(access.Resource.Name)
 			if err != nil {
-				return nil, ac.wrapErr(err)
+				return nil, ac.wrapErr(ctx, err)
 			}
 
 			verb := ""
@@ -275,7 +329,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			case "*":
 				verb = "prune"
 			default:
-				return nil, ac.wrapErr(ErrUnsupportedAction)
+				return nil, ac.wrapErr(ctx, ErrUnsupportedAction)
 			}
 
 			switch verb {
@@ -284,15 +338,15 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					continue
 				}
 				if err := verifyPruneAccess(ctx, osClient); err != nil {
-					return nil, ac.wrapErr(err)
+					return nil, ac.wrapErr(ctx, err)
 				}
 				verifiedPrune = true
 			default:
 				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
 					if access.Action != "pull" {
-						return nil, ac.wrapErr(err)
+						return nil, ac.wrapErr(ctx, err)
 					}
-					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(err))
+					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(ctx, err))
 				}
 			}
 
@@ -303,14 +357,14 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					continue
 				}
 				if err := verifyPruneAccess(ctx, osClient); err != nil {
-					return nil, ac.wrapErr(err)
+					return nil, ac.wrapErr(ctx, err)
 				}
 				verifiedPrune = true
 			default:
-				return nil, ac.wrapErr(ErrUnsupportedAction)
+				return nil, ac.wrapErr(ctx, ErrUnsupportedAction)
 			}
 		default:
-			return nil, ac.wrapErr(ErrUnsupportedResource)
+			return nil, ac.wrapErr(ctx, ErrUnsupportedResource)
 		}
 	}
 

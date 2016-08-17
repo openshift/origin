@@ -9,11 +9,17 @@ import (
 )
 
 type ClientAuthorizationRegistry struct {
-	Err                            error
-	ClientAuthorizations           *api.OAuthClientAuthorizationList
-	ClientAuthorization            *api.OAuthClientAuthorization
-	CreatedAuthorization           *api.OAuthClientAuthorization
-	UpdatedAuthorization           *api.OAuthClientAuthorization
+	GetErr               error
+	ClientAuthorizations *api.OAuthClientAuthorizationList
+	ClientAuthorization  *api.OAuthClientAuthorization
+
+	CreateErr            error
+	CreatedAuthorization *api.OAuthClientAuthorization
+
+	UpdateErr            error
+	UpdatedAuthorization *api.OAuthClientAuthorization
+
+	DeleteErr                      error
 	DeletedClientAuthorizationName string
 }
 
@@ -22,24 +28,24 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 }
 
 func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error) {
-	return r.ClientAuthorizations, r.Err
+	return r.ClientAuthorizations, r.GetErr
 }
 
 func (r *ClientAuthorizationRegistry) GetClientAuthorization(ctx kapi.Context, name string) (*api.OAuthClientAuthorization, error) {
-	return r.ClientAuthorization, r.Err
+	return r.ClientAuthorization, r.GetErr
 }
 
 func (r *ClientAuthorizationRegistry) CreateClientAuthorization(ctx kapi.Context, grant *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
 	r.CreatedAuthorization = grant
-	return r.ClientAuthorization, r.Err
+	return r.ClientAuthorization, r.CreateErr
 }
 
 func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(ctx kapi.Context, grant *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
 	r.UpdatedAuthorization = grant
-	return r.ClientAuthorization, r.Err
+	return r.ClientAuthorization, r.UpdateErr
 }
 
 func (r *ClientAuthorizationRegistry) DeleteClientAuthorization(ctx kapi.Context, name string) error {
 	r.DeletedClientAuthorizationName = name
-	return r.Err
+	return r.DeleteErr
 }

@@ -2,14 +2,18 @@ package origin
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 
 // TestAdmissionPluginChains makes sure that the admission plugin lists are coherent.
@@ -49,6 +53,43 @@ func TestAdmissionPluginChains(t *testing.T) {
 
 		if lastCurrIndex >= len(combinedAdmissionControlPlugins) {
 			t.Errorf("kube admission plugins are out of order compared to the combined list.  Failed at %v", plugin)
+		}
+	}
+}
+
+// legacyOpenshiftAdmissionPlugins holds names that already existed without a prefix.  We should come up with a migration
+// plan (double register for a few releases?), but for now just make sure we don't get worse.
+var legacyOpenshiftAdmissionPlugins = sets.NewString(
+	"ProjectRequestLimit",
+	"OriginNamespaceLifecycle",
+	"PodNodeConstraints",
+	"BuildByStrategy",
+	"RunOnceDuration",
+	"OriginPodNodeEnvironment",
+	overrideapi.PluginName,
+	serviceadmit.ExternalIPPluginName,
+	"SecurityContextConstraint",
+	"BuildDefaults",
+	"BuildOverrides",
+	"SCCExecRestrictions",
+)
+
+// kubeAdmissionPlugins tracks kube plugins we use.  You may add to this list, but ONLY if they're from upstream kube
+var kubeAdmissionPlugins = sets.NewString(
+	lifecycle.PluginName,
+	"LimitRanger",
+	"ServiceAccount",
+	"AlwaysPullImages",
+	"LimitPodHardAntiAffinityTopology",
+	"SCCExecRestrictions",
+	"PersistentVolumeLabel",
+)
+
+// TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.
+func TestAdmissionPluginNames(t *testing.T) {
+	for _, plugin := range combinedAdmissionControlPlugins {
+		if !strings.HasPrefix(plugin, "openshift.io/") && !kubeAdmissionPlugins.Has(plugin) && !legacyOpenshiftAdmissionPlugins.Has(plugin) {
+			t.Errorf("openshift admission plugins must be prefixed with openshift.io/ %v", plugin)
 		}
 	}
 }

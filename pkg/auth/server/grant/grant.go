@@ -2,13 +2,13 @@ package grant
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/golang/glog"
@@ -26,7 +26,7 @@ const (
 	csrfParam        = "csrf"
 	clientIDParam    = "client_id"
 	userNameParam    = "user_name"
-	scopesParam      = "scopes"
+	scopeParam       = "scope"
 	redirectURIParam = "redirect_uri"
 
 	approveParam = "approve"
@@ -42,24 +42,38 @@ type FormRenderer interface {
 type Form struct {
 	Action string
 	Error  string
-	Values FormValues
+
+	ServiceAccountName      string
+	ServiceAccountNamespace string
+
+	GrantedScopes interface{}
+
+	Names  GrantFormFields
+	Values GrantFormFields
 }
 
-type FormValues struct {
-	Then             string
-	ThenParam        string
-	CSRF             string
-	CSRFParam        string
-	ClientID         string
-	ClientIDParam    string
-	UserName         string
-	UserNameParam    string
-	Scopes           string
-	ScopesParam      string
-	RedirectURI      string
-	RedirectURIParam string
-	ApproveParam     string
-	DenyParam        string
+type GrantFormFields struct {
+	Then        string
+	CSRF        string
+	ClientID    string
+	UserName    string
+	Scopes      interface{}
+	RedirectURI string
+	Approve     string
+	Deny        string
+}
+
+type Scope struct {
+	// Name is the string included in the OAuth scope parameter
+	Name string
+	// Description is a human-readable description of the scope. May be empty.
+	Description string
+	// Warning is a human-readable warning about the scope. Typically used to scare the user about escalating permissions. May be empty.
+	Warning string
+	// Error is a human-readable error, typically around the validity of the scope. May be empty.
+	Error string
+	// Granted indicates whether the user has already granted this scope.
+	Granted bool
 }
 
 type Grant struct {
@@ -108,10 +122,10 @@ func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Request) {
 	q := req.URL.Query()
-	then := q.Get("then")
-	clientID := q.Get("client_id")
-	scopes := q.Get("scopes")
-	redirectURI := q.Get("redirect_uri")
+	then := q.Get(thenParam)
+	clientID := q.Get(clientIDParam)
+	scopes := scope.Split(q.Get(scopeParam))
+	redirectURI := q.Get(redirectURIParam)
 
 	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
@@ -119,7 +133,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+	if err := scopeauthorizer.ValidateScopeRestrictions(client, scopes...); err != nil {
 		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
 		l.failed(failure, w, req)
 		return
@@ -139,41 +153,73 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	grantedScopeNames := []string{}
+	grantedScopes := []Scope{}
+	requestedScopes := []Scope{}
+
+	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
+	if clientAuth, err := l.authregistry.GetClientAuthorization(kapi.NewContext(), clientAuthID); err == nil {
+		grantedScopeNames = clientAuth.Scopes
+	}
+
+	for _, s := range scopes {
+		requestedScopes = append(requestedScopes, getScopeData(s, grantedScopeNames))
+	}
+	for _, s := range grantedScopeNames {
+		grantedScopes = append(grantedScopes, getScopeData(s, grantedScopeNames))
+	}
+
 	form := Form{
-		Action: uri.String(),
-		Values: FormValues{
-			Then:             then,
-			ThenParam:        thenParam,
-			CSRF:             csrf,
-			CSRFParam:        csrfParam,
-			ClientID:         client.Name,
-			ClientIDParam:    clientIDParam,
-			UserName:         user.GetName(),
-			UserNameParam:    userNameParam,
-			Scopes:           scopes,
-			ScopesParam:      scopesParam,
-			RedirectURI:      redirectURI,
-			RedirectURIParam: redirectURIParam,
-			ApproveParam:     approveParam,
-			DenyParam:        denyParam,
+		Action:        uri.String(),
+		GrantedScopes: grantedScopes,
+		Names: GrantFormFields{
+			Then:        thenParam,
+			CSRF:        csrfParam,
+			ClientID:    clientIDParam,
+			UserName:    userNameParam,
+			Scopes:      scopeParam,
+			RedirectURI: redirectURIParam,
+			Approve:     approveParam,
+			Deny:        denyParam,
 		},
+		Values: GrantFormFields{
+			Then:        then,
+			CSRF:        csrf,
+			ClientID:    client.Name,
+			UserName:    user.GetName(),
+			Scopes:      requestedScopes,
+			RedirectURI: redirectURI,
+		},
+	}
+
+	if saNamespace, saName, err := serviceaccount.SplitUsername(client.Name); err == nil {
+		form.ServiceAccountName = saName
+		form.ServiceAccountNamespace = saNamespace
 	}
 
 	l.render.Render(form, w, req)
 }
 
 func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Request) {
-	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
+	if ok, err := l.csrf.Check(req, req.FormValue(csrfParam)); !ok || err != nil {
 		glog.Errorf("Unable to check CSRF token: %v", err)
 		l.failed("Invalid CSRF token", w, req)
 		return
 	}
 
-	then := req.FormValue("then")
-	scopes := req.FormValue("scopes")
+	req.ParseForm()
+	then := req.FormValue(thenParam)
+	scopes := scope.Join(req.Form[scopeParam])
+	username := req.FormValue(userNameParam)
 
-	if len(req.FormValue(approveParam)) == 0 {
-		// Redirect with rejection param
+	if username != user.GetName() {
+		glog.Errorf("User (%v) did not match authenticated user (%v)", username, user.GetName())
+		l.failed("User did not match", w, req)
+		return
+	}
+
+	if len(req.FormValue(approveParam)) == 0 || len(scopes) == 0 {
+		// Redirect with an error param
 		url, err := url.Parse(then)
 		if len(then) == 0 || err != nil {
 			l.failed("Access denied, but no redirect URL was specified", w, req)
@@ -186,7 +232,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	clientID := req.FormValue("client_id")
+	clientID := req.FormValue(clientIDParam)
 	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
@@ -227,12 +273,16 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		}
 	}
 
-	if len(then) == 0 {
-		l.failed("Approval granted, but no redirect URL was specified", w, req)
+	// Redirect, overriding the scope param on the redirect with the scopes that were actually granted
+	url, err := url.Parse(then)
+	if len(then) == 0 || err != nil {
+		l.failed("Access granted, but no redirect URL was specified", w, req)
 		return
 	}
-
-	http.Redirect(w, req, then, http.StatusFound)
+	q := url.Query()
+	q.Set("scope", scopes)
+	url.RawQuery = q.Encode()
+	http.Redirect(w, req, url.String(), http.StatusFound)
 }
 
 func (l *Grant) failed(reason string, w http.ResponseWriter, req *http.Request) {
@@ -261,6 +311,29 @@ func getBaseURL(req *http.Request) (*url.URL, error) {
 	return uri, nil
 }
 
+func getScopeData(scopeName string, grantedScopeNames []string) Scope {
+	scopeData := Scope{
+		Name:    scopeName,
+		Error:   fmt.Sprintf("Unknown scope"),
+		Granted: scope.Covers(grantedScopeNames, []string{scopeName}),
+	}
+	for _, evaluator := range scopeauthorizer.ScopeEvaluators {
+		if !evaluator.Handles(scopeName) {
+			continue
+		}
+		description, warning, err := evaluator.Describe(scopeName)
+		scopeData.Description = description
+		scopeData.Warning = warning
+		if err == nil {
+			scopeData.Error = ""
+		} else {
+			scopeData.Error = err.Error()
+		}
+		break
+	}
+	return scopeData
+}
+
 // DefaultFormRenderer displays a page prompting the user to approve an OAuth grant.
 // The requesting client id, requested scopes, and redirect URI are displayed to the user.
 var DefaultFormRenderer = grantTemplateRenderer{}
@@ -270,40 +343,8 @@ type grantTemplateRenderer struct{}
 func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	if err := grantTemplate.Execute(w, form); err != nil {
+
+	if err := defaultGrantTemplate.Execute(w, form); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render grant template: %v", err))
 	}
 }
-
-// TODO: allow template to be read from an external file
-var grantTemplate = template.Must(template.New("grantForm").Parse(`
-<style>
-	body    { font-family: sans-serif; font-size: 12pt; margin: 2em 5%; background-color: #F9F9F9; }
-	pre     { padding-left: 1em; border-left: .25em solid #eee; }
-	a       { color: #00f; text-decoration: none; }
-	a:hover { text-decoration: underline; }
-</style>
-{{ if .Error }}
-<div class="message">{{ .Error }}</div>
-{{ else }}
-<form action="{{ .Action }}" method="POST">
-  <input type="hidden" name="{{ .Values.ThenParam }}" value="{{ .Values.Then }}">
-  <input type="hidden" name="{{ .Values.CSRFParam }}" value="{{ .Values.CSRF }}">
-  <input type="hidden" name="{{ .Values.ClientIDParam }}" value="{{ .Values.ClientID }}">
-  <input type="hidden" name="{{ .Values.UserNameParam }}" value="{{ .Values.UserName }}">
-  <input type="hidden" name="{{ .Values.ScopesParam }}" value="{{ .Values.Scopes }}">
-  <input type="hidden" name="{{ .Values.RedirectURIParam }}" value="{{ .Values.RedirectURI }}">
-
-<h3>Approve Client?</h3>
-<p>Do you approve granting an access token to the following OAuth client?</p>
-<pre>
-Client: {{ .Values.ClientID }}
-Scope:  {{ .Values.Scopes }}
-URI:    {{ .Values.RedirectURI }}
-</pre>
-  
-  <input type="submit" name="{{ .Values.ApproveParam }}" value="Approve">
-  <input type="submit" name="{{ .Values.DenyParam }}" value="Reject">
-</form>
-{{ end }}
-`))

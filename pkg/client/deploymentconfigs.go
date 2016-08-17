@@ -4,6 +4,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -152,4 +153,24 @@ func (c *deploymentConfigs) UpdateStatus(deploymentConfig *deployapi.DeploymentC
 	result = &deployapi.DeploymentConfig{}
 	err = c.r.Put().Namespace(c.ns).Resource("deploymentConfigs").Name(deploymentConfig.Name).SubResource("status").Body(deploymentConfig).Do().Into(result)
 	return
+}
+
+type updateConfigFunc func(d *deployapi.DeploymentConfig)
+
+// UpdateConfigWithRetries will try to update a deployment config and ignore any update conflicts.
+func UpdateConfigWithRetries(dn DeploymentConfigsNamespacer, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
+	var config *deployapi.DeploymentConfig
+
+	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+		var err error
+		config, err = dn.DeploymentConfigs(namespace).Get(name)
+		if err != nil {
+			return err
+		}
+		// Apply the update, then attempt to push it to the apiserver.
+		applyUpdate(config)
+		config, err = dn.DeploymentConfigs(namespace).Update(config)
+		return err
+	})
+	return config, resultErr
 }
