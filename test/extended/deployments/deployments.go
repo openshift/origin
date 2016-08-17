@@ -14,6 +14,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/pkg/client"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -311,12 +313,13 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			_, err = oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			one := int64(1)
-			config.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
-			_, err = oc.REST().DeploymentConfigs(oc.Namespace()).Update(config)
-			// TODO: Retry on update conflicts
+
+			_, err = client.UpdateConfigWithRetries(oc.REST(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+				one := int64(1)
+				dc.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
@@ -425,15 +428,16 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cannot rollback a paused deployment config"))
 
-			dc, rcs, _, err := deploymentInfo(oc, name)
+			_, rcs, _, err = deploymentInfo(oc, name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if len(rcs) != 0 {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			dc.Spec.Paused = false
-			_, err = oc.REST().DeploymentConfigs(dc.Namespace).Update(dc)
-			// TODO: Retry on update conflicts
+			_, err = client.UpdateConfigWithRetries(oc.REST(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+				// TODO: oc rollout pause should patch instead of making a full update
+				dc.Spec.Paused = false
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})

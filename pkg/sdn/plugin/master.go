@@ -129,7 +129,8 @@ func (master *OsdnMaster) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool
 
 	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
 		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
-		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() {
+		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() ||
+		curNetwork.PluginName != oldNetwork.PluginName {
 		return true, nil
 	}
 	return false, nil

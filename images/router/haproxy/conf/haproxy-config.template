@@ -39,17 +39,34 @@ defaults
   option httplog
   log global
 {{ end }}
+
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "")) }}
+  timeout connect {{env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s"}}
+{{ else }}
+  timeout connect 5s
+{{ end }}
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "")) }}
+  timeout client {{env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s"}}
+{{ else }}
+  timeout connect 30s
+{{ end }}
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_TIMEOUT" "")) }}
+  timeout server {{env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s"}}
+{{ else }}
+  timeout server 30s
+{{ end }}
 {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_TIMEOUT" "")) }}
-  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "" }}
+  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
 {{ else }}
   timeout http-request 10s
 {{ end }}
-  timeout http-keep-alive 30s
-  timeout connect 5s
-  timeout client 30s
-  timeout server 30s
+
   # Long timeout for WebSocket connections.
+{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "")) }}
+  timeout tunnel {{env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "1h" }}
+{{ else }}
   timeout tunnel 1h
+{{ end }}
 
 {{ if (gt .StatsPort 0) }}
 listen stats :{{.StatsPort}}
@@ -273,7 +290,19 @@ backend be_edge_http_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} cookie {{$endpoint.IdHash}} weight {{ $weight }}
+            {{ with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
+              {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{$healthIntv}} cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ end }}
+            {{ else }}
+              {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ end }}
+            {{ end }}
           {{ end }}
       {{ end }}
     {{ end }}{{/* end iterate over services */}}
@@ -302,7 +331,19 @@ backend be_tcp_{{$cfgIdx}}
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} weight {{ $weight }}
+            {{ with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
+              {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{$healthIntv}} weight {{$weight}}
+              {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{$weight}}
+              {{ end }}
+            {{ else }}
+              {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} weight {{$weight}}
+              {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{$weight}}
+              {{ end }}
+            {{ end }}
         {{ end }}
       {{ end }}
     {{ end }}{{/* end iterate over services*/}}
@@ -327,11 +368,28 @@ backend be_secure_{{$cfgIdx}}
     {{ end }}
 
   timeout check 5000ms
+  http-request set-header X-Forwarded-Host %[req.hdr(host)]
+  http-request set-header X-Forwarded-Port %[dst_port]
+  http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
+  http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{ $weight }}
+            {{ with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
+              {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{$healthIntv}} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ end }}
+            {{ else }}
+              {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ else }}
+  server {{$endpoint.IdHash}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+              {{ end }}
+            {{ end }}
         {{ end }}
       {{ end }}
     {{ end }}

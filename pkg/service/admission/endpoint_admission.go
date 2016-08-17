@@ -16,10 +16,10 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
-const RestrictedEndpointsPluginName = "RestrictedEndpointsAdmission"
+const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"
 
 func init() {
-	kadmission.RegisterPlugin("RestrictedEndpointsAdmission", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+	kadmission.RegisterPlugin(RestrictedEndpointsPluginName, func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
 		return NewRestrictedEndpointsAdmission(nil), nil
 	})
 }

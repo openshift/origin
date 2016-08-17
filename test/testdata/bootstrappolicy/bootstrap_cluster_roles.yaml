@@ -2030,6 +2030,21 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - secrets
+    - serviceaccounts
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - imagestreamimages
     - imagestreammappings
     - imagestreams
@@ -2121,6 +2136,21 @@ items:
     creationTimestamp: null
     name: registry-editor
   rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    - serviceaccounts
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null

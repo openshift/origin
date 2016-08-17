@@ -22,9 +22,7 @@ import (
 	"github.com/docker/libtrust"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/client"
@@ -290,7 +288,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 
 		client := &testclient.Fake{}
 		client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.imageStreams...))
-		client.AddReactor("get", "images", getFakeImageGetHandler(t, tc.images...))
+		client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, tc.images...))
 
 		reg, err := newTestRegistry(ctx, client, driver, defaultBlobRepositoryCacheTTL, tc.pullthrough, true)
 		if err != nil {
@@ -339,7 +337,7 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 		t.Fatal(err)
 	}
 	testImage := testImages["nm/is:latest"][0]
-	testImageStream := testNewImageStreamObject("nm", "is", "latest", testImage.Name)
+	testImageStream := registrytest.TestNewImageStreamObject("nm", "is", "latest", testImage.Name, "")
 
 	blob1Desc := testNewDescriptorForLayer(testImage.DockerImageLayers[0])
 	blob1Dgst := blob1Desc.Digest
@@ -357,7 +355,7 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 
 	client := &testclient.Fake{}
 	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
-	client.AddReactor("get", "images", getFakeImageGetHandler(t, *testImage))
+	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
 
 	reg, err := newTestRegistry(ctx, client, driver, blobRepoCacheTTL, false, false)
 	if err != nil {
@@ -476,25 +474,6 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 type clientAction struct {
 	verb     string
 	resource string
-}
-
-func getFakeImageGetHandler(t *testing.T, iss ...imageapi.Image) ktestclient.ReactionFunc {
-	return func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
-		switch a := action.(type) {
-		case ktestclient.GetAction:
-			for _, is := range iss {
-				if a.GetName() == is.Name {
-					t.Logf("images get handler: returning image %s", is.Name)
-					return true, &is, nil
-				}
-			}
-
-			err := kerrors.NewNotFound(kapi.Resource("images"), a.GetName())
-			t.Logf("image get handler: %v", err)
-			return true, nil, err
-		}
-		return false, nil, nil
-	}
 }
 
 func storeTestImage(
@@ -734,26 +713,6 @@ func (r *testRegistry) Repository(ctx context.Context, ref reference.Named) (dis
 		cachedLayers:           cachedLayers,
 		pullthrough:            r.pullthrough,
 	}, nil
-}
-
-func testNewImageStreamObject(namespace, name, tag, imageName string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				tag: {
-					Items: []imageapi.TagEvent{
-						{
-							Image: imageName,
-						},
-					},
-				},
-			},
-		},
-	}
 }
 
 func testNewDescriptorForLayer(layer imageapi.ImageLayer) distribution.Descriptor {

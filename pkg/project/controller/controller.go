@@ -65,6 +65,10 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 	if err != nil {
 		return err
 	}
+	err = deleteEgressNetworkPolicies(client, namespace)
+	if err != nil {
+		return err
+	}
 	err = deleteImageStreams(client, namespace)
 	if err != nil {
 		return err
@@ -187,6 +191,20 @@ func deleteImageStreams(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.ImageStreams(ns).Delete(items.Items[i].Name)
+		if err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteEgressNetworkPolicies(client osclient.Interface, ns string) error {
+	items, err := client.EgressNetworkPolicies(ns).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range items.Items {
+		err := client.EgressNetworkPolicies(ns).Delete(items.Items[i].Name)
 		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}

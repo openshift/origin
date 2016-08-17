@@ -246,6 +246,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 	}
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, kubeClientSet, pluginInitializer)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: look up storage by resource
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
@@ -309,7 +312,7 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
-		"JenkinsBootstrapper",
+		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		quotaadmission.PluginName,
@@ -337,7 +340,7 @@ var (
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
-		"ClusterResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 
 	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
@@ -347,7 +350,7 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
-		"JenkinsBootstrapper",
+		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		"RunOnceDuration",
@@ -370,7 +373,7 @@ var (
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
-		"ClusterResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 )
 

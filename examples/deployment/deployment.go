@@ -7,19 +7,13 @@ import (
 	"os"
 )
 
-func main() {
-	version := "v1"
-	if len(os.Args) > 1 {
-		version = os.Args[1]
-	}
-	subtitle := os.Getenv("SUBTITLE")
-	color := os.Getenv("COLOR")
-	if len(color) == 0 {
-		color = "#303030"
-	}
+var (
+	version  string
+	subtitle string
+	color    string
+)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `<!DOCTYPE html>
+const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -36,12 +30,30 @@ func main() {
 <body>
 <div class="box"><h1>%[1]s</h1><h2>%[2]s</h2></div>
 </body>
-</html>`, version, subtitle, color)
-	})
+</html>`
 
-	http.HandleFunc("/_healthz", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "ok")
-	})
+func deploymentHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, htmlContent, version, subtitle, color)
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "ok")
+}
+
+func main() {
+	version = "v1"
+	if len(os.Args) > 1 {
+		version = os.Args[1]
+	}
+	subtitle = os.Getenv("SUBTITLE")
+	color = os.Getenv("COLOR")
+	if len(color) == 0 {
+		color = "#303030"
+	}
+
+	http.HandleFunc("/", deploymentHandler)
+
+	http.HandleFunc("/_healthz", healthHandler)
 
 	log.Printf("Listening on :8080 at %s ...", version)
 	log.Fatal(http.ListenAndServe(":8080", nil))

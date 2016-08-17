@@ -1,6 +1,7 @@
 package httprequest
 
 import (
+	"net"
 	"net/http"
 	"strings"
 
@@ -37,4 +38,73 @@ func PrefersHTML(req *http.Request) bool {
 	}
 
 	return false
+}
+
+// SchemeHost returns the scheme and host used to make this request.
+// Suitable for use to compute scheme/host in returned 302 redirect Location.
+// Note the returned host is not normalized, and may or may not contain a port.
+// Returned values are based on the following information:
+//
+// Host:
+// * X-Forwarded-Host/X-Forwarded-Port headers
+// * Host field on the request (parsed from Host header)
+// * Host in the request's URL (parsed from Request-Line)
+//
+// Scheme:
+// * X-Forwarded-Proto header
+// * Existence of TLS information on the request implies https
+// * Scheme in the request's URL (parsed from Request-Line)
+// * Port (if included in calculated Host value, 443 implies https)
+// * Otherwise, defaults to "http"
+func SchemeHost(req *http.Request) (string /*scheme*/, string /*host*/) {
+	forwarded := func(attr string) string {
+		// Get the X-Forwarded-<attr> value
+		value := req.Header.Get("X-Forwarded-" + attr)
+		// Take the first comma-separated value, if multiple exist
+		value = strings.SplitN(value, ",", 2)[0]
+		// Trim whitespace
+		return strings.TrimSpace(value)
+	}
+
+	forwardedProto := forwarded("Proto")
+	forwardedHost := forwarded("Host")
+	// If both X-Forwarded-Host and X-Forwarded-Port are sent, use the explicit port info
+	if forwardedPort := forwarded("Port"); len(forwardedHost) > 0 && len(forwardedPort) > 0 {
+		if h, _, err := net.SplitHostPort(forwardedHost); err == nil {
+			forwardedHost = net.JoinHostPort(h, forwardedPort)
+		} else {
+			forwardedHost = net.JoinHostPort(forwardedHost, forwardedPort)
+		}
+	}
+
+	host := ""
+	switch {
+	case len(forwardedHost) > 0:
+		host = forwardedHost
+	case len(req.Host) > 0:
+		host = req.Host
+	case len(req.URL.Host) > 0:
+		host = req.URL.Host
+	}
+
+	port := ""
+	if _, p, err := net.SplitHostPort(host); err == nil {
+		port = p
+	}
+
+	scheme := ""
+	switch {
+	case len(forwardedProto) > 0:
+		scheme = forwardedProto
+	case req.TLS != nil:
+		scheme = "https"
+	case len(req.URL.Scheme) > 0:
+		scheme = req.URL.Scheme
+	case port == "443":
+		scheme = "https"
+	default:
+		scheme = "http"
+	}
+
+	return scheme, host
 }

@@ -36,11 +36,15 @@ func GetAttr(element *html.Node, attrName string) (string, bool) {
 	return "", false
 }
 
+type InputFilterFunc func(inputType, inputName, inputValue string) bool
+
 // NewRequestFromForm builds a request that simulates submitting the given form. It honors:
 // Form method (defaults to GET)
 // Form action (defaults to currentURL if missing, or currentURL's scheme/host if server-relative)
-// <input name="..." value="..."> values (only the first type="submit" input's value is included)
-func NewRequestFromForm(form *html.Node, currentURL *url.URL) (*http.Request, error) {
+// Input values from <input name="..." value="..."> elements
+// * only the first type="submit" input's value is included
+// * only radio and checkbox inputs with the "checked" attribute are included
+func NewRequestFromForm(form *html.Node, currentURL *url.URL, filterFunc InputFilterFunc) (*http.Request, error) {
 	var (
 		reqMethod string
 		reqURL    *url.URL
@@ -84,17 +88,28 @@ func NewRequestFromForm(form *html.Node, currentURL *url.URL) (*http.Request, er
 	for _, input := range GetElementsByTagName(form, "input") {
 		if name, ok := GetAttr(input, "name"); ok {
 			if value, ok := GetAttr(input, "value"); ok {
-				// Check if this is a submit input
-				if inputType, _ := GetAttr(input, "type"); inputType == "submit" {
-					// Only add the value of the first one.
-					// We're simulating submitting the form.
-					if addedSubmit {
-						continue
-					}
-					// Remember we've added a submit input
-					addedSubmit = true
+				inputType, _ := GetAttr(input, "type")
+
+				// Allow skipping inputs
+				if filterFunc != nil && !filterFunc(inputType, name, value) {
+					continue
 				}
-				formData.Add(name, value)
+
+				switch inputType {
+				case "submit":
+					// If this is a submit input, only add the value of the first one.
+					// We're simulating submitting the form.
+					if !addedSubmit {
+						formData.Add(name, value)
+						addedSubmit = true
+					}
+				case "radio", "checkbox":
+					if _, checked := GetAttr(input, "checked"); checked {
+						formData.Add(name, value)
+					}
+				default:
+					formData.Add(name, value)
+				}
 			}
 		}
 	}

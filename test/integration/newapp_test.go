@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	"github.com/openshift/source-to-image/pkg/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -184,7 +185,7 @@ func TestNewAppResolve(t *testing.T) {
 
 func TestNewAppDetectSource(t *testing.T) {
 	skipExternalGit(t)
-	gitLocalDir := createLocalGitDirectory(t)
+	gitLocalDir := test.CreateLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
 
 	dockerSearcher := app.DockerRegistrySearcher{
@@ -1771,15 +1772,6 @@ func fakeSimpleDockerSearcher() app.Searcher {
 		},
 		RegistrySearcher: &ExactMatchDockerSearcher{},
 	}
-}
-
-func createLocalGitDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
-	if err != nil {
-		t.Error(err)
-	}
-	os.Mkdir(filepath.Join(dir, ".git"), 0600)
-	return dir
 }
 
 // MockSourceRepositories is a set of mocked source repositories used for

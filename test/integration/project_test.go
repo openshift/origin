@@ -321,7 +321,7 @@ func TestScopedProjectAccess(t *testing.T) {
 	}
 
 	oneTwoBobClient, _, _, err := testutil.GetScopedClientForUser(clusterAdminClient, *clusterAdminClientConfig, "bob", []string{
-		scope.UserListProject,
+		scope.UserListScopedProjects,
 		scope.ClusterRoleIndicator + "view:one",
 		scope.ClusterRoleIndicator + "view:two",
 	})
@@ -330,13 +330,13 @@ func TestScopedProjectAccess(t *testing.T) {
 	}
 
 	twoThreeBobClient, _, _, err := testutil.GetScopedClientForUser(clusterAdminClient, *clusterAdminClientConfig, "bob", []string{
-		scope.UserListProject,
+		scope.UserListScopedProjects,
 		scope.ClusterRoleIndicator + "view:two",
 		scope.ClusterRoleIndicator + "view:three",
 	})
 
 	allBobClient, _, _, err := testutil.GetScopedClientForUser(clusterAdminClient, *clusterAdminClientConfig, "bob", []string{
-		scope.UserListProject,
+		scope.UserListScopedProjects,
 		scope.ClusterRoleIndicator + "view:*",
 	})
 	if err != nil {

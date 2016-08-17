@@ -53,8 +53,8 @@ func TestUserEvaluator(t *testing.T) {
 			numRules: 4,
 		},
 		{
-			name:     "list-projects",
-			scopes:   []string{UserListProject},
+			name:     "list--scoped-projects",
+			scopes:   []string{UserListScopedProjects},
 			numRules: 2,
 		},
 	}

@@ -21,12 +21,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 90f27c3a3e92c671e0fa4da620bd5aea3ebd22e3
+%global commit 29daeae51244ddb205706958023504c014092541
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.19+90f27c3 -X github.com/openshift/origin/pkg/version.commitFromGit=90f27c3 -X github.com/openshift/origin/pkg/version.buildDate=2016-08-15T15:07:23Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-15T15:07:23Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.21+29daeae -X github.com/openshift/origin/pkg/version.commitFromGit=29daeae -X github.com/openshift/origin/pkg/version.buildDate=2016-08-17T14:22:48Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-17T14:22:48Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
 }
 # os_git_vars needed to run hack scripts during rpm builds
 # TODO Automatically generate these using tito
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.21
+Version:        3.3.0.22
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -504,6 +504,61 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Aug 17 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.22
+- Return directly if no pods found when evacuating (zhao.xiangpeng@zte.com.cn)
+- Bump origin-web-console (5fa2bd9) (jforrest@redhat.com)
+- add new-app support for detecting .net apps (bparees@redhat.com)
+- Use scheme/host from request for token redirect (jliggitt@redhat.com)
+- Modify a error variable (miao.yanqiang@zte.com.cn)
+- Revert "add suggestion to use `describe` to obtain container names"
+  (ccoleman@redhat.com)
+- allow SA oauth clients to list projects (deads@redhat.com)
+- namespace scope all our new admission plugins (deads@redhat.com)
+- Update to released Go 1.7 (ccoleman@redhat.com)
+- Allow registry-admin and registry-editor create serviceaccounts
+  (agladkov@redhat.com)
+- fail server on bad admission (deads@redhat.com)
+- extended: retry on update conflicts in deployment tests (mkargaki@redhat.com)
+- test: extend timeout in ICT tests to the IC controller resync interval
+  (mkargaki@redhat.com)
+- The first letter should be capitalized (yu.peng36@zte.com.cn)
+- func getCredentials no longer in use (li.guangxu@zte.com.cn)
+- Bug 1365450 - Fix SDN plugin name change (rpenta@redhat.com)
+- Bump origin-web-console (bc567c7) (jforrest@redhat.com)
+- add suggestion to use `describe` to obtain container names
+  (jvallejo@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  89b96680e451c0fa438446043f967b5660942974 (bparees@redhat.com)
+- Moving from enviornment variables to annotaions for healthcheck interval
+  (erich@redhat.com)
+- record quota errors on image import conditions (pweil@redhat.com)
+- oc start-build: display an error when git is not available and --from-repo is
+  requested (cewong@redhat.com)
+- Adding ENV's for Default Router timeout settings, and adding validation
+  (erich@redhat.com)
+- UPSTREAM: 30510: Endpoint controller logs errors during normal cluster
+  behavior (decarr@redhat.com)
+- Improve grant page appearance, allow partial scope grants
+  (jliggitt@redhat.com)
+- UPSTREAM: 30626: prevent RC hotloop on denied pods (deads@redhat.com)
+- remove redundant comment in build-base-images.sh (wang.yuexiao@zte.com.cn)
+- if err is nil return nil directly (li.guangxu@zte.com.cn)
+- Fix pullthrough serve blob (miminar@redhat.com)
+- Ignore negative value of grace-period and add more evacuate examples
+  (zhao.xiangpeng@zte.com.cn)
+- Pullthrough logging improvements (miminar@redhat.com)
+- Allow to pull from insecure registries for unit tests (miminar@redhat.com)
+- add func to instead of lengthiness parameters (wang.yuexiao@zte.com.cn)
+- Stop using node selector as ipfailover label (marun@redhat.com)
+- Changes createLocalGitDirecory to s2i version (rymurphy@redhat.com)
+- fix up image policy admission plugin (deads@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  2878c1ab41784dab0a467e12a200659506174e68 (jupierce@redhat.com)
+- Set xff headers for reencrypt[ed] routes. (smitram@gmail.com)
+- Delete EgressNetworkPolicy objects on namespace deletion (danw@redhat.com)
+- UPSTREAM: 29982: Fix PVC.Status.Capacity and AccessModes after binding
+  (jsafrane@redhat.com)
+
 * Mon Aug 15 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.21
 - Need to set OS_ROOT for tito (tdawson@redhat.com)
 - The first letter should be capitalized (yu.peng36@zte.com.cn)

@@ -27,7 +27,7 @@ import (
 
 var (
 	// DefaultEntrypoint is the default entry point used when starting containers
-	DefaultEntrypoint = []string{"/bin/env"}
+	DefaultEntrypoint = []string{"/usr/bin/env"}
 
 	glog = utilglog.StderrLog
 
@@ -120,12 +120,18 @@ func New(config *api.Config, overrides build.Overrides) (*STI, error) {
 	}
 
 	if len(config.RuntimeImage) > 0 {
-		builder.runtimeInstaller = scripts.NewInstaller(config.RuntimeImage, config.ScriptsURL, config.ScriptDownloadProxyConfig, docker, config.PullAuthentication)
-
 		builder.runtimeDocker, err = dockerpkg.New(config.DockerConfig, config.RuntimeAuthentication)
 		if err != nil {
 			return builder, err
 		}
+
+		builder.runtimeInstaller = scripts.NewInstaller(
+			config.RuntimeImage,
+			config.ScriptsURL,
+			config.ScriptDownloadProxyConfig,
+			builder.runtimeDocker,
+			config.RuntimeAuthentication,
+		)
 	}
 
 	// The sources are downloaded using the Git downloader.
@@ -428,7 +434,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		CapDrop:         config.DropCapabilities,
 	}
 
-	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
+	go dockerpkg.StreamContainerIO(errReader, nil, func(a ...interface{}) { glog.Info(a...) })
 	err = builder.docker.RunContainer(opts)
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewSaveArtifactsError(image, e.Output, err)
@@ -569,7 +575,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 				// we're ignoring ErrClosedPipe, as this is information
 				// the docker container ended streaming logs
 				if glog.Is(2) && err != io.ErrClosedPipe && err != io.EOF {
-					glog.Errorf("Error reading docker stdout, %v", err)
+					glog.Errorf("Error reading docker stdout, %#v", err)
 				}
 				break
 			}
@@ -584,7 +590,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 
 	}(outReader)
 
-	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Error)
+	go dockerpkg.StreamContainerIO(errReader, &errOutput, func(a ...interface{}) { glog.Info(a...) })
 
 	err := builder.docker.RunContainer(opts)
 	if util.IsTimeoutError(err) {

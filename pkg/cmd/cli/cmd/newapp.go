@@ -6,8 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	goruntime "runtime"
 	"sort"
 	"strings"
 	"time"
@@ -37,6 +35,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util"
 )
@@ -851,12 +850,7 @@ func (r *configSecretRetriever) CACert() (string, error) {
 }
 
 func checkGitInstalled(w io.Writer) {
-	gitBinary := "git"
-	if goruntime.GOOS == "windows" {
-		gitBinary = "git.exe"
-	}
-	_, err := exec.LookPath(gitBinary)
-	if err != nil {
+	if !git.IsGitInstalled() {
 		fmt.Fprintf(w, "warning: Cannot find git. Ensure that it is installed and in your path. Git is required to work with git repositories.\n")
 	}
 }

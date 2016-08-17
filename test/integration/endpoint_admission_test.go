@@ -8,6 +8,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -59,7 +60,7 @@ func TestEndpointAdmission(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
-		"RestrictedEndpointsAdmission": {
+		serviceadmit.RestrictedEndpointsPluginName: {
 			Configuration: &configapi.DefaultAdmissionConfig{},
 		},
 	}
