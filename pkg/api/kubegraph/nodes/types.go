@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 )
@@ -23,6 +24,10 @@ var (
 	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscaling.HorizontalPodAutoscaler{}).Name()
 	PetSetNodeKind                    = reflect.TypeOf(kapps.PetSet{}).Name()
 	PetSetSpecNodeKind                = reflect.TypeOf(kapps.PetSetSpec{}).Name()
+	ReplicaSetNodeKind                = reflect.TypeOf(extensions.ReplicaSet{}).Name()
+	ReplicaSetSpecNodeKind            = reflect.TypeOf(extensions.ReplicaSetSpec{}).Name()
+	DeploymentNodeKind                = reflect.TypeOf(extensions.Deployment{}).Name()
+	DeploymentSpecNodeKind            = reflect.TypeOf(extensions.DeploymentSpec{}).Name()
 )
 
 func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
@@ -322,4 +327,122 @@ func (n PetSetSpecNode) UniqueName() osgraph.UniqueName {
 
 func (*PetSetSpecNode) Kind() string {
 	return PetSetSpecNodeKind
+}
+
+type DeploymentNode struct {
+	osgraph.Node
+	Deployment *extensions.Deployment
+
+	IsFound bool
+}
+
+func (n DeploymentNode) Found() bool {
+	return n.IsFound
+}
+
+func (n DeploymentNode) Object() interface{} {
+	return n.Deployment
+}
+
+func (n DeploymentNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n DeploymentNode) UniqueName() osgraph.UniqueName {
+	return DeploymentNodeName(n.Deployment)
+}
+
+func (*DeploymentNode) Kind() string {
+	return DeploymentNodeKind
+}
+
+func DeploymentNodeName(o *extensions.Deployment) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(DeploymentNodeKind, o)
+}
+
+type DeploymentSpecNode struct {
+	osgraph.Node
+	DeploymentSpec *extensions.DeploymentSpec
+	Namespace      string
+
+	OwnerName osgraph.UniqueName
+}
+
+func (n DeploymentSpecNode) Object() interface{} {
+	return n.DeploymentSpec
+}
+
+func (n DeploymentSpecNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n DeploymentSpecNode) UniqueName() osgraph.UniqueName {
+	return DeploymentSpecNodeName(n.DeploymentSpec, n.OwnerName)
+}
+
+func (*DeploymentSpecNode) Kind() string {
+	return DeploymentSpecNodeKind
+}
+
+func DeploymentSpecNodeName(o *extensions.DeploymentSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+	return osgraph.UniqueName(fmt.Sprintf("%s|%v", DeploymentSpecNodeKind, ownerName))
+}
+
+func ReplicaSetNodeName(o *extensions.ReplicaSet) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(ReplicaSetNodeKind, o)
+}
+
+type ReplicaSetNode struct {
+	osgraph.Node
+	ReplicaSet *extensions.ReplicaSet
+
+	IsFound bool
+}
+
+func (n ReplicaSetNode) Found() bool {
+	return n.IsFound
+}
+
+func (n ReplicaSetNode) Object() interface{} {
+	return n.ReplicaSet
+}
+
+func (n ReplicaSetNode) String() string {
+	return string(ReplicaSetNodeName(n.ReplicaSet))
+}
+
+func (n ReplicaSetNode) UniqueName() osgraph.UniqueName {
+	return ReplicaSetNodeName(n.ReplicaSet)
+}
+
+func (*ReplicaSetNode) Kind() string {
+	return ReplicaSetNodeKind
+}
+
+func ReplicaSetSpecNodeName(o *extensions.ReplicaSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+	return osgraph.UniqueName(fmt.Sprintf("%s|%v", ReplicaSetSpecNodeKind, ownerName))
+}
+
+type ReplicaSetSpecNode struct {
+	osgraph.Node
+	ReplicaSetSpec *extensions.ReplicaSetSpec
+	Namespace      string
+
+	OwnerName osgraph.UniqueName
+}
+
+func (n ReplicaSetSpecNode) Object() interface{} {
+	return n.ReplicaSetSpec
+}
+
+func (n ReplicaSetSpecNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n ReplicaSetSpecNode) UniqueName() osgraph.UniqueName {
+	return ReplicaSetSpecNodeName(n.ReplicaSetSpec, n.OwnerName)
+}
+
+func (*ReplicaSetSpecNode) Kind() string {
+	return ReplicaSetSpecNodeKind
 }

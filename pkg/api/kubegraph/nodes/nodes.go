@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 )
@@ -184,4 +185,67 @@ func EnsurePetSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.PetSetSpec, 
 	g.AddEdge(specNode, ptSpecNode, osgraph.ContainsEdgeKind)
 
 	return specNode
+}
+
+func EnsureDeploymentSpecNode(g osgraph.MutableUniqueGraph, dSpec *extensions.DeploymentSpec, namespace string, ownerName osgraph.UniqueName) *DeploymentSpecNode {
+	dSpecName := DeploymentSpecNodeName(dSpec, ownerName)
+	dSpecNode := osgraph.EnsureUnique(g,
+		dSpecName,
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentSpecNode{node, dSpec, namespace, ownerName}
+		},
+	).(*DeploymentSpecNode)
+
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &dSpec.Template, namespace, dSpecName)
+	g.AddEdge(dSpecNode, ptSpecNode, osgraph.ContainsEdgeKind)
+
+	return dSpecNode
+}
+
+// EnsureDeploymentNode adds the provided deployment to the graph if it does not exist
+func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, d *extensions.Deployment) *DeploymentNode {
+	dName := DeploymentNodeName(d)
+	dNode := osgraph.EnsureUnique(
+		g,
+		dName,
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentNode{Node: node, Deployment: d, IsFound: true}
+		},
+	).(*DeploymentNode)
+
+	dSpecNode := EnsureDeploymentSpecNode(g, &d.Spec, d.Namespace, dName)
+	g.AddEdge(dNode, dSpecNode, osgraph.ContainsEdgeKind)
+
+	return dNode
+}
+
+func EnsureReplicaSetSpecNode(g osgraph.MutableUniqueGraph, rsSpec *extensions.ReplicaSetSpec, namespace string, ownerName osgraph.UniqueName) *ReplicaSetSpecNode {
+	rsSpecName := ReplicaSetSpecNodeName(rsSpec, ownerName)
+	rsSpecNode := osgraph.EnsureUnique(g,
+		rsSpecName,
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetSpecNode{node, rsSpec, namespace, ownerName}
+		},
+	).(*ReplicaSetSpecNode)
+
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &rsSpec.Template, namespace, rsSpecName)
+	g.AddEdge(rsSpecNode, ptSpecNode, osgraph.ContainsEdgeKind)
+
+	return rsSpecNode
+}
+
+// EnsureReplicaSetNode adds a graph node for the ReplicaSet if it does not already exist.
+func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSet) *ReplicaSetNode {
+	rsNodeName := ReplicaSetNodeName(rs)
+	rsNode := osgraph.EnsureUnique(g,
+		rsNodeName,
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetNode{node, rs, true}
+		},
+	).(*ReplicaSetNode)
+
+	rsSpecNode := EnsureReplicaSetSpecNode(g, &rs.Spec, rs.Namespace, rsNodeName)
+	g.AddEdge(rsNode, rsSpecNode, osgraph.ContainsEdgeKind)
+
+	return rsNode
 }
