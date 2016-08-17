@@ -443,6 +443,10 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 		return namespaceNameWithType("sa", t.Name, t.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.ReplicationControllerNode:
 		return namespaceNameWithType("rc", t.ReplicationController.Name, t.ReplicationController.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.ReplicaSetNode:
+		return namespaceNameWithType("rs", t.ReplicaSet.Name, t.ReplicaSet.Namespace, f.currentNamespace, f.hideNamespace)
+	case *kubegraph.DeploymentNode:
+		return namespaceNameWithType("deployment", t.Deployment.Name, t.Deployment.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.HorizontalPodAutoscalerNode:
 		return namespaceNameWithType("hpa", t.HorizontalPodAutoscaler.Name, t.HorizontalPodAutoscaler.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.PetSetNode:
