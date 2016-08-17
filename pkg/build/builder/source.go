@@ -199,7 +199,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return false, nil
 	}
 
-	glog.V(0).Infof("Downloading %q ...", gitSource.URI)
+	glog.V(0).Infof("Cloning %q ...", gitSource.URI)
 
 	// Check source URI, trying to connect to the server only if not using a proxy.
 	if err := checkSourceURI(gitClient, gitSource.URI, timeout); err != nil {
@@ -208,9 +208,6 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 
 	// check if we specify a commit, ref, or branch to check out
 	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
-
-	// Recursive clone if we're not going to checkout a ref and submodule update later
-	glog.V(3).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
 	quiet := !glog.Is(5)
@@ -233,6 +230,14 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		// Recursively update --init
 		if err := gitClient.SubmoduleUpdate(dir, true, true); err != nil {
 			return true, err
+		}
+	}
+
+	if glog.Is(0) {
+		if information, gitErr := gitClient.GetInfo(dir); gitErr == nil {
+			glog.Infof("\tCommit:\t%s (%s)\n", information.CommitID, information.Message)
+			glog.Infof("\tAuthor:\t%s <%s>\n", information.AuthorName, information.AuthorEmail)
+			glog.Infof("\tDate:\t%s\n", information.Date)
 		}
 	}
 
