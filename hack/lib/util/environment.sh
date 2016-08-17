@@ -115,7 +115,7 @@ function os::util::environment::update_path_var() {
 }
 readonly -f os::util::environment::update_path_var
 
-# os::util::environment::setup_misc_tmpdir_vars sets up temporary directory path variables
+# os::util::environment::setup_tmpdir_vars sets up temporary directory path variables
 #
 # Globals:
 #  - TMPDIR
