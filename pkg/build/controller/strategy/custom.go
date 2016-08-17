@@ -23,6 +23,9 @@ type CustomBuildStrategy struct {
 // CreateBuildPod creates the pod to be used for the Custom build
 func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	strategy := build.Spec.Strategy.CustomStrategy
+	if strategy == nil {
+		return nil, errors.New("CustomBuildStrategy cannot be executed without CustomStrategy parameters")
+	}
 
 	codec := bs.Codec
 	if len(strategy.BuildAPIVersion) != 0 {
@@ -52,7 +55,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		}
 	}
 
-	if strategy == nil || len(strategy.From.Name) == 0 {
+	if len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
 	}
 
