@@ -199,7 +199,7 @@ func (o NodeOptions) RunNode() error {
 	validationResults := validation.ValidateNodeConfig(nodeConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
-			glog.Warningf("%v", warning)
+			glog.Warningf("Warning: %v, node start will continue.", warning)
 		}
 	}
 	if len(validationResults.Errors) != 0 {
