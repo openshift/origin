@@ -1,14 +1,11 @@
 package builds
 
 import (
-	"fmt"
 	"path/filepath"
-	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -16,43 +13,46 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                 = exutil.NewCLI("extended-build", exutil.KubeConfigPath())
-		testDataDir        = exutil.FixturePath("testdata", "build-extended")
-		scriptsFromRepoBc  = filepath.Join(testDataDir, "bc-scripts-in-repo.json")
-		scriptsFromUrlBc   = filepath.Join(testDataDir, "bc-scripts-by-url.json")
-		scriptsFromImageBc = filepath.Join(testDataDir, "bc-scripts-in-the-image.json")
+		oc                    = exutil.NewCLI("extended-build", exutil.KubeConfigPath())
+		testDataDir           = exutil.FixturePath("testdata", "build-extended")
+		runnerConf            = filepath.Join(testDataDir, "jvm-runner.yaml")
+		runnerWithScriptsConf = filepath.Join(testDataDir, "jvm-runner-with-scripts.yaml")
+		scriptsFromRepoBc     = filepath.Join(testDataDir, "bc-scripts-in-repo.yaml")
+		scriptsFromUrlBc      = filepath.Join(testDataDir, "bc-scripts-by-url.yaml")
+		scriptsFromImageBc    = filepath.Join(testDataDir, "bc-scripts-in-the-image.yaml")
 	)
+
+	g.JustBeforeEach(func() {
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// we have to wait until image stream tag will be available, otherwise
+		// `oc start-build` will fail with 'imagestreamtags "wildfly:10.0" not found' error.
+		// See this issue for details: https://github.com/openshift/origin/issues/10103
+		err = exutil.WaitForAnImageStreamTag(oc, "openshift", "wildfly", "10.0")
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
 
 	g.Describe("with scripts from the source repository", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 		g.It("should use assemble-runtime script from the source repository", func() {
-			const buildConfigName = "java-extended-build-from-repo"
 
-			g.By("creating build config")
-			err := oc.Run("create").Args("-f", scriptsFromRepoBc).Execute()
+			g.By("creating jvm-runner configuration")
+			err := exutil.CreateResource(runnerConf, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// we have to wait until image stream tag will be available, otherwise
-			// `oc start-build` will fail with 'imagestreamtags "wildfly:10.0" not found' error.
-			// See this issue for details: https://github.com/openshift/origin/issues/10103
-			g.By("waiting when image stream tag for wildfly will be available")
-			wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-				out, err := oc.Run("get").Args("imagestreamtags", "--namespace", "openshift", "--output", `jsonpath='{.items[?(@.metadata.name=="wildfly:10.0")].image.dockerImageReference}'`).Output()
-				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Could not get image stream tag for wildfly: %v\n", err)
-					return false, err
-				}
-				if len(out) > 0 && out != "''" {
-					fmt.Fprintf(g.GinkgoWriter, "Using image stream tag for wildfly: %s\n", out)
-					return true, nil
-				}
+			g.By("building jvm-runner image")
+			br, _ := exutil.StartBuildAndWait(oc, "jvm-runner")
+			br.AssertSuccess()
 
-				return false, nil
-			})
+			g.By("creating build config")
+			err = exutil.CreateResource(scriptsFromRepoBc, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			br, _ := exutil.StartBuildAndWait(oc, buildConfigName, "--build-loglevel=5")
+			br, _ = exutil.StartBuildAndWait(oc, "java-extended-build-from-repo", "--build-loglevel=5")
 			br.AssertSuccess()
 			buildLog, err := br.Logs()
 			if err != nil {
@@ -75,14 +75,21 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 		g.It("should use assemble-runtime script from URL", func() {
-			const buildConfigName = "java-extended-build-from-url"
+
+			g.By("creating jvm-runner configuration")
+			err := exutil.CreateResource(runnerConf, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("building jvm-runner image")
+			br, _ := exutil.StartBuildAndWait(oc, "jvm-runner")
+			br.AssertSuccess()
 
 			g.By("creating build config")
-			err := oc.Run("create").Args("-f", scriptsFromUrlBc).Execute()
+			err = exutil.CreateResource(scriptsFromUrlBc, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			br, _ := exutil.StartBuildAndWait(oc, buildConfigName, "--build-loglevel=5")
+			br, _ = exutil.StartBuildAndWait(oc, "java-extended-build-from-url", "--build-loglevel=5")
 			br.AssertSuccess()
 			buildLog, err := br.Logs()
 			if err != nil {
@@ -105,15 +112,21 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 		g.It("should use assemble-runtime script from that image", func() {
-			const buildConfigName = "java-extended-build-from-image"
-			const buildName = buildConfigName + "-1"
+
+			g.By("creating jvm-runner-with-scripts configuration")
+			err := exutil.CreateResource(runnerWithScriptsConf, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("building jvm-runner-with-scripts image")
+			br, _ := exutil.StartBuildAndWait(oc, "jvm-runner-with-scripts")
+			br.AssertSuccess()
 
 			g.By("creating build config")
-			err := oc.Run("create").Args("-f", scriptsFromImageBc).Execute()
+			err = exutil.CreateResource(scriptsFromImageBc, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("running the build")
-			br, _ := exutil.StartBuildAndWait(oc, buildConfigName, "--build-loglevel=5")
+			br, _ = exutil.StartBuildAndWait(oc, "java-extended-build-from-image", "--build-loglevel=5")
 			br.AssertSuccess()
 			buildLog, err := br.Logs()
 			if err != nil {

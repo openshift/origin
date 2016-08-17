@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -144,7 +143,7 @@ var _ = g.Describe("[images] openshift limit range admission", func() {
 		g.By(fmt.Sprintf("trying to tag a docker image below limit %v", limit))
 		err = oc.Run("import-image").Args("stream:dockerimage", "--confirm", "--insecure", "--from", tag2Image["tag1"].DockerImageReference).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForAnImageStreamTag(oc, "stream", "dockerimage")
+		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "stream", "dockerimage")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
@@ -211,7 +210,7 @@ var _ = g.Describe("[images] openshift limit range admission", func() {
 		g.By(fmt.Sprintf("trying to import from repository %q below quota %v", s1ref.Exact(), limit))
 		err = oc.Run("import-image").Args("bulkimport", "--confirm", "--insecure", "--all", "--from", s1ref.Exact()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = waitForAnImageStreamTag(oc, "bulkimport", "tag1")
+		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "bulkimport", "tag1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to import tags from repository %q exceeding quota %v", s2ref.Exact(), limit))
@@ -301,35 +300,6 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 	}
 	_, err = oc.AdminKubeREST().LimitRanges(oc.Namespace()).Update(lr)
 	return res, err
-}
-
-// waitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag
-func waitForAnImageStreamTag(oc *exutil.CLI, name, tag string) error {
-	g.By(fmt.Sprintf("waiting for an is importer to import a tag %s into a stream %s", tag, name))
-	start := time.Now()
-	c := make(chan error)
-	go func() {
-		err := exutil.WaitForAnImageStream(
-			oc.REST().ImageStreams(oc.Namespace()),
-			name,
-			func(is *imageapi.ImageStream) bool {
-				if history, exists := is.Status.Tags[tag]; !exists || len(history.Items) == 0 {
-					return false
-				}
-				return true
-			},
-			func(is *imageapi.ImageStream) bool {
-				return time.Now().After(start.Add(waitTimeout))
-			})
-		c <- err
-	}()
-
-	select {
-	case e := <-c:
-		return e
-	case <-time.After(waitTimeout):
-		return fmt.Errorf("timed out while waiting of an image stream tag %s/%s:%s", oc.Namespace(), name, tag)
-	}
 }
 
 // getMaxImagesBulkImportedPerRepository returns a maximum numbers of images that can be imported from

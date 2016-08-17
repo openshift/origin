@@ -379,7 +379,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 func (c *CLI) Execute() error {
 	out, err := c.Output()
 	if _, err := io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n")); err != nil {
-		fmt.Printf("ERROR: Unable to copy the output to ginkgo writer")
+		fmt.Fprintln(os.Stderr, "ERROR: Unable to copy the output to ginkgo writer")
 	}
 	os.Stdout.Sync()
 	return err
