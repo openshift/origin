@@ -199,7 +199,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 	}))
 }
 
-var _ = g.Describe("idling and uidling", func() {
+var _ = g.Describe("idling and unidling", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                  = exutil.NewCLI("cli-idling", exutil.KubeConfigPath()).Verbose()
@@ -281,7 +281,7 @@ var _ = g.Describe("idling and uidling", func() {
 
 		g.It("should work with TCP (when fully idled)", func() {
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("-f", idlingFile).Output()
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
@@ -310,7 +310,7 @@ var _ = g.Describe("idling and uidling", func() {
 
 		g.It("should work with TCP (while idling)", func() {
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("-f", idlingFile).Output()
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
@@ -334,7 +334,7 @@ var _ = g.Describe("idling and uidling", func() {
 
 		g.It("should handle many TCP connections by dropping those under a certain bound", func() {
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("-f", idlingFile).Output()
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
@@ -384,7 +384,7 @@ var _ = g.Describe("idling and uidling", func() {
 
 		g.It("should work with UDP", func() {
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("-f", idlingFile).Output()
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
@@ -413,7 +413,7 @@ var _ = g.Describe("idling and uidling", func() {
 
 		g.It("should handle many UDP senders (by continuing to drop all packets on the floor)", func() {
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("-f", idlingFile).Output()
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
