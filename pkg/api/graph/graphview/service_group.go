@@ -31,8 +31,9 @@ type ServiceGroup struct {
 	FulfillingPods    []*kubegraph.PodNode
 
 	// Deployments
-	FulfillingDs  []*kubegraph.DeploymentNode
-	FulfillingRSs []*kubegraph.ReplicaSetNode
+	DeploymentPipelines []DeploymentPipeline
+	FulfillingDs        []*kubegraph.DeploymentNode
+	FulfillingRSs       []*kubegraph.ReplicaSetNode
 
 	ExposingRoutes []*routegraph.RouteNode
 }
@@ -102,6 +103,13 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 
 		covered.Insert(dcCovers.List()...)
 		service.DeploymentConfigPipelines = append(service.DeploymentConfigPipelines, dcPipeline)
+	}
+
+	for _, fulfillingD := range service.FulfillingDs {
+		dPipeline, dCovers := NewDeploymentPipeline(g, fulfillingD)
+
+		covered.Insert(dCovers.List()...)
+		service.DeploymentPipelines = append(service.DeploymentPipelines, dPipeline)
 	}
 
 	for _, fulfillingRC := range service.FulfillingRCs {
