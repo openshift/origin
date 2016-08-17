@@ -48,7 +48,7 @@ defaults
 {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "")) }}
   timeout client {{env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s"}}
 {{ else }}
-  timeout connect 30s
+  timeout client 30s
 {{ end }}
 {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_TIMEOUT" "")) }}
   timeout server {{env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s"}}
