@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -71,6 +72,8 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
 		&petsetLoader{namespace: namespace, lister: d.K.Apps()},
+		&replicaSetLoader{namespace: namespace, lister: d.K.Extensions()},
+		&deploymentLoader{namespace: namespace, lister: d.K.Extensions()},
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
@@ -1237,6 +1240,52 @@ func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 		kubegraph.EnsurePodNode(g, &l.items[i])
 	}
 
+	return nil
+}
+
+type replicaSetLoader struct {
+	namespace string
+	lister    kclient.ReplicaSetsNamespacer
+	items     []extensions.ReplicaSet
+}
+
+func (l *replicaSetLoader) Load() error {
+	list, err := l.lister.ReplicaSets(l.namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *replicaSetLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureReplicaSetNode(g, &l.items[i])
+	}
+	return nil
+}
+
+type deploymentLoader struct {
+	namespace string
+	lister    kclient.DeploymentsNamespacer
+	items     []extensions.Deployment
+}
+
+func (l *deploymentLoader) Load() error {
+	list, err := l.lister.Deployments(l.namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *deploymentLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureDeploymentNode(g, &l.items[i])
+	}
 	return nil
 }
 
