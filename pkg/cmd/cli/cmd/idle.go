@@ -48,15 +48,16 @@ associated resources by scaling them back up to their previous scale.`
   $ %[1]s idle --resource-names-file to-idle.txt`
 )
 
-// NewCmdStatus implements the OpenShift cli status command
+// NewCmdIdle implements the OpenShift cli idle command
 func NewCmdIdle(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	o := &IdleOptions{
-		out:    out,
-		errOut: errOut,
+		out:         out,
+		errOut:      errOut,
+		cmdFullName: fullName,
 	}
 
 	cmd := &cobra.Command{
-		Use:     "idle (SERVICES... | -l label | --all | --resource-names-file FILENAME)",
+		Use:     "idle (SERVICE_ENDPOINTS... | -l label | --all | --resource-names-file FILENAME)",
 		Short:   "Idle scalable resources",
 		Long:    idleLong,
 		Example: fmt.Sprintf(idleExample, fullName),
@@ -92,6 +93,8 @@ type IdleOptions struct {
 	selector      string
 	allNamespaces bool
 	resources     string
+
+	cmdFullName string
 
 	nowTime    time.Time
 	svcBuilder *resource.Builder
@@ -259,7 +262,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 
 		endpoints, isEndpoints := info.Object.(*api.Endpoints)
 		if !isEndpoints {
-			return fmt.Errorf("you must specify endpoints, not %vs", info.Mapping.Resource)
+			return fmt.Errorf("you must specify endpoints, not %v (view available endpoints with \"%s get endpoints\").", info.Mapping.Resource, o.cmdFullName)
 		}
 
 		endpointsName := types.NamespacedName{
