@@ -40,6 +40,7 @@ func (d deferredErrors) Empty() bool {
 const (
 	OpenShiftAuth = "openshift"
 
+	defaultRealm     = "origin"
 	defaultTokenPath = "/openshift/token"
 	defaultUserName  = "anonymous"
 
@@ -47,7 +48,7 @@ const (
 	TokenRealmKey = "tokenrealm"
 )
 
-// RegistryClient encapsulates getting access to the OpenShift API.
+// RegistryClient encapsulates getting access to the master API.
 type RegistryClient interface {
 	// Clients return the authenticated clients to use with the server.
 	Clients() (client.Interface, kclientset.Interface, error)
@@ -158,15 +159,47 @@ var _ registryauth.Challenge = &tokenAuthChallenge{}
 // Errors used and exported by this package.
 var (
 	// Challenging errors
-	ErrTokenRequired         = errors.New("authorization header required")
-	ErrTokenInvalid          = errors.New("failed to decode credentials")
-	ErrOpenShiftAccessDenied = errors.New("access denied")
+	ErrTokenRequired = errors.New("authorization header required")
+	ErrTokenInvalid  = errors.New("failed to decode credentials")
+	ErrAccessDenied  = errors.New("access denied")
 
 	// Non-challenging errors
 	ErrNamespaceRequired   = errors.New("repository namespace required")
 	ErrUnsupportedAction   = errors.New("unsupported action")
 	ErrUnsupportedResource = errors.New("unsupported resource")
 )
+
+// errAccessDenied is an internal error representing access denied resulting from a negotiation with master
+// API. It needs to be wrapped using wrapErr() before passing up to request dispatcher to generate proper auth
+// challenge error.
+type errAccessDenied struct {
+	err    error
+	reason string
+}
+
+func (e *errAccessDenied) Error() string {
+	if e.err != nil {
+		return fmt.Sprintf("master API client error: %v", e.err)
+	}
+	if len(e.reason) > 0 {
+		return fmt.Sprintf("access denied: %s", e.reason)
+	}
+	return fmt.Sprintf("access denied")
+}
+
+// apiError returns one of the exposed errors summarizing the one being wrapped that can be passed to
+// dispatcher.
+func (e *errAccessDenied) apiError() error {
+	return ErrAccessDenied
+}
+
+func isErrAccessDenied(err error) bool {
+	if err == ErrAccessDenied {
+		return true
+	}
+	_, ok := err.(*errAccessDenied)
+	return ok
+}
 
 // TokenRealm returns the template URL to use as the token realm redirect.
 // An empty scheme/host in the returned URL means to match the scheme/host on incoming requests.
@@ -201,7 +234,7 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
 	log.Info("Using Origin Auth handler")
 
-	realm, err := getStringOption("", RealmKey, "origin", options)
+	realm, err := getStringOption("", RealmKey, defaultRealm, options)
 	if err != nil {
 		return nil, err
 	}
@@ -269,43 +302,49 @@ func (ac *tokenAuthChallenge) SetHeaders(w http.ResponseWriter) {
 
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
 func (ac *AccessController) wrapErr(ctx context.Context, err error) error {
-	switch err {
-	case ErrTokenRequired:
-		// Challenge for errors that involve missing tokens
-		if ac.tokenRealm == nil {
-			// Send the basic challenge if we don't have a place to redirect
-			return &authChallenge{realm: ac.realm, err: err}
-		}
-
-		if len(ac.tokenRealm.Scheme) > 0 && len(ac.tokenRealm.Host) > 0 {
-			// Redirect to token auth if we've been given an absolute URL
-			return &tokenAuthChallenge{realm: ac.tokenRealm.String(), err: err}
-		}
-
-		// Auto-detect scheme/host from request
-		req, reqErr := context.GetRequest(ctx)
-		if reqErr != nil {
-			return reqErr
-		}
-		scheme, host := httprequest.SchemeHost(req)
-		tokenRealmCopy := *ac.tokenRealm
-		if len(tokenRealmCopy.Scheme) == 0 {
-			tokenRealmCopy.Scheme = scheme
-		}
-		if len(tokenRealmCopy.Host) == 0 {
-			tokenRealmCopy.Host = host
-		}
-		return &tokenAuthChallenge{realm: tokenRealmCopy.String(), err: err}
-	case ErrTokenInvalid, ErrOpenShiftAccessDenied:
+	switch {
+	case err == ErrTokenRequired:
+		return wrapTokenRequiredError(ctx, ac.realm, ac.tokenRealm, err)
+	case err == ErrTokenInvalid:
 		// Challenge for errors that involve tokens or access denied
 		return &authChallenge{realm: ac.realm, err: err}
-	case ErrNamespaceRequired, ErrUnsupportedAction, ErrUnsupportedResource:
+	case isErrAccessDenied(err):
+		return &authChallenge{realm: ac.realm, err: ErrAccessDenied}
+	case err == ErrNamespaceRequired, err == ErrUnsupportedAction, err == ErrUnsupportedResource:
 		// Malformed or unsupported request, no challenge
 		return err
 	default:
 		// By default, just return the error, this gets surfaced as a bad request / internal error, but no challenge
 		return err
 	}
+}
+
+func wrapTokenRequiredError(ctx context.Context, realm string, tokenRealm *url.URL, err error) error {
+	// Challenge for errors that involve missing tokens
+	if tokenRealm == nil {
+		// Send the basic challenge if we don't have a place to redirect
+		return &authChallenge{realm: realm, err: err}
+	}
+
+	if len(tokenRealm.Scheme) > 0 && len(tokenRealm.Host) > 0 {
+		// Redirect to token auth if we've been given an absolute URL
+		return &tokenAuthChallenge{realm: tokenRealm.String(), err: err}
+	}
+
+	// Auto-detect scheme/host from request
+	req, reqErr := context.GetRequest(ctx)
+	if reqErr != nil {
+		return reqErr
+	}
+	scheme, host := httprequest.SchemeHost(req)
+	tokenRealmCopy := *tokenRealm
+	if len(tokenRealmCopy.Scheme) == 0 {
+		tokenRealmCopy.Scheme = scheme
+	}
+	if len(tokenRealmCopy.Host) == 0 {
+		tokenRealmCopy.Host = host
+	}
+	return &tokenAuthChallenge{realm: tokenRealmCopy.String(), err: err}
 }
 
 // Authorized handles checking whether the given request is authorized
@@ -357,7 +396,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	// Validate all requested accessRecords
 	// Only return failure errors from this loop. Success should continue to validate all records
 	for _, access := range accessRecords {
-		context.GetLogger(ctx).Debugf("Origin auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
+		context.GetLogger(ctx).Debugf("checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		switch access.Resource.Type {
 		case "repository":
@@ -385,15 +424,17 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					continue
 				}
 				if err := verifyPruneAccess(ctx, osClient); err != nil {
+					context.GetLogger(ctx).Error(err.Error())
 					return nil, ac.wrapErr(ctx, err)
 				}
 				verifiedPrune = true
 			default:
 				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
 					if access.Action != "pull" {
+						context.GetLogger(ctx).Error(err.Error())
 						return nil, ac.wrapErr(ctx, err)
 					}
-					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(ctx, err))
+					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, err)
 				}
 			}
 
@@ -420,6 +461,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					continue
 				}
 				if err := verifyPruneAccess(ctx, osClient); err != nil {
+					context.GetLogger(ctx).Error(err.Error())
 					return nil, ac.wrapErr(ctx, err)
 				}
 				verifiedPrune = true
@@ -435,17 +477,21 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	for namespaceAndName, err := range possibleCrossMountErrors {
 		// If we have no push requests, this can't be a cross-mount request, so error
 		if len(pushChecks) == 0 {
-			return nil, err
+			context.GetLogger(ctx).Error(err.Error())
+			return nil, ac.wrapErr(ctx, err)
 		}
 		// If we also requested a push to this ns/name, this isn't a cross-mount request, so error
 		if pushChecks[namespaceAndName] {
-			return nil, err
+			context.GetLogger(ctx).Error(err.Error())
+			return nil, ac.wrapErr(ctx, err)
 		}
 	}
 
 	// Conditionally add auth errors we want to handle later to the context
 	if !possibleCrossMountErrors.Empty() {
-		context.GetLogger(ctx).Debugf("Origin auth: deferring errors: %#v", possibleCrossMountErrors)
+		for ns, err := range possibleCrossMountErrors {
+			context.GetLogger(ctx).Debugf("deferring error for namespace=%s: %s", ns, err.Error())
+		}
 		ctx = WithDeferredErrors(ctx, possibleCrossMountErrors)
 	}
 	// Always add a marker to the context so we know auth was run
@@ -490,7 +536,7 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) (str
 	if err != nil {
 		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
-			return "", "", ErrOpenShiftAccessDenied
+			return "", "", ErrAccessDenied
 		}
 		return "", "", err
 	}
@@ -510,16 +556,14 @@ func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, 
 	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
 
 	if err != nil {
-		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
-			return ErrOpenShiftAccessDenied
+			return &errAccessDenied{err: err}
 		}
 		return err
 	}
 
 	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
-		return ErrOpenShiftAccessDenied
+		return &errAccessDenied{reason: response.Reason}
 	}
 
 	return nil
@@ -543,15 +587,35 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 	}
 	response, err := client.SubjectAccessReviews().Create(&sar)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
-			return ErrOpenShiftAccessDenied
+			return &errAccessDenied{err: err}
 		}
 		return err
 	}
 	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
-		return ErrOpenShiftAccessDenied
+		return &errAccessDenied{reason: response.Reason}
 	}
 	return nil
+}
+
+func checkPendingErrors(ctx context.Context, namespace, name string) error {
+	if !AuthPerformed(ctx) {
+		return fmt.Errorf("openshift.auth.completed missing from context")
+	}
+
+	deferredErrors, haveDeferredErrors := DeferredErrorsFrom(ctx)
+	if !haveDeferredErrors {
+		return nil
+	}
+
+	repoErr, haveRepoErr := deferredErrors.Get(namespace, name)
+	if !haveRepoErr {
+		return nil
+	}
+
+	context.GetLogger(ctx).Debugf("found deferred error for %s/%s: %s", namespace, name, repoErr.Error())
+	if accessDenied, ok := repoErr.(*errAccessDenied); ok {
+		return accessDenied.apiError()
+	}
+	return repoErr
 }

@@ -16,28 +16,28 @@ type errorManifestService struct {
 var _ distribution.ManifestService = &errorManifestService{}
 
 func (em *errorManifestService) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
-	if err := em.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, em.repo.namespace, em.repo.name); err != nil {
 		return false, err
 	}
 	return em.manifests.Exists(ctx, dgst)
 }
 
 func (em *errorManifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
-	if err := em.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, em.repo.namespace, em.repo.name); err != nil {
 		return nil, err
 	}
 	return em.manifests.Get(ctx, dgst, options...)
 }
 
 func (em *errorManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
-	if err := em.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, em.repo.namespace, em.repo.name); err != nil {
 		return "", err
 	}
 	return em.manifests.Put(ctx, manifest, options...)
 }
 
 func (em *errorManifestService) Delete(ctx context.Context, dgst digest.Digest) error {
-	if err := em.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, em.repo.namespace, em.repo.name); err != nil {
 		return err
 	}
 	return em.manifests.Delete(ctx, dgst)

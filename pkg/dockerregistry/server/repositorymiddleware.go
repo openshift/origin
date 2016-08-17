@@ -390,26 +390,3 @@ func (r *repository) manifestFromImageWithCachedLayers(image *imageapi.Image, ca
 	r.rememberLayersOfManifest(dgst, manifest, cacheName)
 	return
 }
-
-func (r *repository) checkPendingErrors(ctx context.Context) error {
-	return checkPendingErrors(context.GetLogger(r.ctx), ctx, r.namespace, r.name)
-}
-
-func checkPendingErrors(logger context.Logger, ctx context.Context, namespace, name string) error {
-	if !AuthPerformed(ctx) {
-		return fmt.Errorf("openshift.auth.completed missing from context")
-	}
-
-	deferredErrors, haveDeferredErrors := DeferredErrorsFrom(ctx)
-	if !haveDeferredErrors {
-		return nil
-	}
-
-	repoErr, haveRepoErr := deferredErrors.Get(namespace, name)
-	if !haveRepoErr {
-		return nil
-	}
-
-	logger.Debugf("Origin auth: found deferred error for %s/%s: %v", namespace, name, repoErr)
-	return repoErr
-}

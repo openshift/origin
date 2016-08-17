@@ -20,35 +20,35 @@ type errorBlobStore struct {
 var _ distribution.BlobStore = &errorBlobStore{}
 
 func (r *errorBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return distribution.Descriptor{}, err
 	}
 	return r.store.Stat(WithRepository(ctx, r.repo), dgst)
 }
 
 func (r *errorBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return nil, err
 	}
 	return r.store.Get(WithRepository(ctx, r.repo), dgst)
 }
 
 func (r *errorBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return nil, err
 	}
 	return r.store.Open(WithRepository(ctx, r.repo), dgst)
 }
 
 func (r *errorBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return distribution.Descriptor{}, err
 	}
 	return r.store.Put(WithRepository(ctx, r.repo), mediaType, p)
 }
 
 func (r *errorBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return nil, err
 	}
 
@@ -77,21 +77,21 @@ func (r *errorBlobStore) Create(ctx context.Context, options ...distribution.Blo
 }
 
 func (r *errorBlobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return nil, err
 	}
 	return r.store.Resume(WithRepository(ctx, r.repo), id)
 }
 
 func (r *errorBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return err
 	}
 	return r.store.ServeBlob(WithRepository(ctx, r.repo), w, req, dgst)
 }
 
 func (r *errorBlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
-	if err := r.repo.checkPendingErrors(ctx); err != nil {
+	if err := checkPendingErrors(ctx, r.repo.namespace, r.repo.name); err != nil {
 		return err
 	}
 	return r.store.Delete(WithRepository(ctx, r.repo), dgst)
@@ -108,7 +108,7 @@ func checkPendingCrossMountErrors(ctx context.Context, opts *distribution.Create
 	if err != nil {
 		return err
 	}
-	return checkPendingErrors(context.GetLogger(ctx), ctx, namespace, name)
+	return checkPendingErrors(ctx, namespace, name)
 }
 
 // guardCreateOptions ensures the expected options type is passed, and optionally disables cross mounting
@@ -151,7 +151,8 @@ func (f statCrossMountCreateOptions) Apply(v interface{}) error {
 	if err != nil {
 		context.GetLogger(f.ctx).Infof("cannot mount blob %s from repository %s: %v - disabling cross-repo mount",
 			opts.Mount.From.Digest().String(),
-			opts.Mount.From.Name())
+			opts.Mount.From.Name(),
+			err)
 		opts.Mount.ShouldMount = false
 		return nil
 	}

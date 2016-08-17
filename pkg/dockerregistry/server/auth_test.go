@@ -13,9 +13,11 @@ import (
 	"github.com/docker/distribution/registry/auth"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/api/latest"
@@ -32,15 +34,27 @@ import (
 // tests invalid/valid/scoped openshift tokens.
 func TestVerifyImageStreamAccess(t *testing.T) {
 	tests := []struct {
+		name              string
 		openshiftResponse response
-		expectedError     error
+		matchError        func(err error) error
 	}{
 		{
+			name: "invalid openshift bearer token",
 			// Test invalid openshift bearer token
 			openshiftResponse: response{401, "Unauthorized"},
-			expectedError:     ErrOpenShiftAccessDenied,
+			matchError: func(err error) error {
+				accessDenied, isAccessDenied := err.(*errAccessDenied)
+				if !isAccessDenied {
+					return fmt.Errorf("expected errAccessDenied, not %T", accessDenied)
+				}
+				if !kerrors.IsUnauthorized(accessDenied.err) {
+					return fmt.Errorf("expected unauthorized, not: %#+v", err)
+				}
+				return nil
+			},
 		},
 		{
+			name: "token not scoped for create operation",
 			// Test valid openshift bearer token but token *not* scoped for create operation
 			openshiftResponse: response{
 				200,
@@ -50,9 +64,15 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 					Reason:    "not authorized!",
 				}),
 			},
-			expectedError: ErrOpenShiftAccessDenied,
+			matchError: func(err error) error {
+				if !reflect.DeepEqual(&errAccessDenied{reason: "not authorized!"}, err) {
+					return fmt.Errorf("got unexpected error: %s", diff.ObjectGoPrintDiff(&errAccessDenied{reason: "not authorized!"}, err))
+				}
+				return nil
+			},
 		},
 		{
+			name: "valid openshift bearer token",
 			// Test valid openshift bearer token and token scoped for create operation
 			openshiftResponse: response{
 				200,
@@ -62,25 +82,29 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 					Reason:    "authorized!",
 				}),
 			},
-			expectedError: nil,
 		},
 	}
 	for _, test := range tests {
-		ctx := context.Background()
-		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
-		client, err := client.New(&restclient.Config{BearerToken: "magic bearer token", Host: server.URL})
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = verifyImageStreamAccess(ctx, "foo", "bar", "create", client)
-		if err == nil || test.expectedError == nil {
-			if err != test.expectedError {
-				t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+		func() {
+			ctx := context.Background()
+			server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
+			defer server.Close()
+
+			client, err := client.New(&restclient.Config{BearerToken: "magic bearer token", Host: server.URL})
+			if err != nil {
+				t.Errorf("[%s] unexpected error: %v", test.name, err)
+				return
 			}
-		} else if err.Error() != test.expectedError.Error() {
-			t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
-		}
-		server.Close()
+			err = verifyImageStreamAccess(ctx, "foo", "bar", "create", client)
+			if test.matchError == nil {
+				if err != nil {
+					t.Errorf("[%s] got unexpected error: %#+v", test.name, err)
+					return
+				}
+			} else if matchErr := test.matchError(err); matchErr != nil {
+				t.Errorf("[%s] %v", test.name, err)
+			}
+		}()
 	}
 }
 
@@ -194,7 +218,7 @@ func TestAccessController(t *testing.T) {
 		"docker login with invalid openshift creds": {
 			basicToken:         "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{{403, ""}},
-			expectedError:      ErrOpenShiftAccessDenied,
+			expectedError:      ErrAccessDenied,
 			expectedChallenge:  true,
 			expectedHeaders:    http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="access denied"`}},
 			expectedActions:    []string{"GET /oapi/v1/users/~ (Authorization=Bearer awesome)"},
@@ -241,7 +265,7 @@ func TestAccessController(t *testing.T) {
 				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: kapi.ObjectMeta{Name: "usr1"}})},
 				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "foo", Allowed: false, Reason: "unauthorized!"})},
 			},
-			expectedError:     ErrOpenShiftAccessDenied,
+			expectedError:     ErrAccessDenied,
 			expectedChallenge: true,
 			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="access denied"`}},
 			expectedActions: []string{
@@ -265,7 +289,7 @@ func TestAccessController(t *testing.T) {
 				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "", Allowed: true, Reason: "authorized!"})},
 				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), &api.SubjectAccessReviewResponse{Namespace: "baz", Allowed: false, Reason: "no!"})},
 			},
-			expectedError:     ErrOpenShiftAccessDenied,
+			expectedError:     ErrAccessDenied,
 			expectedChallenge: true,
 			expectedHeaders:   http.Header{"Www-Authenticate": []string{`Basic realm=myrealm,error="access denied"`}},
 			expectedActions: []string{
@@ -445,7 +469,7 @@ func TestAccessController(t *testing.T) {
 		} else {
 			challengeErr, isChallenge := err.(auth.Challenge)
 			if test.expectedChallenge != isChallenge {
-				t.Errorf("%s: expected challenge=%v, accessController returned challenge=%v", k, test.expectedChallenge, isChallenge)
+				t.Errorf("%s: expected challenge=%v, accessController returned challenge=%v, error: %#+v", k, test.expectedChallenge, isChallenge, err)
 				continue
 			}
 			if isChallenge {
