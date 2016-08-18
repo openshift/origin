@@ -328,6 +328,23 @@ backend be_tcp_{{$cfgIdx}}
   timeout tunnel  {{$value}}
       {{ end }}
     {{ end }}
+
+{{ if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
+  stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
+  tcp-request content track-sc2 src
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
+  tcp-request content reject if { src_conn_cur ge  {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" }} }
+  {{ else }}
+  # concurrent TCP connections not restricted
+  {{ end }}
+
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp")) }}
+  tcp-request content reject if { src_conn_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" }} }
+  {{ else }}
+  #TCP connection rate not restricted
+  {{ end }}
+{{ end }}
+
   hash-type consistent
   timeout check 5000ms
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
@@ -370,6 +387,28 @@ backend be_secure_{{$cfgIdx}}
   timeout server  {{$value}}
       {{ end }}
     {{ end }}
+
+{{ if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
+  stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
+  tcp-request content track-sc2 src
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
+  tcp-request content reject if { src_conn_cur ge  {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" }} }
+  {{ else }}
+  # concurrent TCP connections not restricted
+  {{ end }}
+
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp")) }}
+  tcp-request content reject if { src_conn_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" }} }
+  {{ else }}
+  #TCP connection rate not restricted
+  {{ end }}
+
+  {{ if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http")) }}
+  tcp-request content reject if { src_http_req_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http" }} }
+  {{ else }}
+  #HTTP request rate not restricted
+  {{ end }}
+{{ end }}
 
   timeout check 5000ms
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
