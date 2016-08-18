@@ -8,20 +8,39 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 
+	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	cmdtest "github.com/openshift/origin/pkg/deploy/cmd/test"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestRecreate_initialDeployment(t *testing.T) {
 	var deployment *kapi.ReplicationController
 	scaler := &cmdtest.FakeScaler{}
+
+	config := deploytest.OkDeploymentConfig(1)
+	config.Spec.Strategy = recreateParams(30, "", "", "")
+
+	turns := 0
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		turns++
+		if turns == 2 {
+			// Controller observes the config and updates its status
+			config.Status.ObservedGeneration = config.Generation
+			config.Status.AvailableReplicas = 1
+			config.Status.UpdatedReplicas = 1
+		}
+		return true, config, nil
+	})
+
 	strategy := &RecreateDeploymentStrategy{
 		out:          &bytes.Buffer{},
 		errOut:       &bytes.Buffer{},
@@ -33,10 +52,9 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		},
 		getUpdateAcceptor: getUpdateAcceptor,
 		scaler:            scaler,
+		dn:                oc,
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", "", "")
 	deployment, _ = deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	err := strategy.Deploy(nil, deployment, 3)
 	if err != nil {
@@ -57,6 +75,19 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
+	turns := 0
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		if turns == 2 {
+			// Controller observes the config and updates its status
+			config.Status.ObservedGeneration = config.Generation
+			config.Status.AvailableReplicas = 1
+			config.Status.UpdatedReplicas = 1
+		}
+		turns++
+		return true, config, nil
+	})
+
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
 		out:          &bytes.Buffer{},
@@ -75,6 +106,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 			},
 		},
 		scaler: scaler,
+		dn:     oc,
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
@@ -108,6 +140,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 			},
 		},
 		scaler: scaler,
+		dn:     &testclient.Fake{},
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
@@ -124,6 +157,15 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	scaler := &cmdtest.FakeScaler{}
+
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		// Controller observes the config and updates its status
+		config.Status.ObservedGeneration = config.Generation
+		config.Status.AvailableReplicas = 1
+		config.Status.UpdatedReplicas = 1
+		return true, config, nil
+	})
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
@@ -143,6 +185,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 			},
 		},
 		scaler: scaler,
+		dn:     oc,
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
@@ -176,6 +219,7 @@ func TestRecreate_deploymentMidHookFail(t *testing.T) {
 			},
 		},
 		scaler: scaler,
+		dn:     &testclient.Fake{},
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
@@ -191,6 +235,15 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
+
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		// Controller observes the config and updates its status
+		config.Status.ObservedGeneration = config.Generation
+		config.Status.AvailableReplicas = 1
+		config.Status.UpdatedReplicas = 1
+		return true, config, nil
+	})
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
@@ -210,6 +263,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 			},
 		},
 		scaler: scaler,
+		dn:     oc,
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
@@ -226,6 +280,15 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
+
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		// Controller observes the config and updates its status
+		config.Status.ObservedGeneration = config.Generation
+		config.Status.AvailableReplicas = 1
+		config.Status.UpdatedReplicas = 1
+		return true, config, nil
+	})
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
@@ -245,6 +308,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 			},
 		},
 		scaler: scaler,
+		dn:     oc,
 	}
 
 	err := strategy.Deploy(nil, deployment, 2)
@@ -260,6 +324,16 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	var deployment *kapi.ReplicationController
 	scaler := &cmdtest.FakeScaler{}
 
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		// Controller observes the config and updates its status
+		config := deploytest.OkDeploymentConfig(1)
+		config.Status.ObservedGeneration = config.Generation
+		config.Status.AvailableReplicas = 1
+		config.Status.UpdatedReplicas = 1
+		return true, config, nil
+	})
+
 	strategy := &RecreateDeploymentStrategy{
 		out:          &bytes.Buffer{},
 		errOut:       &bytes.Buffer{},
@@ -270,6 +344,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 			return deployment, nil
 		},
 		scaler: scaler,
+		dn:     oc,
 	}
 
 	acceptorCalled := false
@@ -316,6 +391,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 			return deployment, nil
 		},
 		scaler: scaler,
+		dn:     &testclient.Fake{},
 	}
 
 	acceptor := &testAcceptor{

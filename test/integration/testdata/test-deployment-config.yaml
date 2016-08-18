@@ -9,7 +9,6 @@ spec:
   strategy:
     type: Recreate
     recreateParams:
-      timeoutSeconds: 20
       post:
         failurePolicy: Ignore
         tagImages:

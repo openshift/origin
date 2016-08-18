@@ -506,7 +506,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: haroldClient.LocalResourceAccessReviews("hammer-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     sets.NewString("harold", "valerie"),
+				Users:     sets.NewString("harold", "valerie", "system:serviceaccount:hammer-project:deployer"),
 				Groups:    sets.NewString(),
 				Namespace: "hammer-project",
 			},
@@ -522,7 +522,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: markClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     sets.NewString("mark", "edgar"),
+				Users:     sets.NewString("mark", "edgar", "system:serviceaccount:mallet-project:deployer"),
 				Groups:    sets.NewString(),
 				Namespace: "mallet-project",
 			},
@@ -570,7 +570,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: clusterAdminClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:           sets.NewString("edgar"),
+				Users:           sets.NewString("edgar", "system:serviceaccount:mallet-project:deployer"),
 				Groups:          sets.NewString(),
 				Namespace:       "mallet-project",
 				EvaluationError: `role "admin" not found`,

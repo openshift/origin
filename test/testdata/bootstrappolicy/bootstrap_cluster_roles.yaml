@@ -1613,6 +1613,13 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - deploymentconfigs
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - imagestreamtags
     verbs:
     - update

@@ -605,3 +605,23 @@ func (c *AcceptNewlyObservedReadyPods) Accept(deployment *kapi.ReplicationContro
 	}
 	return nil
 }
+
+// WaitForReadyConfig polls the provided deployment config until it can be considered as ready.
+func WaitForReadyConfig(config *deployapi.DeploymentConfig, dn client.DeploymentConfigsNamespacer, interval, timeout time.Duration) error {
+	lastAvailable, lastDesired := config.Status.AvailableReplicas, config.Spec.Replicas
+
+	err := wait.PollImmediate(interval, timeout, func() (bool, error) {
+		dc, err := dn.DeploymentConfigs(config.Namespace).Get(config.Name)
+		if err != nil {
+			return false, err
+		}
+		lastAvailable, lastDesired = dc.Status.AvailableReplicas, dc.Spec.Replicas
+		return deployutil.IsReady(dc), nil
+	})
+
+	if err == wait.ErrWaitTimeout {
+		err = fmt.Errorf("deployment config %q cannot become ready: availableReplicas: %d, desired: %d", config.Name, lastAvailable, lastDesired)
+	}
+
+	return err
+}
