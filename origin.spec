@@ -196,7 +196,7 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-go install -ldflags "%{ldflags}" %{import_path}/cmd/dockerregistry
+go install -tags include_gcs -ldflags "%{ldflags}" %{import_path}/cmd/dockerregistry
 go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/openshift
 go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/oc
 go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test/extended
