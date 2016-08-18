@@ -257,19 +257,19 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	output := opts.Config.Action.ShouldPrint()
 	generate := output
-	if !generate {
-		service, err := opts.serviceClient.Services(opts.namespace).Get(name)
-		if err != nil {
-			if !errors.IsNotFound(err) && !generate {
+	service, err := opts.serviceClient.Services(opts.namespace).Get(name)
+	if err != nil {
+		if !generate {
+			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
 			}
-			if !output && opts.Config.Action.DryRun {
+			if opts.Config.Action.DryRun {
 				return fmt.Errorf("Docker registry %q service does not exist", name)
 			}
 			generate = true
-		} else {
-			clusterIP = service.Spec.ClusterIP
 		}
+	} else {
+		clusterIP = service.Spec.ClusterIP
 	}
 
 	if !generate {
