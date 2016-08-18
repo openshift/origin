@@ -90,12 +90,10 @@ func makeImageStreamTagAdmissionUsageFunc(isNamespacer osclient.ImageStreamsName
 		}
 
 		is, err := isNamespacer.ImageStreams(ist.Namespace).Get(isName)
-		if err != nil {
-			if !kerrors.IsNotFound(err) {
-				utilruntime.HandleError(fmt.Errorf("failed to get image stream %s/%s: %v", ist.Namespace, isName, err))
-			}
+		if err != nil && !kerrors.IsNotFound(err) {
+			utilruntime.HandleError(fmt.Errorf("failed to get image stream %s/%s: %v", ist.Namespace, isName, err))
 		}
-		if is == nil {
+		if is == nil || kerrors.IsNotFound(err) {
 			res[imageapi.ResourceImageStreams] = *resource.NewQuantity(1, resource.BinarySI)
 		}
 
