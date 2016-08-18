@@ -415,7 +415,7 @@ message BuildStrategy {
   optional CustomBuildStrategy customStrategy = 4;
 
   // JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
-  // This strategy is a tech preview.
+  // This strategy is in tech preview.
   optional JenkinsPipelineBuildStrategy jenkinsPipelineStrategy = 5;
 }
 
@@ -668,7 +668,7 @@ message ImageSourcePath {
 }
 
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
-// This strategy is a tech preview.
+// This strategy is in tech preview.
 message JenkinsPipelineBuildStrategy {
   // JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
   // relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
@@ -734,14 +734,14 @@ message SourceBuildStrategy {
   // without unneeded dependencies installed. The building of the application
   // is still done in the builder image but, post build, you can copy the
   // needed artifacts in the runtime image for use.
-  // This field and the feature it enables are a tech preview.
+  // This field and the feature it enables are in tech preview.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference runtimeImage = 7;
 
   // runtimeArtifacts specifies a list of source/destination pairs that will be
   // copied from the builder to the runtime image. sourcePath can be a file or
   // directory. destinationDir must be a directory. destinationDir can also be
   // empty or equal to ".", in this case it just refers to the root of WORKDIR.
-  // This field and the feature it enables are a tech preview.
+  // This field and the feature it enables are in tech preview.
   repeated ImageSourcePath runtimeArtifacts = 8;
 }
 
