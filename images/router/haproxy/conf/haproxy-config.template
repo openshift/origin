@@ -222,12 +222,19 @@ backend openshift_default
 
 ##-------------- app level backends ----------------
 {{/*
-    Create backends as follows:
-        1. if the config is terminated at the edge or termination is not set create a be_http_<service> backend,
-            traffic will be sent unencrypted to the pods
-        2. if the config is terminated at the pod create a be_tcp_<service> backend, we will use SNI to discover
-            where to send the traffic but should run the be in tcp mode
-        3. if the config is terminated at the
+       1. If termination is not set: This is plain http -> http.  Create a be_http_<service> backend.
+          Incoming http traffic is terminated and sent as http to the pods.
+
+       2. If termination is type 'edge': This is https -> http.  Create a be_edge_http_<service> backend.
+          Incoming https traffic is terminated and sent as http to the pods.
+
+       3. If termination is type 'reencrypt': This is https -> https.  Create a be_secure_<service> backend.
+          Incoming https traffic is terminated and then sent as https to the pods.
+
+       4. If termination is type 'passthrough': This is https (or any SNI TLS connection) passthrough.
+          Create a be_tcp_<service> backend.
+          Incoming traffic is inspected to get the hostname from the SNI header, but then all traffic is
+          passed through to the backend pod by just looking at the TCP headers.
 */}}
 {{ range $cfgIdx, $cfg := .State }}
   {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
