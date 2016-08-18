@@ -1066,6 +1066,21 @@ function os::build::environment::withsource() {
 
   docker start "${container}" > /dev/null
   docker logs -f "${container}"
+
+  # extract content from the image
+  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
+    local workingdir
+    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+    local oldIFS="${IFS}"
+    IFS=:
+    for path in ${OS_BUILD_ENV_PRESERVE}; do
+      local parent
+      parent="$( dirname ${path} )"
+      mkdir -p "${parent}"
+      docker cp "${container}:${workingdir}/${path}" "${parent}"
+    done
+    IFS="${oldIFS}"
+  fi
 }
 readonly -f os::build::environment::withsource
 
