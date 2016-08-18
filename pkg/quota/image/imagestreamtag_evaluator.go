@@ -48,13 +48,16 @@ func NewImageStreamTagEvaluator(istNamespacer osclient.ImageStreamTagsNamespacer
 	}
 
 	return &generic.GenericEvaluator{
-		Name:                       imageStreamTagEvaluatorName,
-		InternalGroupKind:          imageapi.Kind("ImageStreamTag"),
-		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{admission.Update: computeResources},
-		MatchedResourceNames:       computeResources,
-		MatchesScopeFunc:           matchesScopeFunc,
-		UsageFunc:                  makeImageStreamTagAdmissionUsageFunc(isNamespacer),
-		GetFuncByNamespace:         getFuncByNamespace,
+		Name:              imageStreamTagEvaluatorName,
+		InternalGroupKind: imageapi.Kind("ImageStreamTag"),
+		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{
+			admission.Update: computeResources,
+			admission.Create: computeResources,
+		},
+		MatchedResourceNames: computeResources,
+		MatchesScopeFunc:     matchesScopeFunc,
+		UsageFunc:            makeImageStreamTagAdmissionUsageFunc(isNamespacer),
+		GetFuncByNamespace:   getFuncByNamespace,
 		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) (runtime.Object, error) {
 			return &imageapi.ImageStreamTagList{}, nil
 		},

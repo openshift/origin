@@ -4,6 +4,8 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/quota"
 
+os::test::junit::declare_suite_start "cmd/quota/clusterquota"
+
 os::cmd::expect_success 'oc new-project foo --as=deads'
 os::cmd::expect_success 'oc label namespace/foo owner=deads'
 os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
@@ -20,5 +22,17 @@ os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-an
 os::cmd::expect_success 'oc delete project foo'
 os::cmd::expect_success 'oc delete project bar'
 
-echo "quota: ok"
+echo "clusterquota: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/quota/imagestreams"
+
+os::cmd::expect_success 'oc new-project foo-2 --as=deads'
+os::cmd::expect_success 'oc create quota -n foo-2 is-quota --hard openshift.io/imagestreams=1'
+os::cmd::try_until_success 'oc tag -n foo-2 openshift/hello-openshift myis2:v2'
+os::cmd::expect_failure_and_text 'oc tag -n foo-2 busybox mybox:v1' "Exceeded quota"
+
+echo "imagestreams: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end
