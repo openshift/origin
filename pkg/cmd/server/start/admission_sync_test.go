@@ -57,3 +57,22 @@ func TestKubeAdmissionControllerUsage(t *testing.T) {
 		}
 	}
 }
+
+func TestAdmissionOnOffCoverage(t *testing.T) {
+	configuredAdmissionPlugins := sets.NewString(origin.CombinedAdmissionControlPlugins...)
+	allCoveredAdmissionPlugins := sets.String{}
+	allCoveredAdmissionPlugins.Insert(defaultOnPlugins.List()...)
+	allCoveredAdmissionPlugins.Insert(defaultOffPlugins.List()...)
+
+	if !configuredAdmissionPlugins.Equal(allCoveredAdmissionPlugins) {
+		t.Errorf("every admission plugin must be default on or default off. differences: %v and %v",
+			configuredAdmissionPlugins.Difference(allCoveredAdmissionPlugins),
+			allCoveredAdmissionPlugins.Difference(configuredAdmissionPlugins))
+	}
+
+	for plugin := range defaultOnPlugins {
+		if defaultOffPlugins.Has(plugin) {
+			t.Errorf("%v is both enabled and disabled", plugin)
+		}
+	}
+}

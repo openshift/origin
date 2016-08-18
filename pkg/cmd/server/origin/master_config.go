@@ -343,10 +343,10 @@ var (
 		"openshift.io/ClusterResourceQuota",
 	}
 
-	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
+	// CombinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
-	combinedAdmissionControlPlugins = []string{
+	CombinedAdmissionControlPlugins = []string{
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
@@ -452,7 +452,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *interna
 		pluginConfig[pluginName] = config
 	}
 
-	admissionChain, err := newAdmissionChainFunc(combinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer)
+	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer)
 	if err != nil {
 		return nil, nil, err
 	}
