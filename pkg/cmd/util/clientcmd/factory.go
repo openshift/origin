@@ -50,7 +50,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
-	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	routegen "github.com/openshift/origin/pkg/route/generator"
@@ -172,7 +171,7 @@ type Factory struct {
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 	generators := map[string]map[string]kubectl.Generator{}
 	generators["run"] = map[string]kubectl.Generator{
-		"deploymentconfig/v1": deploygen.BasicDeploymentConfigController{},
+		"deploymentconfig/v1": deploycmd.BasicDeploymentConfigController{},
 		"run-controller/v1":   kubectl.BasicReplicationController{}, // legacy alias for run/v1
 	}
 	generators["expose"] = map[string]kubectl.Generator{
