@@ -240,7 +240,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	}
 
 	if glog.Is(0) {
-		if information, gitErr := gitClient.GetInfo(dir); gitErr == nil {
+		if information, gitErr := gitClient.GetInfo(dir); len(gitErr) == 0 {
 			glog.Infof("\tCommit:\t%s (%s)\n", information.CommitID, information.Message)
 			glog.Infof("\tAuthor:\t%s <%s>\n", information.AuthorName, information.AuthorEmail)
 			glog.Infof("\tDate:\t%s\n", information.Date)
