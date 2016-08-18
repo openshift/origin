@@ -315,6 +315,7 @@ var (
 		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
+		"openshift.io/OwnerReference",
 		quotaadmission.PluginName,
 	}
 
@@ -337,6 +338,7 @@ var (
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
+		"openshift.io/OwnerReference",
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
@@ -370,6 +372,7 @@ var (
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
+		"openshift.io/OwnerReference",
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
