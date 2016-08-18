@@ -110,21 +110,33 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			// Cancel running deployments.
 			awaitingCancellations = true
 			if !deployutil.IsDeploymentCancelled(&deployment) {
-				copied, err := deployutil.DeploymentDeepCopy(&deployment)
-				if err != nil {
+
+				// Retry faster on conflicts
+				var updatedDeployment *kapi.ReplicationController
+				if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+					rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+					if kapierrors.IsNotFound(err) {
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+					copied, err := deployutil.DeploymentDeepCopy(rc)
+					if err != nil {
+						return err
+					}
+					copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+					copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
+					updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
 					return err
-				}
-
-				copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
-				copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-
-				updatedDeployment, err := c.rn.ReplicationControllers(copied.Namespace).Update(copied)
-				if err != nil {
+				}); err != nil {
 					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
-					// replace the current deployment with the updated copy so that a future update has a chance at working
-					existingDeployments[i] = *updatedDeployment
-					c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
+					if updatedDeployment != nil {
+						// replace the current deployment with the updated copy so that a future update has a chance at working
+						existingDeployments[i] = *updatedDeployment
+						c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
+					}
 				}
 			}
 		}
@@ -295,21 +307,29 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		}
 		lastReplicas, hasLastReplicas := deployutil.DeploymentReplicas(&deployment)
 		// Only update if necessary.
+		var copied *kapi.ReplicationController
 		if !hasLastReplicas || newReplicaCount != oldReplicaCount || lastReplicas != newReplicaCount {
-			copied, err := deployutil.DeploymentDeepCopy(&deployment)
-			if err != nil {
-				glog.V(2).Infof("Deep copy of deployment %q failed: %v", deployment.Name, err)
+			if err := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+				// refresh the replication controller version
+				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				if err != nil {
+					return err
+				}
+				copied, err = deployutil.DeploymentDeepCopy(rc)
+				if err != nil {
+					glog.V(2).Infof("Deep copy of deployment %q failed: %v", rc.Name, err)
+					return err
+				}
+				copied.Spec.Replicas = newReplicaCount
+				copied.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
+				_, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
 				return err
-			}
-
-			copied.Spec.Replicas = newReplicaCount
-			copied.Annotations[deployapi.DeploymentReplicasAnnotation] = strconv.Itoa(int(newReplicaCount))
-
-			if _, err := c.rn.ReplicationControllers(copied.Namespace).Update(copied); err != nil {
+			}); err != nil {
 				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentScaleFailed",
-					"Failed to scale deployment %q from %d to %d: %v", copied.Name, oldReplicaCount, newReplicaCount, err)
+					"Failed to scale deployment %q from %d to %d: %v", deployment.Name, oldReplicaCount, newReplicaCount, err)
 				return err
 			}
+
 			// Only report scaling events if we changed the replica count.
 			if oldReplicaCount != newReplicaCount {
 				c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentScaled",
