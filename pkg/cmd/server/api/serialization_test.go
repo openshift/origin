@@ -92,6 +92,16 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				}
 			}
 
+			// TODO stop duplicating the conversion in the test.
+			kubeConfig := obj.KubernetesMasterConfig
+			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+				cidr := "172.46.0.0/16"
+				if !(configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
+				}
+			}
+
 			// Historically, the clientCA was incorrectly used as the master's server cert CA bundle
 			// If missing from the config, migrate the ClientCA into that field
 			if obj.OAuthConfig != nil && obj.OAuthConfig.MasterCA == nil {

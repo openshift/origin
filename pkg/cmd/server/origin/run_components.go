@@ -531,6 +531,9 @@ func (c *MasterConfig) RunIngressIPController(client *kclient.Client) {
 		// should have been caught with validation
 		glog.Fatalf("Unable to start ingress ip controller: %v", err)
 	}
+	if ipNet.IP.IsUnspecified() {
+		return
+	}
 	ingressIPController := ingressip.NewIngressIPController(client, ipNet, defaultIngressIPSyncPeriod)
 	go ingressIPController.Run(utilwait.NeverStop)
 }
