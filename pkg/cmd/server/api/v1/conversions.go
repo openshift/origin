@@ -73,6 +73,17 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				}
 			}
 
+			// TODO Detect cloud provider when not using built-in kubernetes
+			kubeConfig := obj.KubernetesMasterConfig
+			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+
+			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+				cidr := "172.46.0.0/16"
+				if !(internal.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
+				}
+			}
+
 			// Historically, the clientCA was incorrectly used as the master's server cert CA bundle
 			// If missing from the config, migrate the ClientCA into that field
 			if obj.OAuthConfig != nil && obj.OAuthConfig.MasterCA == nil {

@@ -435,33 +435,37 @@ func TestValidateIngressIPNetworkCIDR(t *testing.T) {
 			testName: "No CIDR",
 		},
 		{
-			testName:   "No cloud provider and invalid cidr",
+			testName:   "Invalid CIDR",
 			cidr:       "foo",
 			errorCount: 1,
 		},
 		{
-			testName:   "No cloud provider and unspecified cidr",
-			cidr:       "0.0.0.0/32",
-			errorCount: 1,
-		},
-		{
-			testName:    "No cloud provider and conflicting cidrs",
+			testName:    "No cloud provider and conflicting CIDRs",
 			cidr:        "172.16.0.0/16",
 			serviceCIDR: "172.16.0.0/16",
 			clusterCIDR: "172.16.0.0/16",
 			errorCount:  2,
 		},
 		{
-			testName:      "CIDR specified but cloud provider enabled",
-			cidr:          "172.16.0.0/16",
-			cloudProvider: "foo",
-			errorCount:    1,
+			testName: "No cloud provider and unspecified CIDR",
+			cidr:     "0.0.0.0/32",
 		},
 		{
-			testName:    "No cloud provider and valid, non-conflicting cidr",
+			testName:    "No cloud provider and non-conflicting CIDR",
 			cidr:        "172.16.0.0/16",
 			serviceCIDR: "172.17.0.0/16",
 			clusterCIDR: "172.18.0.0/16",
+		},
+		{
+			testName:      "Cloud provider and unspecified CIDR",
+			cidr:          "0.0.0.0/32",
+			cloudProvider: "foo",
+		},
+		{
+			testName:      "Cloud provider and CIDR",
+			cidr:          "172.16.0.0/16",
+			cloudProvider: "foo",
+			errorCount:    1,
 		},
 	}
 	for _, test := range testCases {
