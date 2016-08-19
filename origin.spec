@@ -54,7 +54,8 @@ URL:            https://%{import_path}
 ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
-BuildRequires:  golang = %{golang_version}
+BuildRequires:  bsdtar
+BuildRequires:  golang >= %{golang_version}
 BuildRequires:  krb5-devel
 BuildRequires:  rsync
 Requires:       %{name}-clients = %{version}-%{release}
