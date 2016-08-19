@@ -56,7 +56,7 @@ _**As admin:**_
 
 ```bash
 $ oc create -f gluster-endpoints.yaml
-$ oc create -f gluster-service.yaml
+$ oc create -f gluster-endpoints-service.yaml
 $ oc create -f gluster-pv.yaml
 ```
 ###Make the volume available within the user project
@@ -68,7 +68,7 @@ Create the PersistentVolumeClaim
 
 Create the privileged pod
 
-`$ oc create -f gluster-priv-pod.yaml`
+`$ oc create -f gluster-nginx-priv-pod.yaml`
 
 
 ##Confirm the Setup was Successful

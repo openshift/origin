@@ -363,8 +363,14 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 		if prevItem == nil {
 			return nil, admission.NewForbidden(a, fmt.Errorf("Unable to get previous usage since prior version of object was not found"))
 		}
-		prevUsage := evaluator.Usage(prevItem)
-		deltaUsage = quota.Subtract(deltaUsage, prevUsage)
+
+		// if we can definitively determine that this is not a case of "create on update",
+		// then charge based on the delta.  Otherwise, bill the maximum
+		metadata, err := meta.Accessor(prevItem)
+		if err == nil && len(metadata.GetResourceVersion()) > 0 {
+			prevUsage := evaluator.Usage(prevItem)
+			deltaUsage = quota.Subtract(deltaUsage, prevUsage)
+		}
 	}
 	if quota.IsZero(deltaUsage) {
 		return quotas, nil
@@ -376,7 +382,9 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 		hardResources := quota.ResourceNames(resourceQuota.Status.Hard)
 		requestedUsage := quota.Mask(deltaUsage, hardResources)
 		newUsage := quota.Add(resourceQuota.Status.Used, requestedUsage)
-		if allowed, exceeded := quota.LessThanOrEqual(newUsage, resourceQuota.Status.Hard); !allowed {
+		maskedNewUsage := quota.Mask(newUsage, quota.ResourceNames(requestedUsage))
+
+		if allowed, exceeded := quota.LessThanOrEqual(maskedNewUsage, resourceQuota.Status.Hard); !allowed {
 			failedRequestedUsage := quota.Mask(requestedUsage, exceeded)
 			failedUsed := quota.Mask(resourceQuota.Status.Used, exceeded)
 			failedHard := quota.Mask(resourceQuota.Status.Hard, exceeded)

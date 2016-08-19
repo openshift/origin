@@ -122,6 +122,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-image-stream-mapping":           nil, // skip &imageapi.ImageStreamMapping{},
 			"test-route":                          &routeapi.Route{},
 			"test-service":                        &kapi.Service{},
+			"test-service-with-finalizer":         &kapi.Service{},
 			"test-buildcli":                       &kapi.List{},
 			"test-buildcli-beta2":                 &kapi.List{},
 		},

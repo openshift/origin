@@ -195,7 +195,7 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 	defaultScrubPod.Namespace = namespace
 	defaultScrubPod.Spec.ServiceAccountName = recyclerServiceAccountName
 	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
-	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/bin/recycle"}
+	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/bin/openshift-recycle"}
 	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
 	defaultScrubPod.Spec.Containers[0].SecurityContext = &kapi.SecurityContext{RunAsUser: &uid}
 	defaultScrubPod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent

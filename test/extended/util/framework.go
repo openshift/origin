@@ -565,6 +565,36 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 	}
 }
 
+// WaitForAnImageStreamTag waits until an image stream with given name has non-empty history for given tag.
+func WaitForAnImageStreamTag(oc *CLI, namespace, name, tag string) error {
+	waitTimeout := time.Second * 60
+	g.By(fmt.Sprintf("waiting for an is importer to import a tag %s into a stream %s", tag, name))
+	start := time.Now()
+	c := make(chan error)
+	go func() {
+		err := WaitForAnImageStream(
+			oc.REST().ImageStreams(namespace),
+			name,
+			func(is *imageapi.ImageStream) bool {
+				if history, exists := is.Status.Tags[tag]; !exists || len(history.Items) == 0 {
+					return false
+				}
+				return true
+			},
+			func(is *imageapi.ImageStream) bool {
+				return time.Now().After(start.Add(waitTimeout))
+			})
+		c <- err
+	}()
+
+	select {
+	case e := <-c:
+		return e
+	case <-time.After(waitTimeout):
+		return fmt.Errorf("timed out while waiting of an image stream tag %s/%s:%s", namespace, name, tag)
+	}
+}
+
 // CheckImageStreamLatestTagPopulatedFn returns true if the imagestream has a ':latest' tag filed
 var CheckImageStreamLatestTagPopulatedFn = func(i *imageapi.ImageStream) bool {
 	_, ok := i.Status.Tags["latest"]

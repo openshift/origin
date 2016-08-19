@@ -33,6 +33,7 @@ import (
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -471,6 +472,9 @@ func (c *NodeConfig) RunProxy() {
 	// will be started by RunServiceStores
 
 	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
+
+	// periodically sync k8s iptables rules
+	go utilwait.Forever(proxier.SyncLoop, 0)
 	glog.Infof("Started Kubernetes Proxy on %s", c.ProxyConfig.BindAddress)
 }
 

@@ -539,9 +539,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	output := cfg.Action.ShouldPrint()
 	generate := output
-	if !generate {
-		service, err := kClient.Services(namespace).Get(name)
-		if err != nil {
+	service, err := kClient.Services(namespace).Get(name)
+	if err != nil {
+		if !generate {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing router %q: %v", name, err)
 			}
@@ -549,10 +549,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				return fmt.Errorf("Router %q service does not exist", name)
 			}
 			generate = true
-		} else {
-			clusterIP = service.Spec.ClusterIP
 		}
+	} else {
+		clusterIP = service.Spec.ClusterIP
 	}
+
 	if !generate {
 		fmt.Fprintf(out, "Router %q service exists\n", name)
 		return nil

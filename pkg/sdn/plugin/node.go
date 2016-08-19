@@ -27,7 +27,7 @@ type OsdnNode struct {
 	localSubnet        *osapi.HostSubnet
 	hostName           string
 	podNetworkReady    chan struct{}
-	vnids              *vnidMap
+	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
@@ -68,7 +68,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		registry:           newRegistry(osClient, kClient),
 		localIP:            selfIP,
 		hostName:           hostname,
-		vnids:              newVnidMap(),
+		vnids:              newNodeVNIDMap(),
 		podNetworkReady:    make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,

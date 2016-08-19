@@ -226,6 +226,8 @@ build-cross: clean
 
 # Install travis dependencies
 #
+# Example:
+#   make install-travis
 install-travis:
 	hack/install-tools.sh
 .PHONY: install-travis

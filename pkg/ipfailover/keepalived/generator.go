@@ -21,7 +21,7 @@ const libModulesPath = "/lib/modules"
 //  connecting to the master.
 func getClientConfig(path string) (*restclient.Config, error) {
 	if 0 == len(path) {
-		return nil, fmt.Errorf("You must specify a .kubeconfig file path containing credentials for connecting to the master with --credentials")
+		return nil, nil
 	}
 
 	rules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: path, Precedence: []string{}}
@@ -46,15 +46,21 @@ func getClientConfig(path string) (*restclient.Config, error) {
 func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions, kconfig *restclient.Config) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
 	replicas := strconv.FormatInt(int64(options.Replicas), 10)
-	insecureStr := strconv.FormatBool(kconfig.Insecure)
 	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
+	env := app.Environment{}
 
-	return app.Environment{
-		"OPENSHIFT_MASTER":    kconfig.Host,
-		"OPENSHIFT_CA_DATA":   string(kconfig.CAData),
-		"OPENSHIFT_KEY_DATA":  string(kconfig.KeyData),
-		"OPENSHIFT_CERT_DATA": string(kconfig.CertData),
-		"OPENSHIFT_INSECURE":  insecureStr,
+	if kconfig != nil {
+		insecureStr := strconv.FormatBool(kconfig.Insecure)
+		env.Add(app.Environment{
+			"OPENSHIFT_MASTER":    kconfig.Host,
+			"OPENSHIFT_CA_DATA":   string(kconfig.CAData),
+			"OPENSHIFT_KEY_DATA":  string(kconfig.KeyData),
+			"OPENSHIFT_CERT_DATA": string(kconfig.CertData),
+			"OPENSHIFT_INSECURE":  insecureStr,
+		})
+
+	}
+	env.Add(app.Environment{
 
 		"OPENSHIFT_HA_CONFIG_NAME":       name,
 		"OPENSHIFT_HA_VIRTUAL_IPS":       options.VirtualIPs,
@@ -64,7 +70,8 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 		"OPENSHIFT_HA_REPLICA_COUNT":     replicas,
 		"OPENSHIFT_HA_USE_UNICAST":       "false",
 		// "OPENSHIFT_HA_UNICAST_PEERS":     "127.0.0.1",
-	}
+	})
+	return env
 }
 
 //  Generate the IP failover monitor (keepalived) container configuration.

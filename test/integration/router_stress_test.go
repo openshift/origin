@@ -230,7 +230,7 @@ func NewDelayPlugin(plugin router.Plugin, maxDelay int32) *DelayPlugin {
 }
 
 func (p *DelayPlugin) delay() {
-	time.Sleep(time.Duration(p.maxDelay) * time.Millisecond)
+	time.Sleep(time.Duration(rand.Int31n(p.maxDelay)) * time.Millisecond)
 }
 
 func (p *DelayPlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {

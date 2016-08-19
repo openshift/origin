@@ -157,12 +157,8 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 			}
 		}
 	}
-	if len(config.NetworkConfig.IngressIPNetworkCIDR) > 0 {
-		cidr := config.NetworkConfig.IngressIPNetworkCIDR
-		if _, ipNet, err := net.ParseCIDR(cidr); err != nil || ipNet.IP.IsUnspecified() {
-			validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "ingressIPNetworkCIDR").Index(0), cidr, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
-		}
-	}
+
+	validationResults.AddErrors(ValidateIngressIPNetworkCIDR(config, fldPath.Child("networkConfig", "ingressIPNetworkCIDR").Index(0))...)
 
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
 
@@ -640,4 +636,39 @@ func ValidateAdmissionPluginConfigConflicts(masterConfig *api.MasterConfig) Vali
 	}
 
 	return validationResults
+}
+
+func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path) field.ErrorList {
+	errors := field.ErrorList{}
+
+	cidr := config.NetworkConfig.IngressIPNetworkCIDR
+
+	if len(cidr) == 0 {
+		return errors
+	}
+
+	addError := func(errMessage string) {
+		errors = append(errors, field.Invalid(fldPath, cidr, errMessage))
+	}
+
+	// TODO Detect cloud provider when not using built-in kubernetes
+	kubeConfig := config.KubernetesMasterConfig
+	noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+
+	if noCloudProvider {
+		if _, ipNet, err := net.ParseCIDR(cidr); err != nil || ipNet.IP.IsUnspecified() {
+			addError("must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)")
+		} else {
+			if api.CIDRsOverlap(cidr, config.NetworkConfig.ClusterNetworkCIDR) {
+				addError("conflicts with cluster network CIDR")
+			}
+			if api.CIDRsOverlap(cidr, config.NetworkConfig.ServiceNetworkCIDR) {
+				addError("conflicts with service network CIDR")
+			}
+		}
+	} else {
+		addError("should not be provided when a cloud-provider is enabled")
+	}
+
+	return errors
 }

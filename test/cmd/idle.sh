@@ -12,8 +12,10 @@ trap os::test::junit::reconcile_output EXIT
 project="$(oc project -q)"
 idled_at_annotation='idling.alpha.openshift.io/idled-at'
 unidle_target_annotation='idling.alpha.openshift.io/unidle-targets'
+prev_scale_annotation='idling.alpha.openshift.io/previous-scale'
 idled_at_template="{{index .metadata.annotations \"${idled_at_annotation}\"}}"
 unidle_target_template="{{index .metadata.annotations \"${unidle_target_annotation}\"}}"
+prev_scale_template="{{index .metadata.annotations \"${prev_scale_annotation}\"}}"
 
 setup_idling_resources() {
     os::cmd::expect_success 'oc delete all --all'
@@ -73,4 +75,10 @@ setup_idling_resources
 os::cmd::expect_success_and_text 'oc idle --all' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/idling-echo \(unidle to 2 replicas\)"
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${idled_at_template}'" '.'
 os::cmd::expect_success_and_text "oc get endpoints idling-echo -o go-template='${unidle_target_template}' | jq 'length == 1 and (.[0] | .replicas == 2 and .name == \"idling-echo\" and .kind == \"DeploymentConfig\")'" 'true'
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/idle/check-previous-scale"
+setup_idling_resources  # scales up to 2 replicas
+os::cmd::expect_success_and_text 'oc idle idling-echo' "Marked service ${project}/idling-echo to unidle resource DeploymentConfig ${project}/idling-echo \(unidle to 2 replicas\)"
+os::cmd::expect_success_and_text "oc get dc idling-echo -o go-template='${prev_scale_template}'" '2'  # we see the result of the initial scale as the previous scale
 os::test::junit::declare_suite_end

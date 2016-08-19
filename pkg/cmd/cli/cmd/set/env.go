@@ -529,6 +529,12 @@ updates:
 		}
 		info.Refresh(obj, true)
 
+		// make sure arguments to set or replace environment variables are set
+		// before returning a successful message
+		if len(env) == 0 && len(envArgs) == 0 {
+			return fmt.Errorf("at least one environment variable must be provided")
+		}
+
 		shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
 		kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
 	}

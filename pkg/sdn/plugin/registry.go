@@ -212,7 +212,7 @@ func (registry *Registry) GetNetNamespace(name string) (*osapi.NetNamespace, err
 	return registry.oClient.NetNamespaces().Get(name)
 }
 
-func (registry *Registry) WriteNetNamespace(name string, id uint32) error {
+func (registry *Registry) CreateNetNamespace(name string, id uint32) error {
 	netns := &osapi.NetNamespace{
 		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},
@@ -221,6 +221,10 @@ func (registry *Registry) WriteNetNamespace(name string, id uint32) error {
 	}
 	_, err := registry.oClient.NetNamespaces().Create(netns)
 	return err
+}
+
+func (registry *Registry) UpdateNetNamespace(netns *osapi.NetNamespace) (*osapi.NetNamespace, error) {
+	return registry.oClient.NetNamespaces().Update(netns)
 }
 
 func (registry *Registry) DeleteNetNamespace(name string) error {

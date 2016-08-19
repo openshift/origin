@@ -18,19 +18,13 @@
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refector_version 3.0.2.900
 %global golang_version 1.6.2
-# %commit and %ldflags are intended to be set by tito custom builders provided
+# %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 29daeae51244ddb205706958023504c014092541
+%global commit a39f949c16794b18329754f96168ae34b93f5703
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
-# ldflags from hack/common.sh os::build:ldflags
-%{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit=3 -X github.com/openshift/origin/pkg/version.minorFromGit=3+ -X github.com/openshift/origin/pkg/version.versionFromGit=v3.3.0.21+29daeae -X github.com/openshift/origin/pkg/version.commitFromGit=29daeae -X github.com/openshift/origin/pkg/version.buildDate=2016-08-17T14:22:48Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitCommit=507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitVersion=v1.3.0+507d3a7 -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.buildDate=2016-08-17T14:22:48Z -X github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/version.gitTreeState=clean
-}
 # os_git_vars needed to run hack scripts during rpm builds
-# TODO Automatically generate these using tito
-#  For man pages, blank is fine
 %{!?os_git_vars:
 %global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR=''
 }
@@ -52,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.22
+Version:        3.3.0.23
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -60,6 +54,7 @@ URL:            https://%{import_path}
 ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
+BuildRequires:  bsdtar
 BuildRequires:  golang = %{golang_version}
 BuildRequires:  krb5-devel
 BuildRequires:  rsync
@@ -175,42 +170,11 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %setup -q
 
 %build
+# Create Binaries
+%{os_git_vars} hack/build-cross.sh
 
-# Don't judge me for this ... it's so bad.
-mkdir _build
-
-# Horrid hack because golang loves to just bundle everything
-pushd _build
-    mkdir -p src/github.com/openshift
-    ln -s $(dirs +1 -l) src/%{import_path}
-popd
-
-
-# Gaming the GOPATH to include the third party bundled libs at build
-# time.
-mkdir _thirdpartyhacks
-pushd _thirdpartyhacks
-    ln -s \
-        $(dirs +1 -l)/vendor/ \
-            src
-popd
-export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
-# Build all linux components we care about
-go install -ldflags "%{ldflags}" %{import_path}/cmd/dockerregistry
-go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/openshift
-go install -ldflags "%{ldflags}" -tags=gssapi %{import_path}/cmd/oc
-go test -c -o _build/bin/extended.test -ldflags "%{ldflags}" %{import_path}/test/extended
-
-%if 0%{?make_redistributable}
-# Build clients for other platforms
-GOOS=windows GOARCH=386 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
-GOOS=darwin GOARCH=amd64 go install -pkgdir %{buildroot}/pkgdir -ldflags "%{ldflags}" %{import_path}/cmd/oc
-%endif
-
-#Build our pod
-pushd images/pod/
-    go build -ldflags "%{ldflags}" pod.go
-popd
+# Create extended.test
+%{os_git_vars} hack/build-go.sh test/extended/extended.test
 
 # Create/Update man pages
 %{os_git_vars} hack/update-generated-docs.sh
@@ -223,21 +187,21 @@ install -d %{buildroot}%{_bindir}
 for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
-  install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
+  install -p -m 755 _output/local/bin/linux/amd64/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 _build/bin/extended.test %{buildroot}%{_libexecdir}/%{name}/
+install -p -m 755 _output/local/bin/linux/amd64/extended.test %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
 install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
-install -p -m 755 _build/bin/oc %{buildroot}%{_datadir}/%{name}/linux/oc
-install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
-install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+install -p -m 755 _output/local/bin/linux/amd64/oc %{buildroot}%{_datadir}/%{name}/linux/oc
+install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
+install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 %endif
 
-#Install pod
-install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
+# Install pod
+install -p -m 755 _output/local/bin/linux/amd64/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 
@@ -504,6 +468,99 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Aug 19 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.23
+- BuildRequires bsdtar, for hack scripts (tdawson@redhat.com)
+- Disable ingress ip when cloud provider enabled (marun@redhat.com)
+- Bump origin-web-console (4d411df) (jforrest@redhat.com)
+- Fix oc project|projects when in cluster config (ffranz@redhat.com)
+- move unrelated extended tests out of images (ipalade@redhat.com)
+- bump(k8s.io/kubernetes): 447cecf8b808caa00756880f2537b2bafbfcd267
+  (deads@redhat.com)
+- UPSTREAM: 29093: Fix panic race in scheduler cache from 28886
+  (ccoleman@redhat.com)
+- calculate usage on istag creates (deads@redhat.com)
+- compute image stream usage properly on istag touches (deads@redhat.com)
+- UPSTREAM: 30907: only compute delta on non-creating updates
+  (deads@redhat.com)
+- UPSTREAM: google/cadvisor: 1359: Make ThinPoolWatcher loglevel consistent
+  (agoldste@redhat.com)
+- bump(google/cadvisor): 956e595d948ce8690296d297ba265d5e8649a088
+  (agoldste@redhat.com)
+- Allowed 'true' for the DROP_SYN_DURING_RESTART variable (bbennett@redhat.com)
+- Randomize delay in router stress test. (marun@redhat.com)
+- Add previous-scale annotation for idled resources (sross@redhat.com)
+- Fixed the comment about the different backends we make (bbennett@redhat.com)
+- block setting ownerReferences and finalizers (deads@redhat.com)
+- UPSTREAM: 30839: queueActionLocked requires write lock (deads@redhat.com)
+- UPSTREAM: 30624: Node controller deletePod return true if there are pods
+  pending deletion (agoldste@redhat.com)
+- UPSTREAM: 30277: Avoid computing DeepEqual in controllers all the time
+  (agoldste@redhat.com)
+- fix a logical error of the function 'RunCmdRouter' in the , the same as the
+  funtion 'RunCmdRegistry' in the (miao.yanqiang@zte.com.cn)
+- generate_vrrp_sync_groups calls expand_ip_ranges on an already expanded
+  ranges (cameron@braid.com.au)
+- Bump origin-web-console (8c03ff4) (jforrest@redhat.com)
+- UPSTREAM: 29639: <drop>: Fix default resource limits (node allocatable) for
+  downward api volumes and env vars. (avesh.ncsu@gmail.com)
+- Fix validation of pkg/sdn/api object updates (danw@redhat.com)
+- UPSTREAM: 30731: Always return command output for exec probes and kubelet
+  RunInContainer (agoldste@redhat.com)
+- UPSTREAM: 30796: Quota usage checking ignores unrelated resources
+  (decarr@redhat.com)
+- regen protos (bparees@redhat.com)
+- Make it easier to extract content from hack/env (ccoleman@redhat.com)
+- UPSTREAM: 27541: Attach should work for init containers (ccoleman@redhat.com)
+- UPSTREAM: 30736: Close websocket watch when client closes
+  (jliggitt@redhat.com)
+- Added Git logging to build output (rymurphy@redhat.com)
+- deploy: reconcile streams on config creation/updates (mkargaki@redhat.com)
+- Bug 1366936: fix ICT matching in the trigger controller (mkargaki@redhat.com)
+- Variable definition is not used (li.guangxu@zte.com.cn)
+- add test cases for `oc set env` (jvallejo@redhat.com)
+- return error when no env args are given (jvallejo@redhat.com)
+- check CustomStrategy validation at begin (li.guangxu@zte.com.cn)
+- force all plugins to either default off or default on (deads@redhat.com)
+- integration: fix imagestream admission flake (miminar@redhat.com)
+- Improve tests for extended build. (vsemushi@redhat.com)
+- Revert "test: extend timeout in ICT tests to the IC controller resync
+  interval" (mkargaki@redhat.com)
+- Return original error on on limit error (miminar@redhat.com)
+- Fix haproxy config bug. (smitram@gmail.com)
+- Fix somee mistakes in script as follow: (wang.yuexiao@zte.com.cn)
+- UPSTREAM: 30533: Validate involvedObject.Namespace matches event.Namespace
+  (jliggitt@redhat.com)
+- support for zero weighted services in a route (rchopra@redhat.com)
+- UPSTREAM: 30713: Empty resource type means no defaulting
+  (ccoleman@redhat.com)
+- Extract should default to current directory (ccoleman@redhat.com)
+- deprecate --list option from `volumes` cmd (jvallejo@redhat.com)
+- Bug 1330201 - Periodically sync k8s iptables rules (rpenta@redhat.com)
+- call out config validation warnings more clearly (deads@redhat.com)
+- Show restart count warnings only for latest deployment (mfojtik@redhat.com)
+- Fix scrub pod container command (mawong@redhat.com)
+- Updated auto generated doc for pod-network CLI commands (rpenta@redhat.com)
+- Updated auto generated bash completions for pod-network CLI commands
+  (rpenta@redhat.com)
+- Added test cases for 'oadm pod-network isolate-projects' (rpenta@redhat.com)
+- CLI changes to support project network isolation (rpenta@redhat.com)
+- Make pod-network cli command to use ChangePodNetworkAnnotation instead of
+  updating VNID directly (rpenta@redhat.com)
+- Remove old SDN netid allocator (rpenta@redhat.com)
+- Test cases for assign/update/revoke VNIDs (rpenta@redhat.com)
+- Handling VNID manipulations (rpenta@redhat.com)
+- Test cases for network ID allocator interface (rpenta@redhat.com)
+- Added network ID allocator interface (rpenta@redhat.com)
+- Test cases for network ID range interface (rpenta@redhat.com)
+- Added network ID range interface (rpenta@redhat.com)
+- Accessor methods for ChangePodNetworkAnnotation on NetNamespace
+  (rpenta@redhat.com)
+- have origin.spec use hack scripts to build (tdawson@redhat.com)
+- Allow startup to continue even if nodes don't have EgressNetworkPolicy list
+  permission (danw@redhat.com)
+- add a validateServiceAccount to the creation of ipfailover pods
+  (jtanenba@redhat.com)
+
 * Wed Aug 17 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.22
 - Return directly if no pods found when evacuating (zhao.xiangpeng@zte.com.cn)
 - Bump origin-web-console (5fa2bd9) (jforrest@redhat.com)
