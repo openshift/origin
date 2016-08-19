@@ -246,7 +246,7 @@ function generate_failover_config() {
 
 $(generate_global_config "$HA_CONFIG_NAME")
 $(generate_script_config "$ipaddr" "$port")
-$(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$vips")
+$(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$HA_VIPS")
 "
 
   local ipkey=$(echo "$ipaddr" | cut -f 4 -d '.')
