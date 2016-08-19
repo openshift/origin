@@ -522,7 +522,6 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 
 // RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
 func (c *MasterConfig) RunIngressIPController(client *kclient.Client) {
-	// TODO need to disallow if a cloud provider is configured
 	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		return
 	}

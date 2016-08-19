@@ -421,3 +421,66 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateIngressIPNetworkCIDR(t *testing.T) {
+	testCases := []struct {
+		testName      string
+		cidr          string
+		serviceCIDR   string
+		clusterCIDR   string
+		cloudProvider string
+		errorCount    int
+	}{
+		{
+			testName: "No CIDR",
+		},
+		{
+			testName:   "No cloud provider and invalid cidr",
+			cidr:       "foo",
+			errorCount: 1,
+		},
+		{
+			testName:   "No cloud provider and unspecified cidr",
+			cidr:       "0.0.0.0/32",
+			errorCount: 1,
+		},
+		{
+			testName:    "No cloud provider and conflicting cidrs",
+			cidr:        "172.16.0.0/16",
+			serviceCIDR: "172.16.0.0/16",
+			clusterCIDR: "172.16.0.0/16",
+			errorCount:  2,
+		},
+		{
+			testName:      "CIDR specified but cloud provider enabled",
+			cidr:          "172.16.0.0/16",
+			cloudProvider: "foo",
+			errorCount:    1,
+		},
+		{
+			testName:    "No cloud provider and valid, non-conflicting cidr",
+			cidr:        "172.16.0.0/16",
+			serviceCIDR: "172.17.0.0/16",
+			clusterCIDR: "172.18.0.0/16",
+		},
+	}
+	for _, test := range testCases {
+		config := &configapi.MasterConfig{
+			KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+				ControllerArguments: configapi.ExtendedArguments{
+					"cloud-provider": []string{test.cloudProvider},
+				},
+			},
+			NetworkConfig: configapi.MasterNetworkConfig{
+				IngressIPNetworkCIDR: test.cidr,
+				ServiceNetworkCIDR:   test.serviceCIDR,
+				ClusterNetworkCIDR:   test.clusterCIDR,
+			},
+		}
+		errors := ValidateIngressIPNetworkCIDR(config, nil)
+		errorCount := len(errors)
+		if test.errorCount != errorCount {
+			t.Errorf("%s: expected %d errors, got %d", test.testName, test.errorCount, errorCount)
+		}
+	}
+}
