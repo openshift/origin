@@ -61,16 +61,13 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 	var err error
 	if strings.HasSuffix(dockercfgPath, kapi.DockerConfigJsonKey) || strings.HasSuffix(dockercfgPath, "config.json") {
 		cfg, err = readDockerConfigJson(dockercfgPath)
-		if err != nil {
-			glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
-			return docker.AuthConfiguration{}, false
-		}
 	} else if strings.HasSuffix(dockercfgPath, kapi.DockerConfigKey) {
 		cfg, err = readDockercfg(dockercfgPath)
-		if err != nil {
-			glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
-			return docker.AuthConfiguration{}, false
-		}
+	}
+
+	if err != nil {
+		glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
+		return docker.AuthConfiguration{}, false
 	}
 
 	keyring := credentialprovider.BasicDockerKeyring{}
