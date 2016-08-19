@@ -48,13 +48,16 @@ func NewImageStreamTagEvaluator(istNamespacer osclient.ImageStreamTagsNamespacer
 	}
 
 	return &generic.GenericEvaluator{
-		Name:                       imageStreamTagEvaluatorName,
-		InternalGroupKind:          imageapi.Kind("ImageStreamTag"),
-		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{admission.Update: computeResources},
-		MatchedResourceNames:       computeResources,
-		MatchesScopeFunc:           matchesScopeFunc,
-		UsageFunc:                  makeImageStreamTagAdmissionUsageFunc(isNamespacer),
-		GetFuncByNamespace:         getFuncByNamespace,
+		Name:              imageStreamTagEvaluatorName,
+		InternalGroupKind: imageapi.Kind("ImageStreamTag"),
+		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{
+			admission.Update: computeResources,
+			admission.Create: computeResources,
+		},
+		MatchedResourceNames: computeResources,
+		MatchesScopeFunc:     matchesScopeFunc,
+		UsageFunc:            makeImageStreamTagAdmissionUsageFunc(isNamespacer),
+		GetFuncByNamespace:   getFuncByNamespace,
 		ListFuncByNamespace: func(namespace string, options kapi.ListOptions) (runtime.Object, error) {
 			return &imageapi.ImageStreamTagList{}, nil
 		},
@@ -90,12 +93,10 @@ func makeImageStreamTagAdmissionUsageFunc(isNamespacer osclient.ImageStreamsName
 		}
 
 		is, err := isNamespacer.ImageStreams(ist.Namespace).Get(isName)
-		if err != nil {
-			if !kerrors.IsNotFound(err) {
-				utilruntime.HandleError(fmt.Errorf("failed to get image stream %s/%s: %v", ist.Namespace, isName, err))
-			}
+		if err != nil && !kerrors.IsNotFound(err) {
+			utilruntime.HandleError(fmt.Errorf("failed to get image stream %s/%s: %v", ist.Namespace, isName, err))
 		}
-		if is == nil {
+		if is == nil || kerrors.IsNotFound(err) {
 			res[imageapi.ResourceImageStreams] = *resource.NewQuantity(1, resource.BinarySI)
 		}
 

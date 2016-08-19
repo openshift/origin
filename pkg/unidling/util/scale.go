@@ -18,7 +18,7 @@ import (
 // TODO: remove the below functions once we get a way to mark/unmark an object as idled
 // via the scale endpoint
 
-type AnnotationFunc func(annotations map[string]string)
+type AnnotationFunc func(currentReplicas int32, annotations map[string]string)
 
 func NewScaleAnnotater(scales kextclient.ScalesGetter, dcs deployclient.DeploymentConfigsGetter, rcs kclient.ReplicationControllersGetter, changeAnnots AnnotationFunc) *ScaleAnnotater {
 	return &ScaleAnnotater{
@@ -90,14 +90,14 @@ func (c *ScaleAnnotater) UpdateObjectScale(namespace string, ref unidlingapi.Cro
 		if typedObj.Annotations == nil {
 			typedObj.Annotations = make(map[string]string)
 		}
-		c.changeAnnotations(typedObj.Annotations)
+		c.changeAnnotations(typedObj.Spec.Replicas, typedObj.Annotations)
 		typedObj.Spec.Replicas = scale.Spec.Replicas
 		_, err = c.dcs.DeploymentConfigs(namespace).Update(typedObj)
 	case *kapi.ReplicationController:
 		if typedObj.Annotations == nil {
 			typedObj.Annotations = make(map[string]string)
 		}
-		c.changeAnnotations(typedObj.Annotations)
+		c.changeAnnotations(typedObj.Spec.Replicas, typedObj.Annotations)
 		typedObj.Spec.Replicas = scale.Spec.Replicas
 		_, err = c.rcs.ReplicationControllers(namespace).Update(typedObj)
 	default:

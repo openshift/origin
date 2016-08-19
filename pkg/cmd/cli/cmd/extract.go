@@ -56,6 +56,8 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	options := &ExtractOptions{
 		Out: out,
 		Err: errOut,
+
+		TargetDirectory: ".",
 	}
 	cmd := &cobra.Command{
 		Use:     "extract RESOURCE/NAME [--to=DIRECTORY] [--keys=KEY ...]",

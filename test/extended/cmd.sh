@@ -138,6 +138,13 @@ os::cmd::expect_success "oc delete all --all"
 os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 os::test::junit::declare_suite_end
 
+# Test to see that we're reporting the correct commit being used by the build
+os::test::junit::declare_suite_start "extended/cmd/new-build"
+os::cmd::expect_success "oc new-build https://github.com/openshift/ruby-hello-world.git#bd94cbb228465d30d9d3430e80b503757a2a1d97"
+os::cmd::try_until_text "oc logs builds/ruby-hello-world-1" "Commit:[[:space:]]*bd94cbb228465d30d9d3430e80b503757a2a1d97"
+os::cmd::expect_success "oc delete all --all"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "extended/cmd/service-signer"
 # check to make sure that service serving cert signing works correctly
 # nginx currently needs to run as root

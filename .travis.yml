@@ -2,7 +2,7 @@ language: go
 
 go:
   - 1.6
-  - tip
+  - 1.7
 
 install:
   - export PATH=$GOPATH/bin:./_output/tools/etcd/bin:$PATH

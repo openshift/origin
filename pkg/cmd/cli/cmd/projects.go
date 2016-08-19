@@ -111,8 +111,11 @@ func (o ProjectsOptions) RunProjects() error {
 	clientCfg := o.ClientConfig
 	out := o.Out
 
+	var currentProject string
 	currentContext := config.Contexts[config.CurrentContext]
-	currentProject := currentContext.Namespace
+	if currentContext != nil {
+		currentProject = currentContext.Namespace
+	}
 
 	var currentProjectExists bool
 	var currentProjectErr error
@@ -125,7 +128,10 @@ func (o ProjectsOptions) RunProjects() error {
 		}
 	}
 
-	defaultContextName := cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+	var defaultContextName string
+	if currentContext != nil {
+		defaultContextName = cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+	}
 
 	var msg string
 	projects, err := getProjects(client)

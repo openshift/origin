@@ -1,0 +1,23 @@
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: java-extended-build-from-url
+spec:
+  source:
+    git:
+      uri: "https://github.com/php-coder/java-maven-hello-world.git"
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: "wildfly:10.0"
+        namespace: openshift
+      runtimeImage:
+        kind: ImageStreamTag
+        name: "jvm-runner:0.1"
+      runtimeArtifacts:
+        - sourcePath: /opt/s2i/destination/src/target/hello.jar
+      env:
+        - name: USING_ENV_FROM_BUILD_CONFIG
+          value: "yes"
+      scripts: "https://raw.githubusercontent.com/php-coder/java-maven-hello-world/s2i-assemble-and-assemble-runtime/.s2i/bin"

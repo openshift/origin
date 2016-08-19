@@ -1,0 +1,32 @@
+kind: List
+apiVersion: v1
+items:
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: jvm-runner-with-scripts
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: jvm-runner-with-scripts
+  spec:
+    source:
+      dockerfile: |
+        FROM jboss/base-jdk:8
+        LABEL io.openshift.s2i.scripts-url "image:///usr/libexec/s2i"
+        LABEL io.openshift.s2i.assemble-input-files "/opt/s2i/destination/src/target/hello.jar"
+        USER root
+        RUN mkdir -p /usr/libexec/s2i && \
+            curl -s https://raw.githubusercontent.com/php-coder/java-maven-hello-world/s2i-assemble-and-assemble-runtime/.s2i/bin/assemble-runtime | tee /usr/libexec/s2i/assemble-runtime && \
+            chmod +x /usr/libexec/s2i/assemble-runtime && \
+            curl -s https://raw.githubusercontent.com/php-coder/java-maven-hello-world/s2i-assemble-and-assemble-runtime/.s2i/bin/run | tee /usr/libexec/s2i/run && \
+            chmod +x /usr/libexec/s2i/run
+        USER 1000
+    strategy:
+      type: Docker
+    output:
+      to:
+        kind: ImageStreamTag
+        name: jvm-runner-with-scripts:0.1

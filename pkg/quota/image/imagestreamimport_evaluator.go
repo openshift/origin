@@ -67,12 +67,10 @@ func makeImageStreamImportAdmissionUsageFunc(isNamespacer osclient.ImageStreamsN
 		}
 
 		is, err := isNamespacer.ImageStreams(isi.Namespace).Get(isi.Name)
-		if err != nil {
-			if !kerrors.IsNotFound(err) {
-				utilruntime.HandleError(fmt.Errorf("failed to list image streams: %v", err))
-			}
+		if err != nil && !kerrors.IsNotFound(err) {
+			utilruntime.HandleError(fmt.Errorf("failed to list image streams: %v", err))
 		}
-		if is == nil {
+		if is == nil || kerrors.IsNotFound(err) {
 			usage[imageapi.ResourceImageStreams] = *resource.NewQuantity(1, resource.DecimalSI)
 		}
 

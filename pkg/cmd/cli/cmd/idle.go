@@ -531,8 +531,9 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	dcGetter := deployclient.New(oclient.RESTClient)
 	rcGetter := clientset.FromUnversionedClient(kclient)
 
-	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, rcGetter, func(annotations map[string]string) {
+	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, rcGetter, func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
+		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
 
 	replicas := make(map[unidlingapi.CrossGroupObjectReference]int32, len(byScalable))

@@ -96,6 +96,15 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 			if weightedRatio < 5 && weightedRatio > 0.2 {
 				e2e.Failf("Unexpected weighted ratio for incoming traffic: %v (%d/%d)", weightedRatio, trafficEP1, trafficEP2)
 			}
+
+			g.By(fmt.Sprintf("checking that zero weights are also respected by the router"))
+			host = "zeroweight.example.com"
+			req, _ = requestViaReverseProxy("GET", routerURL, host)
+			resp, err = http.DefaultClient.Do(req)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if resp.StatusCode != http.StatusServiceUnavailable {
+				e2e.Failf("Expected zero weighted route to return a 503, but got %v", resp.StatusCode)
+			}
 		})
 	})
 })
