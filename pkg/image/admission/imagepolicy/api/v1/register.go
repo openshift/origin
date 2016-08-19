@@ -1,7 +1,6 @@
 package v1
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -17,15 +16,7 @@ func AddToScheme(scheme *runtime.Scheme) {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ImagePolicyConfig{},
 	)
-	scheme.AddDefaultingFuncs(
-		func(c *ImagePolicyConfig) {
-			for i := range c.ExecutionRules {
-				if len(c.ExecutionRules[i].OnResources) == 0 {
-					c.ExecutionRules[i].OnResources = []GroupResource{{Resource: "pods", Group: kapi.GroupName}}
-				}
-			}
-		},
-	)
+	addDefaultingFuncs(scheme)
 	scheme.AddConversionFuncs(
 		// TODO: remove when MatchSignatures is implemented
 		func(in *ImageCondition, out *api.ImageCondition, s conversion.Scope) error {

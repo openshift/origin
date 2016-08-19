@@ -292,6 +292,9 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				}
 				obj.ExecutionRules[i].MatchImageLabelSelectors = nil
 			}
+			if len(obj.ResolveImages) == 0 {
+				obj.ResolveImages = imagepolicyapi.Attempt
+			}
 		},
 		func(obj *configapi.GrantConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
