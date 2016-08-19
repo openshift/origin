@@ -36,7 +36,7 @@ import (
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Root command not specified (os | oadm | openshift).")
+		fmt.Fprintf(os.Stderr, "Root command not specified (oc | oadm | openshift).\n")
 		os.Exit(1)
 	}
 
