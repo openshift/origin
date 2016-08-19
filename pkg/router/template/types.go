@@ -69,12 +69,13 @@ type Certificate struct {
 
 // Endpoint is an internal representation of a k8s endpoint.
 type Endpoint struct {
-	ID         string
-	IP         string
-	Port       string
-	TargetName string
-	PortName   string
-	IdHash     string
+	ID            string
+	IP            string
+	Port          string
+	TargetName    string
+	PortName      string
+	IdHash        string
+	NoHealthCheck bool
 }
 
 // certificateManager provides the ability to write certificates for a ServiceAliasConfig
