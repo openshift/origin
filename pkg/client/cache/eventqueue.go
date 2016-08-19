@@ -83,7 +83,9 @@ var watchEventEffectMatrix = map[watch.EventType]map[watch.EventType]watchEventE
 		watch.Modified: watchEventEffectCompress,
 		watch.Deleted:  watchEventEffectCompress,
 	},
-	watch.Deleted: {},
+	watch.Deleted: {
+		watch.Added: watchEventEffectAdd,
+	},
 }
 
 // The watch event compression matrix defines how two events should be compressed.

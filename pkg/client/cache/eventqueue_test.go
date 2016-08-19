@@ -205,3 +205,23 @@ func TestEventQueue_ListConsumed(t *testing.T) {
 		t.Fatalf("expected ListConsumed to be true after queued items read")
 	}
 }
+
+func TestEventQueue_addDeleteAdd(t *testing.T) {
+	q := NewEventQueue(keyFunc)
+
+	q.Replace([]interface{}{}, "1")
+
+	q.Add(cacheable{"foo", 3})
+	q.Delete(cacheable{key: "foo"})
+	q.Add(cacheable{"foo", 6})
+
+	event, thing, _ := q.Pop()
+	value := thing.(cacheable).value
+	if value != 6 {
+		t.Fatalf("expected %v, got %v", 6, value)
+	}
+
+	if event != watch.Added {
+		t.Fatalf("expected %s, got %s", watch.Added, event)
+	}
+}
