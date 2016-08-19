@@ -211,10 +211,10 @@ os::cmd::expect_success "oc project $project"
 # test scheduled and insecure tagging
 os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --scheduled'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 1).importPolicy.scheduled}}'" 'true'
-os::cmd::expect_success_and_text "oc describe is/newrepo" '\* tag is scheduled'
+os::cmd::expect_success_and_text "oc describe is/newrepo" 'updates automatically from registry mysql:5.7'
 os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --insecure'
-os::cmd::expect_success_and_text "oc describe is/newrepo" '\! tag is insecure'
-os::cmd::expect_success_and_not_text "oc describe is/newrepo" '\* tag is scheduled'
+os::cmd::expect_success_and_text "oc describe is/newrepo" 'will use insecure HTTPS or HTTP connections'
+os::cmd::expect_success_and_not_text "oc describe is/newrepo" 'updates automatically from'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 1).importPolicy.insecure}}'" 'true'
 
 # test creating streams that don't exist
