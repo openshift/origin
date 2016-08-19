@@ -129,22 +129,16 @@ func getConfigurationName(args []string) (string, error) {
 
 //  Get the configurator based on the ipfailover type.
 func getPlugin(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (ipfailover.IPFailoverConfiguratorPlugin, error) {
-	//  Currently, the only supported plugin is keepalived (default).
-	plugin, err := keepalived.NewIPFailoverConfiguratorPlugin(name, f, options)
+	if options.Type == ipfailover.DefaultType {
+		plugin, err := keepalived.NewIPFailoverConfiguratorPlugin(name, f, options)
+		if err != nil {
+			return nil, fmt.Errorf("IPFailoverConfigurator %q plugin error: %v", options.Type, err)
+		}
 
-	switch options.Type {
-	case ipfailover.DefaultType:
-		//  Default.
-	// case <new-type>:  plugin, err = makeNewTypePlugin()
-	default:
-		return nil, fmt.Errorf("No plugins available to handle type %q", options.Type)
+		return plugin, nil
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("IPFailoverConfigurator %q plugin error: %v", options.Type, err)
-	}
-
-	return plugin, nil
+	return nil, fmt.Errorf("No plugins available to handle type %q", options.Type)
 }
 
 // Run runs the ipfailover command.
