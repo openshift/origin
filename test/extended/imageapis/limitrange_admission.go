@@ -1,4 +1,4 @@
-package images
+package imageapis
 
 import (
 	"fmt"
@@ -13,13 +13,14 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
+	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
 
 const limitRangeName = "limits"
 
-var _ = g.Describe("[images] openshift limit range admission", func() {
+var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("limitrange-admission", exutil.KubeConfigPath())
 
@@ -51,19 +52,19 @@ var _ = g.Describe("[images] openshift limit range admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image exceeding size limit with just 1 layer"))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "middle", 16000, 1, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "middle", 16000, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image exceeding size limit in total"))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "middle", 16000, 5, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "middle", 16000, 5, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image with one big layer below size limit"))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "small", 8000, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "small", 8000, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push an image below size limit"))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "small", 8000, 2, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "small", 8000, 2, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -82,33 +83,33 @@ var _ = g.Describe("[images] openshift limit range admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "refused", imageSize, 1, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "refused", imageSize, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		limits, err = bumpLimit(oc, imageapi.ResourceImageStreamImages, "1")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "first", imageSize, 2, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "first", imageSize, 2, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "second", imageSize, 2, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "sized", "second", imageSize, 2, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v to another image stream", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "second", imageSize, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "second", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		limits, err = bumpLimit(oc, imageapi.ResourceImageStreamImages, "2")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "third", imageSize, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "third", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding limits %v", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "fourth", imageSize, 1, false)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "fourth", imageSize, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(`removing tag "second" from "another" image stream`)
@@ -116,7 +117,7 @@ var _ = g.Describe("[images] openshift limit range admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
-		err = BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "replenish", imageSize, 1, true)
+		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, dClient, oc.Namespace(), "another", "replenish", imageSize, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -233,7 +234,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 
 	for i := 1; i <= numberOfImages; i++ {
 		tag := fmt.Sprintf("%s%d", tagPrefix, i)
-		dgst, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true)
+		dgst, err := imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true)
 		if err != nil {
 			return nil, err
 		}
