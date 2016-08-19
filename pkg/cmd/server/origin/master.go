@@ -52,6 +52,7 @@ import (
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/registry/generator"
+	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/importer"
@@ -493,9 +494,16 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter)
+
 	dcInstantiateOriginClient, dcInstantiateKubeClient := c.DeploymentConfigInstantiateClients()
-	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, dcInstantiateStorage, err := deployconfigetcd.NewREST(
-		c.RESTOptionsGetter, dcInstantiateOriginClient, dcInstantiateKubeClient, c.EtcdHelper.Codec())
+	dcInstantiateStorage := deployconfiginstantiate.NewREST(
+		*deployConfigStorage.Store,
+		dcInstantiateOriginClient,
+		dcInstantiateKubeClient,
+		c.ExternalVersionCodec,
+		c.AdmissionControl,
+	)
 
 	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
@@ -778,8 +786,7 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		Produces(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initializes an HTTP endpoint for health checking.
-// OpenShift is deemed healthy if the API server can respond with an OK messages
+// initMetricsRoute initializes an HTTP endpoint for metrics.
 func initMetricsRoute(root *restful.WebService, path string) {
 	h := prometheus.Handler()
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {

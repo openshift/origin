@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -22,9 +23,9 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func NewREST(store registry.Store, oc client.Interface, kc kclient.Interface, decoder runtime.Decoder) *REST {
+func NewREST(store registry.Store, oc client.Interface, kc kclient.Interface, decoder runtime.Decoder, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
-	return &REST{store: &store, isn: oc, rn: kc, decoder: decoder}
+	return &REST{store: &store, isn: oc, rn: kc, decoder: decoder, admit: admission}
 }
 
 // REST implements the Creater interface.
@@ -35,6 +36,7 @@ type REST struct {
 	isn     client.ImageStreamsNamespacer
 	rn      kclient.ReplicationControllersNamespacer
 	decoder runtime.Decoder
+	admit   admission.Interface
 }
 
 func (s *REST) New() runtime.Object {
@@ -53,6 +55,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 	config := configObj.(*deployapi.DeploymentConfig)
+	old := config
 
 	if errs := validation.ValidateRequestForDeploymentConfig(req, config); len(errs) > 0 {
 		return nil, errors.NewInvalid(deployapi.Kind("DeploymentRequest"), req.Name, errs)
@@ -90,6 +93,12 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		config.Status.Details.Message = "manual change"
 	}
 	config.Status.LatestVersion++
+
+	userInfo, _ := kapi.UserFrom(ctx)
+	attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
+	if err := r.admit.Admit(attrs); err != nil {
+		return nil, err
+	}
 
 	updated, _, err := r.store.Update(ctx, config.Name, rest.DefaultUpdatedObjectInfo(config, kapi.Scheme))
 	return updated, err
