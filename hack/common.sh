@@ -10,6 +10,7 @@ readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 readonly OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
 readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
+readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 
@@ -305,7 +306,7 @@ os::build::internal::build_binaries() {
         eval "platform_goflags=(${!platform_goflags_envvar:-})"
 
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
-          -pkgdir ${GOPATH}/src/${OS_GO_PACKAGE} \
+          -pkgdir "${OS_OUTPUT_PKGDIR}" \
           "${goflags[@]:+${goflags[@]}}" "${platform_goflags[@]:+${platform_goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "${nonstatics[@]}"
