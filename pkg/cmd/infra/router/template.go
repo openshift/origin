@@ -32,6 +32,9 @@ created by users and keeps a local router configuration up to date with those ch
 
 You may customize the router by providing your own --template and --reload scripts.
 
+The router must have a default certificate in pem format. You may provide it via --default-cert otherwise
+one is automatically created.
+
 You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
 access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
 namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
@@ -56,6 +59,7 @@ type TemplateRouter struct {
 	ReloadInterval         time.Duration
 	DefaultCertificate     string
 	DefaultCertificatePath string
+	DefaultCertificateDir  string
 	ExtendedValidation     bool
 	RouterService          *ktypes.NamespacedName
 }
@@ -77,6 +81,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/haproxy/router", "The working directory for the router plugin")
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.DefaultCertificatePath, "default-certificate-path", util.Env("DEFAULT_CERTIFICATE_PATH", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
+	flag.StringVar(&o.DefaultCertificateDir, "default-certificate-dir", util.Env("DEFAULT_CERTIFICATE_DIR", ""), "A path to a directory that contains a file named tls.crt. If tls.crt is not a PEM file which also contains a private key, it is first combined with a file named tls.key in the same directory. The PEM-format contents are then used as the default certificate. Only used if default-certificate and default-certificate-path are not specified.")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
@@ -178,6 +183,7 @@ func (o *TemplateRouterOptions) Run() error {
 		ReloadInterval:         o.ReloadInterval,
 		DefaultCertificate:     o.DefaultCertificate,
 		DefaultCertificatePath: o.DefaultCertificatePath,
+		DefaultCertificateDir:  o.DefaultCertificateDir,
 		StatsPort:              o.StatsPort,
 		StatsUsername:          o.StatsUsername,
 		StatsPassword:          o.StatsPassword,
