@@ -10,7 +10,8 @@
 // examples/db-templates/mysql-persistent-template.json
 // examples/db-templates/postgresql-ephemeral-template.json
 // examples/db-templates/postgresql-persistent-template.json
-// examples/jenkins/pipeline/jenkinstemplate.json
+// examples/jenkins/jenkins-ephemeral-template.json
+// examples/jenkins/jenkins-persistent-template.json
 // examples/jenkins/pipeline/samplepipeline.json
 // examples/quickstarts/cakephp-mysql.json
 // examples/quickstarts/dancer-mysql.json
@@ -3151,25 +3152,25 @@ func examplesDbTemplatesPostgresqlPersistentTemplateJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
+var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "jenkins",
+    "name": "jenkins-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "Jenkins service, without persistent storage.\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.",
+  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
+        "name": "${JENKINS_SERVICE_NAME}",
         "creationTimestamp": null
       },
       "spec": {
@@ -3207,9 +3208,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "jenkins:1",
-                "namespace": "openshift"
-              }
+                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
             }
           },
           {
@@ -3261,6 +3263,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
                   {
                     "name": "KUBERNETES_TRUST_CERTIFICATES",
                     "value": "true"
+                  },
+                  {
+                    "name": "JNLP_SERVICE_NAME",
+                    "value": "${JNLP_SERVICE_NAME}"
                   }
                 ],
                 "resources": {
@@ -3325,7 +3331,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins-jnlp"
+        "name": "${JNLP_SERVICE_NAME}"
       },
       "spec": {
         "ports": [
@@ -3351,7 +3357,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
        "metadata": {
          "name": "${JENKINS_SERVICE_NAME}",
          "annotations": {
-           "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+           "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
            "service.openshift.io/infrastructure": "true"
          },
          "creationTimestamp": null
@@ -3377,22 +3383,16 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
   ],
   "parameters": [
     {
-      "name": "MEMORY_LIMIT",
-      "displayName": "Memory Limit",
-      "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi"
-    },
-    {
-      "name": "NAMESPACE",
-      "displayName": "Namespace",
-      "description": "The OpenShift Namespace where the ImageStream resides.",
-      "value": "openshift"
-    },
-    {
       "name": "JENKINS_SERVICE_NAME",
       "displayName": "Jenkins Service Name",
       "description": "The name of the OpenShift Service exposed for the Jenkins container.",
       "value": "jenkins"
+    },
+    {
+      "name": "JNLP_SERVICE_NAME",
+      "displayName": "Jenkins JNLP Service Name",
+      "description": "The name of the service used for master/slave communication.",
+      "value": "jenkins-jnlp"
     },
     {
       "name": "JENKINS_PASSWORD",
@@ -3401,25 +3401,357 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Jenkins ImageStream Namespace",
+      "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "JENKINS_IMAGE_STREAM_TAG",
+      "displayName": "Jenkins ImageStreamTag",
+      "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+      "value": "jenkins:latest"
     }
   ],
   "labels": {
-    "template": "jenkins-pipeline-template"
+    "template": "jenkins-ephemeral-template"
   }
 }
 `)
 
-func examplesJenkinsPipelineJenkinstemplateJsonBytes() ([]byte, error) {
-	return _examplesJenkinsPipelineJenkinstemplateJson, nil
+func examplesJenkinsJenkinsEphemeralTemplateJsonBytes() ([]byte, error) {
+	return _examplesJenkinsJenkinsEphemeralTemplateJson, nil
 }
 
-func examplesJenkinsPipelineJenkinstemplateJson() (*asset, error) {
-	bytes, err := examplesJenkinsPipelineJenkinstemplateJsonBytes()
+func examplesJenkinsJenkinsEphemeralTemplateJson() (*asset, error) {
+	bytes, err := examplesJenkinsJenkinsEphemeralTemplateJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/jenkins/pipeline/jenkinstemplate.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "examples/jenkins/jenkins-ephemeral-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "jenkins-persistent",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "Jenkins service, with persistent storage.\nYou must have persistent volumes available in your cluster to use this template.",
+      "iconClass": "icon-jenkins",
+      "tags": "instant-app,jenkins"
+    }
+  },
+  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "to": {
+          "kind": "Service",
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "tls": {
+          "termination": "edge",
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "certificate": "-----BEGIN CERTIFICATE-----\nMIIDIjCCAgqgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBoTELMAkGA1UEBhMCVVMx\nCzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0Rl\nZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0ExGjAYBgNVBAMMEXd3\ndy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUu\nY29tMB4XDTE1MDExMjE0MTk0MVoXDTE2MDExMjE0MTk0MVowfDEYMBYGA1UEAwwP\nd3d3LmV4YW1wbGUuY29tMQswCQYDVQQIDAJTQzELMAkGA1UEBhMCVVMxIjAgBgkq\nhkiG9w0BCQEWE2V4YW1wbGVAZXhhbXBsZS5jb20xEDAOBgNVBAoMB0V4YW1wbGUx\nEDAOBgNVBAsMB0V4YW1wbGUwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMrv\ngu6ZTTefNN7jjiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm\n47VRx5Qrf/YLXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1M\nmNrQUgZyQC6XIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAGjDTALMAkGA1UdEwQC\nMAAwDQYJKoZIhvcNAQEFBQADggEBAFCi7ZlkMnESvzlZCvv82Pq6S46AAOTPXdFd\nTMvrh12E1sdVALF1P1oYFJzG1EiZ5ezOx88fEDTW+Lxb9anw5/KJzwtWcfsupf1m\nV7J0D3qKzw5C1wjzYHh9/Pz7B1D0KthQRATQCfNf8s6bbFLaw/dmiIUhHLtIH5Qc\nyfrejTZbOSP77z8NOWir+BWWgIDDB2//3AkDIQvT20vmkZRhkqSdT7et4NmXOX/j\njhPti4b2Fie0LeuvgaOdKjCpQQNrYthZHXeVlOLRhMTSk3qUczenkKTOhvP7IS9q\n+Dzv5hqgSfvMG392KWh5f8xXfJNs4W5KLbZyl901MeReiLrPH3w=\n-----END CERTIFICATE-----",
+          "key": "-----BEGIN PRIVATE KEY-----\nMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMrvgu6ZTTefNN7j\njiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm47VRx5Qrf/YL\nXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1MmNrQUgZyQC6X\nIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAECgYEAnxOjEj/vrLNLMZE1Q9H7PZVF\nWdP/JQVNvQ7tCpZ3ZdjxHwkvf//aQnuxS5yX2Rnf37BS/TZu+TIkK4373CfHomSx\nUTAn2FsLmOJljupgGcoeLx5K5nu7B7rY5L1NHvdpxZ4YjeISrRtEPvRakllENU5y\ngJE8c2eQOx08ZSRE4TkCQQD7dws2/FldqwdjJucYijsJVuUdoTqxP8gWL6bB251q\nelP2/a6W2elqOcWId28560jG9ZS3cuKvnmu/4LG88vZFAkEAzphrH3673oTsHN+d\nuBd5uyrlnGjWjuiMKv2TPITZcWBjB8nJDSvLneHF59MYwejNNEof2tRjgFSdImFH\nmi995wJBAMtPjW6wiqRz0i41VuT9ZgwACJBzOdvzQJfHgSD9qgFb1CU/J/hpSRIM\nkYvrXK9MbvQFvG6x4VuyT1W8mpe1LK0CQAo8VPpffhFdRpF7psXLK/XQ/0VLkG3O\nKburipLyBg/u9ZkaL0Ley5zL5dFBjTV2Qkx367Ic2b0u9AYTCcgi2DsCQQD3zZ7B\nv7BOm7MkylKokY2MduFFXU0Bxg6pfZ7q3rvg8gqhUFbaMStPRYg6myiDiW/JfLhF\nTcFT4touIo7oriFJ\n-----END PRIVATE KEY-----",
+          "caCertificate": "-----BEGIN CERTIFICATE-----\nMIIEFzCCAv+gAwIBAgIJALK1iUpF2VQLMA0GCSqGSIb3DQEBBQUAMIGhMQswCQYD\nVQQGEwJVUzELMAkGA1UECAwCU0MxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoG\nA1UECgwTRGVmYXVsdCBDb21wYW55IEx0ZDEQMA4GA1UECwwHVGVzdCBDQTEaMBgG\nA1UEAwwRd3d3LmV4YW1wbGVjYS5jb20xIjAgBgkqhkiG9w0BCQEWE2V4YW1wbGVA\nZXhhbXBsZS5jb20wHhcNMTUwMTEyMTQxNTAxWhcNMjUwMTA5MTQxNTAxWjCBoTEL\nMAkGA1UEBhMCVVMxCzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkx\nHDAaBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0Ex\nGjAYBgNVBAMMEXd3dy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFt\ncGxlQGV4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\nw2rK1J2NMtQj0KDug7g7HRKl5jbf0QMkMKyTU1fBtZ0cCzvsF4CqV11LK4BSVWaK\nrzkaXe99IVJnH8KdOlDl5Dh/+cJ3xdkClSyeUT4zgb6CCBqg78ePp+nN11JKuJlV\nIG1qdJpB1J5O/kCLsGcTf7RS74MtqMFo96446Zvt7YaBhWPz6gDaO/TUzfrNcGLA\nEfHVXkvVWqb3gqXUztZyVex/gtP9FXQ7gxTvJml7UkmT0VAFjtZnCqmFxpLZFZ15\n+qP9O7Q2MpsGUO/4vDAuYrKBeg1ZdPSi8gwqUP2qWsGd9MIWRv3thI2903BczDc7\nr8WaIbm37vYZAS9G56E4+wIDAQABo1AwTjAdBgNVHQ4EFgQUugLrSJshOBk5TSsU\nANs4+SmJUGwwHwYDVR0jBBgwFoAUugLrSJshOBk5TSsUANs4+SmJUGwwDAYDVR0T\nBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOCAQEAaMJ33zAMV4korHo5aPfayV3uHoYZ\n1ChzP3eSsF+FjoscpoNSKs91ZXZF6LquzoNezbfiihK4PYqgwVD2+O0/Ty7UjN4S\nqzFKVR4OS/6lCJ8YncxoFpTntbvjgojf1DEataKFUN196PAANc3yz8cWHF4uvjPv\nWkgFqbIjb+7D1YgglNyovXkRDlRZl0LD1OQ0ZWhd4Ge1qx8mmmanoBeYZ9+DgpFC\nj9tQAbS867yeOryNe7sEOIpXAAqK/DTu0hB6+ySsDfMo4piXCc2aA/eI2DCuw08e\nw17Dz9WnupZjVdwTKzDhFgJZMLDqn37HQnT6EemLFqbcR0VPEnfyhDtZIQ==\n-----END CERTIFICATE-----"
+        }
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },    
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${JENKINS_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "${JENKINS_SERVICE_NAME}",
+            "containers": [
+              {
+                "name": "jenkins",
+                "image": " ",
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 120,
+                    "httpGet": {
+                        "path": "/login",
+                        "port": 8080
+                    }
+                },
+                "env": [
+                  {
+                    "name": "JENKINS_PASSWORD",
+                    "value": "${JENKINS_PASSWORD}"
+                  },
+                  {
+                    "name": "KUBERNETES_MASTER",
+                    "value": "https://kubernetes.default:443"
+                  },
+                  {
+                    "name": "KUBERNETES_TRUST_CERTIFICATES",
+                    "value": "true"
+                  },
+                  {
+                    "name": "JNLP_SERVICE_NAME",
+                    "value": "${JNLP_SERVICE_NAME}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${JENKINS_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/jenkins"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${JENKINS_SERVICE_NAME}-data",
+                "persistentVolumeClaim": {
+                  "claimName": "${JENKINS_SERVICE_NAME}"
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      }
+    },
+    {
+      "kind": "ServiceAccount",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${JENKINS_SERVICE_NAME}"
+        }
+    },
+    {
+      "kind": "RoleBinding",
+      "apiVersion": "v1",
+      "metadata": {
+          "name": "${JENKINS_SERVICE_NAME}_edit"
+      },
+      "groupNames": null,
+      "subjects": [
+          {
+              "kind": "ServiceAccount",
+              "name": "${JENKINS_SERVICE_NAME}"
+          }
+      ],
+      "roleRef": {
+          "name": "edit"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JNLP_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "agent",
+            "protocol": "TCP",
+            "port": 50000,
+            "targetPort": 50000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      }
+    },
+    {
+       "kind": "Service",
+       "apiVersion": "v1",
+       "metadata": {
+         "name": "${JENKINS_SERVICE_NAME}",
+         "annotations": {
+           "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+           "service.openshift.io/infrastructure": "true"
+         },
+         "creationTimestamp": null
+       },
+       "spec": {
+         "ports": [
+           {
+             "name": "web",
+             "protocol": "TCP",
+             "port": 80,
+             "targetPort": 8080,
+             "nodePort": 0
+           }
+         ],
+         "selector": {
+           "name": "${JENKINS_SERVICE_NAME}"
+         },
+         "portalIP": "",
+         "type": "ClusterIP",
+         "sessionAffinity": "None"
+       }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "JENKINS_SERVICE_NAME",
+      "displayName": "Jenkins Service Name",
+      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
+      "value": "jenkins"
+    },
+    {
+      "name": "JNLP_SERVICE_NAME",
+      "displayName": "Jenkins JNLP Service Name",
+      "description": "The name of the service used for master/slave communication.",
+      "value": "jenkins-jnlp"
+    },
+    {
+      "name": "JENKINS_PASSWORD",
+      "displayName": "Jenkins Password",
+      "description": "Password for the Jenkins 'admin' user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+      "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Jenkins ImageStream Namespace",
+      "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "JENKINS_IMAGE_STREAM_TAG",
+      "displayName": "Jenkins ImageStreamTag",
+      "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+      "value": "jenkins:latest"
+    }
+  ],
+  "labels": {
+    "template": "jenkins-persistent-template"
+  }
+}
+`)
+
+func examplesJenkinsJenkinsPersistentTemplateJsonBytes() ([]byte, error) {
+	return _examplesJenkinsJenkinsPersistentTemplateJson, nil
+}
+
+func examplesJenkinsJenkinsPersistentTemplateJson() (*asset, error) {
+	bytes, err := examplesJenkinsJenkinsPersistentTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/jenkins-persistent-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -3436,6 +3768,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
       "tags": "instant-app,ruby,mysql,jenkins"
     }
   },
+  "message": "The Jenkins server is not currently automatically instantiated for you.  Please instantiate one of the Jenkins templates to create a Jenkins server for managing your pipeline build configurations.",
   "objects": [
     {
       "kind": "BuildConfig",
@@ -6548,7 +6881,8 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/db-templates/mysql-persistent-template.json": examplesDbTemplatesMysqlPersistentTemplateJson,
 	"examples/db-templates/postgresql-ephemeral-template.json": examplesDbTemplatesPostgresqlEphemeralTemplateJson,
 	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
-	"examples/jenkins/pipeline/jenkinstemplate.json": examplesJenkinsPipelineJenkinstemplateJson,
+	"examples/jenkins/jenkins-ephemeral-template.json": examplesJenkinsJenkinsEphemeralTemplateJson,
+	"examples/jenkins/jenkins-persistent-template.json": examplesJenkinsJenkinsPersistentTemplateJson,
 	"examples/jenkins/pipeline/samplepipeline.json": examplesJenkinsPipelineSamplepipelineJson,
 	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
 	"examples/quickstarts/dancer-mysql.json": examplesQuickstartsDancerMysqlJson,
@@ -6624,9 +6958,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			}},
 		}},
 		"jenkins": &bintree{nil, map[string]*bintree{
+			"jenkins-ephemeral-template.json": &bintree{examplesJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{
+			}},
+			"jenkins-persistent-template.json": &bintree{examplesJenkinsJenkinsPersistentTemplateJson, map[string]*bintree{
+			}},
 			"pipeline": &bintree{nil, map[string]*bintree{
-				"jenkinstemplate.json": &bintree{examplesJenkinsPipelineJenkinstemplateJson, map[string]*bintree{
-				}},
 				"samplepipeline.json": &bintree{examplesJenkinsPipelineSamplepipelineJson, map[string]*bintree{
 				}},
 			}},

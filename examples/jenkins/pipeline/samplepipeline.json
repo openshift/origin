@@ -10,6 +10,7 @@
       "tags": "instant-app,ruby,mysql,jenkins"
     }
   },
+  "message": "The Jenkins server is not currently automatically instantiated for you.  Please instantiate one of the Jenkins templates to create a Jenkins server for managing your pipeline build configurations.",
   "objects": [
     {
       "kind": "BuildConfig",

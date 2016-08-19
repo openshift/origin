@@ -36,16 +36,15 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.JenkinsPipelineConfig.TemplateNamespace = "openshift"
 			}
 			if len(obj.JenkinsPipelineConfig.TemplateName) == 0 {
-				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
+				obj.JenkinsPipelineConfig.TemplateName = "jenkins-ephemeral"
 			}
 			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
 				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
 			}
-			if obj.JenkinsPipelineConfig.Enabled == nil {
-				v := true
-				obj.JenkinsPipelineConfig.Enabled = &v
+			if obj.JenkinsPipelineConfig.AutoProvisionEnabled == nil {
+				v := false
+				obj.JenkinsPipelineConfig.AutoProvisionEnabled = &v
 			}
-
 			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &ClientConnectionOverrides{
 					// historical values
