@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 29daeae51244ddb205706958023504c014092541
+%global commit a39f949c16794b18329754f96168ae34b93f5703
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.22
+Version:        3.3.0.23
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,99 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Aug 19 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.23
+- BuildRequires bsdtar, for hack scripts (tdawson@redhat.com)
+- Disable ingress ip when cloud provider enabled (marun@redhat.com)
+- Bump origin-web-console (4d411df) (jforrest@redhat.com)
+- Fix oc project|projects when in cluster config (ffranz@redhat.com)
+- move unrelated extended tests out of images (ipalade@redhat.com)
+- bump(k8s.io/kubernetes): 447cecf8b808caa00756880f2537b2bafbfcd267
+  (deads@redhat.com)
+- UPSTREAM: 29093: Fix panic race in scheduler cache from 28886
+  (ccoleman@redhat.com)
+- calculate usage on istag creates (deads@redhat.com)
+- compute image stream usage properly on istag touches (deads@redhat.com)
+- UPSTREAM: 30907: only compute delta on non-creating updates
+  (deads@redhat.com)
+- UPSTREAM: google/cadvisor: 1359: Make ThinPoolWatcher loglevel consistent
+  (agoldste@redhat.com)
+- bump(google/cadvisor): 956e595d948ce8690296d297ba265d5e8649a088
+  (agoldste@redhat.com)
+- Allowed 'true' for the DROP_SYN_DURING_RESTART variable (bbennett@redhat.com)
+- Randomize delay in router stress test. (marun@redhat.com)
+- Add previous-scale annotation for idled resources (sross@redhat.com)
+- Fixed the comment about the different backends we make (bbennett@redhat.com)
+- block setting ownerReferences and finalizers (deads@redhat.com)
+- UPSTREAM: 30839: queueActionLocked requires write lock (deads@redhat.com)
+- UPSTREAM: 30624: Node controller deletePod return true if there are pods
+  pending deletion (agoldste@redhat.com)
+- UPSTREAM: 30277: Avoid computing DeepEqual in controllers all the time
+  (agoldste@redhat.com)
+- fix a logical error of the function 'RunCmdRouter' in the , the same as the
+  funtion 'RunCmdRegistry' in the (miao.yanqiang@zte.com.cn)
+- generate_vrrp_sync_groups calls expand_ip_ranges on an already expanded
+  ranges (cameron@braid.com.au)
+- Bump origin-web-console (8c03ff4) (jforrest@redhat.com)
+- UPSTREAM: 29639: <drop>: Fix default resource limits (node allocatable) for
+  downward api volumes and env vars. (avesh.ncsu@gmail.com)
+- Fix validation of pkg/sdn/api object updates (danw@redhat.com)
+- UPSTREAM: 30731: Always return command output for exec probes and kubelet
+  RunInContainer (agoldste@redhat.com)
+- UPSTREAM: 30796: Quota usage checking ignores unrelated resources
+  (decarr@redhat.com)
+- regen protos (bparees@redhat.com)
+- Make it easier to extract content from hack/env (ccoleman@redhat.com)
+- UPSTREAM: 27541: Attach should work for init containers (ccoleman@redhat.com)
+- UPSTREAM: 30736: Close websocket watch when client closes
+  (jliggitt@redhat.com)
+- Added Git logging to build output (rymurphy@redhat.com)
+- deploy: reconcile streams on config creation/updates (mkargaki@redhat.com)
+- Bug 1366936: fix ICT matching in the trigger controller (mkargaki@redhat.com)
+- Variable definition is not used (li.guangxu@zte.com.cn)
+- add test cases for `oc set env` (jvallejo@redhat.com)
+- return error when no env args are given (jvallejo@redhat.com)
+- check CustomStrategy validation at begin (li.guangxu@zte.com.cn)
+- force all plugins to either default off or default on (deads@redhat.com)
+- integration: fix imagestream admission flake (miminar@redhat.com)
+- Improve tests for extended build. (vsemushi@redhat.com)
+- Revert "test: extend timeout in ICT tests to the IC controller resync
+  interval" (mkargaki@redhat.com)
+- Return original error on on limit error (miminar@redhat.com)
+- Fix haproxy config bug. (smitram@gmail.com)
+- Fix somee mistakes in script as follow: (wang.yuexiao@zte.com.cn)
+- UPSTREAM: 30533: Validate involvedObject.Namespace matches event.Namespace
+  (jliggitt@redhat.com)
+- support for zero weighted services in a route (rchopra@redhat.com)
+- UPSTREAM: 30713: Empty resource type means no defaulting
+  (ccoleman@redhat.com)
+- Extract should default to current directory (ccoleman@redhat.com)
+- deprecate --list option from `volumes` cmd (jvallejo@redhat.com)
+- Bug 1330201 - Periodically sync k8s iptables rules (rpenta@redhat.com)
+- call out config validation warnings more clearly (deads@redhat.com)
+- Show restart count warnings only for latest deployment (mfojtik@redhat.com)
+- Fix scrub pod container command (mawong@redhat.com)
+- Updated auto generated doc for pod-network CLI commands (rpenta@redhat.com)
+- Updated auto generated bash completions for pod-network CLI commands
+  (rpenta@redhat.com)
+- Added test cases for 'oadm pod-network isolate-projects' (rpenta@redhat.com)
+- CLI changes to support project network isolation (rpenta@redhat.com)
+- Make pod-network cli command to use ChangePodNetworkAnnotation instead of
+  updating VNID directly (rpenta@redhat.com)
+- Remove old SDN netid allocator (rpenta@redhat.com)
+- Test cases for assign/update/revoke VNIDs (rpenta@redhat.com)
+- Handling VNID manipulations (rpenta@redhat.com)
+- Test cases for network ID allocator interface (rpenta@redhat.com)
+- Added network ID allocator interface (rpenta@redhat.com)
+- Test cases for network ID range interface (rpenta@redhat.com)
+- Added network ID range interface (rpenta@redhat.com)
+- Accessor methods for ChangePodNetworkAnnotation on NetNamespace
+  (rpenta@redhat.com)
+- have origin.spec use hack scripts to build (tdawson@redhat.com)
+- Allow startup to continue even if nodes don't have EgressNetworkPolicy list
+  permission (danw@redhat.com)
+- add a validateServiceAccount to the creation of ipfailover pods
+  (jtanenba@redhat.com)
+
 * Wed Aug 17 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.22
 - Return directly if no pods found when evacuating (zhao.xiangpeng@zte.com.cn)
 - Bump origin-web-console (5fa2bd9) (jforrest@redhat.com)
