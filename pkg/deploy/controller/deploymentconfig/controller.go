@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -118,7 +120,13 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 				copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 				copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 
-				updatedDeployment, err := c.rn.ReplicationControllers(copied.Namespace).Update(copied)
+				// Retry faster on conflicts
+				var updatedDeployment *kapi.ReplicationController
+				err = kclient.RetryOnConflict(wait.Backoff{Steps: 5}, func() error {
+					var err error
+					updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
+					return err
+				})
 				if err != nil {
 					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
@@ -170,7 +178,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			return c.updateStatus(config, existingDeployments)
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
-		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return fatalError(fmt.Sprintf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
 	c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCreated", "Created new deployment %q for version %d", created.Name, config.Status.LatestVersion)
 
@@ -396,6 +404,8 @@ func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 		c.queue.Forget(key)
 		return
 	}
+	// Log stack trace for every error
+	utilerrors.WithStacktrace(err)
 
 	if _, isFatal := err.(fatalError); isFatal {
 		utilruntime.HandleError(err)

@@ -1539,6 +1539,10 @@
 			"Rev": "aa5e036e6c44aec69a32eb41097001978b29ad31"
 		},
 		{
+		"ImportPath": "github.com/go-errors/errors",
+		"Rev": "a41850380601eeb43f4350f7d17c6bbd8944aaf8"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/go-msgpack/codec",
 			"Rev": "fa3f63826f7c23912c15263591e65d54d080b458"
 		},

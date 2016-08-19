@@ -1,8 +1,11 @@
 package errors
 
-import "strings"
-
 import (
+	"strings"
+
+	"github.com/go-errors/errors"
+	"github.com/golang/glog"
+
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 )
@@ -36,4 +39,14 @@ func IsTimeoutErr(err error) bool {
 		return false
 	}
 	return e.ErrStatus.Reason == unversioned.StatusReasonTimeout
+}
+
+// WithStacktrace will log the error with the full stacktrace and return the
+// original error.
+func WithStacktrace(err error) error {
+	if err == nil {
+		return nil
+	}
+	glog.V(3).Infof("%s\n%s\n%[1]s\n", strings.Repeat("-", 10), errors.WrapPrefix(err, "DEBUG: ", 3).ErrorStack())
+	return err
 }
