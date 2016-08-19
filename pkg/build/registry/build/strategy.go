@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"reflect"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -109,26 +110,34 @@ type detailsStrategy struct {
 }
 
 // Prepares a build for update by only allowing an update to build details.
-// For now, this is the Spec.Revision field
+// Build details currently consists of: Spec.Revision, Status.Reason, and
+// Status.Message, all of which are updated from within the build pod
 func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newBuild := obj.(*api.Build)
 	oldBuild := old.(*api.Build)
 	revision := newBuild.Spec.Revision
+	message := newBuild.Status.Message
+	reason := newBuild.Status.Reason
 	*newBuild = *oldBuild
 	newBuild.Spec.Revision = revision
+	newBuild.Status.Reason = reason
+	newBuild.Status.Message = message
 }
 
 // Validates that an update is valid by ensuring that no Revision exists and that it's not getting updated to blank
 func (detailsStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
 	newBuild := obj.(*api.Build)
 	oldBuild := old.(*api.Build)
+	oldRevision := oldBuild.Spec.Revision
+	newRevision := newBuild.Spec.Revision
 	errors := field.ErrorList{}
-	if oldBuild.Spec.Revision != nil {
-		// If there was already a revision, then return an error
-		errors = append(errors, field.Duplicate(field.NewPath("status", "revision"), oldBuild.Spec.Revision))
+
+	if newRevision == nil && oldRevision != nil {
+		errors = append(errors, field.Invalid(field.NewPath("spec", "revision"), nil, "cannot set an empty revision in build spec"))
 	}
-	if newBuild.Spec.Revision == nil {
-		errors = append(errors, field.Invalid(field.NewPath("status", "revision"), nil, "cannot set an empty revision in build status"))
+	if !reflect.DeepEqual(oldRevision, newRevision) && oldRevision != nil {
+		// If there was already a revision, then return an error
+		errors = append(errors, field.Duplicate(field.NewPath("spec", "revision"), oldBuild.Spec.Revision))
 	}
 	return errors
 }

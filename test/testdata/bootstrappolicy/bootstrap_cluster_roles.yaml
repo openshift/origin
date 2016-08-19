@@ -1637,6 +1637,13 @@ items:
     - builds/details
     verbs:
     - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:

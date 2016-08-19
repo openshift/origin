@@ -286,6 +286,46 @@ const (
 	// secret for pushing the output image.
 	// The build will stay in the pending state until the secret is created, or the build times out.
 	StatusReasonMissingPushSecret StatusReason = "MissingPushSecret"
+
+	// StatusReasonPostCommitHookFailed indicates the post-commit hook failed.
+	StatusReasonPostCommitHookFailed StatusReason = "PostCommitHookFailed"
+
+	// StatusReasonPushImageToRegistryFailed indicates that an image failed to be
+	// pushed to the registry.
+	StatusReasonPushImageToRegistryFailed StatusReason = "PushImageToRegistryFailed"
+
+	// StatusReasonPullBuilderImageFailed indicates that we failed to pull the
+	// builder image.
+	StatusReasonPullBuilderImageFailed StatusReason = "PullBuilderImageFailed"
+
+	// StatusReasonFetchSourceFailed indicates that fetching the source of the
+	// build has failed.
+	StatusReasonFetchSourceFailed StatusReason = "FetchSourceFailed"
+
+	// StatusReasonCancelledBuild indicates that the build was cancelled by the
+	// user.
+	StatusReasonCancelledBuild StatusReason = "CancelledBuild"
+
+	// StatusReasonDockerBuildFailed indicates that the docker build strategy has
+	// failed.
+	StatusReasonDockerBuildFailed StatusReason = "DockerBuildFailed"
+)
+
+// NOTE: These messages might change.
+const (
+	StatusMessageCannotCreateBuildPodSpec  = "Failed to create pod spec"
+	StatusMessageCannotCreateBuildPod      = "Failed creating build pod"
+	StatusMessageInvalidOutputRef          = "Output image could not be resolved"
+	StatusMessageCancelBuildFailed         = "Failed to cancel build"
+	StatusMessageBuildPodDeleted           = "The pod for this build was deleted before the build completed"
+	StatusMessageExceededRetryTimeout      = "Build did not complete and retrying timed out"
+	StatusMessageMissingPushSecret         = "Missing push secret"
+	StatusMessagePostCommitHookFailed      = "Build failed because of post commit hook"
+	StatusMessagePushImageToRegistryFailed = "Failed to push the image to the registry"
+	StatusMessagePullBuilderImageFailed    = "Failed pulling builder image"
+	StatusMessageFetchSourceFailed         = "Failed to fetch the input source"
+	StatusMessageCancelledBuild            = "The build was cancelled by the user"
+	StatusMessageDockerBuildFailed         = "Docker build strategy has failed"
 )
 
 // BuildSource is the input used for the build.

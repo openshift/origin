@@ -475,6 +475,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// allow auto-provisioning when pushing an image that doesn't have an imagestream yet
 				authorizationapi.NewRule("create").Groups(imageGroup).Resources("imagestreams").RuleOrDie(),
 				authorizationapi.NewRule("update").Groups(buildGroup).Resources("builds/details").RuleOrDie(),
+				authorizationapi.NewRule("get").Groups(buildGroup).Resources("builds").RuleOrDie(),
 			},
 		},
 		{

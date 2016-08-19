@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -72,10 +73,12 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	}
 
 	build.Status.Phase = buildapi.BuildPhaseCancelled
-	build.Status.Reason = ""
-	build.Status.Message = ""
 	now := unversioned.Now()
 	build.Status.CompletionTimestamp = &now
+	// set the status details for the cancelled build before updating the build
+	// object.
+	build.Status.Reason = buildapi.StatusReasonCancelledBuild
+	build.Status.Message = buildapi.StatusMessageCancelledBuild
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 		return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 	}
@@ -111,6 +114,10 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 		glog.V(5).Infof("Marking build %s/%s as cancelled", build.Namespace, build.Name)
 		if err := bc.CancelBuild(build); err != nil {
 			build.Status.Reason = buildapi.StatusReasonCancelBuildFailed
+			build.Status.Message = buildapi.StatusMessageCancelBuildFailed
+			if err = bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+				utilruntime.HandleError(fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err))
+			}
 			return fmt.Errorf("Failed to cancel build %s/%s: %v, will retry", build.Namespace, build.Name, err)
 		}
 	}
@@ -147,8 +154,6 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	if build.Status.Cancelled {
 		glog.V(4).Infof("Cancelling build %s/%s.", build.Namespace, build.Name)
 		build.Status.Phase = buildapi.BuildPhaseCancelled
-		build.Status.Reason = ""
-		build.Status.Message = ""
 		return nil
 	}
 
@@ -156,6 +161,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	ref, err := bc.resolveOutputDockerImageReference(build)
 	if err != nil {
 		build.Status.Reason = buildapi.StatusReasonInvalidOutputReference
+		build.Status.Message = buildapi.StatusMessageInvalidOutputRef
 		return err
 	}
 	build.Status.OutputDockerImageReference = ref
@@ -185,6 +191,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPodSpec
+		build.Status.Reason = buildapi.StatusMessageCannotCreateBuildPodSpec
 		if strategy.IsFatal(err) {
 			return strategy.FatalError(fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err))
 		}
@@ -201,13 +208,14 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 
 	if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {
 		if errors.IsAlreadyExists(err) {
-			bc.Recorder.Eventf(build, kapi.EventTypeWarning, "failedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
+			bc.Recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", podSpec.Namespace, podSpec.Name)
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).
 		bc.Recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
 		build.Status.Reason = buildapi.StatusReasonCannotCreateBuildPod
+		build.Status.Message = buildapi.StatusMessageCannotCreateBuildPod
 		return fmt.Errorf("failed to create build pod: %v", err)
 	}
 	setBuildPodNameAnnotation(build, podSpec.Name)
@@ -294,20 +302,24 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	case kapi.PodRunning:
 		// The pod's still running
 		build.Status.Reason = ""
+		build.Status.Message = ""
 		nextStatus = buildapi.BuildPhaseRunning
 	case kapi.PodPending:
 		build.Status.Reason = ""
+		build.Status.Message = ""
 		nextStatus = buildapi.BuildPhasePending
 		if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
 			if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
 				build.Status.Reason = buildapi.StatusReasonMissingPushSecret
+				build.Status.Message = buildapi.StatusMessageMissingPushSecret
 				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
 			}
 		}
 	case kapi.PodSucceeded:
+		build.Status.Reason = ""
+		build.Status.Message = ""
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildPhaseComplete
-		build.Status.Reason = ""
 		if len(pod.Status.ContainerStatuses) == 0 {
 			// no containers in the pod means something went badly wrong, so the build
 			// should be failed.
@@ -322,8 +334,10 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			}
 		}
 	case kapi.PodFailed:
-		build.Status.Reason = ""
 		nextStatus = buildapi.BuildPhaseFailed
+	default:
+		build.Status.Reason = ""
+		build.Status.Message = ""
 	}
 
 	// Update the build object when it progress to a next state or the reason for
@@ -336,7 +350,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s%s", build.Namespace, build.Name, build.Status.Phase, nextStatus, reason)
 		build.Status.Phase = nextStatus
-		build.Status.Message = ""
+
 		if buildutil.IsBuildComplete(build) {
 			now := unversioned.Now()
 			build.Status.CompletionTimestamp = &now
@@ -398,7 +412,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 		build.Status.Phase = nextStatus
 		build.Status.Reason = buildapi.StatusReasonBuildPodDeleted
-		build.Status.Message = "The pod for this build was deleted before the build completed."
+		build.Status.Message = buildapi.StatusMessageBuildPodDeleted
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
