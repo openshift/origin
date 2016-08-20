@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/blang/semver"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	tarhelper "github.com/openshift/source-to-image/pkg/tar"
@@ -19,7 +20,27 @@ import (
 )
 
 const (
-	cmdTestNsenterMount          = "nsenter --mount=/rootfs/proc/1/ns/mnt findmnt"
+	nsEnterMount = "nsenter --mount=/rootfs/proc/1/ns/mnt"
+
+	// cmdTestNsenterMountSetup does the following:
+	// 1 - test that findmnt is available on the host system
+	// 2 - creates a test directory
+	// 3 - mounts a tmpfs to the test directory
+	// 3 - creates a bind mount on the new diretory
+	// 3 - writes a regular file to the mounted directory directly
+	cmdTestNsenterMountSetup = "%[1]s findmnt && " +
+		"%[1]s mkdir -p %[2]s/testdir && " +
+		"%[1]s mount -t tmpfs %[2]s/testdir %[2]s/testdir && " +
+		"%[1]s mount -o bind %[2]s/testdir %[2]s/testdir && " +
+		"echo 'mount test' > %[2]s/testdir/testfile"
+
+	// cmdTestNsenterMountVerify checks that the file that was written
+	// previously still exists in the mounted directory
+	cmdTestNsenterMountVerify = "cat %[1]s/testdir/testfile | grep 'mount test'"
+
+	// cmdTestNsenterMountCleanup removes mounts and cleans up test directory
+	cmdTestNsenterMountCleanup = "%[1]s umount %[2]s/testdir && %[1]s umount %[2]s/testdir && %[1]s rm -rf %[2]s/testdir"
+
 	cmdEnsureHostDirs            = "for dir in %s; do if [ ! -d \"${dir}\" ]; then mkdir -p \"${dir}\"; fi; done"
 	cmdCreateVolumesDirBindMount = "cat /rootfs/proc/1/mountinfo | grep /var/lib/origin || " +
 		"nsenter --mount=/rootfs/proc/1/ns/mnt mount -o bind %[1]s %[1]s"
@@ -53,22 +74,55 @@ func NewHostHelper(client *docker.Client, image, volumesDir, configDir, dataDir 
 	}
 }
 
+var dockerVersion10 = semver.MustParse("1.10.0")
+
 // CanUseNsenterMounter returns true if the Docker host machine can execute findmnt through nsenter
-func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
-	// For now, use a shared mount on Windows/Mac
-	// Eventually it also needs to be used on Linux, but nsenter
-	// is still needed for Docker 1.9
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+func (h *HostHelper) CanUseNsenterMounter(dockerVersion *semver.Version) (bool, error) {
+
+	// If Docker version >= 1.10 use shared volumes
+	if dockerVersion != nil && dockerVersion.GTE(dockerVersion10) {
 		return false, nil
 	}
-	rc, err := h.runner().
+	// If running on Mac or Windows do not even try Docker 1.9
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		return false, fmt.Errorf("Docker version 1.10 or higher is required on Mac or Windows")
+	}
+	// Test that nsenter volumes can actually be used
+	err := h.EnsureHostDirectories()
+	if err != nil {
+		return false, errors.NewError("cannot verify nsenter mounts").WithCause(err).WithSolution("Install Docker version 1.10 or higher")
+	}
+	binds := []string{"/:/rootfs:ro", fmt.Sprintf("%[1]s:%[1]s", h.volumesDir)}
+	rc, err := h.runHelper.New().
 		Image(h.image).
 		DiscardContainer().
 		Privileged().
-		Bind("/:/rootfs:ro").
+		Bind(binds...).
 		Entrypoint("/bin/bash").
-		Command("-c", cmdTestNsenterMount).Run()
-	return err == nil && rc == 0, nil
+		Command("-c", fmt.Sprintf(cmdTestNsenterMountSetup, nsEnterMount, h.volumesDir)).Run()
+	if err != nil || rc != 0 {
+		return false, errors.NewError("cannot verify nsenter mounts").WithCause(err).WithSolution("Install Docker version 1.10 or higher")
+	}
+	defer func() {
+		// cleanup
+		h.runHelper.New().Image(h.image).
+			DiscardContainer().
+			Privileged().
+			Bind(binds...).
+			Entrypoint("/bin/bash").
+			Command("-c", fmt.Sprintf(cmdTestNsenterMountCleanup, nsEnterMount, h.volumesDir)).Run()
+	}()
+	rc, err = h.runHelper.New().
+		Image(h.image).
+		DiscardContainer().
+		Privileged().
+		Bind(fmt.Sprintf("%[1]s/testdir:%[1]s/testdir", h.volumesDir)).
+		Entrypoint("/bin/bash").
+		Command("-c", fmt.Sprintf(cmdTestNsenterMountVerify, h.volumesDir)).Run()
+	if err != nil || rc != 0 {
+		return false, errors.NewError("cannot use nsenter mounts.").WithCause(err).WithSolution("Install Docker version 1.10 or higher")
+	}
+	return true, nil
 }
 
 // EnsureVolumeShare ensures that the host Docker machine has a shared directory that can be used
