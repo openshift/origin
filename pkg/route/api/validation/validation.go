@@ -53,6 +53,8 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 	if len(route.Spec.AlternateBackends) > 3 {
 		result = append(result, field.Required(specPath.Child("alternateBackends"), "cannot specify more than 3 additional backends"))
 	}
+	backendMap := make(map[string]bool)
+	backendMap[route.Spec.To.Name] = true
 	for _, svc := range route.Spec.AlternateBackends {
 		if len(svc.Name) == 0 {
 			result = append(result, field.Required(specPath.Child("alternateBackends", "name"), ""))
@@ -62,6 +64,11 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 		}
 		if svc.Weight != nil && (*svc.Weight < 0 || *svc.Weight > 256) {
 			result = append(result, field.Invalid(specPath.Child("alternateBackends", "weight"), svc.Weight, "weight must be an integer between 0 and 256"))
+		}
+		if _, ok := backendMap[svc.Name]; ok {
+			result = append(result, field.Invalid(specPath.Child("alternateBackends", "name"), svc.Name, "duplicate service is not allowed"))
+		} else {
+			backendMap[svc.Name] = true
 		}
 	}
 
