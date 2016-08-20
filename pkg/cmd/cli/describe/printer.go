@@ -12,7 +12,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -36,7 +35,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "TERMINATION", "LABELS"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
@@ -555,14 +554,35 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 	default:
 		policy = ""
 	}
-	svc := route.Spec.To.Name
+
+	backends := append([]routeapi.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
+	totalWeight := int32(0)
+	for _, backend := range backends {
+		if backend.Weight != nil {
+			totalWeight += *backend.Weight
+		}
+	}
+	var backendInfo []string
+	for _, backend := range backends {
+		switch {
+		case backend.Weight == nil, len(backends) == 1 && totalWeight != 0:
+			backendInfo = append(backendInfo, backend.Name)
+		case totalWeight == 0:
+			backendInfo = append(backendInfo, fmt.Sprintf("%s(0%%)", backend.Name))
+		default:
+			backendInfo = append(backendInfo, fmt.Sprintf("%s(%d%%)", backend.Name, *backend.Weight*100/totalWeight))
+		}
+	}
+
+	var port string
 	if route.Spec.Port != nil {
-		svc = fmt.Sprintf("%s:%s", svc, route.Spec.Port.TargetPort.String())
+		port = route.Spec.Port.TargetPort.String()
+	} else {
+		port = "<all>"
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels)); err != nil {
-		return err
-	}
-	return nil
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy)
+	return err
 }
 
 func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kctl.PrintOptions) error {
