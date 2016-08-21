@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -22,6 +20,7 @@ import (
 
 func TestDNS(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, clientFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -43,7 +42,7 @@ func TestDNS(t *testing.T) {
 	waitutil.Until(func() {
 		m1 := &dns.Msg{
 			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: false},
-			Question: []dns.Question{{"kubernetes.default.svc.cluster.local.", dns.TypeA, dns.ClassINET}},
+			Question: []dns.Question{{Name: "kubernetes.default.svc.cluster.local.", Qtype: dns.TypeA, Qclass: dns.ClassINET}},
 		}
 		in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
 		if err != nil {
@@ -119,7 +118,7 @@ func TestDNS(t *testing.T) {
 			Subsets: []kapi.EndpointSubset{{
 				Addresses: []kapi.EndpointAddress{{IP: "172.0.0.1"}},
 				Ports: []kapi.EndpointPort{
-					{Port: 2345},
+					{Port: 2345, Name: "http"},
 				},
 			}},
 		}); err != nil {
@@ -188,20 +187,29 @@ func TestDNS(t *testing.T) {
 			expect:          []*net.IP{&headlessIP},
 		},
 		{ // specific port of a headless service
-			dnsQuestionName: "unknown-port-2345.e1.headless.default.svc.cluster.local.",
+			dnsQuestionName: "_http._tcp.headless.default.svc.cluster.local.",
 			expect:          []*net.IP{&headlessIP},
 		},
 		{ // SRV record for that service
 			dnsQuestionName: "headless.default.svc.cluster.local.",
 			srv: []*dns.SRV{
 				{
-					Target: headlessIPHash + "._unknown-port-2345._tcp.headless.default.svc.cluster.local.",
-					Port:   2345,
+					Target: headlessIPHash + ".headless.default.svc.cluster.local.",
+					Port:   0,
+				},
+			},
+		},
+		{ // SRV record for a port
+			dnsQuestionName: "_http._tcp.headless2.default.svc.cluster.local.",
+			srv: []*dns.SRV{
+				{
+					Target: headless2IPHash + ".headless2.default.svc.cluster.local.",
+					Port:   2346,
 				},
 			},
 		},
 		{ // the SRV record resolves to the IP
-			dnsQuestionName: "unknown-port-2345.e1.headless.default.svc.cluster.local.",
+			dnsQuestionName: "_http._tcp.headless.default.svc.cluster.local.",
 			expect:          []*net.IP{&headlessIP},
 		},
 		{ // headless 2 service
@@ -212,17 +220,13 @@ func TestDNS(t *testing.T) {
 			dnsQuestionName: "headless2.default.svc.cluster.local.",
 			srv: []*dns.SRV{
 				{
-					Target: headless2IPHash + "._http._tcp.headless2.default.svc.cluster.local.",
-					Port:   2346,
-				},
-				{
-					Target: headless2IPHash + "._other._tcp.headless2.default.svc.cluster.local.",
-					Port:   2345,
+					Target: headless2IPHash + ".headless2.default.svc.cluster.local.",
+					Port:   0,
 				},
 			},
 		},
 		{ // the SRV record resolves to the IP
-			dnsQuestionName: "other.e1.headless2.default.svc.cluster.local.",
+			dnsQuestionName: headless2IPHash + ".headless2.default.svc.cluster.local.",
 			expect:          []*net.IP{&headless2IP},
 		},
 		{
@@ -237,7 +241,7 @@ func TestDNS(t *testing.T) {
 		}
 		m1 := &dns.Msg{
 			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: tc.recursionExpected},
-			Question: []dns.Question{{tc.dnsQuestionName, qType, dns.ClassINET}},
+			Question: []dns.Question{{Name: tc.dnsQuestionName, Qtype: qType, Qclass: dns.ClassINET}},
 		}
 		ch := make(chan struct{})
 		count := 0

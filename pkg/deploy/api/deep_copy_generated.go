@@ -158,6 +158,7 @@ func DeepCopy_api_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentC
 	if err := DeepCopy_api_DeploymentStrategy(in.Strategy, &out.Strategy, c); err != nil {
 		return err
 	}
+	out.MinReadySeconds = in.MinReadySeconds
 	if in.Triggers != nil {
 		in, out := in.Triggers, &out.Triggers
 		*out = make([]DeploymentTriggerPolicy, len(in))
@@ -170,6 +171,13 @@ func DeepCopy_api_DeploymentConfigSpec(in DeploymentConfigSpec, out *DeploymentC
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	if in.RevisionHistoryLimit != nil {
+		in, out := in.RevisionHistoryLimit, &out.RevisionHistoryLimit
+		*out = new(int32)
+		**out = *in
+	} else {
+		out.RevisionHistoryLimit = nil
+	}
 	out.Test = in.Test
 	out.Paused = in.Paused
 	if in.Selector != nil {

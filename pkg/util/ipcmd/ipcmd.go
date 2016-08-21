@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"k8s.io/kubernetes/pkg/util/exec"
 )
 
@@ -39,8 +41,12 @@ func (tx *Transaction) exec(args []string) (string, error) {
 		return "", tx.err
 	}
 
+	glog.V(5).Infof("Executing: %s %s", ipcmdPath, strings.Join(args, " "))
 	var output []byte
 	output, tx.err = tx.execer.Command(ipcmdPath, args...).CombinedOutput()
+	if tx.err != nil {
+		glog.V(5).Infof("Error executing %s: %s", ipcmdPath, string(output))
+	}
 	return string(output), tx.err
 }
 

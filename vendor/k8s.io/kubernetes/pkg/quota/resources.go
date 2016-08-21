@@ -61,6 +61,26 @@ func LessThanOrEqual(a api.ResourceList, b api.ResourceList) (bool, []api.Resour
 	return result, resourceNames
 }
 
+// Max returns the result of Max(a, b) for each named resource
+func Max(a api.ResourceList, b api.ResourceList) api.ResourceList {
+	result := api.ResourceList{}
+	for key, value := range a {
+		if other, found := b[key]; found {
+			if value.Cmp(other) <= 0 {
+				result[key] = *other.Copy()
+				continue
+			}
+		}
+		result[key] = *value.Copy()
+	}
+	for key, value := range b {
+		if _, found := result[key]; !found {
+			result[key] = *value.Copy()
+		}
+	}
+	return result
+}
+
 // Add returns the result of a + b for each named resource
 func Add(a api.ResourceList, b api.ResourceList) api.ResourceList {
 	result := api.ResourceList{}
@@ -175,6 +195,10 @@ func CalculateUsage(namespaceName string, scopes []api.ResourceQuotaScope, hardL
 	newUsage := api.ResourceList{}
 	usageStatsOptions := UsageStatsOptions{Namespace: namespaceName, Scopes: scopes}
 	for _, evaluator := range evaluators {
+		// only trigger the evaluator if it matches a resource in the quota, otherwise, skip calculating anything
+		if intersection := Intersection(evaluator.MatchesResources(), matchedResources); len(intersection) == 0 {
+			continue
+		}
 		stats, err := evaluator.UsageStats(usageStatsOptions)
 		if err != nil {
 			return nil, err

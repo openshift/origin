@@ -92,9 +92,9 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -269,7 +269,7 @@ func (o MasterOptions) RunMaster() error {
 	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
-			glog.Warningf("%v", warning)
+			glog.Warningf("Warning: %v, master start will continue.", warning)
 		}
 	}
 	if len(validationResults.Errors) != 0 {
@@ -336,7 +336,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.Informers, openshiftConfig.KubeAdmissionControl)
+	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient(), openshiftConfig.Informers, openshiftConfig.KubeAdmissionControl, openshiftConfig.Authenticator)
 	return kubeConfig, err
 }
 
@@ -497,7 +497,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	if kc != nil {
 		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
 	} else {
-		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig)
+		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig, oc.Options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
@@ -561,6 +561,14 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
+		_, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for replication controller: %v", err)
+		}
+		_, _, deploymentClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for deployment controller: %v", err)
+		}
 		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
@@ -590,6 +598,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
+		_, _, petSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPetSetControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for pet set controller: %v", err)
+		}
+
 		namespaceControllerClientConfig, _, namespaceControllerKubeClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraNamespaceControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
@@ -606,6 +619,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
+		kc.RunReplicaSetController(rsClient)
+		kc.RunDeploymentController(deploymentClient)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 
@@ -629,13 +644,14 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunGCController(gcClient)
 
 		kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
+		kc.RunPetSetController(petSetClient)
 
 		glog.Infof("Started Kubernetes Controllers")
 	}
 
 	// no special order
 	if configapi.IsBuildEnabled(&oc.Options) {
-		oc.RunBuildController()
+		oc.RunBuildController(oc.Informers)
 		oc.RunBuildPodController()
 		oc.RunBuildConfigChangeController()
 		oc.RunBuildImageChangeTriggerController()
@@ -658,6 +674,13 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		glog.Fatalf("Could not get client: %v", err)
 	}
 	oc.RunServiceServingCertController(serviceServingCertClient)
+	oc.RunUnidlingController()
+
+	_, _, ingressIPClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client: %v", err)
+	}
+	oc.RunIngressIPController(ingressIPClient)
 
 	glog.Infof("Started Origin Controllers")
 

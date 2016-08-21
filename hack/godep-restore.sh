@@ -13,10 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 #### HACK ####
 # Sometimes godep just can't handle things. This lets use manually put
@@ -58,8 +55,6 @@ pin-godep() {
     "${GODEP}" go install
   popd > /dev/null
 }
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 # build the godep tool
 # Again go get stinks, hence || true

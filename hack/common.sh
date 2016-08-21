@@ -3,24 +3,6 @@
 # This script provides common script functions for the hacks
 # Requires OS_ROOT to be set
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
-# The root of the build/dist directory
-readonly OS_ROOT=$(
-  unset CDPATH
-  os_root=$(dirname "${BASH_SOURCE}")/..
-
-  cd "${os_root}"
-  os_root=`pwd`
-  if [ -h "${os_root}" ]; then
-    readlink "${os_root}"
-  else
-    pwd
-  fi
-)
-
 readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.6}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
 
@@ -28,6 +10,7 @@ readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 readonly OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 readonly OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
 readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
+readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 
@@ -323,6 +306,7 @@ os::build::internal::build_binaries() {
         eval "platform_goflags=(${!platform_goflags_envvar:-})"
 
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
+          -pkgdir "${OS_OUTPUT_PKGDIR}" \
           "${goflags[@]:+${goflags[@]}}" "${platform_goflags[@]:+${platform_goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "${nonstatics[@]}"
@@ -642,6 +626,7 @@ function os::build::get_version_vars() {
   fi
   os::build::os_version_vars
   os::build::kube_version_vars
+  os::build::etcd_version_vars
 }
 readonly -f os::build::get_version_vars
 
@@ -692,6 +677,12 @@ function os::build::os_version_vars() {
 }
 readonly -f os::build::os_version_vars
 
+function os::build::etcd_version_vars() {
+  ETCD_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/coreos/etcd/client" "comment")
+  ETCD_GIT_VERSION=$(echo "${ETCD_GIT_COMMIT}" | sed -E "s/\-.*/\+git/g" | sed -E "s/v//")
+}
+readonly -f os::build::etcd_version_vars
+
 # os::build::kube_version_vars returns the version of Kubernetes we have
 # vendored.
 function os::build::kube_version_vars() {
@@ -735,6 +726,8 @@ OS_GIT_MAJOR='${OS_GIT_MAJOR-}'
 OS_GIT_MINOR='${OS_GIT_MINOR-}'
 KUBE_GIT_COMMIT='${KUBE_GIT_COMMIT-}'
 KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
+ETCD_GIT_VERSION='${ETCD_GIT_VERSION-}'
+ETCD_GIT_COMMIT='${ETCD_GIT_COMMIT-}'
 EOF
 }
 readonly -f os::build::save_version_vars
@@ -1075,6 +1068,21 @@ function os::build::environment::withsource() {
 
   docker start "${container}" > /dev/null
   docker logs -f "${container}"
+
+  # extract content from the image
+  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
+    local workingdir
+    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+    local oldIFS="${IFS}"
+    IFS=:
+    for path in ${OS_BUILD_ENV_PRESERVE}; do
+      local parent
+      parent="$( dirname ${path} )"
+      mkdir -p "${parent}"
+      docker cp "${container}:${workingdir}/${path}" "${parent}"
+    done
+    IFS="${oldIFS}"
+  fi
 }
 readonly -f os::build::environment::withsource
 

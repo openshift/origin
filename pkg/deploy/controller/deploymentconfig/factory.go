@@ -17,7 +17,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 const (
@@ -59,6 +58,11 @@ func NewDeploymentConfigController(dcInformer, rcInformer, podInformer framework
 		DeleteFunc: c.deleteReplicationController,
 	})
 	c.podStore.Indexer = podInformer.GetIndexer()
+	podInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    c.addPod,
+		UpdateFunc: c.updatePod,
+		DeleteFunc: c.deletePod,
+	})
 
 	c.dcStoreSynced = dcInformer.HasSynced
 	c.rcStoreSynced = rcInformer.HasSynced
@@ -110,9 +114,15 @@ func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
 }
 
 func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}) {
-	dc := cur.(*deployapi.DeploymentConfig)
-	glog.V(4).Infof("Updating deployment config %q", dc.Name)
-	c.enqueueDeploymentConfig(dc)
+	// A periodic relist will send update events for all known configs.
+	newDc := cur.(*deployapi.DeploymentConfig)
+	oldDc := old.(*deployapi.DeploymentConfig)
+	if newDc.ResourceVersion == oldDc.ResourceVersion {
+		return
+	}
+
+	glog.V(4).Infof("Updating deployment config %q", newDc.Name)
+	c.enqueueDeploymentConfig(newDc)
 }
 
 func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
@@ -151,11 +161,12 @@ func (c *DeploymentConfigController) addReplicationController(obj interface{}) {
 // controller and requeues the deployment config.
 func (c *DeploymentConfigController) updateReplicationController(old, cur interface{}) {
 	// A periodic relist will send update events for all known controllers.
-	if kapi.Semantic.DeepEqual(old, cur) {
+	curRC := cur.(*kapi.ReplicationController)
+	oldRC := old.(*kapi.ReplicationController)
+	if curRC.ResourceVersion == oldRC.ResourceVersion {
 		return
 	}
 
-	curRC := cur.(*kapi.ReplicationController)
 	glog.V(4).Infof("Replication controller %q updated.", curRC.Name)
 	if dc, err := c.dcStore.GetConfigForController(curRC); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
@@ -185,6 +196,43 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	}
 	glog.V(4).Infof("Replication controller %q deleted.", rc.Name)
 	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) addPod(obj interface{}) {
+	if dc, err := c.dcStore.GetConfigForPod(obj.(*kapi.Pod)); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) updatePod(old, cur interface{}) {
+	curPod := cur.(*kapi.Pod)
+	oldPod := old.(*kapi.Pod)
+	if curPod.ResourceVersion == oldPod.ResourceVersion {
+		return
+	}
+
+	if dc, err := c.dcStore.GetConfigForPod(curPod); err == nil && dc != nil {
+		c.enqueueDeploymentConfig(dc)
+	}
+}
+
+func (c *DeploymentConfigController) deletePod(obj interface{}) {
+	pod, ok := obj.(*kapi.Pod)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			glog.Errorf("Couldn't get object from tombstone %+v", obj)
+			return
+		}
+		pod, ok = tombstone.Obj.(*kapi.Pod)
+		if !ok {
+			glog.Errorf("Tombstone contained object that is not a pod: %+v", obj)
+			return
+		}
+	}
+	if dc, err := c.dcStore.GetConfigForPod(pod); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
 }
@@ -222,13 +270,7 @@ func (c *DeploymentConfigController) work() bool {
 		return false
 	}
 
-	copied, err := deployutil.DeploymentConfigDeepCopy(dc)
-	if err != nil {
-		glog.Error(err.Error())
-		return false
-	}
-
-	err = c.Handle(copied)
+	err = c.Handle(dc)
 	c.handleErr(err, key)
 
 	return false

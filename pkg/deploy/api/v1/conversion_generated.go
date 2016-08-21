@@ -319,6 +319,7 @@ func autoConvert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *Deploym
 	if err := Convert_v1_DeploymentStrategy_To_api_DeploymentStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
+	out.MinReadySeconds = in.MinReadySeconds
 	if in.Triggers != nil {
 		in, out := &in.Triggers, &out.Triggers
 		*out = make([]deploy_api.DeploymentTriggerPolicy, len(*in))
@@ -331,6 +332,7 @@ func autoConvert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(in *Deploym
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.RevisionHistoryLimit = in.RevisionHistoryLimit
 	out.Test = in.Test
 	out.Paused = in.Paused
 	out.Selector = in.Selector
@@ -354,9 +356,10 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_
 	if err := Convert_api_DeploymentStrategy_To_v1_DeploymentStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
+	out.MinReadySeconds = in.MinReadySeconds
 	if in.Triggers != nil {
 		in, out := &in.Triggers, &out.Triggers
-		*out = make([]DeploymentTriggerPolicy, len(*in))
+		*out = make(DeploymentTriggerPolicies, len(*in))
 		for i := range *in {
 			if err := Convert_api_DeploymentTriggerPolicy_To_v1_DeploymentTriggerPolicy(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
@@ -366,6 +369,7 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *deploy_
 		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
+	out.RevisionHistoryLimit = in.RevisionHistoryLimit
 	out.Test = in.Test
 	out.Paused = in.Paused
 	out.Selector = in.Selector

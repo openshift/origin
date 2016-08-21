@@ -2,6 +2,7 @@ package builder
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -67,6 +68,7 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 }
 
 func makeBuild() *api.Build {
+	t := true
 	return &api.Build{
 		Spec: api.BuildSpec{
 			CommonSpec: api.CommonSpec{
@@ -76,11 +78,19 @@ func makeBuild() *api.Build {
 					}},
 				Strategy: api.BuildStrategy{
 					SourceStrategy: &api.SourceBuildStrategy{
+						Env: append([]kapi.EnvVar{},
+							kapi.EnvVar{
+								Name:  "HTTPS_PROXY",
+								Value: "https://test/secure:8443",
+							}, kapi.EnvVar{
+								Name:  "HTTP_PROXY",
+								Value: "http://test/insecure:8080",
+							}),
 						From: kapi.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/builder:latest",
 						},
-						Incremental: true,
+						Incremental: &t,
 					}},
 				Output: api.BuildOutput{
 					To: &kapi.ObjectReference{
@@ -123,5 +133,87 @@ func TestGetStrategyError(t *testing.T) {
 	})
 	if err := s2iBuilder.Build(); err != expErr {
 		t.Errorf("s2iBuilder.Build() = %v; want %v", err, expErr)
+	}
+}
+
+func TestCopyToVolumeList(t *testing.T) {
+	newArtifacts := []api.ImageSourcePath{
+		{
+			SourcePath:     "/path/to/source",
+			DestinationDir: "path/to/destination",
+		},
+	}
+	volumeList := s2iapi.VolumeList{
+		s2iapi.VolumeSpec{
+			Source:      "/path/to/source",
+			Destination: "path/to/destination",
+		},
+	}
+	newVolumeList := copyToVolumeList(newArtifacts)
+	if !reflect.DeepEqual(volumeList, newVolumeList) {
+		t.Errorf("Expected artifacts mapping to match %#v, got %#v instead!", volumeList, newVolumeList)
+	}
+}
+
+func TestBuildEnvVars(t *testing.T) {
+	// In order not complicate this function, the ordering of the expected
+	// EnvironmentList structure and the one that is returned must match,
+	// otherwise the DeepEqual comparison will fail, since EnvironmentList is a
+	// []EnvironmentSpec and list ordering in DeepEqual matters.
+	expectedEnvList := s2iapi.EnvironmentList{
+		s2iapi.EnvironmentSpec{
+			Name:  "OPENSHIFT_BUILD_NAME",
+			Value: "openshift-test-1-build",
+		}, s2iapi.EnvironmentSpec{
+			Name:  "OPENSHIFT_BUILD_NAMESPACE",
+			Value: "openshift-demo",
+		}, s2iapi.EnvironmentSpec{
+			Name:  "OPENSHIFT_BUILD_SOURCE",
+			Value: "http://localhost/123",
+		}, s2iapi.EnvironmentSpec{
+			Name:  "HTTPS_PROXY",
+			Value: "https://test/secure:8443",
+		}, s2iapi.EnvironmentSpec{
+			Name:  "HTTP_PROXY",
+			Value: "http://test/insecure:8080",
+		},
+	}
+
+	mockBuild := makeBuild()
+	mockBuild.Name = "openshift-test-1-build"
+	mockBuild.Namespace = "openshift-demo"
+	resultedEnvList := buildEnvVars(mockBuild)
+	if !reflect.DeepEqual(expectedEnvList, resultedEnvList) {
+		t.Errorf("Expected EnvironmentList to match: %#v, got %#v", expectedEnvList, resultedEnvList)
+	}
+}
+
+func TestScriptProxyConfig(t *testing.T) {
+	newBuild := &api.Build{
+		Spec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
+				Strategy: api.BuildStrategy{
+					SourceStrategy: &api.SourceBuildStrategy{
+						Env: append([]kapi.EnvVar{}, kapi.EnvVar{
+							Name:  "HTTPS_PROXY",
+							Value: "https://test/secure",
+						}, kapi.EnvVar{
+							Name:  "HTTP_PROXY",
+							Value: "http://test/insecure",
+						}),
+					},
+				},
+			},
+		},
+	}
+	resultedProxyConf, err := scriptProxyConfig(newBuild)
+	if err != nil {
+		t.Fatalf("An error occured while parsing the proxy config: %v", err)
+	}
+	if resultedProxyConf.HTTPProxy.Path != "/insecure" {
+		t.Errorf("Expected HTTP Proxy path to be /insecure, got: %v", resultedProxyConf.HTTPProxy.Path)
+	}
+	if resultedProxyConf.HTTPSProxy.Path != "/secure" {
+		t.Errorf("Expected HTTPS Proxy path to be /secure, got: %v", resultedProxyConf.HTTPSProxy.Path)
 	}
 }

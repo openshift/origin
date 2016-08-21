@@ -1,5 +1,3 @@
-// +build integration,etcd
-
 package integration
 
 import (
@@ -19,6 +17,7 @@ import (
 )
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,
@@ -45,6 +44,7 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 }
 
 func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,
@@ -101,6 +101,7 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 }
 
 func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) kclient.Interface {
+	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +140,9 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkErr(t, testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}))
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		t.Fatal(err)
+	}
 	return clusterAdminKubeClient
 }
 

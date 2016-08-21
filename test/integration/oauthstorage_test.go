@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -55,6 +53,7 @@ func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, e
 
 func TestOAuthStorage(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -87,7 +86,7 @@ func TestOAuthStorage(t *testing.T) {
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),
 		storage,
-		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
+		osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 			ar.UserData = "test"
 			ar.Authorized = true
 			return false, nil

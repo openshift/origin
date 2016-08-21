@@ -1,12 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -26,7 +19,7 @@ os::test::junit::declare_suite_start "cmd/builds"
 os::cmd::expect_success 'oc new-build centos/ruby-22-centos7 https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
-os::cmd::expect_success 'cat "${OS_ROOT}/images/origin/Dockerfile" | oc new-build -D - --name=test'
+os::cmd::expect_success "cat '${OS_ROOT}/images/origin/Dockerfile' | oc new-build -D - --name=test"
 os::cmd::expect_success 'oc get bc/test'
 
 template='{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}'
@@ -115,13 +108,12 @@ os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "$
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic"
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic"
-os::cmd::expect_success 'oc start-build --list-webhooks='all' ruby-sample-build'
+os::cmd::expect_success 'oc start-build --list-webhooks=all ruby-sample-build'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sample-build' 'generic'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' 'secret101'
 os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
-webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)
-os::cmd::expect_success "oc start-build --from-webhook=${webhook}"
+os::cmd::expect_success "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)'"
 os::cmd::expect_success 'oc get builds'
 os::cmd::expect_success 'oc delete all -l build=docker'
 echo "buildConfig: ok"
@@ -159,9 +151,10 @@ os::test::junit::declare_suite_start "cmd/builds/start-build"
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-buildcli.json'
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
-started=$(oc start-build ruby-sample-build-invalidtag)
+# Use basename to transform "build/build-name" into "build-name"
+started="$(basename $(oc start-build -o=name ruby-sample-build-invalidtag))"
 os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
-frombuild=$(oc start-build --from-build="${started}")
+frombuild="$(basename $(oc start-build -o=name --from-build="${started}"))"
 os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
@@ -181,9 +174,9 @@ os::cmd::expect_success 'oc cancel-build build/ruby-sample-build-1'
 # Cancel all builds from a build configuration
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
 os::cmd::expect_success "oc start-build bc/ruby-sample-build"
-lastbuild=$(oc start-build bc/ruby-sample-build)
-os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "build \"${lastbuild}\" cancelled"
-os::cmd::expect_success_and_text "oc get builds ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
+lastbuild="$(basename $(oc start-build -o=name bc/ruby-sample-build))"
+os::cmd::expect_success_and_text 'oc cancel-build bc/ruby-sample-build', "\"${lastbuild}\" cancelled"
+os::cmd::expect_success_and_text "oc get build ${lastbuild} -o template --template '{{.status.phase}}'", 'Cancelled'
 builds=$(oc get builds -o template --template '{{range .items}}{{ .status.phase }} {{end}}')
 for state in $builds; do
   os::cmd::expect_success "[ \"${state}\" == \"Cancelled\" ]"

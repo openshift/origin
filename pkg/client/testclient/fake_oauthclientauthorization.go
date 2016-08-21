@@ -39,6 +39,15 @@ func (c *FakeOAuthClientAuthorization) Create(inObj *oauthapi.OAuthClientAuthori
 	return obj.(*oauthapi.OAuthClientAuthorization), err
 }
 
+func (c *FakeOAuthClientAuthorization) Update(inObj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("oauthClientAuthorizations", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*oauthapi.OAuthClientAuthorization), err
+}
+
 func (c *FakeOAuthClientAuthorization) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("oauthClientAuthorizations", name), &oauthapi.OAuthClientAuthorization{})
 	return err

@@ -1,19 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-# Set a useful format for xtrace output
-# export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-
-OS_ROOT=$(
-  unset CDPATH
-  origin_root=$(dirname "${BASH_SOURCE}")/../..
-  cd "${origin_root}"
-  pwd
-)
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 source ${OS_ROOT}/contrib/vagrant/provision-util.sh
 
 # Passed as arguments to provisioning script

@@ -3103,6 +3103,13 @@ type Secret struct {
 	// Described in https://tools.ietf.org/html/rfc4648#section-4
 	Data map[string][]byte `json:"data,omitempty" protobuf:"bytes,2,rep,name=data"`
 
+	// stringData allows specifying non-binary secret data in string form.
+	// It is provided as a write-only convenience method.
+	// All keys and values are merged into the data field on write, overwriting any existing values.
+	// It is never output when reading from the API.
+	// +genconversion=false
+	StringData map[string]string `json:"stringData,omitempty" protobuf:"bytes,4,rep,name=stringData"`
+
 	// Used to facilitate programmatic handling of secret data.
 	Type SecretType `json:"type,omitempty" protobuf:"bytes,3,opt,name=type,casttype=SecretType"`
 }
@@ -3405,6 +3412,13 @@ type SecurityContextConstraints struct {
 	Users []string `json:"users,omitempty" description:"users allowed to use this SecurityContextConstraints" protobuf:"bytes,18,rep,name=users"`
 	// The groups that have permission to use this security context constraints
 	Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints" protobuf:"bytes,19,rep,name=groups"`
+
+	// SeccompProfiles lists the allowed profiles that may be set for the pod or
+	// container's seccomp annotations.  An unset (nil) or empty value means that no profiles may
+	// be specifid by the pod or container.	The wildcard '*' may be used to allow all profiles.  When
+	// used to generate a value for a pod the first non-wildcard profile will be used as
+	// the default.
+	SeccompProfiles []string `json:"seccompProfiles,omitempty" description:"seccomp profiles allowed to be used by pods and containers" protobuf:"bytes,20,opt,name=seccompProfiles"`
 }
 
 // FS Type gives strong typing to different file systems that are used by volumes.

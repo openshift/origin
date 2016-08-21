@@ -21,17 +21,7 @@
 #
 # KUBE_ROOT=../kubernetes hack/test-kube-e2e.sh --ginkgo.focus="Network.*intra"
 #
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-ORIGIN_ROOT=$(
-  unset CDPATH
-  origin_root=$(dirname "${BASH_SOURCE}")/..
-  cd "${origin_root}"
-  pwd
-)
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 KUBE_ROOT=${KUBE_ROOT:-""}
 
@@ -40,7 +30,7 @@ if [ -z "${KUBE_ROOT}" ]; then
   exit 1
 fi
 
-CONF_ROOT="${OS_CONF_ROOT:-${ORIGIN_ROOT}}"
+CONF_ROOT="${OS_CONF_ROOT:-${OS_ROOT}}"
 CONF_PATH="${CONF_ROOT}/openshift.local.config"
 KUBECONFIG="${CONF_PATH}/master/admin.kubeconfig"
 

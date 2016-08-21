@@ -38,35 +38,11 @@ Replace `/path/to/template.json` with an appropriate path, that can be either a
 local path or an URL. Example:
 
     $ oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json
-    --> Deploying template mongodb-ephemeral for "https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json"
-     With parameters:
-      DATABASE_SERVICE_NAME=mongodb
-      MONGODB_USER=userJNX # generated
-      MONGODB_PASSWORD=tnEDilMVrgjp5AI2 # generated
-      MONGODB_DATABASE=sampledb
-      MONGODB_ADMIN_PASSWORD=8bYEs8OlNYhVyMBs # generated
-    --> Creating resources ...
-    Service "mongodb" created
-    DeploymentConfig "mongodb" created
-    --> Success
-    Run 'oc status' to view your app.
 
 The parameters listed in the output above can be tweaked by specifying values in
 the command line with the `-p` option:
 
     $ oc new-app examples/db-templates/mongodb-ephemeral-template.json -p DATABASE_SERVICE_NAME=mydb -p MONGODB_USER=default
-    --> Deploying template mongodb-ephemeral for "examples/db-templates/mongodb-ephemeral-template.json"
-         With parameters:
-          DATABASE_SERVICE_NAME=mydb
-          MONGODB_USER=default
-          MONGODB_PASSWORD=RPvMbWlQFOevSowQ # generated
-          MONGODB_DATABASE=sampledb
-          MONGODB_ADMIN_PASSWORD=K7tIjDxDHHYCvFrJ # generated
-    --> Creating resources ...
-        Service "mydb" created
-        DeploymentConfig "mydb" created
-    --> Success
-        Run 'oc status' to view your app.
 
 Note that the persistent template requires an existing persistent volume,
 otherwise the deployment won't ever succeed.

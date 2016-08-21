@@ -190,12 +190,15 @@ func triggeredByDifferentImage(ictParams deployapi.DeploymentTriggerImageChangeP
 			continue
 		}
 
-		if t.ImageChangeParams.From.Name != ictParams.From.Name &&
+		if t.ImageChangeParams.From.Name != ictParams.From.Name ||
 			t.ImageChangeParams.From.Namespace != ictParams.From.Namespace {
 			continue
 		}
-
-		return t.ImageChangeParams.LastTriggeredImage != ictParams.LastTriggeredImage
+		if t.ImageChangeParams.LastTriggeredImage != ictParams.LastTriggeredImage {
+			glog.V(4).Infof("Deployment config %q triggered by different image: %s -> %s", previous.Name, t.ImageChangeParams.LastTriggeredImage, ictParams.LastTriggeredImage)
+			return true
+		}
+		return false
 	}
 	return false
 }

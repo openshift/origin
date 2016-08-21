@@ -33,28 +33,28 @@ func TestUserEvaluator(t *testing.T) {
 		},
 		{
 			name:     "info",
-			scopes:   []string{UserIndicator + UserInfo},
+			scopes:   []string{UserInfo},
 			numRules: 2,
 		},
 		{
 			name:     "one-error",
-			scopes:   []string{UserIndicator, UserIndicator + UserInfo},
+			scopes:   []string{UserIndicator, UserInfo},
 			err:      "unrecognized scope",
 			numRules: 2,
 		},
 		{
 			name:     "access",
-			scopes:   []string{UserIndicator + UserAccessCheck},
+			scopes:   []string{UserAccessCheck},
 			numRules: 3,
 		},
 		{
 			name:     "both",
-			scopes:   []string{UserIndicator + UserInfo, UserIndicator + UserAccessCheck},
+			scopes:   []string{UserInfo, UserAccessCheck},
 			numRules: 4,
 		},
 		{
-			name:     "list-projects",
-			scopes:   []string{UserIndicator + UserListProject},
+			name:     "list--scoped-projects",
+			scopes:   []string{UserListScopedProjects},
 			numRules: 2,
 		},
 	}

@@ -1,10 +1,10 @@
 package server
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
 type deferredErrors map[string]error
@@ -34,31 +35,50 @@ func (d deferredErrors) Empty() bool {
 	return len(d) == 0
 }
 
+const (
+	OpenShiftAuth = "openshift"
+
+	defaultTokenPath = "/openshift/token"
+
+	RealmKey      = "realm"
+	TokenRealmKey = "tokenrealm"
+)
+
+// RegistryClient encapsulates getting access to the OpenShift API.
+type RegistryClient interface {
+	// Clients return the authenticated clients to use with the server.
+	Clients() (client.Interface, kclient.Interface, error)
+	// SafeClientConfig returns a client config without authentication info.
+	SafeClientConfig() restclient.Config
+}
+
 // DefaultRegistryClient is exposed for testing the registry with fake client.
 var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
-// RegistryClient encapsulates getting access to the OpenShift API.
-type RegistryClient struct {
+// registryClient implements RegistryClient
+type registryClient struct {
 	config *clientcmd.Config
 }
 
+var _ RegistryClient = &registryClient{}
+
 // NewRegistryClient creates a registry client.
-func NewRegistryClient(config *clientcmd.Config) *RegistryClient {
-	return &RegistryClient{config: config}
+func NewRegistryClient(config *clientcmd.Config) RegistryClient {
+	return &registryClient{config: config}
 }
 
 // Client returns the authenticated client to use with the server.
-func (r *RegistryClient) Clients() (client.Interface, kclient.Interface, error) {
+func (r *registryClient) Clients() (client.Interface, kclient.Interface, error) {
 	return r.config.Clients()
 }
 
 // SafeClientConfig returns a client config without authentication info.
-func (r *RegistryClient) SafeClientConfig() restclient.Config {
+func (r *registryClient) SafeClientConfig() restclient.Config {
 	return clientcmd.AnonymousClientConfig(r.config.OpenShiftConfig())
 }
 
 func init() {
-	registryauth.Register("openshift", registryauth.InitFunc(newAccessController))
+	registryauth.Register(OpenShiftAuth, registryauth.InitFunc(newAccessController))
 }
 
 type contextKey int
@@ -96,8 +116,9 @@ func DeferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
 }
 
 type AccessController struct {
-	realm  string
-	config restclient.Config
+	realm      string
+	tokenRealm *url.URL
+	config     restclient.Config
 }
 
 var _ registryauth.AccessController = &AccessController{}
@@ -109,13 +130,20 @@ type authChallenge struct {
 
 var _ registryauth.Challenge = &authChallenge{}
 
+type tokenAuthChallenge struct {
+	realm   string
+	service string
+	err     error
+}
+
+var _ registryauth.Challenge = &tokenAuthChallenge{}
+
 // Errors used and exported by this package.
 var (
 	// Challenging errors
-	ErrTokenRequired          = errors.New("authorization header with basic token required")
-	ErrTokenInvalid           = errors.New("failed to decode basic token")
-	ErrOpenShiftTokenRequired = errors.New("expected bearer token as password for basic token to registry")
-	ErrOpenShiftAccessDenied  = errors.New("access denied")
+	ErrTokenRequired         = errors.New("authorization header required")
+	ErrTokenInvalid          = errors.New("failed to decode credentials")
+	ErrOpenShiftAccessDenied = errors.New("access denied")
 
 	// Non-challenging errors
 	ErrNamespaceRequired   = errors.New("repository namespace required")
@@ -123,14 +151,50 @@ var (
 	ErrUnsupportedResource = errors.New("unsupported resource")
 )
 
+// TokenRealm returns the template URL to use as the token realm redirect.
+// An empty scheme/host in the returned URL means to match the scheme/host on incoming requests.
+func TokenRealm(options map[string]interface{}) (*url.URL, error) {
+	if options[TokenRealmKey] == nil {
+		// If not specified, default to "/openshift/token", auto-detecting the scheme and host
+		return &url.URL{Path: defaultTokenPath}, nil
+	}
+
+	tokenRealmString, ok := options[TokenRealmKey].(string)
+	if !ok {
+		return nil, fmt.Errorf("%s config option must be a string, got %T", TokenRealmKey, options[TokenRealmKey])
+	}
+
+	tokenRealm, err := url.Parse(tokenRealmString)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing URL in %s config option: %v", TokenRealmKey, err)
+	}
+	if len(tokenRealm.RawQuery) > 0 || len(tokenRealm.Fragment) > 0 {
+		return nil, fmt.Errorf("%s config option may not contain query parameters or a fragment", TokenRealmKey)
+	}
+	if len(tokenRealm.Path) > 0 {
+		return nil, fmt.Errorf("%s config option may not contain a path (%q was specified)", TokenRealmKey, tokenRealm.Path)
+	}
+
+	// pin to "/openshift/token"
+	tokenRealm.Path = defaultTokenPath
+
+	return tokenRealm, nil
+}
+
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
 	log.Info("Using Origin Auth handler")
-	realm, ok := options["realm"].(string)
+	realm, ok := options[RealmKey].(string)
 	if !ok {
 		// Default to openshift if not present
 		realm = "origin"
 	}
-	return &AccessController{realm: realm, config: DefaultRegistryClient.SafeClientConfig()}, nil
+
+	tokenRealm, err := TokenRealm(options)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AccessController{realm: realm, tokenRealm: tokenRealm, config: DefaultRegistryClient.SafeClientConfig()}, nil
 }
 
 // Error returns the internal error string for this authChallenge.
@@ -149,10 +213,52 @@ func (ac *authChallenge) SetHeaders(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", str)
 }
 
+// Error returns the internal error string for this authChallenge.
+func (ac *tokenAuthChallenge) Error() string {
+	return ac.err.Error()
+}
+
+// SetHeaders sets the bearer challenge header on the response.
+func (ac *tokenAuthChallenge) SetHeaders(w http.ResponseWriter) {
+	// WWW-Authenticate response challenge header.
+	// See https://docs.docker.com/registry/spec/auth/token/#/how-to-authenticate and https://tools.ietf.org/html/rfc6750#section-3
+	str := fmt.Sprintf("Bearer realm=%q", ac.realm)
+	if ac.service != "" {
+		str += fmt.Sprintf(",service=%q", ac.service)
+	}
+	w.Header().Set("WWW-Authenticate", str)
+}
+
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
-func (ac *AccessController) wrapErr(err error) error {
+func (ac *AccessController) wrapErr(ctx context.Context, err error) error {
 	switch err {
-	case ErrTokenRequired, ErrTokenInvalid, ErrOpenShiftTokenRequired, ErrOpenShiftAccessDenied:
+	case ErrTokenRequired:
+		// Challenge for errors that involve missing tokens
+		if ac.tokenRealm == nil {
+			// Send the basic challenge if we don't have a place to redirect
+			return &authChallenge{realm: ac.realm, err: err}
+		}
+
+		if len(ac.tokenRealm.Scheme) > 0 && len(ac.tokenRealm.Host) > 0 {
+			// Redirect to token auth if we've been given an absolute URL
+			return &tokenAuthChallenge{realm: ac.tokenRealm.String(), err: err}
+		}
+
+		// Auto-detect scheme/host from request
+		req, reqErr := context.GetRequest(ctx)
+		if reqErr != nil {
+			return reqErr
+		}
+		scheme, host := httprequest.SchemeHost(req)
+		tokenRealmCopy := *ac.tokenRealm
+		if len(tokenRealmCopy.Scheme) == 0 {
+			tokenRealmCopy.Scheme = scheme
+		}
+		if len(tokenRealmCopy.Host) == 0 {
+			tokenRealmCopy.Host = host
+		}
+		return &tokenAuthChallenge{realm: tokenRealmCopy.String(), err: err}
+	case ErrTokenInvalid, ErrOpenShiftAccessDenied:
 		// Challenge for errors that involve tokens or access denied
 		return &authChallenge{realm: ac.realm, err: err}
 	case ErrNamespaceRequired, ErrUnsupportedAction, ErrUnsupportedResource:
@@ -172,25 +278,25 @@ func (ac *AccessController) wrapErr(err error) error {
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
 	req, err := context.GetRequest(ctx)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		return nil, ac.wrapErr(ctx, err)
 	}
 
-	bearerToken, err := getToken(ctx, req)
+	bearerToken, err := getOpenShiftAPIToken(ctx, req)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		return nil, ac.wrapErr(ctx, err)
 	}
 
 	copied := ac.config
 	copied.BearerToken = bearerToken
 	osClient, err := client.New(&copied)
 	if err != nil {
-		return nil, ac.wrapErr(err)
+		return nil, ac.wrapErr(ctx, err)
 	}
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
 		if err := verifyOpenShiftUser(ctx, osClient); err != nil {
-			return nil, ac.wrapErr(err)
+			return nil, ac.wrapErr(ctx, err)
 		}
 	}
 
@@ -210,7 +316,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		case "repository":
 			imageStreamNS, imageStreamName, err := getNamespaceName(access.Resource.Name)
 			if err != nil {
-				return nil, ac.wrapErr(err)
+				return nil, ac.wrapErr(ctx, err)
 			}
 
 			verb := ""
@@ -223,7 +329,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			case "*":
 				verb = "prune"
 			default:
-				return nil, ac.wrapErr(ErrUnsupportedAction)
+				return nil, ac.wrapErr(ctx, ErrUnsupportedAction)
 			}
 
 			switch verb {
@@ -232,15 +338,15 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					continue
 				}
 				if err := verifyPruneAccess(ctx, osClient); err != nil {
-					return nil, ac.wrapErr(err)
+					return nil, ac.wrapErr(ctx, err)
 				}
 				verifiedPrune = true
 			default:
 				if err := verifyImageStreamAccess(ctx, imageStreamNS, imageStreamName, verb, osClient); err != nil {
 					if access.Action != "pull" {
-						return nil, ac.wrapErr(err)
+						return nil, ac.wrapErr(ctx, err)
 					}
-					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(err))
+					possibleCrossMountErrors.Add(imageStreamNS, imageStreamName, ac.wrapErr(ctx, err))
 				}
 			}
 
@@ -251,14 +357,14 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					continue
 				}
 				if err := verifyPruneAccess(ctx, osClient); err != nil {
-					return nil, ac.wrapErr(err)
+					return nil, ac.wrapErr(ctx, err)
 				}
 				verifiedPrune = true
 			default:
-				return nil, ac.wrapErr(ErrUnsupportedAction)
+				return nil, ac.wrapErr(ctx, ErrUnsupportedAction)
 			}
 		default:
-			return nil, ac.wrapErr(ErrUnsupportedResource)
+			return nil, ac.wrapErr(ctx, ErrUnsupportedResource)
 		}
 	}
 
@@ -285,42 +391,35 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	return WithUserClient(ctx, osClient), nil
 }
 
-func getNamespaceName(resourceName string) (string, string, error) {
-	repoParts := strings.SplitN(resourceName, "/", 2)
-	if len(repoParts) != 2 {
-		return "", "", ErrNamespaceRequired
-	}
-	ns := repoParts[0]
-	if len(ns) == 0 {
-		return "", "", ErrNamespaceRequired
-	}
-	name := repoParts[1]
-	if len(name) == 0 {
-		return "", "", ErrNamespaceRequired
-	}
-	return ns, name, nil
-}
+func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error) {
+	token := ""
 
-func getToken(ctx context.Context, req *http.Request) (string, error) {
 	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
+	if len(authParts) != 2 {
 		return "", ErrTokenRequired
 	}
-	basicToken := authParts[1]
 
-	payload, err := base64.StdEncoding.DecodeString(basicToken)
-	if err != nil {
-		context.GetLogger(ctx).Errorf("Basic token decode failed: %s", err)
-		return "", ErrTokenInvalid
+	switch strings.ToLower(authParts[0]) {
+	case "bearer":
+		// This is either a direct API token, or a token issued by our docker token handler
+		token = authParts[1]
+		// Recognize the token issued to anonymous users by our docker token handler
+		if token == anonymousToken {
+			token = ""
+		}
+
+	case "basic":
+		_, password, ok := req.BasicAuth()
+		if !ok || len(password) == 0 {
+			return "", ErrTokenInvalid
+		}
+		token = password
+
+	default:
+		return "", ErrTokenRequired
 	}
 
-	osAuthParts := strings.SplitN(string(payload), ":", 2)
-	if len(osAuthParts) != 2 {
-		return "", ErrOpenShiftTokenRequired
-	}
-
-	bearerToken := osAuthParts[1]
-	return bearerToken, nil
+	return token, nil
 }
 
 func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) error {
@@ -337,7 +436,7 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) erro
 
 func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Verb:         verb,
 			Group:        imageapi.GroupName,
 			Resource:     "imagestreams/layers",
@@ -364,7 +463,7 @@ func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb str
 
 func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
 	sar := authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{
+		Action: authorizationapi.Action{
 			Verb:     "delete",
 			Group:    imageapi.GroupName,
 			Resource: "images",

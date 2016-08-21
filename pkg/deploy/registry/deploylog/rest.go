@@ -17,6 +17,7 @@ import (
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -25,8 +26,12 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-// defaultTimeout is the default time to wait for the logs of a deployment
-const defaultTimeout time.Duration = 20 * time.Second
+const (
+	// defaultTimeout is the default time to wait for the logs of a deployment.
+	defaultTimeout time.Duration = 20 * time.Second
+	// defaultInterval is the default interval for polling a not found deployment.
+	defaultInterval time.Duration = 1 * time.Second
+)
 
 // podGetter implements the ResourceGetter interface. Used by LogLocation to
 // retrieve the deployer pod
@@ -50,6 +55,7 @@ type REST struct {
 	pn       unversioned.PodsNamespacer
 	connInfo kubeletclient.ConnectionInfoGetter
 	timeout  time.Duration
+	interval time.Duration
 }
 
 // REST implements GetterWithOptions
@@ -66,6 +72,7 @@ func NewREST(dn client.DeploymentConfigsNamespacer, rn unversioned.ReplicationCo
 		pn:       pn,
 		connInfo: connectionInfo,
 		timeout:  defaultTimeout,
+		interval: defaultInterval,
 	}
 }
 
@@ -126,10 +133,9 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 
 	// Get desired deployment
 	targetName := deployutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
-	target, err := r.rn.ReplicationControllers(namespace).Get(targetName)
+	target, err := r.waitForExistingDeployment(namespace, targetName)
 	if err != nil {
-		// TODO: Better error handling
-		return nil, errors.NewNotFound(kapi.Resource("replicationcontroller"), name)
+		return nil, err
 	}
 	podName := deployutil.DeployerPodNameForDeployment(target.Name)
 
@@ -150,7 +156,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", deployutil.LabelForDeployment(target), err))
 		}
 		if !ok {
-			return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for deployment %s to start after %s", deployutil.LabelForDeployment(target), r.timeout), 1)
+			return nil, errors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
 		}
 		if deployutil.DeploymentStatusFor(latest) == deployapi.DeploymentStatusComplete {
 			podName, err = r.returnApplicationPodName(target)
@@ -178,6 +184,31 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		Flush:           deployLogOpts.Follow,
 		ResponseChecker: genericrest.NewGenericHttpResponseChecker(kapi.Resource("pod"), podName),
 	}, nil
+}
+
+// waitForExistingDeployment will use the timeout to wait for a deployment to appear.
+func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.ReplicationController, error) {
+	var (
+		target *kapi.ReplicationController
+		err    error
+	)
+
+	condition := func() (bool, error) {
+		target, err = r.rn.ReplicationControllers(namespace).Get(name)
+		switch {
+		case errors.IsNotFound(err):
+			return false, nil
+		case err != nil:
+			return false, err
+		}
+		return true, nil
+	}
+
+	err = wait.PollImmediate(r.interval, r.timeout, condition)
+	if err == wait.ErrWaitTimeout {
+		err = errors.NewNotFound(kapi.Resource("replicationcontrollers"), name)
+	}
+	return target, err
 }
 
 // returnApplicationPodName returns the best candidate pod for the target deployment in order to

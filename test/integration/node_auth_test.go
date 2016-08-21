@@ -1,5 +1,3 @@
-// +build integration,!no-etcd
-
 package integration
 
 import (
@@ -12,10 +10,13 @@ import (
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -28,6 +29,7 @@ type testRequest struct {
 
 func TestNodeAuth(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	// Server config
 	masterConfig, nodeConfig, adminKubeConfigFile, err := testserver.StartTestAllInOne()
 	if err != nil {
@@ -70,6 +72,25 @@ func TestNodeAuth(t *testing.T) {
 	if err := addBob.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
+	// create a scoped token for bob that is only good for getting user info
+	bobUser, err := bobClient.Users().Get("~")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	whoamiOnlyBobToken := &oauthapi.OAuthAccessToken{
+		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
+		ClientName: origin.OpenShiftCLIClientID,
+		ExpiresIn:  200,
+		Scopes:     []string{scope.UserInfo},
+		UserName:   bobUser.Name,
+		UserUID:    string(bobUser.UID),
+	}
+	if _, err := originAdminClient.OAuthAccessTokens().Create(whoamiOnlyBobToken); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, _, bobWhoamiOnlyConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
+	bobWhoamiOnlyConfig.BearerToken = whoamiOnlyBobToken.Name
 
 	// Grant sa1 system:cluster-reader, which should let them read metrics and stats
 	addSA1 := &policy.RoleModificationOptions{
@@ -132,6 +153,11 @@ func TestNodeAuth(t *testing.T) {
 		"bob": {
 			KubeletClientConfig: kubeletClientConfig(bobConfig),
 			NodeViewer:          true,
+		},
+		// bob is normally a viewer, but when using a scoped token, he should end up denied
+		"bob-scoped": {
+			KubeletClientConfig: kubeletClientConfig(bobWhoamiOnlyConfig),
+			Forbidden:           true,
 		},
 		"alice": {
 			KubeletClientConfig: kubeletClientConfig(aliceConfig),
@@ -225,7 +251,7 @@ func TestNodeAuth(t *testing.T) {
 			}
 			resp.Body.Close()
 			if resp.StatusCode != r.Result {
-				t.Errorf("%s: %s: expected %d, got %d", k, r.Path, r.Result, resp.StatusCode)
+				t.Errorf("%s: token=%s %s: expected %d, got %d", k, tc.KubeletClientConfig.BearerToken, r.Path, r.Result, resp.StatusCode)
 				continue
 			}
 		}

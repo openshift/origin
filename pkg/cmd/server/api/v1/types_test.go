@@ -35,11 +35,13 @@ dnsDomain: ""
 dnsIP: ""
 dockerConfig:
   execHandlerName: ""
+enableUnidling: false
 imageConfig:
   format: ""
   latest: false
 iptablesSyncPeriod: ""
 kind: NodeConfig
+masterClientConnectionOverrides: null
 masterKubeConfig: ""
 networkConfig:
   mtu: 0
@@ -183,18 +185,22 @@ kubernetesMasterConfig:
   proxyClientInfo:
     certFile: ""
     keyFile: ""
+  schedulerArguments: null
   schedulerConfigFile: ""
   servicesNodePortRange: ""
   servicesSubnet: ""
   staticNodeNames: null
 masterClients:
+  externalKubernetesClientConnectionOverrides: null
   externalKubernetesKubeConfig: ""
+  openshiftLoopbackClientConnectionOverrides: null
   openshiftLoopbackKubeConfig: ""
 masterPublicURL: ""
 networkConfig:
   clusterNetworkCIDR: ""
   externalIPNetworkCIDRs: null
   hostSubnetLength: 0
+  ingressIPNetworkCIDR: ""
   networkPluginName: ""
   serviceNetworkCIDR: ""
 oauthConfig:

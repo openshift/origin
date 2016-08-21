@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -338,6 +339,10 @@ subjectCheck:
 	} else {
 		roleBinding.Name = getUniqueName(o.RoleName, roleBindingNames)
 		err = o.RoleBindingAccessor.CreateRoleBinding(roleBinding)
+		// If the rolebinding was created in the meantime, rerun
+		if kapierrors.IsAlreadyExists(err) {
+			return o.AddRole()
+		}
 	}
 	if err != nil {
 		return err

@@ -528,11 +528,11 @@ readonly -f delete_empty_logs
 # truncate_large_logs truncates large logs so we only download the last 20MB
 function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
-	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +20M \))
+	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +50M \))
 	for file in ${large_files}; do
-		cp "${file}" "${file}.tmp"
-		echo "LOGFILE TOO LONG, PREVIOUS BYTES TRUNCATED. LAST 20M BYTES OF LOGFILE:" > "${file}"
-		tail -c 20M "${file}.tmp" >> "${file}"
+		mv "${file}" "${file}.tmp"
+		echo "LOGFILE TOO LONG $(du -h "${file}"), LAST 50M OF LOGFILE:" > "${file}"
+		tail -c 50M "${file}.tmp" >> "${file}"
 		rm "${file}.tmp"
 	done
 }
@@ -550,7 +550,6 @@ readonly -f ensure_ginkgo_or_die
 
 # cleanup_openshift saves container logs, saves resources, and kills all processes and containers
 function cleanup_openshift() {
-	ADMIN_KUBECONFIG="${ADMIN_KUBECONFIG:-${BASETMPDIR}/openshift.local.config/master/admin.kubeconfig}"
 	LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	ARTIFACT_DIR="${ARTIFACT_DIR:-${LOG_DIR}}"
 	API_HOST="${API_HOST:-127.0.0.1}"
@@ -563,12 +562,6 @@ function cleanup_openshift() {
  	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
 	grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
-
-	if [[ -e "${ADMIN_KUBECONFIG:-}" ]]; then
-		echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
-		oc login -u system:admin -n default --config=${ADMIN_KUBECONFIG}
-		oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
-	fi
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1

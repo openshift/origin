@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
+	"k8s.io/kubernetes/pkg/util/term"
 )
 
 type fakeRemoteAttach struct {
@@ -40,7 +41,7 @@ type fakeRemoteAttach struct {
 	attachErr error
 }
 
-func (f *fakeRemoteAttach) Attach(method string, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
+func (f *fakeRemoteAttach) Attach(method string, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool, terminalSizeQueue term.TerminalSizeQueue) error {
 	f.method = method
 	f.url = url
 	return f.attachErr
@@ -73,13 +74,21 @@ func TestPodAndContainerAttach(t *testing.T) {
 			name:        "no container, no flags",
 		},
 		{
-			p:                 &AttachOptions{ContainerName: "bar"},
+			p:                 &AttachOptions{StreamOptions: StreamOptions{ContainerName: "bar"}},
 			args:              []string{"foo"},
 			expectedPod:       "foo",
 			expectedContainer: "bar",
 			name:              "container in flag",
 		},
+		{
+			p:                 &AttachOptions{StreamOptions: StreamOptions{ContainerName: "initfoo"}},
+			args:              []string{"foo"},
+			expectedPod:       "foo",
+			expectedContainer: "initfoo",
+			name:              "init container in flag",
+		},
 	}
+
 	for _, test := range tests {
 		f, tf, codec := NewAPIFactory()
 		tf.Client = &fake.RESTClient{
@@ -159,11 +168,13 @@ func TestAttach(t *testing.T) {
 			ex.attachErr = fmt.Errorf("attach error")
 		}
 		params := &AttachOptions{
-			ContainerName: "bar",
-			In:            bufIn,
-			Out:           bufOut,
-			Err:           bufErr,
-			Attach:        ex,
+			StreamOptions: StreamOptions{
+				ContainerName: "bar",
+				In:            bufIn,
+				Out:           bufOut,
+				Err:           bufErr,
+			},
+			Attach: ex,
 		}
 		cmd := &cobra.Command{}
 		if err := params.Complete(f, cmd, []string{"foo"}); err != nil {
@@ -233,13 +244,15 @@ func TestAttachWarnings(t *testing.T) {
 		bufIn := bytes.NewBuffer([]byte{})
 		ex := &fakeRemoteAttach{}
 		params := &AttachOptions{
-			ContainerName: test.container,
-			In:            bufIn,
-			Out:           bufOut,
-			Err:           bufErr,
-			Stdin:         test.stdin,
-			TTY:           test.tty,
-			Attach:        ex,
+			StreamOptions: StreamOptions{
+				ContainerName: test.container,
+				In:            bufIn,
+				Out:           bufOut,
+				Err:           bufErr,
+				Stdin:         test.stdin,
+				TTY:           test.tty,
+			},
+			Attach: ex,
 		}
 		cmd := &cobra.Command{}
 		if err := params.Complete(f, cmd, []string{"foo"}); err != nil {
@@ -269,6 +282,11 @@ func attachPod() *api.Pod {
 			Containers: []api.Container{
 				{
 					Name: "bar",
+				},
+			},
+			InitContainers: []api.Container{
+				{
+					Name: "initfoo",
 				},
 			},
 		},

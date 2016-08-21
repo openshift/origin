@@ -17,6 +17,7 @@ limitations under the License.
 package cache
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -67,6 +68,50 @@ func TestFIFO_basic(t *testing.T) {
 		default:
 			t.Fatalf("unexpected type %#v", obj)
 		}
+	}
+}
+
+func TestFIFO_requeueOnPop(t *testing.T) {
+	f := NewFIFO(testFifoObjectKeyFunc)
+
+	f.Add(mkFifoObj("foo", 10))
+	_, err := f.Pop(func(obj interface{}) error {
+		if obj.(testFifoObject).name != "foo" {
+			t.Fatalf("unexpected object: %#v", obj)
+		}
+		return ErrRequeue{Err: nil}
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok, err := f.GetByKey("foo"); !ok || err != nil {
+		t.Fatalf("object should have been requeued: %t %v", ok, err)
+	}
+
+	_, err = f.Pop(func(obj interface{}) error {
+		if obj.(testFifoObject).name != "foo" {
+			t.Fatalf("unexpected object: %#v", obj)
+		}
+		return ErrRequeue{Err: fmt.Errorf("test error")}
+	})
+	if err == nil || err.Error() != "test error" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok, err := f.GetByKey("foo"); !ok || err != nil {
+		t.Fatalf("object should have been requeued: %t %v", ok, err)
+	}
+
+	_, err = f.Pop(func(obj interface{}) error {
+		if obj.(testFifoObject).name != "foo" {
+			t.Fatalf("unexpected object: %#v", obj)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok, err := f.GetByKey("foo"); ok || err != nil {
+		t.Fatalf("object should have been removed: %t %v", ok, err)
 	}
 }
 
@@ -231,5 +276,23 @@ func TestFIFO_HasSynced(t *testing.T) {
 		if e, a := test.expectedSynced, f.HasSynced(); a != e {
 			t.Errorf("test case %v failed, expected: %v , got %v", i, e, a)
 		}
+	}
+}
+
+func TestFIFO_resync(t *testing.T) {
+	f := NewResyncableFIFO(testFifoObjectKeyFunc)
+	f.Add(mkFifoObj("foo", 10))
+	f.Add(mkFifoObj("bar", 15))
+	Pop(f)
+
+	if err := f.Resync(); err != nil {
+		t.Fatal(err)
+	}
+
+	if e, a := "bar", Pop(f).(testFifoObject).name; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+	if e, a := "foo", Pop(f).(testFifoObject).name; e != a {
+		t.Fatalf("expected %v, got %v", e, a)
 	}
 }

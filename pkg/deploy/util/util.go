@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
@@ -35,7 +36,14 @@ func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.
 // ActiveDeployment returns the latest complete deployment, or nil if there is
 // no such deployment. The active deployment is not always the same as the
 // latest deployment.
-func ActiveDeployment(config *deployapi.DeploymentConfig, deployments []api.ReplicationController) *api.ReplicationController {
+func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.ReplicationController) *api.ReplicationController {
+	// we need to create our own copy of the input slice so that our sort here
+	// doesn't change the caller's slice
+	var deployments []api.ReplicationController
+	for _, deployment := range input {
+		deployments = append(deployments, deployment)
+	}
+
 	sort.Sort(ByLatestVersionDesc(deployments))
 	var activeDeployment *api.ReplicationController
 	for _, deployment := range deployments {
@@ -265,7 +273,7 @@ func GetAvailablePods(pods []api.Pod, minReadySeconds int32) int32 {
 	available := int32(0)
 	for i := range pods {
 		pod := pods[i]
-		if kdeplutil.IsPodAvailable(&pod, minReadySeconds) {
+		if kdeplutil.IsPodAvailable(&pod, minReadySeconds, time.Now()) {
 			available++
 		}
 	}
@@ -388,6 +396,37 @@ func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {
 		return 0, false
 	}
 	return int32(i), true
+}
+
+// DeploymentsForCleanup determines which deployments for a configuration are relevant for the
+// revision history limit quota
+func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployments []api.ReplicationController) []api.ReplicationController {
+	// if the past deployment quota has been exceeded, we need to prune the oldest deployments
+	// until we are not exceeding the quota any longer, so we sort oldest first
+	sort.Sort(ByLatestVersionAsc(deployments))
+
+	relevantDeployments := []api.ReplicationController{}
+	activeDeployment := ActiveDeployment(configuration, deployments)
+	if activeDeployment == nil {
+		// if cleanup policy is set but no successful deployments have happened, there will be
+		// no active deployment. We can consider all of the deployments in this case except for
+		// the latest one
+		for _, deployment := range deployments {
+			if DeploymentVersionFor(&deployment) != configuration.Status.LatestVersion {
+				relevantDeployments = append(relevantDeployments, deployment)
+			}
+		}
+	} else {
+		// if there is an active deployment, we need to filter out any deployments that we don't
+		// care about, namely the active deployment and any newer deployments
+		for _, deployment := range deployments {
+			if &deployment != activeDeployment || DeploymentVersionFor(&deployment) < DeploymentVersionFor(activeDeployment) {
+				relevantDeployments = append(relevantDeployments, deployment)
+			}
+		}
+	}
+
+	return relevantDeployments
 }
 
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.

@@ -18,6 +18,7 @@ package kubelet
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -62,7 +63,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/status"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/kubelet/util/queue"
-	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volume"
+	kubeletvolume "k8s.io/kubernetes/pkg/kubelet/volumemanager"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -73,6 +74,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/rand"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/term"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/volume"
@@ -1066,6 +1068,7 @@ func TestNodeIPParam(t *testing.T) {
 }
 
 type fakeContainerCommandRunner struct {
+	// what was passed in
 	Cmd    []string
 	ID     kubecontainer.ContainerID
 	PodID  types.UID
@@ -1076,15 +1079,25 @@ type fakeContainerCommandRunner struct {
 	TTY    bool
 	Port   uint16
 	Stream io.ReadWriteCloser
+
+	// what to return
+	StdoutData string
+	StderrData string
 }
 
-func (f *fakeContainerCommandRunner) ExecInContainer(id kubecontainer.ContainerID, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool) error {
+func (f *fakeContainerCommandRunner) ExecInContainer(id kubecontainer.ContainerID, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool, resize <-chan term.Size) error {
+	// record params
 	f.Cmd = cmd
 	f.ID = id
 	f.Stdin = in
 	f.Stdout = out
 	f.Stderr = err
 	f.TTY = tty
+
+	// Copy stdout/stderr data
+	fmt.Fprint(out, f.StdoutData)
+	fmt.Fprint(out, f.StderrData)
+
 	return f.E
 }
 
@@ -1118,35 +1131,45 @@ func TestRunInContainerNoSuchPod(t *testing.T) {
 }
 
 func TestRunInContainer(t *testing.T) {
-	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
-	kubelet := testKubelet.kubelet
-	fakeRuntime := testKubelet.fakeRuntime
-	fakeCommandRunner := fakeContainerCommandRunner{}
-	kubelet.runner = &fakeCommandRunner
+	for _, testError := range []error{nil, errors.New("foo")} {
+		testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+		kubelet := testKubelet.kubelet
+		fakeRuntime := testKubelet.fakeRuntime
+		fakeCommandRunner := fakeContainerCommandRunner{
+			E:          testError,
+			StdoutData: "foo",
+			StderrData: "bar",
+		}
+		kubelet.runner = &fakeCommandRunner
 
-	containerID := kubecontainer.ContainerID{Type: "test", ID: "abc1234"}
-	fakeRuntime.PodList = []*containertest.FakePod{
-		{Pod: &kubecontainer.Pod{
-			ID:        "12345678",
-			Name:      "podFoo",
-			Namespace: "nsFoo",
-			Containers: []*kubecontainer.Container{
-				{Name: "containerFoo",
-					ID: containerID,
+		containerID := kubecontainer.ContainerID{Type: "test", ID: "abc1234"}
+		fakeRuntime.PodList = []*containertest.FakePod{
+			{Pod: &kubecontainer.Pod{
+				ID:        "12345678",
+				Name:      "podFoo",
+				Namespace: "nsFoo",
+				Containers: []*kubecontainer.Container{
+					{Name: "containerFoo",
+						ID: containerID,
+					},
 				},
-			},
-		}},
-	}
-	cmd := []string{"ls"}
-	_, err := kubelet.RunInContainer("podFoo_nsFoo", "", "containerFoo", cmd)
-	if fakeCommandRunner.ID != containerID {
-		t.Errorf("unexpected Name: %s", fakeCommandRunner.ID)
-	}
-	if !reflect.DeepEqual(fakeCommandRunner.Cmd, cmd) {
-		t.Errorf("unexpected command: %s", fakeCommandRunner.Cmd)
-	}
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+			}},
+		}
+		cmd := []string{"ls"}
+		actualOutput, err := kubelet.RunInContainer("podFoo_nsFoo", "", "containerFoo", cmd)
+		if fakeCommandRunner.ID != containerID {
+			t.Errorf("(testError=%v) unexpected Name: %s", testError, fakeCommandRunner.ID)
+		}
+		if !reflect.DeepEqual(fakeCommandRunner.Cmd, cmd) {
+			t.Errorf("(testError=%v) unexpected command: %s", testError, fakeCommandRunner.Cmd)
+		}
+		// this isn't 100% foolproof as a bug in a real ContainerCommandRunner where it fails to copy to stdout/stderr wouldn't be caught by this test
+		if "foobar" != string(actualOutput) {
+			t.Errorf("(testError=%v) unexpected output %q", testError, actualOutput)
+		}
+		if e, a := fmt.Sprintf("%v", testError), fmt.Sprintf("%v", err); e != a {
+			t.Errorf("(testError=%v) error: expected %s, got %s", testError, e, a)
+		}
 	}
 }
 
@@ -2095,6 +2118,7 @@ func TestExecInContainerNoSuchPod(t *testing.T) {
 		nil,
 		nil,
 		false,
+		nil,
 	)
 	if err == nil {
 		t.Fatal("unexpected non-error")
@@ -2139,6 +2163,7 @@ func TestExecInContainerNoSuchContainer(t *testing.T) {
 		nil,
 		nil,
 		false,
+		nil,
 	)
 	if err == nil {
 		t.Fatal("unexpected non-error")
@@ -2199,6 +2224,7 @@ func TestExecInContainer(t *testing.T) {
 		stdout,
 		stderr,
 		tty,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)

@@ -2,13 +2,8 @@
 
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 readonly JQSETPULLPOLICY='(.items[] | select(.kind == "DeploymentConfig") | .spec.template.spec.containers[0].imagePullPolicy) |= "IfNotPresent"'
 
@@ -20,9 +15,6 @@ if [[ "${TEST_END_TO_END:-}" != "direct" ]]; then
 	fi
 	echo "++ Docker is not installed, running end-to-end against local binaries"
 fi
-
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
 
 ensure_iptables_or_die
 

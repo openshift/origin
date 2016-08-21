@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -23,6 +21,8 @@ import (
 
 func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -79,6 +79,8 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 
 func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -121,6 +123,8 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 
 func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -153,7 +157,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 
 	// can I get a subjectaccessreview on myself even if I have no rights to do it generally
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "policybindings"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
 	}
 	subjectAccessReviewTest{
 		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
@@ -168,7 +172,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	// I shouldn't be allowed to ask whether someone else can perform an action
 	askCanClusterAdminsCreateProject := &authorizationapi.LocalSubjectAccessReview{
 		Groups: sets.NewString("system:cluster-admins"),
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
@@ -180,6 +184,8 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 
 func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -207,7 +213,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 	// ensure that a SAR for a non-exisitng namespace gives a SAR response and not a
 	// namespace doesn't exist response from admisison.
 	askCanICreatePodsInNonExistingNamespace := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Namespace: "foo", Verb: "create", Resource: "pods"},
+		Action: authorizationapi.Action{Namespace: "foo", Verb: "create", Resource: "pods"},
 	}
 	subjectAccessReviewTest{
 		description:    "ensure SAR for non-existing namespace does not leak namespace info",

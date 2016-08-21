@@ -188,6 +188,9 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
+	// deprecate --list option
+	cmd.Flags().MarkDeprecated("list", "Volumes and volume mounts can be listed by providing a resource with no additional options.")
+
 	return cmd
 }
 

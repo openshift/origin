@@ -2,14 +2,8 @@
 #
 # Runs all standard extended tests against either an existing cluster (TEST_ONLY=1)
 # or a standard started server.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 source "${OS_ROOT}/test/extended/setup.sh"
-cd "${OS_ROOT}"
 
 os::test::extended::setup
 os::test::extended::focus "$@"

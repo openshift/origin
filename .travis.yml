@@ -2,14 +2,14 @@ language: go
 
 go:
   - 1.6
-  - tip
+  - 1.7
 
 install:
   - export PATH=$GOPATH/bin:./_output/tools/etcd/bin:$PATH
   - make install-travis
 
 script:
-  - make verify
+  - PERMISSIVE_GO=y make verify
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"

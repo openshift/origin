@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -12,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -28,8 +28,67 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
+func prettyPrintAction(act *authorizationapi.Action, defaultNamespaceStr string) string {
+	nsStr := fmt.Sprintf("in namespace %q", act.Namespace)
+	if act.Namespace == "" {
+		nsStr = defaultNamespaceStr
+	}
+
+	var resourceStr string
+	if act.Group == "" && act.Version == "" {
+		resourceStr = act.Resource
+	} else {
+		groupVer := kunvapi.GroupVersion{Group: act.Group, Version: act.Version}
+		resourceStr = fmt.Sprintf("%s/%s", act.Resource, groupVer.String())
+	}
+
+	var base string
+	if act.ResourceName == "" {
+		base = fmt.Sprintf("who can %s %s %s", act.Verb, resourceStr, nsStr)
+	} else {
+		base = fmt.Sprintf("who can %s the %s named %q %s", act.Verb, resourceStr, act.ResourceName, nsStr)
+	}
+
+	if act.Content != nil {
+		return fmt.Sprintf("%s with content %#v", base, act.Content)
+	}
+
+	return base
+}
+
+func prettyPrintReviewResponse(resp *authorizationapi.ResourceAccessReviewResponse) string {
+	nsStr := fmt.Sprintf("(in the namespace %q)\n", resp.Namespace)
+	if resp.Namespace == "" {
+		nsStr = "(in all namespaces)\n"
+	}
+
+	var usersStr string
+	if resp.Users.Len() > 0 {
+		userStrList := make([]string, 0, len(resp.Users))
+		for userName := range resp.Users {
+			userStrList = append(userStrList, fmt.Sprintf("    - %s\n", userName))
+		}
+
+		usersStr = fmt.Sprintf("  users:\n%s", strings.Join(userStrList, ""))
+	}
+
+	var groupsStr string
+	if resp.Groups.Len() > 0 {
+		groupStrList := make([]string, 0, len(resp.Groups))
+		for groupName := range resp.Groups {
+			groupStrList = append(groupStrList, fmt.Sprintf("    - %s\n", groupName))
+		}
+
+		groupsStr = fmt.Sprintf("  groups:\n%s", strings.Join(groupStrList, ""))
+	}
+
+	return fmt.Sprintf(nsStr + usersStr + groupsStr)
+}
+
 func TestClusterReaderCoverage(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,6 +173,8 @@ func TestClusterReaderCoverage(t *testing.T) {
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -185,6 +246,8 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 
 func TestAuthorizationResolution(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -272,6 +335,9 @@ var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:m
 var globalClusterReaderUsers = sets.NewString("system:serviceaccount:openshift-infra:namespace-controller", "system:admin")
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
 
+// this list includes any other users who can get DeploymentConfigs
+var globalDeploymentConfigGetterUsers = sets.NewString("system:serviceaccount:openshift-infra:unidling-controller")
+
 type resourceAccessReviewTest struct {
 	description     string
 	clientInterface client.ResourceAccessReviewInterface
@@ -304,8 +370,11 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 			}
 		}
 
-		if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
-			failMessage = fmt.Sprintf("%s: %#v: expected %#v, got %#v", test.description, test.review, test.response, actualResponse)
+		if actualResponse.Namespace != test.response.Namespace ||
+			!reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) ||
+			!reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) ||
+			actualResponse.EvaluationError != test.response.EvaluationError {
+			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in any namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
 		}
 
@@ -354,8 +423,11 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 			}
 		}
 
-		if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
-			failMessage = fmt.Sprintf("%s: %#v: expected %#v, got %#v", test.description, test.review, test.response, actualResponse)
+		if actualResponse.Namespace != test.response.Namespace ||
+			!reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) ||
+			!reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) ||
+			actualResponse.EvaluationError != test.response.EvaluationError {
+			failMessage = fmt.Sprintf("%s:\n  %s:\n  expected %s\n  got %s", test.description, prettyPrintAction(&test.review.Action, "(in the current namespace)"), prettyPrintReviewResponse(&test.response), prettyPrintReviewResponse(actualResponse))
 			return false, nil
 		}
 
@@ -373,7 +445,7 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 
 func TestAuthorizationResourceAccessReview(t *testing.T) {
 	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t, "TestAuthorizationResourceAccessReview")
+	defer testutil.DumpEtcdOnFailure(t)
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -421,11 +493,11 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	}
 
 	requestWhoCanViewDeploymentConfigs := &authorizationapi.ResourceAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "deploymentconfigs"},
+		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs"},
 	}
 
 	localRequestWhoCanViewDeploymentConfigs := &authorizationapi.LocalResourceAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "deploymentconfigs"},
+		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs"},
 	}
 
 	{
@@ -440,6 +512,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -455,6 +528,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -482,6 +556,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -495,12 +570,14 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: clusterAdminClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     sets.NewString("edgar"),
-				Groups:    sets.NewString(),
-				Namespace: "mallet-project",
+				Users:           sets.NewString("edgar"),
+				Groups:          sets.NewString(),
+				Namespace:       "mallet-project",
+				EvaluationError: `role "admin" not found`,
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
+		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}
@@ -567,6 +644,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 
 func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -594,7 +672,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -607,7 +685,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
@@ -620,7 +698,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
@@ -633,7 +711,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
@@ -647,7 +725,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		description:    "cluster admin told they can get extensions.horizontalpodautoscalers in project hammer-project",
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -659,7 +737,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		description:    "cluster admin told they can get horizontalpodautoscalers (with no API group) in project any-project",
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -671,7 +749,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		description:    "cluster admin told they can get horizontalpodautoscalers (with invalid API group) in project any-project",
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -683,7 +761,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		description:    "cluster admin told they can get horizontalpodautoscalers (with * API group) in project any-project",
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -695,6 +773,8 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 
 func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -725,6 +805,22 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("error requesting token: %v", err)
 	}
 
+	anonymousConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	anonymousClient, err := client.New(&anonymousConfig)
+	if err != nil {
+		t.Fatalf("error getting anonymous client: %v", err)
+	}
+
+	addAnonymous := &policy.RoleModificationOptions{
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.EditRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", clusterAdminClient),
+		Users:               []string{"system:anonymous"},
+	}
+	if err := addAnonymous.AddRole(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	addDanny := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
@@ -736,14 +832,14 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	askCanDannyGetProject := &authorizationapi.SubjectAccessReview{
 		User:   "danny",
-		Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "projects"},
+		Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:    "cluster admin told danny can get project default",
 		localInterface: clusterAdminClient.LocalSubjectAccessReviews("default"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "danny",
-			Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "projects"},
+			Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -766,6 +862,12 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterInterface: dannyClient.SubjectAccessReviews(),
 		clusterReview:    askCanDannyGetProject,
 		err:              `User "danny" cannot create subjectaccessreviews at the cluster scope`,
+	}.run(t)
+	subjectAccessReviewTest{
+		description:      "as anonymous, can I make cluster subject access reviews",
+		clusterInterface: anonymousClient.SubjectAccessReviews(),
+		clusterReview:    askCanDannyGetProject,
+		err:              `User "system:anonymous" cannot create subjectaccessreviews at the cluster scope`,
 	}.run(t)
 
 	addValerie := &policy.RoleModificationOptions{
@@ -790,7 +892,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	askCanValerieGetProject := &authorizationapi.LocalSubjectAccessReview{
 		User:   "valerie",
-		Action: authorizationapi.AuthorizationAttributes{Verb: "get", Resource: "projects"},
+		Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:    "harold told valerie can get project hammer-project",
@@ -815,7 +917,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	askCanEdgarDeletePods := &authorizationapi.LocalSubjectAccessReview{
 		User:   "edgar",
-		Action: authorizationapi.AuthorizationAttributes{Verb: "delete", Resource: "pods"},
+		Action: authorizationapi.Action{Verb: "delete", Resource: "pods"},
 	}
 	subjectAccessReviewTest{
 		description:    "mark told edgar can delete pods in mallet-project",
@@ -827,16 +929,36 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 			Namespace: "mallet-project",
 		},
 	}.run(t)
+	// ensure unprivileged users cannot check other users' access
 	subjectAccessReviewTest{
 		description:    "harold denied ability to run subject access review in project mallet-project",
 		localInterface: haroldClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:    askCanEdgarDeletePods,
 		err:            `User "harold" cannot create localsubjectaccessreviews in project "mallet-project"`,
 	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous denied ability to run subject access review in project mallet-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("mallet-project"),
+		localReview:    askCanEdgarDeletePods,
+		err:            `User "system:anonymous" cannot create localsubjectaccessreviews in project "mallet-project"`,
+	}.run(t)
+	// ensure message does not leak whether the namespace exists or not
+	subjectAccessReviewTest{
+		description:    "harold denied ability to run subject access review in project nonexistent-project",
+		localInterface: haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanEdgarDeletePods,
+		err:            `User "harold" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous denied ability to run subject access review in project nonexistent-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanEdgarDeletePods,
+		err:            `User "system:anonymous" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
+	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{
 		User:   "harold",
-		Action: authorizationapi.AuthorizationAttributes{Verb: "update", Resource: "projects"},
+		Action: authorizationapi.Action{Verb: "update", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:    "harold told harold can update project hammer-project",
@@ -851,7 +973,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{
 		Groups: sets.NewString("system:cluster-admins"),
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
 		description:      "cluster admin told cluster admins can create projects",
@@ -871,7 +993,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 
 	askCanICreatePods := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "pods"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "pods"},
 	}
 	subjectAccessReviewTest{
 		description:    "harold told he can create pods in project hammer-project",
@@ -883,8 +1005,63 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 			Namespace: "hammer-project",
 		},
 	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous told he can create pods in project hammer-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("hammer-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in hammer-project",
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+
+	// test checking self permissions when denied
+	subjectAccessReviewTest{
+		description:    "harold told he cannot create pods in project mallet-project",
+		localInterface: haroldClient.LocalSubjectAccessReviews("mallet-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "harold" cannot create pods in project "mallet-project"`,
+			Namespace: "mallet-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous told he cannot create pods in project mallet-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("mallet-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "system:anonymous" cannot create pods in project "mallet-project"`,
+			Namespace: "mallet-project",
+		},
+	}.run(t)
+
+	// test checking self-permissions doesn't leak whether namespace exists or not
+	subjectAccessReviewTest{
+		description:    "harold told he cannot create pods in project nonexistent-project",
+		localInterface: haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "harold" cannot create pods in project "nonexistent-project"`,
+			Namespace: "nonexistent-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "system:anonymous told he cannot create pods in project nonexistent-project",
+		localInterface: anonymousClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localReview:    askCanICreatePods,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "system:anonymous" cannot create pods in project "nonexistent-project"`,
+			Namespace: "nonexistent-project",
+		},
+	}.run(t)
+
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "policybindings"},
+		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
 	}
 	subjectAccessReviewTest{
 		description:    "harold told he can create policybindings in project hammer-project",
@@ -925,7 +1102,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		description:    "empty token impersonate can't see pods in namespace",
 		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("hammer-project", ""),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
 		},
 		err: `impersonating token may not be empty`,
 	}.run(t)
@@ -933,7 +1110,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		description:      "empty token impersonate can't see pods in cluster",
 		clusterInterface: otherAdminClient.ImpersonateSubjectAccessReviews(""),
 		clusterReview: &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
 		},
 		err: `impersonating token may not be empty`,
 	}.run(t)
@@ -942,7 +1119,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		description:    "danny impersonate can't see pods in hammer namespace",
 		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("hammer-project", dannyConfig.BearerToken),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
@@ -954,7 +1131,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		description:      "danny impersonate can't see pods in cluster",
 		clusterInterface: otherAdminClient.ImpersonateSubjectAccessReviews(dannyConfig.BearerToken),
 		clusterReview: &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed: false,
@@ -965,7 +1142,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		description:    "danny impersonate can see pods in default",
 		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("default", dannyConfig.BearerToken),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -979,6 +1156,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 // this is needed to support old docker registry images
 func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1004,7 +1183,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 	// simple check
 	{
 		sar := &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Verb:     "get",
 				Resource: "imagestreams/layers",
 			},
@@ -1030,7 +1209,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 	// namespace forced to allowed namespace so we can't trick the server into leaking
 	{
 		sar := &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "sneaky-user",
 				Verb:      "get",
 				Resource:  "imagestreams/layers",
@@ -1077,7 +1256,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		}
 
 		sar := &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Verb:     "get",
 				Resource: "imagestreams/layers",
 			},
@@ -1106,6 +1285,8 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 // this is needed to support old who-can client
 func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1131,7 +1312,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	// simple check
 	{
 		rar := &authorizationapi.ResourceAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Verb:     "get",
 				Resource: "imagestreams/layers",
 			},
@@ -1157,7 +1338,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	// namespace forced to allowed namespace so we can't trick the server into leaking
 	{
 		rar := &authorizationapi.ResourceAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
+			Action: authorizationapi.Action{
 				Namespace: "sneaky-user",
 				Verb:      "get",
 				Resource:  "imagestreams/layers",

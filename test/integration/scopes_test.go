@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -24,6 +22,7 @@ import (
 
 func TestScopedTokens(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -59,7 +58,7 @@ func TestScopedTokens(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
 		ClientName: origin.OpenShiftCLIClientID,
 		ExpiresIn:  200,
-		Scopes:     []string{scope.UserIndicator + scope.UserInfo},
+		Scopes:     []string{scope.UserInfo},
 		UserName:   userName,
 		UserUID:    string(haroldUser.UID),
 	}
@@ -100,6 +99,7 @@ func TestScopedTokens(t *testing.T) {
 
 func TestScopedImpersonation(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -144,6 +144,7 @@ func TestScopedImpersonation(t *testing.T) {
 
 func TestScopeEscalations(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -224,6 +225,7 @@ func TestScopeEscalations(t *testing.T) {
 
 func TestTokensWithIllegalScopes(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

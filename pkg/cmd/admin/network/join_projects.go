@@ -11,6 +11,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 const (
@@ -79,10 +80,6 @@ func (j *JoinOptions) Validate() error {
 }
 
 func (j *JoinOptions) Run() error {
-	netID, err := j.Options.GetNetID(j.joinProjectName)
-	if err != nil {
-		return err
-	}
 	projects, err := j.Options.GetProjects()
 	if err != nil {
 		return err
@@ -90,9 +87,10 @@ func (j *JoinOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		err = j.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, netID)
-		if err != nil {
-			errList = append(errList, fmt.Errorf("Project '%s' failed to join '%s', error: %v", project.ObjectMeta.Name, j.joinProjectName, err))
+		if project.Name != j.joinProjectName {
+			if err = j.Options.UpdatePodNetwork(project.Name, sdnapi.JoinPodNetwork, j.joinProjectName); err != nil {
+				errList = append(errList, fmt.Errorf("Project %q failed to join %q, error: %v", project.Name, j.joinProjectName, err))
+			}
 		}
 	}
 	return kerrors.NewAggregate(errList)

@@ -1,7 +1,6 @@
 package dockercfg
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -62,16 +61,13 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 	var err error
 	if strings.HasSuffix(dockercfgPath, kapi.DockerConfigJsonKey) || strings.HasSuffix(dockercfgPath, "config.json") {
 		cfg, err = readDockerConfigJson(dockercfgPath)
-		if err != nil {
-			glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
-			return docker.AuthConfiguration{}, false
-		}
 	} else if strings.HasSuffix(dockercfgPath, kapi.DockerConfigKey) {
 		cfg, err = readDockercfg(dockercfgPath)
-		if err != nil {
-			glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
-			return docker.AuthConfiguration{}, false
-		}
+	}
+
+	if err != nil {
+		glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
+		return docker.AuthConfiguration{}, false
 	}
 
 	keyring := credentialprovider.BasicDockerKeyring{}
@@ -142,18 +138,5 @@ func readDockerConfigJson(filePath string) (cfg credentialprovider.DockerConfig,
 		return
 	}
 	cfg = config.Auths
-	return
-}
-
-// getCredentials parses an auth string inside a dockercfg file into
-// a username and password
-func getCredentials(auth string) (username, password string, err error) {
-	creds, err := base64.StdEncoding.DecodeString(auth)
-	if err != nil {
-		return
-	}
-	unamepass := strings.Split(string(creds), ":")
-	username = unamepass[0]
-	password = unamepass[1]
 	return
 }

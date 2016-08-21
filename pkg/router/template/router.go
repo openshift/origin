@@ -20,6 +20,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/util/ratelimiter"
 )
@@ -59,6 +60,8 @@ type templateRouter struct {
 	defaultCertificate string
 	// if the default certificate is populated then this will be filled in so it can be passed to the templates
 	defaultCertificatePath string
+	// if the default certificate is in a secret this will be filled in so it can be passed to the templates
+	defaultCertificateDir string
 	// peerService provides a namespace/name to check against when receiving endpoint events in order
 	// to track the peers of this router.  This may be used to populate the set of peer ip addresses
 	// that a router can use for talking to other routers controlled by the same service.
@@ -91,6 +94,7 @@ type templateRouterCfg struct {
 	reloadInterval         time.Duration
 	defaultCertificate     string
 	defaultCertificatePath string
+	defaultCertificateDir  string
 	statsUser              string
 	statsPassword          string
 	statsPort              int
@@ -148,6 +152,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		certManager:            certManager,
 		defaultCertificate:     cfg.defaultCertificate,
 		defaultCertificatePath: cfg.defaultCertificatePath,
+		defaultCertificateDir:  cfg.defaultCertificateDir,
 		statsUser:              cfg.statsUser,
 		statsPassword:          cfg.statsPassword,
 		statsPort:              cfg.statsPort,
@@ -187,14 +192,14 @@ func matchValues(s string, allowedValues ...string) bool {
 	return false
 }
 
-func matchString(pattern, s string) bool {
-	glog.V(4).Infof("Matchstring called with %s and %s", pattern, s)
-	status, err := regexp.MatchString(pattern, s)
+func matchPattern(pattern, s string) bool {
+	glog.V(4).Infof("matchPattern called with %s and %s", pattern, s)
+	status, err := regexp.MatchString("^("+pattern+")$", s)
 	if err == nil {
-		glog.V(4).Infof("Matchstring returning status: %v", status)
+		glog.V(4).Infof("matchPattern returning status: %v", status)
 		return status
 	}
-	glog.Errorf("Error with regex pattern in call to matchString: %v", err)
+	glog.Errorf("Error with regex pattern in call to matchPattern: %v", err)
 	return false
 }
 
@@ -222,18 +227,66 @@ func (r *templateRouter) EnableRateLimiter(interval int, handlerFunc ratelimiter
 	glog.V(2).Infof("Template router will coalesce reloads within %v seconds of each other", interval)
 }
 
-// writeDefaultCert is called a single time during init to write out the default certificate
+// secretToPem composes a PEM file at the output directory from an input private key and crt file.
+func secretToPem(secPath, outName string) error {
+	// The secret, when present, is mounted on /etc/pki/tls/private
+	// The secret has two components crt.tls and key.tls
+	// When the default cert is provided by the admin it is a pem
+	//   tls.crt is the supplied pem and tls.key is the key
+	//   extracted from the pem
+	// When the admin does not provide a default cert, the secret
+	//   is created via the service annotation. In this case
+	//   tls.crt is the cert and tls.key is the key
+	//   The crt and key are concatenated to form the needed pem
+
+	var fileCrtName = filepath.Join(secPath, "tls.crt")
+	var fileKeyName = filepath.Join(secPath, "tls.key")
+	pemBlock, err := ioutil.ReadFile(fileCrtName)
+	if err != nil {
+		return err
+	}
+	keys, err := cmdutil.PrivateKeysFromPEM(pemBlock)
+	if err != nil {
+		return err
+	}
+	if len(keys) == 0 {
+		// Try to get the key from the tls.key file
+		keyBlock, err := ioutil.ReadFile(fileKeyName)
+		if err != nil {
+			return err
+		}
+		pemBlock = append(pemBlock, keyBlock...)
+	}
+	return ioutil.WriteFile(outName, pemBlock, 0444)
+}
+
+// writeDefaultCert ensures that the default certificate in pem format is in a file
+// and the file name is set in r.defaultCertificatePath
 func (r *templateRouter) writeDefaultCert() error {
+	dir := filepath.Join(r.dir, certDir)
+	outPath := filepath.Join(dir, fmt.Sprintf("%s.pem", defaultCertName))
 	if len(r.defaultCertificate) == 0 {
+		// There is no default cert. There may be a path or a secret...
+		if len(r.defaultCertificatePath) != 0 {
+			// Just use the provided path
+			return nil
+		}
+		err := secretToPem(r.defaultCertificateDir, outPath)
+		if err != nil {
+			// no pem file, no default cert, use cert from container
+			glog.V(2).Infof("Router default cert from router container")
+			return nil
+		}
+		r.defaultCertificatePath = outPath
 		return nil
 	}
 
-	dir := filepath.Join(r.dir, certDir)
+	// write out the default cert (pem format)
 	glog.V(2).Infof("Writing default certificate to %s", dir)
 	if err := r.certManager.CertificateWriter().WriteCertificate(dir, defaultCertName, []byte(r.defaultCertificate)); err != nil {
 		return err
 	}
-	r.defaultCertificatePath = filepath.Join(dir, fmt.Sprintf("%s.pem", defaultCertName))
+	r.defaultCertificatePath = outPath
 	return nil
 }
 
@@ -654,7 +707,7 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 // commit/reload should be skipped.
 func (r *templateRouter) SetSkipCommit(skipCommit bool) {
 	if r.skipCommit != skipCommit {
-		glog.V(4).Infof("Updating skip commit to: %s", skipCommit)
+		glog.V(4).Infof("Updating skip commit to: %t", skipCommit)
 		r.skipCommit = skipCommit
 	}
 }

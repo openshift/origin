@@ -25,6 +25,9 @@ type ProjectsOptions struct {
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
+	// internal strings
+	CommandName string
+
 	DisplayShort bool
 }
 
@@ -47,9 +50,6 @@ Display information about the current active project and existing projects on th
 
 For advanced configuration, or to manage the contents of your config file, use the 'config'
 command.`
-
-	projectsExample = `  # Display the projects that currently exist
-  %[1]s`
 )
 
 // NewCmdProjects implements the OpenShift cli rollback command
@@ -57,14 +57,13 @@ func NewCmdProjects(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	options := &ProjectsOptions{}
 
 	cmd := &cobra.Command{
-		Use:     "projects",
-		Short:   "Display existing projects",
-		Long:    projectsLong,
-		Example: fmt.Sprintf(projectsExample, fullName),
+		Use:   "projects",
+		Short: "Display existing projects",
+		Long:  projectsLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
-			if err := options.Complete(f, args, out); err != nil {
+			if err := options.Complete(f, args, fullName, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -78,10 +77,12 @@ func NewCmdProjects(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	return cmd
 }
 
-func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandName string, out io.Writer) error {
 	if len(args) > 0 {
 		return fmt.Errorf("no arguments should be passed")
 	}
+
+	o.CommandName = commandName
 
 	var err error
 	o.Config, err = f.OpenShiftClientConfig.RawConfig()
@@ -110,8 +111,11 @@ func (o ProjectsOptions) RunProjects() error {
 	clientCfg := o.ClientConfig
 	out := o.Out
 
+	var currentProject string
 	currentContext := config.Contexts[config.CurrentContext]
-	currentProject := currentContext.Namespace
+	if currentContext != nil {
+		currentProject = currentContext.Namespace
+	}
 
 	var currentProjectExists bool
 	var currentProjectErr error
@@ -124,7 +128,10 @@ func (o ProjectsOptions) RunProjects() error {
 		}
 	}
 
-	defaultContextName := cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+	var defaultContextName string
+	if currentContext != nil {
+		defaultContextName = cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+	}
 
 	var msg string
 	projects, err := getProjects(client)
@@ -142,7 +149,7 @@ func (o ProjectsOptions) RunProjects() error {
 			asterisk := ""
 			count := 0
 			if !o.DisplayShort {
-				msg += "You have access to the following projects and can switch between them with 'oc project <projectname>':\n"
+				msg += fmt.Sprintf("You have access to the following projects and can switch between them with '%s project <projectname>':\n", o.CommandName)
 			}
 
 			sort.Sort(SortByProjectName(projects))

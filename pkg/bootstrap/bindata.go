@@ -2,19 +2,23 @@
 // sources:
 // examples/image-streams/image-streams-centos7.json
 // examples/image-streams/image-streams-rhel7.json
+// examples/db-templates/mariadb-ephemeral-template.json
+// examples/db-templates/mariadb-persistent-template.json
 // examples/db-templates/mongodb-ephemeral-template.json
 // examples/db-templates/mongodb-persistent-template.json
 // examples/db-templates/mysql-ephemeral-template.json
 // examples/db-templates/mysql-persistent-template.json
 // examples/db-templates/postgresql-ephemeral-template.json
 // examples/db-templates/postgresql-persistent-template.json
-// examples/jenkins/pipeline/jenkinstemplate.json
+// examples/jenkins/jenkins-ephemeral-template.json
+// examples/jenkins/jenkins-persistent-template.json
 // examples/jenkins/pipeline/samplepipeline.json
 // examples/quickstarts/cakephp-mysql.json
 // examples/quickstarts/dancer-mysql.json
 // examples/quickstarts/django-postgresql.json
 // examples/quickstarts/nodejs-mongodb.json
 // examples/quickstarts/rails-postgresql.json
+// pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
 // DO NOT EDIT!
 
 package bootstrap
@@ -152,7 +156,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "0.10"
+              "name": "4"
             }
           },
           {
@@ -168,6 +172,21 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "openshift/nodejs-010-centos7:latest"
+            }
+          },
+          {
+            "name": "4",
+            "annotations": {
+              "description": "Build and run NodeJS 4 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:4,nodejs",
+              "version": "4",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/nodejs-4-centos7:latest"
             }
           }
         ]
@@ -1293,6 +1312,432 @@ func examplesImageStreamsImageStreamsRhel7Json() (*asset, error) {
 	return a, nil
 }
 
+var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "mariadb-ephemeral",
+    "annotations": {
+      "description": "MariaDB database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "iconClass": "icon-mariadb",
+      "tags": "database,mariadb"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mariadb",
+            "port": 3306
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mariadb"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mariadb:10.1",
+                "namespace": "${NAMESPACE}"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "mariadb",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 3306
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c",
+                      "MYSQL_PWD=\"$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
+                },
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
+      "value": "mariadb",
+      "required": true
+    },
+    {
+      "name": "MYSQL_USER",
+      "displayName": "MariaDB Connection Username",
+      "description": "Username for MariaDB user that will be used for accessing the database.",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "displayName": "MariaDB Connection Password",
+      "description": "Password for the MariaDB connection user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "displayName": "MariaDB Database Name",
+      "description": "Name of the MariaDB database accessed.",
+      "value": "sampledb",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "mariadb-persistent-template"
+  }
+}
+`)
+
+func examplesDbTemplatesMariadbEphemeralTemplateJsonBytes() ([]byte, error) {
+	return _examplesDbTemplatesMariadbEphemeralTemplateJson, nil
+}
+
+func examplesDbTemplatesMariadbEphemeralTemplateJson() (*asset, error) {
+	bytes, err := examplesDbTemplatesMariadbEphemeralTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/db-templates/mariadb-ephemeral-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "mariadb-persistent",
+    "annotations": {
+      "description": "MariaDB database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "iconClass": "icon-mariadb",
+      "tags": "database,mariadb"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mariadb",
+            "port": 3306
+          }
+        ],
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        }
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mariadb"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mariadb:10.1",
+                "namespace": "${NAMESPACE}"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${DATABASE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${DATABASE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "mariadb",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 3306
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 5,
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c",
+                      "MYSQL_PWD=\"$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE -e 'SELECT 1'"]
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 1,
+                  "initialDelaySeconds": 30,
+                  "tcpSocket": {
+                    "port": 3306
+                  }
+                },
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${DATABASE_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "imagePullPolicy": "IfNotPresent"
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${DATABASE_SERVICE_NAME}-data",
+                "persistentVolumeClaim": {
+                  "claimName": "${DATABASE_SERVICE_NAME}"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Namespace",
+      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "displayName": "Database Service Name",
+      "description": "The name of the OpenShift Service exposed for the database.",
+      "value": "mariadb",
+      "required": true
+    },
+    {
+      "name": "MYSQL_USER",
+      "displayName": "MariaDB Connection Username",
+      "description": "Username for MariaDB user that will be used for accessing the database.",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "displayName": "MariaDB Connection Password",
+      "description": "Password for the MariaDB connection user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "displayName": "MariaDB Database Name",
+      "description": "Name of the MariaDB database accessed.",
+      "value": "sampledb",
+      "required": true
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+      "value": "1Gi",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "mariadb-persistent-template"
+  }
+}
+`)
+
+func examplesDbTemplatesMariadbPersistentTemplateJsonBytes() ([]byte, error) {
+	return _examplesDbTemplatesMariadbPersistentTemplateJson, nil
+}
+
+func examplesDbTemplatesMariadbPersistentTemplateJson() (*asset, error) {
+	bytes, err := examplesDbTemplatesMariadbPersistentTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/db-templates/mariadb-persistent-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
 var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
@@ -1355,7 +1800,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:latest",
+                "name": "mongodb:3.2",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1477,7 +1922,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_USER",
-      "displayName": "MongoDB User",
+      "displayName": "MongoDB Connection Username",
       "description": "Username for MongoDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -1485,8 +1930,8 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_PASSWORD",
-      "displayName": "MongoDB Password",
-      "description": "Password for the MongoDB user.",
+      "displayName": "MongoDB Connection Password",
+      "description": "Password for the MongoDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -1509,7 +1954,8 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
   ],
   "labels": {
     "template": "mongodb-ephemeral-template"
-  }
+  },
+  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
 }
 `)
 
@@ -1607,7 +2053,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:latest",
+                "name": "mongodb:3.2",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1729,7 +2175,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_USER",
-      "displayName": "MongoDB User",
+      "displayName": "MongoDB Connection Username",
       "description": "Username for MongoDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -1737,8 +2183,8 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MONGODB_PASSWORD",
-      "displayName": "MongoDB Password",
-      "description": "Password for the MongoDB user.",
+      "displayName": "MongoDB Connection Password",
+      "description": "Password for the MongoDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -1768,7 +2214,8 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
   ],
   "labels": {
     "template": "mongodb-persistent-template"
-  }
+  },
+  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
 }
 `)
 
@@ -1792,7 +2239,6 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "mysql-ephemeral",
-    "creationTimestamp": null,
     "annotations": {
       "description": "MySQL database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mysql-database",
@@ -1849,7 +2295,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest",
+                "name": "mysql:5.6",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1911,10 +2357,10 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -1968,7 +2414,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MySQL Connection Username",
       "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -1976,8 +2422,8 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MySQL user.",
+      "displayName": "MySQL Connection Password",
+      "description": "Password for the MySQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2078,7 +2524,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest",
+                "name": "mysql:5.6",
                 "namespace": "${NAMESPACE}"
               }
             }
@@ -2186,7 +2632,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MySQL Connection Username",
       "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2194,8 +2640,8 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MySQL user.",
+      "displayName": "MySQL Connection Password",
+      "description": "Password for the MySQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2298,7 +2744,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.5",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2359,10 +2805,10 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -2416,7 +2862,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_USER",
-      "displayName": "PostgreSQL User",
+      "displayName": "PostgreSQL Connection Username",
       "description": "Username for PostgreSQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2424,8 +2870,8 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "displayName": "PostgreSQL Password",
-      "description": "Password for the PostgreSQL user.",
+      "displayName": "PostgreSQL Connection Password",
+      "description": "Password for the PostgreSQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2538,7 +2984,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.5",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2656,7 +3102,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_USER",
-      "displayName": "PostgreSQL User",
+      "displayName": "PostgreSQL Connection Username",
       "description": "Username for PostgreSQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -2664,8 +3110,8 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "displayName": "PostgreSQL Password",
-      "description": "Password for the PostgreSQL user.",
+      "displayName": "PostgreSQL Connection Password",
+      "description": "Password for the PostgreSQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -2706,24 +3152,25 @@ func examplesDbTemplatesPostgresqlPersistentTemplateJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
+var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "jenkins",
+    "name": "jenkins-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "Jenkins service, without persistent storage.\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
   },
+  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins",
+        "name": "${JENKINS_SERVICE_NAME}",
         "creationTimestamp": null
       },
       "spec": {
@@ -2761,9 +3208,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "jenkins:1",
-                "namespace": "openshift"
-              }
+                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
             }
           },
           {
@@ -2815,6 +3263,10 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
                   {
                     "name": "KUBERNETES_TRUST_CERTIFICATES",
                     "value": "true"
+                  },
+                  {
+                    "name": "JNLP_SERVICE_NAME",
+                    "value": "${JNLP_SERVICE_NAME}"
                   }
                 ],
                 "resources": {
@@ -2879,8 +3331,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins-jnlp",
-        "creationTimestamp": null
+        "name": "${JNLP_SERVICE_NAME}"
       },
       "spec": {
         "ports": [
@@ -2906,7 +3357,7 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
        "metadata": {
          "name": "${JENKINS_SERVICE_NAME}",
          "annotations": {
-           "service.alpha.openshift.io/dependencies": "[{\"name\": \"jenkins-jnlp\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+           "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
            "service.openshift.io/infrastructure": "true"
          },
          "creationTimestamp": null
@@ -2932,6 +3383,26 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
   ],
   "parameters": [
     {
+      "name": "JENKINS_SERVICE_NAME",
+      "displayName": "Jenkins Service Name",
+      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
+      "value": "jenkins"
+    },
+    {
+      "name": "JNLP_SERVICE_NAME",
+      "displayName": "Jenkins JNLP Service Name",
+      "description": "The name of the service used for master/slave communication.",
+      "value": "jenkins-jnlp"
+    },
+    {
+      "name": "JENKINS_PASSWORD",
+      "displayName": "Jenkins Password",
+      "description": "Password for the Jenkins 'admin' user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
@@ -2939,22 +3410,15 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
     },
     {
       "name": "NAMESPACE",
-      "displayName": "Namespace",
-      "description": "The OpenShift Namespace where the ImageStream resides.",
+      "displayName": "Jenkins ImageStream Namespace",
+      "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
       "value": "openshift"
     },
     {
-      "name": "JENKINS_SERVICE_NAME",
-      "displayName": "Jenkins Service Name",
-      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
-      "value": "jenkins"
-    },
-    {
-      "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins user.",
-      "generate": "expression",
-      "value": "password"
+      "name": "JENKINS_IMAGE_STREAM_TAG",
+      "displayName": "Jenkins ImageStreamTag",
+      "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+      "value": "jenkins:latest"
     }
   ],
   "labels": {
@@ -2963,17 +3427,331 @@ var _examplesJenkinsPipelineJenkinstemplateJson = []byte(`{
 }
 `)
 
-func examplesJenkinsPipelineJenkinstemplateJsonBytes() ([]byte, error) {
-	return _examplesJenkinsPipelineJenkinstemplateJson, nil
+func examplesJenkinsJenkinsEphemeralTemplateJsonBytes() ([]byte, error) {
+	return _examplesJenkinsJenkinsEphemeralTemplateJson, nil
 }
 
-func examplesJenkinsPipelineJenkinstemplateJson() (*asset, error) {
-	bytes, err := examplesJenkinsPipelineJenkinstemplateJsonBytes()
+func examplesJenkinsJenkinsEphemeralTemplateJson() (*asset, error) {
+	bytes, err := examplesJenkinsJenkinsEphemeralTemplateJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/jenkins/pipeline/jenkinstemplate.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "examples/jenkins/jenkins-ephemeral-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "jenkins-persistent",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "Jenkins service, with persistent storage.\nYou must have persistent volumes available in your cluster to use this template.",
+      "iconClass": "icon-jenkins",
+      "tags": "instant-app,jenkins"
+    }
+  },
+  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "to": {
+          "kind": "Service",
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "tls": {
+          "termination": "edge",
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "certificate": "-----BEGIN CERTIFICATE-----\nMIIDIjCCAgqgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBoTELMAkGA1UEBhMCVVMx\nCzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0Rl\nZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0ExGjAYBgNVBAMMEXd3\ndy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUu\nY29tMB4XDTE1MDExMjE0MTk0MVoXDTE2MDExMjE0MTk0MVowfDEYMBYGA1UEAwwP\nd3d3LmV4YW1wbGUuY29tMQswCQYDVQQIDAJTQzELMAkGA1UEBhMCVVMxIjAgBgkq\nhkiG9w0BCQEWE2V4YW1wbGVAZXhhbXBsZS5jb20xEDAOBgNVBAoMB0V4YW1wbGUx\nEDAOBgNVBAsMB0V4YW1wbGUwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMrv\ngu6ZTTefNN7jjiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm\n47VRx5Qrf/YLXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1M\nmNrQUgZyQC6XIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAGjDTALMAkGA1UdEwQC\nMAAwDQYJKoZIhvcNAQEFBQADggEBAFCi7ZlkMnESvzlZCvv82Pq6S46AAOTPXdFd\nTMvrh12E1sdVALF1P1oYFJzG1EiZ5ezOx88fEDTW+Lxb9anw5/KJzwtWcfsupf1m\nV7J0D3qKzw5C1wjzYHh9/Pz7B1D0KthQRATQCfNf8s6bbFLaw/dmiIUhHLtIH5Qc\nyfrejTZbOSP77z8NOWir+BWWgIDDB2//3AkDIQvT20vmkZRhkqSdT7et4NmXOX/j\njhPti4b2Fie0LeuvgaOdKjCpQQNrYthZHXeVlOLRhMTSk3qUczenkKTOhvP7IS9q\n+Dzv5hqgSfvMG392KWh5f8xXfJNs4W5KLbZyl901MeReiLrPH3w=\n-----END CERTIFICATE-----",
+          "key": "-----BEGIN PRIVATE KEY-----\nMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMrvgu6ZTTefNN7j\njiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm47VRx5Qrf/YL\nXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1MmNrQUgZyQC6X\nIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAECgYEAnxOjEj/vrLNLMZE1Q9H7PZVF\nWdP/JQVNvQ7tCpZ3ZdjxHwkvf//aQnuxS5yX2Rnf37BS/TZu+TIkK4373CfHomSx\nUTAn2FsLmOJljupgGcoeLx5K5nu7B7rY5L1NHvdpxZ4YjeISrRtEPvRakllENU5y\ngJE8c2eQOx08ZSRE4TkCQQD7dws2/FldqwdjJucYijsJVuUdoTqxP8gWL6bB251q\nelP2/a6W2elqOcWId28560jG9ZS3cuKvnmu/4LG88vZFAkEAzphrH3673oTsHN+d\nuBd5uyrlnGjWjuiMKv2TPITZcWBjB8nJDSvLneHF59MYwejNNEof2tRjgFSdImFH\nmi995wJBAMtPjW6wiqRz0i41VuT9ZgwACJBzOdvzQJfHgSD9qgFb1CU/J/hpSRIM\nkYvrXK9MbvQFvG6x4VuyT1W8mpe1LK0CQAo8VPpffhFdRpF7psXLK/XQ/0VLkG3O\nKburipLyBg/u9ZkaL0Ley5zL5dFBjTV2Qkx367Ic2b0u9AYTCcgi2DsCQQD3zZ7B\nv7BOm7MkylKokY2MduFFXU0Bxg6pfZ7q3rvg8gqhUFbaMStPRYg6myiDiW/JfLhF\nTcFT4touIo7oriFJ\n-----END PRIVATE KEY-----",
+          "caCertificate": "-----BEGIN CERTIFICATE-----\nMIIEFzCCAv+gAwIBAgIJALK1iUpF2VQLMA0GCSqGSIb3DQEBBQUAMIGhMQswCQYD\nVQQGEwJVUzELMAkGA1UECAwCU0MxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoG\nA1UECgwTRGVmYXVsdCBDb21wYW55IEx0ZDEQMA4GA1UECwwHVGVzdCBDQTEaMBgG\nA1UEAwwRd3d3LmV4YW1wbGVjYS5jb20xIjAgBgkqhkiG9w0BCQEWE2V4YW1wbGVA\nZXhhbXBsZS5jb20wHhcNMTUwMTEyMTQxNTAxWhcNMjUwMTA5MTQxNTAxWjCBoTEL\nMAkGA1UEBhMCVVMxCzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkx\nHDAaBgNVBAoME0RlZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0Ex\nGjAYBgNVBAMMEXd3dy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFt\ncGxlQGV4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\nw2rK1J2NMtQj0KDug7g7HRKl5jbf0QMkMKyTU1fBtZ0cCzvsF4CqV11LK4BSVWaK\nrzkaXe99IVJnH8KdOlDl5Dh/+cJ3xdkClSyeUT4zgb6CCBqg78ePp+nN11JKuJlV\nIG1qdJpB1J5O/kCLsGcTf7RS74MtqMFo96446Zvt7YaBhWPz6gDaO/TUzfrNcGLA\nEfHVXkvVWqb3gqXUztZyVex/gtP9FXQ7gxTvJml7UkmT0VAFjtZnCqmFxpLZFZ15\n+qP9O7Q2MpsGUO/4vDAuYrKBeg1ZdPSi8gwqUP2qWsGd9MIWRv3thI2903BczDc7\nr8WaIbm37vYZAS9G56E4+wIDAQABo1AwTjAdBgNVHQ4EFgQUugLrSJshOBk5TSsU\nANs4+SmJUGwwHwYDVR0jBBgwFoAUugLrSJshOBk5TSsUANs4+SmJUGwwDAYDVR0T\nBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOCAQEAaMJ33zAMV4korHo5aPfayV3uHoYZ\n1ChzP3eSsF+FjoscpoNSKs91ZXZF6LquzoNezbfiihK4PYqgwVD2+O0/Ty7UjN4S\nqzFKVR4OS/6lCJ8YncxoFpTntbvjgojf1DEataKFUN196PAANc3yz8cWHF4uvjPv\nWkgFqbIjb+7D1YgglNyovXkRDlRZl0LD1OQ0ZWhd4Ge1qx8mmmanoBeYZ9+DgpFC\nj9tQAbS867yeOryNe7sEOIpXAAqK/DTu0hB6+ySsDfMo4piXCc2aA/eI2DCuw08e\nw17Dz9WnupZjVdwTKzDhFgJZMLDqn37HQnT6EemLFqbcR0VPEnfyhDtZIQ==\n-----END CERTIFICATE-----"
+        }
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },    
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${JENKINS_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "${JENKINS_SERVICE_NAME}",
+            "containers": [
+              {
+                "name": "jenkins",
+                "image": " ",
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 120,
+                    "httpGet": {
+                        "path": "/login",
+                        "port": 8080
+                    }
+                },
+                "env": [
+                  {
+                    "name": "JENKINS_PASSWORD",
+                    "value": "${JENKINS_PASSWORD}"
+                  },
+                  {
+                    "name": "KUBERNETES_MASTER",
+                    "value": "https://kubernetes.default:443"
+                  },
+                  {
+                    "name": "KUBERNETES_TRUST_CERTIFICATES",
+                    "value": "true"
+                  },
+                  {
+                    "name": "JNLP_SERVICE_NAME",
+                    "value": "${JNLP_SERVICE_NAME}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${JENKINS_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/jenkins"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${JENKINS_SERVICE_NAME}-data",
+                "persistentVolumeClaim": {
+                  "claimName": "${JENKINS_SERVICE_NAME}"
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      }
+    },
+    {
+      "kind": "ServiceAccount",
+        "apiVersion": "v1",
+        "metadata": {
+            "name": "${JENKINS_SERVICE_NAME}"
+        }
+    },
+    {
+      "kind": "RoleBinding",
+      "apiVersion": "v1",
+      "metadata": {
+          "name": "${JENKINS_SERVICE_NAME}_edit"
+      },
+      "groupNames": null,
+      "subjects": [
+          {
+              "kind": "ServiceAccount",
+              "name": "${JENKINS_SERVICE_NAME}"
+          }
+      ],
+      "roleRef": {
+          "name": "edit"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JNLP_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "agent",
+            "protocol": "TCP",
+            "port": 50000,
+            "targetPort": 50000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      }
+    },
+    {
+       "kind": "Service",
+       "apiVersion": "v1",
+       "metadata": {
+         "name": "${JENKINS_SERVICE_NAME}",
+         "annotations": {
+           "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+           "service.openshift.io/infrastructure": "true"
+         },
+         "creationTimestamp": null
+       },
+       "spec": {
+         "ports": [
+           {
+             "name": "web",
+             "protocol": "TCP",
+             "port": 80,
+             "targetPort": 8080,
+             "nodePort": 0
+           }
+         ],
+         "selector": {
+           "name": "${JENKINS_SERVICE_NAME}"
+         },
+         "portalIP": "",
+         "type": "ClusterIP",
+         "sessionAffinity": "None"
+       }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "JENKINS_SERVICE_NAME",
+      "displayName": "Jenkins Service Name",
+      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
+      "value": "jenkins"
+    },
+    {
+      "name": "JNLP_SERVICE_NAME",
+      "displayName": "Jenkins JNLP Service Name",
+      "description": "The name of the service used for master/slave communication.",
+      "value": "jenkins-jnlp"
+    },
+    {
+      "name": "JENKINS_PASSWORD",
+      "displayName": "Jenkins Password",
+      "description": "Password for the Jenkins 'admin' user.",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "512Mi"
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "displayName": "Volume Capacity",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
+      "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Jenkins ImageStream Namespace",
+      "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "JENKINS_IMAGE_STREAM_TAG",
+      "displayName": "Jenkins ImageStreamTag",
+      "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+      "value": "jenkins:latest"
+    }
+  ],
+  "labels": {
+    "template": "jenkins-persistent-template"
+  }
+}
+`)
+
+func examplesJenkinsJenkinsPersistentTemplateJsonBytes() ([]byte, error) {
+	return _examplesJenkinsJenkinsPersistentTemplateJson, nil
+}
+
+func examplesJenkinsJenkinsPersistentTemplateJson() (*asset, error) {
+	bytes, err := examplesJenkinsJenkinsPersistentTemplateJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/jenkins-persistent-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -2990,6 +3768,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
       "tags": "instant-app,ruby,mysql,jenkins"
     }
   },
+  "message": "The Jenkins server is not currently automatically instantiated for you.  Please instantiate one of the Jenkins templates to create a Jenkins server for managing your pipeline build configurations.",
   "objects": [
     {
       "kind": "BuildConfig",
@@ -3062,11 +3841,10 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "route-edge",
+        "name": "frontend",
         "creationTimestamp": null
       },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"
@@ -4585,7 +5363,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "python:3.4"
+              "name": "python:3.5"
             },
             "env": [
               {
@@ -4775,7 +5553,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "postgresql:9.4"
+                "name": "postgresql:9.5"
               }
             }
           },
@@ -5068,7 +5846,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "nodejs:0.10"
+              "name": "nodejs:4"
             },
             "env":  [
               {
@@ -5256,7 +6034,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mongodb:2.6"
+                "name": "mongodb:3.2"
               }
             }
           },
@@ -5307,7 +6085,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
                   "timeoutSeconds": 1,
                   "initialDelaySeconds": 3,
                   "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "mongostat --host 127.0.0.1 -u admin -p ${DATABASE_ADMIN_PASSWORD} -n 1 --noheaders"]
+                    "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
                   }
                 },
                 "livenessProbe": {
@@ -5552,7 +6330,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "ruby:2.2"
+              "name": "ruby:2.3"
             },
             "env": [
               {
@@ -5769,7 +6547,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "postgresql:9.4"
+                "name": "postgresql:9.5"
               }
             }
           },
@@ -6004,6 +6782,43 @@ func examplesQuickstartsRailsPostgresqlJson() (*asset, error) {
 	return a, nil
 }
 
+var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
+apiVersion: v1
+# To require that all images running on the platform be imported first, you may uncomment the
+# following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
+# unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that
+# digest has been imported via the import-image flow.
+#resolveImages: Required
+executionRules:
+- name: execution-denied
+  # Reject all images that have the annotation images.openshift.io/deny-execution set to true.
+  # This annotation may be set by infrastructure that wishes to flag particular images as dangerous
+  onResources:
+  - resource: pods
+  - resource: builds
+  reject: true
+  matchImageAnnotations:
+  - key: images.openshift.io/deny-execution
+    value: "true"
+  skipOnResolutionFailure: true
+
+`)
+
+func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {
+	return _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, nil
+}
+
+func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml() (*asset, error) {
+	bytes, err := pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/image/admission/imagepolicy/api/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -6058,19 +6873,23 @@ func AssetNames() []string {
 var _bindata = map[string]func() (*asset, error){
 	"examples/image-streams/image-streams-centos7.json": examplesImageStreamsImageStreamsCentos7Json,
 	"examples/image-streams/image-streams-rhel7.json": examplesImageStreamsImageStreamsRhel7Json,
+	"examples/db-templates/mariadb-ephemeral-template.json": examplesDbTemplatesMariadbEphemeralTemplateJson,
+	"examples/db-templates/mariadb-persistent-template.json": examplesDbTemplatesMariadbPersistentTemplateJson,
 	"examples/db-templates/mongodb-ephemeral-template.json": examplesDbTemplatesMongodbEphemeralTemplateJson,
 	"examples/db-templates/mongodb-persistent-template.json": examplesDbTemplatesMongodbPersistentTemplateJson,
 	"examples/db-templates/mysql-ephemeral-template.json": examplesDbTemplatesMysqlEphemeralTemplateJson,
 	"examples/db-templates/mysql-persistent-template.json": examplesDbTemplatesMysqlPersistentTemplateJson,
 	"examples/db-templates/postgresql-ephemeral-template.json": examplesDbTemplatesPostgresqlEphemeralTemplateJson,
 	"examples/db-templates/postgresql-persistent-template.json": examplesDbTemplatesPostgresqlPersistentTemplateJson,
-	"examples/jenkins/pipeline/jenkinstemplate.json": examplesJenkinsPipelineJenkinstemplateJson,
+	"examples/jenkins/jenkins-ephemeral-template.json": examplesJenkinsJenkinsEphemeralTemplateJson,
+	"examples/jenkins/jenkins-persistent-template.json": examplesJenkinsJenkinsPersistentTemplateJson,
 	"examples/jenkins/pipeline/samplepipeline.json": examplesJenkinsPipelineSamplepipelineJson,
 	"examples/quickstarts/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJson,
 	"examples/quickstarts/dancer-mysql.json": examplesQuickstartsDancerMysqlJson,
 	"examples/quickstarts/django-postgresql.json": examplesQuickstartsDjangoPostgresqlJson,
 	"examples/quickstarts/nodejs-mongodb.json": examplesQuickstartsNodejsMongodbJson,
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
+	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -6115,6 +6934,10 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"examples": &bintree{nil, map[string]*bintree{
 		"db-templates": &bintree{nil, map[string]*bintree{
+			"mariadb-ephemeral-template.json": &bintree{examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{
+			}},
+			"mariadb-persistent-template.json": &bintree{examplesDbTemplatesMariadbPersistentTemplateJson, map[string]*bintree{
+			}},
 			"mongodb-ephemeral-template.json": &bintree{examplesDbTemplatesMongodbEphemeralTemplateJson, map[string]*bintree{
 			}},
 			"mongodb-persistent-template.json": &bintree{examplesDbTemplatesMongodbPersistentTemplateJson, map[string]*bintree{
@@ -6135,9 +6958,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			}},
 		}},
 		"jenkins": &bintree{nil, map[string]*bintree{
+			"jenkins-ephemeral-template.json": &bintree{examplesJenkinsJenkinsEphemeralTemplateJson, map[string]*bintree{
+			}},
+			"jenkins-persistent-template.json": &bintree{examplesJenkinsJenkinsPersistentTemplateJson, map[string]*bintree{
+			}},
 			"pipeline": &bintree{nil, map[string]*bintree{
-				"jenkinstemplate.json": &bintree{examplesJenkinsPipelineJenkinstemplateJson, map[string]*bintree{
-				}},
 				"samplepipeline.json": &bintree{examplesJenkinsPipelineSamplepipelineJson, map[string]*bintree{
 				}},
 			}},
@@ -6152,6 +6977,20 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"nodejs-mongodb.json": &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{
 			}},
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{
+			}},
+		}},
+	}},
+	"pkg": &bintree{nil, map[string]*bintree{
+		"image": &bintree{nil, map[string]*bintree{
+			"admission": &bintree{nil, map[string]*bintree{
+				"imagepolicy": &bintree{nil, map[string]*bintree{
+					"api": &bintree{nil, map[string]*bintree{
+						"v1": &bintree{nil, map[string]*bintree{
+							"default-policy.yaml": &bintree{pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, map[string]*bintree{
+							}},
+						}},
+					}},
+				}},
 			}},
 		}},
 	}},

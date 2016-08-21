@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
+	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
@@ -30,9 +31,12 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	osclient "github.com/openshift/origin/pkg/client"
+	cmdadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/controller/shared"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
@@ -44,7 +48,9 @@ import (
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
+	"github.com/openshift/origin/pkg/service/controller/ingressip"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
+	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -61,6 +67,8 @@ const (
 
 	// from CMServer MinResyncPeriod
 	defaultReplenishmentSyncPeriod time.Duration = 12 * time.Hour
+
+	defaultIngressIPSyncPeriod time.Duration = 10 * time.Minute
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -222,7 +230,7 @@ func (c *MasterConfig) RunProjectCache() {
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
-func (c *MasterConfig) RunBuildController() {
+func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 	// initialize build controller
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
@@ -231,7 +239,10 @@ func (c *MasterConfig) RunBuildController() {
 	groupVersion := unversioned.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
-	admissionControl := admission.NewFromPlugins(clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient), []string{"SecurityContextConstraint"}, "")
+	admissionControl := admission.InitPlugin("SecurityContextConstraint", clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient), "")
+	if wantsInformers, ok := admissionControl.(cmdadmission.WantsInformers); ok {
+		wantsInformers.SetInformers(informers)
+	}
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -302,7 +313,7 @@ func (c *MasterConfig) RunDeploymentController() {
 	podInformer := c.Informers.Pods().Informer()
 	_, kclient := c.DeploymentControllerClients()
 
-	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig)
+	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}
@@ -323,11 +334,7 @@ func (c *MasterConfig) RunDeploymentController() {
 		env,
 		c.EtcdHelper.Codec(),
 	)
-
-	// TODO: Make the stop channel actually work.
-	stopCh := make(chan struct{})
-	// TODO: Make the number of workers configurable.
-	go controller.Run(5, stopCh)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunDeploymentConfigController starts the deployment config controller process.
@@ -338,10 +345,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
 	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.EtcdHelper.Codec())
-	// TODO: Make the stop channel actually work.
-	stopCh := make(chan struct{})
-	// TODO: Make the number of workers configurable.
-	go controller.Run(5, stopCh)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunDeploymentTriggerController starts the deployment trigger controller process.
@@ -351,18 +355,17 @@ func (c *MasterConfig) RunDeploymentTriggerController() {
 	osclient, kclient := c.DeploymentTriggerControllerClients()
 
 	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, kclient, c.EtcdHelper.Codec())
-	// TODO: Make the stop channel actually work.
-	stopCh := make(chan struct{})
-	// TODO: Make the number of workers configurable.
-	go controller.Run(5, stopCh)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	osclient := c.DeploymentImageChangeTriggerControllerClient()
-	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
-	controller := factory.Create()
-	controller.Run()
+	dcInfomer := c.Informers.DeploymentConfigs().Informer()
+	streamInformer := c.Informers.ImageStreams().Informer()
+	osclient, _ := c.DeploymentTriggerControllerClients()
+
+	controller := imagechangecontroller.NewImageChangeController(dcInfomer, streamInformer, osclient)
+	go controller.Run(5, utilwait.NeverStop)
 }
 
 // RunSDNController runs openshift-sdn if the said network plugin is provided
@@ -515,4 +518,34 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	controller := clusterquotareconciliation.NewClusterQuotaReconcilationController(options)
 	c.ClusterQuotaMappingController.GetClusterQuotaMapper().AddListener(controller)
 	go controller.Run(5, utilwait.NeverStop)
+}
+
+// RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
+func (c *MasterConfig) RunIngressIPController(client *kclient.Client) {
+	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+		return
+	}
+
+	_, ipNet, err := net.ParseCIDR(c.Options.NetworkConfig.IngressIPNetworkCIDR)
+	if err != nil {
+		// should have been caught with validation
+		glog.Fatalf("Unable to start ingress ip controller: %v", err)
+	}
+	if ipNet.IP.IsUnspecified() {
+		return
+	}
+	ingressIPController := ingressip.NewIngressIPController(client, ipNet, defaultIngressIPSyncPeriod)
+	go ingressIPController.Run(utilwait.NeverStop)
+}
+
+// RunUnidlingController starts the unidling controller
+func (c *MasterConfig) RunUnidlingController() {
+	oc, kc := c.UnidlingControllerClients()
+	resyncPeriod := 2 * time.Hour
+	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
+	coreClient := clientadapter.FromUnversionedClient(kc).Core()
+	dcCoreClient := deployclient.New(oc.RESTClient)
+	cont := unidlingcontroller.NewUnidlingController(scaleNamespacer, coreClient, coreClient, dcCoreClient, coreClient, resyncPeriod)
+
+	cont.Run(utilwait.NeverStop)
 }

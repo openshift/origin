@@ -151,7 +151,11 @@ func checkRemoteGit(gitClient GitClient, url string, initialTimeout time.Duratio
 // checkSourceURI performs a check on the URI associated with the build
 // to make sure that it is valid.
 func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) error {
-	if !s2igit.New().ValidCloneSpec(rawurl) {
+	ok, err := s2igit.New().ValidCloneSpec(rawurl)
+	if err != nil {
+		return fmt.Errorf("Invalid git source url %q: %v", rawurl, err)
+	}
+	if !ok {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
 	return checkRemoteGit(gitClient, rawurl, timeout)
@@ -184,7 +188,9 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 
 	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
-	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
+	// use bsdtar to process the incoming archive and convert it to a tar stream (since bsdtar autodetects and handles various archive formats)
+	// use gnu tar to extract that tar stream to work around the bsdtar (libarchive) bug https://github.com/libarchive/libarchive/issues/746
+	cmd := exec.Command("sh", "-o", "pipefail", "-c", `bsdtar -cf - @- | tar xf - -m -C "$0"`, dir)
 	cmd.Stdin = in
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -199,7 +205,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return false, nil
 	}
 
-	glog.V(0).Infof("Downloading %q ...", gitSource.URI)
+	glog.V(0).Infof("Cloning %q ...", gitSource.URI)
 
 	// Check source URI, trying to connect to the server only if not using a proxy.
 	if err := checkSourceURI(gitClient, gitSource.URI, timeout); err != nil {
@@ -208,9 +214,6 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 
 	// check if we specify a commit, ref, or branch to check out
 	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
-
-	// Recursive clone if we're not going to checkout a ref and submodule update later
-	glog.V(3).Infof("Cloning source from %s", gitSource.URI)
 
 	// Only use the quiet flag if Verbosity is not 5 or greater
 	quiet := !glog.Is(5)
@@ -233,6 +236,14 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		// Recursively update --init
 		if err := gitClient.SubmoduleUpdate(dir, true, true); err != nil {
 			return true, err
+		}
+	}
+
+	if glog.Is(0) {
+		if information, gitErr := gitClient.GetInfo(dir); len(gitErr) == 0 {
+			glog.Infof("\tCommit:\t%s (%s)\n", information.CommitID, information.Message)
+			glog.Infof("\tAuthor:\t%s <%s>\n", information.AuthorName, information.AuthorEmail)
+			glog.Infof("\tDate:\t%s\n", information.Date)
 		}
 	}
 
@@ -267,6 +278,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 		Path:         sourceDir,
 	})
 	if err != nil {
+		tempFile.Close()
 		return err
 	}
 	if err := tempFile.Close(); err != nil {

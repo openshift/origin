@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -72,6 +70,7 @@ func signedManifest(name string) ([]byte, digest.Digest, error) {
 
 func TestV2RegistryGetTags(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)

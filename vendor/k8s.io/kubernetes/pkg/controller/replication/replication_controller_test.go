@@ -535,8 +535,10 @@ func TestUpdatePods(t *testing.T) {
 	// testControllerSpec1, then update its labels to match testControllerSpec2.
 	// We expect to receive a sync request for both controllers.
 	pod1 := newPodList(manager.podStore.Indexer, 1, api.PodRunning, testControllerSpec1, "pod").Items[0]
+	pod1.ResourceVersion = "1"
 	pod2 := pod1
 	pod2.Labels = testControllerSpec2.Spec.Selector
+	pod2.ResourceVersion = "2"
 	manager.updatePod(&pod1, &pod2)
 	expected := sets.NewString(testControllerSpec1.Name, testControllerSpec2.Name)
 	for _, name := range expected.List() {
@@ -555,6 +557,7 @@ func TestUpdatePods(t *testing.T) {
 	// We update its labels to match no replication controller.  We expect to
 	// receive a sync request for testControllerSpec1.
 	pod2.Labels = make(map[string]string)
+	pod2.ResourceVersion = "2"
 	manager.updatePod(&pod1, &pod2)
 	expected = sets.NewString(testControllerSpec1.Name)
 	for _, name := range expected.List() {
@@ -591,23 +594,11 @@ func TestControllerUpdateRequeue(t *testing.T) {
 	fakePodControl := controller.FakePodControl{}
 	manager.podControl = &fakePodControl
 
-	manager.syncReplicationController(getKey(rc, t))
-
-	ch := make(chan interface{})
-	go func() {
-		item, _ := manager.queue.Get()
-		ch <- item
-	}()
-	select {
-	case key := <-ch:
-		expectedKey := getKey(rc, t)
-		if key != expectedKey {
-			t.Errorf("Expected requeue of controller with key %s got %s", expectedKey, key)
-		}
-	case <-time.After(wait.ForeverTestTimeout):
-		manager.queue.ShutDown()
-		t.Errorf("Expected to find an rc in the queue, found none.")
+	// an error from the sync function will be requeued, check to make sure we returned an error
+	if err := manager.syncReplicationController(getKey(rc, t)); err == nil {
+		t.Errorf("missing error for requeue")
 	}
+
 	// 1 Update and 1 GET, both of which fail
 	fakeHandler.ValidateRequestCount(t, 2)
 }
@@ -957,6 +948,7 @@ func TestDeletionTimestamp(t *testing.T) {
 	}
 	pod := newPodList(nil, 1, api.PodPending, controllerSpec, "pod").Items[0]
 	pod.DeletionTimestamp = &unversioned.Time{Time: time.Now()}
+	pod.ResourceVersion = "1"
 	manager.expectations.ExpectDeletions(rcKey, []string{controller.PodKey(&pod)})
 
 	// A pod added with a deletion timestamp should decrement deletions, not creations.
@@ -976,6 +968,7 @@ func TestDeletionTimestamp(t *testing.T) {
 	// An update from no deletion timestamp to having one should be treated
 	// as a deletion.
 	oldPod := newPodList(nil, 1, api.PodPending, controllerSpec, "pod").Items[0]
+	oldPod.ResourceVersion = "2"
 	manager.expectations.ExpectDeletions(rcKey, []string{controller.PodKey(&pod)})
 	manager.updatePod(&oldPod, &pod)
 
@@ -1001,6 +994,7 @@ func TestDeletionTimestamp(t *testing.T) {
 	}
 	manager.expectations.ExpectDeletions(rcKey, []string{controller.PodKey(secondPod)})
 	oldPod.DeletionTimestamp = &unversioned.Time{Time: time.Now()}
+	oldPod.ResourceVersion = "2"
 	manager.updatePod(&oldPod, &pod)
 
 	podExp, exists, err = manager.expectations.GetExpectations(rcKey)

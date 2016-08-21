@@ -63,7 +63,7 @@ type RollingDeploymentStrategy struct {
 	hookExecutor hookExecutor
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
-	getUpdateAcceptor func(timeout time.Duration) strat.UpdateAcceptor
+	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
 	// apiRetryPeriod is how long to wait before retrying a failed API call.
 	apiRetryPeriod time.Duration
 	// apiRetryTimeout is how long to retry API calls before giving up.
@@ -106,8 +106,8 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 			return updater.Update(config)
 		},
 		hookExecutor: stratsupport.NewHookExecutor(client, tags, events, os.Stdout, decoder),
-		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval)
+		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
+			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
 	}
 }
@@ -119,7 +119,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	}
 
 	params := config.Spec.Strategy.RollingParams
-	updateAcceptor := s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds) * time.Second)
+	updateAcceptor := s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds)*time.Second, config.Spec.MinReadySeconds)
 
 	// If there's no prior deployment, delegate to another strategy since the
 	// rolling updater only supports transitioning between two deployments.
@@ -216,15 +216,16 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	// Perform a rolling update.
 	rollingConfig := &kubectl.RollingUpdaterConfig{
-		Out:            &rollingUpdaterWriter{w: s.out},
-		OldRc:          from,
-		NewRc:          to,
-		UpdatePeriod:   time.Duration(*params.UpdatePeriodSeconds) * time.Second,
-		Interval:       time.Duration(*params.IntervalSeconds) * time.Second,
-		Timeout:        time.Duration(*params.TimeoutSeconds) * time.Second,
-		CleanupPolicy:  kubectl.PreserveRollingUpdateCleanupPolicy,
-		MaxSurge:       params.MaxSurge,
-		MaxUnavailable: params.MaxUnavailable,
+		Out:             &rollingUpdaterWriter{w: s.out},
+		OldRc:           from,
+		NewRc:           to,
+		UpdatePeriod:    time.Duration(*params.UpdatePeriodSeconds) * time.Second,
+		Interval:        time.Duration(*params.IntervalSeconds) * time.Second,
+		Timeout:         time.Duration(*params.TimeoutSeconds) * time.Second,
+		MinReadySeconds: config.Spec.MinReadySeconds,
+		CleanupPolicy:   kubectl.PreserveRollingUpdateCleanupPolicy,
+		MaxSurge:        params.MaxSurge,
+		MaxUnavailable:  params.MaxUnavailable,
 		OnProgress: func(oldRc, newRc *kapi.ReplicationController, percentage int) error {
 			if expect, ok := strat.Percentage(s.until); ok && percentage >= expect {
 				return strat.NewConditionReachedErr(fmt.Sprintf("Reached %s (currently %d%%)", s.until, percentage))

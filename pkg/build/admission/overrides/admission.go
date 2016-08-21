@@ -91,6 +91,10 @@ func applyForcePullToPod(attributes admission.Attributes) error {
 	if err != nil {
 		return err
 	}
+	for i := range pod.Spec.InitContainers {
+		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on init container %s of pod %s/%s", pod.Spec.InitContainers[i].Name, pod.Namespace, pod.Name)
+		pod.Spec.InitContainers[i].ImagePullPolicy = kapi.PullAlways
+	}
 	for i := range pod.Spec.Containers {
 		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on container %s of pod %s/%s", pod.Spec.Containers[i].Name, pod.Namespace, pod.Name)
 		pod.Spec.Containers[i].ImagePullPolicy = kapi.PullAlways

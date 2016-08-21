@@ -2860,6 +2860,15 @@ func DeepCopy_v1_Secret(in Secret, out *Secret, c *conversion.Cloner) error {
 	} else {
 		out.Data = nil
 	}
+	if in.StringData != nil {
+		in, out := in.StringData, &out.StringData
+		*out = make(map[string]string)
+		for key, val := range in {
+			(*out)[key] = val
+		}
+	} else {
+		out.StringData = nil
+	}
 	out.Type = in.Type
 	return nil
 }
@@ -3041,6 +3050,13 @@ func DeepCopy_v1_SecurityContextConstraints(in SecurityContextConstraints, out *
 		copy(*out, in)
 	} else {
 		out.Groups = nil
+	}
+	if in.SeccompProfiles != nil {
+		in, out := in.SeccompProfiles, &out.SeccompProfiles
+		*out = make([]string, len(in))
+		copy(*out, in)
+	} else {
+		out.SeccompProfiles = nil
 	}
 	return nil
 }

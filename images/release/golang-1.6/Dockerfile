@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-ENV VERSION=1.6.2 \
+ENV VERSION=1.6.3 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \
@@ -15,12 +15,14 @@ ENV VERSION=1.6.2 \
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc zip mercurial krb5-devel" && \
+    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
+    curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-4/protoc-3.0.0-beta-4-linux-x86_64.zip | bsdtar -C /usr/local -xf - && \
+    chmod ug+x /usr/local/bin/protoc && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
-    go get golang.org/x/tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint && \
+    go get golang.org/x/tools/cmd/cover golang.org/x/tools/cmd/goimports github.com/tools/godep github.com/golang/lint/golint && \
     touch /os-build-image
 
 WORKDIR /go/src/github.com/openshift/origin

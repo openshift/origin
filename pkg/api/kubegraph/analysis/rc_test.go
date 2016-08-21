@@ -14,7 +14,7 @@ func TestDuelingRC(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kubeedges.AddAllManagedByRCPodEdges(g)
+	kubeedges.AddAllManagedByControllerPodEdges(g)
 
 	markers := FindDuelingReplicationControllers(g, osgraph.DefaultNamer)
 	if e, a := 2, len(markers); e != a {

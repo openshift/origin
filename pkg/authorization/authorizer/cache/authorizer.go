@@ -14,6 +14,7 @@ import (
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -59,7 +60,7 @@ func NewAuthorizer(a authorizer.Authorizer, ttl time.Duration, cacheSize int) (a
 	}, nil
 }
 
-func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
+func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (allowed bool, reason string, err error) {
 	key, err := cacheKey(ctx, a)
 	if err != nil {
 		glog.V(5).Infof("could not build cache key for %#v: %v", a, err)
@@ -91,7 +92,7 @@ func (c *CacheAuthorizer) Authorize(ctx kapi.Context, a authorizer.Authorization
 	return allowed, reason, err
 }
 
-func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
 	key, err := cacheKey(ctx, attributes)
 	if err != nil {
 		glog.V(5).Infof("could not build cache key for %#v: %v", attributes, err)
@@ -122,7 +123,7 @@ func (c *CacheAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes author
 	return users, groups, err
 }
 
-func cacheKey(ctx kapi.Context, a authorizer.AuthorizationAttributes) (string, error) {
+func cacheKey(ctx kapi.Context, a authorizer.Action) (string, error) {
 	if a.GetRequestAttributes() != nil {
 		// TODO: see if we can serialize this?
 		return "", errors.New("cannot cache request attributes")
@@ -144,6 +145,7 @@ func cacheKey(ctx kapi.Context, a authorizer.AuthorizationAttributes) (string, e
 	if user, ok := kapi.UserFrom(ctx); ok {
 		keyData["user"] = user.GetName()
 		keyData["groups"] = user.GetGroups()
+		keyData["scopes"] = user.GetExtra()[authorizationapi.ScopesKey]
 	}
 
 	key, err := json.Marshal(keyData)

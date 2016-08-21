@@ -46,6 +46,12 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 				NewCmdBuildHook(name, f, out, errout),
 			},
 		},
+		{
+			Message: "Control load balancing:",
+			Commands: []*cobra.Command{
+				NewCmdRouteBackends(name, f, out, errout),
+			},
+		},
 	}
 	groups.Add(set)
 	templates.ActsAsRootCommand(set, []string{"options"}, groups...)

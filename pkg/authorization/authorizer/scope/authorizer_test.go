@@ -72,6 +72,18 @@ func TestAuthorize(t *testing.T) {
 			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "get", NonResourceURL: true, URL: "/api"},
 			expectedCalled: true,
 		},
+		{
+			name:           "user:full covers any resource",
+			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
+			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "update", Resource: "users", ResourceName: "harold"},
+			expectedCalled: true,
+		},
+		{
+			name:           "user:full covers any non-resource",
+			user:           &user.DefaultInfo{Extra: map[string][]string{authorizationapi.ScopesKey: {"user:full"}}},
+			attributes:     defaultauthorizer.DefaultAuthorizationAttributes{Verb: "post", NonResourceURL: true, URL: "/foo/bar/baz"},
+			expectedCalled: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -113,11 +125,11 @@ type fakeAuthorizer struct {
 	called  bool
 }
 
-func (a *fakeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.AuthorizationAttributes) (bool, string, error) {
+func (a *fakeAuthorizer) Authorize(ctx kapi.Context, passedAttributes defaultauthorizer.Action) (bool, string, error) {
 	a.called = true
 	return a.allowed, "", nil
 }
 
-func (a *fakeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+func (a *fakeAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes defaultauthorizer.Action) (sets.String, sets.String, error) {
 	return nil, nil, nil
 }

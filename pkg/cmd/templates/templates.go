@@ -49,7 +49,7 @@ Examples:
 {{end}}{{end}}{{ if or $visibleFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
 Options:
 {{ if $visibleFlags.HasFlags}}{{flagsUsages $visibleFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if .HasSubCommands }}
-Use "{{$rootCmd}} help <command>" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
+Use "{{$rootCmd}} <command> --help" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
 Use "{{$optionsCmdFor}}" for a list of global command-line options (applies to all commands).{{end}}`
 
 	optionsHelpTemplate = ``

@@ -2751,6 +2751,8 @@ const (
 	StreamTypeData = "data"
 	// Value for streamType header for error stream
 	StreamTypeError = "error"
+	// Value for streamType header for terminal resize stream
+	StreamTypeResize = "resize"
 
 	// Name of header that specifies the port being forwarded
 	PortHeader = "port"
@@ -2934,6 +2936,12 @@ type SecurityContextConstraints struct {
 	// If set to false the container may run with a read only root file system if it wishes but it
 	// will not be forced to.
 	ReadOnlyRootFilesystem bool
+	// SeccompProfiles lists the allowed profiles that may be set for the pod or
+	// container's seccomp annotations.  An unset (nil) or empty value means that no profiles may
+	// be specifid by the pod or container.	The wildcard '*' may be used to allow all profiles.  When
+	// used to generate a value for a pod the first non-wildcard profile will be used as
+	// the default.
+	SeccompProfiles []string
 
 	// The users who have permissions to use this security context constraints
 	Users []string

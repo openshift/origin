@@ -6,81 +6,46 @@ import (
 	"sort"
 	"strings"
 
+	oscache "github.com/openshift/origin/pkg/client/cache"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	"github.com/openshift/origin/pkg/controller/shared"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/runtime"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
-	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/golang/glog"
 )
 
 func init() {
-	kadmission.RegisterPlugin("SecurityContextConstraint", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-		constraintAdmitter := NewConstraint(client)
-		constraintAdmitter.Run()
-		return constraintAdmitter, nil
-	})
+	kadmission.RegisterPlugin("SecurityContextConstraint",
+		func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+			return NewConstraint(client), nil
+		})
 }
 
 type constraint struct {
 	*kadmission.Handler
-	client clientset.Interface
-
-	reflector *cache.Reflector
-	stopChan  chan struct{}
-	store     cache.Store
+	client    clientset.Interface
+	sccLister *oscache.IndexerToSecurityContextConstraintsLister
 }
 
 var _ kadmission.Interface = &constraint{}
+var _ = oadmission.WantsInformers(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
 func NewConstraint(kclient clientset.Interface) *constraint {
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	reflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return kclient.Core().SecurityContextConstraints().List(options)
-			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return kclient.Core().SecurityContextConstraints().Watch(options)
-			},
-		},
-		&kapi.SecurityContextConstraints{},
-		store,
-		0,
-	)
-
 	return &constraint{
 		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
 		client:  kclient,
-
-		store:     store,
-		reflector: reflector,
-	}
-}
-
-func (a *constraint) Run() {
-	if a.stopChan == nil {
-		a.stopChan = make(chan struct{})
-		a.reflector.RunUntil(a.stopChan)
-	}
-}
-func (a *constraint) Stop() {
-	if a.stopChan != nil {
-		close(a.stopChan)
-		a.stopChan = nil
 	}
 }
 
@@ -113,7 +78,9 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
-	matchedConstraints, err := getMatchingSecurityContextConstraints(c.store, a.GetUserInfo())
+
+	sccMatcher := oscc.NewDefaultSCCMatcher(c.sccLister)
+	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo())
 	if err != nil {
 		return kadmission.NewForbidden(a, err)
 	}
@@ -122,7 +89,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	if len(pod.Spec.ServiceAccountName) > 0 {
 		userInfo := serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
 		glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
-		saConstraints, err := getMatchingSecurityContextConstraints(c.store, userInfo)
+		saConstraints, err := sccMatcher.FindApplicableSCCs(userInfo)
 		if err != nil {
 			return kadmission.NewForbidden(a, err)
 		}
@@ -165,11 +132,11 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 // and validates that the sc falls within the scc constraints.  All containers must validate against
 // the same scc or is not considered valid.
 func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod, fldPath *field.Path) field.ErrorList {
-	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.Containers))
+	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.InitContainers)+len(pod.Spec.Containers))
 
 	errs := field.ErrorList{}
 
-	psc, err := provider.CreatePodSecurityContext(pod)
+	psc, generatedAnnotations, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
 		errs = append(errs, field.Invalid(field.NewPath("spec", "securityContext"), pod.Spec.SecurityContext, err.Error()))
 	}
@@ -178,41 +145,72 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 	// set for container generation/validation.  We will reset to original post container
 	// validation.
 	originalPSC := pod.Spec.SecurityContext
+	originalAnnotations := pod.Annotations
+
 	pod.Spec.SecurityContext = psc
+	pod.Annotations = generatedAnnotations
 	errs = append(errs, provider.ValidatePodSecurityContext(pod, field.NewPath("spec", "securityContext"))...)
 
 	// Note: this is not changing the original container, we will set container SCs later so long
 	// as all containers validated under the same SCC.
-	for i, containerCopy := range pod.Spec.Containers {
-		// We will determine the effective security context for the container and validate against that
-		// since that is how the sc provider will eventually apply settings in the runtime.
-		// This results in an SC that is based on the Pod's PSC with the set fields from the container
-		// overriding pod level settings.
-		containerCopy.SecurityContext = sc.DetermineEffectiveSecurityContext(pod, &containerCopy)
-
-		sc, err := provider.CreateContainerSecurityContext(pod, &containerCopy)
-		if err != nil {
-			errs = append(errs, field.Invalid(field.NewPath("spec", "containers").Index(i).Child("securityContext"), "", err.Error()))
+	containerPath := field.NewPath("spec", "initContainers")
+	for i, containerCopy := range pod.Spec.InitContainers {
+		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
+		errs = append(errs, resolutionErrs...)
+		if len(resolutionErrs) > 0 {
 			continue
 		}
-		generatedSCs[i] = sc
-
-		containerCopy.SecurityContext = sc
-		errs = append(errs, provider.ValidateContainerSecurityContext(pod, &containerCopy, field.NewPath("spec", "containers").Index(i).Child("securityContext"))...)
+		generatedSCs[i] = csc
 	}
 
+	base := len(pod.Spec.InitContainers)
+
+	// Note: this is not changing the original container, we will set container SCs later so long
+	// as all containers validated under the same SCC.
+	containerPath = field.NewPath("spec", "containers")
+	for i, containerCopy := range pod.Spec.Containers {
+		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
+		errs = append(errs, resolutionErrs...)
+		if len(resolutionErrs) > 0 {
+			continue
+		}
+		generatedSCs[i+base] = csc
+	}
 	if len(errs) > 0 {
 		// ensure psc is not mutated if there are errors
 		pod.Spec.SecurityContext = originalPSC
+		pod.Annotations = originalAnnotations
 		return errs
 	}
 
 	// if we've reached this code then we've generated and validated an SC for every container in the
 	// pod so let's apply what we generated.  Note: the psc is already applied.
-	for i, sc := range generatedSCs {
-		pod.Spec.Containers[i].SecurityContext = sc
+	for i := range pod.Spec.InitContainers {
+		pod.Spec.InitContainers[i].SecurityContext = generatedSCs[i]
+	}
+	for i := range pod.Spec.Containers {
+		pod.Spec.Containers[i].SecurityContext = generatedSCs[i+base]
 	}
 	return nil
+}
+
+// resolveContainerSecurityContext checks the provided container against the provider, returning any
+// validation errors encountered on the resulting security context, or the security context that was
+// resolved. The SecurityContext field of the container is updated, so ensure that a copy of the original
+// container is passed here if you wish to preserve the original input.
+func resolveContainerSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod, container *kapi.Container, path *field.Path) (*kapi.SecurityContext, field.ErrorList) {
+	// We will determine the effective security context for the container and validate against that
+	// since that is how the sc provider will eventually apply settings in the runtime.
+	// This results in an SC that is based on the Pod's PSC with the set fields from the container
+	// overriding pod level settings.
+	container.SecurityContext = sc.DetermineEffectiveSecurityContext(pod, container)
+
+	csc, err := provider.CreateContainerSecurityContext(pod, container)
+	if err != nil {
+		return nil, field.ErrorList{field.Invalid(path.Child("securityContext"), "", err.Error())}
+	}
+	container.SecurityContext = csc
+	return csc, provider.ValidateContainerSecurityContext(pod, container, path.Child("securityContext"))
 }
 
 // createProvidersFromConstraints creates providers from the constraints supplied, including
@@ -310,48 +308,17 @@ func (c *constraint) getNamespace(name string, ns *kapi.Namespace) (*kapi.Namesp
 	return c.client.Core().Namespaces().Get(name)
 }
 
-// getMatchingSecurityContextConstraints returns constraints from the store that match the group,
-// uid, or user of the service account.
-func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info) ([]*kapi.SecurityContextConstraints, error) {
-	matchedConstraints := make([]*kapi.SecurityContextConstraints, 0)
-
-	for _, c := range store.List() {
-		constraint, ok := c.(*kapi.SecurityContextConstraints)
-		if !ok {
-			return nil, errors.NewInternalError(fmt.Errorf("error converting object from store to a security context constraint: %v", c))
-		}
-		if ConstraintAppliesTo(constraint, userInfo) {
-			matchedConstraints = append(matchedConstraints, constraint)
-		}
-	}
-
-	return matchedConstraints, nil
+// SetInformers implements WantsInformers interface for constraint.
+func (c *constraint) SetInformers(informers shared.InformerFactory) {
+	c.sccLister = informers.SecurityContextConstraints().Lister()
 }
 
-// constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
-// if it is usable by the userInfo.
-func ConstraintAppliesTo(constraint *kapi.SecurityContextConstraints, userInfo user.Info) bool {
-	for _, user := range constraint.Users {
-		if userInfo.GetName() == user {
-			return true
-		}
+// Validate defines actions to vallidate security admission
+func (c *constraint) Validate() error {
+	if c.sccLister == nil {
+		return fmt.Errorf("sccLister not initialized")
 	}
-	for _, userGroup := range userInfo.GetGroups() {
-		if constraintSupportsGroup(userGroup, constraint.Groups) {
-			return true
-		}
-	}
-	return false
-}
-
-// constraintSupportsGroup checks that group is in constraintGroups.
-func constraintSupportsGroup(group string, constraintGroups []string) bool {
-	for _, g := range constraintGroups {
-		if g == group {
-			return true
-		}
-	}
-	return false
+	return nil
 }
 
 // getPreallocatedUIDRange retrieves the annotated value from the namespace, splits it to make

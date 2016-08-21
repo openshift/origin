@@ -18,7 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	cmderr "github.com/openshift/origin/pkg/cmd/errors"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -58,6 +60,8 @@ type LoginOptions struct {
 	Token string
 
 	PathOptions *kclientcmd.PathOptions
+
+	CommandName string
 }
 
 // Gather all required information in a comprehensive order.
@@ -241,9 +245,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 
 							o.Config = clientConfig
 
-							if key == o.StartingKubeConfig.CurrentContext {
-								fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
-							}
+							fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
 
 							return nil
 						}
@@ -300,20 +302,33 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		return err
 	}
 
-	projects, err := oClient.Projects().List(kapi.ListOptions{})
+	projectsList, err := oClient.Projects().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	projectsItems := projects.Items
+	projectsItems := projectsList.Items
+	projects := sets.String{}
+	for _, project := range projectsItems {
+		projects.Insert(project.Name)
+	}
+
+	if len(o.DefaultNamespace) > 0 && !projects.Has(o.DefaultNamespace) {
+		// Attempt a direct get of our current project in case it hasn't appeared in the list yet
+		if currentProject, err := oClient.Projects().Get(o.DefaultNamespace); err == nil {
+			// If we get it successfully, add it to the list
+			projectsItems = append(projectsItems, *currentProject)
+			projects.Insert(currentProject.Name)
+		}
+	}
 
 	switch len(projectsItems) {
 	case 0:
 		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
-    oc new-project <projectname>
+    %s new-project <projectname>
 
-`)
+`, o.CommandName)
 		o.Project = ""
 
 	case 1:
@@ -322,11 +337,6 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 
 	default:
-		projects := sets.String{}
-		for _, project := range projectsItems {
-			projects.Insert(project.Name)
-		}
-
 		namespace := o.DefaultNamespace
 		if !projects.Has(namespace) {
 			if namespace != kapi.NamespaceDefault && projects.Has(kapi.NamespaceDefault) {
@@ -342,7 +352,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		}
 		o.Project = current.Name
 
-		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
+		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with '%s project <projectname>':\n\n", o.CommandName)
 		for _, p := range projects.List() {
 			if o.Project == p {
 				fmt.Fprintf(o.Out, "  * %s\n", p)
@@ -394,7 +404,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	}
 
 	if err := kclientcmd.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
-		return false, err
+		if !os.IsPermission(err) {
+			return false, err
+		}
+
+		out := &bytes.Buffer{}
+		cmderr.PrintError(errors.ErrKubeConfigNotWriteable(o.PathOptions.GetDefaultFilename(), o.PathOptions.IsExplicitFile(), err), out)
+		return false, fmt.Errorf("%v", out)
 	}
 
 	created := false

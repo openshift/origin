@@ -23,11 +23,17 @@ func ValidateIPAddressRange(iprange string) error {
 	if strings.Count(iprange, "-") < 1 {
 		return ValidateIPAddress(iprange)
 	}
+	if strings.Count(iprange, "-") > 1 {
+		return fmt.Errorf("invalid IP range format: %s", iprange)
+	}
 
 	// Its an IP range of the form: n.n.n.n-n
 	rangeLimits := strings.Split(iprange, "-")
 	startIP := rangeLimits[0]
 	parts := strings.Split(startIP, ".")
+	if len(parts) < 4 {
+		return fmt.Errorf("invalid IP range start fomat: %s", startIP)
+	}
 	rangeStart := parts[3]
 	rangeEnd := rangeLimits[1]
 	if err := ValidateIPAddress(startIP); err != nil {

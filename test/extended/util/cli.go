@@ -174,7 +174,7 @@ func (c *CLI) Verbose() *CLI {
 // REST provides an OpenShift REST client for the current user. If the user is not
 // set, then it provides REST client for the cluster admin user
 func (c *CLI) REST() *client.Client {
-	_, clientConfig, err := configapi.GetKubeClient(c.configPath)
+	_, clientConfig, err := configapi.GetKubeClient(c.configPath, nil)
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
@@ -184,7 +184,7 @@ func (c *CLI) REST() *client.Client {
 
 // AdminREST provides an OpenShift REST client for the cluster admin user.
 func (c *CLI) AdminREST() *client.Client {
-	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath)
+	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath, nil)
 	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
@@ -194,7 +194,7 @@ func (c *CLI) AdminREST() *client.Client {
 
 // KubeREST provides a Kubernetes REST client for the current namespace
 func (c *CLI) KubeREST() *kclient.Client {
-	kubeClient, _, err := configapi.GetKubeClient(c.configPath)
+	kubeClient, _, err := configapi.GetKubeClient(c.configPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -203,7 +203,7 @@ func (c *CLI) KubeREST() *kclient.Client {
 
 // AdminKubeREST provides a Kubernetes REST client for the cluster admin user.
 func (c *CLI) AdminKubeREST() *kclient.Client {
-	kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath)
+	kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath, nil)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -276,7 +276,13 @@ func (c *CLI) printCmd() string {
 	return strings.Join(c.finalArgs, " ")
 }
 
-// Output executes the command and return the output as string
+type ExitError struct {
+	Cmd    string
+	StdErr string
+	*exec.ExitError
+}
+
+// Output executes the command and returns stdout/stderr combined into one string
 func (c *CLI) Output() (string, error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
@@ -292,11 +298,44 @@ func (c *CLI) Output() (string, error) {
 		return trimmed, nil
 	case *exec.ExitError:
 		e2e.Logf("Error running %v:\n%s", cmd, trimmed)
-		return trimmed, err
+		return trimmed, &ExitError{ExitError: err.(*exec.ExitError), Cmd: c.execPath + " " + strings.Join(c.finalArgs, " "), StdErr: trimmed}
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
 		return "", nil
+	}
+}
+
+// Outputs executes the command and returns the stdout/stderr output as separate strings
+func (c *CLI) Outputs() (string, string, error) {
+	if c.verbose {
+		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
+	}
+	cmd := exec.Command(c.execPath, c.finalArgs...)
+	cmd.Stdin = c.stdin
+	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	//out, err := cmd.CombinedOutput()
+	var stdErrBuff, stdOutBuff bytes.Buffer
+	cmd.Stdout = &stdOutBuff
+	cmd.Stderr = &stdErrBuff
+	err := cmd.Run()
+
+	stdOutBytes := stdOutBuff.Bytes()
+	stdErrBytes := stdErrBuff.Bytes()
+	stdOut := strings.TrimSpace(string(stdOutBytes))
+	stdErr := strings.TrimSpace(string(stdErrBytes))
+	switch err.(type) {
+	case nil:
+		c.stdout = bytes.NewBuffer(stdOutBytes)
+		c.stderr = bytes.NewBuffer(stdErrBytes)
+		return stdOut, stdErr, nil
+	case *exec.ExitError:
+		e2e.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
+		return stdOut, stdErr, err
+	default:
+		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
+		// unreachable code
+		return "", "", nil
 	}
 }
 
@@ -340,7 +379,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 func (c *CLI) Execute() error {
 	out, err := c.Output()
 	if _, err := io.Copy(g.GinkgoWriter, strings.NewReader(out+"\n")); err != nil {
-		fmt.Printf("ERROR: Unable to copy the output to ginkgo writer")
+		fmt.Fprintln(os.Stderr, "ERROR: Unable to copy the output to ginkgo writer")
 	}
 	os.Stdout.Sync()
 	return err

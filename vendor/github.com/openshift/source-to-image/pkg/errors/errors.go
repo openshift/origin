@@ -20,7 +20,8 @@ const (
 	URLHandlerError
 	STIContainerError
 	SourcePathError
-	BuilderUserNotAllowedError
+	UserNotAllowedError
+	EmptyGitRepositoryError
 )
 
 // Error represents an error thrown during STI execution
@@ -217,10 +218,9 @@ func NewSourcePathError(path string) error {
 	}
 }
 
-// NewBuilderUserNotAllowedError returns a new error that indicates that the build
-// could not run because the builder is not allowed to specify a user outside of the
-// range of allowed users
-func NewBuilderUserNotAllowedError(image string, onbuild bool) error {
+// NewUserNotAllowedError returns a new error that indicates that the build
+// could not run because the image uses a user outside of the range of allowed users
+func NewUserNotAllowedError(image string, onbuild bool) error {
 	var msg string
 	if onbuild {
 		msg = fmt.Sprintf("image %q includes at least one ONBUILD instruction that sets the user to a user that is not allowed", image)
@@ -229,7 +229,18 @@ func NewBuilderUserNotAllowedError(image string, onbuild bool) error {
 	}
 	return Error{
 		Message:    msg,
-		ErrorCode:  BuilderUserNotAllowedError,
-		Suggestion: "modify builder image to use a numeric user within the allowed range or build without the --allowed-uids flag",
+		ErrorCode:  UserNotAllowedError,
+		Suggestion: fmt.Sprintf("modify image %q to use a numeric user within the allowed range or build without the --allowed-uids flag", image),
+	}
+}
+
+// NewEmptyGitRepositoryError returns a new error which indicates that a found
+// .git directory has no tracking information, e.g. if the user simply used
+// `git init` and forgot about the repository
+func NewEmptyGitRepositoryError(source string) error {
+	return Error{
+		Message:    fmt.Sprintf("The git repository \"%s\" has no tracking information or commits", source),
+		ErrorCode:  EmptyGitRepositoryError,
+		Suggestion: "Either commit files to the Git repository, remove the .git directory from the project, or use --copy to ignore the repository.",
 	}
 }

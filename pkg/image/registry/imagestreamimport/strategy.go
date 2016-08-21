@@ -32,6 +32,13 @@ func (s *strategy) PrepareForCreate(obj runtime.Object) {
 	newIST.Status = api.ImageStreamImportStatus{}
 }
 
+func (s *strategy) PrepareImageForCreate(obj runtime.Object) {
+	image := obj.(*api.Image)
+
+	// signatures can be added using "images" or "imagesignatures" resources
+	image.Signatures = nil
+}
+
 func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
 	isi := obj.(*api.ImageStreamImport)
 	return validation.ValidateImageStreamImport(isi)

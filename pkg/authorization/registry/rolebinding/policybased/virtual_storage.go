@@ -8,7 +8,9 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -68,7 +70,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runt
 
 func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	policyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
-	if err != nil && kapierrors.IsNotFound(err) {
+	if kapierrors.IsNotFound(err) {
 		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
 	}
 	if err != nil {
@@ -83,22 +85,24 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 }
 
 func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
-	if err != nil && kapierrors.IsNotFound(err) {
-		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
-	}
-	if err != nil {
-		return nil, err
-	}
+	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
+		if kapierrors.IsNotFound(err) {
+			return kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
+		}
+		if err != nil {
+			return err
+		}
 
-	if _, exists := owningPolicyBinding.RoleBindings[name]; !exists {
-		return nil, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
-	}
+		if _, exists := owningPolicyBinding.RoleBindings[name]; !exists {
+			return kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), name)
+		}
 
-	delete(owningPolicyBinding.RoleBindings, name)
-	owningPolicyBinding.LastModified = unversioned.Now()
+		delete(owningPolicyBinding.RoleBindings, name)
+		owningPolicyBinding.LastModified = unversioned.Now()
 
-	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding); err != nil {
+		return m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
+	}); err != nil {
 		return nil, err
 	}
 
@@ -114,36 +118,43 @@ func (m *VirtualStorage) CreateRoleBindingWithEscalation(ctx kapi.Context, obj *
 }
 
 func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.RoleBinding, error) {
+	// Copy object before passing to BeforeCreate, since it mutates
+	objCopy, err := kapi.Scheme.DeepCopy(obj)
+	if err != nil {
+		return nil, err
+	}
+	obj = objCopy.(runtime.Object)
+
 	if err := rest.BeforeCreate(m.CreateStrategy, ctx, obj); err != nil {
 		return nil, err
 	}
 
 	roleBinding := obj.(*authorizationapi.RoleBinding)
 
-	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
-		return nil, err
-	}
 	if !allowEscalation {
 		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
 			return nil, err
 		}
 	}
 
-	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
-	if err != nil {
-		return nil, err
-	}
+	// Retry if we hit a conflict on the underlying PolicyBinding object
+	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
+		if err != nil {
+			return err
+		}
 
-	_, exists := policyBinding.RoleBindings[roleBinding.Name]
-	if exists {
-		return nil, kapierrors.NewAlreadyExists(authorizationapi.Resource("rolebinding"), roleBinding.Name)
-	}
+		_, exists := policyBinding.RoleBindings[roleBinding.Name]
+		if exists {
+			return kapierrors.NewAlreadyExists(authorizationapi.Resource("rolebinding"), roleBinding.Name)
+		}
 
-	roleBinding.ResourceVersion = policyBinding.ResourceVersion
-	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
-	policyBinding.LastModified = unversioned.Now()
+		roleBinding.ResourceVersion = policyBinding.ResourceVersion
+		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
+		policyBinding.LastModified = unversioned.Now()
 
-	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
+		return m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding)
+	}); err != nil {
 		return nil, err
 	}
 
@@ -158,67 +169,83 @@ func (m *VirtualStorage) UpdateRoleBindingWithEscalation(ctx kapi.Context, obj *
 }
 
 func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo, allowEscalation bool) (*authorizationapi.RoleBinding, bool, error) {
-	old, err := m.Get(ctx, name)
-	if err != nil {
-		return nil, false, err
-	}
+	var updatedRoleBinding *authorizationapi.RoleBinding
+	var roleBindingConflicted = false
 
-	obj, err := objInfo.UpdatedObject(ctx, old)
-	if err != nil {
-		return nil, false, err
-	}
-
-	roleBinding, ok := obj.(*authorizationapi.RoleBinding)
-	if !ok {
-		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("obj is not a role: %#v", obj))
-	}
-
-	if err := rest.BeforeUpdate(m.UpdateStrategy, ctx, obj, old); err != nil {
-		return nil, false, err
-	}
-
-	if err := m.validateReferentialIntegrity(ctx, roleBinding); err != nil {
-		return nil, false, err
-	}
-	if !allowEscalation {
-		if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
-			return nil, false, err
+	if err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
+		// Do an initial fetch
+		old, err := m.Get(ctx, name)
+		if err != nil {
+			return err
 		}
-	}
+		oldRoleBinding, exists := old.(*authorizationapi.RoleBinding)
+		if !exists {
+			return kapierrors.NewBadRequest(fmt.Sprintf("old obj is not a role binding: %#v", old))
+		}
 
-	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
-	if err != nil {
+		// get the updated object, so we know what namespace we're binding against
+		obj, err := objInfo.UpdatedObject(ctx, old)
+		if err != nil {
+			return err
+		}
+		roleBinding, ok := obj.(*authorizationapi.RoleBinding)
+		if !ok {
+			return kapierrors.NewBadRequest(fmt.Sprintf("obj is not a role binding: %#v", obj))
+		}
+
+		// now that we know which roleRef we want to go to, fetch the policyBinding we'll actually be updating, and re-get the oldRoleBinding
+		policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
+		if err != nil {
+			return err
+		}
+		oldRoleBinding, exists = policyBinding.RoleBindings[roleBinding.Name]
+		if !exists {
+			return kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), roleBinding.Name)
+		}
+
+		if len(roleBinding.ResourceVersion) == 0 && m.UpdateStrategy.AllowUnconditionalUpdate() {
+			roleBinding.ResourceVersion = oldRoleBinding.ResourceVersion
+		}
+
+		if err := rest.BeforeUpdate(m.UpdateStrategy, ctx, obj, oldRoleBinding); err != nil {
+			return err
+		}
+
+		if !allowEscalation {
+			if err := m.confirmNoEscalation(ctx, roleBinding); err != nil {
+				return err
+			}
+		}
+
+		// conflict detection
+		if roleBinding.ResourceVersion != oldRoleBinding.ResourceVersion {
+			// mark as a conflict err, but return an untyped error to escape the retry
+			roleBindingConflicted = true
+			return errors.New(registry.OptimisticLockErrorMsg)
+		}
+		// non-mutating change
+		if kapi.Semantic.DeepEqual(oldRoleBinding, roleBinding) {
+			updatedRoleBinding = roleBinding
+			return nil
+		}
+
+		roleBinding.ResourceVersion = policyBinding.ResourceVersion
+		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
+		policyBinding.LastModified = unversioned.Now()
+
+		if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
+			return err
+		}
+		updatedRoleBinding = roleBinding
+		return nil
+	}); err != nil {
+		if roleBindingConflicted {
+			// construct the typed conflict error
+			return nil, false, kapierrors.NewConflict(authorizationapi.Resource("rolebinding"), name, err)
+		}
 		return nil, false, err
 	}
-
-	previousRoleBinding, exists := policyBinding.RoleBindings[roleBinding.Name]
-	if !exists {
-		return nil, false, kapierrors.NewNotFound(authorizationapi.Resource("rolebinding"), roleBinding.Name)
-	}
-	if previousRoleBinding.RoleRef != roleBinding.RoleRef {
-		return nil, false, errors.New("roleBinding.RoleRef may not be modified")
-	}
-
-	if kapi.Semantic.DeepEqual(previousRoleBinding, roleBinding) {
-		return roleBinding, false, nil
-	}
-
-	roleBinding.ResourceVersion = policyBinding.ResourceVersion
-	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
-	policyBinding.LastModified = unversioned.Now()
-
-	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
-		return nil, false, err
-	}
-	return roleBinding, false, nil
-}
-
-func (m *VirtualStorage) validateReferentialIntegrity(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	if _, err := m.RuleResolver.GetRole(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding)); err != nil {
-		return err
-	}
-
-	return nil
+	return updatedRoleBinding, false, nil
 }
 
 func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
@@ -241,7 +268,10 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNam
 		// if we have no policyBinding, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
 		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), policyNamespace, policyBindingName)
 		if err := m.BindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
-			return nil, err
+			// Tolerate the policybinding having been created in the meantime
+			if !kapierrors.IsAlreadyExists(err) {
+				return nil, err
+			}
 		}
 
 		policyBinding, err = m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName)

@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	kdeployutil "k8s.io/kubernetes/pkg/util/deployment"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -93,6 +94,9 @@ func (e *HookExecutor) emitEvent(deployment *kapi.ReplicationController, eventTy
 		InvolvedObject: *ref,
 		Reason:         reason,
 		Message:        msg,
+		Source: kapi.EventSource{
+			Component: deployutil.DeployerPodNameFor(deployment),
+		},
 		FirstTimestamp: t,
 		LastTimestamp:  t,
 		Count:          1,
@@ -388,6 +392,8 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		imagePullSecrets = append(imagePullSecrets, kapi.LocalObjectReference{Name: pullSecret.Name})
 	}
 
+	gracePeriod := int64(10)
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: namer.GetPodName(deployment.Name, suffix),
@@ -415,9 +421,10 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			// Setting the node selector on the hook pod so that it is created
 			// on the same set of nodes as the deployment pods.
-			NodeSelector:     deployment.Spec.Template.Spec.NodeSelector,
-			RestartPolicy:    restartPolicy,
-			ImagePullSecrets: imagePullSecrets,
+			NodeSelector:                  deployment.Spec.Template.Spec.NodeSelector,
+			RestartPolicy:                 restartPolicy,
+			ImagePullSecrets:              imagePullSecrets,
+			TerminationGracePeriodSeconds: &gracePeriod,
 		},
 	}
 
@@ -472,7 +479,7 @@ func NewPodWatch(client kclient.PodsNamespacer, namespace, name, resourceVersion
 		},
 	}
 
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).RunUntil(stopChannel)
 
 	return func() *kapi.Pod {
@@ -483,12 +490,20 @@ func NewPodWatch(client kclient.PodsNamespacer, namespace, name, resourceVersion
 
 // NewAcceptNewlyObservedReadyPods makes a new AcceptNewlyObservedReadyPods
 // from a real client.
-func NewAcceptNewlyObservedReadyPods(out io.Writer, kclient kclient.PodsNamespacer, timeout time.Duration, interval time.Duration) *AcceptNewlyObservedReadyPods {
+func NewAcceptNewlyObservedReadyPods(
+	out io.Writer,
+	kclient kclient.PodsNamespacer,
+	timeout time.Duration,
+	interval time.Duration,
+	minReadySeconds int32,
+) *AcceptNewlyObservedReadyPods {
+
 	return &AcceptNewlyObservedReadyPods{
-		out:          out,
-		timeout:      timeout,
-		interval:     interval,
-		acceptedPods: sets.NewString(),
+		out:             out,
+		timeout:         timeout,
+		interval:        interval,
+		minReadySeconds: minReadySeconds,
+		acceptedPods:    sets.NewString(),
 		getDeploymentPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
 			selector := labels.Set(deployment.Spec.Selector).AsSelector()
 			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
@@ -533,6 +548,10 @@ type AcceptNewlyObservedReadyPods struct {
 	timeout time.Duration
 	// interval is how often to check for pod readiness
 	interval time.Duration
+	// minReadySeconds is the minimum number of seconds for which a newly created
+	// pod should be ready without any of its container crashing, for it to be
+	// considered available.
+	minReadySeconds int32
 	// acceptedPods keeps track of pods which have been previously accepted for
 	// a deployment.
 	acceptedPods sets.String
@@ -560,7 +579,7 @@ func (c *AcceptNewlyObservedReadyPods) Accept(deployment *kapi.ReplicationContro
 			if c.acceptedPods.Has(pod.Name) {
 				continue
 			}
-			if kapi.IsPodReady(pod) {
+			if kdeployutil.IsPodAvailable(pod, c.minReadySeconds, time.Now()) {
 				// If the pod is ready, track it as accepted.
 				c.acceptedPods.Insert(pod.Name)
 			} else {

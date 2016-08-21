@@ -23,6 +23,10 @@ created by users and keeps a local router configuration up to date with those ch
 You may customize the router by providing your own \-\-template and \-\-reload scripts.
 
 .PP
+The router must have a default certificate in pem format. You may provide it via \-\-default\-cert otherwise
+one is automatically created.
+
+.PP
 You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has
 access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all
 namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note
@@ -65,6 +69,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 .PP
 \fB\-\-default\-certificate\fP=""
     The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format
+
+.PP
+\fB\-\-default\-certificate\-dir\fP=""
+    A path to a directory that contains a file named tls.crt. If tls.crt is not a PEM file which also contains a private key, it is first combined with a file named tls.key in the same directory. The PEM\-format contents are then used as the default certificate. Only used if default\-certificate and default\-certificate\-path are not specified.
 
 .PP
 \fB\-\-default\-certificate\-path\fP=""

@@ -1,12 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -28,6 +21,7 @@ os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-live
 os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" '\- /bin/env'
 os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'stdinOnce'
 os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'tty'
+os::cmd::expect_success_and_not_text "oc debug --tty=false dc/test-deployment-config -o yaml" 'tty'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'stdin'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
 os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'on node "invalid"'
@@ -42,6 +36,8 @@ os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image: openshift/wildfly-100-centos7'
+sha="$( oc get istag/wildfly:latest --template '{{ .image.metadata.name }}' )"
+os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: openshift/wildfly-100-centos7'
 
 echo "debug: ok"
 os::test::junit::declare_suite_end

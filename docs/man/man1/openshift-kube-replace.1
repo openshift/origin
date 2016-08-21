@@ -68,7 +68,7 @@ Please refer to the models in
 
 .PP
 \fB\-\-timeout\fP=0
-    Only relevant during a force replace. The length of time to wait before giving up on a delete of the old resource, zero means determine a timeout from the size of the object
+    Only relevant during a force replace. The length of time to wait before giving up on a delete of the old resource, zero means determine a timeout from the size of the object. Any other values should contain a corresponding time unit (e.g. 1s, 2m, 3h).
 
 .PP
 \fB\-\-validate\fP=true
@@ -285,7 +285,7 @@ Please refer to the models in
     The name of the kubeconfig user to use
 
 .PP
-\fB\-\-v\fP=0
+\fB\-v\fP, \fB\-\-v\fP=0
     log level for V logs
 
 .PP

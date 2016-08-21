@@ -60,7 +60,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:latest",
+                "name": "mongodb:3.2",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -182,7 +182,7 @@
     },
     {
       "name": "MONGODB_USER",
-      "displayName": "MongoDB User",
+      "displayName": "MongoDB Connection Username",
       "description": "Username for MongoDB user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -190,8 +190,8 @@
     },
     {
       "name": "MONGODB_PASSWORD",
-      "displayName": "MongoDB Password",
-      "description": "Password for the MongoDB user.",
+      "displayName": "MongoDB Connection Password",
+      "description": "Password for the MongoDB connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
@@ -214,5 +214,6 @@
   ],
   "labels": {
     "template": "mongodb-ephemeral-template"
-  }
+  },
+  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
 }

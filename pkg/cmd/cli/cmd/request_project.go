@@ -21,7 +21,10 @@ type NewProjectOptions struct {
 	DisplayName string
 	Description string
 
-	Name string
+	Name   string
+	Server string
+
+	SkipConfigWrite bool
 
 	Client client.Interface
 
@@ -73,6 +76,7 @@ func NewCmdRequestProject(baseName, name, ocLoginName, ocProjectName string, f *
 
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "Project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "Project description")
+	cmd.Flags().BoolVar(&options.SkipConfigWrite, "skip-config-write", false, "If true, the project will not be set as a cluster entry in kubeconfig after being created")
 
 	return cmd
 }
@@ -86,10 +90,18 @@ func (o *NewProjectOptions) complete(cmd *cobra.Command, f *clientcmd.Factory) e
 
 	o.ProjectName = args[0]
 
-	o.ProjectOptions = &ProjectOptions{}
-	o.ProjectOptions.PathOptions = cliconfig.NewPathOptions(cmd)
-	if err := o.ProjectOptions.Complete(f, []string{""}, o.Out); err != nil {
-		return err
+	if !o.SkipConfigWrite {
+		o.ProjectOptions = &ProjectOptions{}
+		o.ProjectOptions.PathOptions = cliconfig.NewPathOptions(cmd)
+		if err := o.ProjectOptions.Complete(f, []string{""}, o.Out); err != nil {
+			return err
+		}
+	} else {
+		clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
+		if err != nil {
+			return err
+		}
+		o.Server = clientConfig.Host
 	}
 
 	return nil
@@ -121,15 +133,22 @@ func (o *NewProjectOptions) Run() error {
 		if err := o.ProjectOptions.RunProject(); err != nil {
 			return err
 		}
-	}
 
-	fmt.Fprintf(o.Out, `
+		fmt.Fprintf(o.Out, `
 You can add applications to this project with the 'new-app' command. For example, try:
 
     %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
 to build a new example application in Ruby.
 `, o.Name)
+	} else {
+		fmt.Fprintf(o.Out, `Project %[2]q created on server %[3]q.
+
+To switch to this project and start adding applications, use:
+
+    %[1]s project %[2]s
+`, o.Name, o.ProjectName, o.Server)
+	}
 
 	return nil
 }

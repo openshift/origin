@@ -1,12 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 # Cleanup cluster resources created by this test
@@ -14,12 +7,15 @@ trap os::test::junit::reconcile_output EXIT
   set +e
   oc delete all,templates,secrets,pods,jobs --all
   oc delete image v1-image
+  oc delete group patch-group
   exit 0
 ) &>/dev/null
 
 function escape_regex() {
   sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
 }
+
+project="$( oc project -q )"
 
 os::test::junit::declare_suite_start "cmd/basicresources"
 # This test validates basic resource retrieval and command interaction
@@ -28,16 +24,19 @@ os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 # Test to make sure that we're reporting the correct version information from endpoints and the correct
 # User-Agent information from our clients regardless of which resources they're trying to access
 os::build::get_version_vars
-os_git_regex="$( escape_regex ${OS_GIT_VERSION%%-*} )"
-kube_git_regex="$( escape_regex ${KUBE_GIT_VERSION%%-*} )"
+os_git_regex="$( escape_regex "${OS_GIT_VERSION%%-*}" )"
+kube_git_regex="$( escape_regex "${KUBE_GIT_VERSION%%-*}" )"
+etcd_git_regex="$( escape_regex "${ETCD_GIT_VERSION%%-*}" )"
 os::cmd::expect_success_and_text 'oc version' "oc ${os_git_regex}"
 os::cmd::expect_success_and_text 'oc version' "kubernetes ${kube_git_regex}"
+os::cmd::expect_success_and_text 'oc version' "features: Basic-Auth"
 os::cmd::expect_success_and_text 'openshift version' "openshift ${os_git_regex}"
 os::cmd::expect_success_and_text 'openshift version' "kubernetes ${kube_git_regex}"
-os::cmd::expect_success_and_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${kube_git_regex}"
-os::cmd::expect_success_and_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift' "${os_git_regex}"
-os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version' "${OS_GIT_COMMIT}"
-os::cmd::expect_success_and_not_text 'curl -k ${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift' "${KUBE_GIT_COMMIT}"
+os::cmd::expect_success_and_text 'openshift version' "etcd ${etcd_git_regex}"
+os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${kube_git_regex}"
+os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${os_git_regex}"
+os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${OS_GIT_COMMIT}"
+os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${KUBE_GIT_COMMIT}"
 
 # variants I know I have to worry about
 # 1. oc (kube and openshift resources)
@@ -67,6 +66,14 @@ os::cmd::expect_success_and_text 'openshift cli get pods --loglevel=7  2>&1 | gr
 # example User-Agent: openshift/v1.1.3 (linux/amd64) openshift/b348c2f
 os::cmd::expect_success_and_text 'openshift cli get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${os_git_regex} .* openshift/"
 echo "version reporting: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/basicresources/status"
+os::cmd::expect_success_and_text 'openshift cli status -h' 'openshift cli describe buildConfig'
+os::cmd::expect_success_and_text 'oc status -h' 'oc describe buildConfig'
+os::cmd::expect_success_and_text 'oc status' 'oc new-app'
+os::cmd::expect_success_and_text 'openshift cli status' 'openshift cli new-app'
+echo "status help output: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/explain"
@@ -106,8 +113,15 @@ os::cmd::try_until_success 'oc label pod/hello-openshift acustom=label' # can ra
 os::cmd::expect_success_and_text 'oc describe pod/hello-openshift' 'acustom=label'
 os::cmd::try_until_success 'oc annotate pod/hello-openshift foo=bar' # can race against scheduling and status updates
 os::cmd::expect_success_and_text 'oc get -o yaml pod/hello-openshift' 'foo: bar'
+os::cmd::expect_failure_and_not_text 'oc annotate pod hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
+os::cmd::expect_failure_and_text 'oc annotate pod hello-openshift hello-openshift description="test" --resource-version=123' 'may only be used with a single resource'
 os::cmd::expect_success 'oc delete pods -l acustom=label --grace-period=0'
 os::cmd::expect_failure 'oc get pod/hello-openshift'
+
+# show-labels should work for projects
+os::cmd::expect_success "oc label namespace '${project}' foo=bar"
+os::cmd::expect_success_and_text "oc get project '${project}' --show-labels" "foo=bar"
+
 echo "label: ok"
 os::test::junit::declare_suite_end
 
@@ -115,6 +129,7 @@ os::test::junit::declare_suite_start "cmd/basicresources/services"
 os::cmd::expect_success 'oc get services'
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
 os::cmd::expect_success 'oc delete services frontend'
+os::cmd::expect_failure_and_text 'oc create -f test/integration/testdata/test-service-with-finalizer.json' "finalizers are disabled"
 echo "services: ok"
 os::test::junit::declare_suite_end
 
@@ -136,7 +151,7 @@ os::cmd::expect_success 'oc get nodes'
   # subshell so we can unset kubeconfig
   cfg="${KUBECONFIG}"
   unset KUBECONFIG
-  os::cmd::expect_success 'kubectl get nodes --kubeconfig="${cfg}"'
+  os::cmd::expect_success "kubectl get nodes --kubeconfig='${cfg}'"
 )
 echo "nodes: ok"
 os::test::junit::declare_suite_end
@@ -150,22 +165,15 @@ os::cmd::expect_success 'oc delete clusterquota/limit-bob'
 echo "create subcommands: ok"
 os::test::junit::declare_suite_end
 
-
-os::test::junit::declare_suite_start "cmd/basicresources/routes"
-os::cmd::expect_success 'oc get routes'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-route.json'
-os::cmd::expect_success 'oc delete routes testroute'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
-os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
-os::cmd::expect_success 'oc delete routes frontend'
-os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
-os::cmd::expect_success 'oc delete routes non-existent'
-os::cmd::expect_success 'oc create route edge test-route --service=frontend'
-os::cmd::expect_success 'oc delete routes test-route'
-os::cmd::expect_failure 'oc create route edge new-route'
-os::cmd::expect_success 'oc delete services frontend'
-echo "routes: ok"
+os::test::junit::declare_suite_start "cmd/basicresources/petsets"
+os::cmd::expect_success 'oc create -f examples/pets/zookeeper/zookeeper.yaml'
+os::cmd::try_until_success 'oc get pods zoo-0'
+os::cmd::expect_success 'oc get pvc datadir-zoo-2'
+os::cmd::expect_success_and_text 'oc describe petset zoo' 'app=zk'
+os::cmd::expect_success 'oc delete -f examples/pets/zookeeper/zookeeper.yaml'
+echo "petsets: ok"
 os::test::junit::declare_suite_end
+
 
 os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
@@ -232,8 +240,20 @@ os::cmd::expect_success_and_text "oc set env bc --all --list" "FOO=bar"
 os::cmd::expect_success_and_text "oc set env bc --all FOO-" "updated"
 os::cmd::expect_success "oc create secret generic mysecret --from-literal='foo.bar=secret'"
 os::cmd::expect_success_and_text "oc set env --from=secret/mysecret --prefix=PREFIX_ dc/test-deployment-config" "updated"
-os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "PREFIX_FOO_BAR="
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list" "PREFIX_FOO_BAR from secret mysecret, key foo.bar"
+os::cmd::expect_success_and_text "oc set env dc/test-deployment-config --list --resolve" "PREFIX_FOO_BAR=secret"
 os::cmd::expect_success "oc delete secret mysecret"
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "error retrieving reference for PREFIX_FOO_BAR"
+# switch to view user to ensure view-only users can't get secrets through env var resolution
+new="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > $new"
+export KUBECONFIG=$new
+project=$(oc project -q)
+os::cmd::expect_success 'oc policy add-role-to-user view view-user'
+os::cmd::expect_success 'oc login -u view-user -p anything'
+os::cmd::try_until_success 'oc project ${project}'
+os::cmd::expect_failure_and_text "oc set env dc/test-deployment-config --list --resolve" "cannot get secrets in project"
+oc login -u system:admin
 # clean up
 os::cmd::expect_success "oc delete dc/test-deployment-config"
 os::cmd::expect_success "oc delete bc/ruby-sample-build-validtag"
@@ -253,7 +273,7 @@ os::cmd::expect_success 'oc delete svc,route -l name=frontend'
 # Test that external services are exposable
 os::cmd::expect_success 'oc create -f test/testdata/external-service.yaml'
 os::cmd::expect_success 'oc expose svc/external'
-os::cmd::expect_success_and_text 'oc get route external' 'external=service'
+os::cmd::expect_success_and_text 'oc get route external' 'external'
 os::cmd::expect_success 'oc delete route external'
 os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route
@@ -261,15 +281,6 @@ os::cmd::expect_success 'oc create -f test/testdata/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
 os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
 echo "expose: ok"
-os::test::junit::declare_suite_end
-
-# Test that resource printer includes resource kind on multiple resources
-os::test::junit::declare_suite_start "cmd/basicresources/get"
-os::cmd::expect_success 'oc create imagestream test1'
-os::cmd::expect_success 'oc new-app node'
-os::cmd::expect_success_and_text 'oc get all' 'is/test1'
-os::cmd::expect_success_and_not_text 'oc get is' 'is/test1'
-echo "resource printer: ok"
 os::test::junit::declare_suite_end
 
 # Test OAuth access token describer
@@ -281,13 +292,12 @@ os::cmd::expect_success 'oc delete all --all'
 
 os::test::junit::declare_suite_start "cmd/basicresources/projectadmin"
 # switch to test user to be sure that default project admin policy works properly
-new="$(mktemp -d)/tempconfig"
-os::cmd::expect_success "oc config view --raw > $new"
-export KUBECONFIG=$new
-project=$(oc project -q)
+temp_config="$(mktemp -d)/tempconfig"
+os::cmd::expect_success "oc config view --raw > '${temp_config}'"
+export KUBECONFIG="${temp_config}"
 os::cmd::expect_success 'oc policy add-role-to-user admin test-user'
 os::cmd::expect_success 'oc login -u test-user -p anything'
-os::cmd::try_until_success 'oc project ${project}'
+os::cmd::try_until_success "oc project '$(oc project -q)'"
 
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift test'
 os::cmd::expect_success 'oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2'
@@ -323,24 +333,11 @@ echo "delete all: ok"
 os::test::junit::declare_suite_end
 
 # service accounts should not be allowed to request new projects
-os::cmd::expect_failure_and_text "oc new-project --token="$( oc sa get-token builder )" will-fail" 'Error from server: You may not request a new project via this API'
-
-# test oc projects
-os::cmd::expect_failure_and_text 'oc projects test_arg' 'no arguments'
-os::cmd::expect_success_and_text 'oc projects' 'You have access'
-# log in as a test user and expect no projects
-os::cmd::expect_success 'oc login -u test -p test'
-os::cmd::expect_success_and_text 'oc projects' 'You are not a member of any projects'
-# add a project and expect text for a single project
-os::cmd::expect_success_and_text 'oc new-project test4; sleep 2; oc projects' 'You have one project on this server: "test4".'
-os::cmd::expect_success_and_text 'oc new-project test5; sleep 2; oc projects' 'You have access'
-echo 'projects command ok'
+os::cmd::expect_failure_and_text "oc new-project --token='$( oc sa get-token builder )' will-fail" 'Error from server: You may not request a new project via this API'
 
 os::test::junit::declare_suite_start "cmd/basicresources/patch"
 # Validate patching works correctly
-oc login -u system:admin
-# Clean up group if needed to be re-entrant
-oc delete group patch-group || true
+os::cmd::expect_success 'oc login -u system:admin'
 group_json='{"kind":"Group","apiVersion":"v1","metadata":{"name":"patch-group"}}'
 os::cmd::expect_success          "echo '${group_json}' | oc create -f -"
 os::cmd::expect_success_and_text 'oc get group patch-group -o yaml' 'users: null'
@@ -352,4 +349,3 @@ echo "patch: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
-

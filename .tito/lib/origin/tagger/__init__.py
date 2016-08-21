@@ -76,7 +76,7 @@ class OriginTagger(VersionTagger):
             )
         output = run_command(update_commit)
 
-        cmd = '. ./hack/common.sh ; echo $(os::build::ldflags)'
+        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; echo $(os::build::ldflags)'
         ldflags = run_command('bash -c \'{0}\''.format(cmd))
         # hack/common.sh will tell us that the tree is dirty because tito has
         # already mucked with things, but lets not consider the tree to be

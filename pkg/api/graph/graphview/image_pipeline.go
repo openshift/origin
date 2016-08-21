@@ -17,6 +17,7 @@ import (
 type ImagePipeline struct {
 	Image               ImageTagLocation
 	DestinationResolved bool
+	ScheduledImport     bool
 
 	Build *buildgraph.BuildConfigNode
 
@@ -26,6 +27,8 @@ type ImagePipeline struct {
 
 	// If set, the base image used by the build
 	BaseImage ImageTagLocation
+	// if set, the build config names that produces the base image
+	BaseBuilds []string
 	// If set, the source repository that inputs to the build
 	Source SourceLocation
 }
@@ -58,6 +61,32 @@ func AllImagePipelinesFromBuildConfig(g osgraph.Graph, excludeNodeIDs IntSet) ([
 	}
 
 	sort.Sort(SortedImagePipelines(pipelines))
+
+	outputImageToBCMap := make(map[string][]string)
+	for _, pipeline := range pipelines {
+		// note, bc does not have to have an output image
+		if pipeline.Image != nil {
+			bcs, ok := outputImageToBCMap[pipeline.Image.ImageSpec()]
+			if !ok {
+				bcs = []string{}
+			}
+			bcs = append(bcs, pipeline.Build.BuildConfig.Name)
+			outputImageToBCMap[pipeline.Image.ImageSpec()] = bcs
+		}
+	}
+
+	if len(outputImageToBCMap) > 0 {
+		for i, pipeline := range pipelines {
+			// note, bc does not have to have an input strategy image
+			if pipeline.BaseImage != nil {
+				baseBCs, ok := outputImageToBCMap[pipeline.BaseImage.ImageSpec()]
+				if ok && len(baseBCs) > 0 {
+					pipelines[i].BaseBuilds = baseBCs
+				}
+			}
+		}
+	}
+
 	return pipelines, covered
 }
 
@@ -69,11 +98,12 @@ func NewImagePipelineFromBuildConfigNode(g osgraph.Graph, bcNode *buildgraph.Bui
 
 	flow := ImagePipeline{}
 
-	base, src, coveredInputs, _ := findBuildInputs(g, bcNode)
+	base, src, coveredInputs, scheduled, _ := findBuildInputs(g, bcNode)
 	covered.Insert(coveredInputs.List()...)
 	flow.BaseImage = base
 	flow.Source = src
 	flow.Build = bcNode
+	flow.ScheduledImport = scheduled
 	flow.LastSuccessfulBuild, flow.LastUnsuccessfulBuild, flow.ActiveBuilds = buildedges.RelevantBuilds(g, flow.Build)
 	flow.Image = findBuildOutput(g, bcNode)
 
@@ -117,11 +147,12 @@ func NewImagePipelineFromImageTagLocation(g osgraph.Graph, node graph.Node, imag
 			break
 		}
 
-		base, src, coveredInputs, _ := findBuildInputs(g, build)
+		base, src, coveredInputs, scheduled, _ := findBuildInputs(g, build)
 		covered.Insert(coveredInputs.List()...)
 		flow.BaseImage = base
 		flow.Source = src
 		flow.Build = build
+		flow.ScheduledImport = scheduled
 		flow.LastSuccessfulBuild, flow.LastUnsuccessfulBuild, flow.ActiveBuilds = buildedges.RelevantBuilds(g, flow.Build)
 	}
 
@@ -141,7 +172,7 @@ func NewImagePipelineFromImageTagLocation(g osgraph.Graph, node graph.Node, imag
 	return flow, covered
 }
 
-func findBuildInputs(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (base ImageTagLocation, source SourceLocation, covered IntSet, err error) {
+func findBuildInputs(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (base ImageTagLocation, source SourceLocation, covered IntSet, scheduled bool, err error) {
 	covered = IntSet{}
 
 	// find inputs to the build
@@ -158,6 +189,7 @@ func findBuildInputs(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (base 
 		}
 		covered.Insert(input.ID())
 		base = input.(ImageTagLocation)
+		scheduled = imageStreamTagScheduled(g, input, base)
 	}
 
 	return
@@ -167,6 +199,19 @@ func findBuildOutput(g osgraph.Graph, bcNode *buildgraph.BuildConfigNode) (resul
 	for _, output := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
 		result = output.(ImageTagLocation)
 		return
+	}
+	return
+}
+
+func imageStreamTagScheduled(g osgraph.Graph, input graph.Node, base ImageTagLocation) (scheduled bool) {
+	for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(input, imageedges.ReferencedImageStreamGraphEdgeKind) {
+		imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
+		if imageStreamNode.ImageStream != nil {
+			if tag, ok := imageStreamNode.ImageStream.Spec.Tags[base.ImageTag()]; ok {
+				scheduled = tag.ImportPolicy.Scheduled
+				return
+			}
+		}
 	}
 	return
 }

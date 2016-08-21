@@ -17,14 +17,13 @@ import (
 )
 
 var (
-	postgreSQLReplicationTemplate = "https://raw.githubusercontent.com/openshift/postgresql/master/examples/replica/postgresql_replica.json"
+	postgreSQLReplicationTemplate = "https://raw.githubusercontent.com/sclorg/postgresql-container/master/examples/replica/postgresql_replica.json"
 	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
 	postgreSQLHelperName          = "postgresql-helper"
 	postgreSQLImages              = []string{
-		"openshift/postgresql-92-centos7",
-		"centos/postgresql-94-centos7",
-		"registry.access.redhat.com/openshift3/postgresql-92-rhel7",
-		"registry.access.redhat.com/rhscl/postgresql-94-rhel7",
+		"postgresql:9.2",
+		"postgresql:9.4",
+		"postgresql:9.5",
 	}
 )
 
@@ -77,7 +76,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
-		err = oc.Run("new-app").Args("-f", postgreSQLReplicationTemplate, "-p", fmt.Sprintf("POSTGRESQL_IMAGE=%s", image)).Execute()
+		err = oc.Run("new-app").Args("-f", postgreSQLReplicationTemplate, "-p", fmt.Sprintf("IMAGESTREAMTAG=%s", image)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.Run("new-app").Args("-f", postgreSQLEphemeralTemplate, "-p", fmt.Sprintf("DATABASE_SERVICE_NAME=%s", postgreSQLHelperName)).Execute()
@@ -93,46 +92,53 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 
 		tableCounter := 0
 		assertReplicationIsWorking := func(masterDeployment, slaveDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
+			check := func(err error) {
+				if err != nil {
+					exutil.DumpDeploymentLogs("postgresql-master", oc)
+					exutil.DumpDeploymentLogs("postgresql-slave", oc)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
 			tableCounter++
 			table := fmt.Sprintf("table_%0.2d", tableCounter)
 
 			master, slaves, helper := CreatePostgreSQLReplicationHelpers(oc.KubeREST().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", postgreSQLHelperName), slaveCount)
 			err := exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})
 			if err != nil {
+				exutil.DumpDeploymentLogs("postgresql-master", oc)
 				exutil.DumpDeploymentLogs("postgresql-helper", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
+
 			err = exutil.WaitUntilAllHelpersAreUp(oc, slaves)
-			if err != nil {
-				exutil.DumpDeploymentLogs("postgresql-slave", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			check(err)
 
 			// Test if we can query as admin
 			oc.KubeFramework().WaitForAnEndpoint("postgresql-master")
 			err = helper.TestRemoteLogin(oc, "postgresql-master")
-			o.Expect(err).NotTo(o.HaveOccurred())
+			check(err)
 
 			// Create a new table with random name
 			_, err = master.Query(oc, fmt.Sprintf("CREATE TABLE %s (col1 VARCHAR(20), col2 VARCHAR(20));", table))
-			o.Expect(err).NotTo(o.HaveOccurred())
+			check(err)
 
 			// Write new data to the table through master
 			_, err = master.Query(oc, fmt.Sprintf("INSERT INTO %s (col1, col2) VALUES ('val1', 'val2');", table))
-			o.Expect(err).NotTo(o.HaveOccurred())
+			check(err)
 
 			// Make sure data is present on master
 			err = exutil.WaitForQueryOutputContains(oc, master, 10*time.Second, false,
 				fmt.Sprintf("SELECT * FROM %s;", table),
 				"col1 | val1\ncol2 | val2")
-			o.Expect(err).NotTo(o.HaveOccurred())
+			check(err)
 
 			// Make sure data was replicated to all slaves
 			for _, slave := range slaves {
 				err = exutil.WaitForQueryOutputContains(oc, slave, 90*time.Second, false,
 					fmt.Sprintf("SELECT * FROM %s;", table),
 					"col1 | val1\ncol2 | val2")
-				o.Expect(err).NotTo(o.HaveOccurred())
+				check(err)
 			}
 
 			return master, slaves, helper

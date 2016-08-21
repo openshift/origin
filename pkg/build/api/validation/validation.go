@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapivalidation "github.com/openshift/origin/pkg/image/api/validation"
 )
 
 // ValidateBuild tests required fields for a Build.
@@ -347,6 +348,8 @@ func validateToImageReference(reference *kapi.ObjectReference, fldPath *field.Pa
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag name contains invalid syntax"))
 		}
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
@@ -377,6 +380,8 @@ func validateFromImageReference(reference *kapi.ObjectReference, fldPath *field.
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag name contains invalid syntax"))
 		}
 
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
@@ -498,6 +503,7 @@ func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, validateFromImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
+	allErrs = append(allErrs, validateRuntimeImage(strategy, fldPath.Child("runtimeImage"))...)
 	return allErrs
 }
 
@@ -645,4 +651,22 @@ func validatePostCommit(spec buildapi.BuildPostCommitSpec, fldPath *field.Path) 
 		allErrs = append(allErrs, field.Invalid(fldPath, spec, "cannot use command and script together"))
 	}
 	return allErrs
+}
+
+// validateRuntimeImage verifies that the runtimeImage field in
+// SourceBuildStrategy is not empty if it was specified and also checks to see
+// if the incremental build flag was specified, which is incompatible since we
+// can't have extended incremental builds.
+func validateRuntimeImage(sourceStrategy *buildapi.SourceBuildStrategy, fldPath *field.Path) (allErrs field.ErrorList) {
+	if sourceStrategy.RuntimeImage == nil {
+		return
+	}
+	if sourceStrategy.RuntimeImage.Name == "" {
+		return append(allErrs, field.Required(fldPath, "name"))
+	}
+
+	if sourceStrategy.Incremental != nil && *sourceStrategy.Incremental {
+		return append(allErrs, field.Invalid(fldPath, sourceStrategy.Incremental, "incremental cannot be set to true with extended builds"))
+	}
+	return
 }

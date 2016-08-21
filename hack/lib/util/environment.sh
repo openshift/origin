@@ -115,7 +115,7 @@ function os::util::environment::update_path_var() {
 }
 readonly -f os::util::environment::update_path_var
 
-# os::util::environment::setup_misc_tmpdir_vars sets up temporary directory path variables
+# os::util::environment::setup_tmpdir_vars sets up temporary directory path variables
 #
 # Globals:
 #  - TMPDIR
@@ -169,7 +169,7 @@ readonly -f os::util::environment::setup_tmpdir_vars
 function os::util::environment::setup_kubelet_vars() {
     KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
     export KUBELET_SCHEME
-    KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-$(openshift start --print-ip)}"
+    KUBELET_BIND_HOST="${KUBELET_BIND_HOST:-$(openshift start --print-ip || echo "127.0.0.1")}"
     export KUBELET_BIND_HOST
     KUBELET_HOST="${KUBELET_HOST:-${KUBELET_BIND_HOST}}"
     export KUBELET_HOST
@@ -208,7 +208,7 @@ function os::util::environment::setup_etcd_vars() {
 readonly -f os::util::environment::setup_etcd_vars
 
 # os::util::environment::setup_server_vars sets up environment variables necessary for interacting with the server
-# 
+#
 # Globals:
 #  - BASETMPDIR
 #  - KUBELET_HOST
@@ -235,7 +235,7 @@ function os::util::environment::setup_server_vars() {
     KUBE_CACHE_MUTATION_DETECTOR="${KUBE_CACHE_MUTATION_DETECTOR:-true}"
     export KUBE_CACHE_MUTATION_DETECTOR
 
-    API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip)}"
+    API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip || echo "127.0.0.1")}"
     export API_BIND_HOST
     API_HOST="${API_HOST:-${API_BIND_HOST}}"
     export API_HOST

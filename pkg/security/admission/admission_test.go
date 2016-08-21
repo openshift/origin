@@ -16,15 +16,17 @@ import (
 
 	"sort"
 
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-func NewTestAdmission(store cache.Store, kclient clientset.Interface) kadmission.Interface {
+func NewTestAdmission(lister *oscache.IndexerToSecurityContextConstraintsLister, kclient clientset.Interface) kadmission.Interface {
 	return &constraint{
-		Handler: kadmission.NewHandler(kadmission.Create),
-		client:  kclient,
-		store:   store,
+		Handler:   kadmission.NewHandler(kadmission.Create),
+		client:    kclient,
+		sccLister: lister,
 	}
 }
 
@@ -110,12 +112,20 @@ func TestAdmitCaps(t *testing.T) {
 		},
 	}
 
-	for k, v := range tc {
-		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+	for i := 0; i < 2; i++ {
+		for k, v := range tc {
+			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
+			containers := v.pod.Spec.Containers
+			if i == 0 {
+				containers = v.pod.Spec.InitContainers
+			}
 
-		if v.expectedCapabilities != nil {
-			if !reflect.DeepEqual(v.expectedCapabilities, v.pod.Spec.Containers[0].SecurityContext.Capabilities) {
-				t.Errorf("%s resulted in caps that were not expected - expected: %v, received: %v", k, v.expectedCapabilities, v.pod.Spec.Containers[0].SecurityContext.Capabilities)
+			testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+
+			if v.expectedCapabilities != nil {
+				if !reflect.DeepEqual(v.expectedCapabilities, containers[0].SecurityContext.Capabilities) {
+					t.Errorf("%s resulted in caps that were not expected - expected: %v, received: %v", k, v.expectedCapabilities, containers[0].SecurityContext.Capabilities)
+				}
 			}
 		}
 	}
@@ -125,13 +135,15 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-
+	cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+	}
 	for _, scc := range sccs {
-		store.Add(scc)
+		cache.Add(scc)
 	}
 
-	plugin := NewTestAdmission(store, tc)
+	plugin := NewTestAdmission(cache, tc)
 
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
@@ -206,12 +218,15 @@ func TestAdmit(t *testing.T) {
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	store.Add(saExactSCC)
-	store.Add(saSCC)
+	cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+	}
+	cache.Add(saExactSCC)
+	cache.Add(saSCC)
 
 	// create the admission plugin
-	p := NewTestAdmission(store, tc)
+	p := NewTestAdmission(cache, tc)
 
 	// setup test data
 	uidNotInRange := goodPod()
@@ -373,47 +388,54 @@ func TestAdmit(t *testing.T) {
 		},
 	}
 
-	for k, v := range testCases {
-		attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-		err := p.Admit(attrs)
-
-		if v.shouldAdmit && err != nil {
-			t.Errorf("%s expected no errors but received %v", k, err)
-		}
-		if !v.shouldAdmit && err == nil {
-			t.Errorf("%s expected errors but received none", k)
-		}
-
-		if v.shouldAdmit {
-			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
-			if !ok {
-				t.Errorf("%s expected to find the validated annotation on the pod for the scc but found none", k)
+	for i := 0; i < 2; i++ {
+		for k, v := range testCases {
+			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
+			containers := v.pod.Spec.Containers
+			if i == 0 {
+				containers = v.pod.Spec.InitContainers
 			}
-			if validatedSCC != saSCC.Name {
-				t.Errorf("%s should have validated against %s but found %s", k, saSCC.Name, validatedSCC)
+			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+			err := p.Admit(attrs)
+
+			if v.shouldAdmit && err != nil {
+				t.Errorf("%s expected no errors but received %v", k, err)
+			}
+			if !v.shouldAdmit && err == nil {
+				t.Errorf("%s expected errors but received none", k)
 			}
 
-			// ensure anything we expected to be defaulted on the container level is set
-			if *v.pod.Spec.Containers[0].SecurityContext.RunAsUser != v.expectedUID {
-				t.Errorf("%s expected UID %d but found %d", k, v.expectedUID, *v.pod.Spec.Containers[0].SecurityContext.RunAsUser)
-			}
-			if v.pod.Spec.Containers[0].SecurityContext.SELinuxOptions.Level != v.expectedLevel {
-				t.Errorf("%s expected Level %s but found %s", k, v.expectedLevel, v.pod.Spec.Containers[0].SecurityContext.SELinuxOptions.Level)
-			}
+			if v.shouldAdmit {
+				validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
+				if !ok {
+					t.Errorf("%s expected to find the validated annotation on the pod for the scc but found none", k)
+				}
+				if validatedSCC != saSCC.Name {
+					t.Errorf("%s should have validated against %s but found %s", k, saSCC.Name, validatedSCC)
+				}
 
-			// ensure anything we expected to be defaulted on the pod level is set
-			if v.pod.Spec.SecurityContext.SELinuxOptions.Level != v.expectedLevel {
-				t.Errorf("%s expected pod level SELinux Level %s but found %s", k, v.expectedLevel, v.pod.Spec.SecurityContext.SELinuxOptions.Level)
-			}
-			if *v.pod.Spec.SecurityContext.FSGroup != v.expectedFSGroup {
-				t.Errorf("%s expected fsgroup %d but found %d", k, v.expectedFSGroup, *v.pod.Spec.SecurityContext.FSGroup)
-			}
-			if len(v.pod.Spec.SecurityContext.SupplementalGroups) != len(v.expectedSupGroups) {
-				t.Errorf("%s found unexpected supplemental groups.  Expected: %v, actual %v", k, v.expectedSupGroups, v.pod.Spec.SecurityContext.SupplementalGroups)
-			}
-			for _, g := range v.expectedSupGroups {
-				if !hasSupGroup(g, v.pod.Spec.SecurityContext.SupplementalGroups) {
-					t.Errorf("%s expected sup group %d", k, g)
+				// ensure anything we expected to be defaulted on the container level is set
+				if *containers[0].SecurityContext.RunAsUser != v.expectedUID {
+					t.Errorf("%s expected UID %d but found %d", k, v.expectedUID, *containers[0].SecurityContext.RunAsUser)
+				}
+				if containers[0].SecurityContext.SELinuxOptions.Level != v.expectedLevel {
+					t.Errorf("%s expected Level %s but found %s", k, v.expectedLevel, containers[0].SecurityContext.SELinuxOptions.Level)
+				}
+
+				// ensure anything we expected to be defaulted on the pod level is set
+				if v.pod.Spec.SecurityContext.SELinuxOptions.Level != v.expectedLevel {
+					t.Errorf("%s expected pod level SELinux Level %s but found %s", k, v.expectedLevel, v.pod.Spec.SecurityContext.SELinuxOptions.Level)
+				}
+				if *v.pod.Spec.SecurityContext.FSGroup != v.expectedFSGroup {
+					t.Errorf("%s expected fsgroup %d but found %d", k, v.expectedFSGroup, *v.pod.Spec.SecurityContext.FSGroup)
+				}
+				if len(v.pod.Spec.SecurityContext.SupplementalGroups) != len(v.expectedSupGroups) {
+					t.Errorf("%s found unexpected supplemental groups.  Expected: %v, actual %v", k, v.expectedSupGroups, v.pod.Spec.SecurityContext.SupplementalGroups)
+				}
+				for _, g := range v.expectedSupGroups {
+					if !hasSupGroup(g, v.pod.Spec.SecurityContext.SupplementalGroups) {
+						t.Errorf("%s expected sup group %d", k, g)
+					}
 				}
 			}
 		}
@@ -444,21 +466,26 @@ func TestAdmit(t *testing.T) {
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
-	store.Add(adminSCC)
 
-	for k, v := range testCases {
-		if !v.shouldAdmit {
-			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-			err := p.Admit(attrs)
-			if err != nil {
-				t.Errorf("Expected %s to pass with escalated scc but got error %v", k, err)
-			}
-			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
-			if !ok {
-				t.Errorf("%s expected to find the validated annotation on the pod for the scc but found none", k)
-			}
-			if validatedSCC != adminSCC.Name {
-				t.Errorf("%s should have validated against %s but found %s", k, adminSCC.Name, validatedSCC)
+	cache.Add(adminSCC)
+
+	for i := 0; i < 2; i++ {
+		for k, v := range testCases {
+			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
+
+			if !v.shouldAdmit {
+				attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+				err := p.Admit(attrs)
+				if err != nil {
+					t.Errorf("Expected %s to pass with escalated scc but got error %v", k, err)
+				}
+				validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
+				if !ok {
+					t.Errorf("%s expected to find the validated annotation on the pod for the scc but found none", k)
+				}
+				if validatedSCC != adminSCC.Name {
+					t.Errorf("%s should have validated against %s but found %s", k, adminSCC.Name, validatedSCC)
+				}
 			}
 		}
 	}
@@ -553,38 +580,42 @@ func TestAssignSecurityContext(t *testing.T) {
 		},
 	}
 
-	for k, v := range testCases {
-		errs := assignSecurityContext(provider, v.pod, nil)
-		if v.shouldValidate && len(errs) > 0 {
-			t.Errorf("%s expected to validate but received errors %v", k, errs)
-			continue
-		}
-		if !v.shouldValidate && len(errs) == 0 {
-			t.Errorf("%s expected validation errors but received none", k)
-			continue
-		}
+	for i := 0; i < 2; i++ {
+		for k, v := range testCases {
+			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
 
-		// if we shouldn't have validated ensure that uid is not set on the containers
-		// and ensure the psc does not have fsgroup set
-		if !v.shouldValidate {
-			if v.pod.Spec.SecurityContext.FSGroup != nil {
-				t.Errorf("%s had a non-nil FSGroup %d.  FSGroup should not be set on test cases that don't validate", k, *v.pod.Spec.SecurityContext.FSGroup)
+			errs := assignSecurityContext(provider, v.pod, nil)
+			if v.shouldValidate && len(errs) > 0 {
+				t.Errorf("%s expected to validate but received errors %v", k, errs)
+				continue
 			}
-			for _, c := range v.pod.Spec.Containers {
-				if c.SecurityContext.RunAsUser != nil {
-					t.Errorf("%s had non-nil UID %d.  UID should not be set on test cases that don't validate", k, *c.SecurityContext.RunAsUser)
+			if !v.shouldValidate && len(errs) == 0 {
+				t.Errorf("%s expected validation errors but received none", k)
+				continue
+			}
+
+			// if we shouldn't have validated ensure that uid is not set on the containers
+			// and ensure the psc does not have fsgroup set
+			if !v.shouldValidate {
+				if v.pod.Spec.SecurityContext.FSGroup != nil {
+					t.Errorf("%s had a non-nil FSGroup %d.  FSGroup should not be set on test cases that don't validate", k, *v.pod.Spec.SecurityContext.FSGroup)
+				}
+				for _, c := range v.pod.Spec.Containers {
+					if c.SecurityContext.RunAsUser != nil {
+						t.Errorf("%s had non-nil UID %d.  UID should not be set on test cases that don't validate", k, *c.SecurityContext.RunAsUser)
+					}
 				}
 			}
-		}
 
-		// if we validated then the pod sc should be updated now with the defaults from the SCC
-		if v.shouldValidate {
-			if *v.pod.Spec.SecurityContext.FSGroup != fsGroup {
-				t.Errorf("%s expected fsgroup to be defaulted but found %v", k, v.pod.Spec.SecurityContext.FSGroup)
-			}
-			for _, c := range v.pod.Spec.Containers {
-				if *c.SecurityContext.RunAsUser != uid {
-					t.Errorf("%s expected uid to be defaulted to %d but found %v", k, uid, c.SecurityContext.RunAsUser)
+			// if we validated then the pod sc should be updated now with the defaults from the SCC
+			if v.shouldValidate {
+				if *v.pod.Spec.SecurityContext.FSGroup != fsGroup {
+					t.Errorf("%s expected fsgroup to be defaulted but found %v", k, v.pod.Spec.SecurityContext.FSGroup)
+				}
+				for _, c := range v.pod.Spec.Containers {
+					if *c.SecurityContext.RunAsUser != uid {
+						t.Errorf("%s expected uid to be defaulted to %d but found %v", k, uid, c.SecurityContext.RunAsUser)
+					}
 				}
 			}
 		}
@@ -810,14 +841,11 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-
 		// create the admission handler
 		tc := clientsetfake.NewSimpleClientset(v.namespace)
 		admit := &constraint{
 			Handler: kadmission.NewHandler(kadmission.Create),
 			client:  tc,
-			store:   store,
 		}
 
 		scc := v.scc()
@@ -863,9 +891,13 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 			Users: []string{"user"},
 		},
 	}
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	for _, v := range sccs {
-		store.Add(v)
+
+	cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+	}
+	for _, scc := range sccs {
+		cache.Add(scc)
 	}
 
 	// single match cases
@@ -896,7 +928,8 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		sccs, err := getMatchingSecurityContextConstraints(store, v.userInfo)
+		sccMatcher := oscc.NewDefaultSCCMatcher(cache)
+		sccs, err := sccMatcher.FindApplicableSCCs(v.userInfo)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
 			continue
@@ -922,7 +955,8 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		Name:   "user",
 		Groups: []string{"group"},
 	}
-	sccs, err := getMatchingSecurityContextConstraints(store, userInfo)
+	sccMatcher := oscc.NewDefaultSCCMatcher(cache)
+	sccs, err := sccMatcher.FindApplicableSCCs(userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
@@ -1440,16 +1474,19 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	serviceAccount := createSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+	cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+	}
 	for _, scc := range sccsToSort {
-		err := store.Add(scc)
+		err := cache.Add(scc)
 		if err != nil {
 			t.Fatalf("error adding sccs to store: %v", err)
 		}
 	}
 
 	// create the admission plugin
-	plugin := NewTestAdmission(store, tc)
+	plugin := NewTestAdmission(cache, tc)
 	// match the restricted SCC
 	testSCCAdmission(goodPod(), plugin, restricted.Name, t)
 	// match matchingPrioritySCCOne by setting RunAsUser to 5
@@ -1460,6 +1497,117 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	matchingPriorityAndScoreSCCOnePod := goodPod()
 	matchingPriorityAndScoreSCCOnePod.Spec.Containers[0].SecurityContext.RunAsUser = &uidSix
 	testSCCAdmission(matchingPriorityAndScoreSCCOnePod, plugin, matchingPriorityAndScoreSCCOne.Name, t)
+}
+
+func TestAdmitSeccomp(t *testing.T) {
+	createPodWithSeccomp := func(podAnnotation, containerAnnotation string) *kapi.Pod {
+		pod := goodPod()
+		pod.Annotations = map[string]string{}
+		if podAnnotation != "" {
+			pod.Annotations[kapi.SeccompPodAnnotationKey] = podAnnotation
+		}
+		if containerAnnotation != "" {
+			pod.Annotations[kapi.SeccompContainerAnnotationKeyPrefix+"container"] = containerAnnotation
+		}
+		pod.Spec.Containers[0].Name = "container"
+		return pod
+	}
+
+	noSeccompSCC := restrictiveSCC()
+	noSeccompSCC.Name = "noseccomp"
+
+	seccompSCC := restrictiveSCC()
+	seccompSCC.Name = "seccomp"
+	seccompSCC.SeccompProfiles = []string{"foo"}
+
+	wildcardSCC := restrictiveSCC()
+	wildcardSCC.Name = "wildcard"
+	wildcardSCC.SeccompProfiles = []string{"*"}
+
+	tests := map[string]struct {
+		pod                   *kapi.Pod
+		sccs                  []*kapi.SecurityContextConstraints
+		shouldPass            bool
+		expectedPodAnnotation string
+		expectedSCC           string
+	}{
+		"no seccomp, no requests": {
+			pod:         goodPod(),
+			sccs:        []*kapi.SecurityContextConstraints{noSeccompSCC},
+			shouldPass:  true,
+			expectedSCC: noSeccompSCC.Name,
+		},
+		"no seccomp, bad container requests": {
+			pod:        createPodWithSeccomp("foo", "bar"),
+			sccs:       []*kapi.SecurityContextConstraints{noSeccompSCC},
+			shouldPass: false,
+		},
+		"seccomp, no requests": {
+			pod:                   goodPod(),
+			sccs:                  []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           seccompSCC.Name,
+		},
+		"seccomp, valid pod annotation, no container annotation": {
+			pod:                   createPodWithSeccomp("foo", ""),
+			sccs:                  []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           seccompSCC.Name,
+		},
+		"seccomp, no pod annotation, valid container annotation": {
+			pod:                   createPodWithSeccomp("", "foo"),
+			sccs:                  []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           seccompSCC.Name,
+		},
+		"seccomp, valid pod annotation, invalid container annotation": {
+			pod:        createPodWithSeccomp("foo", "bar"),
+			sccs:       []*kapi.SecurityContextConstraints{seccompSCC},
+			shouldPass: false,
+		},
+		"wild card, no requests": {
+			pod:         goodPod(),
+			sccs:        []*kapi.SecurityContextConstraints{wildcardSCC},
+			shouldPass:  true,
+			expectedSCC: wildcardSCC.Name,
+		},
+		"wild card, requests": {
+			pod:                   createPodWithSeccomp("foo", "bar"),
+			sccs:                  []*kapi.SecurityContextConstraints{wildcardSCC},
+			shouldPass:            true,
+			expectedPodAnnotation: "foo",
+			expectedSCC:           wildcardSCC.Name,
+		},
+	}
+
+	for k, v := range tests {
+		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+
+		if v.shouldPass {
+			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
+			if !ok {
+				t.Errorf("expected to find the validated annotation on the pod for the scc but found none")
+				return
+			}
+			if validatedSCC != v.expectedSCC {
+				t.Errorf("should have validated against %s but found %s", v.expectedSCC, validatedSCC)
+			}
+
+			if len(v.expectedPodAnnotation) > 0 {
+				annotation, found := v.pod.Annotations[kapi.SeccompPodAnnotationKey]
+				if !found {
+					t.Errorf("%s expected to have pod annotation for seccomp but found none", k)
+				}
+				if found && annotation != v.expectedPodAnnotation {
+					t.Errorf("%s expected pod annotation to be %s but found %s", k, v.expectedPodAnnotation, annotation)
+				}
+			}
+		}
+	}
+
 }
 
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected

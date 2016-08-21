@@ -159,6 +159,11 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		return fetchErr
 	}
 
+	errs := []error{}
+	if fetchErr != nil {
+		errs = append(errs, fetchErr)
+	}
+
 	if (len(o.Output) != 0) && !o.Confirmed {
 		list := &kapi.List{}
 		for _, item := range changedClusterRoleBindings {
@@ -167,13 +172,15 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 		mapper, _ := f.Object(false)
 		fn := cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Out)
 		if err := fn(list); err != nil {
-			return kutilerrors.NewAggregate([]error{fetchErr, err})
+			errs = append(errs, err)
+			return kutilerrors.NewAggregate(errs)
 		}
 	}
 
 	if o.Confirmed {
 		if err := o.ReplaceChangedRoleBindings(changedClusterRoleBindings); err != nil {
-			return kutilerrors.NewAggregate([]error{fetchErr, err})
+			errs = append(errs, err)
+			return kutilerrors.NewAggregate(errs)
 		}
 	}
 
@@ -228,18 +235,20 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 
 // ReplaceChangedRoleBindings will reconcile all the changed system role bindings back to the recommended bootstrap policy
 func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changedRoleBindings []*authorizationapi.ClusterRoleBinding) error {
+	errs := []error{}
 	for i := range changedRoleBindings {
 		roleBinding, err := o.RoleBindingClient.Get(changedRoleBindings[i].Name)
 		if err != nil && !kapierrors.IsNotFound(err) {
-			return err
+			errs = append(errs, err)
+			continue
 		}
 
 		if kapierrors.IsNotFound(err) {
 			createdRoleBinding, err := o.RoleBindingClient.Create(changedRoleBindings[i])
 			if err != nil {
-				return err
+				errs = append(errs, err)
+				continue
 			}
-
 			fmt.Fprintf(o.Out, "clusterrolebinding/%s\n", createdRoleBinding.Name)
 			continue
 		}
@@ -252,11 +261,13 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 			// TODO: for extra credit, determine whether the right to delete/create this rolebinding for the current user came from this rolebinding before deleting it
 			err := o.RoleBindingClient.Delete(roleBinding.Name)
 			if err != nil {
-				return err
+				errs = append(errs, err)
+				continue
 			}
 			createdRoleBinding, err := o.RoleBindingClient.Create(changedRoleBindings[i])
 			if err != nil {
-				return err
+				errs = append(errs, err)
+				continue
 			}
 			fmt.Fprintf(o.Out, "clusterrolebinding/%s\n", createdRoleBinding.Name)
 			continue
@@ -265,13 +276,14 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 		roleBinding.Subjects = changedRoleBindings[i].Subjects
 		updatedRoleBinding, err := o.RoleBindingClient.Update(roleBinding)
 		if err != nil {
-			return err
+			errs = append(errs, err)
+			continue
 		}
 
 		fmt.Fprintf(o.Out, "clusterrolebinding/%s\n", updatedRoleBinding.Name)
 	}
 
-	return nil
+	return kutilerrors.NewAggregate(errs)
 }
 
 func computeUpdatedBinding(expected authorizationapi.ClusterRoleBinding, actual authorizationapi.ClusterRoleBinding, excludeSubjects []kapi.ObjectReference, union bool) (*authorizationapi.ClusterRoleBinding, bool) {

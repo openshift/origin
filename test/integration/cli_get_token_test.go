@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -15,6 +13,7 @@ import (
 
 func TestCLIGetToken(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatal(err)

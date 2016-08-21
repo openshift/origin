@@ -625,6 +625,28 @@ func TestResourceNames(t *testing.T) {
 	}
 }
 
+func TestResourceNamesWithoutResource(t *testing.T) {
+	pods, svc := testData()
+	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{
+		"/namespaces/test/pods/foo":     runtime.EncodeOrDie(testapi.Default.Codec(), &pods.Items[0]),
+		"/namespaces/test/services/baz": runtime.EncodeOrDie(testapi.Default.Codec(), &svc.Items[0]),
+	}), testapi.Default.Codec()).
+		NamespaceParam("test")
+
+	test := &testVisitor{}
+
+	if b.Do().Err() == nil {
+		t.Errorf("unexpected non-error")
+	}
+
+	b.ResourceNames("", "foo", "services/baz")
+
+	err := b.Do().Visit(test.Handle)
+	if err == nil || !strings.Contains(err.Error(), "must be RESOURCE/NAME") {
+		t.Fatalf("unexpected response: %v", err)
+	}
+}
+
 func TestResourceByNameWithoutRequireObject(t *testing.T) {
 	b := NewBuilder(testapi.Default.RESTMapper(), api.Scheme, fakeClientWith("", t, map[string]string{}), testapi.Default.Codec()).
 		NamespaceParam("test")
@@ -1231,7 +1253,7 @@ func TestHasNames(t *testing.T) {
 		{
 			args:            []string{"rc/foo", "bar"},
 			expectedHasName: false,
-			expectedError:   fmt.Errorf("when passing arguments in resource/name form, all arguments must include the resource"),
+			expectedError:   fmt.Errorf("there is no need to specify a resource type as a separate argument when passing arguments in resource/name form (e.g. 'resource.test get resource/<resource_name>' instead of 'resource.test get resource resource/<resource_name>'"),
 		},
 	}
 	for _, test := range tests {

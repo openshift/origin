@@ -45,7 +45,7 @@ func main() {
 	} else if strings.HasSuffix(os.Args[2], "openshift") {
 		genCmdMan("openshift", openshift.NewCommandOpenShift("openshift"))
 	} else if strings.HasSuffix(os.Args[2], "oadm") {
-		genCmdMan("oadm", admin.NewCommandAdmin("oadm", "oadm", os.Stdout, ioutil.Discard))
+		genCmdMan("oadm", admin.NewCommandAdmin("oadm", "oadm", &bytes.Buffer{}, os.Stdout, ioutil.Discard))
 	} else {
 		fmt.Fprintf(os.Stderr, "Root command not specified (os | oadm | openshift).")
 		os.Exit(1)

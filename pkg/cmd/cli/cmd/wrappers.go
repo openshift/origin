@@ -127,8 +127,8 @@ will be lost along with the rest of the resource.`
   # Delete pods and services with label name=myLabel.
   %[1]s delete pods,services -l name=myLabel
 
-  # Delete a pod with ID 1234-56-7890-234234-456456.
-  %[1]s delete pod 1234-56-7890-234234-456456
+  # Delete a pod with name node-1-vsjnm.
+  %[1]s delete pod node-1-vsjnm
 
   # Delete all resources associated with a running app, includes
   # buildconfig,deploymentconfig,service,imagestream,route and pod,
@@ -191,16 +191,18 @@ completion of %s commands.`
   %s completion bash > bash_completion.sh
   source bash_completion.sh
 
-  # The above example depends on the bash-completion
-framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+  # The above example depends on the bash-completion framework.
+  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash-completion
   source $(brew --prefix)/etc/bash_completion
   %s completion bash > bash_completion.sh
   source bash_completion.sh
 
-  # In zsh, the following will load openshift cli zsh completion:
-  source <(%s completion zsh)`
+  # In zsh*, the following will load openshift cli zsh completion:
+  source <(%s completion zsh)
+
+  * zsh completions are only supported in versions of zsh >= 5.2`
 )
 
 func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

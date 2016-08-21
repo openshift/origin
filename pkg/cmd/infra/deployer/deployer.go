@@ -16,13 +16,13 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
+	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
 	"github.com/openshift/origin/pkg/deploy/strategy/rolling"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -69,7 +69,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
 			cfg.Out = os.Stdout
-			cfg.ErrOut = c.Out()
+			cfg.ErrOut = c.OutOrStderr()
 			err := cfg.RunDeployer()
 			if strategy.IsConditionReached(err) {
 				fmt.Fprintf(os.Stdout, "--> %s\n", err.Error())
@@ -79,7 +79,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name, version.Options{}))
+	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
 
 	flag := cmd.Flags()
 	flag.StringVar(&cfg.rcName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")
@@ -211,6 +211,10 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 			from = &candidate
 			break
 		}
+	}
+
+	if deployutil.DeploymentVersionFor(to) < deployutil.DeploymentVersionFor(from) {
+		return fmt.Errorf("deployment %s is older than %s", to.Name, from.Name)
 	}
 
 	// Scale down any deployments which aren't the new or last deployment.

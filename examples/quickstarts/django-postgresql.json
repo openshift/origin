@@ -83,7 +83,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "python:3.4"
+              "name": "python:3.5"
             },
             "env": [
               {
@@ -273,7 +273,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "postgresql:9.4"
+                "name": "postgresql:9.5"
               }
             }
           },

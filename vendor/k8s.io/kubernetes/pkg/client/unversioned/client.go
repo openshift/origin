@@ -44,7 +44,9 @@ type Interface interface {
 	PersistentVolumeClaimsNamespacer
 	ComponentStatusesInterface
 	ConfigMapsNamespacer
+	Apps() AppsInterface
 	Autoscaling() AutoscalingInterface
+	Authentication() AuthenticationInterface
 	Batch() BatchInterface
 	Extensions() ExtensionsInterface
 	Rbac() RbacInterface
@@ -124,6 +126,7 @@ func (c *Client) ConfigMaps(namespace string) ConfigMapsInterface {
 type Client struct {
 	*restclient.RESTClient
 	*AutoscalingClient
+	*AuthenticationClient
 	*BatchClient
 	*ExtensionsClient
 	*AppsClient
@@ -156,6 +159,10 @@ func IsTimeout(err error) bool {
 
 func (c *Client) Autoscaling() AutoscalingInterface {
 	return c.AutoscalingClient
+}
+
+func (c *Client) Authentication() AuthenticationInterface {
+	return c.AuthenticationClient
 }
 
 func (c *Client) Batch() BatchInterface {

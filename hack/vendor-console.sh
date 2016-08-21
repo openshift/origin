@@ -8,13 +8,7 @@
 #                        directory will be used.
 #   - CONSOLE_REPO_PATH: specifies a directory path to look for the web console repo.  If not set it is assumed to be
 #                        a sibling to this repository.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 CONSOLE_REPO_PATH=${CONSOLE_REPO_PATH:-$OS_ROOT/../origin-web-console}
 if [[ ! -d "$CONSOLE_REPO_PATH" ]]; then
@@ -41,6 +35,7 @@ else
     fi
     git checkout "${GIT_REF}"
     console_commit="$(git rev-parse --short HEAD)"
+    echo "Vendoring origin-web-console commit ${console_commit}"
   popd > /dev/null
 fi
 
@@ -49,8 +44,8 @@ pushd "${OS_ROOT}" > /dev/null
   # Put each component in its own go package for compilation performance
   # Strip off the dist folder from each package to flatten the resulting directory structure
   # Force timestamps to unify, and mode to 493 (0755)
-  "${GOPATH}/bin/go-bindata" -nocompress -nometadata -prefix "${CONSOLE_REPO_PATH}/dist"      -pkg "assets" -o "pkg/assets/bindata.go"      "${CONSOLE_REPO_PATH}/dist/..."
-  "${GOPATH}/bin/go-bindata" -nocompress -nometadata -prefix "${CONSOLE_REPO_PATH}/dist.java" -pkg "java"   -o "pkg/assets/java/bindata.go" "${CONSOLE_REPO_PATH}/dist.java/..."
+  "$(os::util::find-go-binary go-bindata)" -nocompress -nometadata -prefix "${CONSOLE_REPO_PATH}/dist"      -pkg "assets" -o "pkg/assets/bindata.go"      "${CONSOLE_REPO_PATH}/dist/..."
+  "$(os::util::find-go-binary go-bindata)" -nocompress -nometadata -prefix "${CONSOLE_REPO_PATH}/dist.java" -pkg "java"   -o "pkg/assets/java/bindata.go" "${CONSOLE_REPO_PATH}/dist.java/..."
 
   if [[ -n "${COMMIT:+x}" ]]; then
     if [[ -n "$(git status --porcelain)" ]]; then

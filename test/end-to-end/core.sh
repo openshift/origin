@@ -2,14 +2,8 @@
 
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
 os::util::environment::setup_time_vars
 trap os::test::junit::reconcile_output EXIT
 
@@ -26,7 +20,7 @@ function wait_for_app() {
   DB_IP=$(oc get -n "$1" --output-version=v1 --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
-  os::cmd::try_until_text "oc get -n $1 pods" 'frontend.+Running' "$(( 2 * TIME_MIN ))"
+  os::cmd::try_until_text "oc get -n $1 pods -l name=frontend" 'Running' "$(( 2 * TIME_MIN ))"
   os::cmd::expect_success "oc logs dc/frontend -n $1"
 
   echo "[INFO] Waiting for frontend service to start"
@@ -42,6 +36,14 @@ function wait_for_app() {
   echo "[INFO] Testing app"
   os::cmd::try_until_text "curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337" "Key created"
   os::cmd::try_until_text "curl -s http://${FRONTEND_IP}:5432/keys/foo" "1337"
+}
+
+function remove_docker_images() {
+    local name="$1"
+    local tag="${2:-\S\+}"
+    local imageids=$(docker images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
+    os::cmd::expect_success_and_text "echo '${imageids}' | wc -w" '^[1-9][0-9]*$'
+    os::cmd::expect_success "docker rmi -f ${imageids}"
 }
 
 os::test::junit::declare_suite_start "end-to-end/core"
@@ -76,9 +78,8 @@ echo "[INFO] Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
 echo "[INFO] Pulled ruby-22-centos7"
 
-os::cmd::expect_success "oc create serviceaccount ipfailover"
 os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ipfailover"
-os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --credentials=${KUBECONFIG} --service-account=ipfailover"
+os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
@@ -128,56 +129,69 @@ os::cmd::expect_success "docker tag -f centos/ruby-22-centos7:latest ${DOCKER_RE
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 echo "[INFO] Pushed ruby-22-centos7"
 
+# get image's digest
+rubyimagedigest=$(oc get -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].image}' is/ruby-22-centos7)
+echo "[INFO] Ruby image digest: $rubyimagedigest"
+# get a random, non-empty blob
+rubyimageblob=$(oc get isimage -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 1024.}}{{.name}},{{end}}{{end}}' ruby-22-centos7@${rubyimagedigest} | cut -d , -f 1)
+echo "[INFO] Ruby's testing blob digest: $rubyimageblob"
+
 # verify remote images can be pulled directly from the local registry
 echo "[INFO] Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 
-echo "[INFO] Docker start with GCS"
+echo "[INFO] Docker registry start with GCS"
 os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" openshift/origin-docker-registry:${TAG}" "No bucket parameter provided"
 
+echo "[INFO] Docker pull from istag"
+os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
+os::cmd::expect_success "docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/hello-world:latest"
+
 # verify we can pull from tagged image (using tag)
-imageid=$(docker images | grep centos/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to the same image stream and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7:latest ruby-22-centos7:new-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-tag"
+remove_docker_images 'cache/hello-world'
+echo "[INFO] Tagging hello-world:latest to the same image stream and pulling it"
+os::cmd::expect_success "oc tag hello-world:latest hello-world:new-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-tag"
 echo "[INFO] The same image stream pull successful"
 
-imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to cross repository and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7:latest cross:repo-pull"
+remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-tag
+echo "[INFO] Tagging hello-world:latest to cross repository and pulling it"
+os::cmd::expect_success "oc tag hello-world:latest cross:repo-pull"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
 echo "[INFO] Cross repository pull successful"
 
-imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7:latest to cross namespace and pulling it"
-os::cmd::expect_success "oc tag cache/ruby-22-centos7:latest cross:namespace-pull -n custom"
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross" "repo-pull"
+echo "[INFO] Tagging hello-world:latest to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/hello-world:latest cross:namespace-pull -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 echo "[INFO] Cross namespace pull successful"
 
-# verify we can pull from tagged image (using imageid)
-imageid=$(docker images | grep custom/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-tagid=$(oc get istag ruby-22-centos7:latest --template={{.image.metadata.name}})
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to the same image stream and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} ruby-22-centos7:new-id-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/ruby-22-centos7:new-id-tag"
+# verify we can pull from tagged image (using image digest)
+remove_docker_images "${DOCKER_REGISTRY}/custom/cross"  namespace-pull
+imagedigest=$(oc get istag hello-world:latest --template={{.image.metadata.name}})
+echo "[INFO] Tagging hello-world@${imagedigest} to the same image stream and pulling it"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} hello-world:new-id-tag"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-id-tag"
 echo "[INFO] The same image stream pull successful"
 
-imageid=$(docker images | grep cache/ruby-22-centos7 | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross repository and pulling it"
-os::cmd::expect_success "oc tag ruby-22-centos7@${tagid} cross:repo-pull-id"
+remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-id-tag
+echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
 echo "[INFO] Cross repository pull successful"
 
-imageid=$(docker images | grep cache/cross | awk '{ print $3 }')
-os::cmd::expect_success "docker rmi -f ${imageid}"
-echo "[INFO] Tagging ruby-22-centos7@${tagid} to cross namespace and pulling it"
-os::cmd::expect_success "oc tag cache/ruby-22-centos7@${tagid} cross:namespace-pull-id -n custom"
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross" repo-pull-id
+echo "[INFO] Tagging hello-world@${imagedigest} to cross repository and pulling it by id"
+os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross@${imagedigest}"
+echo "[INFO] Cross repository pull successful"
+
+remove_docker_images "${DOCKER_REGISTRY}/cache/cross"
+echo "[INFO] Tagging hello-world@${imagedigest} to cross namespace and pulling it"
+os::cmd::expect_success "oc tag cache/hello-world@${imagedigest} cross:namespace-pull-id -n custom"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 echo "[INFO] Cross namespace pull successful"
 
@@ -191,12 +205,63 @@ echo "[INFO] Docker login as pusher to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
 echo "[INFO] Docker login successful"
 
+echo "[INFO] Anonymous registry access"
+# setup: log out of docker, log into openshift as e2e-user to run policy commands, tag image to use for push attempts
+os::cmd::expect_success 'oc login -u e2e-user'
+os::cmd::expect_success 'docker pull busybox'
+os::cmd::expect_success "docker tag -f busybox ${DOCKER_REGISTRY}/missing/image:tag"
+os::cmd::expect_success "docker logout ${DOCKER_REGISTRY}"
+# unauthorized pulls return "not found" errors to anonymous users, regardless of backing data
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/missing/image:tag"              "not found"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"    "not found"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "not found"
+# test anonymous pulls
+os::cmd::expect_success 'oc policy add-role-to-user system:image-puller system:anonymous -n custom'
+os::cmd::try_until_text 'oc policy who-can get imagestreams/layers -n custom' 'system:anonymous'
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+# unauthorized pushes return authorization errors, regardless of backing data
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/missing/image:tag"              "authentication required"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"    "authentication required"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "authentication required"
+# test anonymous pushes
+os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:anonymous -n custom'
+os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+echo "[INFO] Anonymous registry access successfull"
+
 # log back into docker as e2e-user again
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
+
+os::cmd::expect_success "oc new-project crossmount"
+os::cmd::expect_success "oc create imagestream repo"
 
 echo "[INFO] Back to 'default' project with 'admin' user..."
 os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 os::cmd::expect_success_and_text 'oc whoami' 'system:admin'
+os::cmd::expect_success "oc tag --source docker centos/ruby-22-centos7:latest -n custom ruby-22-centos7:latest"
+os::cmd::expect_success 'oc policy add-role-to-user registry-viewer pusher -n custom'
+os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher -n crossmount'
+
+echo "[INFO] Docker cross-repo mount"
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/cache/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
+os::cmd::try_until_text "oc get -n custom is/ruby-22-centos7 -o 'jsonpath={.status.tags[*].tag}'" "latest" $((20*TIME_SEC))
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/custom/ruby-22-centos7/blobs/$rubyimageblob'" "200 OK"
+os::cmd::try_until_text "oc policy can-i update imagestreams/layers -n crossmount '--token=${pusher_token}'" "yes"
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "404 Not Found"
+# 202 means that cross-repo mount has failed (in this case because of blob doesn't exist in the source repository), client needs to reupload the blob
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/hello-world'" "202 Accepted"
+# 201 means that blob has been cross mounted from given repository
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/ruby-22-centos7'" "201 Created"
+# check that the blob is linked now
+os::cmd::expect_success_and_text "curl -I -X HEAD -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/$rubyimageblob'" "200 OK"
+# remove pusher's permissions to read from the source repository
+os::cmd::expect_success "oc policy remove-role-from-user system:image-pusher pusher -n cache"
+os::cmd::try_until_text "oc policy can-i get imagestreams/layers -n cache '--token=${pusher_token}'" "no"
+# cross-repo mount failed because of access denied
+os::cmd::expect_success_and_text "curl -I -X POST -u 'pusher:${pusher_token}' '${DOCKER_REGISTRY}/v2/crossmount/repo/blobs/uploads/?mount=$rubyimageblob&from=cache/ruby-22-centos7'" "202 Accepted"
+echo "[INFO] Docker cross-repo mount successful"
 
 # The build requires a dockercfg secret in the builder service account in order
 # to be able to push to the registry.  Make sure it exists first.
@@ -263,7 +328,10 @@ os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc-mid'  'test m
 
 echo "[INFO] Run pod diagnostics"
 # Requires a node to run the origin-deployer pod; expects registry deployed, deployer image pulled
-os::cmd::expect_success_and_text 'oadm diagnostics DiagnosticPod --images='"'""${USE_IMAGES}""'" 'Running diagnostic: PodCheckDns'
+# TODO: Find out why this would flake expecting PodCheckDns to run
+# https://github.com/openshift/origin/issues/9888
+#os::cmd::expect_success_and_text 'oadm diagnostics DiagnosticPod --images='"'""${USE_IMAGES}""'" 'Running diagnostic: PodCheckDns'
+os::cmd::expect_success_and_not_text "oadm diagnostics DiagnosticPod --images='${USE_IMAGES}'" ERROR
 
 echo "[INFO] Applying STI application config"
 os::cmd::expect_success "oc create -f ${STI_CONFIG_FILE}"

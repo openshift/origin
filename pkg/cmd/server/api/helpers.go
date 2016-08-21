@@ -289,9 +289,19 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 	return refs
 }
 
+// SetProtobufClientDefaults sets the appropriate content types for defaulting to protobuf
+// client communications and increases the default QPS and burst. This is used to override
+// defaulted config supporting versions older than 1.3 for new configurations generated in 1.3+.
+func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
+	overrides.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	overrides.ContentType = "application/vnd.kubernetes.protobuf"
+	overrides.QPS *= 2
+	overrides.Burst *= 2
+}
+
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetKubeClient(kubeConfigFile string) (*kclient.Client, *restclient.Config, error) {
+func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclient.Client, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
@@ -301,10 +311,7 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *restclient.Config, 
 		return nil, nil, err
 	}
 
-	// This is an internal client which is shared by most controllers, so boost default QPS
-	// TODO: this should be configured by the caller, not in this method.
-	kubeConfig.QPS = 100.0
-	kubeConfig.Burst = 200
+	applyClientConnectionOverrides(overrides, kubeConfig)
 
 	kubeConfig.WrapTransport = DefaultClientTransport
 	kubeClient, err := kclient.New(kubeConfig)
@@ -316,8 +323,9 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *restclient.Config, 
 }
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
-// given to individual controllers and other infrastructure components.
-func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *restclient.Config, error) {
+// given to individual controllers and other infrastructure components. Overrides are optional
+// and may alter the default configuration.
+func GetOpenShiftClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*client.Client, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
@@ -327,10 +335,7 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *restclient.Conf
 		return nil, nil, err
 	}
 
-	// This is an internal client which is shared by most controllers, so boost default QPS
-	// TODO: this should be configured by the caller, not in this method.
-	kubeConfig.QPS = 150.0
-	kubeConfig.Burst = 300
+	applyClientConnectionOverrides(overrides, kubeConfig)
 
 	kubeConfig.WrapTransport = DefaultClientTransport
 	openshiftClient, err := client.New(kubeConfig)
@@ -339,6 +344,17 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *restclient.Conf
 	}
 
 	return openshiftClient, kubeConfig, nil
+}
+
+// applyClientConnectionOverrides updates a kubeConfig with the overrides from the config.
+func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeConfig *restclient.Config) {
+	if overrides == nil {
+		return
+	}
+	kubeConfig.QPS = overrides.QPS
+	kubeConfig.Burst = int(overrides.Burst)
+	kubeConfig.ContentConfig.AcceptContentTypes = overrides.AcceptContentTypes
+	kubeConfig.ContentConfig.ContentType = overrides.ContentType
 }
 
 // DefaultClientTransport sets defaults for a client Transport that are suitable
@@ -551,4 +567,16 @@ func GetDisabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup stri
 func HasKubernetesAPIVersion(config KubernetesMasterConfig, groupVersion unversioned.GroupVersion) bool {
 	enabledVersions := GetEnabledAPIVersionsForGroup(config, groupVersion.Group)
 	return sets.NewString(enabledVersions...).Has(groupVersion.Version)
+}
+
+func CIDRsOverlap(cidr1, cidr2 string) bool {
+	_, ipNet1, err := net.ParseCIDR(cidr1)
+	if err != nil {
+		return false
+	}
+	_, ipNet2, err := net.ParseCIDR(cidr2)
+	if err != nil {
+		return false
+	}
+	return ipNet1.Contains(ipNet2.IP) || ipNet2.Contains(ipNet1.IP)
 }

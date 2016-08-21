@@ -1,4 +1,4 @@
-  #!/bin/bash
+#!/bin/bash
 #
 # This abstracts starting up an extended server.
 
@@ -21,9 +21,6 @@ function os::test::extended::focus {
 #   and then tests are executed.  Tests that depend on fine grained setup should
 #   be done in other contexts.
 function os::test::extended::setup {
-  source "${OS_ROOT}/hack/lib/init.sh"
-  os::log::stacktrace::install
-
   # build binaries
   if [[ -z $(os::build::find-binary ginkgo) ]]; then
     hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
@@ -35,7 +32,6 @@ function os::test::extended::setup {
     hack/build-go.sh
   fi
 
-  source "${OS_ROOT}/hack/lib/util/environment.sh"
   os::util::environment::setup_time_vars
 
   # ensure proper relative directories are set
@@ -144,17 +140,6 @@ readonly EXCLUDED_TESTS=(
   kube-ui                 # Not installed by default
   "^Kubernetes Dashboard"  # Not installed by default (also probbaly slow image pull)
 
-	# deployments are not yet enabled
-  "Deployment deployment"
-  "Deployment paused deployment"
-  "paused deployment should be ignored by the controller"
-  "deployment should create new pods"
-	"should create an rc or deployment from an image"
-	"should create a deployment from an image"
-  "RollingUpdateDeployment should scale up and down in the right order"
-  "RollingUpdateDeployment should delete old pods and create new ones"
-  "RecreateDeployment should delete old pods and create new ones"
-
   "\[Feature:Federation\]"   # Not enabled yet
   "\[Feature:PodAffinity\]"  # Not enabled yet
   Ingress                    # Not enabled yet
@@ -182,7 +167,6 @@ readonly EXCLUDED_TESTS=(
   "should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
   "NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
   "\[Feature:Example\]"      # may need to pre-pull images
-  "should serve a basic image on each replica with a public image" # is failing to create pods, the test is broken
   "ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
   "NodeProblemDetector"        # requires a non-master node to run on
 
@@ -219,6 +203,7 @@ readonly CONFORMANCE_TESTS=(
   "\[networking\]\[router\]"
   "Ensure supplemental groups propagate to docker"
   "EmptyDir"
+  "PetSet"
   "PrivilegedPod should test privileged pod"
   "Pods should support remote command execution"
   "Pods should support retrieving logs from the container"
@@ -229,6 +214,7 @@ readonly CONFORMANCE_TESTS=(
   "\[volumes\] Test local storage quota FSGroup"
   "test deployment should run a deployment to completion"
   "Variable Expansion"
+  "init containers"
   "Clean up pods on node kubelet"
   "\[Feature\:SecurityContext\]"
   "should create a LimitRange with defaults"

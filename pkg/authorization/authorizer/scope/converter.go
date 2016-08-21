@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -48,19 +49,57 @@ func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter client
 	return rules, kutilerrors.NewAggregate(errors)
 }
 
+// ScopesToVisibleNamespaces returns a list of namespaces that the provided scopes have "get" access to.
+// This exists only to support efficiently list/watch of projects (ACLed namespaces)
+func ScopesToVisibleNamespaces(scopes []string, clusterPolicyGetter client.ClusterPolicyLister) (sets.String, error) {
+	if len(scopes) == 0 {
+		return sets.NewString("*"), nil
+	}
+
+	visibleNamespaces := sets.String{}
+
+	errors := []error{}
+	for _, scope := range scopes {
+		found := false
+
+		for _, evaluator := range ScopeEvaluators {
+			if evaluator.Handles(scope) {
+				found = true
+				allowedNamespaces, err := evaluator.ResolveGettableNamespaces(scope, clusterPolicyGetter)
+				if err != nil {
+					errors = append(errors, err)
+					continue
+				}
+
+				visibleNamespaces.Insert(allowedNamespaces...)
+				break
+			}
+		}
+
+		if !found {
+			errors = append(errors, fmt.Errorf("no scope evaluator found for %q", scope))
+		}
+	}
+
+	return visibleNamespaces, kutilerrors.NewAggregate(errors)
+}
+
 const (
-	UserIndicator          = "user:"
-	ClusterRoleIndicator   = "role:"
-	ClusterWideIndicator   = "clusterwide:"
-	NamespaceWideIndicator = "namespace:"
+	UserIndicator        = "user:"
+	ClusterRoleIndicator = "role:"
 )
 
 // ScopeEvaluator takes a scope and returns the rules that express it
 type ScopeEvaluator interface {
+	// Handles returns true if this evaluator can evaluate this scope
 	Handles(scope string) bool
-	Describe(scope string) string
+	// Validate returns an error if the scope is malformed
 	Validate(scope string) error
+	// Describe returns a description, warning (typically used to warn about escalation dangers), or an error if the scope is malformed
+	Describe(scope string) (description string, warning string, err error)
+	// ResolveRules returns the policy rules that this scope allows
 	ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error)
+	ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error)
 }
 
 // ScopeEvaluators map prefixes to a function that handles that prefix
@@ -79,12 +118,18 @@ var ScopeEvaluators = []ScopeEvaluator{
 // namespace:<namespace name>:<comma-delimited verbs>:<comma-delimited resources>
 
 const (
-	UserInfo        = "info"
-	UserAccessCheck = "check-access"
+	UserInfo        = UserIndicator + "info"
+	UserAccessCheck = UserIndicator + "check-access"
 
-	// UserListProject gives explicit permission to see the projects a user can see.  This is often used to prime secondary ACL systems
+	// UserListScopedProjects gives explicit permission to see the projects that this token can see.
+	UserListScopedProjects = UserIndicator + "list-scoped-projects"
+
+	// UserListAllProjects gives explicit permission to see the projects a user can see.  This is often used to prime secondary ACL systems
 	// unrelated to openshift and to display projects for selection in a secondary UI.
-	UserListProject = "list-projects"
+	UserListAllProjects = UserIndicator + "list-projects"
+
+	// UserFull includes all permissions of the user
+	UserFull = UserIndicator + "full"
 )
 
 // user:<scope name>
@@ -96,45 +141,66 @@ func (userEvaluator) Handles(scope string) bool {
 
 func (userEvaluator) Validate(scope string) error {
 	switch scope {
-	case UserIndicator + UserInfo,
-		UserIndicator + UserAccessCheck,
-		UserIndicator + UserListProject:
+	case UserFull, UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
 		return nil
 	}
 
 	return fmt.Errorf("unrecognized scope: %v", scope)
 }
 
-func (userEvaluator) Describe(scope string) string {
+func (userEvaluator) Describe(scope string) (string, string, error) {
 	switch scope {
-	case UserIndicator + UserInfo:
-		return "Information about you, including: username, identity names, and group membership."
-	case UserIndicator + UserAccessCheck:
-		return `Information about user privileges, e.g. "Can I create builds?"`
-	case UserIndicator + UserListProject:
-		return `See projects you're aware of and the metadata (display name, description, etc) about those projects.`
+	case UserInfo:
+		return "Read-only access to your user information (including username, identities, and group membership)", "", nil
+	case UserAccessCheck:
+		return `Read-only access to view your privileges (for example, "can I create builds?")`, "", nil
+	case UserListScopedProjects:
+		return `Read-only access to list your projects viewable with this token and view their metadata (display name, description, etc.)`, "", nil
+	case UserListAllProjects:
+		return `Read-only access to list your projects and view their metadata (display name, description, etc.)`, "", nil
+	case UserFull:
+		return `Full read/write access with all of your permissions`, `Includes any access you have to escalating resources like secrets`, nil
 	default:
-		return fmt.Sprintf("unrecognized scope: %v", scope)
+		return "", "", fmt.Errorf("unrecognized scope: %v", scope)
 	}
 }
 
 func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	switch scope {
-	case UserIndicator + UserInfo:
+	case UserInfo:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("get"), APIGroups: []string{userapi.GroupName}, Resources: sets.NewString("users"), ResourceNames: sets.NewString("~")},
 		}, nil
-	case UserIndicator + UserAccessCheck:
+	case UserAccessCheck:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
-	case UserIndicator + UserListProject:
+	case UserListScopedProjects:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("list"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+		}, nil
+	case UserListAllProjects:
+		return []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+			{Verbs: sets.NewString("get"), APIGroups: []string{kapi.GroupName}, Resources: sets.NewString("namespaces")},
+		}, nil
+	case UserFull:
+		return []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("*"), APIGroups: []string{"*"}, Resources: sets.NewString("*")},
+			{Verbs: sets.NewString("*"), NonResourceURLs: sets.NewString("*")},
 		}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized scope: %v", scope)
+	}
+}
+
+func (userEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error) {
+	switch scope {
+	case UserFull, UserListAllProjects:
+		return []string{"*"}, nil
+	default:
+		return []string{}, nil
 	}
 }
 
@@ -167,6 +233,12 @@ func (e clusterRoleEvaluator) parseScope(scope string) (string /*role name*/, st
 	if !e.Handles(scope) {
 		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
 	}
+	return ParseClusterRoleScope(scope)
+}
+func ParseClusterRoleScope(scope string) (string /*role name*/, string /*namespace*/, bool /*escalating*/, error) {
+	if !strings.HasPrefix(scope, ClusterRoleIndicator) {
+		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
+	}
 	escalating := false
 	if strings.HasSuffix(scope, ":!") {
 		escalating = true
@@ -188,25 +260,36 @@ func (e clusterRoleEvaluator) parseScope(scope string) (string /*role name*/, st
 	return tokens[1][0:lastColonIndex], tokens[1][lastColonIndex+1:], escalating, nil
 }
 
-func (e clusterRoleEvaluator) Describe(scope string) string {
+func (e clusterRoleEvaluator) Describe(scope string) (string, string, error) {
 	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
 	if err != nil {
-		return err.Error()
-	}
-	escalatingPhrase := "including any escalating resources like secrets"
-	if !escalating {
-		escalatingPhrase = "excluding any escalating resources like secrets"
+		return "", "", err
 	}
 
+	// Anything you can do [in project "foo" | server-wide] that is also allowed by the "admin" role[, except access escalating resources like secrets]
+
+	scopePhrase := ""
 	if scopeNamespace == authorizationapi.ScopesAllNamespaces {
-		return roleName + " access in all projects, " + escalatingPhrase
+		scopePhrase = "server-wide"
+	} else {
+		scopePhrase = fmt.Sprintf("in project %q", scopeNamespace)
 	}
 
-	return roleName + " access in the " + scopeNamespace + " project, " + escalatingPhrase
+	warning := ""
+	escalatingPhrase := ""
+	if escalating {
+		warning = fmt.Sprintf("Includes access to escalating resources like secrets")
+	} else {
+		escalatingPhrase = ", except access escalating resources like secrets"
+	}
+
+	description := fmt.Sprintf("Anything you can do %s that is also allowed by the %q role%s", scopePhrase, roleName, escalatingPhrase)
+
+	return description, warning, nil
 }
 
 func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
-	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
+	_, scopeNamespace, _, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +297,16 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 	// if the scope limit on the clusterrole doesn't match, then don't add any rules, but its not an error
 	if !(scopeNamespace == authorizationapi.ScopesAllNamespaces || scopeNamespace == namespace) {
 		return []authorizationapi.PolicyRule{}, nil
+	}
+
+	return e.resolveRules(scope, clusterPolicyGetter)
+}
+
+// resolveRules doesn't enforce namespace checks
+func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
+	roleName, _, escalating, err := e.parseScope(scope)
+	if err != nil {
+		return nil, err
 	}
 
 	policy, err := clusterPolicyGetter.Get("default")
@@ -242,6 +335,37 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 	}
 
 	return rules, nil
+}
+
+func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error) {
+	_, scopeNamespace, _, err := e.parseScope(scope)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := e.resolveRules(scope, clusterPolicyGetter)
+	if err != nil {
+		return nil, err
+	}
+
+	attributes := authorizer.DefaultAuthorizationAttributes{
+		APIGroup: kapi.GroupName,
+		Verb:     "get",
+		Resource: "namespaces",
+	}
+
+	errors := []error{}
+	for _, rule := range rules {
+		matches, err := attributes.RuleMatches(rule)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		if matches {
+			return []string{scopeNamespace}, nil
+		}
+	}
+
+	return []string{}, kutilerrors.NewAggregate(errors)
 }
 
 // TODO: direct deep copy needing a cloner is something that should be fixed upstream

@@ -90,7 +90,7 @@ func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient 
 // Build executes STI build based on configured builder, S2I builder factory and S2I config validator
 func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy == nil {
-		return fmt.Errorf("the source to image builder must be used with the source strategy")
+		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
 	var push bool
@@ -166,6 +166,10 @@ func (s *S2IBuilder) Build() error {
 			scriptDownloadProxyConfig.HTTPSProxy)
 	}
 
+	var incremental bool
+	if s.build.Spec.Strategy.SourceStrategy.Incremental != nil {
+		incremental = *s.build.Spec.Strategy.SourceStrategy.Incremental
+	}
 	config := &s2iapi.Config{
 		WorkingDir:     buildDir,
 		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -175,7 +179,7 @@ func (s *S2IBuilder) Build() error {
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
 		BuilderImage:       s.build.Spec.Strategy.SourceStrategy.From.Name,
-		Incremental:        s.build.Spec.Strategy.SourceStrategy.Incremental,
+		Incremental:        incremental,
 		IncrementalFromTag: pushTag,
 
 		Environment:       buildEnvVars(s.build),
@@ -193,9 +197,11 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
 		glog.V(4).Infof("With force pull true, setting policies to %s", s2iapi.PullAlways)
 		config.BuilderPullPolicy = s2iapi.PullAlways
+		config.RuntimeImagePullPolicy = s2iapi.PullAlways
 	} else {
 		glog.V(4).Infof("With force pull false, setting policies to %s", s2iapi.PullIfNotPresent)
 		config.BuilderPullPolicy = s2iapi.PullIfNotPresent
+		config.RuntimeImagePullPolicy = s2iapi.PullIfNotPresent
 	}
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
@@ -213,6 +219,17 @@ func (s *S2IBuilder) Build() error {
 		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
 
+	if s.build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
+		runtimeImageName := s.build.Spec.Strategy.SourceStrategy.RuntimeImage.Name
+		config.RuntimeImage = runtimeImageName
+		config.RuntimeAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(runtimeImageName, dockercfg.PullAuthType)
+		config.RuntimeArtifacts = copyToVolumeList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
+	}
+	// If DockerCfgPath is provided in api.Config, then attempt to read the
+	// dockercfg file and get the authentication for pulling the builder image.
+	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
+	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
+
 	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer
 		for _, ve := range errs {
@@ -221,11 +238,6 @@ func (s *S2IBuilder) Build() error {
 		}
 		return errors.New(buffer.String())
 	}
-
-	// If DockerCfgPath is provided in api.Config, then attempt to read the the
-	// dockercfg file and get the authentication for pulling the builder image.
-	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
-	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
 
 	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
 	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
@@ -371,4 +383,16 @@ func scriptProxyConfig(build *api.Build) (*s2iapi.ProxyConfig, error) {
 		config.HTTPSProxy = proxyURL
 	}
 	return config, nil
+}
+
+// copyToVolumeList copies the artifacts set in the build config to the
+// VolumeList struct in the s2iapi.Config
+func copyToVolumeList(artifactsMapping []api.ImageSourcePath) (volumeList s2iapi.VolumeList) {
+	for _, mappedPath := range artifactsMapping {
+		volumeList = append(volumeList, s2iapi.VolumeSpec{
+			Source:      mappedPath.SourcePath,
+			Destination: mappedPath.DestinationDir,
+		})
+	}
+	return
 }

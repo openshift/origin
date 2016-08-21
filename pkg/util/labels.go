@@ -179,9 +179,14 @@ func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels lab
 }
 
 func addDeploymentConfigNestedAnnotations(obj *deployapi.DeploymentConfig, annotations map[string]string) error {
+	if obj.Spec.Template == nil {
+		return nil
+	}
+
 	if obj.Spec.Template.Annotations == nil {
 		obj.Spec.Template.Annotations = make(map[string]string)
 	}
+
 	if err := MergeInto(obj.Spec.Template.Annotations, annotations, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add annotations to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
 	}

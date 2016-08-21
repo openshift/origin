@@ -27,9 +27,10 @@ type OsdnNode struct {
 	localSubnet        *osapi.HostSubnet
 	hostName           string
 	podNetworkReady    chan struct{}
-	vnids              *vnidMap
+	vnids              *nodeVNIDMap
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
+	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
 }
 
 // Called by higher layers to create the plugin SDN node instance
@@ -67,10 +68,11 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		registry:           newRegistry(osClient, kClient),
 		localIP:            selfIP,
 		hostName:           hostname,
-		vnids:              newVnidMap(),
+		vnids:              newNodeVNIDMap(),
 		podNetworkReady:    make(chan struct{}),
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,
+		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
 	}
 	return plugin, nil
 }
@@ -94,6 +96,9 @@ func (node *OsdnNode) Start() error {
 
 	if node.multitenant {
 		if err = node.VnidStartNode(); err != nil {
+			return err
+		}
+		if err = node.SetupEgressNetworkPolicy(); err != nil {
 			return err
 		}
 	}

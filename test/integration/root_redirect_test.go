@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -15,6 +13,7 @@ import (
 
 func TestRootRedirect(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, _, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

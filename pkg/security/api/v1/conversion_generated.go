@@ -72,7 +72,7 @@ func Convert_api_PodSecurityPolicyReview_To_v1_PodSecurityPolicyReview(in *secur
 }
 
 func autoConvert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSpec(in *PodSecurityPolicyReviewSpec, out *security_api.PodSecurityPolicyReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.ServiceAccountNames = in.ServiceAccountNames
@@ -84,7 +84,7 @@ func Convert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSpec(i
 }
 
 func autoConvert_api_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSpec(in *security_api.PodSecurityPolicyReviewSpec, out *PodSecurityPolicyReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.ServiceAccountNames = in.ServiceAccountNames
@@ -168,7 +168,7 @@ func Convert_api_PodSecurityPolicySelfSubjectReview_To_v1_PodSecurityPolicySelfS
 }
 
 func autoConvert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_api_PodSecurityPolicySelfSubjectReviewSpec(in *PodSecurityPolicySelfSubjectReviewSpec, out *security_api.PodSecurityPolicySelfSubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -179,7 +179,7 @@ func Convert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_api_PodSecurityPolicyS
 }
 
 func autoConvert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicySelfSubjectReviewSpec(in *security_api.PodSecurityPolicySelfSubjectReviewSpec, out *PodSecurityPolicySelfSubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -224,7 +224,7 @@ func Convert_api_PodSecurityPolicySubjectReview_To_v1_PodSecurityPolicySubjectRe
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicySubjectReviewSpec(in *PodSecurityPolicySubjectReviewSpec, out *security_api.PodSecurityPolicySubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -237,7 +237,7 @@ func Convert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicySubje
 }
 
 func autoConvert_api_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicySubjectReviewSpec(in *security_api.PodSecurityPolicySubjectReviewSpec, out *PodSecurityPolicySubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -260,7 +260,7 @@ func autoConvert_v1_PodSecurityPolicySubjectReviewStatus_To_api_PodSecurityPolic
 		out.AllowedBy = nil
 	}
 	out.Reason = in.Reason
-	if err := api_v1.Convert_v1_PodSpec_To_api_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -281,7 +281,7 @@ func autoConvert_api_PodSecurityPolicySubjectReviewStatus_To_v1_PodSecurityPolic
 		out.AllowedBy = nil
 	}
 	out.Reason = in.Reason
-	if err := api_v1.Convert_api_PodSpec_To_v1_PodSpec(&in.PodSpec, &out.PodSpec, s); err != nil {
+	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil

@@ -314,7 +314,7 @@ func rollingParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFa
 	}
 }
 
-func getUpdateAcceptor(timeout time.Duration) strat.UpdateAcceptor {
+func getUpdateAcceptor(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 	return &testAcceptor{
 		acceptFn: func(deployment *kapi.ReplicationController) error {
 			return nil

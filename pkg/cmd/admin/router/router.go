@@ -31,7 +31,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/security/admission"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
@@ -287,7 +287,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 // generateSecretsConfig generates any Secret and Volume objects, such
 // as SSH private keys, that are necessary for the router container.
 func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
-	namespace string, defaultCert []byte) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount,
+	namespace string, defaultCert []byte, certName string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount,
 	error) {
 	var secrets []*kapi.Secret
 	var volumes []kapi.Volume
@@ -326,6 +326,12 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 	}
 
 	if len(defaultCert) > 0 {
+		// When the user sets the default cert from the "oadm router --default-cert ..."
+		// command we end up here. In this case the default cert must be in pem format.
+		// The secret has a crt and key. The crt contains the supplied default cert (pem)
+		// and the key is extracted from the default cert but its ultimately not used.
+		// NOTE: If the default cert is not provided by the user, we generate one by
+		// adding an annotation to the service associated with the router (see RunCmdRouter())
 		keys, err := cmdutil.PrivateKeysFromPEM(defaultCert)
 		if err != nil {
 			return nil, nil, nil, err
@@ -333,9 +339,10 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 		if len(keys) == 0 {
 			return nil, nil, nil, fmt.Errorf("the default cert must contain a private key")
 		}
+		// The TLSCertKey contains the pem file passed in as the default cert
 		secret := &kapi.Secret{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: fmt.Sprintf("%s-certs", cfg.Name),
+				Name: certName,
 			},
 			Type: kapi.SecretTypeTLS,
 			Data: map[string][]byte{
@@ -344,23 +351,28 @@ func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
 			},
 		}
 		secrets = append(secrets, secret)
-		volume := kapi.Volume{
-			Name: "server-certificate",
-			VolumeSource: kapi.VolumeSource{
-				Secret: &kapi.SecretVolumeSource{
-					SecretName: secret.Name,
-				},
-			},
-		}
-		volumes = append(volumes, volume)
-
-		mount := kapi.VolumeMount{
-			Name:      volume.Name,
-			ReadOnly:  true,
-			MountPath: defaultCertificateDir,
-		}
-		mounts = append(mounts, mount)
 	}
+
+	// The secret in this volume is either the one created for the
+	// user supplied default cert (pem format) or the secret generated
+	// by the service anotation (cert only format).
+	// In either case the secret has the same name and it has the same mount point.
+	volume := kapi.Volume{
+		Name: "server-certificate",
+		VolumeSource: kapi.VolumeSource{
+			Secret: &kapi.SecretVolumeSource{
+				SecretName: certName,
+			},
+		},
+	}
+	volumes = append(volumes, volume)
+
+	mount := kapi.VolumeMount{
+		Name:      volume.Name,
+		ReadOnly:  true,
+		MountPath: defaultCertificateDir,
+	}
+	mounts = append(mounts, mount)
 
 	return secrets, volumes, mounts, nil
 }
@@ -532,16 +544,16 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	}
 
 	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.Out()
+	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.OutOrStderr()
 	cfg.Action.Bulk.Op = configcmd.Create
 
 	var clusterIP string
 
 	output := cfg.Action.ShouldPrint()
 	generate := output
-	if !generate {
-		service, err := kClient.Services(namespace).Get(name)
-		if err != nil {
+	service, err := kClient.Services(namespace).Get(name)
+	if err != nil {
+		if !generate {
 			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing router %q: %v", name, err)
 			}
@@ -549,10 +561,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				return fmt.Errorf("Router %q service does not exist", name)
 			}
 			generate = true
-		} else {
-			clusterIP = service.Spec.ClusterIP
 		}
+	} else {
+		clusterIP = service.Spec.ClusterIP
 	}
+
 	if !generate {
 		fmt.Fprintf(out, "Router %q service exists\n", name)
 		return nil
@@ -567,7 +580,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if !cfg.Action.ShouldPrint() {
 			return err
 		}
-		fmt.Fprintf(cmd.Out(), "error: %v\n", err)
+		fmt.Fprintf(cmd.OutOrStderr(), "error: %v\n", err)
 		defaultOutputErr = cmdutil.ErrExit
 	}
 
@@ -611,7 +624,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if len(cfg.StatsPassword) == 0 {
 		cfg.StatsPassword = generateStatsPassword()
 		if !cfg.Action.ShouldPrint() {
-			fmt.Fprintf(cmd.Out(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+			fmt.Fprintf(cmd.OutOrStderr(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 	}
 
@@ -642,12 +655,12 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if cfg.SecretsAsEnv {
 			env.Add(app.Environment{"DEFAULT_CERTIFICATE": string(defaultCert)})
 		} else {
-			// TODO: make --credentials create secrets and bypass service account
 			env.Add(app.Environment{"DEFAULT_CERTIFICATE_PATH": defaultCertificatePath})
 		}
 	}
-
-	secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient, namespace, defaultCert)
+	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
+	var certName = fmt.Sprintf("%s-certs", cfg.Name)
+	secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient, namespace, defaultCert, certName)
 	if err != nil {
 		return fmt.Errorf("router could not be created: %v", err)
 	}
@@ -755,6 +768,12 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 					}
 				}
 			}
+			if len(defaultCert) == 0 {
+				// When a user does not provide the default cert (pem), create one via a Service annotation
+				// The secret generated by the service annotaion contains a tls.crt and tls.key
+				// which ultimately need to be combined into a pem
+				t.Annotations = map[string]string{"service.alpha.openshift.io/serving-cert-secret-name": certName}
+			}
 		}
 	}
 	// TODO: label all created objects with the same label - router=<name>
@@ -803,7 +822,7 @@ func validateServiceAccount(client *kclient.Client, ns string, serviceAccount st
 	// get set of sccs applicable to the service account
 	userInfo := serviceaccount.UserInfo(ns, serviceAccount, "")
 	for _, scc := range sccList.Items {
-		if admission.ConstraintAppliesTo(&scc, userInfo) {
+		if oscc.ConstraintAppliesTo(&scc, userInfo) {
 			switch {
 			case hostPorts && scc.AllowHostPorts:
 				return nil

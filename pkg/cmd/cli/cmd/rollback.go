@@ -234,7 +234,7 @@ func (o *RollbackOptions) Run() error {
 		},
 	}
 	newConfig, err := o.oc.DeploymentConfigs(o.Namespace).Rollback(rollback)
-	if kerrors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// Fallback to the old path for new clients talking to old servers.
 		newConfig, err = o.oc.DeploymentConfigs(o.Namespace).RollbackDeprecated(rollback)
 	}

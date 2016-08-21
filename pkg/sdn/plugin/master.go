@@ -17,9 +17,7 @@ import (
 type OsdnMaster struct {
 	registry        *Registry
 	subnetAllocator *netutils.SubnetAllocator
-	vnids           *vnidMap
-	netIDManager    *netutils.NetIDAllocator
-	adminNamespaces []string
+	vnids           *masterVNIDMap
 }
 
 func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclient.Client) error {
@@ -28,10 +26,9 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	log.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
+
 	master := &OsdnMaster{
-		registry:        newRegistry(osClient, kClient),
-		vnids:           newVnidMap(),
-		adminNamespaces: make([]string, 0),
+		registry: newRegistry(osClient, kClient),
 	}
 
 	// Validate command-line/config parameters
@@ -59,6 +56,8 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	if IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
+		master.vnids = newMasterVNIDMap()
+
 		if err = master.VnidStartMaster(); err != nil {
 			return err
 		}
@@ -129,7 +128,8 @@ func (master *OsdnMaster) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool
 
 	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
 		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
-		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() {
+		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() ||
+		curNetwork.PluginName != oldNetwork.PluginName {
 		return true, nil
 	}
 	return false, nil

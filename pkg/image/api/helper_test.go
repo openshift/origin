@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -637,7 +638,6 @@ func validImageWithManifestV2Data() Image {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "id",
 		},
-		DockerImageManifestMediaType: "application/vnd.docker.container.image.v1+json",
 		DockerImageConfig: `{
     "architecture": "amd64",
     "config": {
@@ -815,6 +815,7 @@ func TestImageWithMetadata(t *testing.T) {
 					{Name: "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 1895},
 					{Name: "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", MediaType: "application/vnd.docker.container.image.rootfs.diff+x-gtar", LayerSize: 0},
 				},
+				DockerImageManifestMediaType: "application/vnd.docker.distribution.manifest.v1+json",
 				DockerImageMetadata: DockerImage{
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
@@ -887,7 +888,7 @@ func TestImageWithMetadata(t *testing.T) {
 				},
 				DockerImageConfig:            validImageWithManifestV2Data().DockerImageConfig,
 				DockerImageManifest:          validImageWithManifestV2Data().DockerImageManifest,
-				DockerImageManifestMediaType: "application/vnd.docker.container.image.v1+json",
+				DockerImageManifestMediaType: "application/vnd.docker.distribution.manifest.v2+json",
 				DockerImageLayers: []ImageLayer{
 					{Name: "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 639152},
 					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
@@ -1666,6 +1667,128 @@ func TestTagsChanged(t *testing.T) {
 		if changed != test.changed || deleted != test.deleted {
 			t.Errorf("%s: unexpected tagsChanged, expected (%v, %v) got (%v, %v)",
 				name, test.changed, test.deleted, changed, deleted)
+		}
+	}
+}
+
+func TestIndexOfImageSignature(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		signatures    []ImageSignature
+		matchType     string
+		matchContent  []byte
+		expectedIndex int
+	}{
+		{
+			name:          "empty",
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: -1,
+		},
+
+		{
+			name: "not present",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: -1,
+		},
+
+		{
+			name: "first and only",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("binary"),
+			expectedIndex: 0,
+		},
+
+		{
+			name: "last",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: 2,
+		},
+
+		{
+			name: "many matches",
+			signatures: []ImageSignature{
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob2"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    "custom",
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("blob"),
+				},
+				{
+					Type:    ImageSignatureTypeAtomicImageV1,
+					Content: []byte("binary"),
+				},
+			},
+			matchType:     ImageSignatureTypeAtomicImageV1,
+			matchContent:  []byte("blob"),
+			expectedIndex: 1,
+		},
+	} {
+
+		im := Image{
+			Signatures: make([]ImageSignature, len(tc.signatures)),
+		}
+		for i, signature := range tc.signatures {
+			signature.Name = fmt.Sprintf("%s:%s", signature.Type, signature.Content)
+			im.Signatures[i] = signature
+		}
+
+		matchName := fmt.Sprintf("%s:%s", tc.matchType, tc.matchContent)
+
+		index := IndexOfImageSignatureByName(im.Signatures, matchName)
+		if index != tc.expectedIndex {
+			t.Errorf("[%s] got unexpected index: %d != %d", tc.name, index, tc.expectedIndex)
+		}
+
+		index = IndexOfImageSignature(im.Signatures, tc.matchType, tc.matchContent)
+		if index != tc.expectedIndex {
+			t.Errorf("[%s] got unexpected index: %d != %d", tc.name, index, tc.expectedIndex)
 		}
 	}
 }

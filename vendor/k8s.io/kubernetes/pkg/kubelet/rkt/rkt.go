@@ -60,6 +60,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/util/selinux"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
+	"k8s.io/kubernetes/pkg/util/term"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -508,9 +509,11 @@ func verifyNonRoot(app *appctypes.App, ctx *api.SecurityContext) error {
 	return nil
 }
 
-func setSupplementaryGIDs(app *appctypes.App, podCtx *api.PodSecurityContext) {
-	if podCtx != nil {
+func setSupplementalGIDs(app *appctypes.App, podCtx *api.PodSecurityContext, supplementalGids []int64) {
+	if podCtx != nil || len(supplementalGids) != 0 {
 		app.SupplementaryGIDs = app.SupplementaryGIDs[:0]
+	}
+	if podCtx != nil {
 		for _, v := range podCtx.SupplementalGroups {
 			app.SupplementaryGIDs = append(app.SupplementaryGIDs, int(v))
 		}
@@ -518,10 +521,13 @@ func setSupplementaryGIDs(app *appctypes.App, podCtx *api.PodSecurityContext) {
 			app.SupplementaryGIDs = append(app.SupplementaryGIDs, int(*podCtx.FSGroup))
 		}
 	}
+	for _, v := range supplementalGids {
+		app.SupplementaryGIDs = append(app.SupplementaryGIDs, int(v))
+	}
 }
 
 // setApp merges the container spec with the image's manifest.
-func setApp(imgManifest *appcschema.ImageManifest, c *api.Container, opts *kubecontainer.RunContainerOptions, ctx *api.SecurityContext, podCtx *api.PodSecurityContext) error {
+func setApp(imgManifest *appcschema.ImageManifest, c *api.Container, opts *kubecontainer.RunContainerOptions, ctx *api.SecurityContext, podCtx *api.PodSecurityContext, supplementalGids []int64) error {
 	app := imgManifest.App
 
 	// Set up Exec.
@@ -562,7 +568,7 @@ func setApp(imgManifest *appcschema.ImageManifest, c *api.Container, opts *kubec
 	if ctx != nil && ctx.RunAsUser != nil {
 		app.User = strconv.Itoa(int(*ctx.RunAsUser))
 	}
-	setSupplementaryGIDs(app, podCtx)
+	setSupplementalGIDs(app, podCtx, supplementalGids)
 
 	// If 'User' or 'Group' are still empty at this point,
 	// then apply the root UID and GID.
@@ -785,8 +791,9 @@ func (r *Runtime) newAppcRuntimeApp(pod *api.Pod, podIP string, c api.Container,
 		})
 	}
 
+	supplementalGids := r.runtimeHelper.GetExtraSupplementalGroupsForPod(pod)
 	ctx := securitycontext.DetermineEffectiveSecurityContext(pod, &c)
-	if err := setApp(imgManifest, &c, opts, ctx, pod.Spec.SecurityContext); err != nil {
+	if err := setApp(imgManifest, &c, opts, ctx, pod.Spec.SecurityContext, supplementalGids); err != nil {
 		return err
 	}
 
@@ -2007,14 +2014,14 @@ func newRktExitError(e error) error {
 	return e
 }
 
-func (r *Runtime) AttachContainer(containerID kubecontainer.ContainerID, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
+func (r *Runtime) AttachContainer(containerID kubecontainer.ContainerID, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan term.Size) error {
 	return fmt.Errorf("unimplemented")
 }
 
 // Note: In rkt, the container ID is in the form of "UUID:appName", where UUID is
 // the rkt UUID, and appName is the container name.
 // TODO(yifan): If the rkt is using lkvm as the stage1 image, then this function will fail.
-func (r *Runtime) ExecInContainer(containerID kubecontainer.ContainerID, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
+func (r *Runtime) ExecInContainer(containerID kubecontainer.ContainerID, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan term.Size) error {
 	glog.V(4).Infof("Rkt execing in container.")
 
 	id, err := parseContainerID(containerID)
@@ -2034,6 +2041,10 @@ func (r *Runtime) ExecInContainer(containerID kubecontainer.ContainerID, cmd []s
 
 		// make sure to close the stdout stream
 		defer stdout.Close()
+
+		kubecontainer.HandleResizing(resize, func(size term.Size) {
+			term.SetSize(p.Fd(), size)
+		})
 
 		if stdin != nil {
 			go io.Copy(p, stdin)

@@ -6,6 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
@@ -28,12 +29,12 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	// Convert to kube attributes
-	kattrs := KubernetesAuthorizerAttributes("ns", "myuser", []string{"mygroup"}, oattrs)
-	if kattrs.GetUserName() != "myuser" {
-		t.Errorf("Expected %v, got %v", "myuser", kattrs.GetUserName())
+	kattrs := KubernetesAuthorizerAttributes("ns", &user.DefaultInfo{Name: "myuser", Groups: []string{"mygroup"}}, oattrs)
+	if kattrs.GetUser().GetName() != "myuser" {
+		t.Errorf("Expected %v, got %v", "myuser", kattrs.GetUser().GetName())
 	}
-	if !reflect.DeepEqual(kattrs.GetGroups(), []string{"mygroup"}) {
-		t.Errorf("Expected %v, got %v", []string{"mygroup"}, kattrs.GetGroups())
+	if !reflect.DeepEqual(kattrs.GetUser().GetGroups(), []string{"mygroup"}) {
+		t.Errorf("Expected %v, got %v", []string{"mygroup"}, kattrs.GetUser().GetGroups())
 	}
 	if kattrs.GetVerb() != "get" {
 		t.Errorf("Expected %v, got %v", "get", kattrs.GetVerb())
@@ -104,7 +105,7 @@ func TestAttributeIntersection(t *testing.T) {
 	// Everything in this list should be used by OriginAuthorizerAttributes or derivative (like IsReadOnly)
 	expectedKubernetesOnly := sets.NewString(
 		// used to build context in OriginAuthorizerAttributes
-		"GetGroups", "GetUserName", "GetNamespace",
+		"GetUser", "GetNamespace",
 		// Based on verb, derivative
 		"IsReadOnly",
 		// Non-matching, but used
@@ -112,7 +113,7 @@ func TestAttributeIntersection(t *testing.T) {
 	)
 
 	kattributesType := reflect.TypeOf((*kauthorizer.Attributes)(nil)).Elem()
-	oattributesType := reflect.TypeOf((*oauthorizer.AuthorizationAttributes)(nil)).Elem()
+	oattributesType := reflect.TypeOf((*oauthorizer.Action)(nil)).Elem()
 
 	kattributesMethods := sets.NewString()
 	for i := 0; i < kattributesType.NumMethod(); i++ {

@@ -60,7 +60,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest",
+                "name": "postgresql:9.5",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -121,10 +121,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
@@ -178,7 +178,7 @@
     },
     {
       "name": "POSTGRESQL_USER",
-      "displayName": "PostgreSQL User",
+      "displayName": "PostgreSQL Connection Username",
       "description": "Username for PostgreSQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -186,8 +186,8 @@
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "displayName": "PostgreSQL Password",
-      "description": "Password for the PostgreSQL user.",
+      "displayName": "PostgreSQL Connection Password",
+      "description": "Password for the PostgreSQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true

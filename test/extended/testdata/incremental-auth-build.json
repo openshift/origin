@@ -39,13 +39,13 @@
         },
         "strategy": {
           "type": "Source",
-          "env": [
-            {
-              "name": "BUILD_LOGLEVEL",
-              "value": "5"
-            }
-          ],
           "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
             "from": {
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7:latest"
@@ -83,13 +83,13 @@
         },
         "strategy": {
           "type": "Source",
-          "env": [
-            {
-              "name": "BUILD_LOGLEVEL",
-              "value": "5"
-            }
-          ],
           "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
             "from": {
               "kind": "ImageStreamTag",
               "name": "internal-image:latest"
@@ -105,10 +105,8 @@
         }
       }
     }
-
   ],
-  "parameters": [
-  ],
+  "parameters": [],
   "labels": {
     "template": "application-template-stibuild"
   }

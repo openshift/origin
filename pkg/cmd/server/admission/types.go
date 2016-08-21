@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/controller/shared"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
@@ -61,4 +62,10 @@ type WantsInformers interface {
 // cluster quota and namespaces
 type WantsClusterQuotaMapper interface {
 	SetClusterQuotaMapper(clusterquotamapping.ClusterQuotaMapper)
+}
+
+// WantsDefaultRegistryFunc should be implemented by admission plugins that need to know the default registry
+// address.
+type WantsDefaultRegistryFunc interface {
+	SetDefaultRegistryFunc(imageapi.DefaultRegistryFunc)
 }

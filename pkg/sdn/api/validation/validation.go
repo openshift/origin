@@ -62,6 +62,7 @@ func validateNewNetwork(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) 
 
 func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateClusterNetwork(obj)...)
 
 	if obj.Network != old.Network {
 		err := validateNewNetwork(obj, old)
@@ -96,6 +97,7 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 
 func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateHostSubnet(obj)...)
 
 	if obj.Subnet != old.Subnet {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), obj.Subnet, "cannot change the subnet lease midflight."))
@@ -108,12 +110,42 @@ func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) fi
 func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&netnamespace.ObjectMeta, false, oapi.MinimalNameRequirements, field.NewPath("metadata"))
 
-	if netnamespace.NetID < 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), netnamespace.NetID, "invalid Net ID: cannot be negative"))
+	if err := sdnapi.ValidVNID(netnamespace.NetID); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), netnamespace.NetID, err.Error()))
 	}
 	return allErrs
 }
 
 func ValidateNetNamespaceUpdate(obj *sdnapi.NetNamespace, old *sdnapi.NetNamespace) field.ErrorList {
-	return validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateNetNamespace(obj)...)
+	return allErrs
+}
+
+// ValidateEgressNetworkPolicy tests if required fields in the EgressNetworkPolicy are set.
+func ValidateEgressNetworkPolicy(policy *sdnapi.EgressNetworkPolicy) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&policy.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+
+	for i, rule := range policy.Spec.Egress {
+		if rule.Type != sdnapi.EgressNetworkPolicyRuleAllow && rule.Type != sdnapi.EgressNetworkPolicyRuleDeny {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("type"), rule.Type, "invalid policy type"))
+		}
+
+		_, _, err := net.ParseCIDR(rule.To.CIDRSelector)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to"), rule.To.CIDRSelector, err.Error()))
+		}
+	}
+
+	if len(policy.Spec.Egress) > sdnapi.EgressNetworkPolicyMaxRules {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress"), "", ("too many egress rules (max 50)")))
+	}
+
+	return allErrs
+}
+
+func ValidateEgressNetworkPolicyUpdate(obj *sdnapi.EgressNetworkPolicy, old *sdnapi.EgressNetworkPolicy) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateEgressNetworkPolicy(obj)...)
+	return allErrs
 }

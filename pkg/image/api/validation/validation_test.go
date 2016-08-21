@@ -79,6 +79,9 @@ func TestValidateImageSignature(t *testing.T) {
 		{
 			name: "valid",
 			signature: api.ImageSignature{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "imgname@valid",
+				},
 				Type:    "valid",
 				Content: []byte("blob"),
 			},
@@ -88,6 +91,9 @@ func TestValidateImageSignature(t *testing.T) {
 		{
 			name: "valid trusted",
 			signature: api.ImageSignature{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "imgname@trusted",
+				},
 				Type:    "valid",
 				Content: []byte("blob"),
 				Conditions: []api.SignatureCondition{
@@ -108,6 +114,9 @@ func TestValidateImageSignature(t *testing.T) {
 		{
 			name: "valid untrusted",
 			signature: api.ImageSignature{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "imgname@untrusted",
+				},
 				Type:    "valid",
 				Content: []byte("blob"),
 				Conditions: []api.SignatureCondition{
@@ -131,11 +140,13 @@ func TestValidateImageSignature(t *testing.T) {
 		},
 
 		{
-			name: "missing type",
+			name: "invalid name and missing type",
 			signature: api.ImageSignature{
-				Content: []byte("blob"),
+				ObjectMeta: kapi.ObjectMeta{Name: "notype"},
+				Content:    []byte("blob"),
 			},
 			expected: field.ErrorList{
+				field.Invalid(field.NewPath("metadata").Child("name"), "notype", "name must be of format <imageName>@<signatureName>"),
 				field.Required(field.NewPath("type"), ""),
 			},
 		},
@@ -143,7 +154,8 @@ func TestValidateImageSignature(t *testing.T) {
 		{
 			name: "missing content",
 			signature: api.ImageSignature{
-				Type: "invalid",
+				ObjectMeta: kapi.ObjectMeta{Name: "img@nocontent"},
+				Type:       "invalid",
 			},
 			expected: field.ErrorList{
 				field.Required(field.NewPath("content"), ""),
@@ -153,8 +165,9 @@ func TestValidateImageSignature(t *testing.T) {
 		{
 			name: "missing ForImage condition",
 			signature: api.ImageSignature{
-				Type:    "invalid",
-				Content: []byte("blob"),
+				ObjectMeta: kapi.ObjectMeta{Name: "img@noforimage"},
+				Type:       "invalid",
+				Content:    []byte("blob"),
 				Conditions: []api.SignatureCondition{
 					{
 						Type:   api.SignatureTrusted,
@@ -174,10 +187,28 @@ func TestValidateImageSignature(t *testing.T) {
 		},
 
 		{
+			name: "adding labels and anotations",
+			signature: api.ImageSignature{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:        "img@annotated",
+					Annotations: map[string]string{"key": "value"},
+					Labels:      map[string]string{"label": "value"},
+				},
+				Type:    "valid",
+				Content: []byte("blob"),
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("metadata").Child("labels"), "signature labels cannot be set"),
+				field.Forbidden(field.NewPath("metadata").Child("annotations"), "signature annotations cannot be set"),
+			},
+		},
+
+		{
 			name: "filled metadata for unknown signature state",
 			signature: api.ImageSignature{
-				Type:    "invalid",
-				Content: []byte("blob"),
+				ObjectMeta: kapi.ObjectMeta{Name: "img@metadatafilled"},
+				Type:       "invalid",
+				Content:    []byte("blob"),
 				Conditions: []api.SignatureCondition{
 					{
 						Type:   api.SignatureTrusted,

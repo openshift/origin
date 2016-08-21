@@ -85,3 +85,44 @@ func TestEnvDefaults(t *testing.T) {
 		t.Errorf("VAR2 not found")
 	}
 }
+
+func TestIncrementalDefaults(t *testing.T) {
+	bool_t := true
+	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+		SourceStrategyDefaults: &defaultsapi.SourceStrategyDefaultsConfig{
+			Incremental: &bool_t,
+		},
+	}
+
+	admitter := NewBuildDefaults(defaultsConfig)
+
+	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild(), "v1")
+	err := admitter.Admit(pod.ToAttributes())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	build, _, err := buildadmission.GetBuild(pod.ToAttributes())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !*build.Spec.Strategy.SourceStrategy.Incremental {
+		t.Errorf("failed to default incremental to true")
+	}
+
+	build = u.Build().WithSourceStrategy().AsBuild()
+	bool_f := false
+	build.Spec.Strategy.SourceStrategy.Incremental = &bool_f
+	pod = u.Pod().WithBuild(t, build, "v1")
+	err = admitter.Admit(pod.ToAttributes())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	build, _, err = buildadmission.GetBuild(pod.ToAttributes())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if *build.Spec.Strategy.SourceStrategy.Incremental {
+		t.Errorf("should not have overridden incremental to true")
+	}
+
+}

@@ -15,27 +15,47 @@ To walk through the example:
 jenkins template represented by jenkinstemplate.json by running these commands as a cluster admin:
 
         $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/jenkinstemplate.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-ephemeral-template.json -n openshift
 
-2. login as a normal user (any username is fine)
+    Note: If you have persistent volumes available in your cluster and prefer to use persistent storage (recommended) for your Jenkins server, register the jenkins-persistent-template.json file as well:
+
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-persistent-template.json -n openshift
+
+2. Login as a normal user (any username is fine)
 
         $ oc login
 
-3. create a project for your user named "pipelineproject"
+3. Create a project for your user named "pipelineproject"
 
         $ oc new-project pipelineproject
 
-4. run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
+4. Run this command to instantiate a Jenkins server and service account in your project:
 
-        If you used cluster up:
+    If your have persistent volumes available in your cluster:
+
+        $ oc new-app jenkins-persistent
+
+    Otherwise:
+
+        $ oc new-app jenkins-ephemeral
+
+    Make a note of the Jenkins password reported by new-app.
+
+    Note: eventually this will be done automatically when you create a pipeline buildconfig.
+
+5. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
+
+    If you used cluster up:
+    
         $ oc new-app jenkins-pipeline-example
 
-        Otherwise:
+    Otherwise:
+    
         $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/samplepipeline.json
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined by the sample-pipeline template.
 
-5. View/Manage Jenkins (optional)
+6. View/Manage Jenkins (optional)
 
     You should not need to access the jenkins console for anything, but if you want to configure settings or watch the execution,
     here are the steps to do so:
@@ -48,7 +68,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     If you do not have a router, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
 
-    The login/password are `admin/password`.
+    Login with the user name is `admin` and the password as recorded earlier.
 
 6. Launch a new build
 

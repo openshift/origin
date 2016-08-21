@@ -122,8 +122,11 @@ func (o ProjectOptions) RunProject() error {
 	clientCfg := o.ClientConfig
 	out := o.Out
 
+	var currentProject string
 	currentContext := config.Contexts[config.CurrentContext]
-	currentProject := currentContext.Namespace
+	if currentContext != nil {
+		currentProject = currentContext.Namespace
+	}
 
 	// No argument provided, we will just print info
 	if len(o.ProjectName) == 0 {

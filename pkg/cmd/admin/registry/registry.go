@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -239,7 +240,7 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 
 	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, cmd.Out()
+	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, cmd.OutOrStderr()
 	opts.Config.Action.Bulk.Op = configcmd.Create
 	opts.out = out
 	opts.cmd = cmd
@@ -256,19 +257,19 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	output := opts.Config.Action.ShouldPrint()
 	generate := output
-	if !generate {
-		service, err := opts.serviceClient.Services(opts.namespace).Get(name)
-		if err != nil {
-			if !errors.IsNotFound(err) && !generate {
+	service, err := opts.serviceClient.Services(opts.namespace).Get(name)
+	if err != nil {
+		if !generate {
+			if !errors.IsNotFound(err) {
 				return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
 			}
-			if !output && opts.Config.Action.DryRun {
+			if opts.Config.Action.DryRun {
 				return fmt.Errorf("Docker registry %q service does not exist", name)
 			}
 			generate = true
-		} else {
-			clusterIP = service.Spec.ClusterIP
 		}
+	} else {
+		clusterIP = service.Spec.ClusterIP
 	}
 
 	if !generate {
@@ -327,7 +328,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		if err != nil {
 			return fmt.Errorf("registry does not exist; could not load TLS private key file %q: %v", opts.Config.ServingKeyPath, err)
 		}
-		servingCert = data
+		servingKey = data
 	}
 
 	env := app.Environment{}
@@ -369,6 +370,12 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 					},
 					LivenessProbe:  livenessProbe,
 					ReadinessProbe: readinessProbe,
+					Resources: kapi.ResourceRequirements{
+						Requests: kapi.ResourceList{
+							kapi.ResourceCPU:    resource.MustParse("100m"),
+							kapi.ResourceMemory: resource.MustParse("256Mi"),
+						},
+					},
 				},
 			},
 			Volumes: append(volumes, kapi.Volume{

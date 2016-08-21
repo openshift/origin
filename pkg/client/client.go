@@ -22,6 +22,7 @@ type Interface interface {
 	BuildConfigsNamespacer
 	BuildLogsNamespacer
 	ImagesInterfacer
+	ImageSignaturesInterfacer
 	ImageStreamsNamespacer
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
@@ -33,6 +34,7 @@ type Interface interface {
 	HostSubnetsInterface
 	NetNamespacesInterface
 	ClusterNetworkingInterface
+	EgressNetworkPoliciesNamespacer
 	IdentitiesInterface
 	UsersInterface
 	GroupsInterface
@@ -82,6 +84,11 @@ func (c *Client) BuildLogs(namespace string) BuildLogsInterface {
 // Images provides a REST client for Images
 func (c *Client) Images() ImageInterface {
 	return newImages(c)
+}
+
+// ImageSignatures provides a REST client for ImageSignatures
+func (c *Client) ImageSignatures() ImageSignatureInterface {
+	return newImageSignatures(c)
 }
 
 // ImageStreamImages provides a REST client for retrieving image secrets in a namespace
@@ -137,6 +144,11 @@ func (c *Client) NetNamespaces() NetNamespaceInterface {
 // ClusterNetwork provides a REST client for ClusterNetworking
 func (c *Client) ClusterNetwork() ClusterNetworkInterface {
 	return newClusterNetwork(c)
+}
+
+// EgressNetworkPolicies provides a REST client for EgressNetworkPolicy
+func (c *Client) EgressNetworkPolicies(namespace string) EgressNetworkPolicyInterface {
+	return newEgressNetworkPolicy(c, namespace)
 }
 
 // Users provides a REST client for User
@@ -314,18 +326,8 @@ func SetOpenShiftDefaults(config *restclient.Config) error {
 	if config.APIPath == "" {
 		config.APIPath = "/oapi"
 	}
-
-	// groupMeta, err := registered.Group(config.GroupVersion.Group)
-	// if err != nil {
-	// 	return fmt.Errorf("API group %q is not recognized (valid values: %v)", config.GroupVersion.Group, latest.Versions)
-	// }
 	if config.NegotiatedSerializer == nil {
 		config.NegotiatedSerializer = kapi.Codecs
-	}
-
-	if config.Codec == nil {
-		config.Codec = kapi.Codecs.LegacyCodec(*config.GroupVersion)
-		// config.Codec = kapi.Codecs.CodecForVersions(groupMeta.Codec, []unversioned.GroupVersion{*config.GroupVersion}, groupMeta.GroupVersions)
 	}
 	return nil
 }

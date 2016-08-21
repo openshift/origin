@@ -16,14 +16,15 @@ const ExternalIPPluginName = "ExternalIPRanger"
 
 func init() {
 	kadmission.RegisterPlugin("ExternalIPRanger", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-		return NewExternalIPRanger(nil, nil), nil
+		return NewExternalIPRanger(nil, nil, false), nil
 	})
 }
 
 type externalIPRanger struct {
 	*kadmission.Handler
-	reject []*net.IPNet
-	admit  []*net.IPNet
+	reject         []*net.IPNet
+	admit          []*net.IPNet
+	allowIngressIP bool
 }
 
 var _ kadmission.Interface = &externalIPRanger{}
@@ -51,11 +52,12 @@ func ParseRejectAdmitCIDRRules(rules []string) (reject, admit []*net.IPNet, err 
 }
 
 // NewConstraint creates a new SCC constraint admission plugin.
-func NewExternalIPRanger(reject, admit []*net.IPNet) *externalIPRanger {
+func NewExternalIPRanger(reject, admit []*net.IPNet, allowIngressIP bool) *externalIPRanger {
 	return &externalIPRanger{
-		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
-		reject:  reject,
-		admit:   admit,
+		Handler:        kadmission.NewHandler(kadmission.Create, kadmission.Update),
+		reject:         reject,
+		admit:          admit,
+		allowIngressIP: allowIngressIP,
 	}
 }
 
@@ -84,11 +86,30 @@ func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
 		return nil
 	}
 
+	// Determine if an ingress ip address should be allowed as an
+	// external ip by checking the loadbalancer status of the previous
+	// object state. Only updates need to be validated against the
+	// ingress ip since the loadbalancer status cannot be set on
+	// create.
+	ingressIP := ""
+	retrieveIngressIP := a.GetOperation() == kadmission.Update &&
+		r.allowIngressIP && svc.Spec.Type == kapi.ServiceTypeLoadBalancer
+	if retrieveIngressIP {
+		old, ok := a.GetOldObject().(*kapi.Service)
+		ipPresent := ok && old != nil && len(old.Status.LoadBalancer.Ingress) > 0
+		if ipPresent {
+			ingressIP = old.Status.LoadBalancer.Ingress[0].IP
+		}
+	}
+
 	var errs field.ErrorList
 	switch {
 	// administrator disabled externalIPs
 	case len(svc.Spec.ExternalIPs) > 0 && len(r.admit) == 0:
-		errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs"), "externalIPs have been disabled"))
+		onlyIngressIP := len(svc.Spec.ExternalIPs) == 1 && svc.Spec.ExternalIPs[0] == ingressIP
+		if !onlyIngressIP {
+			errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs"), "externalIPs have been disabled"))
+		}
 	// administrator has limited the range
 	case len(svc.Spec.ExternalIPs) > 0 && len(r.admit) > 0:
 		for i, s := range svc.Spec.ExternalIPs {
@@ -97,7 +118,8 @@ func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
 				errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs").Index(i), "externalIPs must be a valid address"))
 				continue
 			}
-			if NetworkSlice(r.reject).Contains(ip) || !NetworkSlice(r.admit).Contains(ip) {
+			notIngressIP := s != ingressIP
+			if (NetworkSlice(r.reject).Contains(ip) || !NetworkSlice(r.admit).Contains(ip)) && notIngressIP {
 				errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs").Index(i), "externalIP is not allowed"))
 				continue
 			}

@@ -15,13 +15,16 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/yaml"
 
+	"github.com/openshift/origin/pkg/bootstrap"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	"github.com/spf13/cobra"
 )
 
@@ -314,12 +317,34 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.ServiceAccountConfig.PublicKeyFiles = []string{}
 	}
 
+	// embed a default policy for generated config
+	defaultImagePolicy, err := bootstrap.Asset("pkg/image/admission/imagepolicy/api/v1/default-policy.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("unable to find default image admission policy: %v", err)
+	}
+	// TODO: this should not be necessary, runtime.Unknown#MarshalJSON should handle YAML content type correctly
+	defaultImagePolicy, err = yaml.ToJSON(defaultImagePolicy)
+	if err != nil {
+		return nil, err
+	}
+	if config.AdmissionConfig.PluginConfig == nil {
+		config.AdmissionConfig.PluginConfig = make(map[string]configapi.AdmissionPluginConfig)
+	}
+	config.AdmissionConfig.PluginConfig[imagepolicyapi.PluginName] = configapi.AdmissionPluginConfig{
+		Configuration: &runtime.Unknown{Raw: defaultImagePolicy},
+	}
+
 	internal, err := applyDefaults(config, configapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
+	config = internal.(*configapi.MasterConfig)
 
-	return internal.(*configapi.MasterConfig), nil
+	// When creating a new config, use Protobuf
+	configapi.SetProtobufClientDefaults(config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	configapi.SetProtobufClientDefaults(config.MasterClients.ExternalKubernetesClientConnectionOverrides)
+
+	return config, nil
 }
 
 func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, error) {

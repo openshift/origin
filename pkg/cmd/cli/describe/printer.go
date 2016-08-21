@@ -12,7 +12,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -36,7 +35,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "TERMINATION", "LABELS"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
@@ -57,9 +56,10 @@ var (
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
-	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
-	netNamespaceColumns   = []string{"NAME", "NETID"}
-	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
+	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
+	netNamespaceColumns        = []string{"NAME", "NETID"}
+	clusterNetworkColumns      = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
+	egressNetworkPolicyColumns = []string{"NAME"}
 
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
 )
@@ -131,6 +131,8 @@ func NewHumanReadablePrinter(printOptions *kctl.PrintOptions) *kctl.HumanReadabl
 	p.Handler(netNamespaceColumns, printNetNamespace)
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
+	p.Handler(egressNetworkPolicyColumns, printEgressNetworkPolicy)
+	p.Handler(egressNetworkPolicyColumns, printEgressNetworkPolicyList)
 
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuota)
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuotaList)
@@ -314,6 +316,11 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, opts kctl.PrintOpti
 	from := describeSourceShort(bc.Spec.CommonSpec)
 
 	if bc.Spec.Strategy.CustomStrategy != nil {
+		if opts.WithNamespace {
+			if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {
+				return err
+			}
+		}
 		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", name, buildapi.StrategyType(bc.Spec.Strategy), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
@@ -455,7 +462,10 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, opts k
 
 func printProject(project *projectapi.Project, w io.Writer, opts kctl.PrintOptions) error {
 	name := formatResourceName(opts.Kind, project.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s", name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
+	if err := appendItemLabels(project.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
 	return err
 }
 
@@ -544,14 +554,35 @@ func printRoute(route *routeapi.Route, w io.Writer, opts kctl.PrintOptions) erro
 	default:
 		policy = ""
 	}
-	svc := route.Spec.To.Name
+
+	backends := append([]routeapi.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
+	totalWeight := int32(0)
+	for _, backend := range backends {
+		if backend.Weight != nil {
+			totalWeight += *backend.Weight
+		}
+	}
+	var backendInfo []string
+	for _, backend := range backends {
+		switch {
+		case backend.Weight == nil, len(backends) == 1 && totalWeight != 0:
+			backendInfo = append(backendInfo, backend.Name)
+		case totalWeight == 0:
+			backendInfo = append(backendInfo, fmt.Sprintf("%s(0%%)", backend.Name))
+		default:
+			backendInfo = append(backendInfo, fmt.Sprintf("%s(%d%%)", backend.Name, *backend.Weight*100/totalWeight))
+		}
+	}
+
+	var port string
 	if route.Spec.Port != nil {
-		svc = fmt.Sprintf("%s:%s", svc, route.Spec.Port.TargetPort.String())
+		port = route.Spec.Port.TargetPort.String()
+	} else {
+		port = "<all>"
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, host, route.Spec.Path, svc, policy, labels.Set(route.Labels)); err != nil {
-		return err
-	}
-	return nil
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, host, route.Spec.Path, strings.Join(backendInfo, ","), port, policy)
+	return err
 }
 
 func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kctl.PrintOptions) error {
@@ -947,6 +978,27 @@ func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, opts kctl.PrintO
 func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, opts kctl.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printClusterNetwork(&item, w, opts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printEgressNetworkPolicy(n *sdnapi.EgressNetworkPolicy, w io.Writer, opts kctl.PrintOptions) error {
+	if opts.WithNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", n.Namespace); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "%s\n", n.Name); err != nil {
+		return err
+	}
+	return nil
+}
+
+func printEgressNetworkPolicyList(list *sdnapi.EgressNetworkPolicyList, w io.Writer, opts kctl.PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printEgressNetworkPolicy(&item, w, opts); err != nil {
 			return err
 		}
 	}

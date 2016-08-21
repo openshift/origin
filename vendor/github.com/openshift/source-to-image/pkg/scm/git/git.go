@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
@@ -21,7 +22,7 @@ var glog = utilglog.StderrLog
 
 // Git is an interface used by main STI code to extract/checkout git repositories
 type Git interface {
-	ValidCloneSpec(source string) bool
+	ValidCloneSpec(source string) (bool, error)
 	ValidCloneSpecRemoteOnly(source string) bool
 	MungeNoProtocolURL(source string, url *url.URL) error
 	Clone(source, target string, opts api.CloneConfig) error
@@ -95,13 +96,17 @@ func stringInSlice(s string, slice []string) bool {
 
 // ValidCloneSpec determines if the given string reference points to a valid git
 // repository
-func (h *stiGit) ValidCloneSpec(source string) bool {
-	details, _ := ParseFile(source)
-	if details.FileExists && !details.BadRef {
-		return true
+func (h *stiGit) ValidCloneSpec(source string) (bool, error) {
+	details, _, err := ParseFile(source)
+	if err != nil {
+		return false, err
 	}
 
-	return h.ValidCloneSpecRemoteOnly(source)
+	if details.FileExists && !details.BadRef {
+		return true, nil
+	}
+
+	return h.ValidCloneSpecRemoteOnly(source), nil
 }
 
 // ValidCloneSpecRemoteOnly determines if the given string reference points to a valid remote git
@@ -136,7 +141,10 @@ func (h *stiGit) MungeNoProtocolURL(source string, uri *url.URL) error {
 		return nil
 	}
 
-	details, mods := ParseFile(source)
+	details, mods, err := ParseFile(source)
+	if err != nil {
+		return err
+	}
 
 	if details.BadRef {
 		return fmt.Errorf("bad reference following # in %s", source)
@@ -195,11 +203,6 @@ func ParseURL(source string) (*url.URL, error) {
 	return uri, nil
 }
 
-func useCopy(protoSpecified bool, source string) bool {
-	glog.V(4).Infof("useCopy proto spec %v local git repo %v has git bin %v", protoSpecified, isLocalGitRepository(source), hasGitBinary())
-	return !isLocalGitRepository(source) || !hasGitBinary()
-}
-
 // mimic the path munging (make paths absolute to fix file:// with non-absolute paths) done when scm.go:DownloderForSource valided git file urls
 func makePathAbsolute(source string) string {
 	glog.V(4).Infof("makePathAbsolute %s", source)
@@ -217,84 +220,80 @@ func makePathAbsolute(source string) string {
 // expect git clone spec syntax; it also provides details if the file://
 // proto was explicitly specified, if we should use OS copy vs. the git
 // binary, and if a frag/ref has a bad format
-func ParseFile(source string) (details *FileProtoDetails, mods *URLMods) {
+func ParseFile(source string) (*FileProtoDetails, *URLMods, error) {
+	// Checking to see if the user included a "file://" in the call
 	protoSpecified := false
 	if strings.HasPrefix(source, "file://") && len(source) > 7 {
 		protoSpecified = true
 	}
 
+	refSpecified := false
+	path, ref := "", ""
+	if strings.LastIndex(source, "#") != -1 {
+		refSpecified = true
+
+		segments := strings.SplitN(source, "#", 2)
+		path = segments[0]
+		ref = segments[1]
+	} else {
+		path = source
+	}
+
 	// in each valid case, like the prior logic in scm.go did, we'll make the
 	// paths absolute and prepend file:// to the path which callers should
 	// switch to
+	if doesExist(path) {
 
-	// if source, minus potential file:// prefix and #ref suffix,
-	// exists as is, denote and return
-	if doesExist(source) || doesExist(strings.SplitN(source, "#", 2)[0]) {
-		details = &FileProtoDetails{
-			FileExists:     true,
-			UseCopy:        useCopy(protoSpecified, source),
-			ProtoSpecified: protoSpecified,
-			BadRef:         false,
+		// Is there even a valid .git repository?
+		isValidGit, err := isValidGitRepository(path)
+		hasGit := false
+		if isValidGit {
+			hasGit = hasGitBinary()
 		}
-		mods = &URLMods{
-			Scheme: "file",
-			Path:   makePathAbsolute(strings.TrimPrefix(source, "file://")),
-		}
-		return
-	}
 
-	// need to see if this was a file://<valid file>#ref
-	if protoSpecified && strings.LastIndex(source, "#") != -1 {
-		segments := strings.SplitN(source, "#", 2)
-		// given last index check above, segement should
-		// be of len 2
-		path, ref := segments[0], segments[1]
-		// file does not exist, return bad
-		if !doesExist(path) {
-			details = &FileProtoDetails{
-				UseCopy:        false,
-				FileExists:     false,
-				ProtoSpecified: protoSpecified,
-				BadRef:         false,
-			}
-			mods = nil
-			return
-		}
-		// if ref/frag bad, return bad
-		if !gitSSHURLPathRef.MatchString(ref) {
-			details = &FileProtoDetails{
-				UseCopy:        false,
+		if err != nil || !isValidGit || !hasGit {
+			details := &FileProtoDetails{
+				UseCopy:        true,
 				FileExists:     true,
+				BadRef:         false,
 				ProtoSpecified: protoSpecified,
-				BadRef:         true,
 			}
-			mods = nil
-			return
+			mods := &URLMods{
+				Scheme: "file",
+				Path:   makePathAbsolute(strings.TrimPrefix(path, "file://")),
+				Ref:    ref,
+			}
+			return details, mods, err
 		}
 
-		// return good
-		details = &FileProtoDetails{
-			UseCopy:        useCopy(protoSpecified, source),
+		// Check is the #ref is valid
+		badRef := refSpecified && !gitSSHURLPathRef.MatchString(ref)
+
+		details := &FileProtoDetails{
+			BadRef:         badRef,
 			FileExists:     true,
 			ProtoSpecified: protoSpecified,
-			BadRef:         false,
+			// this value doesn't really matter, we should not proceed if the git ref is bad
+			// but let's fallback to "copy" mode if the ref is invalid.
+			UseCopy: badRef,
 		}
-		mods = &URLMods{
+
+		mods := &URLMods{
 			Scheme: "file",
-			Path:   makePathAbsolute(strings.TrimPrefix(source, "file://")),
+			Path:   makePathAbsolute(strings.TrimPrefix(path, "file://")),
 			Ref:    ref,
 		}
-		return
+		return details, mods, nil
 	}
 
-	// general return bad
-	details = &FileProtoDetails{
+	// File does not exist, return bad
+	details := &FileProtoDetails{
 		UseCopy:        false,
 		FileExists:     false,
 		BadRef:         false,
 		ProtoSpecified: protoSpecified,
 	}
-	return
+	return details, nil, nil
 }
 
 // ParseSSH will see if the input string is a valid git clone spec
@@ -366,11 +365,52 @@ func ParseSSH(source string) (*URLMods, error) {
 	return nil, fmt.Errorf("unable to parse ssh git clone specification:  %s", source)
 }
 
-// isLocalGitRepository checks if the specified directory has .git subdirectory (it
-// is a Git repository)
-func isLocalGitRepository(dir string) bool {
-	_, err := os.Stat(fmt.Sprintf("%s/.git", strings.TrimPrefix(dir, "file://")))
-	return !(err != nil && os.IsNotExist(err))
+// isValidGitRepository checks to see if there is a .git repository in the
+// directory and if the repository is valid -- i.e. it has remotes or commits
+func isValidGitRepository(dir string) (bool, error) {
+	gitDir := filepath.Join(strings.TrimPrefix(dir, "file://"), ".git")
+
+	// Check to see if .git directory even exists
+	if !doesExist(gitDir) {
+		// The direcory is not a git repo, no error
+		return false, nil
+	}
+
+	// Search the content of the .git directory for content
+	directories := [2]string{
+		filepath.Join(gitDir, "objects"),
+		filepath.Join(gitDir, "refs"),
+	}
+
+	// For the directories we search, if the git repo has been used, there will
+	// be some file.  We don't just search the base git repository because of the
+	// hook samples that are normally generated with `git init`
+	isEmpty := true
+	for _, dir := range directories {
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			// If we find a file, the git directory is "not empty"
+			// We're looking for object blobs, and ref files
+			if info != nil && !info.IsDir() {
+				isEmpty = false
+				return filepath.SkipDir
+			}
+
+			return err
+		})
+
+		if err != nil && err != filepath.SkipDir {
+			// There is a .git, but we've encountered an error
+			return true, err
+		}
+
+		if !isEmpty {
+			return true, nil
+		}
+	}
+
+	// Since we know there's a .git directory, but there is nothing in it, we
+	// throw an error
+	return true, errors.NewEmptyGitRepositoryError(dir)
 }
 
 // doesExist checks if the path exists, removing file:// if needed for OS FS check

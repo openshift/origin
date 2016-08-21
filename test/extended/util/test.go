@@ -174,7 +174,7 @@ func createTestingNS(baseName string, c *kclient.Client, labels map[string]strin
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
-		osClient, _, err := configapi.GetOpenShiftClient(KubeConfigPath())
+		osClient, _, err := configapi.GetOpenShiftClient(KubeConfigPath(), nil)
 		if err != nil {
 			return ns, err
 		}

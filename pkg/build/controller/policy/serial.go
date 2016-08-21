@@ -22,8 +22,11 @@ func (s *SerialPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 	if len(bcName) == 0 {
 		return true, nil
 	}
-	nextBuild, runningBuilds, err := GetNextConfigBuild(s.BuildLister, build.Namespace, bcName)
-	return !runningBuilds && (nextBuild != nil && nextBuild.Name == build.Name), err
+	nextBuilds, runningBuilds, err := GetNextConfigBuild(s.BuildLister, build.Namespace, bcName)
+	if err != nil || runningBuilds {
+		return false, err
+	}
+	return len(nextBuilds) == 1 && nextBuilds[0].Name == build.Name, err
 }
 
 // OnComplete implements the RunPolicy interface.

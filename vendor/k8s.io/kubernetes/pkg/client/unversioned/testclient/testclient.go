@@ -281,6 +281,10 @@ func (c *Fake) Namespaces() client.NamespaceInterface {
 	return &FakeNamespaces{Fake: c}
 }
 
+func (c *Fake) Apps() client.AppsInterface {
+	return &FakeApps{c}
+}
+
 func (c *Fake) Autoscaling() client.AutoscalingInterface {
 	return &FakeAutoscaling{c}
 }
@@ -309,6 +313,10 @@ func (c *Fake) Rbac() client.RbacInterface {
 	return &FakeRbac{Fake: c}
 }
 
+func (c *Fake) Authentication() client.AuthenticationInterface {
+	return &FakeAuthentication{Fake: c}
+}
+
 // SwaggerSchema returns an empty swagger.ApiDeclaration for testing
 func (c *Fake) SwaggerSchema(version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
 	action := ActionImpl{}
@@ -323,6 +331,19 @@ func (c *Fake) SwaggerSchema(version unversioned.GroupVersion) (*swagger.ApiDecl
 	return &swagger.ApiDeclaration{}, nil
 }
 
+// NewSimpleFakeApps returns a client that will respond with the provided objects
+func NewSimpleFakeApps(objects ...runtime.Object) *FakeApps {
+	return &FakeApps{Fake: NewSimpleFake(objects...)}
+}
+
+type FakeApps struct {
+	*Fake
+}
+
+func (c *FakeApps) PetSets(namespace string) client.PetSetInterface {
+	return &FakePetSets{Fake: c, Namespace: namespace}
+}
+
 // NewSimpleFakeAutoscaling returns a client that will respond with the provided objects
 func NewSimpleFakeAutoscaling(objects ...runtime.Object) *FakeAutoscaling {
 	return &FakeAutoscaling{Fake: NewSimpleFake(objects...)}
@@ -334,6 +355,18 @@ type FakeAutoscaling struct {
 
 func (c *FakeAutoscaling) HorizontalPodAutoscalers(namespace string) client.HorizontalPodAutoscalerInterface {
 	return &FakeHorizontalPodAutoscalers{Fake: c, Namespace: namespace}
+}
+
+func NewSimpleFakeAuthentication(objects ...runtime.Object) *FakeAuthentication {
+	return &FakeAuthentication{Fake: NewSimpleFake(objects...)}
+}
+
+type FakeAuthentication struct {
+	*Fake
+}
+
+func (c *FakeAuthentication) TokenReviews() client.TokenReviewInterface {
+	return &FakeTokenReviews{Fake: c}
 }
 
 // NewSimpleFakeBatch returns a client that will respond with the provided objects

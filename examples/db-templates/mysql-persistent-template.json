@@ -65,7 +65,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest",
+                "name": "mysql:5.6",
                 "namespace": "${NAMESPACE}"
               }
             }
@@ -173,7 +173,7 @@
     },
     {
       "name": "MYSQL_USER",
-      "displayName": "MySQL User",
+      "displayName": "MySQL Connection Username",
       "description": "Username for MySQL user that will be used for accessing the database.",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}",
@@ -181,8 +181,8 @@
     },
     {
       "name": "MYSQL_PASSWORD",
-      "displayName": "MySQL Password",
-      "description": "Password for the MySQL user.",
+      "displayName": "MySQL Connection Password",
+      "description": "Password for the MySQL connection user.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true

@@ -194,7 +194,7 @@ func TestAllocateReleaseSubnet(t *testing.T) {
 	}
 
 	if err := sna.ReleaseNetwork(releaseSn); err != nil {
-		t.Fatal("Failed to release the subnet: ", err)
+		t.Fatalf("Failed to release the subnet (releaseSn=%s): %v", releaseSn.String(), err)
 	}
 
 	sn, err = sna.GetNetwork()

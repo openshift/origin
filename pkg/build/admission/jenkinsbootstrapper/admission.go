@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return NewJenkingsBootstrapper(c.Core()), nil
 	})
 }
@@ -53,7 +53,7 @@ func NewJenkingsBootstrapper(serviceClient coreclient.ServicesGetter) admission.
 }
 
 func (a *jenkingsBootstrapper) Admit(attributes admission.Attributes) error {
-	if a.jenkinsConfig.Enabled != nil && !*a.jenkinsConfig.Enabled {
+	if a.jenkinsConfig.AutoProvisionEnabled == nil || !*a.jenkinsConfig.AutoProvisionEnabled {
 		return nil
 	}
 	if len(attributes.GetSubresource()) != 0 {

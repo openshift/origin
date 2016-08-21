@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	PluginName = "ImageLimitRange"
+	PluginName = "openshift.io/ImageLimitRange"
 )
 
 func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceName, requested, limit *resource.Quantity) error {

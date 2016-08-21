@@ -1,24 +1,15 @@
 package git
 
 import (
-	"io/ioutil"
 	"net/url"
 	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/openshift/source-to-image/pkg/test"
 )
 
-func createLocalGitDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir(os.TempDir(), "s2i-test")
-	if err != nil {
-		t.Error(err)
-	}
-	os.Mkdir(filepath.Join(dir, ".git"), 0600)
-	return dir
-}
-
 func TestParseRepository(t *testing.T) {
-	gitLocalDir := createLocalGitDirectory(t)
+	gitLocalDir := test.CreateLocalGitDirectory(t)
 	defer os.RemoveAll(gitLocalDir)
 
 	tests := map[string]url.URL{

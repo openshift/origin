@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -21,6 +19,7 @@ import (
 
 func TestWebhookGitHubPushWithImage(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -123,6 +122,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 
 func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -223,6 +223,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 
 func TestWebhookGitHubPing(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unable to start master: %v", err)
@@ -296,7 +297,7 @@ func postFile(client restclient.HTTPClient, event, filename, url string, expStat
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != expStatusCode {
-		t.Errorf("Wrong response code, expecting %d, got %s: %s!", expStatusCode, resp.StatusCode, string(body))
+		t.Errorf("Wrong response code, expecting %d, got %d: %s!", expStatusCode, resp.StatusCode, string(body))
 	}
 }
 

@@ -38,12 +38,13 @@ type Registry struct {
 type ResourceName string
 
 const (
-	Nodes         ResourceName = "Nodes"
-	Namespaces    ResourceName = "Namespaces"
-	NetNamespaces ResourceName = "NetNamespaces"
-	Services      ResourceName = "Services"
-	HostSubnets   ResourceName = "HostSubnets"
-	Pods          ResourceName = "Pods"
+	Nodes                 ResourceName = "Nodes"
+	Namespaces            ResourceName = "Namespaces"
+	NetNamespaces         ResourceName = "NetNamespaces"
+	Services              ResourceName = "Services"
+	HostSubnets           ResourceName = "HostSubnets"
+	Pods                  ResourceName = "Pods"
+	EgressNetworkPolicies ResourceName = "EgressNetworkPolicies"
 )
 
 func newRegistry(osClient *osclient.Client, kClient *kclient.Client) *Registry {
@@ -82,15 +83,6 @@ func (registry *Registry) CreateSubnet(nodeName, nodeIP, subnetCIDR string) (*os
 
 func (registry *Registry) UpdateSubnet(hs *osapi.HostSubnet) (*osapi.HostSubnet, error) {
 	return registry.oClient.HostSubnets().Update(hs)
-}
-
-func (registry *Registry) GetAllPods() ([]kapi.Pod, error) {
-	podList, err := registry.kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return podList.Items, nil
 }
 
 func (registry *Registry) GetRunningPods(nodeName, namespace string) ([]kapi.Pod, error) {
@@ -147,7 +139,7 @@ func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
 		return err
 	}
 	log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
-	return err
+	return nil
 }
 
 func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
@@ -164,7 +156,7 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 		return err
 	}
 	log.Infof("Created ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
-	return err
+	return nil
 }
 
 func validateClusterNetwork(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
@@ -220,7 +212,7 @@ func (registry *Registry) GetNetNamespace(name string) (*osapi.NetNamespace, err
 	return registry.oClient.NetNamespaces().Get(name)
 }
 
-func (registry *Registry) WriteNetNamespace(name string, id uint32) error {
+func (registry *Registry) CreateNetNamespace(name string, id uint32) error {
 	netns := &osapi.NetNamespace{
 		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},
@@ -229,6 +221,10 @@ func (registry *Registry) WriteNetNamespace(name string, id uint32) error {
 	}
 	_, err := registry.oClient.NetNamespaces().Create(netns)
 	return err
+}
+
+func (registry *Registry) UpdateNetNamespace(netns *osapi.NetNamespace) (*osapi.NetNamespace, error) {
+	return registry.oClient.NetNamespaces().Update(netns)
 }
 
 func (registry *Registry) DeleteNetNamespace(name string) error {
@@ -259,6 +255,14 @@ func (registry *Registry) getServices(namespace string) ([]kapi.Service, error) 
 	return servList, nil
 }
 
+func (registry *Registry) GetEgressNetworkPolicies() ([]osapi.EgressNetworkPolicy, error) {
+	policyList, err := registry.oClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return policyList.Items, nil
+}
+
 // Run event queue for the given resource
 func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.EventQueue {
 	var client cache.Getter
@@ -283,6 +287,9 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.Even
 	case Pods:
 		expectedType = &kapi.Pod{}
 		client = registry.kClient
+	case EgressNetworkPolicies:
+		expectedType = &osapi.EgressNetworkPolicy{}
+		client = registry.oClient
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}

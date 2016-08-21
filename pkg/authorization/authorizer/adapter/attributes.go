@@ -15,21 +15,17 @@ var _ = kauthorizer.Attributes(AdapterAttributes{})
 // AdapterAttributes satisfies k8s authorizer.Attributes interfaces
 type AdapterAttributes struct {
 	namespace               string
-	userName                string
-	groups                  []string
-	authorizationAttributes oauthorizer.AuthorizationAttributes
+	user                    user.Info
+	authorizationAttributes oauthorizer.Action
 }
 
 // OriginAuthorizerAttributes adapts Kubernetes authorization attributes to Origin authorization attributes
 // Note that some info (like resourceName, apiVersion, apiGroup) is not available from the Kubernetes attributes
-func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oauthorizer.AuthorizationAttributes) {
+func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oauthorizer.Action) {
 	// Build a context to hold the namespace and user info
 	ctx := kapi.NewContext()
 	ctx = kapi.WithNamespace(ctx, kattrs.GetNamespace())
-	ctx = kapi.WithUser(ctx, &user.DefaultInfo{
-		Name:   kattrs.GetUserName(),
-		Groups: kattrs.GetGroups(),
-	})
+	ctx = kapi.WithUser(ctx, kattrs.GetUser())
 
 	// If we recognize the type, use the embedded type.  Do NOT use it directly, because not all things that quack are ducks.
 	if castAdapterAttributes, ok := kattrs.(AdapterAttributes); ok {
@@ -59,11 +55,10 @@ func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oa
 
 // KubernetesAuthorizerAttributes adapts Origin authorization attributes to Kubernetes authorization attributes
 // The returned attributes can be passed to OriginAuthorizerAttributes to access extra information from the Origin attributes interface
-func KubernetesAuthorizerAttributes(namespace string, userName string, groups []string, oattrs oauthorizer.AuthorizationAttributes) kauthorizer.Attributes {
+func KubernetesAuthorizerAttributes(namespace string, user user.Info, oattrs oauthorizer.Action) kauthorizer.Attributes {
 	return AdapterAttributes{
-		namespace:               namespace,
-		userName:                userName,
-		groups:                  groups,
+		namespace: namespace,
+		user:      user,
 		authorizationAttributes: oattrs,
 	}
 }
@@ -108,14 +103,8 @@ func (a AdapterAttributes) GetResource() string {
 
 // GetUserName satisfies the kubernetes authorizer.Attributes interface
 // origin gets this value from the request context
-func (a AdapterAttributes) GetUserName() string {
-	return a.userName
-}
-
-// GetGroups satisfies the kubernetes authorizer.Attributes interface
-// origin gets this value from the request context
-func (a AdapterAttributes) GetGroups() []string {
-	return a.groups
+func (a AdapterAttributes) GetUser() user.Info {
+	return a.user
 }
 
 // IsReadOnly satisfies the kubernetes authorizer.Attributes interface based on the verb

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
@@ -27,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -63,13 +63,13 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
 	case "openshift-sti-build":
-		cmd = builder.NewCommandSTIBuilder(basename)
+		cmd = builder.NewCommandS2IBuilder(basename)
 	case "openshift-docker-build":
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "oc", "osc":
 		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
 	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, out, errout)
+		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
 	case "kubectl":
 		cmd = cli.NewCmdKubectl(basename, out)
 	case "kube-apiserver":
@@ -109,14 +109,16 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
+	f := clientcmd.New(pflag.NewFlagSet("", pflag.ContinueOnError))
+
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", out, errout))
+	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
-	root.AddCommand(version.NewVersionCommand(name, version.Options{PrintEtcdVersion: true}))
+	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly
@@ -129,7 +131,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		irouter.NewCommandF5Router("f5-router"),
 		deployer.NewCommandDeployer("deploy"),
 		recycle.NewCommandRecycle("recycle", out),
-		builder.NewCommandSTIBuilder("sti-build"),
+		builder.NewCommandS2IBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
 	)
@@ -201,7 +203,7 @@ func newCompletionCommand(name, fullName string) *cobra.Command {
 	out := os.Stdout
 
 	completion := &cobra.Command{
-		Use:     "completion SHELL",
+		Use:     fmt.Sprintf("%s SHELL", name),
 		Short:   "Output shell completion code for the given shell (bash or zsh)",
 		Long:    completion_long,
 		Example: completion_example,

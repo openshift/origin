@@ -30,35 +30,26 @@ var _ = g.Describe("[builds][Slow] extremely long build/bc names are not problem
 			bcB := "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890b"
 
 			g.By("starting long name build config A-1")
-			bnA1, err := oc.Run("start-build").Args(bcA).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			brA1, err := exutil.StartBuildAndWait(oc, bcA)
+			brA1.AssertSuccess()
 
 			g.By("starting long name build config B-1")
-			bnB1, err := oc.Run("start-build").Args(bcB).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			brB1, err := exutil.StartBuildAndWait(oc, bcB)
+			brB1.AssertSuccess()
 
 			g.By("starting long name build config A-2")
-			bnA2, err := oc.Run("start-build").Args(bcA).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			brA2, err := exutil.StartBuildAndWait(oc, bcA)
+			brA2.AssertSuccess()
 
 			g.By("starting long name build config B-2")
-			bnB2, err := oc.Run("start-build").Args(bcB).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			brB2, err := exutil.StartBuildAndWait(oc, bcB)
+			brB2.AssertSuccess()
 
-			builds := [...]string{bnA1, bnB1, bnA2, bnB2}
-
-			g.By("checking the status of the builds")
-			for _, bn := range builds {
-				err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), bn, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-				if err != nil {
-					exutil.DumpNamedBuildLogs(bn, oc)
-				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
+			builds := [...]*exutil.BuildResult{brA1, brB1, brA2, brB2}
 
 			g.By("Verifying gets for build configs and builds")
-			for _, bn := range builds {
-				err = oc.Run("get").Args("build", bn).Execute()
+			for _, br := range builds {
+				err = oc.Run("get").Args(br.BuildPath).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
@@ -69,20 +60,20 @@ var _ = g.Describe("[builds][Slow] extremely long build/bc names are not problem
 			err = oc.Run("get").Args("bc", bcB).Execute()
 			o.Expect(err).To(o.HaveOccurred())
 
-			err = oc.Run("get").Args("build", bnB1).Execute()
+			err = oc.Run("get").Args(brB1.BuildPath).Execute()
 			o.Expect(err).To(o.HaveOccurred())
 
-			err = oc.Run("get").Args("build", bnB2).Execute()
+			err = oc.Run("get").Args(brB2.BuildPath).Execute()
 			o.Expect(err).To(o.HaveOccurred())
 
 			g.By("Verifying build config A was untouched by delete")
 			err = oc.Run("get").Args("bc", bcA).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.Run("get").Args("build", bnA1).Execute()
+			err = oc.Run("get").Args(brA1.BuildPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = oc.Run("get").Args("build", bnA2).Execute()
+			err = oc.Run("get").Args(brA2.BuildPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 

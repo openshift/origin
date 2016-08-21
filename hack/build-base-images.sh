@@ -1,21 +1,9 @@
 #!/bin/bash
 
 # This script builds the base and release images for use by the release build and image builds.
-#
-# Set OS_IMAGE_PUSH=true to push images to a registry
-#
-
-set -o errexit
-set -o nounset
-set -o pipefail
 
 STARTTIME=$(date +%s)
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 oc="$(os::build::find-binary oc ${OS_ROOT})"
 if [[ -z "${oc}" ]]; then
@@ -24,7 +12,7 @@ if [[ -z "${oc}" ]]; then
 fi
 
 function build() {
-  "${oc}" ex dockerbuild $2 $1
+  eval "'${oc}' ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
 }
 
 # Build the images

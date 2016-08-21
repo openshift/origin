@@ -23,6 +23,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/docker/distribution/reference"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -134,6 +137,13 @@ func Run(f *cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr i
 		return cmdutil.UsageError(cmd, "NAME is required for run")
 	}
 
+	// validate image name
+	imageName := cmdutil.GetFlagString(cmd, "image")
+	validImageRef := reference.ReferenceRegexp.MatchString(imageName)
+	if !validImageRef {
+		return fmt.Errorf("Invalid image name %q: %v", imageName, reference.ErrReferenceInvalidFormat)
+	}
+
 	interactive := cmdutil.GetFlagBool(cmd, "stdin")
 	tty := cmdutil.GetFlagBool(cmd, "tty")
 	if tty && !interactive {
@@ -237,11 +247,15 @@ func Run(f *cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr i
 
 	if attach {
 		opts := &AttachOptions{
-			In:    cmdIn,
-			Out:   cmdOut,
-			Err:   cmdErr,
-			Stdin: interactive,
-			TTY:   tty,
+			StreamOptions: StreamOptions{
+				In:    cmdIn,
+				Out:   cmdOut,
+				Err:   cmdErr,
+				Stdin: interactive,
+				TTY:   tty,
+			},
+
+			CommandName: cmd.Parent().CommandPath() + " attach",
 
 			Attach: &DefaultRemoteAttach{},
 		}
@@ -362,7 +376,6 @@ func handleAttachPod(f *cmdutil.Factory, c *client.Client, pod *api.Pod, opts *A
 	opts.Client = c
 	opts.PodName = pod.Name
 	opts.Namespace = pod.Namespace
-	opts.CommandName = "kubectl attach"
 	if err := opts.Run(); err != nil {
 		fmt.Fprintf(opts.Out, "Error attaching, falling back to logs: %v\n", err)
 		req, err := f.LogsForObject(pod, &api.PodLogOptions{Container: opts.GetContainerName(pod)})

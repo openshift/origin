@@ -80,5 +80,5 @@ type SortedDeploymentConfigPipeline []DeploymentConfigPipeline
 func (m SortedDeploymentConfigPipeline) Len() int      { return len(m) }
 func (m SortedDeploymentConfigPipeline) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m SortedDeploymentConfigPipeline) Less(i, j int) bool {
-	return CompareObjectMeta(&m[i].Deployment.ObjectMeta, &m[j].Deployment.ObjectMeta)
+	return CompareObjectMeta(&m[i].Deployment.DeploymentConfig.ObjectMeta, &m[j].Deployment.DeploymentConfig.ObjectMeta)
 }

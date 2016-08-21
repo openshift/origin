@@ -3,10 +3,12 @@ package util
 import (
 	"fmt"
 	"os/exec"
+	"reflect"
 	"strings"
 	"time"
 
 	"k8s.io/kubernetes/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // Database interface allows testing database images.
@@ -47,11 +49,16 @@ func WaitForQueryOutputSatisfies(oc *CLI, d Database, timeout time.Duration, adm
 		} else {
 			out, err = d.Query(oc, query)
 		}
+		if _, ok := err.(*ExitError); ok {
+			// Ignore exit errors
+			return false, nil
+		}
 		if _, ok := err.(*exec.ExitError); ok {
 			// Ignore exit errors
 			return false, nil
 		}
 		if err != nil {
+			e2e.Logf("failing immediately with error: %v, type=%v", err, reflect.TypeOf(err))
 			return false, err
 		}
 		if predicate(out) {

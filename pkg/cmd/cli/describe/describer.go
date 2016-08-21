@@ -31,6 +31,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -62,6 +63,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
 		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
 		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
+		sdnapi.Kind("EgressNetworkPolicy"):            &EgressNetworkPolicyDescriber{c},
 	}
 	return m
 }
@@ -301,7 +303,7 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 	if s.PullSecret != nil {
 		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
-	if s.Incremental {
+	if s.Incremental != nil && *s.Incremental {
 		formatString(out, "Incremental Build", "yes")
 	}
 	if s.ForcePull {
@@ -650,6 +652,11 @@ type RouteDescriber struct {
 	kubeClient kclient.Interface
 }
 
+type routeEndpointInfo struct {
+	*kapi.Endpoints
+	Err error
+}
+
 // Describe returns the description of a route
 func (d *RouteDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.Routes(namespace)
@@ -658,7 +665,16 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 		return "", err
 	}
 
-	endpoints, endsErr := d.kubeClient.Endpoints(namespace).Get(route.Spec.To.Name)
+	backends := append([]routeapi.RouteTargetReference{route.Spec.To}, route.Spec.AlternateBackends...)
+	totalWeight := int32(0)
+	endpoints := make(map[string]routeEndpointInfo)
+	for _, backend := range backends {
+		if backend.Weight != nil {
+			totalWeight += *backend.Weight
+		}
+		ep, endpointsErr := d.kubeClient.Endpoints(namespace).Get(backend.Name)
+		endpoints[backend.Name] = routeEndpointInfo{ep, endpointsErr}
+	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
@@ -681,6 +697,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 		} else {
 			formatString(out, "Requested Host", "<auto>")
 		}
+
 		for _, ingress := range route.Status.Ingress {
 			if route.Spec.Host == ingress.Host {
 				continue
@@ -705,23 +722,39 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 		}
 		formatString(out, "TLS Termination", tlsTerm)
 		formatString(out, "Insecure Policy", insecurePolicy)
-
-		formatString(out, "Service", route.Spec.To.Name)
 		if route.Spec.Port != nil {
 			formatString(out, "Endpoint Port", route.Spec.Port.TargetPort.String())
 		} else {
 			formatString(out, "Endpoint Port", "<all endpoint ports>")
 		}
 
-		ends := "<none>"
-		if endsErr != nil {
-			ends = fmt.Sprintf("Unable to get endpoints: %v", endsErr)
-		} else if len(endpoints.Subsets) > 0 {
-			list := []string{}
+		for _, backend := range backends {
+			fmt.Fprintln(out)
+			formatString(out, "Service", backend.Name)
+			weight := int32(0)
+			if backend.Weight != nil {
+				weight = *backend.Weight
+			}
+			if weight > 0 {
+				fmt.Fprintf(out, "Weight:\t%d (%d%%)\n", weight, weight*100/totalWeight)
+			} else {
+				formatString(out, "Weight", "0")
+			}
 
+			info := endpoints[backend.Name]
+			if info.Err != nil {
+				formatString(out, "Endpoints", fmt.Sprintf("<error: %v>", info.Err))
+				continue
+			}
+			endpoints := info.Endpoints
+			if len(endpoints.Subsets) == 0 {
+				formatString(out, "Endpoints", "<none>")
+				continue
+			}
+
+			list := []string{}
 			max := 3
 			count := 0
-
 			for i := range endpoints.Subsets {
 				ss := &endpoints.Subsets[i]
 				for p := range ss.Ports {
@@ -733,12 +766,12 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 					}
 				}
 			}
-			ends = strings.Join(list, ", ")
+			ends := strings.Join(list, ", ")
 			if count > max {
 				ends += fmt.Sprintf(" + %d more...", count-max)
 			}
+			formatString(out, "Endpoints", ends)
 		}
-		formatString(out, "Endpoints", ends)
 		return nil
 	})
 }
@@ -1485,4 +1518,24 @@ func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings
 		return "", err
 	}
 	return DescribeClusterQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(quota))
+}
+
+type EgressNetworkPolicyDescriber struct {
+	osClient client.Interface
+}
+
+// Describe returns the description of an EgressNetworkPolicy
+func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	c := d.osClient.EgressNetworkPolicies(namespace)
+	policy, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, policy.ObjectMeta)
+		for _, rule := range policy.Spec.Egress {
+			fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
+		}
+		return nil
+	})
 }

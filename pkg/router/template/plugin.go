@@ -12,23 +12,27 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktypes "k8s.io/kubernetes/pkg/types"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
 // TemplatePlugin implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type TemplatePlugin struct {
-	Router     routerInterface
-	IncludeUDP bool
+	Router         routerInterface
+	IncludeUDP     bool
+	ServiceFetcher ServiceLookup
 }
 
-func newDefaultTemplatePlugin(router routerInterface, includeUDP bool) *TemplatePlugin {
+func newDefaultTemplatePlugin(router routerInterface, includeUDP bool, lookupSvc ServiceLookup) *TemplatePlugin {
 	return &TemplatePlugin{
-		Router:     router,
-		IncludeUDP: includeUDP,
+		Router:         router,
+		IncludeUDP:     includeUDP,
+		ServiceFetcher: lookupSvc,
 	}
 }
 
@@ -39,6 +43,7 @@ type TemplatePluginConfig struct {
 	ReloadInterval         time.Duration
 	DefaultCertificate     string
 	DefaultCertificatePath string
+	DefaultCertificateDir  string
 	StatsPort              int
 	StatsUsername          string
 	StatsPassword          string
@@ -94,14 +99,14 @@ func env(name, defaultValue string) string {
 }
 
 // NewTemplatePlugin creates a new TemplatePlugin.
-func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
+func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
 	globalFuncs := template.FuncMap{
-		"endpointsForAlias": endpointsForAlias,
-		"env":               env,
-		"matchString":       matchString,
-		"isInteger":         isInteger,
-		"matchValues":       matchValues,
+		"endpointsForAlias": endpointsForAlias, //returns the list of valid endpoints
+		"env":               env,               //tries to get an environment variable if it can't return a default
+		"matchPattern":      matchPattern,      //anchors provided regular expression and evaluates against given string
+		"isInteger":         isInteger,         //determines if a given variable is an integer
+		"matchValues":       matchValues,       //compares a given string to a list of allowed strings
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
@@ -129,13 +134,14 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		reloadInterval:         cfg.ReloadInterval,
 		defaultCertificate:     cfg.DefaultCertificate,
 		defaultCertificatePath: cfg.DefaultCertificatePath,
+		defaultCertificateDir:  cfg.DefaultCertificateDir,
 		statsUser:              cfg.StatsUsername,
 		statsPassword:          cfg.StatsPassword,
 		statsPort:              cfg.StatsPort,
 		peerEndpointsKey:       peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
-	return newDefaultTemplatePlugin(router, cfg.IncludeUDP), err
+	return newDefaultTemplatePlugin(router, cfg.IncludeUDP, lookupSvc), err
 }
 
 // HandleEndpoints processes watch events on the Endpoints resource.
@@ -155,7 +161,7 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
-		routerEndpoints := createRouterEndpoints(endpoints, !p.IncludeUDP)
+		routerEndpoints := createRouterEndpoints(endpoints, !p.IncludeUDP, p.ServiceFetcher)
 		key := endpointsKey(endpoints)
 		commit := p.Router.AddEndpoints(key, routerEndpoints)
 		if commit {
@@ -257,11 +263,47 @@ func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
 }
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
-func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoint {
+func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc ServiceLookup) []Endpoint {
+	// check if this service is currently idled
+	wasIdled := false
+	subsets := endpoints.Subsets
+	if _, ok := endpoints.Annotations[unidlingapi.IdledAtAnnotation]; ok && len(endpoints.Subsets) == 0 {
+		service, err := lookupSvc.LookupService(endpoints)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("unable to find idled service corresponding to idled endpoints %s/%s: %v", endpoints.Namespace, endpoints.Name, err))
+			return []Endpoint{}
+		}
+
+		if service.Spec.ClusterIP == "" {
+			utilruntime.HandleError(fmt.Errorf("headless service %s/%s was marked as idled, but cannot setup unidling without a cluster IP", endpoints.Namespace, endpoints.Name))
+			return []Endpoint{}
+		}
+
+		svcSubset := kapi.EndpointSubset{
+			Addresses: []kapi.EndpointAddress{
+				{
+					IP: service.Spec.ClusterIP,
+				},
+			},
+		}
+
+		for _, port := range service.Spec.Ports {
+			endptPort := kapi.EndpointPort{
+				Name:     port.Name,
+				Port:     port.Port,
+				Protocol: port.Protocol,
+			}
+			svcSubset.Ports = append(svcSubset.Ports, endptPort)
+		}
+
+		subsets = []kapi.EndpointSubset{svcSubset}
+		wasIdled = true
+	}
+
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
 
 	// TODO: review me for sanity
-	for _, s := range endpoints.Subsets {
+	for _, s := range subsets {
 		for _, p := range s.Ports {
 			if excludeUDP && p.Protocol == kapi.ProtocolUDP {
 				continue
@@ -273,6 +315,8 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoin
 					Port: strconv.Itoa(int(p.Port)),
 
 					PortName: p.Name,
+
+					NoHealthCheck: wasIdled,
 				}
 				if a.TargetRef != nil {
 					ep.TargetName = a.TargetRef.Name

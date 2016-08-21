@@ -20,6 +20,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
@@ -91,8 +92,8 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 	cmd.Flags().StringSliceVarP(&o.Env, "env", "e", o.Env, "Specify key value pairs of environment variables to set for the build container.")
 	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
 
-	cmd.Flags().BoolVar(&o.Follow, "follow", o.Follow, "Start a build and watch its logs until it completes or fails")
-	cmd.Flags().BoolVar(&o.WaitForComplete, "wait", o.WaitForComplete, "Wait for a build to complete and exit with a non-zero return code if the build fails")
+	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
+	cmd.Flags().BoolVarP(&o.WaitForComplete, "wait", "w", o.WaitForComplete, "Wait for a build to complete and exit with a non-zero return code if the build fails")
 
 	cmd.Flags().StringVar(&o.FromFile, "from-file", o.FromFile, "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
 	cmd.Flags().StringVar(&o.FromDir, "from-dir", o.FromDir, "A directory to archive and use as the binary input for a build.")
@@ -105,7 +106,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 	cmd.Flags().StringVar(&o.GitPostReceive, "git-post-receive", o.GitPostReceive, "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().StringVar(&o.GitRepository, "git-repository", o.GitRepository, "The path to the git repository for post-receive; defaults to the current directory")
 
-	// cmdutil.AddOutputFlagsForMutation(cmd)
+	kcmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -132,21 +133,24 @@ type StartBuildOptions struct {
 	GitRepository  string
 	GitPostReceive string
 
+	Mapper       meta.RESTMapper
 	Client       osclient.Interface
 	ClientConfig kclientcmd.ClientConfig
 
-	AsBinary  bool
-	EnvVar    []kapi.EnvVar
-	Name      string
-	Namespace string
+	AsBinary    bool
+	ShortOutput bool
+	EnvVar      []kapi.EnvVar
+	Name        string
+	Namespace   string
 }
 
 func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.Out()
+	o.ErrOut = cmd.OutOrStderr()
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig
+	o.Mapper, _ = f.Object(false)
 
 	webhook := o.FromWebhook
 	buildName := o.FromBuild
@@ -154,6 +158,12 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 	fromDir := o.FromDir
 	fromRepo := o.FromRepo
 	buildLogLevel := o.LogLevel
+
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+	if outputFormat != "name" && outputFormat != "" {
+		return kcmdutil.UsageError(cmd, "Unsupported output format: %s", outputFormat)
+	}
+	o.ShortOutput = outputFormat == "name"
 
 	switch {
 	case len(webhook) > 0:
@@ -249,6 +259,7 @@ func (o *StartBuildOptions) Run() error {
 	if len(o.ListWebhooks) > 0 {
 		return o.RunListBuildWebHooks()
 	}
+
 	buildRequestCauses := []buildapi.BuildTriggerCause{}
 	request := &buildapi.BuildRequest{
 		TriggeredBy: append(buildRequestCauses,
@@ -302,8 +313,7 @@ func (o *StartBuildOptions) Run() error {
 		}
 	}
 
-	// TODO: support -o on this command
-	fmt.Fprintln(o.Out, newBuild.Name)
+	kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, "started")
 
 	var (
 		wg      sync.WaitGroup
@@ -407,7 +417,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	return nil
 }
 
-func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client osclient.BuildConfigInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
+func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client osclient.BuildConfigInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
 	count := 0
 	asDir, asFile, asRepo := len(fromDir) > 0, len(fromFile) > 0, len(fromRepo) > 0
 	if asDir {
@@ -421,6 +431,10 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 	}
 	if count > 1 {
 		return nil, fmt.Errorf("only one of --from-file, --from-repo, or --from-dir may be specified")
+	}
+
+	if asRepo && !git.IsGitInstalled() {
+		return nil, fmt.Errorf("cannot find git. Git is required to start a build from a repository. If git is not available, use --from-dir instead.")
 	}
 
 	var r io.Reader
@@ -462,7 +476,7 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 			if len(options.Commit) > 0 {
 				commit = options.Commit
 			}
-			info, gitErr := gitRefInfo(git, clean, commit)
+			info, gitErr := gitRefInfo(repo, clean, commit)
 			if gitErr == nil {
 				options.Commit = info.GitSourceRevision.Commit
 				options.Message = info.GitSourceRevision.Message
@@ -481,7 +495,7 @@ func streamPathToBuild(git git.Repository, in io.Reader, out io.Writer, client o
 				}
 				pr, pw := io.Pipe()
 				go func() {
-					if err := git.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
+					if err := repo.Archive(clean, options.Commit, "tar.gz", pw); err != nil {
 						pw.CloseWithError(fmt.Errorf("unable to create Git archive of %q for build: %v", clean, err))
 					} else {
 						pw.CloseWithError(io.EOF)

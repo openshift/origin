@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -48,6 +49,10 @@ const (
 	// for the default timedExecGitFunc
 	noCommandTimeout = 0 * time.Second
 )
+
+// ErrGitNotAvailable will be returned if the git call fails because a git binary
+// could not be found
+var ErrGitNotAvailable = fmt.Errorf("git binary not available")
 
 // SourceInfo stores information about the source code
 type SourceInfo struct {
@@ -342,7 +347,8 @@ func command(name, dir string, env []string, args ...string) (stdout, stderr str
 // timedCommand executes an external command in the given directory with a timeout.
 // The command's standard out and error are returned as strings.
 // It may return the type *GitError if the command itself fails or the type *TimeoutError
-// if the command times out before finishing. A value of
+// if the command times out before finishing.
+// If the git binary cannot be found, ErrGitNotAvailable will be returned as the error.
 func timedCommand(timeout time.Duration, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 
@@ -370,6 +376,13 @@ func timedCommand(timeout time.Duration, name, dir string, env []string, args ..
 
 	// we don't want captured output to have a trailing newline for formatting reasons
 	stdout, stderr = strings.TrimRight(stdoutBuffer.String(), "\n"), strings.TrimRight(stderrBuffer.String(), "\n")
+
+	// check whether git was available in the first place
+	if err != nil {
+		if !isBinaryInstalled(name) {
+			return "", "", ErrGitNotAvailable
+		}
+	}
 
 	// if we encounter an error we recognize, return a typed error
 	if exitErr, ok := err.(*exec.ExitError); ok {
@@ -451,4 +464,20 @@ func IsExitCode(err error, exitCode int) bool {
 		return false
 	}
 	return false
+}
+
+func gitBinary() string {
+	if runtime.GOOS == "windows" {
+		return "git.exe"
+	}
+	return "git"
+}
+
+func IsGitInstalled() bool {
+	return isBinaryInstalled(gitBinary())
+}
+
+func isBinaryInstalled(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
 }

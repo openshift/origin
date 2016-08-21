@@ -1,12 +1,7 @@
 #!/bin/bash
 #
 # This script verifies that generated Swagger self-describing documentation is up to date.
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 echo "===== Verifying Generated Swagger Descriptions ====="
 

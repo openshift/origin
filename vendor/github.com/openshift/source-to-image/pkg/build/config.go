@@ -9,12 +9,15 @@ import (
 
 // GenerateConfigFromLabels generates the S2I Config struct from the Docker
 // image labels.
-func GenerateConfigFromLabels(config *api.Config) error {
-	result, err := docker.GetBuilderImage(config)
-	if err != nil {
-		return err
+func GenerateConfigFromLabels(config *api.Config, metadata *docker.PullResult) error {
+	if config == nil {
+		return fmt.Errorf("config must be provided to GenerateConfigFromLabels")
 	}
-	labels := result.Image.Config.Labels
+	if metadata == nil {
+		return fmt.Errorf("image metadata must be provided to GenerateConfigFromLabels")
+	}
+
+	labels := metadata.Image.Config.Labels
 
 	if builderVersion, ok := labels["io.openshift.builder-version"]; ok {
 		config.BuilderImageVersion = builderVersion

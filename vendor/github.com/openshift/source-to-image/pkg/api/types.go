@@ -37,6 +37,9 @@ const (
 	// DefaultBuilderPullPolicy specifies the default pull policy to use
 	DefaultBuilderPullPolicy = PullIfNotPresent
 
+	// DefaultRuntimeImagePullPolicy specifies the default pull policy to use.
+	DefaultRuntimeImagePullPolicy = PullIfNotPresent
+
 	// DefaultPreviousImagePullPolicy specifies policy for pulling the previously
 	// build Docker image when doing incremental build
 	DefaultPreviousImagePullPolicy = PullIfNotPresent
@@ -61,6 +64,28 @@ type Config struct {
 	// BuilderBaseImageVersion provides optional version information about the builder base image.
 	BuilderBaseImageVersion string
 
+	// RuntimeImage specifies the image that will be a base for resulting image
+	// and will be used for running an application. By default, BuilderImage is
+	// used for building and running, but the latter may be overridden.
+	RuntimeImage string
+
+	// RuntimeImagePullPolicy specifies when to pull a runtime image.
+	RuntimeImagePullPolicy PullPolicy
+
+	// RuntimeAuthentication holds the authentication information for pulling the
+	// runtime Docker images from private repositories.
+	RuntimeAuthentication docker.AuthConfiguration
+
+	// RuntimeArtifacts specifies a list of source/destination pairs that will
+	// be copied from builder to a runtime image. Source can be a file or
+	// directory. Destination must be a directory. Regardless whether it
+	// is an absolute or relative path, it will be placed into image's WORKDIR.
+	// Destination also can be empty or equals to ".", in this case it just
+	// refers to a root of WORKDIR.
+	// In case it's empty, S2I will try to get this list from
+	// io.openshift.s2i.assemble-input-files label on a RuntimeImage.
+	RuntimeArtifacts VolumeList
+
 	// DockerConfig describes how to access host docker daemon.
 	DockerConfig *DockerConfig
 
@@ -82,9 +107,9 @@ type Config struct {
 	// PreserveWorkingDir describes if working directory should be left after processing.
 	PreserveWorkingDir bool
 
-	// DisableRecursive disables the --recursive option for the git clone that
-	// allows to use the Git without requiring the git submodule to be called.
-	DisableRecursive bool
+	// IgnoreSubmodules determines whether we will attempt to pull in submodules
+	// (via --recursive or submodule init)
+	IgnoreSubmodules bool
 
 	// Source URL describing the location of sources used to build the result image.
 	Source string
@@ -162,8 +187,8 @@ type Config struct {
 	ContextDir string
 
 	// AllowedUIDs is a list of user ranges of users allowed to run the builder image.
-	// If a range is specified and the builder image uses a non-numeric user or a user
-	// that is outside the specified range, then the build fails.
+	// If a range is specified and the builder (or runtime) image uses a non-numeric
+	// user or a user that is outside the specified range, then the build fails.
 	AllowedUIDs user.RangeList
 
 	// AssembleUser specifies the user to run the assemble script in container

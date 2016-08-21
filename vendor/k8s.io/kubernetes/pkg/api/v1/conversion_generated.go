@@ -5782,10 +5782,6 @@ func autoConvert_v1_Secret_To_api_Secret(in *Secret, out *api.Secret, s conversi
 	return nil
 }
 
-func Convert_v1_Secret_To_api_Secret(in *Secret, out *api.Secret, s conversion.Scope) error {
-	return autoConvert_v1_Secret_To_api_Secret(in, out, s)
-}
-
 func autoConvert_api_Secret_To_v1_Secret(in *api.Secret, out *Secret, s conversion.Scope) error {
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -6040,6 +6036,7 @@ func autoConvert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints
 	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	out.Users = in.Users
 	out.Groups = in.Groups
+	out.SeccompProfiles = in.SeccompProfiles
 	return nil
 }
 
@@ -6105,6 +6102,7 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 		return err
 	}
 	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
+	out.SeccompProfiles = in.SeccompProfiles
 	out.Users = in.Users
 	out.Groups = in.Groups
 	return nil

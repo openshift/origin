@@ -72,6 +72,11 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 
 	a.applyBuildDefaults(build)
 
+	err = buildadmission.SetBuildLogLevel(attributes, build)
+	if err != nil {
+		return err
+	}
+
 	return buildadmission.SetBuild(attributes, build, version)
 }
 
@@ -81,6 +86,15 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	for _, envVar := range a.defaultsConfig.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
 		addDefaultEnvVar(envVar, buildEnv)
+	}
+
+	sourceDefaults := a.defaultsConfig.SourceStrategyDefaults
+	sourceStrategy := build.Spec.Strategy.SourceStrategy
+	if sourceDefaults != nil && sourceDefaults.Incremental != nil && *sourceDefaults.Incremental &&
+		sourceStrategy != nil && sourceStrategy.Incremental == nil {
+		glog.V(5).Infof("Setting source strategy Incremental to true in build %s/%s", build.Namespace, build.Name)
+		t := true
+		build.Spec.Strategy.SourceStrategy.Incremental = &t
 	}
 
 	// Apply git proxy defaults

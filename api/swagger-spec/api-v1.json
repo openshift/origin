@@ -20204,6 +20204,10 @@
       "type": "object",
       "description": "Data contains the secret data. Each key must be a valid DNS_SUBDOMAIN or leading dot followed by valid DNS_SUBDOMAIN. The serialized form of the secret data is a base64 encoded string, representing the arbitrary (possibly non-string) data value here. Described in https://tools.ietf.org/html/rfc4648#section-4"
      },
+     "stringData": {
+      "type": "object",
+      "description": "stringData allows specifying non-binary secret data in string form. It is provided as a write-only convenience method. All keys and values are merged into the data field on write, overwriting any existing values. It is never output when reading from the API."
+     },
      "type": {
       "type": "string",
       "description": "Used to facilitate programmatic handling of secret data."
@@ -20355,6 +20359,13 @@
        "type": "string"
       },
       "description": "The groups that have permission to use this security context constraints"
+     },
+     "seccompProfiles": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "SeccompProfiles lists the allowed profiles that may be set for the pod or container's seccomp annotations.  An unset (nil) or empty value means that no profiles may be specifid by the pod or container.\tThe wildcard '*' may be used to allow all profiles.  When used to generate a value for a pod the first non-wildcard profile will be used as the default."
      }
     }
    },

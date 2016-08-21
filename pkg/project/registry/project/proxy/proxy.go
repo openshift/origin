@@ -15,6 +15,8 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -91,7 +93,12 @@ func (s *REST) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interfa
 
 	includeAllExistingProjects := (options != nil) && options.ResourceVersion == "0"
 
-	watcher := projectauth.NewUserProjectWatcher(userInfo.GetName(), userInfo.GetGroups(), s.projectCache, s.authCache, includeAllExistingProjects)
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], s.authCache.GetClusterPolicyLister().ClusterPolicies())
+	if err != nil {
+		return nil, err
+	}
+
+	watcher := projectauth.NewUserProjectWatcher(userInfo, allowedNamespaces, s.projectCache, s.authCache, includeAllExistingProjects)
 	s.authCache.AddWatcher(watcher)
 
 	go watcher.Watch()

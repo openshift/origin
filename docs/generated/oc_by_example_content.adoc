@@ -68,16 +68,18 @@ Output shell completion code for the given shell (bash or zsh)
   oc adm completion bash > bash_completion.sh
   source bash_completion.sh
 
-  # The above example depends on the bash-completion
-framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+  # The above example depends on the bash-completion framework.
+  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash-completion
   source $(brew --prefix)/etc/bash_completion
   oc adm completion bash > bash_completion.sh
   source bash_completion.sh
 
-  # In zsh, the following will load openshift cli zsh completion:
+  # In zsh*, the following will load openshift cli zsh completion:
   source <(oc adm completion zsh)
+
+  * zsh completions are only supported in versions of zsh >= 5.2
 ----
 ====
 
@@ -344,11 +346,81 @@ Manage nodes - list pods, evacuate, or mark ready
 	# Migrate selected pods
 	oc adm manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
 
+	# Migrate selected pods, use a grace period of 60 seconds
+	oc adm manage-node <mynode> --evacuate --grace-period=60 --pod-selector="<service=myapp>"
+
+	# Migrate selected pods not backed by replication controller
+	oc adm manage-node <mynode> --evacuate --force --pod-selector="<service=myapp>"
+
 	# Show pods that will be migrated
 	oc adm manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
 
 	# List all pods on given nodes
 	oc adm manage-node <mynode1> <mynode2> --list-pods
+----
+====
+
+
+== oc adm migrate image-references
+Update embedded Docker image references
+
+====
+
+[options="nowrap"]
+----
+  # Perform a dry-run of migrating all "docker.io" references to "myregistry.com"
+  oc adm migrate image-references docker.io/*=myregistry.com/*
+
+  # To actually perform the migration, the confirm flag must be appended
+  oc adm migrate image-references docker.io/*=myregistry.com/* --confirm
+
+  # To see more details of what will be migrated, use the loglevel and output flags
+  oc adm migrate image-references docker.io/*=myregistry.com/* --loglevel=2 -o yaml
+
+  # Migrate from a service IP to an internal service DNS name
+  oc adm migrate image-references 172.30.1.54/*=registry.openshift.svc.cluster.local/*
+
+  # Migrate from a service IP to an internal service DNS name for all deployment configs and builds
+  oc adm migrate image-references 172.30.1.54/*=registry.openshift.svc.cluster.local/* --include=buildconfigs,deploymentconfigs
+----
+====
+
+
+== oc adm migrate storage
+Update the stored version of API objects
+
+====
+
+[options="nowrap"]
+----
+  # Perform a dry-run of updating all objects
+  oc adm migrate storage
+
+  # To actually perform the update, the confirm flag must be appended
+  oc adm migrate storage --confirm
+
+  # Only migrate pods
+  oc adm migrate storage --include=pods --confirm
+
+  # Only pods that are in namespaces starting with "bar"
+  oc adm migrate storage --include=pods --confirm --from-key=bar/ --to-key=bar/\xFF
+
+----
+====
+
+
+== oc adm pod-network isolate-projects
+Isolate project network
+
+====
+
+[options="nowrap"]
+----
+	# Provide isolation for project p1
+	oc adm pod-network isolate-projects <p1>
+
+	# Allow all projects with label name=top-secret to have their own isolated project network
+	oc adm pod-network isolate-projects --selector='name=top-secret'
 ----
 ====
 
@@ -632,6 +704,32 @@ oc adm taint nodes foo dedicated-
 ====
 
 
+== oc adm top images
+Show usage statistics for Images
+
+====
+
+[options="nowrap"]
+----
+  # Show usage statistics for Images
+  oc adm top images
+----
+====
+
+
+== oc adm top imagestreams
+Show usage statistics for ImageStreams
+
+====
+
+[options="nowrap"]
+----
+  # Show usage statistics for ImageStreams
+  oc adm top imagestreams
+----
+====
+
+
 == oc adm uncordon
 Mark node as schedulable
 
@@ -804,16 +902,18 @@ Output shell completion code for the given shell (bash or zsh)
   oc completion bash > bash_completion.sh
   source bash_completion.sh
 
-  # The above example depends on the bash-completion
-framework. It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+  # The above example depends on the bash-completion framework.
+  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
 
   brew install bash-completion
   source $(brew --prefix)/etc/bash_completion
   oc completion bash > bash_completion.sh
   source bash_completion.sh
 
-  # In zsh, the following will load openshift cli zsh completion:
+  # In zsh*, the following will load openshift cli zsh completion:
   source <(oc completion zsh)
+
+  * zsh completions are only supported in versions of zsh >= 5.2
 ----
 ====
 
@@ -1049,6 +1149,22 @@ Create a policy binding that references the policy in the targetted namespace.
 ====
 
 
+== oc create quota
+Create a quota with the specified name.
+
+====
+
+[options="nowrap"]
+----
+  // Create a new resourcequota named my-quota
+  $ oc create quota my-quota --hard=cpu=1,memory=1G,pods=2,services=3,replicationcontrollers=2,resourcequotas=1,secrets=5,persistentvolumeclaims=10
+  
+  // Create a new resourcequota named best-effort
+  $ oc create quota best-effort --hard=pods=100 --scopes=BestEffort
+----
+====
+
+
 == oc create route edge
 Create a route that uses edge TLS termination
 
@@ -1223,8 +1339,8 @@ Delete one or more resources
   # Delete pods and services with label name=myLabel.
   oc delete pods,services -l name=myLabel
 
-  # Delete a pod with ID 1234-56-7890-234234-456456.
-  oc delete pod 1234-56-7890-234234-456456
+  # Delete a pod with name node-1-vsjnm.
+  oc delete pod node-1-vsjnm
 
   # Delete all resources associated with a running app, includes
   # buildconfig,deploymentconfig,service,imagestream,route and pod,
@@ -1249,6 +1365,9 @@ View, start, cancel, or retry a deployment
 
   # Start a new deployment based on the 'database'
   oc deploy database --latest
+
+  # Start a new deployment and follow its log
+  oc deploy database --latest --follow
 
   # Retry the latest failed deployment based on 'frontend'
   # The deployer pod and any hook pods are deleted for the latest failed deployment
@@ -1348,6 +1467,9 @@ Perform a direct Docker build
 ----
   # Build the current directory into a single layer and tag
   oc ex dockerbuild . myimage:latest
+
+  # Mount a client secret into the build at a certain path
+  oc ex dockerbuild . myimage:latest --mount ~/mysecret.pem:/etc/pki/secret/mysecret.pem
 ----
 ====
 
@@ -1428,6 +1550,25 @@ Expose a replicated application as a service or route
 ====
 
 
+== oc extract
+Extract secrets or config maps to disk
+
+====
+
+[options="nowrap"]
+----
+  # extract the secret "test" to the current directory
+  oc extract secret/test
+
+  # extract the config map "nginx" to the /tmp directory
+  oc extract configmap/nginx --to=/tmp
+
+  # extract only the key "nginx.conf" from config map "nginx" to the /tmp directory
+  oc extract configmap/nginx --to=/tmp --keys=nginx.conf
+----
+====
+
+
 == oc get
 Display one or many resources
 
@@ -1449,6 +1590,19 @@ Display one or many resources
 
   # Return only the status value of the specified pod.
   oc get -o template pod redis-pod --template={{.currentState.status}}
+----
+====
+
+
+== oc idle
+Idle scalable resources
+
+====
+
+[options="nowrap"]
+----
+  # Idle the scalable controllers associated with the services listed in to-idle.txt
+  $ oc idle --resource-names-file to-idle.txt
 ----
 ====
 
@@ -1781,19 +1935,6 @@ Switch to another project
 ====
 
 
-== oc projects
-Display existing projects
-
-====
-
-[options="nowrap"]
-----
-  # Display the projects that currently exist
-  oc
-----
-====
-
-
 == oc proxy
 Run a proxy to the Kubernetes API server
 
@@ -2003,20 +2144,39 @@ Change the number of pods in a deployment
 
 
 == oc secrets add
-Add secrets to a ServiceAccount
+DEPRECATED: secrets link
 
 ====
 
 [options="nowrap"]
 ----
-  // To use your secret inside of a pod or as a push, pull, or source secret for a build, you must add a 'mount' secret to your service account like this:
-  oc secrets add serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
+  # Add an image pull secret to a service account to automatically use it for pulling pod images:
+  oc serviceaccount-name pull-secret --for=pull
 
-  // To use your secret as an image pull secret, you must add a 'pull' secret to your service account like this:
-  oc secrets add serviceaccount/sa-name secrets/secret-name --for=pull
+  # Add an image pull secret to a service account to automatically use it for both pulling and pushing build images:
+  oc builder builder-image-secret --for=pull,mount
 
-  // To use your secret for image pulls or inside a pod:
-  oc secrets add serviceaccount/sa-name secrets/secret-name --for=pull,mount
+  # If the cluster's serviceAccountConfig is operating with limitSecretReferences: True, secrets must be added to the pod's service account whitelist in order to be available to the pod:
+  oc pod-sa pod-secret
+----
+====
+
+
+== oc secrets link
+Link secrets to a ServiceAccount
+
+====
+
+[options="nowrap"]
+----
+  # Add an image pull secret to a service account to automatically use it for pulling pod images:
+  oc secrets link serviceaccount-name pull-secret --for=pull
+
+  # Add an image pull secret to a service account to automatically use it for both pulling and pushing build images:
+  oc secrets link builder builder-image-secret --for=pull,mount
+
+  # If the cluster's serviceAccountConfig is operating with limitSecretReferences: True, secrets must be added to the pod's service account whitelist in order to be available to the pod:
+  oc secrets link pod-sa pod-secret
 ----
 ====
 
@@ -2106,6 +2266,19 @@ Create a new secret for SSH authentication
 ====
 
 
+== oc secrets unlink
+Detach secrets from a ServiceAccount
+
+====
+
+[options="nowrap"]
+----
+ # Unlink a secret currently associated with a service account:
+oc secrets unlink serviceaccount-name secret-name another-secret-name ...
+----
+====
+
+
 == oc serviceaccounts get-token
 Get a token assigned to a service account.
 
@@ -2130,7 +2303,7 @@ Generate a new token for a service account.
   # Generate a new token for service account 'default'
   oc serviceaccounts new-token 'default'
 
-  # Generate a new token for service account 'default' and apply 
+  # Generate a new token for service account 'default' and apply
   # labels 'foo' and 'bar' to the new token for identification
   # oc serviceaccounts new-token 'default' --labels foo=foo-value,bar=bar-value
 
@@ -2245,6 +2418,34 @@ Update a probe on a pod template
 
   # Set only the initial-delay-seconds field on all deployments
   oc set probe dc --all --readiness --initial-delay-seconds=30
+----
+====
+
+
+== oc set route-backends
+Update the backends for a route
+
+====
+
+[options="nowrap"]
+----
+  # Print the backends on the route 'web'
+  oc set route-backends web
+
+  # Set two backend services on route 'web' with 2/3rds of traffic going to 'a'
+  oc set route-backends web a=2 b=1
+
+  # Increase the traffic percentage going to b by 10% relative to a
+  oc set route-backends web --adjust b=+10%
+
+  # Set traffic percentage going to b to 10% of the traffic going to a
+  oc set route-backends web --adjust b=10%
+
+  # Set weight of b to 10
+  oc set route-backends web --adjust b=10
+
+  # Set the weight to all backends to zero
+  oc set route-backends web --zero
 ----
 ====
 

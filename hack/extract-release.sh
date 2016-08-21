@@ -2,16 +2,7 @@
 
 # This script extracts a valid release tar into _output/releases. It requires hack/build-release.sh
 # to have been executed
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # Copy the release archives release back to the local _output/local/bin/... directories.
 # NOTE: On Mac and Windows you must pass WARN=1 in order to extract the output.

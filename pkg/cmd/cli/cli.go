@@ -28,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
 )
 
 const productName = `OpenShift`
@@ -88,6 +87,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	f := clientcmd.New(cmds.PersistentFlags())
 
 	loginCmd := cmd.NewCmdLogin(fullName, f, in, out)
+	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit")
+
 	groups := templates.CommandGroups{
 		{
 			Message: "Basic Commands:",
@@ -96,11 +97,12 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				loginCmd,
 				cmd.NewCmdRequestProject(fullName, "new-project", fullName+" login", fullName+" project", f, out),
 				cmd.NewCmdNewApplication(fullName, f, out),
-				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName+" "+cmd.StatusRecommendedName, f, out),
+				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
 				cmd.NewCmdProjects(fullName, f, out),
 				cmd.NewCmdExplain(fullName, f, out),
 				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, out),
+				cmd.NewCmdIdle(fullName, f, out, errout),
 			},
 		},
 		{
@@ -129,7 +131,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdDelete(fullName, f, out),
 				cmd.NewCmdScale(fullName, f, out),
 				cmd.NewCmdAutoscale(fullName, f, out),
-				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
+				secretcmds,
 				sa.NewCmdServiceAccounts(sa.ServiceAccountsRecommendedName, fullName+" "+sa.ServiceAccountsRecommendedName, f, out),
 			},
 		},
@@ -150,13 +152,14 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
-				admin.NewCommandAdmin("adm", fullName+" "+"adm", out, errout),
+				admin.NewCommandAdmin("adm", fullName+" "+"adm", in, out, errout),
 				cmd.NewCmdCreate(fullName, f, out),
 				cmd.NewCmdReplace(fullName, f, out),
 				cmd.NewCmdApply(fullName, f, out),
 				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
 				cmd.NewCmdExport(fullName, f, in, out),
+				cmd.NewCmdExtract(fullName, f, in, out, errout),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
 				cmd.NewCmdConvert(fullName, f, out),
 				importer.NewCmdImport(fullName, f, in, out, errout),
@@ -180,6 +183,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out)),
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
+		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f.Factory, out)),
 	}
 
 	changeSharedFlagDefaults(cmds)
@@ -197,7 +201,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.AddCommand(experimental)
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName, version.Options{PrintClientFeatures: true}))
+		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{PrintClientFeatures: true}))
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 

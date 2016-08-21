@@ -39,21 +39,23 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube        = ""
-	APIGroupExtensions  = "extensions"
-	APIGroupAutoscaling = "autoscaling"
-	APIGroupBatch       = "batch"
-	APIGroupPolicy      = "policy"
-	APIGroupApps        = "apps"
-	APIGroupFederation  = "federation"
+	APIGroupKube           = ""
+	APIGroupExtensions     = "extensions"
+	APIGroupAutoscaling    = "autoscaling"
+	APIGroupAuthentication = "authentication.k8s.io"
+	APIGroupBatch          = "batch"
+	APIGroupPolicy         = "policy"
+	APIGroupApps           = "apps"
+	APIGroupFederation     = "federation"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
-		APIGroupKube:        {"v1"},
-		APIGroupExtensions:  {"v1beta1"},
-		APIGroupAutoscaling: {"v1"},
-		APIGroupBatch:       {"v1", "v2alpha1"},
-		APIGroupApps:        {"v1alpha1"},
+		APIGroupKube:           {"v1"},
+		APIGroupExtensions:     {"v1beta1"},
+		APIGroupAutoscaling:    {"v1"},
+		APIGroupAuthentication: {"v1beta1"},
+		APIGroupBatch:          {"v1", "v2alpha1"},
+		APIGroupApps:           {"v1alpha1"},
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
@@ -98,6 +100,9 @@ type NodeConfig struct {
 	// MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master
 	MasterKubeConfig string
 
+	// MasterClientConnectionOverrides provides overrides to the client connection used to connect to the master.
+	MasterClientConnectionOverrides *ClientConnectionOverrides
+
 	// DNSDomain holds the domain suffix
 	DNSDomain string
 
@@ -138,6 +143,9 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
+
+	// EnableUnidling controls whether or not the hybrid unidling proxy will be set up
+	EnableUnidling bool
 
 	// VolumeConfig contains options for configuring volumes on the node.
 	VolumeConfig NodeVolumeConfig
@@ -317,10 +325,10 @@ type AuditConfig struct {
 
 // JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
 type JenkinsPipelineConfig struct {
-	// If the enabled flag is set, a Jenkins server will be spawned from the provided
+	// AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided
 	// template when the first build config in the project with type JenkinsPipeline
-	// is created. When not specified this option defaults to true.
-	Enabled *bool
+	// is created. When not specified this option defaults to false.
+	AutoProvisionEnabled *bool
 	// TemplateNamespace contains the namespace name where the Jenkins template is stored
 	TemplateNamespace string
 	// TemplateName is the name of the default Jenkins template
@@ -445,6 +453,11 @@ type MasterNetworkConfig struct {
 	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
 	// should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.
 	ExternalIPNetworkCIDRs []string
+	// IngressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare
+	// metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from.
+	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
+	// nodes, pods, or services.
+	IngressIPNetworkCIDR string
 }
 
 type ImageConfig struct {
@@ -537,6 +550,25 @@ type MasterClients struct {
 	OpenShiftLoopbackKubeConfig string
 	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
 	ExternalKubernetesKubeConfig string
+
+	// OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.
+	OpenShiftLoopbackClientConnectionOverrides *ClientConnectionOverrides
+	// ExternalKubernetesClientConnectionOverrides specifies client overrides for proxying to Kubernetes.
+	ExternalKubernetesClientConnectionOverrides *ClientConnectionOverrides
+}
+
+type ClientConnectionOverrides struct {
+	// AcceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
+	// default value of 'application/json'. This field will control all connections to the server used by a particular
+	// client.
+	AcceptContentTypes string
+	// ContentType is the content type used when sending data to the server from this client.
+	ContentType string
+
+	// QPS controls the number of queries per second allowed for this connection.
+	QPS float32
+	// Burst allows extra queries to accumulate when a client is exceeding its rate.
+	Burst int32
 }
 
 type DNSConfig struct {
@@ -950,8 +982,10 @@ type KubernetesMasterConfig struct {
 	ServicesNodePortRange string
 	// StaticNodeNames is the list of nodes that are statically known
 	StaticNodeNames []string
+
 	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
+
 	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
 	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
 	PodEvictionTimeout string
@@ -971,6 +1005,10 @@ type KubernetesMasterConfig struct {
 	// the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid
 	// configurations.
 	ControllerArguments ExtendedArguments
+	// SchedulerArguments are key value pairs that will be passed directly to the Kube scheduler that match the scheduler's
+	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
+	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
+	SchedulerArguments ExtendedArguments
 }
 
 type CertInfo struct {

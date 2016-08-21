@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net"
 	"path"
 	"reflect"
 	"strings"
@@ -67,6 +68,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/controller/shared"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
+	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -75,6 +78,7 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	usercache "github.com/openshift/origin/pkg/user/cache"
@@ -120,6 +124,9 @@ type MasterConfig struct {
 
 	// ImageFor is a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
+	// RegistryNameFn retrieves the name of the integrated registry, or false if no such registry
+	// is available.
+	RegistryNameFn imageapi.DefaultRegistryFunc
 
 	// TODO: remove direct access to EtcdHelper, require selecting by providing target resource
 	EtcdHelper storage.Interface
@@ -180,11 +187,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	privilegedLoopbackKubeClient, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
+	privilegedLoopbackKubeClient, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
-	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
+	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -198,6 +205,13 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
+
+	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClient.Services(kapi.NamespaceDefault).Get)
+	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+	}
 
 	requestContextMapper := kapi.NewRequestContextMapper()
 
@@ -230,8 +244,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		RESTClientConfig:      *privilegedLoopbackClientConfig,
 		Informers:             informerFactory,
 		ClusterQuotaMapper:    clusterQuotaMappingController.GetClusterQuotaMapper(),
+		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 	}
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, kubeClientSet, pluginInitializer)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: look up storage by resource
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
@@ -271,7 +289,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ControllerPlug:      plug,
 		ControllerPlugStart: plugStart,
 
-		ImageFor:            imageTemplate.ExpandOrDie,
+		ImageFor:       imageTemplate.ExpandOrDie,
+		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+
 		EtcdHelper:          etcdHelper,
 		KubeletClientConfig: kubeletClientConfig,
 
@@ -293,9 +313,10 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
-		"JenkinsBootstrapper",
+		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
+		"openshift.io/OwnerReference",
 		quotaadmission.PluginName,
 	}
 
@@ -308,6 +329,7 @@ var (
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
+		imagepolicy.PluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
@@ -316,18 +338,22 @@ var (
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
+		"PersistentVolumeLabel",
+		"openshift.io/OwnerReference",
+		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
+		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
-		"ClusterResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 
-	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
+	// CombinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
-	combinedAdmissionControlPlugins = []string{
+	CombinedAdmissionControlPlugins = []string{
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"PodNodeConstraints",
-		"JenkinsBootstrapper",
+		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		"RunOnceDuration",
@@ -337,6 +363,7 @@ var (
 		overrideapi.PluginName,
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
+		imagepolicy.PluginName,
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
@@ -345,8 +372,12 @@ var (
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
+		"PersistentVolumeLabel",
+		"openshift.io/OwnerReference",
+		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
+		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
-		"ClusterResourceQuota",
+		"openshift.io/ClusterResourceQuota",
 	}
 )
 
@@ -425,7 +456,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet *interna
 		pluginConfig[pluginName] = config
 	}
 
-	admissionChain, err := newAdmissionChainFunc(combinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer)
+	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -458,7 +489,11 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				// should have been caught with validation
 				return nil, err
 			}
-			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit))
+			allowIngressIP := false
+			if _, ipNet, err := net.ParseCIDR(options.NetworkConfig.IngressIPNetworkCIDR); err == nil && !ipNet.IP.IsUnspecified() {
+				allowIngressIP = true
+			}
+			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP))
 
 		case serviceadmit.RestrictedEndpointsPluginName:
 			// we need to set some customer parameters, so create by hand
@@ -524,7 +559,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
 		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
-		kubeClient, _, err := configapi.GetKubeClient(options.MasterClients.ExternalKubernetesKubeConfig)
+		kubeClient, _, err := configapi.GetKubeClient(options.MasterClients.ExternalKubernetesKubeConfig, options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -841,7 +876,7 @@ func (c *MasterConfig) DeploymentConfigScaleClient() *kclient.Client {
 
 // DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -914,6 +949,15 @@ func (c *MasterConfig) WebConsoleEnabled() bool {
 // The kubernetes client object must have authority to execute a finalize request on a namespace
 func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
+// UnidlingControllerClients returns the unidling controller clients
+func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.Client) {
+	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return osClient, kClient
 }
 
 // NewEtcdStorage returns a storage interface for the provided storage version.

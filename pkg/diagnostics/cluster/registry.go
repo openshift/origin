@@ -61,6 +61,11 @@ images. Builds and deployments that use images from the registry may
 fail sporadically. Use a single registry or add a shared storage volume
 to the registries.`
 
+	clRegMultiCustomCfg = `
+The "%s" service has multiple associated pods each mounted with
+ephemeral storage, but also has a custom config %s
+mounted; assuming storage config is as desired.`
+
 	clRegPodDown = `
 The "%s" pod for the "%s" service is not running.
 This may be transient, a scheduling error, or something else.`
@@ -156,7 +161,7 @@ func (d *ClusterRegistry) CanRun() (bool, error) {
 	if d.OsClient == nil || d.KubeClient == nil {
 		return false, fmt.Errorf("must have kube and os clients")
 	}
-	return userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
+	return userCan(d.OsClient, authorizationapi.Action{
 		Namespace:    kapi.NamespaceDefault,
 		Verb:         "get",
 		Group:        kapi.GroupName,
@@ -203,11 +208,32 @@ func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.Diagnos
 		r.Error("DClu1006", nil, fmt.Sprintf(clRegNoPods, registryName))
 		return runningPods
 	} else if len(pods.Items) > 1 {
-		// multiple registry pods using EmptyDir will be inconsistent
-		for _, volume := range pods.Items[0].Spec.Volumes {
+		emptyDir := false     // multiple registry pods using EmptyDir will be inconsistent
+		customConfig := false // ... unless the user has configured them for e.g. S3
+		configPath := "/config.yml"
+		// look through the pod volumes to see if that might be a problem
+		podSpec := pods.Items[0].Spec
+		container := podSpec.Containers[0]
+		for _, volume := range podSpec.Volumes {
 			if volume.Name == registryVolume && volume.EmptyDir != nil {
+				emptyDir = true
+			}
+		}
+		for _, env := range container.Env {
+			if env.Name == "REGISTRY_CONFIGURATION_PATH" {
+				configPath = env.Value // look for custom config here
+			}
+		}
+		for _, vmount := range container.VolumeMounts {
+			if strings.HasPrefix(configPath, vmount.MountPath) {
+				customConfig = true // if something's mounted there, assume custom config.
+			}
+		}
+		if emptyDir {
+			if customConfig { // assume they know what they're doing
+				r.Info("DClu1020", fmt.Sprintf(clRegMultiCustomCfg, registryName, configPath))
+			} else { // assume they scaled up with ephemeral storage
 				r.Error("DClu1007", nil, fmt.Sprintf(clRegMultiPods, registryName))
-				break
 			}
 		}
 	}

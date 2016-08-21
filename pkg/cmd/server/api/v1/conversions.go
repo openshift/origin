@@ -36,15 +36,31 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.JenkinsPipelineConfig.TemplateNamespace = "openshift"
 			}
 			if len(obj.JenkinsPipelineConfig.TemplateName) == 0 {
-				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
+				obj.JenkinsPipelineConfig.TemplateName = "jenkins-ephemeral"
 			}
 			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
 				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
 			}
-			if obj.JenkinsPipelineConfig.Enabled == nil {
-				v := true
-				obj.JenkinsPipelineConfig.Enabled = &v
+			if obj.JenkinsPipelineConfig.AutoProvisionEnabled == nil {
+				v := false
+				obj.JenkinsPipelineConfig.AutoProvisionEnabled = &v
 			}
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &ClientConnectionOverrides{
+					// historical values
+					QPS:   150.0,
+					Burst: 300,
+				}
+			}
+			setDefault_ClientConnectionOverrides(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &ClientConnectionOverrides{
+					// historical values
+					QPS:   100.0,
+					Burst: 200,
+				}
+			}
+			setDefault_ClientConnectionOverrides(obj.MasterClients.ExternalKubernetesClientConnectionOverrides)
 
 			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
 			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
@@ -54,6 +70,17 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				} else {
 					// default ServiceClusterIPRange used by kubernetes if nothing is specified
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
+				}
+			}
+
+			// TODO Detect cloud provider when not using built-in kubernetes
+			kubeConfig := obj.KubernetesMasterConfig
+			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+
+			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+				cidr := "172.46.0.0/16"
+				if !(internal.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 				}
 			}
 
@@ -80,6 +107,15 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			}
 		},
 		func(obj *NodeConfig) {
+			if obj.MasterClientConnectionOverrides == nil {
+				obj.MasterClientConnectionOverrides = &ClientConnectionOverrides{
+					// historical values
+					QPS:   10.0,
+					Burst: 20,
+				}
+			}
+			setDefault_ClientConnectionOverrides(obj.MasterClientConnectionOverrides)
+
 			// Defaults/migrations for NetworkConfig
 			if len(obj.NetworkConfig.NetworkPluginName) == 0 {
 				obj.NetworkConfig.NetworkPluginName = obj.DeprecatedNetworkPluginName
@@ -103,6 +139,12 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			}
 			if obj.AuthConfig.AuthorizationCacheSize == 0 {
 				obj.AuthConfig.AuthorizationCacheSize = 1000
+			}
+
+			// EnableUnidling by default
+			if obj.EnableUnidling == nil {
+				v := true
+				obj.EnableUnidling = &v
 			}
 		},
 		func(obj *EtcdStorageConfig) {
@@ -291,6 +333,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		},
 
 		api.Convert_resource_Quantity_To_resource_Quantity,
+		api.Convert_bool_To_Pointer_bool,
+		api.Convert_Pointer_bool_To_bool,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -307,6 +351,17 @@ func convert_runtime_Object_To_runtime_RawExtension(in *runtime.Object, out *run
 // appropriate output type.
 func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out *runtime.Object, s conversion.Scope) error {
 	return extension.Convert_runtime_RawExtension_To_runtime_Object(internal.Scheme, in, out, s)
+}
+
+// setDefault_ClientConnectionOverrides defaults a client connection to the pre-1.3 settings of
+// being JSON only. Callers must explicitly opt-in to Protobuf support in 1.3+.
+func setDefault_ClientConnectionOverrides(overrides *ClientConnectionOverrides) {
+	if len(overrides.AcceptContentTypes) == 0 {
+		overrides.AcceptContentTypes = "application/json"
+	}
+	if len(overrides.ContentType) == 0 {
+		overrides.ContentType = "application/json"
+	}
 }
 
 var _ runtime.NestedObjectDecoder = &MasterConfig{}

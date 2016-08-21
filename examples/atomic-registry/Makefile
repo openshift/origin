@@ -1,20 +1,39 @@
-TEST_IMAGE=atomic-registry-quickstart
+TEST_IMAGE=atomic-registry-install
 INSTALLHOST=127.0.0.1
 
-all: build install test
+all-systemd: pull-images build-systemd install-atomic install-systemd test-systemd
+all-allinone: pull-images build-allinone install-atomic install-allinone test-allinone
 
-build:
-	docker build -t atomic-registry-quickstart .
+pull-images:
+	for IMAGE in openshift/origin openshift/origin-docker-registry cockpit/kubernetes ; do \
+			docker pull $$IMAGE ; \
+	done
 
-install:
-	sudo yum install -y atomic
-	sudo atomic install $(TEST_IMAGE) $(INSTALLHOST)
-	# FIXME: docker error: installer container is not removed using --rm
-	sudo atomic run $(TEST_IMAGE) $(INSTALLHOST)
+build-systemd:
+	docker build -t $(TEST_IMAGE) systemd/.
 
-test:
-	bash test.sh 127.0.0.1
+build-allinone:
+	docker build -t $(TEST_IMAGE) allinone/.
+
+install-atomic:
+	dnf install -y atomic
+
+install-systemd:
+	atomic install $(TEST_IMAGE) $(INSTALLHOST)
+	systemctl enable --now atomic-registry-master.service
+	sleep 10
+	/var/run/setup-atomic-registry.sh $(INSTALLHOST)
+
+install-allinone:
+	atomic install $(TEST_IMAGE) $(INSTALLHOST)
+	atomic run $(TEST_IMAGE) $(INSTALLHOST)
+
+test-systemd:
+	bash test.sh atomic-registry-master 127.0.0.1
+
+test-allinone:
+	bash test.sh origin 127.0.0.1
 
 clean:
-	sudo atomic uninstall --force $(TEST_IMAGE)
-	sudo docker rm $(sudo docker ps -qa)
+	atomic uninstall $(TEST_IMAGE) --remove-data
+	docker rm `docker ps -qa`

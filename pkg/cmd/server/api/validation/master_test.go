@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -18,7 +19,8 @@ func TestFailingAPIServerArgs(t *testing.T) {
 
 	// [port: invalid value '[invalid-value]': could not be set: strconv.ParseUint: parsing "invalid-value": invalid syntax flag: invalid value 'missing-key': is not a valid flag]
 
-	errs := ValidateAPIServerExtendedArguments(args, nil)
+	validationResults := ValidateAPIServerExtendedArguments(args, nil)
+	errs := validationResults.Errors
 
 	if len(errs) != 2 {
 		t.Fatalf("expected 2 errors, not %v", errs)
@@ -245,6 +247,244 @@ func TestValidateAdmissionPluginConfig(t *testing.T) {
 		}
 		if len(errs) == 0 && tc.expectError {
 			t.Errorf("Did not get expected error for: %#v", tc.config)
+		}
+	}
+}
+
+func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
+	testCases := []struct {
+		name    string
+		options configapi.MasterConfig
+
+		warningFields []string
+	}{
+		{
+			name: "stock everything",
+		},
+		{
+			name: "specified kube admission order 01",
+			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+					AdmissionConfig: configapi.AdmissionConfig{
+						PluginOrderOverride: []string{"foo"},
+					},
+				},
+			},
+			warningFields: []string{"kubernetesMasterConfig.admissionConfig.pluginOrderOverride"},
+		},
+		{
+			name: "specified kube admission order 02",
+			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+					APIServerArguments: configapi.ExtendedArguments{
+						"admission-control": []string{"foo"},
+					},
+				},
+			},
+			warningFields: []string{"kubernetesMasterConfig.apiServerArguments[admission-control]"},
+		},
+		{
+			name: "specified origin admission order",
+			options: configapi.MasterConfig{
+				AdmissionConfig: configapi.AdmissionConfig{
+					PluginOrderOverride: []string{"foo"},
+				},
+			},
+			warningFields: []string{"admissionConfig.pluginOrderOverride"},
+		},
+		{
+			name: "specified kube admission config file",
+			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+					APIServerArguments: configapi.ExtendedArguments{
+						"admission-control-config-file": []string{"foo"},
+					},
+				},
+			},
+			warningFields: []string{"kubernetesMasterConfig.apiServerArguments[admission-control-config-file]"},
+		},
+		{
+			name: "specified, non-conflicting plugin configs 01",
+			options: configapi.MasterConfig{
+				AdmissionConfig: configapi.AdmissionConfig{
+					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						"foo": {
+							Location: "bar",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "specified, non-conflicting plugin configs 02",
+			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+					AdmissionConfig: configapi.AdmissionConfig{
+						PluginConfig: map[string]configapi.AdmissionPluginConfig{
+							"foo": {
+								Location: "bar",
+							},
+							"third": {
+								Location: "bar",
+							},
+						},
+					},
+				},
+				AdmissionConfig: configapi.AdmissionConfig{
+					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						"foo": {
+							Location: "bar",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "specified, non-conflicting plugin configs 03",
+			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+					AdmissionConfig: configapi.AdmissionConfig{
+						PluginConfig: map[string]configapi.AdmissionPluginConfig{
+							"foo": {
+								Location: "bar",
+							},
+							"third": {
+								Location: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "specified conflicting plugin configs 01",
+			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+					AdmissionConfig: configapi.AdmissionConfig{
+						PluginConfig: map[string]configapi.AdmissionPluginConfig{
+							"foo": {
+								Location: "different",
+							},
+						},
+					},
+				},
+				AdmissionConfig: configapi.AdmissionConfig{
+					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						"foo": {
+							Location: "bar",
+						},
+					},
+				},
+			},
+			warningFields: []string{"kubernetesMasterConfig.admissionConfig.pluginConfig[foo]"},
+		},
+	}
+
+	// these fields have warnings in the empty case
+	defaultWarningFields := sets.NewString(
+		"serviceAccountConfig.managedNames", "serviceAccountConfig.publicKeyFiles", "serviceAccountConfig.privateKeyFile", "serviceAccountConfig.masterCA",
+		"projectConfig.securityAllocator", "kubernetesMasterConfig.proxyClientInfo")
+
+	for _, tc := range testCases {
+		results := ValidateMasterConfig(&tc.options, nil)
+
+		for _, result := range results.Warnings {
+			if defaultWarningFields.Has(result.Field) {
+				continue
+			}
+
+			found := false
+			for _, expectedField := range tc.warningFields {
+				if result.Field == expectedField {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				t.Errorf("%s: didn't expect %q", tc.name, result.Field)
+			}
+		}
+
+		for _, expectedField := range tc.warningFields {
+			found := false
+			for _, result := range results.Warnings {
+				if result.Field == expectedField {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				t.Errorf("%s: didn't find %q", tc.name, expectedField)
+			}
+		}
+	}
+}
+
+func TestValidateIngressIPNetworkCIDR(t *testing.T) {
+	testCases := []struct {
+		testName      string
+		cidr          string
+		serviceCIDR   string
+		clusterCIDR   string
+		cloudProvider string
+		errorCount    int
+	}{
+		{
+			testName: "No CIDR",
+		},
+		{
+			testName:   "Invalid CIDR",
+			cidr:       "foo",
+			errorCount: 1,
+		},
+		{
+			testName:    "No cloud provider and conflicting CIDRs",
+			cidr:        "172.16.0.0/16",
+			serviceCIDR: "172.16.0.0/16",
+			clusterCIDR: "172.16.0.0/16",
+			errorCount:  2,
+		},
+		{
+			testName: "No cloud provider and unspecified CIDR",
+			cidr:     "0.0.0.0/32",
+		},
+		{
+			testName:    "No cloud provider and non-conflicting CIDR",
+			cidr:        "172.16.0.0/16",
+			serviceCIDR: "172.17.0.0/16",
+			clusterCIDR: "172.18.0.0/16",
+		},
+		{
+			testName:      "Cloud provider and unspecified CIDR",
+			cidr:          "0.0.0.0/32",
+			cloudProvider: "foo",
+		},
+		{
+			testName:      "Cloud provider and CIDR",
+			cidr:          "172.16.0.0/16",
+			cloudProvider: "foo",
+			errorCount:    1,
+		},
+	}
+	for _, test := range testCases {
+		config := &configapi.MasterConfig{
+			KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
+				ControllerArguments: configapi.ExtendedArguments{
+					"cloud-provider": []string{test.cloudProvider},
+				},
+			},
+			NetworkConfig: configapi.MasterNetworkConfig{
+				IngressIPNetworkCIDR: test.cidr,
+				ServiceNetworkCIDR:   test.serviceCIDR,
+				ClusterNetworkCIDR:   test.clusterCIDR,
+			},
+		}
+		errors := ValidateIngressIPNetworkCIDR(config, nil)
+		errorCount := len(errors)
+		if test.errorCount != errorCount {
+			t.Errorf("%s: expected %d errors, got %d", test.testName, test.errorCount, errorCount)
 		}
 	}
 }

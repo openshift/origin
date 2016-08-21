@@ -1,11 +1,5 @@
 #!/bin/bash
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
@@ -19,7 +13,7 @@ if [[ ! "$clientgen" ]]; then
     echo "It looks as if you don't have a compiled client-gen binary"
     echo
     echo "If you are running from a clone of the git repo, please run"
-    echo "'./hack/build-go.sh Godeps/_workspace/src/k8s.io/kubernetes/cmd/libs/go2idl/client-gen'."
+    echo "'./hack/build-go.sh vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen'."
   } >&2
   exit 1
 fi

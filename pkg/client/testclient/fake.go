@@ -141,6 +141,11 @@ func (c *Fake) Images() client.ImageInterface {
 	return &FakeImages{Fake: c}
 }
 
+// ImageSignatures provides a fake REST client for ImageSignatures
+func (c *Fake) ImageSignatures() client.ImageSignatureInterface {
+	return &FakeImageSignatures{Fake: c}
+}
+
 // ImageStreams provides a fake REST client for ImageStreams
 func (c *Fake) ImageStreamSecrets(namespace string) client.ImageStreamSecretInterface {
 	return &FakeImageStreamSecrets{Fake: c, Namespace: namespace}
@@ -194,6 +199,11 @@ func (c *Fake) NetNamespaces() client.NetNamespaceInterface {
 // ClusterNetwork provides a fake REST client for ClusterNetwork
 func (c *Fake) ClusterNetwork() client.ClusterNetworkInterface {
 	return &FakeClusterNetwork{Fake: c}
+}
+
+// EgressNetworkPolicies provides a fake REST client for EgressNetworkPolicies
+func (c *Fake) EgressNetworkPolicies(namespace string) client.EgressNetworkPolicyInterface {
+	return &FakeEgressNetworkPolicy{Fake: c, Namespace: namespace}
 }
 
 // Templates provides a fake REST client for Templates

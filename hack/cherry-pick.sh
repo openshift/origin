@@ -1,17 +1,7 @@
 #!/bin/bash
 
 # See HACKING.md for usage
-
-set -o errexit
-set -o nounset
-set -o pipefail
-
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/lib/init.sh"
-os::log::stacktrace::install
-
-# Go to the top of the tree.
-cd "${OS_ROOT}"
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"

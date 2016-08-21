@@ -68,8 +68,14 @@ Steps
 6. Create the sample application configuration
 
         $ oc new-app application-template.json
+
+    Note the generated password (JENKINS_PASSWORD) reported in the new-app output, you will need it to login to Jenkins.  If you lose this value
+    you can retrieve it by looking at the environment variable values defined on the jenkins deployment configuration in the web console or by
+    running:
+
+        $ oc env dc/jenkins --list | grep JENKINS_PASSWORD
  
-7. Open the Jenkins service ip:port from step 5 in your browser.  Once it is available, login using username `admin` and password `password`.
+7. Open the Jenkins service ip:port from step 5 in your browser.  Once it is available, login using username `admin` and the password from the previous step.
    
 8. Select the the `OpenShift Sample` job and click `Configure`.  You'll see a series of Jenkins build steps defined.  These build steps are from the Jenkins plugin for V3 Openshift.  Read about the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) for details on the various functionality provided.  The default values for each of the various build steps listed for the sample job should work as is.  You can save your changes to the job, click `Build` and skip to step 11.
 

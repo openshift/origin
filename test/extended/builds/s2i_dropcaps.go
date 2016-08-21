@@ -3,12 +3,9 @@ package builds
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -33,45 +30,17 @@ var _ = g.Describe("[builds][Slow] Capabilities should be dropped for s2i builde
 			err := oc.Run("new-build").Args("--binary", "--name=rootable-ruby").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("starting the rootable-ruby build with --wait flag")
-			out, err := oc.Run("start-build").Args("rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture)).Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nrootable-ruby start-build output:\n%s\n", out)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for build to complete")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "rootable-ruby-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
-			if err != nil {
-				exutil.DumpBuildLogs("rootable-ruby", oc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("starting the rootable-ruby build")
+			br, _ := exutil.StartBuildAndWait(oc, "rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture))
+			br.AssertSuccess()
 
 			g.By("creating a build that tries to gain root access via su")
 			err = oc.Run("create").Args("-f", rootAccessBuildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("start the root-access-build with the --wait flag")
-			out, err = oc.Run("start-build").Args("root-access-build", "--wait").Output()
-			fmt.Fprintf(g.GinkgoWriter, "\nroot-access-build start-build output:\n%s\n", out)
-			if err == nil { // Dump logs if invocation does *not* fail.
-				exutil.DumpBuildLogs("root-access-build", oc)
-			}
-			o.Expect(err).To(o.HaveOccurred())
-
-			g.By("verifying the build status")
-			builds, err := oc.REST().Builds(oc.Namespace()).List(kapi.ListOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(builds.Items).ToNot(o.BeEmpty())
-
-			// Find the build
-			var build *buildapi.Build
-			for i := range builds.Items {
-				if builds.Items[i].Name == "root-access-build-1" {
-					build = &builds.Items[i]
-					break
-				}
-			}
-			o.Expect(build).NotTo(o.BeNil())
-			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseFailed))
+			g.By("start the root-access-build which attempts root access")
+			br2, _ := exutil.StartBuildAndWait(oc, "root-access-build")
+			br2.AssertFailure()
 		})
 	})
 

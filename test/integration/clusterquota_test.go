@@ -1,11 +1,10 @@
-// +build integration
-
 package integration
 
 import (
 	"testing"
 	"time"
 
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -21,6 +20,7 @@ import (
 
 func TestClusterQuota(t *testing.T) {
 	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -49,7 +49,8 @@ func TestClusterQuota(t *testing.T) {
 			},
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{
-					kapi.ResourceConfigMaps: resource.MustParse("2"),
+					kapi.ResourceConfigMaps:     resource.MustParse("2"),
+					"openshift.io/imagestreams": resource.MustParse("1"),
 				},
 			},
 		},
@@ -99,6 +100,26 @@ func TestClusterQuota(t *testing.T) {
 
 		t.Fatalf("unexpected error: %v", err)
 	}
+
+	imagestream := &imageapi.ImageStream{}
+	imagestream.GenerateName = "test"
+	if _, err := clusterAdminClient.ImageStreams("first").Create(imagestream); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := clusterAdminClient.ImageStreams("second").Create(imagestream); !kapierrors.IsForbidden(err) {
+		list, err := clusterAdminClient.AppliedClusterResourceQuotas("second").List(kapi.ListOptions{})
+		if err == nil {
+			t.Errorf("quota is %#v", list)
+		}
+
+		list2, err := clusterAdminClient.ImageStreams("").List(kapi.ListOptions{})
+		if err == nil {
+			t.Errorf("ImageStreams is %#v", list2)
+		}
+
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 }
 
 func waitForQuotaLabeling(clusterAdminClient client.AppliedClusterResourceQuotasNamespacer, namespaceName string) error {

@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -29,6 +27,7 @@ import (
 // processed.  Reload should similarly suppressed on subsequent
 // resyncs.
 func TestRouterReloadSuppressionOnSync(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
 	stressRouter(
 		t,
 		// Allow the test to be configured to enable experimentation
@@ -231,7 +230,7 @@ func NewDelayPlugin(plugin router.Plugin, maxDelay int32) *DelayPlugin {
 }
 
 func (p *DelayPlugin) delay() {
-	time.Sleep(time.Duration(p.maxDelay) * time.Millisecond)
+	time.Sleep(time.Duration(rand.Int31n(p.maxDelay)) * time.Millisecond)
 }
 
 func (p *DelayPlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {

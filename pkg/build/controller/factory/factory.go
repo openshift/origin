@@ -73,7 +73,7 @@ type BuildControllerFactory struct {
 
 // Create constructs a BuildController
 func (factory *BuildControllerFactory) Create() controller.RunnableController {
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -190,7 +190,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).RunUntil(factory.Stop)
 
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&podLW{client: factory.KubeClient}, &kapi.Pod{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
@@ -281,7 +281,7 @@ type ImageChangeControllerFactory struct {
 // Create creates a new ImageChangeController which is used to trigger builds when a new
 // image is available
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&imageStreamLW{factory.Client}, &imageapi.ImageStream{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
@@ -320,7 +320,7 @@ type BuildConfigControllerFactory struct {
 
 // Create creates a new ConfigChangeController which is used to trigger builds on creation
 func (factory *BuildConfigControllerFactory) Create() controller.RunnableController {
-	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -498,7 +498,6 @@ func (lw *buildDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) 
 		}
 		if err != nil && kerrors.IsNotFound(err) {
 			build = nil
-
 		}
 		if build == nil {
 			deletedBuild := &buildapi.Build{
@@ -572,6 +571,10 @@ func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, erro
 		glog.V(5).Infof("Found build %s/%s", build.Namespace, build.Name)
 		if buildutil.IsBuildComplete(&build) {
 			glog.V(5).Infof("Ignoring build %s/%s because it is complete", build.Namespace, build.Name)
+			continue
+		}
+		if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
+			glog.V(5).Infof("Ignoring build %s/%s because it is a pipeline build", build.Namespace, build.Name)
 			continue
 		}
 		pod, err := lw.KubeClient.Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))

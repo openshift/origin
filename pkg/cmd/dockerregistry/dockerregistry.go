@@ -58,6 +58,19 @@ func Execute(configFile io.Reader) {
 
 	app := handlers.NewApp(ctx, config)
 
+	// Add a token handling endpoint
+	if options, usingOpenShiftAuth := config.Auth[server.OpenShiftAuth]; usingOpenShiftAuth {
+		tokenRealm, err := server.TokenRealm(options)
+		if err != nil {
+			log.Fatalf("error setting up token auth: %s", err)
+		}
+		err = app.NewRoute().Methods("GET").PathPrefix(tokenRealm.Path).Handler(server.NewTokenHandler(ctx, server.DefaultRegistryClient)).GetError()
+		if err != nil {
+			log.Fatalf("error setting up token endpoint at %q: %v", tokenRealm.Path, err)
+		}
+		log.Debugf("configured token endpoint at %q", tokenRealm.String())
+	}
+
 	// TODO add https scheme
 	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
 
