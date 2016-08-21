@@ -174,24 +174,6 @@ os::cmd::expect_success 'oc delete -f examples/pets/zookeeper/zookeeper.yaml'
 echo "petsets: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/basicresources/routes"
-os::cmd::expect_success 'oc get routes'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-route.json'
-os::cmd::expect_success 'oc delete routes testroute'
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
-os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'
-os::cmd::expect_success 'oc delete routes frontend'
-os::cmd::expect_success 'oc create route edge --path /test --service=services/non-existent --port=80'
-os::cmd::expect_success 'oc delete routes non-existent'
-os::cmd::expect_success 'oc create route edge test-route --service=frontend'
-os::cmd::expect_success 'oc delete routes test-route'
-os::cmd::expect_failure 'oc create route edge new-route'
-os::cmd::expect_success 'oc delete services frontend'
-os::cmd::expect_success 'oc create route edge --insecure-policy=Allow --service=foo --port=80'
-os::cmd::expect_success_and_text 'oc get route foo -o jsonpath="{.spec.tls.insecureEdgeTerminationPolicy}"' 'Allow'
-os::cmd::expect_success 'oc delete routes foo'
-echo "routes: ok"
-os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/setprobe"
 # Validate the probe command
@@ -291,7 +273,7 @@ os::cmd::expect_success 'oc delete svc,route -l name=frontend'
 # Test that external services are exposable
 os::cmd::expect_success 'oc create -f test/testdata/external-service.yaml'
 os::cmd::expect_success 'oc expose svc/external'
-os::cmd::expect_success_and_text 'oc get route external' 'external=service'
+os::cmd::expect_success_and_text 'oc get route external' 'external'
 os::cmd::expect_success 'oc delete route external'
 os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route

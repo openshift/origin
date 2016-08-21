@@ -2422,6 +2422,34 @@ Update a probe on a pod template
 ====
 
 
+== oc set route-backends
+Update the backends for a route
+
+====
+
+[options="nowrap"]
+----
+  # Print the backends on the route 'web'
+  oc set route-backends web
+
+  # Set two backend services on route 'web' with 2/3rds of traffic going to 'a'
+  oc set route-backends web a=2 b=1
+
+  # Increase the traffic percentage going to b by 10% relative to a
+  oc set route-backends web --adjust b=+10%
+
+  # Set traffic percentage going to b to 10% of the traffic going to a
+  oc set route-backends web --adjust b=10%
+
+  # Set weight of b to 10
+  oc set route-backends web --adjust b=10
+
+  # Set the weight to all backends to zero
+  oc set route-backends web --zero
+----
+====
+
+
 == oc set triggers
 Update the triggers on a build or deployment config
 
