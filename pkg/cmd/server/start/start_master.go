@@ -476,6 +476,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 				if err != nil {
 					return err
 				}
+				defer configFile.Close()
 				if overrideConfig, err = override.ReadConfig(configFile); err != nil {
 					return err
 				}

@@ -89,7 +89,7 @@ func (g *imageRefGenerator) FromDockerfile(name string, dir string, context stri
 	if err != nil {
 		return nil, err
 	}
-
+	defer file.Close()
 	node, err := parser.Parse(file)
 	if err != nil {
 		return nil, err
