@@ -263,6 +263,10 @@ func (registry *Registry) GetEgressNetworkPolicies() ([]osapi.EgressNetworkPolic
 	return policyList.Items, nil
 }
 
+func (registry *Registry) UpdateNode(node *kapi.Node) (*kapi.Node, error) {
+	return registry.kClient.Nodes().Update(node)
+}
+
 // Run event queue for the given resource
 func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.EventQueue {
 	var client cache.Getter
