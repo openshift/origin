@@ -37,6 +37,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
 		multiContainerFixture           = exutil.FixturePath("testdata", "test-deployment-config-multicontainer.yaml")
+		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -242,6 +243,29 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 				o.Expect(out).To(o.ContainSubstring("--> Success"))
+			}
+		})
+	})
+
+	g.Describe("when tagging images", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "tag-images", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should successfully tag the deployed image [Conformance]", func() {
+			_, name, err := createFixture(oc, tagImagesFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying the post deployment action happened: tag is set")
+			out, err := oc.Run("get").Args("istag/sample-stream:deployed").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if !strings.Contains(out, "origin-pod") {
+				err = fmt.Errorf("expected %q to be part of the image reference in %q", "origin-pod", out)
+				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 	})
