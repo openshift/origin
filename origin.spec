@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 86b5e46426ba828f49195af21c56f7c6674b48f7
+%global commit 44437916cf746ab0650d56ee04e220bdeb22b7bb
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.23
+Version:        3.3.0.24
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,69 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Aug 22 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.24
+- generated: Docs and examples (ccoleman@redhat.com)
+- Implement oc set route-backend and A/B to describers / printers
+  (ccoleman@redhat.com)
+- UPSTREAM: 31047: Close websocket stream when client closes
+  (jliggitt@redhat.com)
+- Bump origin-web-console (3fb0c3e) (jforrest@redhat.com)
+- set image ref namespace when src project not specified (jvallejo@redhat.com)
+- Improve the image stream describer (ccoleman@redhat.com)
+- test-cmd updates for --raw (deads@redhat.com)
+- UPSTREAM: 30445: add --raw for kubectl get (deads@redhat.com)
+- Use non-secure cookie when tls and non-tls enabled (marun@redhat.com)
+- Add a default ingress ip range (marun@redhat.com)
+- UPSTREAM: 25308: fix rollout nil panic issue (agoldste@redhat.com)
+- re-enable the build defaulter plugin by default (bparees@redhat.com)
+- UPSTREAM: <carry>: JitterUntil should defer to utilruntime.HandleCrash on
+  panic (decarr@redhat.com)
+- BuildRequire golang greater than or equal to golang_version
+  (tdawson@redhat.com)
+- -pkgdir should not be root of project (ccoleman@redhat.com)
+- add test to exercise deployment logs for multi-container pods
+  (mfojtik@redhat.com)
+- better debugging info for deployment flakes (mfojtik@redhat.com)
+- BZ 1368050: add ability to change connection limits for reencrypt and
+  passthrough routes (jtanenba@redhat.com)
+- Highlight only active deployment in describer (mfojtik@redhat.com)
+- Pass the container name to deployment config log options (mfojtik@redhat.com)
+- Retry updating deployment config instead of creating new one in test
+  (mfojtik@redhat.com)
+- merge duplicate code (li.guangxu@zte.com.cn)
+- UPSTREAM: 26680: Don't panic in NodeController if pod update fails
+  (agoldste@redhat.com)
+- UPSTREAM: 28697: Prevent kube-proxy from panicing when sysfs is mounted as
+  read-only. (agoldste@redhat.com)
+- UPSTREAM: 28744: Allow a FIFO client to requeue under lock
+  (agoldste@redhat.com)
+- UPSTREAM: 29581: Kubelet: Fail kubelet if cadvisor is not started.
+  (agoldste@redhat.com)
+- UPSTREAM: 29672: Add handling empty index key that may cause panic issue
+  (agoldste@redhat.com)
+- UPSTREAM: 29531: fix kubectl rolling update empty file cause panic issue
+  (agoldste@redhat.com)
+- UPSTREAM: 29743: Fix race condition found in JitterUntil
+  (agoldste@redhat.com)
+- UPSTREAM: 30291: Prevent panic in 'kubectl exec' when redirecting stdout
+  (agoldste@redhat.com)
+- UPSTREAM: 29594: apiserver: fix timeout handler (agoldste@redhat.com)
+- disable jenkins auto-deployment (bparees@redhat.com)
+- Remove VOLUME from Origin image (ccoleman@redhat.com)
+- UPSTREAM: 30690: Don't bind pre-bound pvc & pv if size request not satisfied
+  and continue searching on bad size and add tests for bad size&mode.
+  (avesh.ncsu@gmail.com)
+- update image policy API for first class resolution (deads@redhat.com)
+- Router provides an invalid, expired certificate (pcameron@redhat.com)
+- clarify idle error and usage output (jvallejo@redhat.com)
+- Fixed extended unilding tests (sross@redhat.com)
+- HAProxy Router: Don't health-check idled services (sross@redhat.com)
+- Fix for BZ#1367937 which prevents CEPH RBD from working on atomic host.
+  (bchilds@redhat.com)
+- Now check for length on error array (rymurphy@redhat.com)
+- UPSTREAM: 30579: Remove trailing newlines on describe (ccoleman@redhat.com)
+- To break the for loop when found = true (li.xiaobing1@zte.com.cn)
+
 * Fri Aug 19 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.23
 - BuildRequires bsdtar, for hack scripts (tdawson@redhat.com)
 - Disable ingress ip when cloud provider enabled (marun@redhat.com)
