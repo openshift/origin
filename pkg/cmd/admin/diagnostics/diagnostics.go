@@ -80,6 +80,9 @@ you will receive an error if they are not found. For example:
   are skipped.
 
 Diagnostics may be individually run by passing diagnostic name as arguments.
+
+    %[1]s <DiagnosticName>
+    
 The available diagnostic names are:
 %[2]s
 `
