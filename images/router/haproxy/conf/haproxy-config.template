@@ -288,7 +288,11 @@ backend be_edge_http_{{$cfgIdx}}
   http-request set-header X-Forwarded-Port %[dst_port]
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  {{ if and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "None") }}
+  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
+  {{ else }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
+  {{ end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
     {{ range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{ if ne $weight 0 }}
