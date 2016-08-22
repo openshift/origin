@@ -22,21 +22,18 @@ func GitAuths(sourceURL *url.URL) SCMAuths {
 }
 
 func (a SCMAuths) present(files []os.FileInfo) SCMAuths {
-	scmAuthsPresent := map[string]SCMAuth{}
+	scmAuthsPresent := SCMAuths{}
 	for _, file := range files {
 		glog.V(4).Infof("Finding auth for %q", file.Name())
 		for _, scmAuth := range a {
 			if scmAuth.Handles(file.Name()) {
 				glog.V(4).Infof("Found SCMAuth %q to handle %q", scmAuth.Name(), file.Name())
-				scmAuthsPresent[scmAuth.Name()] = scmAuth
+				scmAuthsPresent = append(scmAuthsPresent, scmAuth)
+				break
 			}
 		}
 	}
-	auths := SCMAuths{}
-	for _, auth := range scmAuthsPresent {
-		auths = append(auths, auth)
-	}
-	return auths
+	return scmAuthsPresent
 }
 
 func (a SCMAuths) doSetup(secretsDir string) (*defaultSCMContext, error) {
