@@ -12,13 +12,13 @@ When you add a new object or field to the REST API, you should do the following:
 
 To generate the docs, you need gradle 2.2+ installed, then run
 
-    $ hack/gen-swagger-docs.sh
+    $ hack/update-swagger-docs.sh
 
 That will create docs into _output/local/docs/swagger/api/v1 and oapi/v1 for the Kube and OpenShift docs.
 
-From openshift-docs you can generate these directly in one step - make the changes to the OpenShift origin repo (like adding descriptions or generating new swagger doc), then run
+From the openshift-docs source repo you can generate these directly in one step after making the changes to the OpenShift origin repo (like adding descriptions or generating new swagger doc). The following assumes both origin and openshift-docs repos are at the same level in the directory structure. If not, use the environment variable *`ORIGIN_REPO`* to define the path to the origin source repo.
 
     $ cd ../openshift-docs
     $ rake import_api
 
-This will invoke gen-swagger-docs.sh and import the API into rest_api/.  After importing you'll need to add the correct adoc metadata to the top of kubernetes_v1.adoc and openshift_v1.adoc (pulls to automate that welcome).
+This will invoke update-swagger-docs.sh and import the API into rest_api/.  After importing you'll need to add the correct adoc metadata to the top of kubernetes_v1.adoc and openshift_v1.adoc (pulls to automate that welcome).
