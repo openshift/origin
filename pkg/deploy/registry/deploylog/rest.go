@@ -151,6 +151,10 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		}
 		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", deployutil.LabelForDeployment(target), status)
 
+		if err := deployutil.WaitForRunningDeployerPod(r.pn, target, r.timeout); err != nil {
+			return nil, errors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
+		}
+
 		latest, ok, err := registry.WaitForRunningDeployment(r.rn, target, r.timeout)
 		if err != nil {
 			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", deployutil.LabelForDeployment(target), err))

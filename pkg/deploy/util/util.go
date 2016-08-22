@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -8,12 +9,15 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kdeplutil "k8s.io/kubernetes/pkg/util/deployment"
+	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/util/namer"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
@@ -428,6 +432,42 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 	}
 
 	return relevantDeployments
+}
+
+// WaitForRunningDeployerPod waits a given period of time until the deployer pod
+// for given replication controller is not running.
+func WaitForRunningDeployerPod(podClient kclient.PodsNamespacer, rc *api.ReplicationController, timeout time.Duration) error {
+	podName := DeployerPodNameForDeployment(rc.Name)
+	canGetLogs := func(p *api.Pod) bool {
+		return api.PodSucceeded == p.Status.Phase || api.PodFailed == p.Status.Phase || api.PodRunning == p.Status.Phase
+	}
+	pod, err := podClient.Pods(rc.Namespace).Get(podName)
+	if err == nil && canGetLogs(pod) {
+		return nil
+	}
+	watcher, err := podClient.Pods(rc.Namespace).Watch(
+		api.ListOptions{
+			FieldSelector: fields.Set{"metadata.name": podName}.AsSelector(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	defer watcher.Stop()
+	if _, err := watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
+		if e.Type == watch.Error {
+			return false, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
+		}
+		obj, isPod := e.Object.(*api.Pod)
+		if !isPod {
+			return false, errors.New("received unknown object while watching for pods")
+		}
+		return canGetLogs(obj), nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.
