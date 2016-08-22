@@ -137,7 +137,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 		Queue: queue,
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
-			cache.MetaNamespaceKeyFunc,
+			queue.KeyOf,
 			controller.RetryNever,
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
@@ -254,7 +254,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 		Queue: queue,
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
-			cache.MetaNamespaceKeyFunc,
+			queue.KeyOf,
 			controller.RetryNever,
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
