@@ -54,7 +54,7 @@ func (s resourceSet) addAll(other resourceSet) {
 	}
 }
 
-func imageConditionInfo(rule *api.ImageCondition) (requireImage bool, covers resourceSet, selectors []labels.Selector, err error) {
+func imageConditionInfo(rule *api.ImageCondition) (covers resourceSet, selectors []labels.Selector, err error) {
 	covers = make(resourceSet)
 	for _, gr := range rule.OnResources {
 		covers[gr] = struct{}{}
@@ -63,12 +63,12 @@ func imageConditionInfo(rule *api.ImageCondition) (requireImage bool, covers res
 	for i := range rule.MatchImageLabels {
 		s, err := unversioned.LabelSelectorAsSelector(&rule.MatchImageLabels[i])
 		if err != nil {
-			return false, nil, nil, err
+			return nil, nil, err
 		}
 		selectors = append(selectors, s)
 	}
 
-	return requiresImage(rule), covers, selectors, nil
+	return covers, selectors, nil
 }
 
 func requiresImage(rule *api.ImageCondition) bool {
@@ -104,8 +104,8 @@ func matchImageConditionValues(rule *api.ImageCondition, integrated RegistryMatc
 	// all subsequent calls require the image
 	image := attrs.Image
 	if image == nil {
-		if !rule.AllowResolutionFailure {
-			return false
+		if rule.SkipOnResolutionFailure {
+			return true
 		}
 
 		// if we don't require an image to evaluate our rules, then there's no reason to continue from here

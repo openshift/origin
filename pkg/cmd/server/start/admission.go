@@ -50,6 +50,9 @@ var (
 		"OriginNamespaceLifecycle",
 		"openshift.io/JenkinsBootstrapper",
 		"BuildByStrategy",
+		// TODO: remove the log setting logic from the build defaulter and make this
+		// default off again.
+		"BuildDefaults",
 		imageadmission.PluginName,
 		lifecycle.PluginName,
 		"OriginPodNodeEnvironment",
@@ -74,7 +77,6 @@ var (
 		"PodNodeConstraints",
 		overrideapi.PluginName,
 		imagepolicy.PluginName,
-		"BuildDefaults",
 		"BuildOverrides",
 		"AlwaysPullImages",
 	)

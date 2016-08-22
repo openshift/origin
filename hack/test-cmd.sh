@@ -196,8 +196,10 @@ if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
 
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+os::test::junit::declare_suite_start "cmd/startup"
+os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" "ok"
+os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" "ok"
+os::test::junit::declare_suite_end
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -339,5 +341,5 @@ for test in "${tests[@]}"; do
 done
 
 echo "[INFO] Metrics information logged to ${LOG_DIR}/metrics.log"
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80 > "${LOG_DIR}/metrics.log"
+oc get --raw /metrics > "${LOG_DIR}/metrics.log"
 echo "test-cmd: ok"

@@ -638,17 +638,20 @@ func ValidateAdmissionPluginConfigConflicts(masterConfig *api.MasterConfig) Vali
 	return validationResults
 }
 
-func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path) field.ErrorList {
-	errors := field.ErrorList{}
-
+func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path) (errors field.ErrorList) {
 	cidr := config.NetworkConfig.IngressIPNetworkCIDR
-
 	if len(cidr) == 0 {
-		return errors
+		return
 	}
 
 	addError := func(errMessage string) {
 		errors = append(errors, field.Invalid(fldPath, cidr, errMessage))
+	}
+
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		addError("must be a valid CIDR notation IP range (e.g. 172.46.0.0/16)")
+		return
 	}
 
 	// TODO Detect cloud provider when not using built-in kubernetes
@@ -656,19 +659,15 @@ func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path)
 	noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 
 	if noCloudProvider {
-		if _, ipNet, err := net.ParseCIDR(cidr); err != nil || ipNet.IP.IsUnspecified() {
-			addError("must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)")
-		} else {
-			if api.CIDRsOverlap(cidr, config.NetworkConfig.ClusterNetworkCIDR) {
-				addError("conflicts with cluster network CIDR")
-			}
-			if api.CIDRsOverlap(cidr, config.NetworkConfig.ServiceNetworkCIDR) {
-				addError("conflicts with service network CIDR")
-			}
+		if api.CIDRsOverlap(cidr, config.NetworkConfig.ClusterNetworkCIDR) {
+			addError("conflicts with cluster network CIDR")
 		}
-	} else {
+		if api.CIDRsOverlap(cidr, config.NetworkConfig.ServiceNetworkCIDR) {
+			addError("conflicts with service network CIDR")
+		}
+	} else if !ipNet.IP.IsUnspecified() {
 		addError("should not be provided when a cloud-provider is enabled")
 	}
 
-	return errors
+	return
 }

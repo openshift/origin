@@ -43,6 +43,7 @@ type TemplatePluginConfig struct {
 	ReloadInterval         time.Duration
 	DefaultCertificate     string
 	DefaultCertificatePath string
+	DefaultCertificateDir  string
 	StatsPort              int
 	StatsUsername          string
 	StatsPassword          string
@@ -133,6 +134,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		reloadInterval:         cfg.ReloadInterval,
 		defaultCertificate:     cfg.DefaultCertificate,
 		defaultCertificatePath: cfg.DefaultCertificatePath,
+		defaultCertificateDir:  cfg.DefaultCertificateDir,
 		statsUser:              cfg.StatsUsername,
 		statsPassword:          cfg.StatsPassword,
 		statsPort:              cfg.StatsPort,
@@ -263,6 +265,7 @@ func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
 func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc ServiceLookup) []Endpoint {
 	// check if this service is currently idled
+	wasIdled := false
 	subsets := endpoints.Subsets
 	if _, ok := endpoints.Annotations[unidlingapi.IdledAtAnnotation]; ok && len(endpoints.Subsets) == 0 {
 		service, err := lookupSvc.LookupService(endpoints)
@@ -294,6 +297,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 		}
 
 		subsets = []kapi.EndpointSubset{svcSubset}
+		wasIdled = true
 	}
 
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
@@ -311,6 +315,8 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 					Port: strconv.Itoa(int(p.Port)),
 
 					PortName: p.Name,
+
+					NoHealthCheck: wasIdled,
 				}
 				if a.TargetRef != nil {
 					ep.TargetName = a.TargetRef.Name

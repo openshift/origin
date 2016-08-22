@@ -10,8 +10,6 @@ import (
 
 type Accepter interface {
 	Covers(unversioned.GroupResource) bool
-	RequiresImage(unversioned.GroupResource) bool
-	ResolvesImage(unversioned.GroupResource) bool
 
 	Accepts(*ImagePolicyAttributes) bool
 }
@@ -22,16 +20,6 @@ type mappedAccepter map[unversioned.GroupResource]Accepter
 func (a mappedAccepter) Covers(gr unversioned.GroupResource) bool {
 	_, ok := a[gr]
 	return ok
-}
-
-func (a mappedAccepter) RequiresImage(gr unversioned.GroupResource) bool {
-	accepter, ok := a[gr]
-	return ok && accepter.RequiresImage(gr)
-}
-
-func (a mappedAccepter) ResolvesImage(gr unversioned.GroupResource) bool {
-	accepter, ok := a[gr]
-	return ok && accepter.ResolvesImage(gr)
 }
 
 // Accepts returns true if no Accepter is registered for the group resource in attributes,
@@ -48,8 +36,6 @@ type executionAccepter struct {
 	rules         []api.ImageExecutionPolicyRule
 	covers        unversioned.GroupResource
 	defaultReject bool
-	requiresImage bool
-	resolvesImage bool
 
 	integratedRegistryMatcher RegistryMatcher
 }
@@ -59,7 +45,7 @@ func NewExecutionRulesAccepter(rules []api.ImageExecutionPolicyRule, integratedR
 	mapped := make(mappedAccepter)
 
 	for _, rule := range rules {
-		requiresImage, over, selectors, err := imageConditionInfo(&rule.ImageCondition)
+		over, selectors, err := imageConditionInfo(&rule.ImageCondition)
 		if err != nil {
 			return nil, err
 		}
@@ -75,12 +61,6 @@ func NewExecutionRulesAccepter(rules []api.ImageExecutionPolicyRule, integratedR
 			}
 			byResource := a.(*executionAccepter)
 			byResource.rules = append(byResource.rules, rule)
-			if rule.Resolve {
-				byResource.resolvesImage = true
-			}
-			if requiresImage || rule.Resolve {
-				byResource.requiresImage = true
-			}
 		}
 	}
 
@@ -102,14 +82,6 @@ func NewExecutionRulesAccepter(rules []api.ImageExecutionPolicyRule, integratedR
 	return mapped, nil
 }
 
-func (r *executionAccepter) RequiresImage(gr unversioned.GroupResource) bool {
-	return r.requiresImage && r.Covers(gr)
-}
-
-func (r *executionAccepter) ResolvesImage(gr unversioned.GroupResource) bool {
-	return r.resolvesImage && r.Covers(gr)
-}
-
 func (r *executionAccepter) Covers(gr unversioned.GroupResource) bool {
 	return r.covers == gr
 }
@@ -122,6 +94,12 @@ func (r *executionAccepter) Accepts(attrs *ImagePolicyAttributes) bool {
 	anyMatched := false
 	for _, rule := range r.rules {
 		if attrs.ExcludedRules.Has(rule.Name) && !rule.IgnoreNamespaceOverride {
+			continue
+		}
+
+		// if we don't have a resolved image and we're supposed to skip the rule if that happens,
+		// continue here.  Otherwise, the reject option is impossible to reason about.
+		if attrs.Image == nil && rule.SkipOnResolutionFailure {
 			continue
 		}
 

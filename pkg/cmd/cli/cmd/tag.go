@@ -389,6 +389,9 @@ func (o TagOptions) RunTag() error {
 			default:
 				istag.Tag.From.Name = localRef.NameString()
 				istag.Tag.From.Namespace = o.ref.Namespace
+				if len(o.ref.Namespace) == 0 && o.destNamespace[i] != o.namespace {
+					istag.Tag.From.Namespace = o.namespace
+				}
 			}
 
 			msg := ""

@@ -87,17 +87,18 @@ var (
 		"origin centos7 image streams": "examples/image-streams/image-streams-centos7.json",
 	}
 	templateLocations = map[string]string{
-		"mongodb":            "examples/db-templates/mongodb-ephemeral-template.json",
-		"mariadb":            "examples/db-templates/mariadb-ephemeral-template.json",
-		"mysql":              "examples/db-templates/mysql-ephemeral-template.json",
-		"postgresql":         "examples/db-templates/postgresql-ephemeral-template.json",
-		"cakephp quickstart": "examples/quickstarts/cakephp-mysql.json",
-		"dancer quickstart":  "examples/quickstarts/dancer-mysql.json",
-		"django quickstart":  "examples/quickstarts/django-postgresql.json",
-		"nodejs quickstart":  "examples/quickstarts/nodejs-mongodb.json",
-		"rails quickstart":   "examples/quickstarts/rails-postgresql.json",
-		"jenkins pipeline":   "examples/jenkins/pipeline/jenkinstemplate.json",
-		"sample pipeline":    "examples/jenkins/pipeline/samplepipeline.json",
+		"mongodb":                     "examples/db-templates/mongodb-ephemeral-template.json",
+		"mariadb":                     "examples/db-templates/mariadb-ephemeral-template.json",
+		"mysql":                       "examples/db-templates/mysql-ephemeral-template.json",
+		"postgresql":                  "examples/db-templates/postgresql-ephemeral-template.json",
+		"cakephp quickstart":          "examples/quickstarts/cakephp-mysql.json",
+		"dancer quickstart":           "examples/quickstarts/dancer-mysql.json",
+		"django quickstart":           "examples/quickstarts/django-postgresql.json",
+		"nodejs quickstart":           "examples/quickstarts/nodejs-mongodb.json",
+		"rails quickstart":            "examples/quickstarts/rails-postgresql.json",
+		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
+		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
+		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.json",
 	}
 )
 

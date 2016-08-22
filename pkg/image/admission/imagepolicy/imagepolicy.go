@@ -159,7 +159,7 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		}
 	}
 
-	if err := accept(a.accepter, a.resolver, m, attr, excluded); err != nil {
+	if err := accept(a.accepter, a.config.ResolveImages, a.resolver, m, attr, excluded); err != nil {
 		return err
 	}
 

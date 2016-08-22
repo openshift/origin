@@ -43,6 +43,74 @@ func testData() []*imageapi.ImageStream {
 				},
 			},
 		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: unversioned.Now()},
+			Spec: imageapi.ImageStreamSpec{
+				DockerImageRepository: "",
+				Tags: map[string]imageapi.TagReference{
+					"latest": {
+						From: &api.ObjectReference{
+							Name:      "ruby",
+							Namespace: "openshift",
+							Kind:      "ImageStreamTag",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestRunTag_AddAccrossNamespaces(t *testing.T) {
+	streams := testData()
+	client := testclient.NewSimpleFake(streams[2], streams[0])
+	client.PrependReactor("create", "imagestreamtags", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "create")
+	})
+	client.PrependReactor("update", "imagestreamtags", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "update")
+	})
+
+	test := struct {
+		opts            *TagOptions
+		expectedActions []testAction
+		expectedErr     error
+	}{
+		opts: &TagOptions{
+			out:      os.Stdout,
+			osClient: client,
+			ref: imageapi.DockerImageReference{
+				Namespace: "openshift",
+				Name:      "ruby",
+				Tag:       "latest",
+			},
+			namespace:      "myproject2",
+			sourceKind:     "ImageStreamTag",
+			destNamespace:  []string{"yourproject"},
+			destNameAndTag: []string{"rails:tip"},
+		},
+		expectedActions: []testAction{
+			{verb: "update", resource: "imagestreamtags"},
+			{verb: "create", resource: "imagestreamtags"},
+			{verb: "get", resource: "imagestreams"},
+			{verb: "update", resource: "imagestreams"},
+		},
+		expectedErr: nil,
+	}
+
+	if err := test.opts.RunTag(); err != test.expectedErr {
+		t.Fatalf("error mismatch: expected %v, got %v", test.expectedErr, err)
+	}
+
+	got := client.Actions()
+	if len(test.expectedActions) != len(got) {
+		t.Fatalf("action length mismatch: expectedc %d, got %d", len(test.expectedActions), len(got))
+	}
+
+	for i, action := range test.expectedActions {
+		if !got[i].Matches(action.verb, action.resource) {
+			t.Errorf("action mismatch: expected %s %s, got %s %s", action.verb, action.resource, got[i].GetVerb(), got[i].GetResource())
+		}
 	}
 }
 

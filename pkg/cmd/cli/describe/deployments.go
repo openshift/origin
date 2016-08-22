@@ -73,6 +73,16 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, deploymentConfig.ObjectMeta)
+		var (
+			deploymentsHistory   []kapi.ReplicationController
+			activeDeploymentName string
+		)
+
+		if d.config == nil {
+			if rcs, err := d.kubeClient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(deploymentConfig.Name)}); err == nil {
+				deploymentsHistory = rcs.Items
+			}
+		}
 
 		if deploymentConfig.Status.LatestVersion == 0 {
 			formatString(out, "Latest Version", "Not deployed")
@@ -83,34 +93,41 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		printDeploymentConfigSpec(d.kubeClient, *deploymentConfig, out)
 		fmt.Fprintln(out)
 
-		deploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
-		deployment, err := d.kubeClient.ReplicationControllers(namespace).Get(deploymentName)
-		if err != nil {
-			if kerrors.IsNotFound(err) {
-				formatString(out, "Latest Deployment", "<none>")
-			} else {
-				formatString(out, "Latest Deployment", fmt.Sprintf("error: %v", err))
+		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
+		if activeDeployment := deployutil.ActiveDeployment(deploymentConfig, deploymentsHistory); activeDeployment != nil {
+			activeDeploymentName = activeDeployment.Name
+		}
+
+		var deployment *kapi.ReplicationController
+		isNotDeployed := len(deploymentsHistory) == 0
+		for _, item := range deploymentsHistory {
+			if item.Name == latestDeploymentName {
+				deployment = &item
 			}
+		}
+
+		if isNotDeployed {
+			formatString(out, "Latest Deployment", "<none>")
 		} else {
 			header := fmt.Sprintf("Deployment #%d (latest)", deployutil.DeploymentVersionFor(deployment))
-			printDeploymentRc(deployment, d.kubeClient, out, header, true)
+			// Show details if the current deployment is the active one or it is the
+			// initial deployment.
+			printDeploymentRc(deployment, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
 		}
+
 		// We don't show the deployment history when running `oc rollback --dry-run`.
-		if d.config == nil {
-			deploymentsHistory, err := d.kubeClient.ReplicationControllers(namespace).List(kapi.ListOptions{LabelSelector: labels.Everything()})
-			if err == nil {
-				sorted := deploymentsHistory.Items
-				sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
-				counter := 1
-				for _, item := range sorted {
-					if item.Name != deploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
-						header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
-						printDeploymentRc(&item, d.kubeClient, out, header, false)
-						counter++
-					}
-					if counter == maxDisplayDeployments {
-						break
-					}
+		if d.config == nil && !isNotDeployed {
+			sorted := deploymentsHistory
+			sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
+			counter := 1
+			for _, item := range sorted {
+				if item.Name != latestDeploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
+					header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
+					printDeploymentRc(&item, d.kubeClient, out, header, item.Name == activeDeploymentName)
+					counter++
+				}
+				if counter == maxDisplayDeployments {
+					break
 				}
 			}
 		}
