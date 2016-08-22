@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net"
 	"path"
 	"reflect"
 	"strings"
@@ -488,7 +489,10 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				// should have been caught with validation
 				return nil, err
 			}
-			allowIngressIP := len(options.NetworkConfig.IngressIPNetworkCIDR) > 0
+			allowIngressIP := false
+			if _, ipNet, err := net.ParseCIDR(options.NetworkConfig.IngressIPNetworkCIDR); err == nil && !ipNet.IP.IsUnspecified() {
+				allowIngressIP = true
+			}
 			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP))
 
 		case serviceadmit.RestrictedEndpointsPluginName:

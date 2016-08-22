@@ -50,18 +50,19 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 		result = append(result, field.Invalid(specPath.Child("to", "weight"), route.Spec.To.Weight, "weight must be an integer between 0 and 256"))
 	}
 
+	backendPath := specPath.Child("alternateBackends")
 	if len(route.Spec.AlternateBackends) > 3 {
-		result = append(result, field.Required(specPath.Child("alternateBackends"), "cannot specify more than 3 additional backends"))
+		result = append(result, field.Required(backendPath, "cannot specify more than 3 additional backends"))
 	}
-	for _, svc := range route.Spec.AlternateBackends {
+	for i, svc := range route.Spec.AlternateBackends {
 		if len(svc.Name) == 0 {
-			result = append(result, field.Required(specPath.Child("alternateBackends", "name"), ""))
+			result = append(result, field.Required(backendPath.Index(i).Child("name"), ""))
 		}
 		if svc.Kind != "Service" {
-			result = append(result, field.Invalid(specPath.Child("alternateBackends", "kind"), svc.Kind, "must reference a Service"))
+			result = append(result, field.Invalid(backendPath.Index(i).Child("kind"), svc.Kind, "must reference a Service"))
 		}
 		if svc.Weight != nil && (*svc.Weight < 0 || *svc.Weight > 256) {
-			result = append(result, field.Invalid(specPath.Child("alternateBackends", "weight"), svc.Weight, "weight must be an integer between 0 and 256"))
+			result = append(result, field.Invalid(backendPath.Index(i).Child("weight"), svc.Weight, "weight must be an integer between 0 and 256"))
 		}
 	}
 

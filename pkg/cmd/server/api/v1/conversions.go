@@ -36,16 +36,15 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				obj.JenkinsPipelineConfig.TemplateNamespace = "openshift"
 			}
 			if len(obj.JenkinsPipelineConfig.TemplateName) == 0 {
-				obj.JenkinsPipelineConfig.TemplateName = "jenkins"
+				obj.JenkinsPipelineConfig.TemplateName = "jenkins-ephemeral"
 			}
 			if len(obj.JenkinsPipelineConfig.ServiceName) == 0 {
 				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
 			}
-			if obj.JenkinsPipelineConfig.Enabled == nil {
-				v := true
-				obj.JenkinsPipelineConfig.Enabled = &v
+			if obj.JenkinsPipelineConfig.AutoProvisionEnabled == nil {
+				v := false
+				obj.JenkinsPipelineConfig.AutoProvisionEnabled = &v
 			}
-
 			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &ClientConnectionOverrides{
 					// historical values
@@ -71,6 +70,17 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 				} else {
 					// default ServiceClusterIPRange used by kubernetes if nothing is specified
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
+				}
+			}
+
+			// TODO Detect cloud provider when not using built-in kubernetes
+			kubeConfig := obj.KubernetesMasterConfig
+			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+
+			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+				cidr := "172.46.0.0/16"
+				if !(internal.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 				}
 			}
 

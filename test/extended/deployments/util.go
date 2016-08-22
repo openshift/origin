@@ -293,18 +293,36 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 	if !failed {
 		return
 	}
-
-	dc, rcs, pods, err := deploymentInfo(oc, name)
+	out, err := oc.Run("get").Args("dc/"+name, "-o", "yaml").Output()
 	if err != nil {
+		e2e.Logf("Error getting Deployment Config %s: %v", name, err)
 		return
 	}
-
-	e2e.Logf("DC: %#v", dc)
-	e2e.Logf("  RCs: %#v", rcs)
+	e2e.Logf("\n%s\n", out)
+	_, rcs, pods, err := deploymentInfo(oc, name)
+	if err != nil {
+		e2e.Logf("Error getting deployment %s info: %v", name, err)
+		return
+	}
+	for _, r := range rcs {
+		out, err := oc.Run("get").Args("rc/"+r.Name, "-o", "yaml").Output()
+		if err != nil {
+			e2e.Logf("Error getting replication controller %s info: %v", r.Name, err)
+			return
+		}
+		e2e.Logf("\n%s\n", out)
+	}
 	p, _ := deploymentPods(pods)
-	for k, v := range p {
+	for _, v := range p {
 		for _, pod := range v {
-			e2e.Logf("  Deployer: %s %#v", k, pod)
+			out, err := oc.Run("get").Args("pod/"+pod.Name, "-o", "yaml").Output()
+			if err != nil {
+				e2e.Logf("Error getting pod %s: %v", pod.Name, err)
+				return
+			}
+			e2e.Logf("\n%s\n", out)
+			out, _ = oc.Run("logs").Args("pod/" + pod.Name).Output()
+			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
 	}
 }

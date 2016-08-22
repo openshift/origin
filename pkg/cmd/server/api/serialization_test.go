@@ -92,6 +92,16 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				}
 			}
 
+			// TODO stop duplicating the conversion in the test.
+			kubeConfig := obj.KubernetesMasterConfig
+			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
+			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
+				cidr := "172.46.0.0/16"
+				if !(configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
+				}
+			}
+
 			// Historically, the clientCA was incorrectly used as the master's server cert CA bundle
 			// If missing from the config, migrate the ClientCA into that field
 			if obj.OAuthConfig != nil && obj.OAuthConfig.MasterCA == nil {
@@ -147,9 +157,9 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 		},
 		func(obj *configapi.JenkinsPipelineConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
-			if obj.Enabled == nil {
+			if obj.AutoProvisionEnabled == nil {
 				v := c.RandBool()
-				obj.Enabled = &v
+				obj.AutoProvisionEnabled = &v
 			}
 			if len(obj.TemplateNamespace) == 0 {
 				obj.TemplateNamespace = "value"
@@ -291,6 +301,9 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 					obj.ExecutionRules[i].OnResources = []unversioned.GroupResource{{Resource: "pods"}}
 				}
 				obj.ExecutionRules[i].MatchImageLabelSelectors = nil
+			}
+			if len(obj.ResolveImages) == 0 {
+				obj.ResolveImages = imagepolicyapi.Attempt
 			}
 		},
 		func(obj *configapi.GrantConfig, c fuzz.Continue) {
