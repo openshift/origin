@@ -511,7 +511,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.EtcdHelper.Codec())
 
-	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
