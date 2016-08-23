@@ -322,18 +322,22 @@ func (o TagOptions) RunTag() error {
 
 			if o.deleteTag {
 				// new server support
-				err := o.osClient.ImageStreamTags(o.destNamespace[i]).Delete(destName, destTag)
-				switch {
-				case err == nil:
-					fmt.Fprintf(o.out, "Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
-					return nil
+				// we can't delete the tag because for some reason we want to have asymmetric
+				// oc tag X and oc tag X --delete where the delete doesn't undo the initial tag.
+				// this seems like it should just be a straight up bug that we've found and fixed,
+				// but it seems that we're preserving it for now.
+				// err := o.osClient.ImageStreamTags(o.destNamespace[i]).Delete(destName, destTag)
+				// switch {
+				// case err == nil:
+				// 	fmt.Fprintf(o.out, "Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
+				// 	return nil
 
-				case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
-					// fall back to legacy behavior
-				default:
-					//  error that isn't whitelisted: fail
-					return err
-				}
+				// case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err):
+				// 	// fall back to legacy behavior
+				// default:
+				// 	//  error that isn't whitelisted: fail
+				// 	return err
+				// }
 
 				// try the old way
 				target, err := isc.Get(destName)
