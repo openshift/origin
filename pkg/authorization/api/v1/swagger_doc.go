@@ -335,6 +335,27 @@ func (SubjectAccessReviewResponse) SwaggerDoc() map[string]string {
 	return map_SubjectAccessReviewResponse
 }
 
+var map_SubjectRulesReview = map[string]string{
+	"":       "SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace",
+	"spec":   "Spec adds information about how to conduct the check",
+	"status": "Status is completed by the server to tell which permissions you have",
+}
+
+func (SubjectRulesReview) SwaggerDoc() map[string]string {
+	return map_SubjectRulesReview
+}
+
+var map_SubjectRulesReviewSpec = map[string]string{
+	"":       "SubjectRulesReviewSpec adds information about how to conduct the check",
+	"user":   "User is optional.  At least one of User and Groups must be specified.",
+	"groups": "Groups is optional.  Groups is the list of groups to which the User belongs.  At least one of User and Groups must be specified.",
+	"scopes": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\".",
+}
+
+func (SubjectRulesReviewSpec) SwaggerDoc() map[string]string {
+	return map_SubjectRulesReviewSpec
+}
+
 var map_SubjectRulesReviewStatus = map[string]string{
 	"":                "SubjectRulesReviewStatus is contains the result of a rules check",
 	"rules":           "Rules is the list of rules (no particular sort) that are allowed for the subject",
