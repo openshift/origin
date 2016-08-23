@@ -66,9 +66,6 @@ You can use '%[1]s status' to check the progress.`
   # List all local templates and image streams that can be used to create an app
   %[1]s new-app --list
 
-  # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  %[1]s new-app --search ruby
-
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   %[1]s new-app . --docker-image=repo/langimage
@@ -94,10 +91,10 @@ You can use '%[1]s status' to check the progress.`
   # Create an application based on a template file, explicitly setting a parameter value
   %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
-  # Search for "mysql" in all image repositories and stored templates
-  %[1]s new-app --search mysql
+  # Search all templates, image streams, and Docker images for the ones that match "ruby"
+  %[1]s new-app --search ruby
 
-  # Search for "ruby", but only in stored templates (--template, --image and --docker-image
+  # Search for "ruby", but only in stored templates (--template, --image-stream and --docker-image
   # can be used to filter search results)
   %[1]s new-app --search --template=ruby
 
@@ -114,7 +111,8 @@ To search templates, image streams, and Docker images that match the arguments p
 
   %[1]s new-app -S php
   %[1]s new-app -S --template=ruby
-  %[1]s new-app -S --image=mysql
+  %[1]s new-app -S --image-stream=mysql
+  %[1]s new-app -S --docker-image=python
 `
 )
 
