@@ -82,33 +82,18 @@ func (o UnlinkSecretOptions) unlinkSecretsFromServiceAccount(serviceaccount *kap
 	newPullSecrets := []kapi.LocalObjectReference{}
 
 	// Check the mount secrets
-	for i := len(serviceaccount.Secrets) - 1; i >= 0; i-- {
-		found := false
-		for _, secretname := range rmSecretNames.List() {
-			if secretname == serviceaccount.Secrets[i].Name {
-				found = true
-				// Skip adding this to the updated list
-			}
-		}
-
-		if !found {
+	for _, secret := range serviceaccount.Secrets {
+		if !rmSecretNames.Has(secret.Name) {
 			// Copy this back in, since it doesn't match the ones we're removing
-			newMountSecrets = append(newMountSecrets, serviceaccount.Secrets[i])
+			newMountSecrets = append(newMountSecrets, secret)
 		}
 	}
 
 	// Check the image pull secrets
-	for i := len(serviceaccount.ImagePullSecrets) - 1; i >= 0; i-- {
-		found := false
-		for _, secretname := range rmSecretNames.List() {
-			if secretname == serviceaccount.ImagePullSecrets[i].Name {
-				found = true
-				// Skip adding this to the updated list
-			}
-		}
-		if !found {
+	for _, imagePullSecret := range serviceaccount.ImagePullSecrets {
+		if !rmSecretNames.Has(imagePullSecret.Name) {
 			// Copy this back in, since it doesn't match the one we're removing
-			newPullSecrets = append(newPullSecrets, serviceaccount.ImagePullSecrets[i])
+			newPullSecrets = append(newPullSecrets, imagePullSecret)
 		}
 	}
 
