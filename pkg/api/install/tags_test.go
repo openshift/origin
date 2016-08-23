@@ -1,4 +1,4 @@
-package latest
+package install
 
 import (
 	"reflect"
@@ -8,19 +8,16 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 )
 
 func TestDescriptions(t *testing.T) {
-	for _, version := range Versions {
-		if version == OldestVersion {
-			// we don't care about descriptions here
-			continue
-		}
-
+	for _, version := range registered.RegisteredGroupVersions() {
 		seen := map[reflect.Type]bool{}
 
 		for _, apiType := range kapi.Scheme.KnownTypes(version) {
@@ -64,9 +61,22 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 
 func TestInternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
+	seenGroups := sets.String{}
 
-	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
-		checkJsonTags(apiType, &seen, t)
+	for _, version := range registered.RegisteredGroupVersions() {
+		if seenGroups.Has(version.Group) {
+			continue
+		}
+		seenGroups.Insert(version.Group)
+
+		internalVersion := unversioned.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
+		for _, apiType := range kapi.Scheme.KnownTypes(internalVersion) {
+			checkInternalJsonTags(apiType, &seen, t)
+		}
+	}
+
+	for _, apiType := range configapi.Scheme.KnownTypes(configapi.SchemeGroupVersion) {
+		checkInternalJsonTags(apiType, &seen, t)
 	}
 }
 
@@ -74,7 +84,7 @@ func TestInternalJsonTags(t *testing.T) {
 // internal types.  Do not add to this list without having you paperwork checked in triplicate.
 var internalTypesWithAllowedJsonTags = sets.NewString("DockerConfig", "DockerImage")
 
-func checkJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
+func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
 	if _, exists := (*seen)[objType]; exists {
 		return
 	}
@@ -96,7 +106,50 @@ func checkJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing
 
 		switch structField.Type.Kind() {
 		case reflect.Struct:
-			checkJsonTags(structField.Type, seen, t)
+			checkInternalJsonTags(structField.Type, seen, t)
+		case reflect.Ptr:
+			checkInternalJsonTags(structField.Type.Elem(), seen, t)
+		}
+	}
+}
+
+func TestExternalJsonTags(t *testing.T) {
+	seen := map[reflect.Type]bool{}
+
+	for _, version := range registered.RegisteredGroupVersions() {
+		for _, apiType := range kapi.Scheme.KnownTypes(version) {
+			checkExternalJsonTags(apiType, &seen, t)
+		}
+	}
+
+	for _, apiType := range configapi.Scheme.KnownTypes(configapiv1.SchemeGroupVersion) {
+		checkExternalJsonTags(apiType, &seen, t)
+	}
+
+}
+
+func checkExternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
+	if _, exists := (*seen)[objType]; exists {
+		return
+	}
+	(*seen)[objType] = true
+	if !strings.Contains(objType.PkgPath(), "github.com/openshift/origin/pkg") {
+		return
+	}
+
+	for i := 0; i < objType.NumField(); i++ {
+		structField := objType.FieldByIndex([]int{i})
+
+		jsonTag := structField.Tag.Get("json")
+		if len(jsonTag) == 0 {
+			t.Errorf("%v.%v should have a json tag", objType, structField.Name)
+		}
+
+		switch structField.Type.Kind() {
+		case reflect.Struct:
+			checkExternalJsonTags(structField.Type, seen, t)
+		case reflect.Ptr:
+			checkExternalJsonTags(structField.Type.Elem(), seen, t)
 		}
 	}
 }
