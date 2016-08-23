@@ -14,9 +14,15 @@ readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 
-readonly OS_IMAGE_COMPILE_PLATFORMS=(
-  linux/amd64
-)
+# Asks golang what it thinks the host platform is.  The go tool chain does some
+# slightly different things when the target platform matches the host platform.
+function os::build::host_platform() {
+  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
+}
+readonly -f os::build::host_platform
+
+readonly OS_IMAGE_COMPILE_PLATFORMS=("$(os::build::host_platform)")
+
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   cmd/dockerregistry
@@ -29,12 +35,20 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
 
-readonly OS_CROSS_COMPILE_PLATFORMS=(
+OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
   darwin/amd64
   windows/amd64
   linux/386
 )
+if [[ "$(os::build::host_platform)" == "linux/ppc64le" ]]; then
+  OS_CROSS_COMPILE_PLATFORMS+=(
+    "linux/ppc64le"
+  )
+fi
+
+readonly OS_IMAGE_COMPILE_PLATFORMS
+
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
@@ -109,13 +123,6 @@ function os::build::binaries_from_targets() {
   done
 }
 readonly -f os::build::binaries_from_targets
-
-# Asks golang what it thinks the host platform is.  The go tool chain does some
-# slightly different things when the target platform matches the host platform.
-function os::build::host_platform() {
-  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::build::host_platform
 
 # Create a user friendly version of host_platform for end users
 function os::build::host_platform_friendly() {
@@ -444,12 +451,17 @@ function os::build::place_bins() {
         elif [[ $platform == "linux/amd64" ]]; then
           platform="linux/64bit" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
           platform="linux/64bit" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
+        elif [[ $platform == "linux/ppc64le" ]]; then
+          platform="linux/ppc64le" OS_RELEASE_ARCHIVE="openshift-origin-client-tools" os::build::archive_tar "${OS_BINARY_RELEASE_CLIENT_LINUX[@]}"
+          platform="linux/ppc64le" OS_RELEASE_ARCHIVE="openshift-origin-server" os::build::archive_tar "${OS_BINARY_RELEASE_SERVER_LINUX[@]}"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
       else
         if [[ $platform == "linux/amd64" ]]; then
           platform="linux/64bit" os::build::archive_tar "./*"
+        elif [[ $platform == "linux/ppc64le" ]]; then
+          platform="linux/ppc64le" os::build::archive_tar "./*"
         else
           echo "++ ERROR: No release type defined for $platform"
         fi
