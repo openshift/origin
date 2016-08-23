@@ -1,9 +1,12 @@
-package cmd
+package login
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -12,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/term"
@@ -82,19 +84,18 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 		return o.Config, nil
 	}
 
-	clientConfig := &restclient.Config{}
-
 	if len(o.Server) == 0 {
 		// we need to have a server to talk to
 		if term.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
 				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
-
 				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
 			}
 		}
 	}
+
+	clientConfig := &restclient.Config{}
 
 	// normalize the provided server to a format expected by config
 	serverNormalized, err := config.NormalizeServerURL(o.Server)
@@ -104,67 +105,45 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	o.Server = serverNormalized
 	clientConfig.Host = o.Server
 
+	// use specified CA or find existing CA
 	if len(o.CAFile) > 0 {
 		clientConfig.CAFile = o.CAFile
-
-	} else {
-		// check all cluster stanzas to see if we already have one with this URL that contains a client cert
-		for _, cluster := range o.StartingKubeConfig.Clusters {
-			if cluster.Server == clientConfig.Host {
-				if len(cluster.CertificateAuthority) > 0 {
-					clientConfig.CAFile = cluster.CertificateAuthority
-					break
-				}
-
-				if len(cluster.CertificateAuthorityData) > 0 {
-					clientConfig.CAData = cluster.CertificateAuthorityData
-					break
-				}
-			}
-		}
+		clientConfig.CAData = nil
+	} else if caFile, caData, ok := findExistingClientCA(clientConfig.Host, *o.StartingKubeConfig); ok {
+		clientConfig.CAFile = caFile
+		clientConfig.CAData = caData
 	}
 
-	// ping to check if server is reachable
-	osClient, err := client.New(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	result := osClient.Get().AbsPath("/").Do()
-	if result.Error() != nil {
-		switch {
-		case o.InsecureTLS:
-			clientConfig.Insecure = true
-			// insecure, clear CA info
-			clientConfig.CAFile = ""
-			clientConfig.CAData = nil
-
-		// certificate issue, prompt user for insecure connection
-		case clientcmd.IsCertificateAuthorityUnknown(result.Error()):
-			// check to see if we already have a cluster stanza that tells us to use --insecure for this particular server.  If we don't, then prompt
-			clientConfigToTest := *clientConfig
-			clientConfigToTest.Insecure = true
-			matchingClusters := getMatchingClusters(clientConfigToTest, *o.StartingKubeConfig)
-
-			if len(matchingClusters) > 0 {
+	// try to TCP connect to the server to make sure it's reachable, and discover
+	// about the need of certificates or insecure TLS
+	if err := dialToServer(*clientConfig); err != nil {
+		switch err.(type) {
+		// certificate authority unknown, check or prompt if we want an insecure
+		// connection or if we already have a cluster stanza that tells us to
+		// connect to this particular server insecurely
+		case x509.UnknownAuthorityError:
+			if o.InsecureTLS ||
+				hasExistingInsecureCluster(*clientConfig, *o.StartingKubeConfig) ||
+				promptForInsecureTLS(o.Reader, o.Out) {
 				clientConfig.Insecure = true
-
-			} else if term.IsTerminal(o.Reader) {
-				fmt.Fprintln(o.Out, "The server uses a certificate signed by an unknown authority.")
-				fmt.Fprintln(o.Out, "You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
-
-				clientConfig.Insecure = cmdutil.PromptForBool(os.Stdin, o.Out, "Use insecure connections? (y/n): ")
-				if !clientConfig.Insecure {
-					return nil, fmt.Errorf(clientcmd.GetPrettyMessageFor(result.Error()))
-				}
-				// insecure, clear CA info
 				clientConfig.CAFile = ""
 				clientConfig.CAData = nil
-				fmt.Fprintln(o.Out)
+			} else {
+				return nil, clientcmd.GetPrettyErrorForServer(err, o.Server)
 			}
-
+		// TLS record header errors, like oversized record which usually means
+		// the server only supports "http"
+		case tls.RecordHeaderError:
+			return nil, clientcmd.GetPrettyErrorForServer(err, o.Server)
 		default:
-			return nil, result.Error()
+			// suggest the port used in the cluster URL by default, in case we're not already using it
+			host, port, parsed, err1 := getHostPort(o.Server)
+			_, defaultClusterPort, _, err2 := getHostPort(defaultClusterURL)
+			if err1 == nil && err2 == nil && port != defaultClusterPort {
+				parsed.Host = net.JoinHostPort(host, defaultClusterPort)
+				return nil, fmt.Errorf("%s\nYou may want to try using the default cluster port: %s", err.Error(), parsed.String())
+			}
+			return nil, err
 		}
 	}
 
@@ -174,20 +153,8 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	}
 
 	o.Config = clientConfig
+
 	return o.Config, nil
-}
-
-// getMatchingClusters examines the kubeconfig for all clusters that point to the same server
-func getMatchingClusters(clientConfig restclient.Config, kubeconfig clientcmdapi.Config) sets.String {
-	ret := sets.String{}
-
-	for key, cluster := range kubeconfig.Clusters {
-		if (cluster.Server == clientConfig.Host) && (cluster.InsecureSkipTLSVerify == clientConfig.Insecure) && (cluster.CertificateAuthority == clientConfig.CAFile) && (bytes.Compare(cluster.CertificateAuthorityData, clientConfig.CAData) == 0) {
-			ret.Insert(key)
-		}
-	}
-
-	return ret
 }
 
 // Negotiate a bearer token with the auth server, or try to reuse one based on the
@@ -419,15 +386,6 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	}
 
 	return created, nil
-}
-
-func whoAmI(client *client.Client) (*api.User, error) {
-	me, err := client.Users().Get("~")
-	if err != nil {
-		return nil, err
-	}
-
-	return me, nil
 }
 
 func (o LoginOptions) whoAmI() (*api.User, error) {
