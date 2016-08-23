@@ -106,9 +106,7 @@ func (o *PauseConfig) CompletePause(f *cmdutil.Factory, cmd *cobra.Command, out 
 		Flatten().
 		Do()
 	err = r.Err()
-	if err != nil {
-		return err
-	}
+	cmdutil.CheckErr(err)
 
 	o.Infos, err = r.Infos()
 	if err != nil {
