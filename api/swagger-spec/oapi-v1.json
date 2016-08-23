@@ -18945,6 +18945,104 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/subjectrulesreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.SubjectRulesReview",
+      "method": "POST",
+      "summary": "create a SubjectRulesReview",
+      "nickname": "createNamespacedSubjectRulesReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SubjectRulesReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SubjectRulesReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/subjectrulesreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.SubjectRulesReview",
+      "method": "POST",
+      "summary": "create a SubjectRulesReview",
+      "nickname": "createNamespacedSubjectRulesReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SubjectRulesReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SubjectRulesReview"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/templates",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -26934,6 +27032,60 @@
        "type": "string"
       },
       "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\". Nil for a self-SAR, means \"use the scopes on this request\". Nil for a regular SAR, means the same as empty."
+     }
+    }
+   },
+   "v1.SubjectRulesReview": {
+    "id": "v1.SubjectRulesReview",
+    "description": "SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "spec": {
+      "$ref": "v1.SubjectRulesReviewSpec",
+      "description": "Spec adds information about how to conduct the check"
+     },
+     "status": {
+      "$ref": "v1.SubjectRulesReviewStatus",
+      "description": "Status is completed by the server to tell which permissions you have"
+     }
+    }
+   },
+   "v1.SubjectRulesReviewSpec": {
+    "id": "v1.SubjectRulesReviewSpec",
+    "description": "SubjectRulesReviewSpec adds information about how to conduct the check",
+    "required": [
+     "user",
+     "groups",
+     "scopes"
+    ],
+    "properties": {
+     "user": {
+      "type": "string",
+      "description": "User is optional.  At least one of User and Groups must be specified."
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Groups is optional.  Groups is the list of groups to which the User belongs.  At least one of User and Groups must be specified."
+     },
+     "scopes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\"."
      }
     }
    },
