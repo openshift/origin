@@ -76,7 +76,7 @@ func (o *VersionOptions) Complete(f *clientcmd.Factory, out io.Writer) error {
 
 // RunVersion attempts to display client and server versions for Kubernetes and OpenShift
 func (o VersionOptions) RunVersion() error {
-	fmt.Fprintf(o.Out, "%s %v\n", o.BaseName, version.Get())
+	fmt.Fprintf(o.Out, "%s %s\n", o.BaseName, version.Get().LastSemanticVersion())
 	fmt.Fprintf(o.Out, "kubernetes %v\n", kubeversion.Get())
 	if o.PrintEtcdVersion {
 		fmt.Fprintf(o.Out, "etcd %v\n", etcdversion.Version)
@@ -142,7 +142,8 @@ func (o VersionOptions) RunVersion() error {
 			done <- err
 			return
 		}
-		oVersion = fmt.Sprintf("%v", ocServerInfo)
+		ocServerVersionInfo := version.Info{GitVersion: ocServerInfo.GitVersion}
+		oVersion = fmt.Sprintf("%s", ocServerVersionInfo.LastSemanticVersion())
 
 		kubeVersionBody, err := kClient.Get().AbsPath("/version").Do().Raw()
 		if kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err) {
