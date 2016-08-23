@@ -369,6 +369,8 @@ type KubeletConfiguration struct {
 	// manage attachment/detachment of volumes scheduled to this node, and
 	// disables kubelet from executing any attach/detach operations
 	EnableControllerAttachDetach bool `json:"enableControllerAttachDetach"`
+	// Whitelist of unsafe sysctls or sysctl patterns (ending in *).
+	AllowedUnsafeSysctls []string `json:"experimentalAllowedUnsafeSysctls,omitempty"`
 }
 
 type KubeSchedulerConfiguration struct {

@@ -72,9 +72,10 @@ const (
 	// docker verison should be at least 1.9.x
 	minimumDockerAPIVersion = "1.21"
 
-	// Remote API version for docker daemon version v1.10
+	// Remote API version for docker daemon versions
 	// https://docs.docker.com/engine/reference/api/docker_remote_api/
-	dockerV110APIVersion = "1.22"
+	DockerV110APIVersion = "1.22"
+	DockerV112APIVersion = "1.24"
 
 	// ndots specifies the minimum number of dots that a domain name must contain for the resolver to consider it as FQDN (fully-qualified)
 	// we want to able to consider SRV lookup names like _dns._udp.kube-dns.default.svc to be considered relative.
@@ -645,8 +646,24 @@ func (dm *DockerManager) runContainer(
 		SecurityOpt: securityOpts,
 	}
 
+	// Set sysctls if requested
+	sysctls, unsafeSysctls, err := api.SysctlsFromPodAnnotations(pod.Annotations)
+	if err != nil {
+		dm.recorder.Eventf(ref, api.EventTypeWarning, kubecontainer.FailedToCreateContainer, "Failed to create docker container %q of pod %q with error: %v", container.Name, format.Pod(pod), err)
+		return kubecontainer.ContainerID{}, err
+	}
+	if len(sysctls)+len(unsafeSysctls) > 0 {
+		hc.Sysctls = make(map[string]string, len(sysctls)+len(unsafeSysctls))
+		for _, c := range sysctls {
+			hc.Sysctls[c.Name] = c.Value
+		}
+		for _, c := range unsafeSysctls {
+			hc.Sysctls[c.Name] = c.Value
+		}
+	}
+
 	// If current api version is newer than docker 1.10 requested, set OomScoreAdj to HostConfig
-	result, err := dm.checkDockerAPIVersion(dockerV110APIVersion)
+	result, err := dm.checkDockerAPIVersion(DockerV110APIVersion)
 	if err != nil {
 		glog.Errorf("Failed to check docker api version: %v", err)
 	} else if result >= 0 {
@@ -986,7 +1003,7 @@ func (dm *DockerManager) getSecurityOpts(pod *api.Pod, ctrName string) ([]string
 	}
 
 	// seccomp is only on docker versions >= v1.10
-	result, err := version.Compare(dockerV110APIVersion)
+	result, err := version.Compare(DockerV110APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -1560,7 +1577,7 @@ func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Containe
 
 func (dm *DockerManager) applyOOMScoreAdjIfNeeded(pod *api.Pod, container *api.Container, containerInfo *dockertypes.ContainerJSON) error {
 	// Compare current API version with expected api version.
-	result, err := dm.checkDockerAPIVersion(dockerV110APIVersion)
+	result, err := dm.checkDockerAPIVersion(DockerV110APIVersion)
 	if err != nil {
 		return fmt.Errorf("Failed to check docker api version: %v", err)
 	}
