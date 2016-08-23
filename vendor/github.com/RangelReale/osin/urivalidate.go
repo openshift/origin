@@ -24,7 +24,7 @@ func newUriValidationError(msg string, base string, redirect string) UriValidati
 // ValidateUriList validates that redirectUri is contained in baseUriList.
 // baseUriList may be a string separated by separator.
 // If separator is blank, validate only 1 URI.
-func ValidateUriList(baseUriList string, redirectUri string, separator string, allowAnyLocalPort bool) error {
+func ValidateUriList(baseUriList string, redirectUri string, separator string, allowAnyLocalSchemePortPath bool) error {
 	// make a list of uris
 	var slist []string
 	if separator != "" {
@@ -35,10 +35,12 @@ func ValidateUriList(baseUriList string, redirectUri string, separator string, a
 	}
 
 	for _, sitem := range slist {
-		err := ValidateUri(sitem, redirectUri, allowAnyLocalPort)
+		err := ValidateUri(sitem, redirectUri, allowAnyLocalSchemePortPath)
 		// validated, return no error
 		if err == nil {
 			return nil
+		} else {
+			fmt.Println("<><><>", err)
 		}
 
 		// if there was an error that is not a validation error, return it
@@ -51,7 +53,7 @@ func ValidateUriList(baseUriList string, redirectUri string, separator string, a
 }
 
 // ValidateUri validates that redirectUri is contained in baseUri
-func ValidateUri(baseUri string, redirectUri string, allowAnyLocalPort bool) error {
+func ValidateUri(baseUri string, redirectUri string, allowAnyLocalSchemePortPath bool) error {
 	if baseUri == "" || redirectUri == "" {
 		return errors.New("urls cannot be blank.")
 	}
@@ -74,9 +76,6 @@ func ValidateUri(baseUri string, redirectUri string, allowAnyLocalPort bool) err
 	}
 
 	// check if urls match
-	if base.Scheme != redirect.Scheme {
-		return newUriValidationError("scheme mismatch", baseUri, redirectUri)
-	}
 
 	baseHost, basePort, err := net.SplitHostPort(base.Host)
 	if err != nil {
@@ -92,17 +91,19 @@ func ValidateUri(baseUri string, redirectUri string, allowAnyLocalPort bool) err
 		return newUriValidationError("host mismatch", baseUri, redirectUri)
 	}
 
-	canUseAnyPort := false
-	if allowAnyLocalPort {
+	if allowAnyLocalSchemePortPath {
 		for _, address := range LocalAddresses {
 			if baseHost == address {
-				canUseAnyPort = true
-				break
+				return nil
 			}
 		}
 	}
 
-	if basePort != redirectPort && !canUseAnyPort {
+	if base.Scheme != redirect.Scheme {
+		return newUriValidationError("scheme mismatch", baseUri, redirectUri)
+	}
+
+	if basePort != redirectPort {
 		return newUriValidationError("port mismatch", baseUri, redirectUri)
 	}
 

@@ -25,7 +25,7 @@ func NewDefaultServerConfig() *osin.ServerConfig {
 	config.AllowGetAccessRequest = true
 	config.RedirectUriSeparator = ","
 	config.ErrorStatusCode = http.StatusBadRequest
-	config.AllowAnyLocalPort = true
+	config.AllowAnyLocalSchemePortPath = true
 
 	return config
 }

@@ -242,6 +242,7 @@ func browserOauthAuthorizeResult(location string) (string, error) {
 	}
 	var browser browsercmd.Browser = &browsercmd.BrowserImplementation{}
 	url := location + fmt.Sprintf("&display=page&redirect_uri=http://127.0.0.1:%s&state=%s", port, "state") // TODO do this better
+	glog.V(4).Infof("Opening URL in browser: " + url)
 	err = browser.Open(url)
 	if err != nil {
 		return "", err

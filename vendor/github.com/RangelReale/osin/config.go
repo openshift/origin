@@ -58,8 +58,8 @@ type ServerConfig struct {
 	// If blank (the default), don't allow multiple URIs.
 	RedirectUriSeparator string
 
-	// If true and the redirect URI is a local address, then any port will be considered valid
-	AllowAnyLocalPort bool
+	// If true and the redirect URI is a local address, then any scheme, port and path will be considered valid
+	AllowAnyLocalSchemePortPath bool
 }
 
 // NewServerConfig returns a new ServerConfig with default configuration
