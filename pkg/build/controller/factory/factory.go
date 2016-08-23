@@ -426,20 +426,6 @@ func listPods(client kclient.Interface) (*kapi.PodList, error) {
 	return listNew, nil
 }
 
-func mergeWithoutDuplicates(arrays ...[]kapi.Pod) []kapi.Pod {
-	tmpMap := make(map[string]kapi.Pod)
-	for _, array := range arrays {
-		for _, v := range array {
-			tmpMap[fmt.Sprintf("%s/%s", v.Namespace, v.Name)] = v
-		}
-	}
-	var result []kapi.Pod
-	for _, v := range tmpMap {
-		result = append(result, v)
-	}
-	return result
-}
-
 // Watch watches all Pods that have a build label.
 func (lw *podLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
 	// FIXME: since we cannot have OR on label name we'll just get builds with new label
