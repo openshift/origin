@@ -150,6 +150,10 @@ starting from a configuration file.
     Whether kubelet should exit upon lock\-file contention.
 
 .PP
+\fB\-\-experimental\-allowed\-unsafe\-sysctls\fP=[]
+    Comma\-separated whitelist of unsafe sysctls or unsafe sysctl patterns (ending in *). Use these at your own risk.
+
+.PP
 \fB\-\-experimental\-flannel\-overlay\fP=false
     Experimental support for starting the kubelet with the default overlay network (flannel). Assumes flanneld is already running in client mode. [default=false]
 
