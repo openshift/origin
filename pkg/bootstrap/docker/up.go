@@ -176,6 +176,7 @@ type ClientStartConfig struct {
 	UseExistingConfig bool
 	Environment       []string
 	ServerLogLevel    int
+	DockerVersion     *semver.Version
 
 	dockerClient    *docker.Client
 	engineAPIClient *dockerclient.Client
@@ -233,12 +234,12 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Ensure that ports used by OpenShift are available on the host machine
 	c.addTask("Checking for available ports", c.CheckAvailablePorts)
 
+	// Check that we have the minimum Docker version available to run OpenShift
+	c.addTask("Checking Docker version", c.CheckDockerVersion)
+
 	// Check whether the Docker host has the right binaries to use Kubernetes' nsenter mounter
 	// If not, use a shared volume to mount volumes on OpenShift
 	c.addTask("Checking type of volume mount", c.CheckNsenterMounter)
-
-	// Check that we have the minimum Docker version available to run OpenShift
-	c.addTask("Checking Docker version", c.CheckDockerVersion)
 
 	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
@@ -467,7 +468,7 @@ func (c *ClientStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
 // a shared volume is needed in Docker
 func (c *ClientStartConfig) CheckNsenterMounter(out io.Writer) error {
 	var err error
-	c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter()
+	c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter(c.DockerVersion)
 	if c.UseNsenterMount {
 		fmt.Fprintf(out, "Using nsenter mounter for OpenShift volumes\n")
 	} else {
@@ -476,22 +477,19 @@ func (c *ClientStartConfig) CheckNsenterMounter(out io.Writer) error {
 	return err
 }
 
+var minimumDockerVersion = semver.MustParse("1.9.0")
+
 // CheckDockerVersion checks that the appropriate Docker version is installed based on whether we are using the nsenter mounter
 // or shared volumes for OpenShift
-func (c *ClientStartConfig) CheckDockerVersion(io.Writer) error {
-	var minDockerVersion semver.Version
-	if c.UseNsenterMount {
-		minDockerVersion = semver.MustParse("1.8.1")
-	} else {
-		minDockerVersion = semver.MustParse("1.10.0")
-	}
-	ver, err := c.DockerHelper().Version()
+func (c *ClientStartConfig) CheckDockerVersion(out io.Writer) error {
+	var err error
+	c.DockerVersion, err = c.DockerHelper().Version()
 	if err != nil {
-		return err
+		fmt.Fprintf(out, "warning: cannot detect Docker version: %v\n", err)
+		return nil
 	}
-	glog.V(5).Infof("Checking that docker version is at least %v", minDockerVersion)
-	if ver.LT(minDockerVersion) {
-		return fmt.Errorf("Docker version is %v, it needs to be %v", ver, minDockerVersion)
+	if c.DockerVersion != nil && c.DockerVersion.LT(minimumDockerVersion) {
+		return errors.NewError("Docker version %s is too old.", c.DockerVersion.String()).WithSolution("Update to a newer Docker version")
 	}
 	return nil
 }
