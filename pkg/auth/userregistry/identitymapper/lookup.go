@@ -54,5 +54,5 @@ func NewLookupError(info authapi.UserIdentityInfo, err error) error {
 }
 
 func (c lookupError) Error() string {
-	return fmt.Sprintf("lookup of user for %q failed: %v", c.Identity.GetIdentityName(), c.CausedBy)
+	return fmt.Sprintf("Lookup of user for %q failed: %v", c.Identity.GetIdentityName(), c.CausedBy)
 }

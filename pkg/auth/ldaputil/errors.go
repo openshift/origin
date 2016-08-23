@@ -17,7 +17,7 @@ type errNoSuchObject struct {
 
 // Error returns the error string for the invalid base DN query error
 func (e *errNoSuchObject) Error() string {
-	return fmt.Sprintf("search for entry with base dn=%q refers to a non-existent entry", e.baseDN)
+	return fmt.Sprintf("Search for entry with base dn=%q refers to a non-existent entry", e.baseDN)
 }
 
 // IsNoSuchObjectError determines if the error is a NoSuchObjectError or if it is the upstream version of the error
@@ -43,7 +43,7 @@ type errEntryNotFound struct {
 
 // Error returns the error string for the entry not found error
 func (e *errEntryNotFound) Error() string {
-	return fmt.Sprintf("search for entry with base dn=%q and filter %q did not return any results", e.baseDN, e.filter)
+	return fmt.Sprintf("Search for entry with base dn=%q and filter %q did not return any results", e.baseDN, e.filter)
 }
 
 func IsEntryNotFoundError(err error) bool {
@@ -68,7 +68,7 @@ type errQueryOutOfBounds struct {
 
 // Error returns the error string for the out-of-bounds query
 func (q *errQueryOutOfBounds) Error() string {
-	return fmt.Sprintf("search for entry with dn=%q would search outside of the base dn specified (dn=%q)", q.queryDN, q.baseDN)
+	return fmt.Sprintf("Search for entry with dn=%q would search outside of the base dn specified (dn=%q)", q.queryDN, q.baseDN)
 }
 
 func IsQueryOutOfBoundsError(err error) bool {

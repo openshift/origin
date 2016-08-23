@@ -33,7 +33,7 @@ type GeneratorFatalError struct {
 
 // Error returns the error string for this fatal error
 func (e GeneratorFatalError) Error() string {
-	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
+	return fmt.Sprintf("Fatal error generating Build from BuildConfig: %s", e.Reason)
 }
 
 // IsFatal returns true if err is a fatal error

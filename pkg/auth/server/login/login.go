@@ -235,7 +235,7 @@ func ValidateLoginTemplate(templateContent []byte) []error {
 
 	for field, value := range testFields {
 		if !bytes.Contains(output, []byte(value)) {
-			allErrs = append(allErrs, errors.New(fmt.Sprintf("template is missing parameter {{ .%s }}", field)))
+			allErrs = append(allErrs, errors.New(fmt.Sprintf("Template is missing parameter {{ .%s }}", field)))
 		}
 	}
 

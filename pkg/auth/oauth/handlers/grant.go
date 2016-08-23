@@ -83,7 +83,7 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Respo
 		}
 	}
 	if len(invalidScopes) > 0 {
-		resp.SetError("access_denied", fmt.Sprintf("scope denied: %s", strings.Join(invalidScopes.List(), " ")))
+		resp.SetError("access_denied", fmt.Sprintf("Scope denied: %s", strings.Join(invalidScopes.List(), " ")))
 		return false, nil
 	}
 

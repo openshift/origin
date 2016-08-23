@@ -272,7 +272,7 @@ func (e clusterRoleEvaluator) Describe(scope string) (string, string, error) {
 	if scopeNamespace == authorizationapi.ScopesAllNamespaces {
 		scopePhrase = "server-wide"
 	} else {
-		scopePhrase = fmt.Sprintf("in project %q", scopeNamespace)
+		scopePhrase = fmt.Sprintf("In project %q", scopeNamespace)
 	}
 
 	warning := ""
