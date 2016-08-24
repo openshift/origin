@@ -1,12 +1,14 @@
 package browsercmd
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/RangelReale/osincli"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/pborman/uuid"
 )
 
 type HandlerImplementation struct {
@@ -19,7 +21,6 @@ type HandlerImplementation struct {
 type CreateHandlerImplementation struct {
 	rt         http.RoundTripper
 	masterAddr string
-	state      string
 }
 
 func (h *HandlerImplementation) HandleError(err error) error {
@@ -27,7 +28,7 @@ func (h *HandlerImplementation) HandleError(err error) error {
 }
 
 func (h *HandlerImplementation) HandleData(data *osincli.AuthorizeData) error {
-	if data.State != h.state {
+	if !h.CheckState(data) {
 		return errors.New("State error")
 	}
 	tokenReq := h.oaClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, data)
@@ -53,9 +54,20 @@ func (h *HandlerImplementation) GetAccessData() (*osincli.AccessData, error) {
 	}
 }
 
+func (h *HandlerImplementation) GenerateState() string {
+	if h.state == "" {
+		h.state = base64.URLEncoding.EncodeToString([]byte(uuid.NewUUID().String()))
+	}
+	return h.state
+}
+
+func (h *HandlerImplementation) CheckState(data *osincli.AuthorizeData) bool {
+	return data.State == h.state && data.State != ""
+}
+
 func (chi *CreateHandlerImplementation) Create(port string) (Handler, error) {
 	oaClientConfig := &osincli.ClientConfig{
-		ClientId:     origin.OpenShiftCLIClientID,
+		ClientId:     origin.OpenShiftCLIClientID,            //TODO should we import origin or just hard code?
 		ClientSecret: "8ee4f8bf-c7bc-4ca1-80f1-2ec7ff5af937", //TODO fix
 		RedirectUrl:  fmt.Sprintf("http://127.0.0.1:%s/token", port),
 		AuthorizeUrl: origin.OpenShiftOAuthAuthorizeURL(chi.masterAddr),
@@ -68,9 +80,9 @@ func (chi *CreateHandlerImplementation) Create(port string) (Handler, error) {
 	oaClient.Transport = chi.rt
 	ch := make(chan *osincli.AccessData, 1)
 	done := make(chan struct{}, 1)
-	return &HandlerImplementation{ch, done, oaClient, chi.state}, nil
+	return &HandlerImplementation{ch, done, oaClient, ""}, nil
 }
 
-func NewCreateHandlerImplementation(rt http.RoundTripper, masterAddr, state string) *CreateHandlerImplementation {
-	return &CreateHandlerImplementation{rt, masterAddr, state}
+func NewCreateHandlerImplementation(rt http.RoundTripper, masterAddr string) *CreateHandlerImplementation {
+	return &CreateHandlerImplementation{rt, masterAddr}
 }

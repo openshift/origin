@@ -12,7 +12,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/cmd/util/browsercmd"
-	"github.com/pborman/uuid"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -232,25 +231,24 @@ func oauthAuthorizeResult(location string) (string, error) {
 }
 
 func browserOauthAuthorizeResult(rt http.RoundTripper, masterAddr string) (string, error) {
-	state := uuid.NewRandom().String()
 	server := &browsercmd.ServerImplementation{}
-	createHandler := browsercmd.NewCreateHandlerImplementation(rt, masterAddr, state)
+	createHandler := browsercmd.NewCreateHandlerImplementation(rt, masterAddr)
 	handler, port, err := server.Start(createHandler)
 	defer server.Stop()
 	if err != nil {
 		return "", err
 	}
 	browser := &browsercmd.BrowserImplementation{}
-	fullurl := masterAddr + fmt.Sprintf("/oauth/authorize?response_type=code&client_id=openshift-challenging-client&display=page&redirect_uri=http://127.0.0.1:%s/token&state=%s", port, state) // TODO do this better
+	fullurl := masterAddr + fmt.Sprintf(
+		"/oauth/authorize?response_type=code&client_id=%s&display=page&redirect_uri=http://127.0.0.1:%s/token&state=%s",
+		"openshift-challenging-client",
+		port,
+		handler.GenerateState())
 	glog.V(4).Infof("Opening URL in browser: " + fullurl)
 	err = browser.Open(fullurl)
 	if err != nil {
 		return "", err
 	}
-	// Start local server
-	// Open browser to url
-	// Extract token from response
-	// time.Sleep(10 * time.Second)
 	ad, err := handler.GetAccessData()
 	if err != nil {
 		return "", err

@@ -11,6 +11,8 @@ type Handler interface {
 	HandleData(*osincli.AuthorizeData) error
 	HandleError(error) error
 	GetAccessData() (*osincli.AccessData, error)
+	GenerateState() string
+	CheckState(*osincli.AuthorizeData) bool
 	// HandleError(osincli.Error) error
 }
 
