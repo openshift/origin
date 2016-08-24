@@ -41,10 +41,15 @@ func GetEnv(key string) (string, bool) {
 
 type Environment map[string]string
 
-var argumentEnvironment = regexp.MustCompile("(?ms)^([\\w\\-_]+)\\=(.*)$")
+var argumentEnvironment = regexp.MustCompile("(?ms)^(.+)\\=(.*)$")
+var validArgumentEnvironment = regexp.MustCompile("(?ms)^(\\w+)\\=(.*)$")
 
 func IsEnvironmentArgument(s string) bool {
 	return argumentEnvironment.MatchString(s)
+}
+
+func IsValidEnvironmentArgument(s string) bool {
+	return validArgumentEnvironment.MatchString(s)
 }
 
 func SplitEnvironmentFromResources(args []string) (resources, envArgs []string, ok bool) {
@@ -72,7 +77,7 @@ func ParseEnvironmentArguments(s []string) (Environment, []string, []error) {
 	duplicates := []string{}
 	env := make(Environment)
 	for _, s := range s {
-		switch matches := argumentEnvironment.FindStringSubmatch(s); len(matches) {
+		switch matches := validArgumentEnvironment.FindStringSubmatch(s); len(matches) {
 		case 3:
 			k, v := matches[1], matches[2]
 			if exist, ok := env[k]; ok {
@@ -93,6 +98,8 @@ func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, 
 	var remove []string
 	for _, envSpec := range spec {
 		switch {
+		case !IsValidEnvironmentArgument(envSpec) && !strings.HasSuffix(envSpec, "-"):
+			return nil, nil, fmt.Errorf("environment variables must be of the form key=value and can only contain letters, numbers, and underscores")
 		case envSpec == "-":
 			if defaultReader == nil {
 				return nil, nil, fmt.Errorf("when '-' is used, STDIN must be open")
