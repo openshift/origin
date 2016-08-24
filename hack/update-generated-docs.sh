@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# This script sets up a go workspace locally and builds all go components.
+# This script sets up a go workspace locally and generates the documents and manuals.
+
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 "${OS_ROOT}/hack/build-go.sh" tools/gendocs tools/genman
