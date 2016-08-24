@@ -5,12 +5,14 @@ import (
 	"net/http"
 
 	"github.com/RangelReale/osincli"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
 type HandlerImplementation struct {
 	ad       chan *osincli.AccessData
 	done     chan struct{}
 	oaClient *osincli.Client
+	state    string
 }
 
 func (h *HandlerImplementation) HandleError(err error) error {
@@ -18,6 +20,9 @@ func (h *HandlerImplementation) HandleError(err error) error {
 }
 
 func (h *HandlerImplementation) HandleData(data *osincli.AuthorizeData) error {
+	if data.State != h.state {
+		return errors.New("State error")
+	}
 	tokenReq := h.oaClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, data)
 	token, err := tokenReq.GetToken()
 	if err != nil {
@@ -41,13 +46,13 @@ func (h *HandlerImplementation) GetAccessData() (*osincli.AccessData, error) {
 	}
 }
 
-func NewHandlerImplementation(rt http.RoundTripper, serverURL string) (*HandlerImplementation, error) {
+func NewHandlerImplementation(rt http.RoundTripper, masterAddr, state string) (*HandlerImplementation, error) {
 	oaClientConfig := &osincli.ClientConfig{
-		ClientId:     "openshift-browser-client",             //TODO fix
-		ClientSecret: "45a3d382-59ca-4ed5-b5e6-f90495fb59d9", //TODO fix
-		RedirectUrl:  "http://127.0.0.1:80/token",
-		AuthorizeUrl: serverURL + "/oauth/authorize",
-		TokenUrl:     serverURL + "/oauth/token",
+		ClientId:     origin.OpenShiftCLIClientID,
+		ClientSecret: "8ee4f8bf-c7bc-4ca1-80f1-2ec7ff5af937", //TODO fix
+		RedirectUrl:  "http://127.0.0.1:80/token",            //TODO fix
+		AuthorizeUrl: origin.OpenShiftOAuthAuthorizeURL(masterAddr),
+		TokenUrl:     origin.OpenShiftOAuthTokenURL(masterAddr),
 	}
 	oaClient, err := osincli.NewClient(oaClientConfig)
 	if err != nil {
@@ -56,5 +61,5 @@ func NewHandlerImplementation(rt http.RoundTripper, serverURL string) (*HandlerI
 	oaClient.Transport = rt
 	ch := make(chan *osincli.AccessData, 1)
 	done := make(chan struct{}, 1)
-	return &HandlerImplementation{ch, done, oaClient}, nil
+	return &HandlerImplementation{ch, done, oaClient, state}, nil
 }

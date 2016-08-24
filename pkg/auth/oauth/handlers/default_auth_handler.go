@@ -87,10 +87,10 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 		return false, fmt.Errorf("apiClient data was not an oauthapi.OAuthClient")
 	}
 
-	// Should we challenge because the client is asking us to display the authentication and consent UI consistent with a full User Agent page view
-	forceChallenge := req.URL.Query().Get(displayRequestParamKey) == displayRequestParamShowUIValue
+	// Should we NOT challenge because the client is asking us to display the authentication and consent UI consistent with a full User Agent page view
+	displayPage := req.URL.Query().Get(displayRequestParamKey) == displayRequestParamShowUIValue
 
-	if forceChallenge || client.RespondWithChallenges {
+	if !displayPage && client.RespondWithChallenges {
 		errors := []error{}
 		headers := http.Header(make(map[string][]string))
 		for _, challengingHandler := range authHandler.challengers {

@@ -2,6 +2,7 @@ package osin
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -185,14 +186,17 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 	}
 	if ret.AuthorizeData == nil {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
+		fmt.Println("A")
 		return nil
 	}
 	if ret.AuthorizeData.Client == nil {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
+		fmt.Println("B")
 		return nil
 	}
 	if ret.AuthorizeData.Client.GetRedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
+		fmt.Println("C")
 		return nil
 	}
 	if ret.AuthorizeData.IsExpiredAt(s.Now()) {
@@ -215,6 +219,8 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 		w.InternalError = err
 		return nil
 	}
+
+	//TODO fix
 	//if ret.AuthorizeData.RedirectUri != ret.RedirectUri {
 	//	fmt.Println(ret.AuthorizeData.RedirectUri, ret.RedirectUri)
 	//	w.SetError(E_INVALID_REQUEST, "")
@@ -509,14 +515,17 @@ func getClient(auth *BasicAuth, storage Storage, w *Response) Client {
 	}
 	if client == nil {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
+		fmt.Println("D")
 		return nil
 	}
 	if !client.ValidateSecret(auth.Password) {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
+		fmt.Println("E")
 		return nil
 	}
 	if client.GetRedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
+		fmt.Println("F")
 		return nil
 	}
 	return client
