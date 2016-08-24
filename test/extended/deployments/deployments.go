@@ -36,7 +36,6 @@ var _ = g.Describe("deploymentconfigs", func() {
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployment-history-limit.yaml")
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
-		multiContainerFixture           = exutil.FixturePath("testdata", "test-deployment-config-multicontainer.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
 	)
 
@@ -481,24 +480,6 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
-	})
-
-	g.Describe("with logging with multiple containers [Conformance]", func() {
-		g.AfterEach(func() {
-			failureTrap(oc, "test-deployment-config-multicontainer", g.CurrentGinkgoTestDescription().Failed)
-		})
-
-		g.It("should be able to get the logs from each container", func() {
-			_, name, err := createFixture(oc, multiContainerFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
-
-			_, err = oc.Run("logs").Args("dc/"+name, "-c", "container1").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.Run("logs").Args("dc/"+name, "-c", "container2").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 	})
 
 	g.Describe("with failing hook", func() {
