@@ -259,7 +259,7 @@ type JenkinsPipelineConfig struct {
 	// AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided
 	// template when the first build config in the project with type JenkinsPipeline
 	// is created. When not specified this option defaults to false.
-	AutoProvisionEnabled *bool `json:"enabled"`
+	AutoProvisionEnabled *bool `json:"autoProvisionEnabled"`
 	// TemplateNamespace contains the namespace name where the Jenkins template is stored
 	TemplateNamespace string `json:"templateNamespace"`
 	// TemplateName is the name of the default Jenkins template
