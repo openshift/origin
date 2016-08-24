@@ -11,8 +11,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"time"
-
 	"github.com/openshift/origin/pkg/cmd/util/browsercmd"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -173,7 +171,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 
 			switch err := err.(type) {
 			case *interactionRequiredError:
-				token, browserError := browserOauthAuthorizeResult(requestURL)
+				token, browserError := browserOauthAuthorizeResult(rt, o.ClientConfig.Host)
 				if browserError != nil {
 					glog.V(4).Infof("browser error: %v", browserError) // TODO what level to use?
 					return "", err                                     // log the browser error but show the actual err
@@ -232,26 +230,33 @@ func oauthAuthorizeResult(location string) (string, error) {
 	return "", nil
 }
 
-func browserOauthAuthorizeResult(location string) (string, error) {
-	var server browsercmd.Server = &browsercmd.ServerImplementation{}
-	var handler browsercmd.Handler = nil
+func browserOauthAuthorizeResult(rt http.RoundTripper, host string) (string, error) {
+	server := &browsercmd.ServerImplementation{}
+	handler, err := browsercmd.NewHandlerImplementation(rt, host)
+	if err != nil {
+		return "", err
+	}
 	port, err := server.Start(handler)
 	defer server.Stop()
 	if err != nil {
 		return "", err
 	}
-	var browser browsercmd.Browser = &browsercmd.BrowserImplementation{}
-	url := location + fmt.Sprintf("&display=page&redirect_uri=http://127.0.0.1:%s&state=%s", port, "state") // TODO do this better
-	glog.V(4).Infof("Opening URL in browser: " + url)
-	err = browser.Open(url)
+	browser := &browsercmd.BrowserImplementation{}
+	fullurl := host + fmt.Sprintf("/oauth/authorize?response_type=code&client_id=openshift-challenging-client&display=page&redirect_uri=http://127.0.0.1:%s/token&state=%s", port, "state1234") // TODO do this better
+	glog.V(4).Infof("Opening URL in browser: " + fullurl)
+	err = browser.Open(fullurl)
 	if err != nil {
 		return "", err
 	}
 	// Start local server
 	// Open browser to url
 	// Extract token from response
-	time.Sleep(10 * time.Second)
-	return "token", errors.New("always dies")
+	// time.Sleep(10 * time.Second)
+	ad, err := handler.GetAccessData()
+	if err != nil {
+		return "", err
+	}
+	return ad.AccessToken, nil
 }
 
 func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header) (*http.Response, error) {

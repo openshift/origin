@@ -6,8 +6,24 @@ import (
 	"net/http"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "TEST %#v", r.URL.Query())
+func getHandler(h Handler) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := h.HandleRequest(r)
+		fmt.Println(data, err)
+		if err != nil {
+			e := h.HandleError(err)
+			if e != nil {
+				w.Write([]byte(e.Error()))
+				fmt.Println(e)
+			}
+		} else {
+			e := h.HandleData(data)
+			if e != nil {
+				w.Write([]byte(e.Error()))
+				fmt.Println(e)
+			}
+		}
+	}
 }
 
 type ServerImplementation struct {
@@ -15,7 +31,7 @@ type ServerImplementation struct {
 }
 
 func (s *ServerImplementation) Start(h Handler) (string, error) {
-	http.HandleFunc("/token", handler)
+	http.HandleFunc("/token", getHandler(h))
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", err

@@ -1,10 +1,17 @@
 package browsercmd
 
-import "github.com/RangelReale/osincli"
+import (
+	"net/http"
+
+	"github.com/RangelReale/osincli"
+)
 
 type Handler interface {
-	HandleError(osincli.Error) error
-	HandleData(osincli.AuthorizeData) error
+	HandleRequest(*http.Request) (*osincli.AuthorizeData, error)
+	HandleData(*osincli.AuthorizeData) error
+	HandleError(error) error
+	GetAccessData() (*osincli.AccessData, error)
+	// HandleError(osincli.Error) error
 }
 
 type Server interface {
