@@ -42,6 +42,7 @@ func TestHandleScenarios(t *testing.T) {
 		if d.test {
 			config = deploytest.TestDeploymentConfig(config)
 		}
+		config.Namespace = "test"
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
@@ -701,6 +702,7 @@ func TestHandleScenarios(t *testing.T) {
 			config = deploytest.TestDeploymentConfig(config)
 		}
 		config.Spec.Replicas = test.replicas
+		config.Namespace = "test"
 
 		if err := c.Handle(config); err != nil && !test.errExpected {
 			t.Errorf("unexpected error: %s", err)

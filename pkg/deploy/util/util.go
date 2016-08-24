@@ -214,7 +214,8 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 
 	deployment := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name: deploymentName,
+			Name:      deploymentName,
+			Namespace: config.Namespace,
 			Annotations: map[string]string{
 				deployapi.DeploymentConfigAnnotation:        config.Name,
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
