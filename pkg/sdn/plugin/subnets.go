@@ -41,6 +41,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	}
 
 	go utilwait.Forever(master.watchNodes, 0)
+	go utilwait.Forever(master.watchSubnetsOnMaster, 0)
 	return nil
 }
 
@@ -203,6 +204,47 @@ func (node *OsdnNode) initSelfSubnet() error {
 	log.Infof("Found local HostSubnet %s", hostSubnetToString(subnet))
 	node.localSubnet = subnet
 	return nil
+}
+
+// Only run on the master
+// Watch for all hostsubnet events and if one is found with the right annotation, use the IPAM to dole a real subnet
+func (master *OsdnMaster) watchSubnetsOnMaster() {
+	eventQueue := master.registry.RunEventQueue(HostSubnets)
+
+	for {
+		eventType, obj, err := eventQueue.Pop()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("EventQueue failed for subnets: %v", err))
+			return
+		}
+		hs := obj.(*osapi.HostSubnet)
+		name := hs.ObjectMeta.Name
+		hostIP := hs.HostIP
+
+		log.V(5).Infof("Watch %s event for HostSubnet %q", strings.Title(string(eventType)), name)
+		switch eventType {
+		case watch.Added, watch.Modified:
+			if err = master.registry.ValidateNodeIP(hostIP); err != nil {
+				log.Errorf("Ignoring invalid subnet for node %s: %v", hostIP, err)
+				continue
+			}
+
+			if _, ok := hs.Annotations["hostsubnet.sdn.openshift.io/autocreate"]; ok {
+				err = master.registry.DeleteSubnet(name)
+				if err != nil {
+					log.Errorf("Error in recreating annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
+					continue
+				}
+				err = master.addNode(name, hostIP)
+				if err != nil {
+					log.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
+					continue
+				}
+			}
+		case watch.Deleted:
+			// ignore all deleted hostsubnets
+		}
+	}
 }
 
 // Only run on the nodes

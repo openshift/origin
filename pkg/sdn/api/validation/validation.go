@@ -87,7 +87,10 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 
 	_, _, err := net.ParseCIDR(hs.Subnet)
 	if err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, err.Error()))
+		// check if annotation exists, then let the Subnet field be empty
+		if _, ok := hs.Annotations["hostsubnet.sdn.openshift.io/autocreate"]; !ok {
+		    allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, err.Error()))
+                }
 	}
 	if net.ParseIP(hs.HostIP) == nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("hostIP"), hs.HostIP, "invalid IP address"))
