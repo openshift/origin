@@ -220,13 +220,12 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 		return nil
 	}
 
-	//TODO fix
-	//if ret.AuthorizeData.RedirectUri != ret.RedirectUri {
-	//	fmt.Println(ret.AuthorizeData.RedirectUri, ret.RedirectUri)
-	//	w.SetError(E_INVALID_REQUEST, "")
-	//	w.InternalError = errors.New("Redirect uri is different")
-	//	return nil
-	//}
+	if ret.AuthorizeData.RedirectUri != ret.RedirectUri {
+		fmt.Println(ret.AuthorizeData.RedirectUri, ret.RedirectUri)
+		w.SetError(E_INVALID_REQUEST, "")
+		w.InternalError = errors.New("Redirect uri is different")
+		return nil
+	}
 
 	// set rest of data
 	ret.Scope = ret.AuthorizeData.Scope

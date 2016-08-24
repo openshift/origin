@@ -234,11 +234,8 @@ func oauthAuthorizeResult(location string) (string, error) {
 func browserOauthAuthorizeResult(rt http.RoundTripper, masterAddr string) (string, error) {
 	state := uuid.NewRandom().String()
 	server := &browsercmd.ServerImplementation{}
-	handler, err := browsercmd.NewHandlerImplementation(rt, masterAddr, state)
-	if err != nil {
-		return "", err
-	}
-	port, err := server.Start(handler)
+	createHandler := browsercmd.NewCreateHandlerImplementation(rt, masterAddr, state)
+	handler, port, err := server.Start(createHandler)
 	defer server.Stop()
 	if err != nil {
 		return "", err

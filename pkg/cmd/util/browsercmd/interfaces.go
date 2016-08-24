@@ -15,10 +15,14 @@ type Handler interface {
 }
 
 type Server interface {
-	Start(Handler) (string, error)
+	Start(CreateHandler) (Handler, string, error)
 	Stop() error
 }
 
 type Browser interface {
 	Open(rawurl string) error
+}
+
+type CreateHandler interface {
+	Create(port string) (Handler, error)
 }

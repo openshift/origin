@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func getHandler(h Handler) func(w http.ResponseWriter, r *http.Request) {
+func useHandler(h Handler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := h.HandleRequest(r)
 		fmt.Println(data, err)
@@ -30,19 +30,23 @@ type ServerImplementation struct {
 	listener net.Listener
 }
 
-func (s *ServerImplementation) Start(h Handler) (string, error) {
-	http.HandleFunc("/token", getHandler(h))
+func (s *ServerImplementation) Start(ch CreateHandler) (Handler, string, error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 	s.listener = listener
 	_, port, err := net.SplitHostPort(listener.Addr().String())
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
+	h, err := ch.Create(port)
+	if err != nil {
+		return nil, "", err
+	}
+	http.HandleFunc("/token", useHandler(h))
 	go http.Serve(listener, nil)
-	return port, nil
+	return h, port, nil
 }
 
 func (s *ServerImplementation) Stop() error {

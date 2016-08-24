@@ -2,6 +2,7 @@ package browsercmd
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/RangelReale/osincli"
@@ -13,6 +14,12 @@ type HandlerImplementation struct {
 	done     chan struct{}
 	oaClient *osincli.Client
 	state    string
+}
+
+type CreateHandlerImplementation struct {
+	rt         http.RoundTripper
+	masterAddr string
+	state      string
 }
 
 func (h *HandlerImplementation) HandleError(err error) error {
@@ -46,20 +53,24 @@ func (h *HandlerImplementation) GetAccessData() (*osincli.AccessData, error) {
 	}
 }
 
-func NewHandlerImplementation(rt http.RoundTripper, masterAddr, state string) (*HandlerImplementation, error) {
+func (chi *CreateHandlerImplementation) Create(port string) (Handler, error) {
 	oaClientConfig := &osincli.ClientConfig{
 		ClientId:     origin.OpenShiftCLIClientID,
 		ClientSecret: "8ee4f8bf-c7bc-4ca1-80f1-2ec7ff5af937", //TODO fix
-		RedirectUrl:  "http://127.0.0.1:80/token",            //TODO fix
-		AuthorizeUrl: origin.OpenShiftOAuthAuthorizeURL(masterAddr),
-		TokenUrl:     origin.OpenShiftOAuthTokenURL(masterAddr),
+		RedirectUrl:  fmt.Sprintf("http://127.0.0.1:%s/token", port),
+		AuthorizeUrl: origin.OpenShiftOAuthAuthorizeURL(chi.masterAddr),
+		TokenUrl:     origin.OpenShiftOAuthTokenURL(chi.masterAddr),
 	}
 	oaClient, err := osincli.NewClient(oaClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	oaClient.Transport = rt
+	oaClient.Transport = chi.rt
 	ch := make(chan *osincli.AccessData, 1)
 	done := make(chan struct{}, 1)
-	return &HandlerImplementation{ch, done, oaClient, state}, nil
+	return &HandlerImplementation{ch, done, oaClient, chi.state}, nil
+}
+
+func NewCreateHandlerImplementation(rt http.RoundTripper, masterAddr, state string) *CreateHandlerImplementation {
+	return &CreateHandlerImplementation{rt, masterAddr, state}
 }
