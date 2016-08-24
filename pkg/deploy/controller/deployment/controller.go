@@ -185,6 +185,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				if err := c.cleanupDeployerPods(deployment); err != nil {
 					return err
 				}
+				c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "DeploymentCancelled", fmt.Sprintf("Deployment %q cancelled", deployutil.LabelForDeployment(deployment)))
 			}
 		}
 
