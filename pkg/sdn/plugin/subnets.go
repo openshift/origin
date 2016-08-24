@@ -9,6 +9,8 @@ import (
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/types"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -109,6 +111,46 @@ func getNodeIP(node *kapi.Node) (string, error) {
 	}
 }
 
+// Because openshift-sdn uses an overlay and doesn't need GCE Routes, we need to
+// clear the NetworkUnavailable condition that kubelet adds to initial node
+// status when using GCE.
+// TODO: make upstream kubelet more flexible with overlays and GCE so this
+// condition doesn't get added for network plugins that don't want it, and then
+// we can remove this function.
+func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi.Node) {
+	knode := node
+	cleared := false
+	resultErr := kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
+		var err error
+
+		if knode != node {
+			knode, err = master.registry.kClient.Nodes().Get(node.ObjectMeta.Name)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Let caller modify knode's status, then push to api server.
+		_, condition := kapi.GetNodeCondition(&node.Status, kapi.NodeNetworkUnavailable)
+		if condition != nil && condition.Status != kapi.ConditionFalse && condition.Reason == "NoRouteCreated" {
+			condition.Status = kapi.ConditionFalse
+			condition.Reason = "RouteCreated"
+			condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
+			condition.LastTransitionTime = kapiunversioned.Now()
+			knode, err = master.registry.kClient.Nodes().UpdateStatus(knode)
+			if err == nil {
+				cleared = true
+			}
+		}
+		return err
+	})
+	if resultErr != nil {
+		utilruntime.HandleError(fmt.Errorf("Status update failed for local node: %v", resultErr))
+	} else if cleared {
+		log.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.ObjectMeta.Name)
+	}
+}
+
 func (master *OsdnMaster) watchNodes() {
 	eventQueue := master.registry.RunEventQueue(Nodes)
 	nodeAddressMap := map[types.UID]string{}
@@ -131,6 +173,8 @@ func (master *OsdnMaster) watchNodes() {
 
 		switch eventType {
 		case watch.Added, watch.Modified:
+			master.clearInitialNodeNetworkUnavailableCondition(node)
+
 			if oldNodeIP, ok := nodeAddressMap[uid]; ok && (oldNodeIP == nodeIP) {
 				continue
 			}

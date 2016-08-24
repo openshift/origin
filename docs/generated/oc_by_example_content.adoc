@@ -1750,9 +1750,6 @@ Create a new application
   # List all local templates and image streams that can be used to create an app
   oc new-app --list
 
-  # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  oc new-app --search ruby
-
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   oc new-app . --docker-image=repo/langimage
@@ -1778,10 +1775,10 @@ Create a new application
   # Create an application based on a template file, explicitly setting a parameter value
   oc new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
-  # Search for "mysql" in all image repositories and stored templates
-  oc new-app --search mysql
+  # Search all templates, image streams, and Docker images for the ones that match "ruby"
+  oc new-app --search ruby
 
-  # Search for "ruby", but only in stored templates (--template, --image and --docker-image
+  # Search for "ruby", but only in stored templates (--template, --image-stream and --docker-image
   # can be used to filter search results)
   oc new-app --search --template=ruby
 

@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/cluster"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rollout"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
@@ -86,7 +87,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 
 	f := clientcmd.New(cmds.PersistentFlags())
 
-	loginCmd := cmd.NewCmdLogin(fullName, f, in, out)
+	loginCmd := login.NewCmdLogin(fullName, f, in, out)
 	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit")
 
 	groups := templates.CommandGroups{
@@ -168,7 +169,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Settings Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
+				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
 				cmd.NewCmdConfig(fullName, "config"),
 				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
 				cmd.NewCmdCompletion(fullName, f, out),

@@ -4413,9 +4413,9 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
       },
       "spec": {
         "strategy": {
-          "type": "Rolling",
+          "type": "Recreate",
           "recreateParams": {
-          "pre": {
+            "pre": {
               "failurePolicy": "Retry",
               "execNewPod": {
                 "command": [

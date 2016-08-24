@@ -45,10 +45,10 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
+	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/registry/generator"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -511,7 +511,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.EtcdHelper.Codec())
 
-	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
