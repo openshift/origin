@@ -132,7 +132,6 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 		o.Options = bopts
 	case deployapi.Resource("deploymentconfig"):
 		dopts := &deployapi.DeploymentLogOptions{
-			Container:    podLogOptions.Container,
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
