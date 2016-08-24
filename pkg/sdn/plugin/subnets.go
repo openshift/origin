@@ -42,6 +42,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	}
 
 	go utilwait.Forever(master.watchNodes, 0)
+	go utilwait.Forever(master.watchSubnets, 0)
 	return nil
 }
 
@@ -240,6 +241,41 @@ func (node *OsdnNode) initSelfSubnet() error {
 	log.Infof("Found local HostSubnet %s", hostSubnetToString(subnet))
 	node.localSubnet = subnet
 	return nil
+}
+
+// Only run on the master
+// Watch for all hostsubnet events and if one is found with the right annotation, use the SubnetAllocator to dole a real subnet
+func (master *OsdnMaster) watchSubnets() {
+	RunEventQueue(master.osClient, HostSubnets, func(delta cache.Delta) error {
+		hs := delta.Object.(*osapi.HostSubnet)
+		name := hs.ObjectMeta.Name
+		hostIP := hs.HostIP
+
+		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
+			if _, ok := hs.Annotations[AssignHostSubnetAnnotation]; ok {
+				// Delete the annotated hostsubnet and create a new one with an assigned subnet
+				// We do not update (instead of delete+create) because the watchSubnets on the nodes
+				// will skip the event if it finds that the hostsubnet has the same host
+				// And we cannot fix the watchSubnets code for node because it will break migration if
+				// nodes are upgraded after the master
+				err := master.osClient.HostSubnets().Delete(name)
+				if err != nil {
+					log.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
+					return nil
+				}
+				err = master.addNode(name, hostIP)
+				if err != nil {
+					log.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
+					return nil
+				}
+			}
+		case cache.Deleted:
+			// ignore all deleted hostsubnets
+		}
+		return nil
+	})
 }
 
 // Only run on the nodes
