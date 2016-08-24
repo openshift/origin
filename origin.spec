@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 44437916cf746ab0650d56ee04e220bdeb22b7bb
+%global commit 8c8644c38cb85d69489d095682a42f519fb52394
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.24
+Version:        3.3.0.25
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,58 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Aug 24 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.25
+- Emit event when cancelling a deployment (mfojtik@redhat.com)
+- deployments: make retries faster on update conflicts (mfojtik@redhat.com)
+- UPSTREAM: 30896: Add Get() to ReplicationController lister
+  (mfojtik@redhat.com)
+- Bump origin-web-console (d24e068) (jforrest@redhat.com)
+- Removing the VOLUME directive in the ose image (abhgupta@redhat.com)
+- HAProxy Router: Invert health-check idled check (sross@redhat.com)
+- note the change to oc tag -d (deads@redhat.com)
+- Improve oc new-app examples. (vsemushi@redhat.com)
+- sdn: clear kubelet-created initial NetworkUnavailable condition on GCE
+  (dcbw@redhat.com)
+- add test for non-duplicate error outputs (jvallejo@redhat.com)
+- increase jenkins readiness timeout (bparees@redhat.com)
+- An independent branch dealing with errors (root@master0.cloud.com.novalocal)
+- private function mergeWithoutDuplicates no longer in use
+  (li.guangxu@zte.com.cn)
+- Clean up requested project if there are errors creating template items
+  (jliggitt@redhat.com)
+- retrieve keys from cache.Delta objects properly (bparees@redhat.com)
+- Bump origin-web-console (0ab36ca) (jforrest@redhat.com)
+- Fix gitserver bc search (cewong@redhat.com)
+- Support init containers in 'oc debug' (agoldste@redhat.com)
+- UPSTREAM: 31150: Check init containers in PodContainerRunning
+  (agoldste@redhat.com)
+- update swagger dev README with updated script name (aweiteka@redhat.com)
+- fix pre-deploy hook args on cakephp example (bparees@redhat.com)
+- Enable secure cookie for secure-only edge routes (marun@redhat.com)
+- Usability improvements to failures in oc login (ffranz@redhat.com)
+- fix json serialization in admissionConfig (deads@redhat.com)
+- Re-setup SDN on startup if ClusterNetworkCIDR changes (danw@redhat.com)
+- UPSTREAM: 30313: add unit test for duplicate errors (jvallejo@redhat.com)
+- UPSTREAM: 30313: remove duplicate errors from aggregate error outputs
+  (jvallejo@redhat.com)
+- add suggestion to use `describe` to obtain container names
+  (jvallejo@redhat.com)
+- test: move e2e deployment test in extended suite (mkargaki@redhat.com)
+- It is better to add "\n" in printf (yu.peng36@zte.com.cn)
+- UPSTREAM: 30717: add suggestion to use `describe` to obtain container names
+  (jvallejo@redhat.com)
+- Fix typo in gen_man.go (mkumatag@in.ibm.com)
+- Run updated docs (mdame@redhat.com)
+- UPSTREAM: 28234: Make sure --record=false is acknowledged when passed to
+  commands (mdame@redhat.com)
+- Fix somee mistakes in script as follow: (wang.yuexiao@zte.com.cn)
+- deploy: remove top level generator pkg (mkargaki@redhat.com)
+- deploy: update validation for deploymentconfigs (mkargaki@redhat.com)
+- Regenerate swagger docs (danw@redhat.com)
+- Improve the SDN API docs a little bit (danw@redhat.com)
+- Regenerate oc completions (danw@redhat.com)
+- Add "oc describe" support for sdn types (danw@redhat.com)
+
 * Mon Aug 22 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.24
 - generated: Docs and examples (ccoleman@redhat.com)
 - Implement oc set route-backend and A/B to describers / printers
