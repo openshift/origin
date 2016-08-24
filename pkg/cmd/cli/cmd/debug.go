@@ -519,10 +519,14 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 
 func containerForName(pod *kapi.Pod, name string) *kapi.Container {
 	for i, c := range pod.Spec.Containers {
-		if c.Name != name {
-			continue
+		if c.Name == name {
+			return &pod.Spec.Containers[i]
 		}
-		return &pod.Spec.Containers[i]
+	}
+	for i, c := range pod.Spec.InitContainers {
+		if c.Name == name {
+			return &pod.Spec.InitContainers[i]
+		}
 	}
 	return nil
 }

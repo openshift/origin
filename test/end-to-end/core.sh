@@ -358,18 +358,6 @@ os::cmd::expect_success 'oc logs buildconfigs/ruby-sample-build --loglevel=6'
 os::cmd::expect_success 'oc logs buildconfig/ruby-sample-build --loglevel=6'
 echo "logs: ok"
 
-echo "[INFO] Starting a deployment to test scaling and image tag..."
-os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
-# scaling which might conflict with the deployment should work
-os::cmd::expect_success 'oc scale dc/test-deployment-config --replicas=2'
-os::cmd::try_until_text 'oc get rc/test-deployment-config-1 -o yaml' 'Complete'
-# scale rc via deployment configuration
-os::cmd::expect_success 'oc scale dc/test-deployment-config --replicas=3 --timeout=1m'
-os::cmd::expect_success 'oc delete dc/test-deployment-config'
-# expect the post deployment action to set a tag
-os::cmd::expect_success 'oc get istag/origin-ruby-sample:deployed'
-echo "scale: ok"
-
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
 os::cmd::expect_failure 'oc start-build test --commit=fffffff --wait'
 

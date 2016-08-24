@@ -142,22 +142,23 @@ func DeploymentDeepCopy(rc *api.ReplicationController) (*api.ReplicationControll
 func DecodeDeploymentConfig(controller *api.ReplicationController, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
 	encodedConfig := []byte(EncodedDeploymentConfigFor(controller))
 	decoded, err := runtime.Decode(decoder, encodedConfig)
-	if err == nil {
-		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
-			return config, nil
-		}
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
+	}
+	config, ok := decoded.(*deployapi.DeploymentConfig)
+	if !ok {
 		return nil, fmt.Errorf("decoded object from controller is not a DeploymentConfig")
 	}
-	return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
+	return config, nil
 }
 
 // EncodeDeploymentConfig encodes config as a string using codec.
 func EncodeDeploymentConfig(config *deployapi.DeploymentConfig, codec runtime.Codec) (string, error) {
-	if bytes, err := runtime.Encode(codec, config); err == nil {
-		return string(bytes[:]), nil
-	} else {
+	bytes, err := runtime.Encode(codec, config)
+	if err != nil {
 		return "", err
 	}
+	return string(bytes[:]), nil
 }
 
 // MakeDeployment creates a deployment represented as a ReplicationController and based on the given
@@ -213,7 +214,8 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 
 	deployment := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name: deploymentName,
+			Name:      deploymentName,
+			Namespace: config.Namespace,
 			Annotations: map[string]string{
 				deployapi.DeploymentConfigAnnotation:        config.Name,
 				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),

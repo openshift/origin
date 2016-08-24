@@ -206,9 +206,6 @@ You can use 'openshift cli status' to check the progress.
   # List all local templates and image streams that can be used to create an app
   openshift cli new\-app \-\-list
 
-  # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  openshift cli new\-app \-\-search ruby
-
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   openshift cli new\-app . \-\-docker\-image=repo/langimage
@@ -234,10 +231,10 @@ You can use 'openshift cli status' to check the progress.
   # Create an application based on a template file, explicitly setting a parameter value
   openshift cli new\-app \-\-file=./example/myapp/template.json \-\-param=MYSQL\_USER=admin
 
-  # Search for "mysql" in all image repositories and stored templates
-  openshift cli new\-app \-\-search mysql
+  # Search all templates, image streams, and Docker images for the ones that match "ruby"
+  openshift cli new\-app \-\-search ruby
 
-  # Search for "ruby", but only in stored templates (\-\-template, \-\-image and \-\-docker\-image
+  # Search for "ruby", but only in stored templates (\-\-template, \-\-image\-stream and \-\-docker\-image
   # can be used to filter search results)
   openshift cli new\-app \-\-search \-\-template=ruby
 

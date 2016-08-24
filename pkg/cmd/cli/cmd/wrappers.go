@@ -230,7 +230,7 @@ const (
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdExec(f.Factory, cmdIn, cmdOut, cmdErr)
+	cmd := kcmd.NewCmdExec(fullName, f.Factory, cmdIn, cmdOut, cmdErr)
 	cmd.Use = "exec [options] POD [-c CONTAINER] -- COMMAND [args...]"
 	cmd.Long = execLong
 	cmd.Example = fmt.Sprintf(execExample, fullName)

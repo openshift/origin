@@ -16,6 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -157,7 +158,7 @@ func TestOAuthOIDC(t *testing.T) {
 
 	// Attempt a login using a redirecting auth proxy
 	loginOutput := &bytes.Buffer{}
-	loginOptions := &cmd.LoginOptions{
+	loginOptions := &login.LoginOptions{
 		Server:             clientConfig.Host,
 		CAFile:             masterCAFile,
 		StartingKubeConfig: &clientcmdapi.Config{},

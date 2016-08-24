@@ -23,7 +23,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 
 	// install all APIs
@@ -81,9 +80,6 @@ var DescriberCoverageExceptions = []reflect.Type{
 var MissingDescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
 	reflect.TypeOf(&oauthapi.OAuthClient{}),
-	reflect.TypeOf(&sdnapi.ClusterNetwork{}),
-	reflect.TypeOf(&sdnapi.HostSubnet{}),
-	reflect.TypeOf(&sdnapi.NetNamespace{}),
 }
 
 func TestDescriberCoverage(t *testing.T) {

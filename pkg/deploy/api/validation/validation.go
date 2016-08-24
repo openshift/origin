@@ -54,7 +54,7 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 		originalContainerImageNames := getContainerImageNames(spec.Template)
 		defer setContainerImageNames(spec.Template, originalContainerImageNames)
 		handleEmptyImageReferences(spec.Template, spec.Triggers)
-		allErrs = append(allErrs, validation.ValidatePodTemplateSpec(spec.Template, specPath.Child("template"))...)
+		allErrs = append(allErrs, validation.ValidatePodTemplateSpecForRC(spec.Template, spec.Selector, spec.Replicas, specPath.Child("template"))...)
 	}
 	if spec.Replicas < 0 {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), spec.Replicas, "replicas cannot be negative"))

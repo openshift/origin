@@ -1258,5 +1258,5 @@ type DefaultAdmissionConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 
 	// Disable turns off an admission plugin that is enabled by default.
-	Disable bool
+	Disable bool `json:"disable"`
 }

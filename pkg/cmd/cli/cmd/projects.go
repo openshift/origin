@@ -182,7 +182,7 @@ func (o ProjectsOptions) RunProjects() error {
 		if len(projects) > 0 && !o.DisplayShort {
 			if !currentProjectExists {
 				if clientcmd.IsForbidden(currentProjectErr) {
-					fmt.Printf("you do not have rights to view project %q. Please switch to an existing one.", currentProject)
+					fmt.Printf("You do not have rights to view project %q. Please switch to an existing one.\n", currentProject)
 				}
 				return currentProjectErr
 			}

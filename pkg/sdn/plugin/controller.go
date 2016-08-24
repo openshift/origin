@@ -53,7 +53,7 @@ func getPluginVersion(multitenant bool) []string {
 	return []string{"00", version}
 }
 
-func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
+func alreadySetUp(multitenant bool, localSubnetGatewayCIDR, clusterNetworkCIDR string) bool {
 	var found bool
 
 	exec := kexec.New()
@@ -66,6 +66,22 @@ func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
 	found = false
 	for _, addr := range addrs {
 		if addr == localSubnetGatewayCIDR {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
+	itx = ipcmd.NewTransaction(exec, TUN)
+	routes, err := itx.GetRoutes()
+	itx.EndTransaction()
+	if err != nil {
+		return false
+	}
+	found = false
+	for _, route := range routes {
+		if strings.Contains(route, clusterNetworkCIDR+" ") {
 			found = true
 			break
 		}
@@ -145,7 +161,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
-	if alreadySetUp(plugin.multitenant, gwCIDR) {
+	if alreadySetUp(plugin.multitenant, gwCIDR, clusterNetworkCIDR) {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
 		return false, nil
 	}

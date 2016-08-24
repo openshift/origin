@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# This script sets up a go workspace locally and builds all go components.
+# This script sets up a go workspace locally and generates shell auto-completion scripts.
+
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # ensure we have the latest compiled binaries

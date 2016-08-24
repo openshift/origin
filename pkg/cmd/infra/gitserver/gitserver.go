@@ -98,7 +98,9 @@ func NewCommandRepositoryBuildConfigs(name string, out io.Writer) *cobra.Command
 				cmdutil.CheckErr(err)
 			}
 			repoName := args[0]
-			err := gitserver.GetRepositoryBuildConfigs(repoName, out)
+			client, err := gitserver.GetClient()
+			cmdutil.CheckErr(err)
+			err = gitserver.GetRepositoryBuildConfigs(client, repoName, out)
 			cmdutil.CheckErr(err)
 		},
 	}

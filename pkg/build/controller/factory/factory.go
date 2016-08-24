@@ -137,7 +137,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 		Queue: queue,
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
-			cache.MetaNamespaceKeyFunc,
+			queue.KeyOf,
 			controller.RetryNever,
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
@@ -254,7 +254,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 		Queue: queue,
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
-			cache.MetaNamespaceKeyFunc,
+			queue.KeyOf,
 			controller.RetryNever,
 			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
@@ -424,20 +424,6 @@ func listPods(client kclient.Interface) (*kapi.PodList, error) {
 		return nil, err
 	}
 	return listNew, nil
-}
-
-func mergeWithoutDuplicates(arrays ...[]kapi.Pod) []kapi.Pod {
-	tmpMap := make(map[string]kapi.Pod)
-	for _, array := range arrays {
-		for _, v := range array {
-			tmpMap[fmt.Sprintf("%s/%s", v.Namespace, v.Name)] = v
-		}
-	}
-	var result []kapi.Pod
-	for _, v := range tmpMap {
-		result = append(result, v)
-	}
-	return result
 }
 
 // Watch watches all Pods that have a build label.

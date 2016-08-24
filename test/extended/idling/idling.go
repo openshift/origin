@@ -167,7 +167,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 	// make sure we don't get woken up by an incorrect router health check or anything like that
 	o.Consistently(func() (string, error) {
 		return oc.Run("get").Args(resourceName+"/"+objName, "--output=jsonpath=\"{.spec.replicas}\"").Output()
-	}, 5*time.Second, 500*time.Millisecond).Should(o.ContainSubstring("0"))
+	}, 20*time.Second, 500*time.Millisecond).Should(o.ContainSubstring("0"))
 
 	g.By("Fetching the service and checking the annotations are present")
 	serviceName := resources["service"][0]
@@ -250,7 +250,7 @@ var _ = g.Describe("idling and unidling", func() {
 	})
 
 	g.Describe("idling", func() {
-		g.Context("with a single service and DeploymentConfig", func() {
+		g.Context("with a single service and DeploymentConfig [Conformance]", func() {
 			g.BeforeEach(func() {
 				framework.BeforeEach()
 				fixture = echoServerFixture
@@ -279,7 +279,7 @@ var _ = g.Describe("idling and unidling", func() {
 			fixture = echoServerFixture
 		})
 
-		g.It("should work with TCP (when fully idled)", func() {
+		g.It("should work with TCP (when fully idled) [Conformance]", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())

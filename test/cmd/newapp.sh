@@ -48,6 +48,11 @@ os::cmd::expect_success 'oc delete all -l app=php'
 os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
 
+# ensure non-duplicate invalid label errors show up
+os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream "nginx" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'DeploymentConfig "nginx" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'Service "nginx" is invalid'
+
 # check if we can create from a stored template
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
 os::cmd::expect_success 'oc get template ruby-helloworld-sample'
