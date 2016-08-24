@@ -120,7 +120,7 @@ func checkRemoteGit(gitClient GitClient, url string, initialTimeout time.Duratio
 	timeout := initialTimeout
 	for {
 		glog.V(4).Infof("git ls-remote --heads %s", url)
-		out, errOut, err = gitClient.TimedListRemote(timeout, url, "--heads")
+		out, errOut, err = gitClient.TimedListRemote(timeout, "--heads", url)
 		if len(out) != 0 {
 			glog.V(4).Infof(out)
 		}
