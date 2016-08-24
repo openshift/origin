@@ -80,7 +80,21 @@ os::cmd::expect_success_and_text 'oc policy can-i --list' 'get update.*imagestre
 os::cmd::expect_success_and_text 'oc policy can-i create pods --all-namespaces' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i create pods' 'yes'
 os::cmd::expect_success_and_text 'oc policy can-i create pods --as harold' 'no'
+os::cmd::expect_failure 'oc policy can-i create pods --as harold --user harold'
+os::cmd::expect_failure 'oc policy can-i --list --as harold --user harold'
 os::cmd::expect_failure 'oc policy can-i create pods --as harold -q'
+
+os::cmd::expect_success_and_text 'oc policy can-i create pods --user system:admin' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated --groups system:masters' 'yes'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --groups system:unauthenticated' 'no'
+os::cmd::expect_success_and_text 'oc policy can-i create pods --user harold' 'no'
+
+os::cmd::expect_success_and_text 'oc policy can-i --list --user system:admin' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc policy can-i --list --groups system:unauthenticated --groups system:cluster-readers' 'get.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc policy can-i --list --groups system:unauthenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_not_text 'oc policy can-i --list --user harold --groups system:authenticated' 'get update.*imagestreams/layers'
+os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups system:authenticated' 'create get.*buildconfigs/webhooks'
+
 
 
 # adjust the cluster-admin role to check defaulting and coverage checks
