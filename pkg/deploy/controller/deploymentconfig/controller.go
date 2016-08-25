@@ -101,8 +101,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// deployments to allow them to be superceded by the new config version.
 	awaitingCancellations := false
 	if !latestIsDeployed {
-		for i := range existingDeployments {
-			deployment := existingDeployments[i]
+		for _, deployment := range existingDeployments {
 			// Skip deployments with an outcome.
 			if deployutil.IsTerminatedDeployment(&deployment) {
 				continue
@@ -133,8 +132,6 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 					c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
 				} else {
 					if updatedDeployment != nil {
-						// replace the current deployment with the updated copy so that a future update has a chance at working
-						existingDeployments[i] = *updatedDeployment
 						c.recorder.Eventf(config, kapi.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
 					}
 				}
@@ -290,8 +287,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 	// Reconcile deployments. The active deployment follows the config, and all
 	// other deployments should be scaled to zero.
 	var updatedDeployments []kapi.ReplicationController
-	for i := range existingDeployments {
-		deployment := existingDeployments[i]
+	for _, deployment := range existingDeployments {
 		toAppend := deployment
 
 		isActiveDeployment := activeDeployment != nil && deployment.Name == activeDeployment.Name
