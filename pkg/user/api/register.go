@@ -6,6 +6,7 @@ import (
 )
 
 const GroupName = ""
+const FutureGroupName = "user.openshift.io"
 
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}

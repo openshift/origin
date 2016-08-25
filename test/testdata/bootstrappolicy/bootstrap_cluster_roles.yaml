@@ -591,6 +591,15 @@ items:
     verbs:
     - create
   - apiGroups:
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - jenkins
+    verbs:
+    - admin
+    - edit
+    - view
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -933,6 +942,14 @@ items:
     verbs:
     - create
   - apiGroups:
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - jenkins
+    verbs:
+    - edit
+    - view
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -1189,6 +1206,13 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - jenkins
+    verbs:
+    - view
   - apiGroups:
     - ""
     attributeRestrictions: null
