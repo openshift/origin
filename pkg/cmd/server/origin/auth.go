@@ -241,7 +241,7 @@ func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
 	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
 }
 
-func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects bool) error {
+func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirectsAndSecret bool) error {
 	ctx := kapi.NewContext()
 	_, err := clientRegistry.CreateClient(ctx, &client)
 	if err == nil || !kerrs.IsAlreadyExists(err) {
@@ -256,14 +256,14 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 
 		// Ensure the correct challenge setting
 		existing.RespondWithChallenges = client.RespondWithChallenges
-		// Preserve an existing client secret
-		if len(existing.Secret) == 0 {
+		// Preserve an existing client secret unless this is the CLI client
+		if !preserveExistingRedirectsAndSecret || len(existing.Secret) == 0 {
 			existing.Secret = client.Secret
 		}
 
 		// Preserve redirects for clients other than the CLI client
 		// The CLI client doesn't care about the redirect URL, just the token or error fragment
-		if preserveExistingRedirects {
+		if preserveExistingRedirectsAndSecret {
 			// Add in any redirects from the existing one
 			// This preserves any additional customized redirects in the default clients
 			redirects := sets.NewString(client.RedirectURIs...)
@@ -316,8 +316,8 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 
 	{
 		cliClient := oauthapi.OAuthClient{
-			ObjectMeta:            kapi.ObjectMeta{Name: OpenShiftCLIClientID},
-			Secret:                uuid.New(),
+			ObjectMeta: kapi.ObjectMeta{Name: OpenShiftCLIClientID},
+			//Secret:                "none", // uuid.New(),
 			RespondWithChallenges: true,
 			RedirectURIs:          []string{localListenerAddress},
 			GrantMethod:           oauthapi.GrantHandlerAuto,

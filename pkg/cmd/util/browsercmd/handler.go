@@ -56,7 +56,7 @@ func (h *HandlerImplementation) GetAccessData() (*osincli.AccessData, error) {
 
 func (h *HandlerImplementation) GenerateState() string {
 	if h.state == "" {
-		h.state = base64.URLEncoding.EncodeToString([]byte(uuid.NewUUID().String()))
+		h.state = base64.URLEncoding.EncodeToString([]byte(uuid.New()))
 	}
 	return h.state
 }
@@ -67,8 +67,8 @@ func (h *HandlerImplementation) CheckState(data *osincli.AuthorizeData) bool {
 
 func (chi *CreateHandlerImplementation) Create(port string) (Handler, error) {
 	oaClientConfig := &osincli.ClientConfig{
-		ClientId:     origin.OpenShiftCLIClientID,            //TODO should we import origin or just hard code?
-		ClientSecret: "8ee4f8bf-c7bc-4ca1-80f1-2ec7ff5af937", //TODO fix
+		ClientId: origin.OpenShiftCLIClientID, //TODO should we import origin or just hard code?
+		//ClientSecret: "none",                      //"8ee4f8bf-c7bc-4ca1-80f1-2ec7ff5af937", //TODO fix
 		RedirectUrl:  fmt.Sprintf("http://127.0.0.1:%s/token", port),
 		AuthorizeUrl: origin.OpenShiftOAuthAuthorizeURL(chi.masterAddr),
 		TokenUrl:     origin.OpenShiftOAuthTokenURL(chi.masterAddr),
