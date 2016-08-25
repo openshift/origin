@@ -903,7 +903,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		t.Fatalf("unexpected response: %#v", imports.Status.Images)
 	}
 	d := imports.Status.Images[0]
-	if d.Image != nil || d.Status.Status != unversioned.StatusFailure || d.Status.Reason != "NotV2Registry" {
+	if d.Image == nil || d.Status.Status == unversioned.StatusFailure {
 		t.Errorf("unexpected object: %#v", d.Status)
 	}
 
@@ -946,9 +946,9 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		t.Fatalf("unexpected response: %#v", imports.Status.Images)
 	}
 	d = imports.Status.Images[0]
-	if d.Image == nil || len(d.Image.DockerImageManifest) != 0 || d.Image.DockerImageReference != repositoryName+":latest" || len(d.Image.DockerImageMetadata.ID) == 0 || len(d.Image.DockerImageLayers) != 0 {
+	if d.Image == nil || len(d.Image.DockerImageManifest) == 0 || !strings.HasPrefix(d.Image.DockerImageReference, repositoryName) || len(d.Image.DockerImageMetadata.ID) == 0 || len(d.Image.DockerImageLayers) == 0 {
 		t.Logf("imports: %#v", imports.Status.Images[0].Image)
-		t.Fatalf("unexpected object: %#v", d.Status)
+		t.Fatalf("unexpected object: %#v", d.Image)
 	}
 }
 
