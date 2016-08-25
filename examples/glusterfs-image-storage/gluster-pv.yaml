@@ -11,4 +11,4 @@ spec:
     endpoints: gluster-image-storage
     path: gv0 
     readOnly: false
-  persistentVolumeReclaimPolicy: Recycle
+  persistentVolumeReclaimPolicy: Retain
