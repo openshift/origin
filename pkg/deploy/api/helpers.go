@@ -24,7 +24,6 @@ func DeploymentToPodLogOptions(opts *DeploymentLogOptions) *kapi.PodLogOptions {
 		Timestamps:   opts.Timestamps,
 		TailLines:    opts.TailLines,
 		LimitBytes:   opts.LimitBytes,
-		Container:    opts.Container,
 	}
 }
 
