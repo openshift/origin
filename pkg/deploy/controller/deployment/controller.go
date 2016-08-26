@@ -85,7 +85,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	nextStatus := currentStatus
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
-	deployer, deployerErr := c.getPod(deployment.Namespace, deployerPodName)
+	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName)
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
 	}
@@ -176,11 +176,9 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 		default: /* err == nil */
 			// If the deployment has been cancelled, delete any deployer pods
-			// found and transition the deployment to Pending so that the
-			// deployment config controller continues to see the deployment
-			// as in-flight. Eventually the deletion of the deployer pod should
-			// cause a requeue of this deployment and then it can be transitioned
-			// to Failed by this controller.
+			// found. Eventually the deletion of the deployer pod should cause
+			// a requeue of this deployment and then it can be transitioned to
+			// Failed.
 			if deployutil.IsDeploymentCancelled(deployment) {
 				if err := c.cleanupDeployerPods(deployment); err != nil {
 					return err
