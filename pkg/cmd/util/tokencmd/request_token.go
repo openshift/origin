@@ -231,25 +231,25 @@ func oauthAuthorizeResult(location string) (string, error) {
 }
 
 func browserOauthAuthorizeResult(rt http.RoundTripper, masterAddr string) (string, error) {
-	server := &browsercmd.ServerImplementation{}
-	createHandler := browsercmd.NewCreateHandlerImplementation(rt, masterAddr)
+	server := browsercmd.NewServer()
+	createHandler := browsercmd.NewCreateHandler(rt, masterAddr)
 	handler, port, err := server.Start(createHandler)
 	defer server.Stop()
 	if err != nil {
 		return "", err
 	}
-	browser := &browsercmd.BrowserImplementation{}
-	fullurl := masterAddr + fmt.Sprintf(
+	browser := browsercmd.NewBrowser()
+	fullURL := masterAddr + fmt.Sprintf(
 		"/oauth/authorize?response_type=code&client_id=%s&display=page&redirect_uri=http://127.0.0.1:%s/token&state=%s",
 		"openshift-challenging-client",
 		port,
 		handler.GenerateState())
-	glog.V(4).Infof("Opening URL in browser: " + fullurl)
-	err = browser.Open(fullurl)
+	glog.V(4).Infof("Opening URL in browser: " + fullURL)
+	err = browser.Open(fullURL)
 	if err != nil {
 		return "", err
 	}
-	ad, err := handler.GetAccessData()
+	ad, err := handler.GetData()
 	if err != nil {
 		return "", err
 	}

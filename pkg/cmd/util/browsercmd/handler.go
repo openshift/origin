@@ -7,13 +7,14 @@ import (
 	"net/http"
 
 	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/pborman/uuid"
 )
 
 type HandlerImplementation struct {
-	ad       chan *osincli.AccessData
-	done     chan struct{}
+	success  chan *osincli.AccessData
+	failure  chan error
 	oaClient *osincli.Client
 	state    string
 }
@@ -23,34 +24,62 @@ type CreateHandlerImplementation struct {
 	masterAddr string
 }
 
-func (h *HandlerImplementation) HandleError(err error) error {
-	return err
+func (h *HandlerImplementation) HandleSuccess(w http.ResponseWriter, req *http.Request) {
+	glog.V(4).Info("Successful browser CLI OAuth flow.")
+	w.Write([]byte("Success.  You may close this tab now."))
+}
+
+func (h *HandlerImplementation) HandleError(err error, w http.ResponseWriter, req *http.Request) {
+	glog.V(4).Infof("Error during browser OAuth CLI flow: %q", err.Error())
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte(fmt.Sprintf("Failure.  The error message was %q.  Please see the CLI for manual instructions.", err.Error())))
 }
 
 func (h *HandlerImplementation) HandleData(data *osincli.AuthorizeData) error {
 	if !h.CheckState(data) {
-		return errors.New("State error")
+		err := errors.New("State is invalid")
+		h.failure <- err
+		return err
 	}
+	// TODO support PKCE using state?
+	// https://tools.ietf.org/html/draft-ietf-oauth-native-apps-03#section-8.2
 	tokenReq := h.oaClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, data)
 	token, err := tokenReq.GetToken()
 	if err != nil {
-		h.done <- struct{}{}
-		return err
+		h.failure <- err
+	} else {
+		h.success <- token
 	}
-	h.ad <- token
-	return nil
+	return err
 }
 
-func (h *HandlerImplementation) HandleRequest(r *http.Request) (*osincli.AuthorizeData, error) {
-	return h.oaClient.NewAuthorizeRequest(osincli.CODE).HandleRequest(r)
+func (h *HandlerImplementation) HandleRequest(w http.ResponseWriter, req *http.Request) {
+	var success = true
+	var data = new(osincli.AuthorizeData)
+	var err error
+
+	data, err = h.oaClient.NewAuthorizeRequest(osincli.CODE).HandleRequest(req)
+	if err != nil {
+		success = false
+	} else {
+		err = h.HandleData(data)
+		if err != nil {
+			success = false
+		}
+	}
+	if success {
+		h.HandleSuccess(w, req)
+	} else {
+		h.HandleError(err, w, req)
+	}
 }
 
-func (h *HandlerImplementation) GetAccessData() (*osincli.AccessData, error) {
+func (h *HandlerImplementation) GetData() (*osincli.AccessData, error) {
 	select {
-	case ad := <-h.ad:
+	case ad := <-h.success:
 		return ad, nil
-	case <-h.done:
-		return nil, errors.New("FAIL")
+	case err := <-h.failure:
+		return nil, err
 	}
 }
 
@@ -78,11 +107,11 @@ func (chi *CreateHandlerImplementation) Create(port string) (Handler, error) {
 		return nil, err
 	}
 	oaClient.Transport = chi.rt
-	ch := make(chan *osincli.AccessData, 1)
-	done := make(chan struct{}, 1)
-	return &HandlerImplementation{ch, done, oaClient, ""}, nil
+	success := make(chan *osincli.AccessData, 1)
+	failure := make(chan error, 1)
+	return &HandlerImplementation{success, failure, oaClient, ""}, nil
 }
 
-func NewCreateHandlerImplementation(rt http.RoundTripper, masterAddr string) *CreateHandlerImplementation {
+func NewCreateHandler(rt http.RoundTripper, masterAddr string) CreateHandler {
 	return &CreateHandlerImplementation{rt, masterAddr}
 }

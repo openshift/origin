@@ -7,22 +7,30 @@ import (
 )
 
 type Handler interface {
-	HandleRequest(*http.Request) (*osincli.AuthorizeData, error)
-	HandleData(*osincli.AuthorizeData) error
-	HandleError(error) error
-	GetAccessData() (*osincli.AccessData, error)
+	client
+	state
+}
+
+type client interface {
+	HandleRequest(w http.ResponseWriter, req *http.Request)
+	HandleData(data *osincli.AuthorizeData) error
+	HandleSuccess(w http.ResponseWriter, req *http.Request)
+	HandleError(err error, w http.ResponseWriter, req *http.Request)
+	GetData() (*osincli.AccessData, error)
+}
+
+type state interface {
 	GenerateState() string
-	CheckState(*osincli.AuthorizeData) bool
-	// HandleError(osincli.Error) error
+	CheckState(data *osincli.AuthorizeData) bool
 }
 
 type Server interface {
-	Start(CreateHandler) (Handler, string, error)
+	Start(ch CreateHandler) (Handler, string, error)
 	Stop() error
 }
 
 type Browser interface {
-	Open(rawurl string) error
+	Open(rawURL string) error
 }
 
 type CreateHandler interface {

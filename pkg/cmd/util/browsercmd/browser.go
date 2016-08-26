@@ -4,6 +4,10 @@ import "github.com/pkg/browser"
 
 type BrowserImplementation struct{}
 
-func (*BrowserImplementation) Open(rawurl string) error {
-	return browser.OpenURL(rawurl)
+func (*BrowserImplementation) Open(rawURL string) error {
+	return browser.OpenURL(rawURL)
+}
+
+func NewBrowser() Browser {
+	return &BrowserImplementation{}
 }
