@@ -455,6 +455,9 @@ func (c *NodeConfig) RunProxy() {
 
 		iptInterface.AddReloadFunc(hybridProxier.Sync)
 		serviceConfig.RegisterHandler(hybridProxier)
+	} else {
+		iptInterface.AddReloadFunc(proxier.Sync)
+		serviceConfig.RegisterHandler(proxier)
 	}
 
 	endpointsConfig := pconfig.NewEndpointsConfig()
