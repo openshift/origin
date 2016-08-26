@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/url"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -76,26 +77,36 @@ func (h *Helper) HasInsecureRegistryArg() (bool, error) {
 	return hasCIDR(openShiftInsecureCIDR, registryConfig.InsecureRegistryCIDRs), nil
 }
 
-// Version returns the Docker version
-func (h *Helper) Version() (*semver.Version, error) {
+var (
+	fedoraPackage = regexp.MustCompile("\\.fc[0-9_]*\\.")
+	rhelPackage   = regexp.MustCompile("\\.el[0-9_]*\\.")
+)
+
+// Version returns the Docker version and whether it is a Red Hat distro version
+func (h *Helper) Version() (*semver.Version, bool, error) {
 	glog.V(5).Infof("Retrieving Docker version")
 	env, err := h.client.Version()
 	if err != nil {
 		glog.V(2).Infof("Error retrieving version: %v", err)
-		return nil, err
+		return nil, false, err
 	}
 	glog.V(5).Infof("Docker version results: %#v", env)
 	versionStr := env.Get("Version")
 	if len(versionStr) == 0 {
-		return nil, errors.New("did not get a version")
+		return nil, false, errors.New("did not get a version")
 	}
 	glog.V(5).Infof("Version: %s", versionStr)
 	dockerVersion, err := semver.Parse(versionStr)
 	if err != nil {
 		glog.V(2).Infof("Error parsing Docker version %q", versionStr)
-		return nil, err
+		return nil, false, err
 	}
-	return &dockerVersion, nil
+	isRedHat := false
+	packageVersion := env.Get("PkgVersion")
+	if len(packageVersion) > 0 {
+		isRedHat = fedoraPackage.MatchString(packageVersion) || rhelPackage.MatchString(packageVersion)
+	}
+	return &dockerVersion, isRedHat, nil
 }
 
 // CheckAndPull checks whether a Docker image exists. If not, it pulls it.

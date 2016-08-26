@@ -100,6 +100,8 @@ var (
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.json",
 	}
+	dockerVersion19  = semver.MustParse("1.9.0")
+	dockerVersion110 = semver.MustParse("1.10.0")
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
@@ -158,16 +160,17 @@ type ClientStartConfig struct {
 	ShouldInstallMetrics      bool
 	PortForwarding            bool
 
-	UseNsenterMount bool
-	Out             io.Writer
-	TaskPrinter     *TaskPrinter
-	Tasks           []task
-	HostName        string
-	ServerIP        string
-	CACert          string
-	PublicHostname  string
-	RoutingSuffix   string
-	DNSPort         int
+	UseNsenterMount    bool
+	SetPropagationMode bool
+	Out                io.Writer
+	TaskPrinter        *TaskPrinter
+	Tasks              []task
+	HostName           string
+	ServerIP           string
+	CACert             string
+	PublicHostname     string
+	RoutingSuffix      string
+	DNSPort            int
 
 	LocalConfigDir    string
 	HostVolumesDir    string
@@ -216,6 +219,9 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// running. Otherwise, use environment variables.
 	c.addTask("Checking Docker client", c.GetDockerClient)
 
+	// Check that we have the minimum Docker version available to run OpenShift
+	c.addTask("Checking Docker version", c.CheckDockerVersion)
+
 	// Check for an OpenShift container. If one exists and is running, exit.
 	// If one exists but not running, delete it.
 	c.addTask("Checking for existing OpenShift container", c.CheckExistingOpenShiftContainer)
@@ -236,9 +242,6 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Check whether the Docker host has the right binaries to use Kubernetes' nsenter mounter
 	// If not, use a shared volume to mount volumes on OpenShift
 	c.addTask("Checking type of volume mount", c.CheckNsenterMounter)
-
-	// Check that we have the minimum Docker version available to run OpenShift
-	c.addTask("Checking Docker version", c.CheckDockerVersion)
 
 	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
@@ -479,20 +482,19 @@ func (c *ClientStartConfig) CheckNsenterMounter(out io.Writer) error {
 // CheckDockerVersion checks that the appropriate Docker version is installed based on whether we are using the nsenter mounter
 // or shared volumes for OpenShift
 func (c *ClientStartConfig) CheckDockerVersion(io.Writer) error {
-	var minDockerVersion semver.Version
-	if c.UseNsenterMount {
-		minDockerVersion = semver.MustParse("1.8.1")
-	} else {
-		minDockerVersion = semver.MustParse("1.10.0")
-	}
-	ver, err := c.DockerHelper().Version()
+	ver, rh, err := c.DockerHelper().Version()
 	if err != nil {
 		return err
 	}
-	glog.V(5).Infof("Checking that docker version is at least %v", minDockerVersion)
-	if ver.LT(minDockerVersion) {
-		return fmt.Errorf("Docker version is %v, it needs to be %v", ver, minDockerVersion)
+	needVersion := dockerVersion19
+	if !rh {
+		needVersion = dockerVersion110
 	}
+	glog.V(5).Infof("Checking that docker version is at least %v", needVersion)
+	if ver.LT(needVersion) {
+		return fmt.Errorf("Docker version is %v, it needs to be %v", ver, needVersion)
+	}
+	c.SetPropagationMode = ver.GTE(dockerVersion110)
 	return nil
 }
 
@@ -546,17 +548,18 @@ func (c *ClientStartConfig) DetermineServerIP(out io.Writer) error {
 func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	var err error
 	opt := &openshift.StartOptions{
-		ServerIP:          c.ServerIP,
-		UseSharedVolume:   !c.UseNsenterMount,
-		Images:            c.imageFormat(),
-		HostVolumesDir:    c.HostVolumesDir,
-		HostConfigDir:     c.HostConfigDir,
-		HostDataDir:       c.HostDataDir,
-		UseExistingConfig: c.UseExistingConfig,
-		Environment:       c.Environment,
-		LogLevel:          c.ServerLogLevel,
-		DNSPort:           c.DNSPort,
-		PortForwarding:    c.PortForwarding,
+		ServerIP:           c.ServerIP,
+		UseSharedVolume:    !c.UseNsenterMount,
+		SetPropagationMode: c.SetPropagationMode,
+		Images:             c.imageFormat(),
+		HostVolumesDir:     c.HostVolumesDir,
+		HostConfigDir:      c.HostConfigDir,
+		HostDataDir:        c.HostDataDir,
+		UseExistingConfig:  c.UseExistingConfig,
+		Environment:        c.Environment,
+		LogLevel:           c.ServerLogLevel,
+		DNSPort:            c.DNSPort,
+		PortForwarding:     c.PortForwarding,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
