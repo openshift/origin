@@ -452,10 +452,11 @@ func (c *NodeConfig) RunProxy() {
 			}
 		}
 		endpointsHandler = hybridProxier
-
-		iptInterface.AddReloadFunc(hybridProxier.Sync)
-		serviceConfig.RegisterHandler(hybridProxier)
+		proxier = hybridProxier
 	}
+
+	iptInterface.AddReloadFunc(proxier.Sync)
+	serviceConfig.RegisterHandler(proxier)
 
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	// customized handling registration that inserts a filter if needed
