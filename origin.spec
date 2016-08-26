@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8c8644c38cb85d69489d095682a42f519fb52394
+%global commit 84b8c39be89454fd8addc43a66c945908fec8490
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.25
+Version:        3.3.0.26
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,41 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Aug 26 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.26
+- [RPMs] tito builds are always clean (sdodson@redhat.com)
+- UPSTREAM: 31463: Add a line break when no events in describe
+  (ffranz@redhat.com)
+- Bump origin-web-console (98cd97c) (jforrest@redhat.com)
+- UPSTREAM: 31446: Do initial 0-byte write to stdout when streaming container
+  logs (jliggitt@redhat.com)
+- UPSTREAM: 31446: Make limitWriter respect 0-byte writes until limit is
+  reached (jliggitt@redhat.com)
+- UPSTREAM: 31446: Send ping frame using specified encoding
+  (jliggitt@redhat.com)
+- UPSTREAM: 31396: Fixed integer overflow bug in rate limiter
+  (deads@redhat.com)
+- UPSTREAM: docker/distribution: 1703: GCS: FileWriter.Size: include number of
+  buffered bytes if the FileWriter is not closed (mfojtik@redhat.com)
+- Remove NotV2Registry check from redhat registry import test
+  (mfojtik@redhat.com)
+- fix autoprovision enabled field name (bparees@redhat.com)
+- UPSTREAM: 31353: add unit test for duplicate error check
+  (jvallejo@redhat.com)
+- Bump origin-web-console (18a0d95) (jforrest@redhat.com)
+- update invalid oc extract usage flag to "keys" (jvallejo@redhat.com)
+- UPSTREAM: 31353: fix duplicate validation/field/errors (jvallejo@redhat.com)
+- deploy: do not retry when deployer pod fail to start (mfojtik@redhat.com)
+- Revert "add test to exercise deployment logs for multi-container pods"
+  (mfojtik@redhat.com)
+- Revert "Pass the container name to deployment config log options"
+  (mfojtik@redhat.com)
+- fix 'oadm policy' description error (miao.yanqiang@zte.com.cn)
+- cluster up: use rslave propagation mode with nsenter mounter
+  (cewong@redhat.com)
+- when sercret was found need break the loop (li.guangxu@zte.com.cn)
+- Add OVS rule creation/cleanup tests to extended networking test
+  (danw@redhat.com)
+
 * Wed Aug 24 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.25
 - Emit event when cancelling a deployment (mfojtik@redhat.com)
 - deployments: make retries faster on update conflicts (mfojtik@redhat.com)
