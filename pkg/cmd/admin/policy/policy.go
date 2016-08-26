@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -96,14 +95,6 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Wr
 	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
 	return cmds
-}
-
-func getFlagString(cmd *cobra.Command, flag string) string {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		glog.Fatalf("Flag accessed but not defined for command %s: %s", cmd.Name(), flag)
-	}
-	return f.Value.String()
 }
 
 func getUniqueName(basename string, existingNames *sets.String) string {
