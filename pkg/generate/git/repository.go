@@ -3,6 +3,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -52,7 +53,7 @@ const (
 
 // ErrGitNotAvailable will be returned if the git call fails because a git binary
 // could not be found
-var ErrGitNotAvailable = fmt.Errorf("git binary not available")
+var ErrGitNotAvailable = errors.New("git binary not available")
 
 // SourceInfo stores information about the source code
 type SourceInfo struct {
@@ -276,7 +277,7 @@ func (r *repository) Archive(location, ref, format string, w io.Writer) error {
 // Checkout switches to the given ref for the git repository
 func (r *repository) Checkout(location string, ref string) error {
 	if r.shallow {
-		return fmt.Errorf("cannot checkout ref on shallow clone")
+		return errors.New("cannot checkout ref on shallow clone")
 	}
 	_, _, err := r.git(location, "checkout", ref)
 	return err
