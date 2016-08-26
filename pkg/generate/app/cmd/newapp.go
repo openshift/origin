@@ -47,37 +47,28 @@ var ErrNoDockerfileDetected = fmt.Errorf("No Dockerfile was found in the reposit
 // GenerationInputs control how new-app creates output
 // TODO: split these into finer grained structs
 type GenerationInputs struct {
-	TemplateParameters []string
-	Environment        []string
-	Labels             map[string]string
-
-	AddEnvironmentToBuild bool
-
-	InsecureRegistry bool
-
-	Strategy string
-
-	Name     string
-	To       string
-	NoOutput bool
-
-	OutputDocker  bool
-	Dockerfile    string
-	ExpectToBuild bool
-	BinaryBuild   bool
-	ContextDir    string
-
-	SourceImage     string
-	SourceImagePath string
-
-	Secrets []string
-
+	TemplateParameters          []string
+	Environment                 []string
+	EnvironmentFile             string
+	Labels                      map[string]string
+	AddEnvironmentToBuild       bool
+	InsecureRegistry            bool
+	Strategy                    string
+	Name                        string
+	To                          string
+	NoOutput                    bool
+	OutputDocker                bool
+	Dockerfile                  string
+	ExpectToBuild               bool
+	BinaryBuild                 bool
+	ContextDir                  string
+	SourceImage                 string
+	SourceImagePath             string
+	Secrets                     []string
 	AllowMissingImageStreamTags bool
-
-	Deploy           bool
-	AsTestDeployment bool
-
-	AllowGenerationErrors bool
+	Deploy                      bool
+	AsTestDeployment            bool
+	AllowGenerationErrors       bool
 }
 
 // AppConfig contains all the necessary configuration for an application
@@ -559,9 +550,37 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	}, nil
 }
 
+// envInList checks if the variable exists in given list.
+func envInList(envVarName string, envVarNameList []string) bool {
+	for _, envInCmdLine := range envVarNameList {
+		if envInCmdLine == envVarName {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *AppConfig) validate() (cmdutil.Environment, cmdutil.Environment, error) {
 	var errs []error
-
+	var envVarNameList []string
+	// Environment File where the parameters are stored
+	if len(c.EnvironmentFile) != 0 {
+		varList, err := app.ReadLinesFromFile(c.EnvironmentFile)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Error reading environment variable from file %v: %v", c.EnvironmentFile, err)
+		}
+		currEnvVarList := c.Environment
+		// Can create a map of format envVarName: true, after which
+		// we can check if its in dictionary using lookup.
+		for _, envVarName := range currEnvVarList {
+			envVarNameList = append(envVarNameList, strings.Split(envVarName, "=")[0])
+		}
+		for _, env := range varList {
+			if !envInList(strings.Split(env, "=")[0], envVarNameList) {
+				c.Environment = append(c.Environment, env)
+			}
+		}
+	}
 	env, duplicateEnv, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment)
 	for _, s := range duplicateEnv {
 		fmt.Fprintf(c.ErrOut, "warning: The environment variable %q was overwritten", s)

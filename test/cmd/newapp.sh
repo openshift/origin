@@ -18,6 +18,16 @@ os::cmd::expect_failure 'oc new-app unknownhubimage -o yaml'
 os::cmd::expect_failure_and_text 'oc new-app docker.io/node~https://github.com/openshift/nodejs-ex' 'the image match \"docker.io/node\" for source repository \"https://github.com/openshift/nodejs-ex\" does not appear to be a source-to-image builder.'
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/rails-ex' 'the image match \"ruby\" for source repository \"https://github.com/openshift/rails-ex\" does not appear to be a source-to-image builder.'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/rails-ex --strategy=source --dry-run'
+# When env file doesn't exist
+export TEMP_DIR=$(mktemp -d temp.XXXXXXXXX)
+export TEMP_FILE=$TEMP_DIR/envfile
+os::cmd::expect_failure_and_text 'oc new-app openshift/postgresql-92-centos7 --env-file='"$TEMP_FILE"' --dry-run' 'Error reading environment variable from file'
+# When env file contains invalid entries
+printf 'one=first\ntwosecond\nthree=third\n' >> $TEMP_FILE
+os::cmd::expect_failure_and_text 'oc new-app openshift/postgresql-92-centos7 --env-file='"$TEMP_FILE"' --dry-run' 'environment variables must be of the form key=value'
+# Didn't want to use rm -rf
+rm $TEMP_FILE
+rmdir $TEMP_DIR
 # verify we can generate a Docker image based component "mongodb" directly
 os::cmd::expect_success_and_text 'oc new-app mongo -o yaml' 'image:\s*mongo'
 # the local image repository takes precedence over the Docker Hub "mysql" image

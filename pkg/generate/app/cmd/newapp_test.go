@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -23,7 +24,22 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
+// envFileOperation is helper function for creating or deleting a temporary
+// environment file which is used during test cases. Not sure if this
+// function can be here or in some util library. These are idempotent
+// operations. So, I believe no need to have validation.
+func envFileOperation(envtmpfile *os.File, option string) string {
+	if option == "create" {
+		envVarList := []byte("one=first\ntwo=second\nthree=third\n")
+		ioutil.WriteFile(envtmpfile.Name(), envVarList, 0644)
+	} else if option == "delete" {
+		os.Remove(envtmpfile.Name())
+	}
+	return envtmpfile.Name()
+}
+
 func TestValidate(t *testing.T) {
+	envtmpfile, _ := ioutil.TempFile("", "envfile")
 	tests := map[string]struct {
 		cfg                 AppConfig
 		componentValues     []string
@@ -51,6 +67,29 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{},
 			sourceRepoLocations: []string{},
 			env:                 map[string]string{"one": "first", "two": "second", "three": "third"},
+			parms:               map[string]string{},
+		},
+		"envfile1": {
+			cfg: AppConfig{
+				GenerationInputs: GenerationInputs{
+					EnvironmentFile: envFileOperation(envtmpfile, "create"),
+				},
+			},
+			componentValues:     []string{},
+			sourceRepoLocations: []string{},
+			env:                 map[string]string{"one": "first", "two": "second", "three": "third"},
+			parms:               map[string]string{},
+		},
+		"envfile2": {
+			cfg: AppConfig{
+				GenerationInputs: GenerationInputs{
+					EnvironmentFile: envFileOperation(envtmpfile, "create"),
+					Environment:     []string{"one=first1"},
+				},
+			},
+			componentValues:     []string{},
+			sourceRepoLocations: []string{},
+			env:                 map[string]string{"one": "first1", "two": "second", "three": "third"},
 			parms:               map[string]string{},
 		},
 		"component+source": {
@@ -93,6 +132,7 @@ func TestValidate(t *testing.T) {
 			},
 		},
 	}
+	defer envFileOperation(envtmpfile, "delete")
 	for n, c := range tests {
 		b := &app.ReferenceBuilder{}
 		env, parms, err := c.cfg.validate()
