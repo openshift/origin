@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -114,6 +115,9 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 )
 
 const (
@@ -459,6 +463,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
+	podsecuritypolicyreviewStorage := podsecuritypolicyreview.NewREST(c.Informers.SecurityContextConstraints().Lister(), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podsecuritypolicysubjectreviewStorage := podsecuritypolicysubjectreview.NewREST(c.Informers.SecurityContextConstraints().Lister(), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podsecuritypolicyselfsubjectreviewStorage := podsecuritypolicyselfsubjectreview.NewREST(c.Informers.SecurityContextConstraints().Lister(), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
@@ -602,6 +610,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
 		"localResourceAccessReviews": localResourceAccessReviewStorage,
 		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
+
+		"podSecurityPolicyReviews":            podsecuritypolicyreviewStorage,
+		"podSecurityPolicySelfSubjectReviews": podsecuritypolicyselfsubjectreviewStorage,
+		"podSecurityPolicySubjectReviews":     podsecuritypolicysubjectreviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,

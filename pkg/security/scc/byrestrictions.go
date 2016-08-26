@@ -1,4 +1,4 @@
-package admission
+package scc
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
