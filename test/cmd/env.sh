@@ -11,5 +11,6 @@ os::cmd::expect_success_and_text 'oc set env dc/node --list' 'deploymentconfigs 
 os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" key-' 'deploymentconfig "node" updated'
 os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'error: at least one environment variable must be provided'
 os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
+os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variables must be of the form key=value'
 echo "oc set env: ok"
 os::test::junit::declare_suite_end
