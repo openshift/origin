@@ -181,6 +181,7 @@ readonly EXCLUDED_TESTS=(
 
   # Test will never work
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
+  "should proxy to cadvisor using proxy subresource"
 
   # Inordinately slow tests
   "should create and stop a working application"
