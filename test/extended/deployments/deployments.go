@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -260,8 +261,21 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")
-			out, err := oc.Run("get").Args("istag/sample-stream:deployed").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			var out string
+			pollErr := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
+				if errors.IsNotFound(err) {
+					return false, nil
+				}
+				if err != nil {
+					return false, err
+				}
+				return true, nil
+			})
+			if pollErr == wait.ErrWaitTimeout {
+				pollErr = err
+			}
+			o.Expect(pollErr).NotTo(o.HaveOccurred())
 
 			if !strings.Contains(out, "origin-pod") {
 				err = fmt.Errorf("expected %q to be part of the image reference in %q", "origin-pod", out)

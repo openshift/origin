@@ -12,7 +12,7 @@ spec:
     recreateParams:
       timeoutSeconds: 20
       post:
-        failurePolicy: Ignore
+        failurePolicy: Abort
         tagImages:
         - containerName: sample-name
           to:
