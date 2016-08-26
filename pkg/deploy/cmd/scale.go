@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -11,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -61,17 +58,13 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 // ScaleSimple does a simple one-shot attempt at scaling - not useful on its
 // own, but a necessary building block for Scale
 func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) error {
-	dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
+	scale, err := scaler.dcClient.DeploymentConfigs(namespace).GetScale(name)
 	if err != nil {
 		return err
 	}
-	if dc.Spec.Test {
-		fmt.Fprintln(os.Stderr, "Replica size for a test deployment applies only when the deployment is running.")
-	}
-	scale := deployapi.ScaleFromConfig(dc)
 	scale.Spec.Replicas = int32(newSize)
 	if _, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale); err != nil {
-		return kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: dc.ResourceVersion, ActualError: err}
+		return kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: "Unknown", ActualError: err}
 	}
 	return nil
 }
