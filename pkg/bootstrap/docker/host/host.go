@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -55,12 +54,6 @@ func NewHostHelper(client *docker.Client, image, volumesDir, configDir, dataDir 
 
 // CanUseNsenterMounter returns true if the Docker host machine can execute findmnt through nsenter
 func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
-	// For now, use a shared mount on Windows/Mac
-	// Eventually it also needs to be used on Linux, but nsenter
-	// is still needed for Docker 1.9
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		return false, nil
-	}
 	rc, err := h.runner().
 		Image(h.image).
 		DiscardContainer().

@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift cli policy add\-role\-to\-user \- Add users or serviceaccounts to a role in the current project
+openshift cli policy add\-role\-to\-user \- Add a role to users or serviceaccounts for the current project
 
 
 .SH SYNOPSIS
@@ -13,7 +13,7 @@ openshift cli policy add\-role\-to\-user \- Add users or serviceaccounts to a ro
 
 .SH DESCRIPTION
 .PP
-Add users or serviceaccounts to a role in the current project
+Add a role to users or serviceaccounts for the current project
 
 
 .SH OPTIONS
@@ -97,10 +97,10 @@ Add users or serviceaccounts to a role in the current project
 .RS
 
 .nf
-  # Add the 'view' role to user1 in the current project
+  # Add the 'view' role to user1 for the current project
   openshift cli policy add\-role\-to\-user view user1
 
-  # Add the 'edit' role to serviceaccount1 in the current project
+  # Add the 'edit' role to serviceaccount1 for the current project
   openshift cli policy add\-role\-to\-user edit \-z serviceaccount1
 
 .fi

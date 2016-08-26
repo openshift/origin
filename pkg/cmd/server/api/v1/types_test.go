@@ -153,7 +153,7 @@ imagePolicyConfig:
   maxScheduledImageImportsPerMinute: 0
   scheduledImageImportMinimumIntervalSeconds: 0
 jenkinsPipelineConfig:
-  enabled: null
+  autoProvisionEnabled: null
   parameters: null
   serviceName: ""
   templateName: ""
