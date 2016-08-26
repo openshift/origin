@@ -41,19 +41,10 @@ func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.
 // no such deployment. The active deployment is not always the same as the
 // latest deployment.
 func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.ReplicationController) *api.ReplicationController {
-	// we need to create our own copy of the input slice so that our sort here
-	// doesn't change the caller's slice
-	var deployments []api.ReplicationController
-	for _, deployment := range input {
-		deployments = append(deployments, deployment)
-	}
-
-	sort.Sort(ByLatestVersionDesc(deployments))
 	var activeDeployment *api.ReplicationController
-	for _, deployment := range deployments {
-		if DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
-			activeDeployment = &deployment
-			break
+	for i := range input {
+		if DeploymentStatusFor(&input[i]) == deployapi.DeploymentStatusComplete {
+			activeDeployment = &input[i]
 		}
 	}
 	return activeDeployment
@@ -425,9 +416,9 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 	} else {
 		// if there is an active deployment, we need to filter out any deployments that we don't
 		// care about, namely the active deployment and any newer deployments
-		for _, deployment := range deployments {
-			if &deployment != activeDeployment || DeploymentVersionFor(&deployment) < DeploymentVersionFor(activeDeployment) {
-				relevantDeployments = append(relevantDeployments, deployment)
+		for i := range deployments {
+			if &deployments[i] != activeDeployment && DeploymentVersionFor(&deployments[i]) < DeploymentVersionFor(activeDeployment) {
+				relevantDeployments = append(relevantDeployments, deployments[i])
 			}
 		}
 	}
