@@ -62,18 +62,19 @@ type Helper struct {
 
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
-	ServerIP          string
-	DNSPort           int
-	UseSharedVolume   bool
-	Images            string
-	HostVolumesDir    string
-	HostConfigDir     string
-	HostDataDir       string
-	UseExistingConfig bool
-	Environment       []string
-	LogLevel          int
-	MetricsHost       string
-	PortForwarding    bool
+	ServerIP           string
+	DNSPort            int
+	UseSharedVolume    bool
+	SetPropagationMode bool
+	Images             string
+	HostVolumesDir     string
+	HostConfigDir      string
+	HostDataDir        string
+	UseExistingConfig  bool
+	Environment        []string
+	LogLevel           int
+	MetricsHost        string
+	PortForwarding     bool
 }
 
 // NewHelper creates a new OpenShift helper
@@ -218,7 +219,11 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
 	} else {
 		binds = append(binds, "/:/rootfs:ro")
-		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s", opt.HostVolumesDir))
+		propagationMode := ""
+		if opt.SetPropagationMode {
+			propagationMode = ":rslave"
+		}
+		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s%[2]s", opt.HostVolumesDir, propagationMode))
 	}
 	env = append(env, opt.Environment...)
 	binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", opt.HostConfigDir))

@@ -458,16 +458,16 @@ Make project network global
 
 
 == oadm policy add-role-to-user
-Add users or serviceaccounts to a role in the current project
+Add a role to users or serviceaccounts for the current project
 
 ====
 
 [options="nowrap"]
 ----
-  # Add the 'view' role to user1 in the current project
+  # Add the 'view' role to user1 for the current project
   oadm policy add-role-to-user view user1
 
-  # Add the 'edit' role to serviceaccount1 in the current project
+  # Add the 'edit' role to serviceaccount1 for the current project
   oadm policy add-role-to-user edit -z serviceaccount1
 ----
 ====

@@ -140,6 +140,9 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 				},
 				NodeName: "some-host",
 			},
+			Status: kapi.PodStatus{
+				Phase: kapi.PodRunning,
+			},
 		}
 		fakePn.PrependReactor("get", "pods", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			return true, fakeDeployer, nil

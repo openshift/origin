@@ -2,11 +2,13 @@ package registry
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -29,28 +31,26 @@ func WaitForRunningDeployment(rn kclient.ReplicationControllersNamespacer, obser
 	}
 	defer w.Stop()
 
-	ch := w.ResultChan()
-	// Passing time.After like this (vs receiving directly in a select) will trigger the channel
-	// and the timeout will have full effect here.
-	expire := time.After(timeout)
-	for {
-		select {
-		case event := <-ch:
-			obj, ok := event.Object.(*kapi.ReplicationController)
-			if !ok {
-				return observed, false, errors.New("received unknown object while watching for deployments")
-			}
-			observed = obj
-
-			switch deployutil.DeploymentStatusFor(observed) {
-			case api.DeploymentStatusRunning, api.DeploymentStatusFailed, api.DeploymentStatusComplete:
-				return observed, true, nil
-			case api.DeploymentStatusNew, api.DeploymentStatusPending:
-			default:
-				return observed, false, ErrUnknownDeploymentPhase
-			}
-		case <-expire:
-			return observed, false, nil
+	if _, err := watch.Until(timeout, w, func(e watch.Event) (bool, error) {
+		if e.Type == watch.Error {
+			return false, fmt.Errorf("encountered error while watching for replication controller: %v", e.Object)
 		}
+		obj, isController := e.Object.(*kapi.ReplicationController)
+		if !isController {
+			return false, fmt.Errorf("received unknown object while watching for deployments: %v", obj)
+		}
+		observed = obj
+		switch deployutil.DeploymentStatusFor(observed) {
+		case api.DeploymentStatusRunning, api.DeploymentStatusFailed, api.DeploymentStatusComplete:
+			return true, nil
+		case api.DeploymentStatusNew, api.DeploymentStatusPending:
+			return false, nil
+		default:
+			return false, ErrUnknownDeploymentPhase
+		}
+	}); err != nil {
+		return observed, false, err
 	}
+
+	return observed, true, nil
 }

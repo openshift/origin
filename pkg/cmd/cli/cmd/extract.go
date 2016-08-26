@@ -28,7 +28,7 @@ The extract command makes it easy to download the contents of a config map or se
 Each key in the config map or secret is created as a separate file with the name of the key, as it
 is when you mount a secret or config map into a container.
 
-You can limit which keys are extracted with the --only=NAME flag, or set the directory to extract to
+You can limit which keys are extracted with the --keys=NAME flag, or set the directory to extract to
 with --to=DIRECTORY.`
 
 	extractExample = `  # extract the secret "test" to the current directory
