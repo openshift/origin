@@ -42,9 +42,13 @@ func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.
 // latest deployment.
 func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.ReplicationController) *api.ReplicationController {
 	var activeDeployment *api.ReplicationController
+	var lastCompleteDeploymentVersion int64 = 0
 	for i := range input {
-		if DeploymentStatusFor(&input[i]) == deployapi.DeploymentStatusComplete {
-			activeDeployment = &input[i]
+		deployment := &input[i]
+		deploymentVersion := DeploymentVersionFor(deployment)
+		if DeploymentStatusFor(deployment) == deployapi.DeploymentStatusComplete && deploymentVersion > lastCompleteDeploymentVersion {
+			activeDeployment = deployment
+			lastCompleteDeploymentVersion = deploymentVersion
 		}
 	}
 	return activeDeployment
@@ -408,17 +412,19 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 		// if cleanup policy is set but no successful deployments have happened, there will be
 		// no active deployment. We can consider all of the deployments in this case except for
 		// the latest one
-		for _, deployment := range deployments {
-			if DeploymentVersionFor(&deployment) != configuration.Status.LatestVersion {
-				relevantDeployments = append(relevantDeployments, deployment)
+		for i := range deployments {
+			deployment := &deployments[i]
+			if DeploymentVersionFor(deployment) != configuration.Status.LatestVersion {
+				relevantDeployments = append(relevantDeployments, *deployment)
 			}
 		}
 	} else {
 		// if there is an active deployment, we need to filter out any deployments that we don't
 		// care about, namely the active deployment and any newer deployments
 		for i := range deployments {
-			if &deployments[i] != activeDeployment && DeploymentVersionFor(&deployments[i]) < DeploymentVersionFor(activeDeployment) {
-				relevantDeployments = append(relevantDeployments, deployments[i])
+			deployment := &deployments[i]
+			if deployment != activeDeployment && DeploymentVersionFor(deployment) < DeploymentVersionFor(activeDeployment) {
+				relevantDeployments = append(relevantDeployments, *deployment)
 			}
 		}
 	}
