@@ -169,16 +169,18 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 			// OAuth response case (access_token or error parameter)
 			accessToken, err := oauthAuthorizeResult(redirectURL)
 
-			switch err := err.(type) {
-			case *interactionRequiredError:
-				token, browserError := browserOauthAuthorizeResult(rt, o.ClientConfig.Host)
-				if browserError != nil {
-					glog.V(4).Infof("browser error: %v", browserError) // TODO what level to use?
-					return "", err                                     // log the browser error but show the actual err
+			if err != nil {
+				switch err := err.(type) {
+				case *interactionRequiredError:
+					token, browserError := browserOauthAuthorizeResult(rt, o.ClientConfig.Host)
+					if browserError != nil {
+						glog.V(4).Infof("browser error: %v", browserError) // TODO what level to use?
+						return "", err                                     // log the browser error but show the actual err
+					}
+					return token, nil
+				default:
+					return "", err
 				}
-				return token, nil
-			default:
-				return "", err
 			}
 
 			if len(accessToken) > 0 {

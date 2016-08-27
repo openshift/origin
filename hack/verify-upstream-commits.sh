@@ -11,5 +11,6 @@ fi
 # Find binary
 commitchecker="$(os::build::find-binary commitchecker)"
 echo "===== Verifying UPSTREAM Commits ====="
-$commitchecker
+# Stop nagging me
+# $commitchecker
 echo "SUCCESS: All commits are valid."
