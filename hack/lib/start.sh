@@ -292,8 +292,10 @@ function os::start::master() {
 	echo "[INFO] OpenShift server start at: "
 	date
 
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 160
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 160
+	os::test::junit::declare_suite_start "setup/start-master"
+	os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 160 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 160 * second )) 0.25
+	os::test::junit::declare_suite_end
 
 	echo "[INFO] OpenShift server health checks done at: "
 	date
@@ -345,10 +347,12 @@ function os::start::all_in_one() {
 	echo "[INFO] OpenShift server start at: "
 	date
 
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 120
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+	os::test::junit::declare_suite_start "setup/start-all_in_one"
+	os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 2 * minute )) 0.5
+	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_success "oc get --raw /api/v1/nodes/${KUBELET_HOST} --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" $(( 80 * second )) 0.25
+	os::test::junit::declare_suite_end
 
 	echo "[INFO] OpenShift server health checks done at: "
 	date
@@ -377,7 +381,7 @@ function os::start::etcd() {
 	export ETCD_PID=$!
 
 	echo "[INFO] etcd server start at: "
-	date 
+	date
 
 	wait_for_url "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/version" "etcd: " 0.25 80
 
@@ -418,8 +422,10 @@ function os::start::api_server() {
 	echo "[INFO] OpenShift API server start at: "
 	date
 
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 160
+	os::test::junit::declare_suite_start "setup/start-api_server"
+	os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 160 * second )) 0.25
+	os::test::junit::declare_suite_end
 
 	echo "[INFO] OpenShift API server health checks done at: "
 	date
