@@ -18,7 +18,8 @@ import (
 )
 
 type OsdnMaster struct {
-	registry        *Registry
+	kClient         *kclient.Client
+	osClient        *osclient.Client
 	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
@@ -32,7 +33,8 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	log.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
-		registry: newRegistry(osClient, kClient),
+		kClient:  kClient,
+		osClient: osClient,
 	}
 
 	var err error
@@ -43,7 +45,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 
 	createConfig := false
 	updateConfig := false
-	cn, err := master.registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
 	if err == nil {
 		if master.networkInfo.ClusterNetwork.String() != cn.Network ||
 			networkConfig.HostSubnetLength != cn.HostSubnetLength ||
@@ -73,13 +75,13 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	if createConfig {
-		cn, err := master.registry.oClient.ClusterNetwork().Create(cn)
+		cn, err := master.osClient.ClusterNetwork().Create(cn)
 		if err != nil {
 			return err
 		}
 		log.Infof("Created ClusterNetwork %s", clusterNetworkToString(cn))
 	} else if updateConfig {
-		cn, err := master.registry.oClient.ClusterNetwork().Update(cn)
+		cn, err := master.osClient.ClusterNetwork().Update(cn)
 		if err != nil {
 			return err
 		}
@@ -127,11 +129,11 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each host subnet is within the cluster network
-	subnets, err := master.registry.GetSubnets()
+	subnets, err := master.osClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("Error in initializing/fetching subnets: %v", err)
 	}
-	for _, sub := range subnets {
+	for _, sub := range subnets.Items {
 		subnetIP, _, _ := net.ParseCIDR(sub.Subnet)
 		if subnetIP == nil {
 			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", sub.Subnet))
@@ -143,11 +145,11 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	// Ensure each service is within the services network
-	services, err := master.registry.GetServices()
+	services, err := master.kClient.Services(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
-	for _, svc := range services {
+	for _, svc := range services.Items {
 		if !ni.ServiceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
 			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
 		}

@@ -21,12 +21,12 @@ import (
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
 	subrange := make([]string, 0)
-	subnets, err := master.registry.GetSubnets()
+	subnets, err := master.osClient.HostSubnets().List(kapi.ListOptions{})
 	if err != nil {
 		log.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err
 	}
-	for _, sub := range subnets {
+	for _, sub := range subnets.Items {
 		subrange = append(subrange, sub.Subnet)
 		if err = master.networkInfo.validateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
@@ -52,14 +52,14 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 	}
 
 	// Check if subnet needs to be created or updated
-	sub, err := master.registry.GetSubnet(nodeName)
+	sub, err := master.osClient.HostSubnets().Get(nodeName)
 	if err == nil {
 		if sub.HostIP == nodeIP {
 			return nil
 		} else {
 			// Node IP changed, update old subnet
 			sub.HostIP = nodeIP
-			sub, err = master.registry.UpdateSubnet(sub)
+			sub, err = master.osClient.HostSubnets().Update(sub)
 			if err != nil {
 				return fmt.Errorf("Error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
@@ -74,7 +74,14 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 		return fmt.Errorf("Error allocating network for node %s: %v", nodeName, err)
 	}
 
-	sub, err = master.registry.CreateSubnet(nodeName, nodeIP, sn.String())
+	sub = &osapi.HostSubnet{
+		TypeMeta:   kapiunversioned.TypeMeta{Kind: "HostSubnet"},
+		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
+		Host:       nodeName,
+		HostIP:     nodeIP,
+		Subnet:     sn.String(),
+	}
+	sub, err = master.osClient.HostSubnets().Create(sub)
 	if err != nil {
 		master.subnetAllocator.ReleaseNetwork(sn)
 		return fmt.Errorf("Error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
@@ -84,7 +91,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
-	sub, err := master.registry.GetSubnet(nodeName)
+	sub, err := master.osClient.HostSubnets().Get(nodeName)
 	if err != nil {
 		return fmt.Errorf("Error fetching subnet for node %q for deletion: %v", nodeName, err)
 	}
@@ -93,7 +100,7 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 		return fmt.Errorf("Error parsing subnet %q for node %q for deletion: %v", sub.Subnet, nodeName, err)
 	}
 	master.subnetAllocator.ReleaseNetwork(ipnet)
-	err = master.registry.DeleteSubnet(nodeName)
+	err = master.osClient.HostSubnets().Delete(nodeName)
 	if err != nil {
 		return fmt.Errorf("Error deleting subnet %v for node %q: %v", sub, nodeName, err)
 	}
@@ -123,7 +130,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 		var err error
 
 		if knode != node {
-			knode, err = master.registry.kClient.Nodes().Get(node.ObjectMeta.Name)
+			knode, err = master.kClient.Nodes().Get(node.ObjectMeta.Name)
 			if err != nil {
 				return err
 			}
@@ -136,7 +143,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 			condition.Reason = "RouteCreated"
 			condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
 			condition.LastTransitionTime = kapiunversioned.Now()
-			knode, err = master.registry.kClient.Nodes().UpdateStatus(knode)
+			knode, err = master.kClient.Nodes().UpdateStatus(knode)
 			if err == nil {
 				cleared = true
 			}
@@ -152,7 +159,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 
 func (master *OsdnMaster) watchNodes() {
 	nodeAddressMap := map[types.UID]string{}
-	master.registry.RunEventQueue(Nodes, func(delta cache.Delta) error {
+	RunEventQueue(master.kClient, Nodes, func(delta cache.Delta) error {
 		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID
@@ -215,7 +222,7 @@ func (node *OsdnNode) initSelfSubnet() error {
 	// Try every retryInterval and bail-out if it exceeds max retries
 	for i := 0; i < retries; i++ {
 		// Get subnet for current node
-		subnet, err = node.registry.GetSubnet(node.hostName)
+		subnet, err = node.osClient.HostSubnets().Get(node.hostName)
 		if err == nil {
 			break
 		}
@@ -238,7 +245,7 @@ func (node *OsdnNode) initSelfSubnet() error {
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
 	subnets := make(map[string]*osapi.HostSubnet)
-	node.registry.RunEventQueue(HostSubnets, func(delta cache.Delta) error {
+	RunEventQueue(node.osClient, HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
 			return nil

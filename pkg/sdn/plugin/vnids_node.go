@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
@@ -117,13 +118,13 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	return id, nil
 }
 
-func (vmap *nodeVNIDMap) populateVNIDs(registry *Registry) error {
-	nets, err := registry.GetNetNamespaces()
+func (vmap *nodeVNIDMap) populateVNIDs(osClient *osclient.Client) error {
+	nets, err := osClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	for _, net := range nets {
+	for _, net := range nets.Items {
 		vmap.setVNID(net.Name, net.NetID)
 	}
 	return nil
@@ -133,7 +134,7 @@ func (vmap *nodeVNIDMap) populateVNIDs(registry *Registry) error {
 
 func (node *OsdnNode) VnidStartNode() error {
 	// Populate vnid map synchronously so that existing services can fetch vnid
-	err := node.vnids.populateVNIDs(node.registry)
+	err := node.vnids.populateVNIDs(node.osClient)
 	if err != nil {
 		return err
 	}
@@ -152,7 +153,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 	if err != nil {
 		return err
 	}
-	services, err := node.registry.GetServicesForNamespace(namespace)
+	services, err := node.kClient.Services(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -168,7 +169,11 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 	}
 
 	// Update OF rules for the old services in the namespace
-	for _, svc := range services {
+	for _, svc := range services.Items {
+		if !kapi.IsServiceIPSet(&svc) {
+			continue
+		}
+
 		if err = node.DeleteServiceRules(&svc); err != nil {
 			log.Error(err)
 		}
@@ -186,7 +191,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 }
 
 func (node *OsdnNode) watchNetNamespaces() {
-	node.registry.RunEventQueue(NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(node.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
@@ -231,7 +236,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	services := make(map[string]*kapi.Service)
-	node.registry.RunEventQueue(Services, func(delta cache.Delta) error {
+	RunEventQueue(node.kClient, Services, func(delta cache.Delta) error {
 		serv := delta.Object.(*kapi.Service)
 
 		// Ignore headless services
