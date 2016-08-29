@@ -26,32 +26,23 @@ func hostSubnetToString(subnet *osapi.HostSubnet) string {
 }
 
 type NetworkInfo struct {
-	ClusterNetwork   *net.IPNet
-	ServiceNetwork   *net.IPNet
-	HostSubnetLength uint32
-	PluginName       string
+	ClusterNetwork *net.IPNet
+	ServiceNetwork *net.IPNet
 }
 
-func validateClusterNetwork(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
-	_, cn, err := net.ParseCIDR(network)
+func parseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInfo, error) {
+	_, cn, err := net.ParseCIDR(clusterNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
+		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", clusterNetwork, err)
 	}
-
 	_, sn, err := net.ParseCIDR(serviceNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
 	}
 
-	if hostSubnetLength <= 0 || hostSubnetLength > 32 {
-		return nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
-	}
-
 	return &NetworkInfo{
-		ClusterNetwork:   cn,
-		ServiceNetwork:   sn,
-		HostSubnetLength: hostSubnetLength,
-		PluginName:       pluginName,
+		ClusterNetwork: cn,
+		ServiceNetwork: sn,
 	}, nil
 }
 
@@ -70,6 +61,9 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 	if ni.ClusterNetwork.Contains(ipaddr) {
 		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
 	}
+	if ni.ServiceNetwork.Contains(ipaddr) {
+		return fmt.Errorf("Node IP %s conflicts with service network %s", nodeIP, ni.ServiceNetwork.String())
+	}
 
 	return nil
 }
@@ -80,5 +74,5 @@ func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
 		return nil, err
 	}
 
-	return validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
+	return parseNetworkInfo(cn.Network, cn.ServiceNetwork)
 }
