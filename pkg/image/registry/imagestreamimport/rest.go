@@ -368,7 +368,7 @@ func (r *REST) importSuccessful(
 	}
 
 	// ensure the spec and status tag match the imported image
-	changed := api.DifferentTagEvent(stream, tag, tagEvent)
+	changed := api.DifferentTagEvent(stream, tag, tagEvent) || api.DifferentTagGeneration(stream, tag)
 	specTag, ok := stream.Spec.Tags[tag]
 	if changed || !ok {
 		specTag = ensureSpecTag(stream, tag, from, importPolicy, true)
