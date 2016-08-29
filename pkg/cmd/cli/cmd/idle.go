@@ -548,7 +548,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	for scaleRef, svcName := range byScalable {
 		obj, scale, err := scaleAnnotater.GetObjectWithScale(svcName.Namespace, scaleRef)
 		if err != nil {
-			fmt.Fprintf(o.errOut, "error: unable to get scale for %s %s/%s, not marking that scalable as idled\n", scaleRef.Kind, svcName.Namespace, scaleRef.Name)
+			fmt.Fprintf(o.errOut, "error: unable to get scale for %s %s/%s, not marking that scalable as idled: %v\n", scaleRef.Kind, svcName.Namespace, scaleRef.Name, err)
 			svcInfo := byService[svcName]
 			delete(svcInfo.scaleRefs, scaleRef)
 			hadError = true
@@ -625,7 +625,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
 			if err := scaleAnnotater.UpdateObjectScale(info.namespace, scaleRef, info.obj, info.scale); err != nil {
-				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling\n", scaleRef.Kind, info.namespace, scaleRef.Name)
+				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
 				continue
 			}
