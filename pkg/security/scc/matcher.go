@@ -174,7 +174,7 @@ func DeduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstrain
 	return deDuped
 }
 
-// getNamespace retrieves a namespace only if ns is nil.
+// getNamespaceByName retrieves a namespace only if ns is nil.
 func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interface) (*kapi.Namespace, error) {
 	if ns != nil && name == ns.Name {
 		return ns, nil
@@ -196,77 +196,85 @@ func CreateProvidersFromConstraints(ns string, sccs []*kapi.SecurityContextConst
 
 	// set pre-allocated values on constraints
 	for _, constraint := range sccs {
-		var err error
-		resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
-		resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
-		resolveFSGroup := requiresPreallocatedFSGroup(constraint)
-		resolveSupplementalGroups := requiresPreallocatedSupplementalGroups(constraint)
-		requiresNamespaceAllocations := resolveUIDRange || resolveSELinuxLevel || resolveFSGroup || resolveSupplementalGroups
-
-		if requiresNamespaceAllocations {
-			// Ensure we have the namespace
-			namespace, err = getNamespaceByName(ns, namespace, client)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error fetching namespace %s required to preallocate values for %s: %v", ns, constraint.Name, err))
-				continue
-			}
-		}
-
-		// Make a copy of the constraint so we don't mutate the store's cache
-		var constraintCopy kapi.SecurityContextConstraints = *constraint
-		constraint = &constraintCopy
-
-		// Resolve the values from the namespace
-		if resolveUIDRange {
-			constraint.RunAsUser.UIDRangeMin, constraint.RunAsUser.UIDRangeMax, err = getPreallocatedUIDRange(namespace)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("unable to find pre-allocated uid annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
-				continue
-			}
-		}
-		if resolveSELinuxLevel {
-			var level string
-			if level, err = getPreallocatedLevel(namespace); err != nil {
-				errs = append(errs, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
-				continue
-			}
-
-			// SELinuxOptions is a pointer, if we are resolving and it is already initialized
-			// we need to make a copy of it so we don't manipulate the store's cache.
-			if constraint.SELinuxContext.SELinuxOptions != nil {
-				var seLinuxOptionsCopy kapi.SELinuxOptions = *constraint.SELinuxContext.SELinuxOptions
-				constraint.SELinuxContext.SELinuxOptions = &seLinuxOptionsCopy
-			} else {
-				constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
-			}
-			constraint.SELinuxContext.SELinuxOptions.Level = level
-		}
-		if resolveFSGroup {
-			fsGroup, err := getPreallocatedFSGroup(namespace)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
-				continue
-			}
-			constraint.FSGroup.Ranges = fsGroup
-		}
-		if resolveSupplementalGroups {
-			supplementalGroups, err := getPreallocatedSupplementalGroups(namespace)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
-				continue
-			}
-			constraint.SupplementalGroups.Ranges = supplementalGroups
-		}
-
-		// Create the provider
-		provider, err := kscc.NewSimpleProvider(constraint)
+		var (
+			provider kscc.SecurityContextConstraintsProvider
+			err      error
+		)
+		provider, namespace, err = CreateProviderFromConstraint(ns, namespace, constraint, client)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, ns, err))
+			errs = append(errs, err)
 			continue
 		}
 		providers = append(providers, provider)
 	}
 	return providers, errs
+}
+
+// CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
+func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *kapi.SecurityContextConstraints, client clientset.Interface) (kscc.SecurityContextConstraintsProvider, *kapi.Namespace, error) {
+	var err error
+	resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
+	resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
+	resolveFSGroup := requiresPreallocatedFSGroup(constraint)
+	resolveSupplementalGroups := requiresPreallocatedSupplementalGroups(constraint)
+	requiresNamespaceAllocations := resolveUIDRange || resolveSELinuxLevel || resolveFSGroup || resolveSupplementalGroups
+
+	if requiresNamespaceAllocations {
+		// Ensure we have the namespace
+		namespace, err = getNamespaceByName(ns, namespace, client)
+		if err != nil {
+			return nil, namespace, fmt.Errorf("error fetching namespace %s required to preallocate values for %s: %v", ns, constraint.Name, err)
+		}
+	}
+
+	// Make a copy of the constraint so we don't mutate the store's cache
+	var constraintCopy kapi.SecurityContextConstraints = *constraint
+	constraint = &constraintCopy
+
+	// Resolve the values from the namespace
+	if resolveUIDRange {
+		constraint.RunAsUser.UIDRangeMin, constraint.RunAsUser.UIDRangeMax, err = getPreallocatedUIDRange(namespace)
+		if err != nil {
+			return nil, namespace, fmt.Errorf("unable to find pre-allocated uid annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+	}
+	if resolveSELinuxLevel {
+		var level string
+		if level, err = getPreallocatedLevel(namespace); err != nil {
+			return nil, namespace, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+
+		// SELinuxOptions is a pointer, if we are resolving and it is already initialized
+		// we need to make a copy of it so we don't manipulate the store's cache.
+		if constraint.SELinuxContext.SELinuxOptions != nil {
+			var seLinuxOptionsCopy kapi.SELinuxOptions = *constraint.SELinuxContext.SELinuxOptions
+			constraint.SELinuxContext.SELinuxOptions = &seLinuxOptionsCopy
+		} else {
+			constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
+		}
+		constraint.SELinuxContext.SELinuxOptions.Level = level
+	}
+	if resolveFSGroup {
+		fsGroup, err := getPreallocatedFSGroup(namespace)
+		if err != nil {
+			return nil, namespace, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+		constraint.FSGroup.Ranges = fsGroup
+	}
+	if resolveSupplementalGroups {
+		supplementalGroups, err := getPreallocatedSupplementalGroups(namespace)
+		if err != nil {
+			return nil, namespace, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+		constraint.SupplementalGroups.Ranges = supplementalGroups
+	}
+
+	// Create the provider
+	provider, err := kscc.NewSimpleProvider(constraint)
+	if err != nil {
+		return nil, namespace, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, ns, err)
+	}
+	return provider, namespace, nil
 }
 
 // getPreallocatedUIDRange retrieves the annotated value from the namespace, splits it to make
