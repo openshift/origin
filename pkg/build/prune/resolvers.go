@@ -61,7 +61,7 @@ func (o *orphanBuildResolver) Resolve() ([]*buildapi.Build, error) {
 			continue
 		}
 		isOrphan := false
-		if build.Status.Config == nil {
+		if build.Spec.Config == nil {
 			isOrphan = true
 		} else {
 			_, exists, _ := o.dataSet.GetBuildConfig(build)

@@ -22023,6 +22023,10 @@
        "$ref": "v1.BuildTriggerCause"
       },
       "description": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers."
+     },
+     "config": {
+      "$ref": "v1.ObjectReference",
+      "description": "config is an ObjectReference to the BuildConfig this Build is based on."
      }
     }
    },
@@ -22067,7 +22071,7 @@
      },
      "config": {
       "$ref": "v1.ObjectReference",
-      "description": "config is an ObjectReference to the BuildConfig this Build is based on."
+      "description": "config is an ObjectReference to the BuildConfig this Build is based on. This field is deprecated in deference to Spec.Config."
      }
     }
    },

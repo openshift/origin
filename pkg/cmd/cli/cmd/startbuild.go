@@ -222,7 +222,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 		if err != nil {
 			return err
 		}
-		ref := build.Status.Config
+		ref := build.Spec.Config
 		if ref == nil {
 			return fmt.Errorf("the provided Build %q was not created from a BuildConfig and cannot have webhooks", name)
 		}

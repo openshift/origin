@@ -172,10 +172,6 @@ func autoConvert_v1_Build_To_api_Build(in *Build, out *build_api.Build, s conver
 	return nil
 }
 
-func Convert_v1_Build_To_api_Build(in *Build, out *build_api.Build, s conversion.Scope) error {
-	return autoConvert_v1_Build_To_api_Build(in, out, s)
-}
-
 func autoConvert_api_Build_To_v1_Build(in *build_api.Build, out *Build, s conversion.Scope) error {
 	if err := api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -190,10 +186,6 @@ func autoConvert_api_Build_To_v1_Build(in *build_api.Build, out *Build, s conver
 		return err
 	}
 	return nil
-}
-
-func Convert_api_Build_To_v1_Build(in *build_api.Build, out *Build, s conversion.Scope) error {
-	return autoConvert_api_Build_To_v1_Build(in, out, s)
 }
 
 func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *build_api.BuildConfig, s conversion.Scope) error {
@@ -807,6 +799,15 @@ func autoConvert_v1_BuildSpec_To_api_BuildSpec(in *BuildSpec, out *build_api.Bui
 	} else {
 		out.TriggeredBy = nil
 	}
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		*out = new(api.ObjectReference)
+		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Config = nil
+	}
 	return nil
 }
 
@@ -829,6 +830,15 @@ func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *build_api.BuildSpec, out *Bui
 	} else {
 		out.TriggeredBy = nil
 	}
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		*out = new(api_v1.ObjectReference)
+		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Config = nil
+	}
 	return nil
 }
 
@@ -845,15 +855,6 @@ func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *build_a
 	out.CompletionTimestamp = in.CompletionTimestamp
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
-	if in.Config != nil {
-		in, out := &in.Config, &out.Config
-		*out = new(api.ObjectReference)
-		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Config = nil
-	}
 	return nil
 }
 
@@ -870,15 +871,6 @@ func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *build_api.BuildStatus, ou
 	out.CompletionTimestamp = in.CompletionTimestamp
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
-	if in.Config != nil {
-		in, out := &in.Config, &out.Config
-		*out = new(api_v1.ObjectReference)
-		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Config = nil
-	}
 	return nil
 }
 

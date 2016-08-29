@@ -32,6 +32,9 @@ type BuildSpec struct {
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
 	TriggeredBy []BuildTriggerCause `json:"triggeredBy" protobuf:"bytes,2,rep,name=triggeredBy"`
+
+	// config is an ObjectReference to the BuildConfig this Build is based on.
+	Config *kapi.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
 }
 
 // CommonSpec encapsulates all the inputs necessary to represent a build.
@@ -156,6 +159,8 @@ type BuildStatus struct {
 	OutputDockerImageReference string `json:"outputDockerImageReference,omitempty" protobuf:"bytes,8,opt,name=outputDockerImageReference"`
 
 	// config is an ObjectReference to the BuildConfig this Build is based on.
+	// This field is deprecated in deference to Spec.Config.
+	// +genconversion=false
 	Config *kapi.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
 }
 

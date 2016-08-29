@@ -173,6 +173,7 @@ func (BuildSource) SwaggerDoc() map[string]string {
 var map_BuildSpec = map[string]string{
 	"":            "BuildSpec has the information to represent a build and also additional information about a build",
 	"triggeredBy": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers.",
+	"config":      "config is an ObjectReference to the BuildConfig this Build is based on.",
 }
 
 func (BuildSpec) SwaggerDoc() map[string]string {
@@ -189,7 +190,7 @@ var map_BuildStatus = map[string]string{
 	"completionTimestamp":        "completionTimestamp is a timestamp representing the server time when this Build was finished, whether that build failed or succeeded.  It reflects the time at which the Pod running the Build terminated. It is represented in RFC3339 form and is in UTC.",
 	"duration":                   "duration contains time.Duration object describing build time.",
 	"outputDockerImageReference": "outputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image.",
-	"config":                     "config is an ObjectReference to the BuildConfig this Build is based on.",
+	"config":                     "config is an ObjectReference to the BuildConfig this Build is based on. This field is deprecated in deference to Spec.Config.",
 }
 
 func (BuildStatus) SwaggerDoc() map[string]string {

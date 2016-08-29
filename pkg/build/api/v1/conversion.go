@@ -1,6 +1,8 @@
 package v1
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapi_v1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -32,6 +34,35 @@ func Convert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *newer.Build
 		newTriggers = append(newTriggers, trigger)
 	}
 	out.Spec.Triggers = newTriggers
+	return nil
+}
+
+func Convert_v1_Build_To_api_Build(in *Build, out *newer.Build, s conversion.Scope) error {
+	if err := autoConvert_v1_Build_To_api_Build(in, out, s); err != nil {
+		return err
+	}
+	obj := &kapi.ObjectReference{}
+	if in.Status.Config != nil && in.Spec.Config == nil {
+		if err := kapi_v1.Convert_v1_ObjectReference_To_api_ObjectReference(in.Status.Config, obj, s); err != nil {
+			return err
+		}
+		out.Spec.Config = obj
+	}
+	return nil
+}
+
+func Convert_api_Build_To_v1_Build(in *newer.Build, out *Build, s conversion.Scope) error {
+	if err := autoConvert_api_Build_To_v1_Build(in, out, s); err != nil {
+		return err
+	}
+	obj := &kapi_v1.ObjectReference{}
+	if in.Spec.Config != nil {
+		if err := kapi_v1.Convert_api_ObjectReference_To_v1_ObjectReference(in.Spec.Config, obj, s); err != nil {
+			return err
+		}
+		out.Spec.Config = obj
+		out.Status.Config = obj
+	}
 	return nil
 }
 
@@ -154,6 +185,8 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	scheme.AddConversionFuncs(
 		Convert_v1_BuildConfig_To_api_BuildConfig,
 		Convert_api_BuildConfig_To_v1_BuildConfig,
+		Convert_v1_Build_To_api_Build,
+		Convert_api_Build_To_v1_Build,
 		Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		Convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy,
 		Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,

@@ -70,6 +70,9 @@ type BuildSpec struct {
 	// TriggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
 	TriggeredBy []BuildTriggerCause
+
+	// Config is an ObjectReference to the BuildConfig this Build is based on.
+	Config *kapi.ObjectReference
 }
 
 // CommonSpec encapsulates all common fields between Build and BuildConfig.
@@ -195,9 +198,6 @@ type BuildStatus struct {
 	// Build.Spec.Output.To, and should include the registry address, so that
 	// it can be used to push and pull the image.
 	OutputDockerImageReference string
-
-	// Config is an ObjectReference to the BuildConfig this Build is based on.
-	Config *kapi.ObjectReference
 }
 
 // BuildPhase represents the status of a build at a point in time.

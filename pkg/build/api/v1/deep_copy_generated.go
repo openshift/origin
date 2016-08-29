@@ -427,6 +427,15 @@ func DeepCopy_v1_BuildSpec(in BuildSpec, out *BuildSpec, c *conversion.Cloner) e
 	} else {
 		out.TriggeredBy = nil
 	}
+	if in.Config != nil {
+		in, out := in.Config, &out.Config
+		*out = new(api_v1.ObjectReference)
+		if err := api_v1.DeepCopy_v1_ObjectReference(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Config = nil
+	}
 	return nil
 }
 
