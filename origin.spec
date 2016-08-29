@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 84b8c39be89454fd8addc43a66c945908fec8490
+%global commit 3652b1ea00300cdb4c04a855f1f86e78a4266666
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.26
+Version:        3.3.0.27
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -468,6 +468,24 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Aug 29 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.27
+- Merge remote-tracking branch upstream/master, bump origin-web-console 3ef22d6
+  (tdawson@redhat.com)
+- Scale helpers: always fetch scale object for DCs (sross@redhat.com)
+- Regenerate proxy iptables rules on EgressNetworkPolicy change
+  (danw@redhat.com)
+- Idle command: make sure to always print errors (sross@redhat.com)
+- Restores the service proxier when unidling is disabled (bbennett@redhat.com)
+- Automatically check and update docker-registry configuration
+  (agladkov@redhat.com)
+- Bump origin-web-console (b0cc495) (jforrest@redhat.com)
+- UPSTREAM: openshift/source-to-image: 576: increase default docker timeout
+  (gmontero@redhat.com)
+- fix `oc set env` key-value pair matching (jvallejo@redhat.com)
+- extended: debug failed tag update (mkargaki@redhat.com)
+- Unidling Controller: Deal with tombstones in cache (sross@redhat.com)
+- SCC API check: move (salvatore-dario.minonne@amadeus.com)
+
 * Fri Aug 26 2016 Scott Dodson <sdodson@redhat.com> 3.3.0.26
 - [RPMs] tito builds are always clean (sdodson@redhat.com)
 - UPSTREAM: 31463: Add a line break when no events in describe
