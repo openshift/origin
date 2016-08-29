@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
@@ -19,19 +18,9 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-type NetworkInfo struct {
-	ClusterNetwork   *net.IPNet
-	ServiceNetwork   *net.IPNet
-	HostSubnetLength uint32
-	PluginName       string
-}
-
 type Registry struct {
 	oClient *osclient.Client
 	kClient *kclient.Client
-
-	// Cache cluster network information
-	NetworkInfo *NetworkInfo
 }
 
 type ResourceName string
@@ -158,45 +147,13 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	return nil
 }
 
-func validateClusterNetwork(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
-	_, cn, err := net.ParseCIDR(network)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
-	}
-
-	_, sn, err := net.ParseCIDR(serviceNetwork)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
-	}
-
-	if hostSubnetLength <= 0 || hostSubnetLength > 32 {
-		return nil, fmt.Errorf("Invalid HostSubnetLength %d (not between 1 and 32)", hostSubnetLength)
-	}
-
-	return &NetworkInfo{
-		ClusterNetwork:   cn,
-		ServiceNetwork:   sn,
-		HostSubnetLength: hostSubnetLength,
-		PluginName:       pluginName,
-	}, nil
-}
-
 func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
-	// Check if we got cached network info
-	if registry.NetworkInfo != nil {
-		return registry.NetworkInfo, nil
-	}
-
 	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
 	if err != nil {
 		return nil, err
 	}
 
-	registry.NetworkInfo, err = validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
-	if err != nil {
-		return nil, err
-	}
-	return registry.NetworkInfo, nil
+	return validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
 }
 
 func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {
@@ -307,30 +264,6 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName, process Proce
 	for {
 		eventQueue.Pop(process)
 	}
-}
-
-func (registry *Registry) ValidateNodeIP(nodeIP string) error {
-	if nodeIP == "" || nodeIP == "127.0.0.1" {
-		return fmt.Errorf("Invalid node IP %q", nodeIP)
-	}
-
-	ni, err := registry.GetNetworkInfo()
-	if err != nil {
-		return fmt.Errorf("Failed to get network information: %v", err)
-	}
-
-	// Ensure each node's NodeIP is not contained by the cluster network,
-	// which could cause a routing loop. (rhbz#1295486)
-	ipaddr := net.ParseIP(nodeIP)
-	if ipaddr == nil {
-		return fmt.Errorf("Failed to parse node IP %s", nodeIP)
-	}
-
-	if ni.ClusterNetwork.Contains(ipaddr) {
-		return fmt.Errorf("Node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
-	}
-
-	return nil
 }
 
 func clusterNetworkToString(n *osapi.ClusterNetwork) string {

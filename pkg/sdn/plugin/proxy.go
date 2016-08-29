@@ -26,6 +26,7 @@ type proxyFirewallItem struct {
 
 type ovsProxyPlugin struct {
 	registry             *Registry
+	networkInfo          *NetworkInfo
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 
 	lock         sync.Mutex
@@ -48,6 +49,11 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
+	var err error
+	proxy.networkInfo, err = proxy.registry.GetNetworkInfo()
+	if err != nil {
+		return fmt.Errorf("could not get network info: %s", err)
+	}
 	proxy.baseEndpointsHandler = baseHandler
 
 	policies, err := proxy.registry.GetEgressNetworkPolicies()
@@ -126,12 +132,6 @@ func (proxy *ovsProxyPlugin) updateEndpoints() {
 		return
 	}
 
-	ni, err := proxy.registry.GetNetworkInfo()
-	if err != nil {
-		glog.Warningf("Error fetching network information: %v", err)
-		return
-	}
-
 	filteredEndpoints := make([]kapi.Endpoints, 0, len(proxy.allEndpoints))
 
 EndpointLoop:
@@ -140,7 +140,7 @@ EndpointLoop:
 		for _, ss := range ep.Subsets {
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
-				if !ni.ClusterNetwork.Contains(IP) && !ni.ServiceNetwork.Contains(IP) {
+				if !proxy.networkInfo.ClusterNetwork.Contains(IP) && !proxy.networkInfo.ServiceNetwork.Contains(IP) {
 					if proxy.firewallBlocksIP(ns, IP) {
 						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to firewalled destination (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop

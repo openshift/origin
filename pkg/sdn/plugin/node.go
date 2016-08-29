@@ -23,6 +23,7 @@ import (
 type OsdnNode struct {
 	multitenant        bool
 	registry           *Registry
+	networkInfo        *NetworkInfo
 	localIP            string
 	localSubnet        *osapi.HostSubnet
 	hostName           string
@@ -78,12 +79,13 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 }
 
 func (node *OsdnNode) Start() error {
-	ni, err := node.registry.GetNetworkInfo()
+	var err error
+	node.networkInfo, err = node.registry.GetNetworkInfo()
 	if err != nil {
 		return fmt.Errorf("Failed to get network information: %v", err)
 	}
 
-	nodeIPTables := newNodeIPTables(ni.ClusterNetwork.String(), node.iptablesSyncPeriod)
+	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}

@@ -28,7 +28,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	}
 	for _, sub := range subnets {
 		subrange = append(subrange, sub.Subnet)
-		if err = master.registry.ValidateNodeIP(sub.HostIP); err != nil {
+		if err = master.networkInfo.validateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
 			log.Errorf("Failed to validate HostSubnet %s: %v", hostSubnetToString(&sub), err)
 		} else {
@@ -47,7 +47,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 
 func (master *OsdnMaster) addNode(nodeName string, nodeIP string) error {
 	// Validate node IP before proceeding
-	if err := master.registry.ValidateNodeIP(nodeIP); err != nil {
+	if err := master.networkInfo.validateNodeIP(nodeIP); err != nil {
 		return err
 	}
 
@@ -196,12 +196,7 @@ func (node *OsdnNode) SubnetStartNode(mtu uint32) (bool, error) {
 		return false, err
 	}
 
-	// Assume we are working with IPv4
-	ni, err := node.registry.GetNetworkInfo()
-	if err != nil {
-		return false, err
-	}
-	networkChanged, err := node.SetupSDN(node.localSubnet.Subnet, ni.ClusterNetwork.String(), ni.ServiceNetwork.String(), mtu)
+	networkChanged, err := node.SetupSDN(node.localSubnet.Subnet, node.networkInfo.ClusterNetwork.String(), node.networkInfo.ServiceNetwork.String(), mtu)
 	if err != nil {
 		return false, err
 	}
@@ -231,7 +226,7 @@ func (node *OsdnNode) initSelfSubnet() error {
 		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", node.hostName, err)
 	}
 
-	if err = node.registry.ValidateNodeIP(subnet.HostIP); err != nil {
+	if err = node.networkInfo.validateNodeIP(subnet.HostIP); err != nil {
 		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
 	}
 
@@ -263,7 +258,7 @@ func (node *OsdnNode) watchSubnets() {
 					}
 				}
 			}
-			if err := node.registry.ValidateNodeIP(hs.HostIP); err != nil {
+			if err := node.networkInfo.validateNodeIP(hs.HostIP); err != nil {
 				log.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 				break
 			}

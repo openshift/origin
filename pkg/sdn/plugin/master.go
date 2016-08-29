@@ -16,6 +16,7 @@ import (
 
 type OsdnMaster struct {
 	registry        *Registry
+	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
 }
@@ -32,26 +33,27 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	// Validate command-line/config parameters
-	ni, err := validateClusterNetwork(networkConfig.ClusterNetworkCIDR, networkConfig.HostSubnetLength, networkConfig.ServiceNetworkCIDR, networkConfig.NetworkPluginName)
+	var err error
+	master.networkInfo, err = validateClusterNetwork(networkConfig.ClusterNetworkCIDR, networkConfig.HostSubnetLength, networkConfig.ServiceNetworkCIDR, networkConfig.NetworkPluginName)
 	if err != nil {
 		return err
 	}
 
-	changed, net_err := master.isClusterNetworkChanged(ni)
+	changed, net_err := master.isClusterNetworkChanged()
 	if changed {
-		if err = master.validateNetworkConfig(ni); err != nil {
+		if err = master.validateNetworkConfig(); err != nil {
 			return err
 		}
-		if err = master.registry.UpdateClusterNetwork(ni); err != nil {
+		if err = master.registry.UpdateClusterNetwork(master.networkInfo); err != nil {
 			return err
 		}
 	} else if net_err != nil {
-		if err = master.registry.CreateClusterNetwork(ni); err != nil {
+		if err = master.registry.CreateClusterNetwork(master.networkInfo); err != nil {
 			return err
 		}
 	}
 
-	if err = master.SubnetStartMaster(ni.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
+	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
 		return err
 	}
 
@@ -66,12 +68,13 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	return nil
 }
 
-func (master *OsdnMaster) validateNetworkConfig(ni *NetworkInfo) error {
+func (master *OsdnMaster) validateNetworkConfig() error {
 	hostIPNets, err := netutils.GetHostIPNetworks([]string{TUN, LBR})
 	if err != nil {
 		return err
 	}
 
+	ni := master.networkInfo
 	errList := []error{}
 
 	// Ensure cluster and service network don't overlap with host networks
@@ -120,11 +123,12 @@ func (master *OsdnMaster) validateNetworkConfig(ni *NetworkInfo) error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (master *OsdnMaster) isClusterNetworkChanged(curNetwork *NetworkInfo) (bool, error) {
+func (master *OsdnMaster) isClusterNetworkChanged() (bool, error) {
 	oldNetwork, err := master.registry.GetNetworkInfo()
 	if err != nil {
 		return false, err
 	}
+	curNetwork := master.networkInfo
 
 	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
 		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
