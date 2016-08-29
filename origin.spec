@@ -51,7 +51,14 @@ Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
-ExclusiveArch:  x86_64
+
+# If go_arches not defined fall through to implicit golang archs
+%if 0%{?go_arches:1}
+ExclusiveArch:  %{go_arches}
+%else
+ExclusiveArch:  x86_64 aarch64 ppc64le
+%endif
+
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  bsdtar
@@ -181,16 +188,17 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %install
 
+PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
 for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
-  install -p -m 755 _output/local/bin/linux/amd64/${bin} %{buildroot}%{_bindir}/${bin}
+  install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 _output/local/bin/linux/amd64/extended.test %{buildroot}%{_libexecdir}/%{name}/
+install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -201,7 +209,7 @@ install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir
 %endif
 
 # Install pod
-install -p -m 755 _output/local/bin/linux/amd64/pod %{buildroot}%{_bindir}/
+install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 
