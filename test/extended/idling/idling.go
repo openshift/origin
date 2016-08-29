@@ -411,7 +411,8 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 		})
 
-		g.It("should handle many UDP senders (by continuing to drop all packets on the floor)", func() {
+		// TODO: Work out how to make this test work correctly when run on AWS
+		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor)", func() {
 			g.By("Idling the service")
 			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
@@ -432,6 +433,7 @@ var _ = g.Describe("idling and unidling", func() {
 			for i := 0; i < connectionsToStart; i++ {
 				connWG.Add(1)
 				go func(ind int) {
+					defer g.GinkgoRecover()
 					defer connWG.Done()
 					err = tryEchoUDP(svc)
 					errors[ind] = err
