@@ -101,6 +101,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	server.APIGroupPrefix = KubeAPIGroupPrefix
 	server.SecurePort = port
 	server.MasterCount = options.KubernetesMasterConfig.MasterCount
+	server.StorageConfig.DeserializationCacheSize = 1000
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
