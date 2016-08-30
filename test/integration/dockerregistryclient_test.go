@@ -39,9 +39,11 @@ var (
 
 	// imageNotFoundErrorPatterns will match following error examples:
 	//   the image "..." in repository "..." was not found and may have been deleted
+	//   tag "..." has not been set on repository "..."
 	// use only with non-internal registry
 	imageNotFoundErrorPatterns = []string{
 		"was not found and may have been deleted",
+		"has not been set on repository",
 	}
 )
 
