@@ -634,7 +634,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			// the deployments we continue to keep should be the latest ones
 			for _, deployment := range oldDeployments {
-				o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">", iterations-revisionHistoryLimit))
+				o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
 			}
 		})
 	})
