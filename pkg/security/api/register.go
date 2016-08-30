@@ -7,6 +7,9 @@ import (
 
 const GroupName = ""
 
+// TODO no one likes the name security because it so broad as to be meaningless.
+// const FutureGroupName = "security.openshift.io"
+
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
