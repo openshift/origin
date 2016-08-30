@@ -230,6 +230,7 @@ openshift-cli-logs.1
 openshift-cli-new-app.1
 openshift-cli-new-build.1
 openshift-cli-new-project.1
+openshift-cli-observe.1
 openshift-cli-options.1
 openshift-cli-patch.1
 openshift-cli-policy-add-role-to-group.1
