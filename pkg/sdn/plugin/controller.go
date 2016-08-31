@@ -14,10 +14,8 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/sysctl"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (
@@ -300,7 +298,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	// eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	otx.AddFlow("table=8, priority=0, actions=drop")
 
-	// Table 9: egress network policy dispatch; edited by updateEgressNetworkPolicy()
+	// Table 9: egress network policy dispatch; edited by updateEgressNetworkPolicyRules()
 	// eg, "table=9, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
 	otx.AddFlow("table=9, priority=0, actions=output:2")
 
@@ -364,88 +362,6 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	return true, nil
 }
 
-func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
-	policies, err := plugin.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
-	}
-
-	for _, policy := range policies.Items {
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
-		if err != nil {
-			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
-			continue
-		}
-		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], &policy)
-	}
-
-	for vnid := range plugin.egressPolicies {
-		err := plugin.updateEgressNetworkPolicy(vnid)
-		if err != nil {
-			return err
-		}
-	}
-
-	go utilwait.Forever(plugin.watchEgressNetworkPolicies, 0)
-	return nil
-}
-
-func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
-		policy := delta.Object.(*osapi.EgressNetworkPolicy)
-
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
-		if err != nil {
-			return fmt.Errorf("could not find netid for namespace %q: %v", policy.Namespace, err)
-		}
-
-		policies := plugin.egressPolicies[vnid]
-		for i, oldPolicy := range policies {
-			if oldPolicy.UID == policy.UID {
-				policies = append(policies[:i], policies[i+1:]...)
-				break
-			}
-		}
-		if delta.Type != cache.Deleted && len(policy.Spec.Egress) > 0 {
-			policies = append(policies, policy)
-		}
-		plugin.egressPolicies[vnid] = policies
-
-		err = plugin.updateEgressNetworkPolicy(vnid)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) error {
-	var policy *osapi.EgressNetworkPolicy
-
-	policies := plugin.egressPolicies[oldVnid]
-	for i, oldPolicy := range policies {
-		if oldPolicy.Namespace == namespace {
-			policy = oldPolicy
-			plugin.egressPolicies[oldVnid] = append(policies[:i], policies[i+1:]...)
-			err := plugin.updateEgressNetworkPolicy(oldVnid)
-			if err != nil {
-				return err
-			}
-			break
-		}
-	}
-
-	if policy != nil {
-		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], policy)
-		err := plugin.updateEgressNetworkPolicy(newVnid)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func policyNames(policies []*osapi.EgressNetworkPolicy) string {
 	names := make([]string, len(policies))
 	for i, policy := range policies {
@@ -454,7 +370,7 @@ func policyNames(policies []*osapi.EgressNetworkPolicy) string {
 	return strings.Join(names, ", ")
 }
 
-func (plugin *OsdnNode) updateEgressNetworkPolicy(vnid uint32) error {
+func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
 	otx := plugin.ovs.NewTransaction()
 
 	policies := plugin.egressPolicies[vnid]
