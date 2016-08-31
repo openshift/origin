@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3652b1ea00300cdb4c04a855f1f86e78a4266666
+%global commit fc47d828cdde3ebcfbe0a80db55a79eca32fffe2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,12 +46,19 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.27
+Version:        3.3.0.28
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
-ExclusiveArch:  x86_64
+
+# If go_arches not defined fall through to implicit golang archs
+%if 0%{?go_arches:1}
+ExclusiveArch:  %{go_arches}
+%else
+ExclusiveArch:  x86_64 aarch64 ppc64le
+%endif
+
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  bsdtar
@@ -181,16 +188,17 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %install
 
+PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
 for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
-  install -p -m 755 _output/local/bin/linux/amd64/${bin} %{buildroot}%{_bindir}/${bin}
+  install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
 install -d %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 _output/local/bin/linux/amd64/extended.test %{buildroot}%{_libexecdir}/%{name}/
+install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
@@ -201,7 +209,7 @@ install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir
 %endif
 
 # Install pod
-install -p -m 755 _output/local/bin/linux/amd64/pod %{buildroot}%{_bindir}/
+install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 
@@ -468,6 +476,19 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Aug 31 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.28
+- remove unnecessary service account edit step (bparees@redhat.com)
+- Bump origin-web-console (39ffada) (jforrest@redhat.com)
+- add test case for function GetDockerAuth (li.guangxu@zte.com.cn)
+- add permissions for jenkins (deads@redhat.com)
+- Make build spec file platform independent (mkumatag@in.ibm.com)
+- Switch deployment utils to loop by index (zhao.sijun@zte.com.cn)
+- Retry on registry client connect on tag unset (miminar@redhat.com)
+- be tolerant of quota reconciler resetting to old values (deads@redhat.com)
+- Return the exit code of the hack/env container (ccoleman@redhat.com)
+- update the README outputs of the sample (li.guangxu@zte.com.cn)
+- fix protobuff generation for the sdn (ipalade@redhat.com)
+
 * Mon Aug 29 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.27
 - Merge remote-tracking branch upstream/master, bump origin-web-console 3ef22d6
   (tdawson@redhat.com)
