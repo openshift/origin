@@ -28,7 +28,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 	oscc "github.com/openshift/origin/pkg/security/scc"
@@ -87,7 +86,7 @@ var defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
 // launch a router, including general parameters, type of router, and
 // type-specific parameters.
 type RouterConfig struct {
-	Action configcmd.BulkAction
+	Action cmdutil.BulkAction
 
 	// Name is the router name, set as an argument
 	Name string
@@ -545,7 +544,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.OutOrStderr()
-	cfg.Action.Bulk.Op = configcmd.Create
+	cfg.Action.Bulk.Op = cmdutil.Create
 
 	var clusterIP string
 

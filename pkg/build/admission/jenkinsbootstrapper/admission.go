@@ -25,7 +25,7 @@ import (
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/config/cmd"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 func init() {
@@ -97,7 +97,7 @@ func (a *jenkingsBootstrapper) Admit(attributes admission.Attributes) error {
 
 	var bulkErr error
 
-	bulk := &cmd.Bulk{
+	bulk := &cmdutil.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:  registered.RESTMapper(),
 			ObjectTyper: kapi.Scheme,
@@ -108,7 +108,7 @@ func (a *jenkingsBootstrapper) Admit(attributes admission.Attributes) error {
 				return kclient.New(&impersonatingConfig)
 			}),
 		},
-		Op: cmd.Create,
+		Op: cmdutil.Create,
 		After: func(info *resource.Info, err error) bool {
 			if kapierrors.IsAlreadyExists(err) {
 				return false

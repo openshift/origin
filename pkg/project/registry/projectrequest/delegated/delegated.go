@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -138,11 +138,11 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	// Stop on the first error, since we have to delete the whole project if any item in the template fails
-	stopOnErr := configcmd.AfterFunc(func(_ *resource.Info, err error) bool {
+	stopOnErr := cmdutil.AfterFunc(func(_ *resource.Info, err error) bool {
 		return err != nil
 	})
 
-	bulk := configcmd.Bulk{
+	bulk := cmdutil.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:  client.DefaultMultiRESTMapper(),
 			ObjectTyper: kapi.Scheme,
@@ -154,7 +154,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			}),
 		},
 		After: stopOnErr,
-		Op:    configcmd.Create,
+		Op:    cmdutil.Create,
 	}
 	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, projectName)); err != nil {
 		utilruntime.HandleError(fmt.Errorf("error creating items in requested project %q: %v", createdProject.Name, err))

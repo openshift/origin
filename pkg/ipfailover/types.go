@@ -1,8 +1,8 @@
 package ipfailover
 
 import (
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 
 // IPFailoverConfigCmdOptions are options supported by the IP Failover admin command.
 type IPFailoverConfigCmdOptions struct {
-	Action configcmd.BulkAction
+	Action cmdutil.BulkAction
 
 	Type           string
 	ImageTemplate  variable.ImageTemplate

@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	appcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/dockercompose"
@@ -49,7 +48,7 @@ Experimental: This command is under active development and may change without no
 )
 
 type DockerComposeOptions struct {
-	Action configcmd.BulkAction
+	Action cmdutil.BulkAction
 
 	In        io.Reader
 	Filenames []string
@@ -67,7 +66,7 @@ type DockerComposeOptions struct {
 // NewCmdDockerCompose imports a docker-compose file as a template.
 func NewCmdDockerCompose(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &DockerComposeOptions{
-		Action: configcmd.BulkAction{
+		Action: cmdutil.BulkAction{
 			Out:    out,
 			ErrOut: errout,
 		},
@@ -116,7 +115,7 @@ func (o *DockerComposeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.OutputVersions = append(o.OutputVersions, registered.EnabledVersions()...)
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
+	o.Action.Bulk.Op = cmdutil.Create
 	mapper, _ := f.Object(false)
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Action.Out)
 

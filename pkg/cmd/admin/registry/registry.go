@@ -27,7 +27,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 )
@@ -91,7 +90,7 @@ type RegistryOptions struct {
 
 // RegistryConfig contains configuration for the registry that will be created.
 type RegistryConfig struct {
-	Action configcmd.BulkAction
+	Action cmdutil.BulkAction
 
 	Name           string
 	Type           string
@@ -246,7 +245,7 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, cmd.OutOrStderr()
-	opts.Config.Action.Bulk.Op = configcmd.Create
+	opts.Config.Action.Bulk.Op = cmdutil.Create
 	opts.out = out
 	opts.cmd = cmd
 	opts.factory = f
