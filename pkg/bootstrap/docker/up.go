@@ -530,7 +530,8 @@ func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
 			return nil
 		}
 	}
-	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
+	fmt.Fprintf(out, "WARNING: A port needed by OpenShift is not available: %s\n", err)
+	return nil
 }
 
 // DetermineServerIP gets an appropriate IP address to communicate with the OpenShift server
