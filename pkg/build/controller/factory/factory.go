@@ -394,15 +394,6 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 	return pod, err
 }
 
-// panicIfStopped panics with the provided object if the channel is closed
-func panicIfStopped(ch <-chan struct{}, message interface{}) {
-	select {
-	case <-ch:
-		panic(message)
-	default:
-	}
-}
-
 // podLW is a ListWatcher implementation for Pods.
 type podLW struct {
 	client kclient.Interface
