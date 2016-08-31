@@ -131,6 +131,24 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 				}
 			}
 			if !added {
+				// Clean out any old form of this route
+				next := []*routeapi.Route{}
+				for i := range old {
+					if routeNameKey(old[i]) != routeNameKey(route) {
+						next = append(next, old[i])
+					}
+				}
+				old = next
+
+				// We need to reset the oldest in case we removed it, but if it was the only
+				// item, we'll just use ourselves since we'll become the oldest, and for
+				// the append below, it doesn't matter
+				if len(next) > 0 {
+					oldest = old[0]
+				} else {
+					oldest = route
+				}
+
 				if routeapi.RouteLessThan(route, oldest) {
 					p.hostToRoute[host] = append([]*routeapi.Route{route}, old...)
 				} else {
@@ -181,7 +199,12 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 						next = append(next, old[i])
 					}
 				}
-				p.hostToRoute[host] = next
+
+				if len(next) > 0 {
+					p.hostToRoute[host] = next
+				} else {
+					delete(p.hostToRoute, host)
+				}
 			}
 		}
 		delete(p.routeToHost, routeName)
