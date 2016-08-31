@@ -189,6 +189,18 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 	return true, nil
 }
 
+func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
+	if len(rcs) == 0 {
+		return false, nil
+	}
+	rc := rcs[len(rcs)-1]
+	version := deployutil.DeploymentVersionFor(&rc)
+	if version != dc.Status.LatestVersion {
+		return false, nil
+	}
+	return deployutil.IsFailedDeployment(&rc), nil
+}
+
 func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
