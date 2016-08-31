@@ -34,6 +34,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
 )
@@ -803,12 +804,12 @@ func WaitForResourceQuotaSync(
 
 // CheckDeploymentCompletedFn returns true if the deployment completed
 var CheckDeploymentCompletedFn = func(d *kapi.ReplicationController) bool {
-	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusComplete)
+	return deployutil.IsCompleteDeployment(d)
 }
 
 // CheckDeploymentFailedFn returns true if the deployment failed
 var CheckDeploymentFailedFn = func(d *kapi.ReplicationController) bool {
-	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusFailed)
+	return deployutil.IsFailedDeployment(d)
 }
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.

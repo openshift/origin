@@ -278,7 +278,7 @@ func (o *RollbackOptions) Run() error {
 			disabled = append(disabled, trigger.ImageChangeParams.From.Name)
 		}
 		if len(disabled) > 0 {
-			reenable := fmt.Sprintf("oc deploy %s --enable-triggers -n %s", rolledback.Name, o.Namespace)
+			reenable := fmt.Sprintf("oc set triggers dc/%s --auto", rolledback.Name)
 			fmt.Fprintf(o.out, "Warning: the following images triggers were disabled: %s\n  You can re-enable them with: %s\n", strings.Join(disabled, ","), reenable)
 		}
 	}
@@ -349,7 +349,7 @@ func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfi
 				break
 			}
 		} else {
-			if version < config.Status.LatestVersion && deployutil.DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
+			if version < config.Status.LatestVersion && deployutil.IsCompleteDeployment(&deployment) {
 				target = &deployment
 				break
 			}

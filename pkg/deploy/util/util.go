@@ -46,7 +46,7 @@ func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.Replicatio
 	for i := range input {
 		deployment := &input[i]
 		deploymentVersion := DeploymentVersionFor(deployment)
-		if DeploymentStatusFor(deployment) == deployapi.DeploymentStatusComplete && deploymentVersion > lastCompleteDeploymentVersion {
+		if IsCompleteDeployment(deployment) && deploymentVersion > lastCompleteDeploymentVersion {
 			activeDeployment = deployment
 			lastCompleteDeploymentVersion = deploymentVersion
 		}
@@ -341,8 +341,13 @@ func IsOwnedByConfig(deployment *api.ReplicationController) bool {
 // IsTerminatedDeployment returns true if the passed deployment has terminated (either
 // complete or failed).
 func IsTerminatedDeployment(deployment *api.ReplicationController) bool {
+	return IsCompleteDeployment(deployment) || IsFailedDeployment(deployment)
+}
+
+// IsCompleteDeployment returns true if the passed deployment failed.
+func IsCompleteDeployment(deployment *api.ReplicationController) bool {
 	current := DeploymentStatusFor(deployment)
-	return current == deployapi.DeploymentStatusComplete || current == deployapi.DeploymentStatusFailed
+	return current == deployapi.DeploymentStatusComplete
 }
 
 // IsFailedDeployment returns true if the passed deployment failed.
