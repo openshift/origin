@@ -41,19 +41,14 @@ func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.
 // no such deployment. The active deployment is not always the same as the
 // latest deployment.
 func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.ReplicationController) *api.ReplicationController {
-	// we need to create our own copy of the input slice so that our sort here
-	// doesn't change the caller's slice
-	var deployments []api.ReplicationController
-	for _, deployment := range input {
-		deployments = append(deployments, deployment)
-	}
-
-	sort.Sort(ByLatestVersionDesc(deployments))
 	var activeDeployment *api.ReplicationController
-	for _, deployment := range deployments {
-		if DeploymentStatusFor(&deployment) == deployapi.DeploymentStatusComplete {
-			activeDeployment = &deployment
-			break
+	var lastCompleteDeploymentVersion int64 = 0
+	for i := range input {
+		deployment := &input[i]
+		deploymentVersion := DeploymentVersionFor(deployment)
+		if DeploymentStatusFor(deployment) == deployapi.DeploymentStatusComplete && deploymentVersion > lastCompleteDeploymentVersion {
+			activeDeployment = deployment
+			lastCompleteDeploymentVersion = deploymentVersion
 		}
 	}
 	return activeDeployment
@@ -417,17 +412,19 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 		// if cleanup policy is set but no successful deployments have happened, there will be
 		// no active deployment. We can consider all of the deployments in this case except for
 		// the latest one
-		for _, deployment := range deployments {
-			if DeploymentVersionFor(&deployment) != configuration.Status.LatestVersion {
-				relevantDeployments = append(relevantDeployments, deployment)
+		for i := range deployments {
+			deployment := &deployments[i]
+			if DeploymentVersionFor(deployment) != configuration.Status.LatestVersion {
+				relevantDeployments = append(relevantDeployments, *deployment)
 			}
 		}
 	} else {
 		// if there is an active deployment, we need to filter out any deployments that we don't
 		// care about, namely the active deployment and any newer deployments
-		for _, deployment := range deployments {
-			if &deployment != activeDeployment || DeploymentVersionFor(&deployment) < DeploymentVersionFor(activeDeployment) {
-				relevantDeployments = append(relevantDeployments, deployment)
+		for i := range deployments {
+			deployment := &deployments[i]
+			if deployment != activeDeployment && DeploymentVersionFor(deployment) < DeploymentVersionFor(activeDeployment) {
+				relevantDeployments = append(relevantDeployments, *deployment)
 			}
 		}
 	}

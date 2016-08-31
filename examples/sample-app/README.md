@@ -237,13 +237,19 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ oc new-app application-template-stibuild.json
         --> Deploying template ruby-helloworld-sample for "application-template-stibuild.json"
-            With parameters:
-              ADMIN_USERNAME=adminO3P # generated
-              ADMIN_PASSWORD=7fmIanc7 # generated
-              MYSQL_USER=userXFF # generated
-              MYSQL_PASSWORD=jmsyVsGo # generated
-              MYSQL_DATABASE=root
-        --> Creating resources with label app=ruby-sample-build ...
+
+             ruby-helloworld-sample
+             ---------
+             This example shows how to create a simple ruby application in openshift origin v3
+
+             * With parameters:
+                * ADMIN_USERNAME=adminDWD # generated
+                * ADMIN_PASSWORD=1jL5uGrT # generated
+                * MYSQL_USER=userPJJ # generated
+                * MYSQL_PASSWORD=cJHNK3se # generated
+                * MYSQL_DATABASE=root
+
+        --> Creating resources with label app=ruby-helloworld-sample ...
             service "frontend" created
             route "route-edge" created
             imagestream "origin-ruby-sample" created
@@ -253,9 +259,8 @@ This section covers how to perform all the steps of building, deploying, and upd
             service "database" created
             deploymentconfig "database" created
         --> Success
-            Build scheduled for "ruby-sample-build", use 'oc logs' to track its progress.
-            Run 'oc status' to view your app.
-
+            Build scheduled, use 'oc logs -f bc/ruby-sample-build' to track its progress.
+            Run 'oc status' to view your app. 
 
     Note that no build has actually occurred yet, so at this time there
     is no image to deploy and no application to visit. But since we've defined
