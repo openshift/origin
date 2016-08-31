@@ -625,7 +625,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
 
 			// we should not have more deployments than acceptable
-			o.Expect(len(oldDeployments)).To(o.BeNumerically("<=", revisionHistoryLimit))
+			o.Expect(len(oldDeployments)).To(o.BeNumerically("==", revisionHistoryLimit))
 
 			// the deployments we continue to keep should be the latest ones
 			for _, deployment := range oldDeployments {
