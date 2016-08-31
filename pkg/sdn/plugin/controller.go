@@ -46,6 +46,33 @@ func getPluginVersion(multitenant bool) []string {
 	return []string{"00", version}
 }
 
+func (plugin *OsdnNode) getLocalSubnet() (string, error) {
+	// timeout: 30 secs
+	retries := 60
+	retryInterval := 500 * time.Millisecond
+
+	var err error
+	var subnet *osapi.HostSubnet
+	// Try every retryInterval and bail-out if it exceeds max retries
+	for i := 0; i < retries; i++ {
+		subnet, err = plugin.osClient.HostSubnets().Get(plugin.hostName)
+		if err == nil {
+			break
+		}
+		glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", plugin.hostName)
+		time.Sleep(retryInterval)
+	}
+	if err != nil {
+		return "", fmt.Errorf("Failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
+	}
+
+	if err = plugin.networkInfo.validateNodeIP(subnet.HostIP); err != nil {
+		return "", fmt.Errorf("Failed to validate own HostSubnet: %v", err)
+	}
+
+	return subnet.Subnet, nil
+}
+
 func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR string) bool {
 	var found bool
 
@@ -144,7 +171,14 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint32) (bool, error) {
+func (plugin *OsdnNode) SetupSDN() (bool, error) {
+	localSubnetCIDR, err := plugin.getLocalSubnet()
+	if err != nil {
+		return false, err
+	}
+	clusterNetworkCIDR := plugin.networkInfo.ClusterNetwork.String()
+	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
+
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -158,7 +192,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
-	mtuStr := fmt.Sprint(mtu)
+	mtuStr := fmt.Sprint(plugin.mtu)
 
 	exec := kexec.New()
 	itx := ipcmd.NewTransaction(exec, LBR)
@@ -266,7 +300,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	otx.AddFlow("table=2, priority=0, actions=drop")
 
 	// Table 3: from OpenShift container; service vs non-service
-	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", servicesNetworkCIDR)
+	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", serviceNetworkCIDR)
 	otx.AddFlow("table=3, priority=0, actions=goto_table:5")
 
 	// Table 4: from OpenShift container; service dispatch; filled in by AddServiceRules()
@@ -313,7 +347,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	itx.SetLink("mtu", mtuStr)
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
-	itx.AddRoute(servicesNetworkCIDR)
+	itx.AddRoute(serviceNetworkCIDR)
 	err = itx.EndTransaction()
 	if err != nil {
 		return false, err
