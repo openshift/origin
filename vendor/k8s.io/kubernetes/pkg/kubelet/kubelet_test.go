@@ -3975,6 +3975,113 @@ func TestTryRegisterWithApiServer(t *testing.T) {
 			expectedResult:  false,
 			expectedActions: 3,
 		},
+		// Cases for OpenShift carry commit
+		{
+			name:        "external ID changed but is tolerated",
+			newNode:     newNode(false, "b"),
+			createError: alreadyExists,
+			existingNode: func() *api.Node {
+				node := newNode(false, "a")
+				node.Status = api.NodeStatus{
+					Addresses: []api.NodeAddress{
+						{
+							Address: "a",
+						},
+					},
+				}
+
+				return node
+			}(),
+			expectedResult:  true,
+			expectedActions: 2,
+		},
+		{
+			name:        "external ID changed but is not tolerated because external ID does not match any node address",
+			newNode:     newNode(false, "b"),
+			createError: alreadyExists,
+			existingNode: func() *api.Node {
+				node := newNode(false, "a")
+				node.Status = api.NodeStatus{
+					Addresses: []api.NodeAddress{
+						{
+							Address: "b",
+						},
+						{
+							Address: "c",
+						},
+					},
+				}
+
+				return node
+			}(),
+			expectedResult:  false,
+			expectedActions: 3,
+		},
+		{
+			name:        "external ID changed but is not tolerated because external ID does not match any node address - delete fails",
+			newNode:     newNode(false, "b"),
+			createError: alreadyExists,
+			existingNode: func() *api.Node {
+				node := newNode(false, "a")
+				node.Status = api.NodeStatus{
+					Addresses: []api.NodeAddress{
+						{
+							Address: "b",
+						},
+						{
+							Address: "c",
+						},
+					},
+				}
+
+				return node
+			}(),
+			deleteError:     conflict,
+			expectedResult:  false,
+			expectedActions: 3,
+		},
+		{
+			name:        "external ID changed but is tolerated - CMAD enabled",
+			newNode:     newNode(true, "b"),
+			createError: alreadyExists,
+			existingNode: func() *api.Node {
+				node := newNode(false, "a")
+				node.Status = api.NodeStatus{
+					Addresses: []api.NodeAddress{
+						{
+							Address: "a",
+						},
+					},
+				}
+
+				return node
+			}(),
+			expectedResult:  true,
+			expectedActions: 3,
+			testSavedNode:   true,
+			savedNodeIndex:  2,
+			savedNodeCMAD:   true,
+		},
+		{
+			name:        "external ID changed but is tolerated - CMAD enabled - update failure",
+			newNode:     newNode(true, "b"),
+			createError: alreadyExists,
+			existingNode: func() *api.Node {
+				node := newNode(false, "a")
+				node.Status = api.NodeStatus{
+					Addresses: []api.NodeAddress{
+						{
+							Address: "a",
+						},
+					},
+				}
+
+				return node
+			}(),
+			updateError:     conflict,
+			expectedResult:  false,
+			expectedActions: 3,
+		},
 	}
 
 	for _, tc := range cases {
