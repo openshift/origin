@@ -442,6 +442,8 @@ func validateAndGetNetworkPluginName(originClient *osclient.Client, pluginName s
 		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
 		if err == nil {
 			return clusterNetwork.PluginName, nil
+		} else if !kerrs.IsNotFound(err) {
+			return "", fmt.Errorf("cannot fetch %q cluster network: %v", sdnapi.ClusterNetworkDefault, err)
 		}
 	}
 
