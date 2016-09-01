@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -391,7 +391,7 @@ func (testcase *testcase) GetAttachmentDiskPath(instanceID string, diskName stri
 	return expected.retPath, expected.ret
 }
 
-func (testcase *testcase) CreateVolume(name string, size int, tags *map[string]string) (volumeName string, err error) {
+func (testcase *testcase) CreateVolume(name string, size int, vtype, availability string, tags *map[string]string) (volumeName string, err error) {
 	return "", errors.New("Not implemented")
 }
 

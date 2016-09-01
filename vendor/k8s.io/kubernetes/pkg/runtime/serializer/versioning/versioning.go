@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -137,21 +137,8 @@ func (c *codec) Decode(data []byte, defaultGVK *unversioned.GroupVersionKind, in
 // Encode ensures the provided object is output in the appropriate group and version, invoking
 // conversion if necessary. Unversioned objects (according to the ObjectTyper) are output as is.
 func (c *codec) Encode(obj runtime.Object, w io.Writer) error {
-	switch t := obj.(type) {
-	case *runtime.Unknown:
-		if gv, ok := runtime.PreferredGroupVersion(c.encodeVersion); ok {
-			t.APIVersion = gv.String()
-		}
-		return c.encoder.Encode(obj, w)
-	case *runtime.Unstructured:
-		if gv, ok := runtime.PreferredGroupVersion(c.encodeVersion); ok {
-			t.SetAPIVersion(gv.String())
-		}
-		return c.encoder.Encode(obj, w)
-	case *runtime.UnstructuredList:
-		if gv, ok := runtime.PreferredGroupVersion(c.encodeVersion); ok {
-			t.SetAPIVersion(gv.String())
-		}
+	switch obj.(type) {
+	case *runtime.Unknown, *runtime.Unstructured, *runtime.UnstructuredList:
 		return c.encoder.Encode(obj, w)
 	}
 
@@ -195,6 +182,7 @@ func (c *codec) Encode(obj runtime.Object, w io.Writer) error {
 	return err
 }
 
+// DirectEncoder serializes an object and ensures the GVK is set.
 type DirectEncoder struct {
 	runtime.Encoder
 	runtime.ObjectTyper

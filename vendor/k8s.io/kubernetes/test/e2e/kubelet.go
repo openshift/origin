@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -184,7 +184,7 @@ var _ = framework.KubeDescribe("kubelet", func() {
 			It(name, func() {
 				totalPods := itArg.podsPerNode * numNodes
 				By(fmt.Sprintf("Creating a RC of %d pods and wait until all pods of this RC are running", totalPods))
-				rcName := fmt.Sprintf("cleanup%d-%s", totalPods, string(util.NewUUID()))
+				rcName := fmt.Sprintf("cleanup%d-%s", totalPods, string(uuid.NewUUID()))
 
 				Expect(framework.RunRC(framework.RCConfig{
 					Client:       f.Client,
@@ -205,7 +205,7 @@ var _ = framework.KubeDescribe("kubelet", func() {
 				}
 
 				By("Deleting the RC")
-				framework.DeleteRC(f.Client, f.Namespace.Name, rcName)
+				framework.DeleteRCAndPods(f.Client, f.Namespace.Name, rcName)
 				// Check that the pods really are gone by querying /runningpods on the
 				// node. The /runningpods handler checks the container runtime (or its
 				// cache) and  returns a list of running pods. Some possible causes of

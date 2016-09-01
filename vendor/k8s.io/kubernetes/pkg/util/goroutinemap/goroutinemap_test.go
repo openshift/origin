@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -484,6 +484,7 @@ func retryWithExponentialBackOff(initialDuration time.Duration, fn wait.Conditio
 
 func waitChannelWithTimeout(ch <-chan interface{}, timeout time.Duration) error {
 	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 
 	select {
 	case <-ch:

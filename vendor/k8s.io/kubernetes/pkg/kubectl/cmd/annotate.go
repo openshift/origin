@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"regexp"
-	"strings"
 
 	"github.com/golang/glog"
+	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -58,51 +57,49 @@ type AnnotateOptions struct {
 	recursive bool
 }
 
-const (
-	annotate_resources = `
-  pod (po), service (svc), replicationcontroller (rc),
-  node (no), event (ev), componentstatuse (cs),
-  limitrange (limits), persistentvolume (pv), persistentvolumeclaim (pvc),
-  horizontalpodautoscaler (hpa), resourcequota (quota), secret
-`
+var (
+	annotate_long = dedent.Dedent(`
+		Update the annotations on one or more resources.
 
-	annotate_long = `Update the annotations on one or more resources.
+		An annotation is a key/value pair that can hold larger (compared to a label), and possibly not human-readable, data.
+		It is intended to store non-identifying auxiliary data, especially data manipulated by tools and system extensions.
+		If --overwrite is true, then existing annotations can be overwritten, otherwise attempting to overwrite an annotation will result in an error.
+		If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.
 
-An annotation is a key/value pair that can hold larger (compared to a label), and possibly not human-readable, data.
-It is intended to store non-identifying auxiliary data, especially data manipulated by tools and system extensions.
-If --overwrite is true, then existing annotations can be overwritten, otherwise attempting to overwrite an annotation will result in an error.
-If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.
+		`) + valid_resources
 
-Possible resources include (case insensitive):` + annotate_resources
+	annotate_example = dedent.Dedent(`
+		# Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+		# If the same annotation is set multiple times, only the last value will be applied
+		kubectl annotate pods foo description='my frontend'
 
-	annotate_example = `# Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
-# If the same annotation is set multiple times, only the last value will be applied
-kubectl annotate pods foo description='my frontend'
+		# Update a pod identified by type and name in "pod.json"
+		kubectl annotate -f pod.json description='my frontend'
 
-# Update a pod identified by type and name in "pod.json"
-kubectl annotate -f pod.json description='my frontend'
+		# Update pod 'foo' with the annotation 'description' and the value 'my frontend running nginx', overwriting any existing value.
+		kubectl annotate --overwrite pods foo description='my frontend running nginx'
 
-# Update pod 'foo' with the annotation 'description' and the value 'my frontend running nginx', overwriting any existing value.
-kubectl annotate --overwrite pods foo description='my frontend running nginx'
+		# Update all pods in the namespace
+		kubectl annotate pods --all description='my frontend running nginx'
 
-# Update all pods in the namespace
-kubectl annotate pods --all description='my frontend running nginx'
+		# Update pod 'foo' only if the resource is unchanged from version 1.
+		kubectl annotate pods foo description='my frontend running nginx' --resource-version=1
 
-# Update pod 'foo' only if the resource is unchanged from version 1.
-kubectl annotate pods foo description='my frontend running nginx' --resource-version=1
-
-# Update pod 'foo' by removing an annotation named 'description' if it exists.
-# Does not require the --overwrite flag.
-kubectl annotate pods foo description-`
+		# Update pod 'foo' by removing an annotation named 'description' if it exists.
+		# Does not require the --overwrite flag.
+		kubectl annotate pods foo description-`)
 )
 
 func NewCmdAnnotate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &AnnotateOptions{}
 
 	validArgs, argAliases := []string{}, []string{}
-	resources := regexp.MustCompile(`\s*,`).Split(annotate_resources, -1)
-	for _, r := range resources {
-		validArgs = append(validArgs, strings.Fields(r)[0])
+	p, err := f.Printer(nil, kubectl.PrintOptions{
+		ColumnLabels: []string{},
+	})
+	cmdutil.CheckErr(err)
+	if p != nil {
+		validArgs = p.HandledResources()
 		argAliases = kubectl.ResourceAliases(validArgs)
 	}
 
@@ -186,11 +183,7 @@ func (o *AnnotateOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra
 
 // Validate checks to the AnnotateOptions to see if there is sufficient information run the command.
 func (o AnnotateOptions) Validate(args []string) error {
-	if err := validateAnnotations(o.removeAnnotations, o.newAnnotations); err != nil {
-		return err
-	}
-
-	return nil
+	return validateAnnotations(o.removeAnnotations, o.newAnnotations)
 }
 
 // RunAnnotate does the work

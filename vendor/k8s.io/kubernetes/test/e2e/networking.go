@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,14 +59,18 @@ var _ = framework.KubeDescribe("Networking", func() {
 		tests := []struct {
 			path string
 		}{
-			{path: "/validate"},
 			{path: "/healthz"},
+			{path: "/api"},
+			{path: "/apis"},
+			{path: "/logs"},
+			{path: "/metrics"},
+			{path: "/swaggerapi"},
+			{path: "/version"},
 			// TODO: test proxy links here
 		}
 		for _, test := range tests {
 			By(fmt.Sprintf("testing: %s", test.path))
 			data, err := f.Client.RESTClient.Get().
-				Namespace(f.Namespace.Name).
 				AbsPath(test.path).
 				DoRaw()
 			if err != nil {

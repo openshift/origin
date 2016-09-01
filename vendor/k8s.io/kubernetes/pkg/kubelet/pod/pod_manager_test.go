@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ func TestGetSetPods(t *testing.T) {
 	podManager, _ := newTestManager()
 	podManager.SetPods(updates)
 
-	// Tests that all regular pods are recorded corrrectly.
+	// Tests that all regular pods are recorded correctly.
 	actualPods := podManager.GetPods()
 	if len(actualPods) != len(expectedPods) {
 		t.Errorf("expected %d pods, got %d pods; expected pods %#v, got pods %#v", len(expectedPods), len(actualPods),

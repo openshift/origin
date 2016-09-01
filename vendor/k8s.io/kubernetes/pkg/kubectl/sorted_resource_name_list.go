@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"sort"
 
 	"k8s.io/kubernetes/pkg/api"
-	qosutil "k8s.io/kubernetes/pkg/kubelet/qos/util"
+	"k8s.io/kubernetes/pkg/kubelet/qos"
 )
 
 type SortableResourceNames []api.ResourceName
@@ -76,7 +76,7 @@ func (list SortableVolumeMounts) Less(i, j int) bool {
 }
 
 // SortedQoSResourceNames returns the sorted resource names of a QoS list.
-func SortedQoSResourceNames(list qosutil.QoSList) []api.ResourceName {
+func SortedQoSResourceNames(list qos.QOSList) []api.ResourceName {
 	resources := make([]api.ResourceName, 0, len(list))
 	for res := range list {
 		resources = append(resources, res)

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -658,7 +658,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	seccompNilWithNoProfilesSCC.SeccompProfiles = nil
 
 	seccompEmptyWithNoProfiles := defaultPod()
-	seccompEmptyWithNoProfiles.Annotations[api.SeccompContainerAnnotationKeyPrefix + seccompEmptyWithNoProfiles.Spec.Containers[0].Name] = ""
+	seccompEmptyWithNoProfiles.Annotations[api.SeccompContainerAnnotationKeyPrefix+seccompEmptyWithNoProfiles.Spec.Containers[0].Name] = ""
 
 	seccompAllowAnySCC := defaultSCC()
 	seccompAllowAnySCC.SeccompProfiles = []string{"*"}
@@ -667,7 +667,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	seccompAllowFooSCC.SeccompProfiles = []string{"foo"}
 
 	seccompFooPod := defaultPod()
-	seccompFooPod.Annotations[api.SeccompContainerAnnotationKeyPrefix + seccompFooPod.Spec.Containers[0].Name] = "foo"
+	seccompFooPod.Annotations[api.SeccompContainerAnnotationKeyPrefix+seccompFooPod.Spec.Containers[0].Name] = "foo"
 
 	errorCases := map[string]struct {
 		pod *api.Pod

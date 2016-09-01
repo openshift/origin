@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ var _ = framework.KubeDescribe("Mesos", func() {
 
 		const ns = "static-pods"
 		numpods := int32(len(nodelist.Items))
-		framework.ExpectNoError(framework.WaitForPodsRunningReady(client, ns, numpods, wait.ForeverTestTimeout, map[string]string{}, false),
+		framework.ExpectNoError(framework.WaitForPodsRunningReady(client, ns, numpods, wait.ForeverTestTimeout, map[string]string{}),
 			fmt.Sprintf("number of static pods in namespace %s is %d", ns, numpods))
 	})
 
@@ -101,7 +101,7 @@ var _ = framework.KubeDescribe("Mesos", func() {
 		})
 		framework.ExpectNoError(err)
 
-		framework.ExpectNoError(framework.WaitForPodRunningInNamespace(c, podName, ns))
+		framework.ExpectNoError(framework.WaitForPodNameRunningInNamespace(c, podName, ns))
 		pod, err := c.Pods(ns).Get(podName)
 		framework.ExpectNoError(err)
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,7 +58,8 @@ type FooList struct {
 	Items []Foo `json:"items"`
 }
 
-var _ = Describe("ThirdParty resources", func() {
+// This test is marked flaky pending namespace controller observing dynamic creation of new third party types.
+var _ = Describe("ThirdParty resources [Flaky] [Disruptive]", func() {
 
 	f := framework.NewDefaultFramework("thirdparty")
 

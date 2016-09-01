@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/scheduledjob"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for scheduled jobs against etcd
@@ -36,11 +35,18 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against ScheduledJobs.
 func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
-	prefix := "/scheduledjobs"
+	prefix := "/" + opts.ResourcePrefix
 
 	newListFunc := func() runtime.Object { return &batch.ScheduledJobList{} }
-	storageInterface := opts.Decorator(
-		opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.ScheduledJobs), &batch.ScheduledJob{}, prefix, scheduledjob.Strategy, newListFunc)
+	storageInterface, _ := opts.Decorator(
+		opts.StorageConfig,
+		cachesize.GetWatchCacheSizeByResource(cachesize.ScheduledJobs),
+		&batch.ScheduledJob{},
+		prefix,
+		scheduledjob.Strategy,
+		newListFunc,
+		storage.NoTriggerPublisher,
+	)
 
 	store := &registry.Store{
 		NewFunc: func() runtime.Object { return &batch.ScheduledJob{} },
@@ -62,9 +68,7 @@ func NewREST(opts generic.RESTOptions) (*REST, *StatusREST) {
 			return obj.(*batch.ScheduledJob).Name, nil
 		},
 		// Used to match objects based on labels/fields for list and watch
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return scheduledjob.MatchScheduledJob(label, field)
-		},
+		PredicateFunc:           scheduledjob.MatchScheduledJob,
 		QualifiedResource:       batch.Resource("scheduledjobs"),
 		DeleteCollectionWorkers: opts.DeleteCollectionWorkers,
 

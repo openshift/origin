@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,9 +83,10 @@ type Cache interface {
 	// RemoveNode removes overall information about node.
 	RemoveNode(node *api.Node) error
 
-	// GetNodeNameToInfoMap returns a map of node names to node info. The node info contains
-	// aggregated information of pods scheduled (including assumed to be) on this node.
-	GetNodeNameToInfoMap() (map[string]*NodeInfo, error)
+	// UpdateNodeNameToInfoMap updates the passed infoMap to the current contents of Cache.
+	// The node info contains aggregated information of pods scheduled (including assumed to be)
+	// on this node.
+	UpdateNodeNameToInfoMap(infoMap map[string]*NodeInfo) error
 
 	// List lists all cached pods (including assumed ones).
 	List(labels.Selector) ([]*api.Pod, error)

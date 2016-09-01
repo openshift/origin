@@ -53,7 +53,7 @@ const (
 
 	// DefaultDockerTimeout specifies a timeout for Docker API calls. When this
 	// timeout is reached, certain Docker API calls might error out.
-	DefaultDockerTimeout = 60 * time.Second
+	DefaultDockerTimeout = 20 * time.Second
 )
 
 // containerNamePrefix prefixes the name of containers launched by S2I. We

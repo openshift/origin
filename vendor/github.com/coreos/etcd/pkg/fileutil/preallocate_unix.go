@@ -1,4 +1,4 @@
-// Copyright 2016 CoreOS, Inc.
+// Copyright 2016 The etcd Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,8 +26,9 @@ func preallocExtend(f *os.File, sizeInBytes int64) error {
 	err := syscall.Fallocate(int(f.Fd()), 0, 0, sizeInBytes)
 	if err != nil {
 		errno, ok := err.(syscall.Errno)
-		// treat not support as nil error
-		if ok && errno == syscall.ENOTSUP {
+		// not supported; fallback
+		// fallocate EINTRs frequently in some environments; fallback
+		if ok && (errno == syscall.ENOTSUP || errno == syscall.EINTR) {
 			return preallocExtendTrunc(f, sizeInBytes)
 		}
 	}
@@ -40,7 +41,7 @@ func preallocFixed(f *os.File, sizeInBytes int64) error {
 	if err != nil {
 		errno, ok := err.(syscall.Errno)
 		// treat not supported as nil error
-		if ok && (errno == syscall.ENOTSUP || errno == syscall.EINTR) {
+		if ok && errno == syscall.ENOTSUP {
 			return nil
 		}
 	}

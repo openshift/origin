@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ func NewEndpointController(podInformer framework.SharedIndexInformer, client *cl
 	}
 	e := &EndpointController{
 		client: client,
-		queue:  workqueue.New(),
+		queue:  workqueue.NewNamed("endpoint"),
 	}
 
 	e.serviceStore.Store, e.serviceController = framework.NewInformer(
@@ -114,7 +114,7 @@ func NewEndpointController(podInformer framework.SharedIndexInformer, client *cl
 
 // NewEndpointControllerFromClient returns a new *EndpointController that runs its own informer.
 func NewEndpointControllerFromClient(client *clientset.Clientset, resyncPeriod controller.ResyncPeriodFunc) *EndpointController {
-	podInformer := informers.CreateSharedPodIndexInformer(client, resyncPeriod())
+	podInformer := informers.NewPodInformer(client, resyncPeriod())
 	e := NewEndpointController(podInformer, client)
 	e.internalPodInformer = podInformer
 
@@ -275,7 +275,8 @@ func (e *EndpointController) deletePod(obj interface{}) {
 	}
 	podKey, err := keyFunc(obj)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
+		glog.Errorf("Couldn't get key for object %#v: %v", obj, err)
+		return
 	}
 	glog.Infof("Pod %q was deleted but we don't have a record of its final state, so it will take up to %v before it will be removed from all endpoint records.", podKey, FullServiceResyncPeriod)
 
@@ -287,6 +288,7 @@ func (e *EndpointController) enqueueService(obj interface{}) {
 	key, err := keyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
+		return
 	}
 
 	e.queue.Add(key)
@@ -322,7 +324,7 @@ func (e *EndpointController) syncService(key string) {
 	if !e.podStoreSynced() {
 		// Sleep so we give the pod reflector goroutine a chance to run.
 		time.Sleep(PodStoreSyncedPollPeriod)
-		glog.Infof("Waiting for pods controller to sync, requeuing service %v", key)
+		glog.V(4).Infof("Waiting for pods controller to sync, requeuing service %v", key)
 		e.queue.Add(key)
 		return
 	}
@@ -356,7 +358,7 @@ func (e *EndpointController) syncService(key string) {
 	}
 
 	glog.V(5).Infof("About to update endpoints for service %q", key)
-	pods, err := e.podStore.Pods(service.Namespace).List(labels.Set(service.Spec.Selector).AsSelector())
+	pods, err := e.podStore.Pods(service.Namespace).List(labels.Set(service.Spec.Selector).AsSelectorPreValidated())
 	if err != nil {
 		// Since we're getting stuff from a local cache, it is
 		// basically impossible to get this error.
@@ -378,8 +380,11 @@ func (e *EndpointController) syncService(key string) {
 		}
 	}
 
-	for i := range pods.Items {
-		pod := &pods.Items[i]
+	readyEps := 0
+	notReadyEps := 0
+	for i := range pods {
+		// TODO: Do we need to copy here?
+		pod := &(*pods[i])
 
 		for i := range service.Spec.Ports {
 			servicePort := &service.Spec.Ports[i]
@@ -402,7 +407,8 @@ func (e *EndpointController) syncService(key string) {
 
 			epp := api.EndpointPort{Name: portName, Port: int32(portNum), Protocol: portProto}
 			epa := api.EndpointAddress{
-				IP: pod.Status.PodIP,
+				IP:       pod.Status.PodIP,
+				NodeName: &pod.Spec.NodeName,
 				TargetRef: &api.ObjectReference{
 					Kind:            "Pod",
 					Namespace:       pod.ObjectMeta.Namespace,
@@ -428,12 +434,14 @@ func (e *EndpointController) syncService(key string) {
 					Addresses: []api.EndpointAddress{epa},
 					Ports:     []api.EndpointPort{epp},
 				})
+				readyEps++
 			} else {
 				glog.V(5).Infof("Pod is out of service: %v/%v", pod.Namespace, pod.Name)
 				subsets = append(subsets, api.EndpointSubset{
 					NotReadyAddresses: []api.EndpointAddress{epa},
 					Ports:             []api.EndpointPort{epp},
 				})
+				notReadyEps++
 			}
 		}
 	}
@@ -486,6 +494,7 @@ func (e *EndpointController) syncService(key string) {
 		newEndpoints.Annotations[endpoints.PodHostnamesAnnotation] = serializedPodHostNames
 	}
 
+	glog.V(4).Infof("Update endpoints for %v/%v, ready: %d not ready: %d", service.Namespace, service.Name, readyEps, notReadyEps)
 	createEndpoints := len(currentEndpoints.ResourceVersion) == 0
 	if createEndpoints {
 		// No previous endpoints, create them

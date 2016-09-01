@@ -42,7 +42,7 @@ func TestPodConstraintsFunc(t *testing.T) {
 					}},
 				},
 			},
-			err: `spec.initContainers[0].resources.limits[cpu]: Invalid value: "1m": must be greater than or equal to request`,
+			err: `spec.initContainers[0].resources.limits: Invalid value: "1m": must be greater than or equal to cpu request`,
 		},
 		"container resource invalid": {
 			pod: &api.Pod{
@@ -55,7 +55,7 @@ func TestPodConstraintsFunc(t *testing.T) {
 					}},
 				},
 			},
-			err: `spec.containers[0].resources.limits[cpu]: Invalid value: "1m": must be greater than or equal to request`,
+			err: `spec.containers[0].resources.limits: Invalid value: "1m": must be greater than or equal to cpu request`,
 		},
 		"init container resource missing": {
 			pod: &api.Pod{

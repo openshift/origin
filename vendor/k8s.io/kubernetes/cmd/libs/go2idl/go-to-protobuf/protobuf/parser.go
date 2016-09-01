@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,17 +20,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/ast"
 	"go/format"
+	"go/parser"
+	"go/printer"
+	"go/token"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 
-	"k8s.io/kubernetes/third_party/golang/go/ast"
-	"k8s.io/kubernetes/third_party/golang/go/parser"
-	"k8s.io/kubernetes/third_party/golang/go/printer"
-	"k8s.io/kubernetes/third_party/golang/go/token"
-	customreflect "k8s.io/kubernetes/third_party/golang/reflect"
+	customreflect "k8s.io/kubernetes/third_party/forked/golang/reflect"
 )
 
 func rewriteFile(name string, header []byte, rewriteFn func(*token.FileSet, *ast.File) error) error {
@@ -132,7 +132,7 @@ func rewriteOptionalMethods(decl ast.Decl, isOptional OptionalFunc) {
 		switch t.Name.Name {
 		case "Unmarshal":
 			ast.Walk(&optionalItemsVisitor{}, t.Body)
-		case "MarshalTo", "Size":
+		case "MarshalTo", "Size", "String":
 			ast.Walk(&optionalItemsVisitor{}, t.Body)
 			fallthrough
 		case "Marshal":

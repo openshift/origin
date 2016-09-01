@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,8 +34,9 @@ completion of kubectl commands.
 	completion_example = `
 $ source <(kubectl completion bash)
 
-will load the kubectl completion code for bash. Note that this depends on the bash-completion
-framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
+will load the kubectl completion code for bash. Note that this depends on the
+bash-completion framework. It must be sourced before sourcing the kubectl
+completion, e.g. on the Mac:
 
 $ brew install bash-completion
 $ source $(brew --prefix)/etc/bash_completion
@@ -96,7 +97,7 @@ func runCompletionBash(out io.Writer, kubectl *cobra.Command) error {
 }
 
 func runCompletionZsh(out io.Writer, kubectl *cobra.Command) error {
-	zsh_initialilzation := `# Copyright 2016 The Kubernetes Authors All rights reserved.
+	zsh_initialilzation := `# Copyright 2016 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -244,7 +245,8 @@ if sed --help 2>&1 | grep -q GNU; then
 	RWORD='\>'
 fi
 
-__kubectl_bash_source <(sed \
+__kubectl_convert_bash_to_zsh() {
+	sed \
 	-e 's/declare -F/whence -w/' \
 	-e 's/local \([a-zA-Z0-9_]*\)=/local \1; \1=/' \
 	-e 's/flags+=("\(--.*\)=")/flags+=("\1"); two_word_flags+=("\1")/' \
@@ -266,7 +268,9 @@ __kubectl_bash_source <(sed \
 
 	zsh_tail := `
 BASH_COMPLETION_EOF
-)
+}
+
+__kubectl_bash_source <(__kubectl_convert_bash_to_zsh)
 `
 	out.Write([]byte(zsh_tail))
 	return nil
