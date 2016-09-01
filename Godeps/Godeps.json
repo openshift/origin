@@ -4530,11 +4530,6 @@
 			"Rev": "52492b4bff99ef3b8ca617d385a3ff0612f9402d"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/pkg/util/deployment",
-			"Comment": "v1.3.0-178-g52492b4",
-			"Rev": "52492b4bff99ef3b8ca617d385a3ff0612f9402d"
-		},
-		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/diff",
 			"Comment": "v1.3.0-178-g52492b4",
 			"Rev": "52492b4bff99ef3b8ca617d385a3ff0612f9402d"
