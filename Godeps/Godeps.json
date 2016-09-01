@@ -824,16 +824,6 @@
 			"Rev": "559433598c7be9d30d6cfc5cad5b5dfdb686725c"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/builder/command",
-			"Comment": "v1.4.1-4831-g0f5c9d3",
-			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/builder/parser",
-			"Comment": "v1.4.1-4831-g0f5c9d3",
-			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/jsonmessage",
 			"Comment": "v1.4.1-4831-g0f5c9d3",
 			"Rev": "0f5c9d301b9b1cca66b3ea0f9dec3b5317d3686d"
