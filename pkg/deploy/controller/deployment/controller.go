@@ -144,13 +144,18 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// Generate a deployer pod spec.
 		deployerPod, err := c.makeDeployerPod(deployment)
 		if err != nil {
-			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+			nextStatus = deployapi.DeploymentStatusFailed
+			updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = err.Error()
+			c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedDecoding", err.Error())
+			break
 		}
 		// Create the deployer pod.
 		deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
-		// Retry on error.
 		if err != nil {
-			return actionableError(fmt.Sprintf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+			nextStatus = deployapi.DeploymentStatusFailed
+			updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = err.Error()
+			c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedCreation", err.Error())
+			break
 		}
 		updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
 		nextStatus = deployapi.DeploymentStatusPending
@@ -388,13 +393,13 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later
-			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for deployment %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
+			utilruntime.HandleError(fmt.Errorf("couldn't delete deployer pod %q for deployment %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
 			cleanedAll = false
 		}
 	}
 
 	if !cleanedAll {
-		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %s", deployment.Name))
+		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %q", deployment.Name))
 	}
 	return nil
 }
