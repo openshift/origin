@@ -544,7 +544,7 @@ func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStr
 
 // rememberLayersOfImage caches the layer digests of given image
 func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName string) {
-	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 {
+	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 && len(image.DockerImageConfig) == 0 {
 		// image has no layers
 		return
 	}
@@ -552,6 +552,10 @@ func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName stri
 	if len(image.DockerImageLayers) > 0 {
 		for _, layer := range image.DockerImageLayers {
 			r.cachedLayers.RememberDigest(digest.Digest(layer.Name), r.blobrepositorycachettl, cacheName)
+		}
+		// remember reference to manifest config as well for schema 2
+		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(image.DockerImageMetadata.ID) > 0 {
+			r.cachedLayers.RememberDigest(digest.Digest(image.DockerImageMetadata.ID), r.blobrepositorycachettl, cacheName)
 		}
 		return
 	}
