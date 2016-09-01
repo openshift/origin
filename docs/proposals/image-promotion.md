@@ -3,7 +3,7 @@
 ## Abstract
 
 This proposal describes the best practices and defines patterns for promoting Docker
-images between different stages (eg. from *development* to *production*).
+images between different stages (e.g. from *development* to *production*).
 This proposal also describes a way how to configure OpenShift to serve as
 a Continuous Delivery tool.
 
@@ -152,7 +152,7 @@ and tests.
 ```
 
 Based on the result of the `verify-deployment` command, which runs in the container based on the
-application image, the command will promote the image by tagging it as *production-ready* (eg. using
+application image, the command will promote the image by tagging it as *production-ready* (e.g. using
 the `oc tag` command). The command might also notify me about the verification failure.
 
 The *frontend-production* DeploymentConfig has the ImageChangeTrigger set to watch changes
