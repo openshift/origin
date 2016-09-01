@@ -199,6 +199,7 @@ Ingress | Alpha (1.1)<br>Beta (1.2, 1.3) | Disabled Pending Migration (1.2)<br>T
 PodSecurityPolicy | Alpha (1.2)<br>Beta (1.3) | Disabled Pending Migration (1.3)<br>Not Yet Secure (1.3) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
 PodAntiAffinitySelectors | Alpha (1.3) | Not Yet Secure (1.3)<br>Tech Preview (1.4?) | End users are not allowed to set PodAntiAffinitySelectors that are not the node name due to the possibility of attacking the scheduler via denial of service.|
 NetworkPolicy | Beta (1.3) | Tech Preview (1.3) | OpenShift's default network plugins (`redhat/openshift-ovs-subnet` and `redhat/openshift-ovs-multitenant`) do not support NetworkPolicy yet, but if you use a third-party network plugin, it might.
+StorageClass | Beta (1.4) | Tech Preview (1.4) | StorageClass is the configuration object for dynamic provisioners which allows multiple dynamic provisioners per cluster.
 
 Please contact us if this list omits a feature supported in Kubernetes which does not run in Origin.
 
