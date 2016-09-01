@@ -481,5 +481,9 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 # make sure there were changes to the registry's storage
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 1
 
+echo "[INFO] Run network diagnostics"
+os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
+os::cmd::expect_success "oadm diagnostics NetworkCheck"
+
 os::test::junit::declare_suite_end
 unset VERBOSE
