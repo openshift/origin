@@ -10,8 +10,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/docker/docker/pkg/parsers"
 	units "github.com/docker/go-units"
+	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
@@ -598,7 +598,7 @@ type ImageStreamTagDescriber struct {
 // Describe returns the description of an imageStreamTag
 func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamTags(namespace)
-	repo, tag := parsers.ParseRepositoryTag(name)
+	repo, tag := docker.ParseRepositoryTag(name)
 	if tag == "" {
 		// TODO use repo's preferred default, when that's coded
 		tag = imageapi.DefaultImageTag
@@ -619,7 +619,7 @@ type ImageStreamImageDescriber struct {
 // Describe returns the description of an imageStreamImage
 func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamImages(namespace)
-	repo, id := parsers.ParseRepositoryTag(name)
+	repo, id := docker.ParseRepositoryTag(name)
 	imageStreamImage, err := c.Get(repo, id)
 	if err != nil {
 		return "", err
