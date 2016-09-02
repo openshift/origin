@@ -46,8 +46,10 @@ func buildInfo(build *api.Build) []KeyValue {
 	}
 	if build.Spec.Source.Git != nil {
 		sourceURL := build.Spec.Source.Git.URI
-		if originalURL, ok := build.Annotations[OriginalSourceURLAnnotationKey]; ok {
-			sourceURL = originalURL
+		if build.Annotations != nil {
+			if originalURL, ok := build.Annotations[OriginalSourceURLAnnotationKey]; ok {
+				sourceURL = originalURL
+			}
 		}
 		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", sourceURL})
 		if build.Spec.Source.Git.Ref != "" {
