@@ -84,7 +84,7 @@ That covers most cases where cluster admins want to create projects and delegate
 
 
 ## Basic Concepts
- 1.  A PolicyRule expresses a permission containing: []Verb, []Resources (pod, deploymentConfig, resourcegroup:deployments, etc), []ResourceNames
+ 1.  A PolicyRule expresses a permission containing: []Verb, []Resources (pod, deploymentConfig, resourcegroup:deployments, etc.), []ResourceNames
  1.  A Role is a way to name a set of PolicyRules
  1.  A Policy is a container for Roles.  There can only be one Policy per namespace.
  1.  A RoleBinding is a way to associate a Role with a given user or group.  A RoleBinding references (but does not include) a Role.
