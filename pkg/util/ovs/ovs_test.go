@@ -55,7 +55,7 @@ func TestTransactionSuccess(t *testing.T) {
 	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", nil)
 	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow2", "", nil)
 
-	ovsif, err := New(fexec, "br0")
+	ovsif, err := New(fexec, "br0", "")
 	if err != nil {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
@@ -75,7 +75,7 @@ func TestTransactionFailure(t *testing.T) {
 	fexec := normalSetup()
 	addTestResult(t, fexec, "ovs-ofctl -O OpenFlow13 add-flow br0 flow1", "", fmt.Errorf("Something bad happened"))
 
-	ovsif, err := New(fexec, "br0")
+	ovsif, err := New(fexec, "br0", "")
 	if err != nil {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
@@ -103,7 +103,7 @@ func TestDumpFlows(t *testing.T) {
  cookie=0x0, duration=13284.67s, table=0, n_packets=782815611, n_bytes=179416494325, priority=50 actions=output:2
 `, nil)
 
-	ovsif, err := New(fexec, "br0")
+	ovsif, err := New(fexec, "br0", "")
 	if err != nil {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
@@ -124,7 +124,7 @@ func TestDumpFlows(t *testing.T) {
 
 func TestOVSMissing(t *testing.T) {
 	fexec := missingSetup()
-	ovsif, err := New(fexec, "br0")
+	ovsif, err := New(fexec, "br0", "")
 	if err == nil || ovsif != nil {
 		t.Fatalf("Unexpectedly did not get error")
 	}
@@ -135,7 +135,7 @@ func TestOVSMissing(t *testing.T) {
 
 func TestAddPort(t *testing.T) {
 	fexec := normalSetup()
-	ovsif, err := New(fexec, "br0")
+	ovsif, err := New(fexec, "br0", "")
 	if err != nil {
 		t.Fatalf("Unexpected error from ovs.New(): %v", err)
 	}
@@ -194,4 +194,27 @@ func TestAddPort(t *testing.T) {
 		t.Fatalf("Got wrong error: %v", err)
 	}
 	ensureTestResults(t, fexec)
+}
+
+func TestOVSVersion(t *testing.T) {
+	fexec := normalSetup()
+	defer ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --version", "2.5.0", nil)
+	_, err := New(fexec, "br0", "2.5.0")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	addTestResult(t, fexec, "ovs-vsctl --version", "2.4.0", nil)
+	_, err = New(fexec, "br0", "2.5.0")
+	if err == nil {
+		t.Fatalf("Unexpectedly did not get error")
+	}
+
+	addTestResult(t, fexec, "ovs-vsctl --version", "3.2.0", nil)
+	_, err = New(fexec, "br0", "2.5.0")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 }

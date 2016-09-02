@@ -104,7 +104,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		}
 	}
 
-	ovsif, err := ovs.New(kexec.New(), BR)
+	ovsif, err := ovs.New(kexec.New(), BR, "")
 	if err != nil {
 		return nil, err
 	}
