@@ -117,8 +117,7 @@ os::cmd::expect_success 'oc status -n default'
 
 # check to make sure a project admin can push an image to an image stream that doesn't exist
 os::cmd::expect_success 'oc project cache'
-e2e_user_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
-os::cmd::expect_success_and_text "echo ${e2e_user_token}" '.+'
+e2e_user_token=$(oc whoami -t)
 
 echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
@@ -195,11 +194,40 @@ os::cmd::expect_success "oc tag cache/hello-world@${imagedigest} cross:namespace
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 echo "[INFO] Cross namespace pull successful"
 
+os::cmd::expect_success 'oc login -u schema2-user -p pass'
+os::cmd::expect_success "oc new-project schema2"
+os::cmd::expect_success "oc project schema2"
+schema2_user_token=$(oc whoami -t)
+
+echo "[INFO] Fetch manifest V2 schema 2 image with old client using pullthrough"
+os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest hello-world:pullthrough"
+os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag hello-world:pullthrough" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
+hello_world_name=$(oc get -o 'jsonpath={.image.metadata.name}' istag hello-world:pullthrough)
+os::cmd::expect_success_and_text "echo ${hello_world_name:-}" '.+'
+# dockerImageManifest is retrievable only with "images" resource
+hello_world_config_name=$(oc get -o 'jsonpath={.dockerImageManifest}' image "$hello_world_name" --context="$CLUSTER_ADMIN_CONTEXT" | jq -r '.config.digest')
+hello_world_config_image=$(oc get -o 'jsonpath={.image.dockerImageConfig}' istag hello-world:pullthrough | jq -r '.container_config.Image')
+os::cmd::expect_success_and_text "echo ${hello_world_config_name:-},${hello_world_config_image:-}" '.+,.+'
+# verify we can fetch the config
+os::cmd::expect_success_and_text "curl -u 'schema2-user:${schema2_user_token}' -v -s -o ${ARTIFACT_DIR}/hello-world-config.json ${DOCKER_REGISTRY}/v2/schema2/hello-world/blobs/${hello_world_config_name} 2>&1" "Docker-Content-Digest:\s*${hello_world_config_name}"
+os::cmd::expect_success_and_text "jq -r '.container_config.Image' ${ARTIFACT_DIR}/hello-world-config.json" "${hello_world_config_image}"
+# no accept header provided, the registry will convert schema 2 to schema 1 on-the-fly
+hello_world_schema1_digest=$(curl -u schema2-user:${schema2_user_token} -s -v -o ${ARTIFACT_DIR}/hello-world-manifest.json ${DOCKER_REGISTRY}/v2/schema2/hello-world/manifests/pullthrough |& sed -n 's/.*Docker-Content-Digest:\s*\(\S\+\).*/\1/p')
+# ensure the manifest was converted to schema 1
+os::cmd::expect_success_and_text "jq -r '.schemaVersion' ${ARTIFACT_DIR}/hello-world-manifest.json" '^1$'
+os::cmd::expect_success_and_not_text "echo '${hello_world_schema1_digest:-}'" "${hello_world_name:-}"
+os::cmd::expect_success_and_text "echo '${hello_world_schema1_digest:-}'" ".+"
+os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' '${DOCKER_REGISTRY}/v2/schema2/hello-world/manifests/${hello_world_schema1_digest}'" "404 Not Found"
+echo "[INFO] Manifest V2 schema 2 image fetched successfully with old client"
+
+echo "[INFO] Back to 'default' project with 'admin' user..."
+os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
+os::cmd::expect_success_and_text 'oc whoami' 'system:admin'
+
 # check to make sure an image-pusher can push an image
-os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher pusher'
+os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher -n cache pusher'
 os::cmd::expect_success 'oc login -u pusher -p pass'
-pusher_token=$(oc config view --flatten --minify -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
-os::cmd::expect_success_and_text "echo ${pusher_token}" '.+'
+pusher_token=$(oc whoami -t)
 
 echo "[INFO] Docker login as pusher to ${DOCKER_REGISTRY}"
 os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
@@ -221,9 +249,9 @@ os::cmd::try_until_text 'oc policy who-can get imagestreams/layers -n custom' 's
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 # unauthorized pushes return authorization errors, regardless of backing data
-os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/missing/image:tag"              "authentication required"
-os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"    "authentication required"
-os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "authentication required"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/missing/image:tag"              "authentication required|not authorized"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"    "authentication required|not authorized"
+os::cmd::expect_failure_and_text "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "authentication required|not authorized"
 # test anonymous pushes
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:anonymous -n custom'
 os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
@@ -480,6 +508,42 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 
 # make sure there were changes to the registry's storage
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 1
+echo "[INFO] Validated image pruning"
+
+echo "[INFO] Configure registry to accept manifest V2 schema 2"
+os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
+os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
+wait_for_registry
+echo "[INFO] Registry configured to accept manifest V2 schema 2"
+
+echo "[INFO] Accept manifest V2 schema 2"
+os::cmd::expect_success "oc login -u schema2-user -p pass"
+os::cmd::expect_success "oc project schema2"
+# tagging remote docker.io/busybox image
+os::cmd::expect_success "docker tag busybox '${DOCKER_REGISTRY}/schema2/busybox'"
+os::cmd::expect_success "docker login -u e2e-user -p ${schema2_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "docker push '${DOCKER_REGISTRY}/schema2/busybox'"
+# image accepted as schema 2
+os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag busybox:latest" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
+echo "[INFO] Manifest V2 schema 2 successfully accepted"
+
+echo "[INFO] Convert manifest V2 schema 2 to schema 1 for older client"
+os::cmd::expect_success 'oc login -u schema2-user -p pass'
+os::cmd::expect_success "oc new-project schema2tagged"
+os::cmd::expect_success "oc tag --source=istag schema2/busybox:latest busybox:latest"
+busybox_name=$(oc get -o 'jsonpath={.image.metadata.name}' istag busybox:latest)
+os::cmd::expect_success_and_text "echo ${busybox_name:-}" '.+'
+# no accept header provided, registry converts on-the-fly to schema 1
+busybox_schema1_digest=$(curl -u "schema2-user:${schema2_user_token}" -s -v -o ${ARTIFACT_DIR}/busybox-manifest.json ${DOCKER_REGISTRY}/v2/schema2tagged/busybox/manifests/latest |& sed -n 's/.*Docker-Content-Digest:\s*\(\S\+\).*/\1/p')
+# ensure the manifest was converted to schema 1
+os::cmd::expect_success_and_text "jq -r '.schemaVersion' ${ARTIFACT_DIR}/busybox-manifest.json" '^1$'
+os::cmd::expect_success_and_not_text "echo '${busybox_schema1_digest:-}'" "${busybox_name:-}"
+os::cmd::expect_success_and_text "echo '${busybox_schema1_digest:-}'" ".+"
+# schema 1 is generated on-the-fly, it's not stored in the registry, thus Not Found
+os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' '${DOCKER_REGISTRY}/v2/schema2tagged/busybox/manifests/${busybox_schema1_digest}'" "404 Not Found"
+# ensure we can fetch it back as schema 2
+os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' ${DOCKER_REGISTRY}/v2/schema2tagged/busybox/manifests/latest" "Docker-Content-Digest:\s*${busybox_name}"
+echo "[INFO] Manifest V2 schema 2 successfully converted to schema 1"
 
 os::test::junit::declare_suite_end
 unset VERBOSE
