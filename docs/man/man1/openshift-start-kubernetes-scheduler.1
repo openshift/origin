@@ -26,7 +26,7 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 
 .PP
 \fB\-\-algorithm\-provider\fP="DefaultProvider"
-    The scheduling algorithm provider to use, one of: DefaultProvider
+    The scheduling algorithm provider to use, one of: ClusterAutoscalerProvider | DefaultProvider
 
 .PP
 \fB\-\-bind\-pods\-burst\fP=0
@@ -39,6 +39,15 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 .PP
 \fB\-\-failure\-domains\fP="kubernetes.io/hostname,failure\-domain.beta.kubernetes.io/zone,failure\-domain.beta.kubernetes.io/region"
     Indicate the "all topologies" set for an empty topologyKey when it's used for PreferredDuringScheduling pod anti\-affinity.
+
+.PP
+\fB\-\-feature\-gates\fP=
+    A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
+AllAlpha=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AppArmor=true|false (BETA \- default=true)
+DynamicKubeletConfig=true|false (ALPHA \- default=false)
+DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-hard\-pod\-affinity\-symmetric\-weight\fP=1
@@ -61,7 +70,7 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Path to kubeconfig file with authorization and master location information.
 
 .PP
-\fB\-\-leader\-elect\fP=false
+\fB\-\-leader\-elect\fP=true
     Start a leader election client and gain leadership before executing the main loop. Enable this when running replicated components for high availability.
 
 .PP

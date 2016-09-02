@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube attach \- Attach to a running container.
+openshift kube attach \- Attach to a running container
 
 
 .SH SYNOPSIS
@@ -32,6 +32,10 @@ Attach to a process that is already running inside an existing container.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -45,7 +49,7 @@ Attach to a process that is already running inside an existing container.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -53,15 +57,15 @@ Attach to a process that is already running inside an existing container.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -125,7 +129,7 @@ Attach to a process that is already running inside an existing container.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -193,7 +197,7 @@ Attach to a process that is already running inside an existing container.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -233,7 +237,7 @@ Attach to a process that is already running inside an existing container.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -253,6 +257,7 @@ Attach to a process that is already running inside an existing container.
 .RS
 
 .nf
+
 # Get output from running pod 123456\-7890, using the first container by default
 kubectl attach 123456\-7890
 

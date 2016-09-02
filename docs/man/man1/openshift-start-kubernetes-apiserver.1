@@ -22,11 +22,11 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 .SH OPTIONS
 .PP
 \fB\-\-address\fP=127.0.0.1
-    DEPRECATED: see \-\-insecure\-bind\-address instead
+    DEPRECATED: see \-\-insecure\-bind\-address instead.
 
 .PP
 \fB\-\-admission\-control\fP="AlwaysAdmit"
-    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, BuildDefaults, BuildOverrides, ClusterResourceOverride, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, InitialResources, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, PersistentVolumeLabel, PodNodeConstraints, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount, openshift.io/ClusterResourceQuota, openshift.io/ImageLimitRange, openshift.io/ImagePolicy, openshift.io/JenkinsBootstrapper, openshift.io/OriginResourceQuota, openshift.io/OwnerReference, openshift.io/RestrictedEndpointsAdmission
+    Ordered list of plug\-ins to do admission control of resources into cluster. Comma\-delimited list of: AlwaysAdmit, AlwaysDeny, AlwaysPullImages, BuildByStrategy, BuildDefaults, BuildOverrides, ClusterResourceOverride, DefaultStorageClass, DenyEscalatingExec, DenyExecOnPrivileged, ExternalIPRanger, ImagePolicyWebhook, InitialResources, LimitPodHardAntiAffinityTopology, LimitRanger, NamespaceAutoProvision, NamespaceExists, NamespaceLifecycle, OriginNamespaceLifecycle, OriginPodNodeEnvironment, PersistentVolumeLabel, PodNodeConstraints, PodSecurityPolicy, ProjectRequestLimit, ResourceQuota, RunOnceDuration, SCCExecRestrictions, SecurityContextConstraint, SecurityContextDeny, ServiceAccount, openshift.io/ClusterResourceQuota, openshift.io/ImageLimitRange, openshift.io/ImagePolicy, openshift.io/JenkinsBootstrapper, openshift.io/OriginResourceQuota, openshift.io/OwnerReference, openshift.io/RestrictedEndpointsAdmission.
 
 .PP
 \fB\-\-admission\-control\-config\-file\fP=""
@@ -42,11 +42,27 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-apiserver\-count\fP=1
-    The number of apiservers running in the cluster
+    The number of apiservers running in the cluster.
+
+.PP
+\fB\-\-audit\-log\-maxage\fP=0
+    The maximum number of days to retain old audit log files based on the timestamp encoded in their filename.
+
+.PP
+\fB\-\-audit\-log\-maxbackup\fP=0
+    The maximum number of old audit log files to retain.
+
+.PP
+\fB\-\-audit\-log\-maxsize\fP=0
+    The maximum size in megabytes of the audit log file before it gets rotated. Defaults to 100MB.
+
+.PP
+\fB\-\-audit\-log\-path\fP=""
+    If set, all requests coming to the apiserver will be logged to this file.
 
 .PP
 \fB\-\-authentication\-token\-webhook\-cache\-ttl\fP=0
-    The duration to cache responses from the webhook token authenticator. Default is 2m
+    The duration to cache responses from the webhook token authenticator. Default is 2m.
 
 .PP
 \fB\-\-authentication\-token\-webhook\-config\-file\fP=""
@@ -54,7 +70,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-authorization\-mode\fP="AlwaysAllow"
-    Ordered list of plug\-ins to do authorization on secure port. Comma\-delimited list of: AlwaysAllow,AlwaysDeny,ABAC,Webhook,RBAC
+    Ordered list of plug\-ins to do authorization on secure port. Comma\-delimited list of: AlwaysAllow,AlwaysDeny,ABAC,Webhook,RBAC.
 
 .PP
 \fB\-\-authorization\-policy\-file\fP=""
@@ -94,15 +110,15 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-cloud\-config\fP=""
-    The path to the cloud provider configuration file.  Empty string for no configuration file.
+    The path to the cloud provider configuration file. Empty string for no configuration file.
 
 .PP
 \fB\-\-cloud\-provider\fP=""
-    The provider for cloud services.  Empty string for no provider.
+    The provider for cloud services. Empty string for no provider.
 
 .PP
 \fB\-\-cors\-allowed\-origins\fP=[]
-    List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.
+    List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching. If this list is empty CORS will not be enabled.
 
 .PP
 \fB\-\-delete\-collection\-workers\fP=1
@@ -122,15 +138,15 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-etcd\-cafile\fP=""
-    SSL Certificate Authority file used to secure etcd communication
+    SSL Certificate Authority file used to secure etcd communication.
 
 .PP
 \fB\-\-etcd\-certfile\fP=""
-    SSL certification file used to secure etcd communication
+    SSL certification file used to secure etcd communication.
 
 .PP
 \fB\-\-etcd\-keyfile\fP=""
-    SSL key file used to secure etcd communication
+    SSL key file used to secure etcd communication.
 
 .PP
 \fB\-\-etcd\-prefix\fP="/registry"
@@ -138,7 +154,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-etcd\-quorum\-read\fP=false
-    If true, enable quorum read
+    If true, enable quorum read.
 
 .PP
 \fB\-\-etcd\-servers\fP=[]
@@ -152,15 +168,24 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-event\-ttl\fP=0
-    Amount of time to retain events. Default 1 hour.
+    Amount of time to retain events. Default is 1h.
 
 .PP
 \fB\-\-experimental\-keystone\-url\fP=""
-    If passed, activates the keystone authentication plugin
+    If passed, activates the keystone authentication plugin.
 
 .PP
 \fB\-\-external\-hostname\fP=""
-    The hostname to use when generating externalized URLs for this master (e.g. Swagger API Docs.)
+    The hostname to use when generating externalized URLs for this master (e.g. Swagger API Docs).
+
+.PP
+\fB\-\-feature\-gates\fP=
+    A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
+AllAlpha=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AppArmor=true|false (BETA \- default=true)
+DynamicKubeletConfig=true|false (ALPHA \- default=false)
+DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-insecure\-bind\-address\fP=127.0.0.1
@@ -172,7 +197,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-kubelet\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert file for the certificate authority.
 
 .PP
 \fB\-\-kubelet\-client\-certificate\fP=""
@@ -184,15 +209,15 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-kubelet\-https\fP=true
-    Use https for kubelet connections
+    Use https for kubelet connections.
 
 .PP
 \fB\-\-kubelet\-port\fP=10250
-    Kubelet port
+    DEPRECATED: kubelet port.
 
 .PP
 \fB\-\-kubelet\-timeout\fP=0
-    Timeout for kubelet operations
+    Timeout for kubelet operations.
 
 .PP
 \fB\-\-kubernetes\-service\-node\-port\fP=0
@@ -204,15 +229,15 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-master\-service\-namespace\fP="default"
-    The namespace from which the kubernetes master services should be injected into pods
+    The namespace from which the kubernetes master services should be injected into pods.
 
 .PP
 \fB\-\-max\-connection\-bytes\-per\-sec\fP=0
-    If non\-zero, throttle each user connection to this number of bytes/sec.  Currently only applies to long\-running requests
+    If non\-zero, throttle each user connection to this number of bytes/sec. Currently only applies to long\-running requests.
 
 .PP
 \fB\-\-max\-requests\-inflight\fP=400
-    The maximum number of requests in flight at a given time.  When the server exceeds this, it rejects requests.  Zero for no limit.
+    The maximum number of requests in flight at a given time. When the server exceeds this, it rejects requests. Zero for no limit.
 
 .PP
 \fB\-\-min\-request\-timeout\fP=1800
@@ -220,11 +245,11 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-oidc\-ca\-file\fP=""
-    If set, the OpenID server's certificate will be verified by one of the authorities in the oidc\-ca\-file, otherwise the host's root CA set will be used
+    If set, the OpenID server's certificate will be verified by one of the authorities in the oidc\-ca\-file, otherwise the host's root CA set will be used.
 
 .PP
 \fB\-\-oidc\-client\-id\fP=""
-    The client ID for the OpenID Connect client, must be set if oidc\-issuer\-url is set
+    The client ID for the OpenID Connect client, must be set if oidc\-issuer\-url is set.
 
 .PP
 \fB\-\-oidc\-groups\-claim\fP=""
@@ -232,7 +257,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-oidc\-issuer\-url\fP=""
-    The URL of the OpenID issuer, only HTTPS scheme will be accepted. If set, it will be used to verify the OIDC JSON Web Token (JWT)
+    The URL of the OpenID issuer, only HTTPS scheme will be accepted. If set, it will be used to verify the OIDC JSON Web Token (JWT).
 
 .PP
 \fB\-\-oidc\-username\-claim\fP="sub"
@@ -240,11 +265,11 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-port\fP=8080
-    DEPRECATED: see \-\-insecure\-port instead
+    DEPRECATED: see \-\-insecure\-port instead.
 
 .PP
 \fB\-\-portal\-net\fP=<nil>
-    Deprecated: see \-\-service\-cluster\-ip\-range instead.
+    DEPRECATED: see \-\-service\-cluster\-ip\-range instead.
 
 .PP
 \fB\-\-profiling\fP=true
@@ -252,7 +277,7 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-public\-address\-override\fP=0.0.0.0
-    DEPRECATED: see \-\-bind\-address instead
+    DEPRECATED: see \-\-bind\-address instead.
 
 .PP
 \fB\-\-repair\-malformed\-updates\fP=true
@@ -279,12 +304,12 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
     A CIDR notation IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.
 
 .PP
-\fB\-\-service\-node\-port\-range\fP=
-    A port range to reserve for services with NodePort visibility.  Example: '30000\-32767'.  Inclusive at both ends of the range.
+\fB\-\-service\-node\-port\-range\fP=30000\-32767
+    A port range to reserve for services with NodePort visibility. Example: '30000\-32767'. Inclusive at both ends of the range.
 
 .PP
-\fB\-\-service\-node\-ports\fP=
-    Deprecated: see \-\-service\-node\-port\-range instead.
+\fB\-\-service\-node\-ports\fP=30000\-32767
+    DEPRECATED: see \-\-service\-node\-port\-range instead
 
 .PP
 \fB\-\-ssh\-keyfile\fP=""
@@ -304,15 +329,19 @@ This command launches an instance of the Kubernetes apiserver (kube\-apiserver).
 
 .PP
 \fB\-\-storage\-version\fP=""
-    The version to store the legacy v1 resources with. Defaults to server preferred
+    DEPRECATED: the version to store the legacy v1 resources with. Defaults to server preferred.
 
 .PP
-\fB\-\-storage\-versions\fP="apps/v1alpha1,authentication.k8s.io/v1beta1,authorization.k8s.io/v1beta1,autoscaling/v1,batch/v1,componentconfig/v1alpha1,extensions/v1beta1,federation/v1beta1,policy/v1alpha1,rbac.authorization.k8s.io/v1alpha1,v1"
+\fB\-\-storage\-versions\fP="apps/v1alpha1,authentication.k8s.io/v1beta1,authorization.k8s.io/v1beta1,autoscaling/v1,batch/v1,certificates.k8s.io/v1alpha1,componentconfig/v1alpha1,extensions/v1beta1,federation/v1beta1,imagepolicy.k8s.io/v1alpha1,policy/v1alpha1,rbac.authorization.k8s.io/v1alpha1,storage.k8s.io/v1beta1,v1"
     The per\-group version to store resources in. Specified in the format "group1/version1,group2/version2,...". In the case where objects are moved from one group to the other, you may specify the format "group1=group2/v1beta1,group3/v1beta1,...". You only need to pass the groups you wish to change from the defaults. It defaults to a list of preferred versions of all registered groups, which is derived from the KUBE\_API\_VERSIONS environment variable.
 
 .PP
+\fB\-\-target\-ram\-mb\fP=0
+    Memory limit for apiserver in MB (used to configure sizes of caches, etc.)
+
+.PP
 \fB\-\-tls\-cert\-file\fP=""
-    File containing x509 Certificate for HTTPS.  (CA cert, if any, concatenated after server cert). If HTTPS serving is enabled, and \-\-tls\-cert\-file and \-\-tls\-private\-key\-file are not provided, a self\-signed certificate and key are generated for the public address and saved to /var/run/kubernetes.
+    File containing x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert). If HTTPS serving is enabled, and \-\-tls\-cert\-file and \-\-tls\-private\-key\-file are not provided, a self\-signed certificate and key are generated for the public address and saved to /var/run/kubernetes.
 
 .PP
 \fB\-\-tls\-private\-key\-file\fP=""

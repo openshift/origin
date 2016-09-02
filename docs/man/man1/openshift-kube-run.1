@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube run \- Run a particular image on the cluster.
+openshift kube run \- Run a particular image on the cluster
 
 
 .SH SYNOPSIS
@@ -20,7 +20,7 @@ Creates a deployment or job to manage the created container(s).
 .SH OPTIONS
 .PP
 \fB\-\-attach\fP=false
-    If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '\-i/\-\-stdin' is set, in which case the default is true.
+    If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '\-i/\-\-stdin' is set, in which case the default is true. With '\-\-restart=Never' the exit code of the container process is returned.
 
 .PP
 \fB\-\-command\fP=false
@@ -51,6 +51,10 @@ Creates a deployment or job to manage the created container(s).
     The image for the container to run.
 
 .PP
+\fB\-\-image\-pull\-policy\fP=""
+    The image pull policy for the container. If left empty, this value will not be specified by the client and defaulted by the server
+
+.PP
 \fB\-\-include\-extended\-apis\fP=true
     If true, include definitions of new APIs via calls to the API server. [default true]
 
@@ -68,13 +72,14 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-no\-headers\fP=false
-    When using the default output, don't print headers.
+    When using the default or custom\-column output format, don't print headers.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -87,6 +92,10 @@ Creates a deployment or job to manage the created container(s).
 .PP
 \fB\-\-port\fP=\-1
     The port that this container exposes.  If \-\-expose is true, this is also the port used by the service that is created.
+
+.PP
+\fB\-\-quiet\fP=false
+    If true, suppress prompt messages.
 
 .PP
 \fB\-\-record\fP=false
@@ -111,6 +120,10 @@ Creates a deployment or job to manage the created container(s).
 .PP
 \fB\-\-save\-config\fP=false
     If true, the configuration of current object will be saved in its annotation. This is useful when you want to perform kubectl apply on this object in the future.
+
+.PP
+\fB\-\-schedule\fP=""
+    A schedule in the Cron format the job should be run with.
 
 .PP
 \fB\-\-service\-generator\fP="service/v2"
@@ -148,6 +161,10 @@ Creates a deployment or job to manage the created container(s).
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -161,7 +178,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -169,15 +186,15 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -241,7 +258,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -309,7 +326,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -349,7 +366,7 @@ Creates a deployment or job to manage the created container(s).
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -369,6 +386,7 @@ Creates a deployment or job to manage the created container(s).
 .RS
 
 .nf
+
 # Start a single instance of nginx.
 kubectl run nginx \-\-image=nginx
 
@@ -398,6 +416,9 @@ kubectl run nginx \-\-image=nginx \-\-command \-\- <cmd> <arg1> ... <argN>
 
 # Start the perl container to compute π to 2000 places and print it out.
 kubectl run pi \-\-image=perl \-\-restart=OnFailure \-\- perl \-Mbignum=bpi \-wle 'print bpi(2000)'
+
+# Start the scheduled job to compute π to 2000 places and print it out every 5 minutes.
+kubectl run pi \-\-schedule="0/5 * * * ?" \-\-image=perl \-\-restart=OnFailure \-\- perl \-Mbignum=bpi \-wle 'print bpi(2000)'
 
 .fi
 .RE

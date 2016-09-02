@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube create configmap \- Create a configMap from a local file, directory or literal value.
+openshift kube create configmap \- Create a configmap from a local file, directory or literal value
 
 
 .SH SYNOPSIS
@@ -47,13 +47,14 @@ symlinks, devices, pipes, etc).
 
 .PP
 \fB\-\-no\-headers\fP=false
-    When using the default output, don't print headers.
+    When using the default or custom\-column output format, don't print headers.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -91,6 +92,10 @@ symlinks, devices, pipes, etc).
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -104,7 +109,7 @@ symlinks, devices, pipes, etc).
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -112,15 +117,15 @@ symlinks, devices, pipes, etc).
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -184,7 +189,7 @@ symlinks, devices, pipes, etc).
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -252,7 +257,7 @@ symlinks, devices, pipes, etc).
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -292,7 +297,7 @@ symlinks, devices, pipes, etc).
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -312,14 +317,15 @@ symlinks, devices, pipes, etc).
 .RS
 
 .nf
-  # Create a new configmap named my\-config with keys for each file in folder bar
-  kubectl create configmap my\-config \-\-from\-file=path/to/bar
 
-  # Create a new configmap named my\-config with specified keys instead of names on disk
-  kubectl create configmap my\-config \-\-from\-file=key1=/path/to/bar/file1.txt \-\-from\-file=key2=/path/to/bar/file2.txt
+# Create a new configmap named my\-config with keys for each file in folder bar
+kubectl create configmap my\-config \-\-from\-file=path/to/bar
 
-  # Create a new configMap named my\-config with key1=config1 and key2=config2
-  kubectl create configmap my\-config \-\-from\-literal=key1=config1 \-\-from\-literal=key2=config2
+# Create a new configmap named my\-config with specified keys instead of names on disk
+kubectl create configmap my\-config \-\-from\-file=key1=/path/to/bar/file1.txt \-\-from\-file=key2=/path/to/bar/file2.txt
+
+# Create a new configmap named my\-config with key1=config1 and key2=config2
+kubectl create configmap my\-config \-\-from\-literal=key1=config1 \-\-from\-literal=key2=config2
 
 .fi
 .RE
