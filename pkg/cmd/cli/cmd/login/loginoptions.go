@@ -148,7 +148,7 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	}
 
 	// check for matching api version
-	if !o.APIVersion.IsEmpty() {
+	if !o.APIVersion.Empty() {
 		clientConfig.GroupVersion = &o.APIVersion
 	}
 

@@ -854,7 +854,7 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
 func (f *Factory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
-	if version.IsEmpty() {
+	if version.Empty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}
 	body, err := client.Get().AbsPath("/").Suffix("swaggerapi", "oapi", version.Version).Do().Raw()

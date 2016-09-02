@@ -9,7 +9,7 @@ import (
 // ApplyOptions updates the given generic storage from the provided rest options
 // TODO: remove need for etcdPrefix once Decorator interface is refactored upstream
 func ApplyOptions(optsGetter Getter, store *registry.Store, etcdPrefix string) error {
-	if store.QualifiedResource.IsEmpty() {
+	if store.QualifiedResource.Empty() {
 		return fmt.Errorf("store must have a non-empty qualified resource")
 	}
 	if store.NewFunc == nil {

@@ -290,7 +290,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	}
 
 	gr := unversioned.ParseGroupResource(args[0])
-	if gr.IsEmpty() {
+	if gr.Empty() {
 		return fmt.Errorf("unknown resource argument")
 	}
 
