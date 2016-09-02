@@ -55,7 +55,7 @@ class OriginBuilder(Builder):
             )
             # Custom Openshift v3 stuff follows, everything above is the standard
             # builder
-            
+
             ## Fixup os_git_vars
             cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_COMMIT}'
             os_git_commit = run_command("bash -c '{0}'".format(cmd))
@@ -70,7 +70,7 @@ class OriginBuilder(Builder):
             print("OS_GIT_MAJOR::{0}".format(os_git_major))
             print("OS_GIT_MINOR::{0}".format(os_git_minor))
             update_os_git_vars = \
-                    "sed -i 's|^%global os_git_vars .*$|%global os_git_vars OS_GIT_VERSION={0} OS_GIT_COMMIT={1} OS_GIT_MAJOR={2} OS_GIT_MINOR={3}|' {4}".format(
+                    "sed -i 's|^%global os_git_vars .*$|%global os_git_vars OS_GIT_TREE_STATE='clean' OS_GIT_VERSION={0} OS_GIT_COMMIT={1} OS_GIT_MAJOR={2} OS_GIT_MINOR={3}|' {4}".format(
                         os_git_version,
                         os_git_commit,
                         os_git_major,
