@@ -47,7 +47,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kerrs.NewBadRequest("invalid type")
 	}
-	Strategy.PrepareForCreate(mapping)
+	Strategy.PrepareForCreate(ctx, mapping)
 	createdMapping, _, err := s.createOrUpdate(ctx, obj, true)
 	return createdMapping, err
 }
@@ -64,7 +64,7 @@ func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectI
 	if !ok {
 		return nil, false, kerrs.NewBadRequest("invalid type")
 	}
-	Strategy.PrepareForUpdate(mapping, nil)
+	Strategy.PrepareForUpdate(ctx, mapping, nil)
 	return s.createOrUpdate(ctx, mapping, false)
 }
 

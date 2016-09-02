@@ -22,7 +22,7 @@ func (s *strategy) NamespaceScoped() bool {
 	return false
 }
 
-func (s *strategy) PrepareForCreate(obj runtime.Object) {
+func (s *strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	signature := obj.(*imageapi.ImageSignature)
 
 	signature.Conditions = nil

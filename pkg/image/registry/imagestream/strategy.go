@@ -56,7 +56,7 @@ func (s Strategy) NamespaceScoped() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation,
 // and verifies the current user is authorized to access any image streams newly referenced
 // in spec.tags.
-func (s Strategy) PrepareForCreate(obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
 	stream.Status = api.ImageStreamStatus{
 		DockerImageRepository: s.dockerImageRepository(stream),
@@ -481,7 +481,7 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	ensureSpecTagGenerationsAreSet(stream, oldStream)
 }
 
-func (s Strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s Strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	s.prepareForUpdate(obj, old, true)
 }
 
@@ -532,7 +532,7 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 func (StatusStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (StatusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	oldStream := old.(*api.ImageStream)
 	stream := obj.(*api.ImageStream)
 
@@ -588,7 +588,7 @@ func NewInternalStrategy(strategy Strategy) InternalStrategy {
 func (InternalStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s InternalStrategy) PrepareForCreate(obj runtime.Object) {
+func (s InternalStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
 
 	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
@@ -599,6 +599,6 @@ func (s InternalStrategy) PrepareForCreate(obj runtime.Object) {
 	}
 }
 
-func (s InternalStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s InternalStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	s.prepareForUpdate(obj, old, false)
 }

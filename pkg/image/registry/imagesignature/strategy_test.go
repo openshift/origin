@@ -55,6 +55,7 @@ func fuzzImageSignature(t *testing.T, signature *api.ImageSignature, seed int64)
 }
 
 func TestStrategyPrepareForCreate(t *testing.T) {
+	ctx := kapi.NewDefaultContext()
 	signature := &api.ImageSignature{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "image",
@@ -64,7 +65,7 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 	seed := int64(2703387474910584091) //rand.Int63()
 	signature = fuzzImageSignature(t, signature, seed)
 
-	Strategy.PrepareForCreate(signature)
+	Strategy.PrepareForCreate(ctx, signature)
 
 	sValue := reflect.ValueOf(signature).Elem()
 	typeOfT := sValue.Type()

@@ -43,12 +43,12 @@ func (s strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	_ = obj.(*authorizationapi.Role)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	_ = obj.(*authorizationapi.Role)
 }
 

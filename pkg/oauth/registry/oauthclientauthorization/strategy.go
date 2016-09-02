@@ -27,7 +27,7 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -41,7 +41,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }

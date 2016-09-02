@@ -23,7 +23,7 @@ type enpStrategy struct {
 // objects via the REST API.
 var Strategy = enpStrategy{kapi.Scheme}
 
-func (enpStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (enpStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is true for egress network policy
 func (enpStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (enpStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (enpStrategy) PrepareForCreate(obj runtime.Object) {
+func (enpStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.

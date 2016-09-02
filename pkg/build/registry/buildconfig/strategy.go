@@ -37,7 +37,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	bc := obj.(*api.BuildConfig)
 	dropUnknownTriggers(bc)
 }
@@ -47,7 +47,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newBC := obj.(*api.BuildConfig)
 	oldBC := old.(*api.BuildConfig)
 	dropUnknownTriggers(newBC)

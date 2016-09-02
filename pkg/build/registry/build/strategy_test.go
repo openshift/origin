@@ -40,7 +40,7 @@ func TestBuildStrategy(t *testing.T) {
 			},
 		},
 	}
-	Strategy.PrepareForCreate(build)
+	Strategy.PrepareForCreate(ctx, build)
 	if len(build.Status.Phase) == 0 || build.Status.Phase != buildapi.BuildPhaseNew {
 		t.Errorf("Build phase is not New")
 	}

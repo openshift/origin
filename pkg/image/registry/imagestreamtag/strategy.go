@@ -27,7 +27,7 @@ func (s *strategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s *strategy) PrepareForCreate(obj runtime.Object) {
+func (s *strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	newIST := obj.(*api.ImageStreamTag)
 
 	newIST.Conditions = nil
@@ -56,7 +56,7 @@ func (*strategy) AllowUnconditionalUpdate() bool {
 func (strategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s *strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s *strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newIST := obj.(*api.ImageStreamTag)
 	oldIST := old.(*api.ImageStreamTag)
 

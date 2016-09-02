@@ -23,7 +23,7 @@ type sdnStrategy struct {
 // objects via the REST API.
 var Strategy = sdnStrategy{kapi.Scheme}
 
-func (sdnStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (sdnStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for sdns
 func (sdnStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (sdnStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (sdnStrategy) PrepareForCreate(obj runtime.Object) {
+func (sdnStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.

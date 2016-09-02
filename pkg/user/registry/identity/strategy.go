@@ -23,7 +23,7 @@ type identityStrategy struct {
 // objects via the REST API.
 var Strategy = identityStrategy{kapi.Scheme}
 
-func (identityStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (identityStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
 func (identityStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (identityStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (identityStrategy) PrepareForCreate(obj runtime.Object) {
+func (identityStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	identity := obj.(*api.Identity)
 	identity.Name = identityName(identity.ProviderName, identity.ProviderUserName)
 }

@@ -36,13 +36,13 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	quota := obj.(*quotaapi.ClusterResourceQuota)
 	quota.Status = quotaapi.ClusterResourceQuotaStatus{}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	curr := obj.(*quotaapi.ClusterResourceQuota)
 	prev := old.(*quotaapi.ClusterResourceQuota)
 
@@ -98,10 +98,10 @@ func (statusStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (statusStrategy) PrepareForCreate(obj runtime.Object) {
+func (statusStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
-func (statusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (statusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	curr := obj.(*quotaapi.ClusterResourceQuota)
 	prev := old.(*quotaapi.ClusterResourceQuota)
 

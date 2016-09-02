@@ -23,7 +23,7 @@ type groupStrategy struct {
 // objects via the REST API.
 var Strategy = groupStrategy{kapi.Scheme}
 
-func (groupStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (groupStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for groups
 func (groupStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (groupStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (groupStrategy) PrepareForCreate(obj runtime.Object) {
+func (groupStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Validate validates a new group

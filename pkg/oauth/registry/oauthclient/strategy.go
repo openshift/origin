@@ -22,7 +22,7 @@ type strategy struct {
 // objects via the REST API.
 var Strategy = strategy{kapi.Scheme}
 
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for OAuth objects
 func (strategy) NamespaceScoped() bool {
@@ -33,7 +33,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.

@@ -28,7 +28,7 @@ func (strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -59,7 +59,7 @@ func (binaryStrategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (binaryStrategy) PrepareForCreate(obj runtime.Object) {
+func (binaryStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.

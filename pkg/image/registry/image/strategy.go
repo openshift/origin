@@ -32,7 +32,7 @@ func (imageStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 // It extracts the latest information from the manifest (if available) and sets that onto the object.
-func (s imageStrategy) PrepareForCreate(obj runtime.Object) {
+func (s imageStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	newImage := obj.(*api.Image)
 	// ignore errors, change in place
 	if err := api.ImageWithMetadata(newImage); err != nil {
@@ -66,7 +66,7 @@ func (imageStrategy) Canonicalize(obj runtime.Object) {
 // It extracts the latest info from the manifest and sets that on the object. It allows a user
 // to update the manifest so that it matches the digest (in case an older server stored a manifest
 // that was malformed, it can always be corrected).
-func (s imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s imageStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newImage := obj.(*api.Image)
 	oldImage := old.(*api.Image)
 
