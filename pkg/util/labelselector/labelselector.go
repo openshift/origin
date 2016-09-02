@@ -339,7 +339,7 @@ func Equals(labels1, labels2 map[string]string) bool {
 	return true
 }
 
-const qualifiedNameErrorMsg string = "must match regex [" + kvalidation.DNS1123SubdomainFmt + " / ] " + kvalidation.DNS1123LabelFmt
+const qualifiedNameErrorMsg string = "must match format [ DNS 1123 subdomain / ] DNS 1123 label"
 
 func validateLabelKey(k string) error {
 	if len(kvalidation.IsQualifiedName(k)) != 0 {
