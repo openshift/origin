@@ -645,6 +645,20 @@ func DifferentTagEvent(stream *ImageStream, tag string, next TagEvent) bool {
 	return !(sameRef && sameImage)
 }
 
+// DifferentTagEvent compares the generation on tag's spec vs its status.
+// Returns if spec generation is newer than status one.
+func DifferentTagGeneration(stream *ImageStream, tag string) bool {
+	specTag, ok := stream.Spec.Tags[tag]
+	if !ok || specTag.Generation == nil {
+		return true
+	}
+	statusTag, ok := stream.Status.Tags[tag]
+	if !ok || len(statusTag.Items) == 0 {
+		return true
+	}
+	return *specTag.Generation > statusTag.Items[0].Generation
+}
+
 // AddTagEventToImageStream attempts to update the given image stream with a tag event. It will
 // collapse duplicate entries - returning true if a change was made or false if no change
 // occurred. Any successful tag resets the status field.

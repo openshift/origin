@@ -174,7 +174,6 @@ type LocalQuota struct {
 // NodeNetworkConfig provides network options for the node
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
-	// Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.
 	NetworkPluginName string
 	// Maximum transmission unit for the network packets
 	MTU uint32

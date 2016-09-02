@@ -46,10 +46,11 @@ func NewDeploymentTriggerController(dcInformer, streamInformer framework.SharedI
 	})
 	c.dcStoreSynced = dcInformer.HasSynced
 
-	streamInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
-		AddFunc:    c.addImageStream,
-		UpdateFunc: c.updateImageStream,
-	})
+	// TODO: Re-enable in https://github.com/openshift/origin/pull/9349
+	// streamInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+	// AddFunc:    c.addImageStream,
+	// UpdateFunc: c.updateImageStream,
+	// })
 
 	return c
 }

@@ -80,7 +80,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 		args.Components.Bind(flags, prefix+"%s", "The set of node components to")
 	}
 
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend uname -n
@@ -97,7 +97,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 func BindNodeNetworkArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	args.Components.Bind(flags, "%s", "The set of network components to")
 
-	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods. Optional for OpenShift network plugin, node will auto detect network plugin configured by OpenShift master.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.

@@ -135,8 +135,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, fmt.Errorf("cannot parse node port: %v", err)
 	}
 
-	options.NetworkConfig.NetworkPluginName, err = validateAndGetNetworkPluginName(originClient, options.NetworkConfig.NetworkPluginName)
-	if err != nil {
+	if err = validateNetworkPluginName(originClient, options.NetworkConfig.NetworkPluginName); err != nil {
 		return nil, err
 	}
 
@@ -419,31 +418,24 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	return proxyconfig, nil
 }
 
-func validateAndGetNetworkPluginName(originClient *osclient.Client, pluginName string) (string, error) {
+func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
 	if sdnplugin.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
 		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
 		if kerrs.IsNotFound(err) {
-			return "", fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
+			return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
 		} else if err != nil {
-			return "", fmt.Errorf("cannot fetch %q cluster network: %v", sdnapi.ClusterNetworkDefault, err)
+			return fmt.Errorf("cannot fetch %q cluster network: %v", sdnapi.ClusterNetworkDefault, err)
 		}
 
 		if clusterNetwork.PluginName != strings.ToLower(pluginName) {
 			if len(clusterNetwork.PluginName) != 0 {
-				return "", fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
+				return fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
 			} else {
 				// Do not return error in this case
 				glog.Warningf(`either there is network plugin mismatch between OpenShift node(%q) and master or OpenShift master is running an older version where we did not persist plugin name`, pluginName)
 			}
 		}
-	} else if pluginName == "" {
-		// Auto detect network plugin configured by master
-		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
-		if err == nil {
-			return clusterNetwork.PluginName, nil
-		}
 	}
-
-	return pluginName, nil
+	return nil
 }
