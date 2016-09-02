@@ -22,11 +22,8 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 
 }
 
-func addDefaultingFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
+func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddDefaultingFuncs(
 		SetDefaults_ImagePolicyConfig,
 	)
-	if err != nil {
-		panic(err)
-	}
 }

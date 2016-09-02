@@ -8,15 +8,16 @@ import (
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 
-func AddToScheme(scheme *runtime.Scheme) {
-	addKnownTypes(scheme)
-	addDefaultingFuncs(scheme)
-}
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addDefaultingFuncs)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
 
-func addKnownTypes(scheme *runtime.Scheme) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&PodNodeConstraintsConfig{},
 	)
+	return nil
 }
 
 func (obj *PodNodeConstraintsConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

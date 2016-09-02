@@ -7,28 +7,29 @@ import (
 	"github.com/openshift/origin/pkg/oauth/api"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) {
+func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthAccessToken",
 		oapi.GetFieldLabelConversionFunc(api.OAuthAccessTokenToSelectableFields(&api.OAuthAccessToken{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthAuthorizeToken",
 		oapi.GetFieldLabelConversionFunc(api.OAuthAuthorizeTokenToSelectableFields(&api.OAuthAuthorizeToken{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthClient",
 		oapi.GetFieldLabelConversionFunc(api.OAuthClientToSelectableFields(&api.OAuthClient{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthClientAuthorization",
 		oapi.GetFieldLabelConversionFunc(api.OAuthClientAuthorizationToSelectableFields(&api.OAuthClientAuthorization{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }

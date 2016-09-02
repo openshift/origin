@@ -8,16 +8,17 @@ import (
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 
-func AddToScheme(scheme *runtime.Scheme) {
-	addKnownTypes(scheme)
-	addConversionFuncs(scheme)
-}
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
 
 // Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&RunOnceDurationConfig{},
 	)
+	return nil
 }
 
 func (obj *RunOnceDurationConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

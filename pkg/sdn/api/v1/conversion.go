@@ -7,28 +7,29 @@ import (
 	"github.com/openshift/origin/pkg/sdn/api"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) {
+func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterNetwork",
 		oapi.GetFieldLabelConversionFunc(api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "HostSubnet",
 		oapi.GetFieldLabelConversionFunc(api.HostSubnetToSelectableFields(&api.HostSubnet{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "NetNamespace",
 		oapi.GetFieldLabelConversionFunc(api.NetNamespaceToSelectableFields(&api.NetNamespace{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "EgressNetworkPolicy",
 		oapi.GetFieldLabelConversionFunc(api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
