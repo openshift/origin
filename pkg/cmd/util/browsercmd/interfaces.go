@@ -16,16 +16,16 @@ type client interface {
 	HandleData(data *osincli.AuthorizeData) error
 	HandleSuccess(w http.ResponseWriter, req *http.Request)
 	HandleError(err error, w http.ResponseWriter, req *http.Request)
-	GetData() (*osincli.AccessData, error)
+	GetData() (data *osincli.AccessData, err error)
 }
 
 type state interface {
-	GenerateState() string
-	CheckState(data *osincli.AuthorizeData) bool
+	GenerateState() (state string)
+	CheckState(data *osincli.AuthorizeData) (ok bool)
 }
 
 type Server interface {
-	Start(ch CreateHandler) (Handler, string, error)
+	Start(ch CreateHandler) (h Handler, port string, err error)
 	Stop() error
 }
 
@@ -34,5 +34,5 @@ type Browser interface {
 }
 
 type CreateHandler interface {
-	Create(port string) (Handler, error)
+	Create(port string) (h Handler, err error)
 }
