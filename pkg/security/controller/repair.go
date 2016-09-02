@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/registry/service"
+	"k8s.io/kubernetes/pkg/registry/rangeallocation"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
@@ -25,13 +25,13 @@ import (
 type Repair struct {
 	interval time.Duration
 	client   client.NamespaceInterface
-	alloc    service.RangeRegistry
+	alloc    rangeallocation.RangeRegistry
 	uidRange *uid.Range
 }
 
 // NewRepair creates a controller that periodically ensures that all UIDs labels that are allocated in the cluster
 // are claimed.
-func NewRepair(interval time.Duration, client client.NamespaceInterface, uidRange *uid.Range, alloc service.RangeRegistry) *Repair {
+func NewRepair(interval time.Duration, client client.NamespaceInterface, uidRange *uid.Range, alloc rangeallocation.RangeRegistry) *Repair {
 	return &Repair{
 		interval: interval,
 		client:   client,
