@@ -178,6 +178,56 @@ func TestImageStreamsTop(t *testing.T) {
 				},
 			},
 		},
+		"multiple images with manifest config": {
+			images: &imageapi.ImageList{
+				Items: []imageapi.Image{
+					{
+						ObjectMeta:        kapi.ObjectMeta{Name: "image1"},
+						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
+						DockerImageConfig: "raw image config",
+						DockerImageMetadata: imageapi.DockerImage{
+							ID: "manifestConfigID",
+						},
+					},
+					{
+						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+						DockerImageLayers: []imageapi.ImageLayer{
+							{Name: "layer1", LayerSize: int64(1024)},
+							{Name: "layer2", LayerSize: int64(128)},
+						},
+						DockerImageConfig: "raw image config",
+						DockerImageMetadata: imageapi.DockerImage{
+							ID: "manifestConfigID",
+						},
+					},
+				},
+			},
+			streams: &imageapi.ImageStreamList{
+				Items: []imageapi.ImageStream{
+					{
+						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						Status: imageapi.ImageStreamStatus{
+							Tags: map[string]imageapi.TagEventList{
+								"tag1": {
+									Items: []imageapi.TagEvent{{Image: "image1"}},
+								},
+								"tag2": {
+									Items: []imageapi.TagEvent{{Image: "image2"}},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []Info{
+				imageStreamInfo{
+					ImageStream: "ns1/stream1",
+					Storage:     int64(1152 + len("raw image config")),
+					Images:      2,
+					Layers:      3,
+				},
+			},
+		},
 		"multiple unreferenced images": {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
