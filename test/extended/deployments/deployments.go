@@ -602,35 +602,48 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			_, err := oc.Run("create").Args("-f", historyLimitedDeploymentFixture).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred(),
+				"the current deployment needs to have finished before attempting to trigger a new deployment through configuration change")
 
 			iterations := 10
+			expectedNumberOfOldDeployments := 0
+			expectedMinimumHistoryRevision := 1
 			for i := 0; i < iterations; i++ {
-				o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred(),
-					"the current deployment needs to have finished before attempting to trigger a new deployment through configuration change")
+				if i < revisionHistoryLimit {
+					expectedNumberOfOldDeployments = i + 1
+				} else {
+					expectedNumberOfOldDeployments = revisionHistoryLimit
+					expectedMinimumHistoryRevision = i + 2 - revisionHistoryLimit
+				}
+
 				e2e.Logf("%02d: triggering a new deployment with config change", i)
 				out, err := oc.Run("set", "env").Args("dc/history-limit", fmt.Sprintf("A=%d", i)).Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(out).To(o.ContainSubstring("updated"))
+
+				o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred(),
+					"the current deployment needs to have finished before attempting to trigger a new deployment through configuration change")
+				o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, checkDeploymentConfigHasSynced)).NotTo(o.HaveOccurred(),
+					"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
+				deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				// sanity check to ensure that the following asertion on the amount of old deployments is valid
+				o.Expect(*deploymentConfig.Spec.RevisionHistoryLimit).To(o.Equal(int32(revisionHistoryLimit)))
+
+				// we need to filter out any deployments that we don't care about,
+				// namely the active deployment and any newer deployments
+				oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
+
+				// we should not have more deployments than acceptable
+				o.Expect(len(oldDeployments)).To(o.BeNumerically("==", expectedNumberOfOldDeployments))
+
+				// the deployments we continue to keep should be the latest ones
+				for _, deployment := range oldDeployments {
+					o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", int64(expectedMinimumHistoryRevision)))
+				}
+
 			}
 
-			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, checkDeploymentConfigHasSynced)).NotTo(o.HaveOccurred(),
-				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
-			deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			// sanity check to ensure that the following asertion on the amount of old deployments is valid
-			o.Expect(*deploymentConfig.Spec.RevisionHistoryLimit).To(o.Equal(int32(revisionHistoryLimit)))
-
-			// we need to filter out any deployments that we don't care about,
-			// namely the active deployment and any newer deployments
-			oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
-
-			// we should not have more deployments than acceptable
-			o.Expect(len(oldDeployments)).To(o.BeNumerically("==", revisionHistoryLimit))
-
-			// the deployments we continue to keep should be the latest ones
-			for _, deployment := range oldDeployments {
-				o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
-			}
 		})
 	})
 
