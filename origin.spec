@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit fc47d828cdde3ebcfbe0a80db55a79eca32fffe2
+%global commit 926bedb4f47d15c8e3124614d0819b348df4d18a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.28
+Version:        3.3.0.29
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,41 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Sep 02 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.29
+- The etc and dot is seprated (yu.peng36@zte.com.cn)
+- Add a Docker image that will be built separately to run observe
+  (ccoleman@redhat.com)
+- generated: Completions and doc (ccoleman@redhat.com)
+- Add an experimental observe command to handle changes to objects
+  (ccoleman@redhat.com)
+- UPSTREAM: 31714: Allow missing keys in jsonpath (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Tolerate node ExternalID changes with no cloud provider
+  (pmorie@redhat.com)
+- UPSTREAM: 31730: Make it possible to enable controller-managed attach-detach
+  on existing nodes (pmorie@redhat.com)
+- UPSTREAM: 31531: Add log message in Kuelet when controller attach/detach is
+  enabled (pmorie@redhat.com)
+- UPSTREAM: revert: 88abe47b9a963b41acd0c4f0fd18827192648468: <carry>: Tolerate
+  node ExternalID changes with no cloud provider (pmorie@redhat.com)
+- Bump origin-web-console (7d59453) (jforrest@redhat.com)
+- deploy: don't requeue configs on stream updates yet (mkargaki@redhat.com)
+- eg. should be e.g. (yu.peng36@zte.com.cn)
+- bump(k8s.io/kubernetes):52492b4bff99ef3b8ca617d385a3ff0612f9402d
+  (ccoleman@redhat.com)
+- Make the router data structures remove duplicates cleanly
+  (bbennett@redhat.com)
+- Generated man/docs for reverting plugin auto detection (rpenta@redhat.com)
+- Revert openshift sdn plugin auto detection on the node (rpenta@redhat.com)
+- Compare additionally generation when comparing ImageStreamTag status with
+  spec (maszulik@redhat.com)
+- extended: bump deployment timeout for test about tagging
+  (mkargaki@redhat.com)
+- suggest use of `oc get bc` on `oc start-build` error output
+  (jvallejo@redhat.com)
+- extended: require old deployments to be equal to the expected amount
+  (mkargaki@redhat.com)
+- delete unused function panicIfStopped (li.guangxu@zte.com.cn)
+
 * Wed Aug 31 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.28
 - remove unnecessary service account edit step (bparees@redhat.com)
 - Bump origin-web-console (39ffada) (jforrest@redhat.com)

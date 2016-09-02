@@ -147,6 +147,7 @@ oc-logs.1
 oc-new-app.1
 oc-new-build.1
 oc-new-project.1
+oc-observe.1
 oc-options.1
 oc-patch.1
 oc-policy-add-role-to-group.1

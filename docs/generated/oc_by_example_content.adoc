@@ -1837,6 +1837,23 @@ Request a new project
 ====
 
 
+== oc observe
+Observe changes to resources and react to them (experimental)
+
+====
+
+[options="nowrap"]
+----
+	# observe changes to services
+	oc observe services
+
+	# observe changes to services, including the clusterIP and invoke a script for each
+	oc observe services -a '{ .spec.clusterIP }' -- register_dns.sh
+
+----
+====
+
+
 == oc patch
 Update field(s) of a resource using strategic merge patch.
 

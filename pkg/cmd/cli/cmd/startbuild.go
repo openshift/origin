@@ -84,7 +84,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, in, out, cmd, args))
+			kcmdutil.CheckErr(o.Complete(f, in, out, cmd, fullName, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -144,7 +144,7 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string) error {
+func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
 	o.In = in
 	o.Out = out
 	o.ErrOut = cmd.OutOrStderr()
@@ -173,7 +173,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.
 		return nil
 
 	case len(args) != 1 && len(buildName) == 0:
-		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
+		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
 	}
 
 	if len(buildName) != 0 && (len(fromFile) != 0 || len(fromDir) != 0 || len(fromRepo) != 0) {

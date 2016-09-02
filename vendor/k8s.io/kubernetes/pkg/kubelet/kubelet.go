@@ -1029,9 +1029,9 @@ func (kl *Kubelet) getActivePods() []*api.Pod {
 	return activePods
 }
 
-// initialNodeStatus determines the initial node status, incorporating node
-// labels and information from the cloud provider.
-func (kl *Kubelet) initialNodeStatus() (*api.Node, error) {
+// initialNode constructs the initial api.Node for this Kubelet, incorporating node
+// labels, information from the cloud provider, and Kubelet configuration.
+func (kl *Kubelet) initialNode() (*api.Node, error) {
 	node := &api.Node{
 		ObjectMeta: api.ObjectMeta{
 			Name: kl.nodeName,
@@ -1061,7 +1061,10 @@ func (kl *Kubelet) initialNodeStatus() (*api.Node, error) {
 			node.Annotations = make(map[string]string)
 		}
 
+		glog.Infof("Setting node annotation to enable volume controller attach/detach")
 		node.Annotations[volumehelper.ControllerManagedAttachAnnotation] = "true"
+	} else {
+		glog.Infof("Controller attach/detach is disabled for this node; Kubelet will attach and detach volumes")
 	}
 
 	// @question: should this be place after the call to the cloud provider? which also applies labels
@@ -1148,14 +1151,15 @@ func (kl *Kubelet) providerRequiresNetworkingConfiguration() bool {
 	return supported
 }
 
-// registerWithApiserver registers the node with the cluster master. It is safe
+// registerWithApiServer registers the node with the cluster master. It is safe
 // to call multiple times, but not concurrently (kl.registrationCompleted is
 // not locked).
-func (kl *Kubelet) registerWithApiserver() {
+func (kl *Kubelet) registerWithApiServer() {
 	if kl.registrationCompleted {
 		return
 	}
 	step := 100 * time.Millisecond
+
 	for {
 		time.Sleep(step)
 		step = step * 2
@@ -1163,63 +1167,134 @@ func (kl *Kubelet) registerWithApiserver() {
 			step = 7 * time.Second
 		}
 
-		node, err := kl.initialNodeStatus()
+		node, err := kl.initialNode()
 		if err != nil {
 			glog.Errorf("Unable to construct api.Node object for kubelet: %v", err)
 			continue
 		}
 
-		glog.V(2).Infof("Attempting to register node %s", node.Name)
-		if _, err := kl.kubeClient.Core().Nodes().Create(node); err != nil {
-			if !apierrors.IsAlreadyExists(err) {
-				glog.V(2).Infof("Unable to register %s with the apiserver: %v", node.Name, err)
-				continue
+		glog.Infof("Attempting to register node %s", node.Name)
+		registered := kl.tryRegisterWithApiServer(node)
+		if registered {
+			glog.Infof("Successfully registered node %s", node.Name)
+			kl.registrationCompleted = true
+			return
+		}
+	}
+}
+
+// tryRegisterWithApiServer makes an attempt to register the given node with
+// the API server, returning a boolean indicating whether the attempt was
+// successful.  If a node with the same name already exists, it reconciles the
+// value of the annotation for controller-managed attach-detach of attachable
+// persistent volumes for the node.  If a node of the same name exists but has
+// a different externalID value, it attempts to delete that node so that a
+// later attempt can recreate it.
+func (kl *Kubelet) tryRegisterWithApiServer(node *api.Node) bool {
+	_, err := kl.kubeClient.Core().Nodes().Create(node)
+	if err == nil {
+		return true
+	}
+
+	if !apierrors.IsAlreadyExists(err) {
+		glog.Errorf("Unable to register node %q with API server: %v", kl.nodeName, err)
+		return false
+	}
+
+	existingNode, err := kl.kubeClient.Core().Nodes().Get(kl.nodeName)
+	if err != nil {
+		glog.Errorf("Unable to register node %q with API server: error getting existing node: %v", kl.nodeName, err)
+		return false
+	}
+	if existingNode == nil {
+		glog.Errorf("Unable to register node %q with API server: no node instance returned", kl.nodeName)
+		return false
+	}
+
+	if existingNode.Spec.ExternalID == node.Spec.ExternalID {
+		glog.Infof("Node %s was previously registered", kl.nodeName)
+
+		// Edge case: the node was previously registered; reconcile
+		// the value of the controller-managed attach-detach
+		// annotation.
+		requiresUpdate := kl.reconcileCMADAnnotationWithExistingNode(node, existingNode)
+		if requiresUpdate {
+			if _, err := kl.kubeClient.Core().Nodes().Update(existingNode); err != nil {
+				glog.Errorf("Unable to reconcile node %q with API server: error updating node: %v", kl.nodeName, err)
+				return false
 			}
-			currentNode, err := kl.kubeClient.Core().Nodes().Get(kl.nodeName)
-			if err != nil {
-				glog.Errorf("error getting node %q: %v", kl.nodeName, err)
-				continue
-			}
-			if currentNode == nil {
-				glog.Errorf("no node instance returned for %q", kl.nodeName)
-				continue
-			}
-			if currentNode.Spec.ExternalID == node.Spec.ExternalID {
+		}
+
+		return true
+	}
+
+	if kl.cloud == nil {
+		// In the case where we're not using a cloud provider, the ExternalID could either have
+		// been the NodeIP, or the actual hostname.  If we switch between the two, consider it
+		// ok to keep using that value.
+
+		for _, addr := range existingNode.Status.Addresses {
+			if existingNode.Spec.ExternalID == addr.Address {
+				glog.Warningf("Node %s was previously registered with an external ID of %q, but if recreated would use an external ID of its hostname %q", node.Name, existingNode.Spec.ExternalID, node.Spec.ExternalID)
 				glog.Infof("Node %s was previously registered", node.Name)
-				kl.registrationCompleted = true
-				return
-			}
 
-			if kl.cloud == nil {
-				// In the case where we're not using a cloud provider, the ExternalID could either have
-				// been the NodeIP, or the actual hostname.  If we switch between the two, consider it
-				// ok to keep using that value.
-
-				for _, addr := range currentNode.Status.Addresses {
-					if currentNode.Spec.ExternalID == addr.Address {
-						glog.Warningf("Node %s was previously registered with an external ID of %q, but if recreated would use an external ID of its hostname %q", node.Name, currentNode.Spec.ExternalID, node.Spec.ExternalID)
-						glog.Infof("Node %s was previously registered", node.Name)
-						kl.registrationCompleted = true
-						return
+				// Similarly to above, we must reconcile the value of the
+				// controller-managed attach detach annotation for this node.
+				requiresUpdate := kl.reconcileCMADAnnotationWithExistingNode(node, existingNode)
+				if requiresUpdate {
+					if _, err := kl.kubeClient.Core().Nodes().Update(existingNode); err != nil {
+						glog.Errorf("Unable to reconcile node %q with API server: error updating node: %v", kl.nodeName, err)
+						return false
 					}
 				}
+
+				return true
 			}
 
-			glog.Errorf(
-				"Previously %q had externalID %q; now it is %q; will delete and recreate.",
-				kl.nodeName, node.Spec.ExternalID, currentNode.Spec.ExternalID,
-			)
-			if err := kl.kubeClient.Core().Nodes().Delete(node.Name, nil); err != nil {
-				glog.Errorf("Unable to delete old node: %v", err)
-			} else {
-				glog.Errorf("Deleted old node object %q", kl.nodeName)
-			}
-			continue
 		}
-		glog.Infof("Successfully registered node %s", node.Name)
-		kl.registrationCompleted = true
-		return
 	}
+
+	glog.Errorf(
+		"Previously node %q had externalID %q; now it is %q; will delete and recreate.",
+		kl.nodeName, node.Spec.ExternalID, existingNode.Spec.ExternalID,
+	)
+	if err := kl.kubeClient.Core().Nodes().Delete(node.Name, nil); err != nil {
+		glog.Errorf("Unable to register node %q with API server: error deleting old node: %v", kl.nodeName, err)
+		return false
+	} else {
+		glog.Info("Deleted old node object %q", kl.nodeName)
+		return false
+	}
+}
+
+// reconcileCMADAnnotationWithExistingNode reconciles the controller-managed
+// attach-detach annotation on a new node and the existing node, returning
+// whether the existing node must be updated.
+func (kl *Kubelet) reconcileCMADAnnotationWithExistingNode(node, existingNode *api.Node) bool {
+	var (
+		existingCMAAnnotation    = existingNode.Annotations[volumehelper.ControllerManagedAttachAnnotation]
+		newCMAAnnotation, newSet = node.Annotations[volumehelper.ControllerManagedAttachAnnotation]
+	)
+
+	if newCMAAnnotation == existingCMAAnnotation {
+		return false
+	}
+
+	// If the just-constructed node and the existing node do
+	// not have the same value, update the existing node with
+	// the correct value of the annotation.
+	if !newSet {
+		glog.Info("Controller attach-detach setting changed to false; updating existing Node")
+		delete(existingNode.Annotations, volumehelper.ControllerManagedAttachAnnotation)
+	} else {
+		glog.Info("Controller attach-detach setting changed to true; updating existing Node")
+		if existingNode.Annotations == nil {
+			existingNode.Annotations = make(map[string]string)
+		}
+		existingNode.Annotations[volumehelper.ControllerManagedAttachAnnotation] = newCMAAnnotation
+	}
+
+	return true
 }
 
 // syncNodeStatus should be called periodically from a goroutine.
@@ -1231,7 +1306,7 @@ func (kl *Kubelet) syncNodeStatus() {
 	}
 	if kl.registerNode {
 		// This will exit immediately if it doesn't need to do anything.
-		kl.registerWithApiserver()
+		kl.registerWithApiServer()
 	}
 	if err := kl.updateNodeStatus(); err != nil {
 		glog.Errorf("Unable to update node status: %v", err)

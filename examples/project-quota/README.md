@@ -45,7 +45,7 @@ Applying a Project Quota
 Administrators may want to restrict how much of the cluster resources a given project may consume across
 all of its pods.  To do this, an administrator applies a quota to a project.  A quota lets the
 administrator set hard limits on the total amount of node resources (cpu, memory) and
-API resources (pods, services, etc) that a project may require.
+API resources (pods, services, etc.) that a project may require.
 
 Let's create a simple project that applies a basic quota where the total cpu usage across all pods cannot exceed 1 core and may not consume more than 750Mi of memory.
 
