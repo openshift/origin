@@ -2051,6 +2051,8 @@ _openshift_admin_diagnostics()
     local_nonpersistent_flags+=("--logspec=")
     flags+=("--master-config=")
     local_nonpersistent_flags+=("--master-config=")
+    flags+=("--network-logdir=")
+    local_nonpersistent_flags+=("--network-logdir=")
     flags+=("--node-config=")
     local_nonpersistent_flags+=("--node-config=")
     flags+=("--prevent-modification")
@@ -6646,6 +6648,8 @@ _openshift_cli_adm_diagnostics()
     local_nonpersistent_flags+=("--logspec=")
     flags+=("--master-config=")
     local_nonpersistent_flags+=("--master-config=")
+    flags+=("--network-logdir=")
+    local_nonpersistent_flags+=("--network-logdir=")
     flags+=("--node-config=")
     local_nonpersistent_flags+=("--node-config=")
     flags+=("--prevent-modification")
@@ -19997,6 +20001,30 @@ _openshift_infra_f5-router()
     noun_aliases=()
 }
 
+_openshift_infra_network-diagnostic-pod()
+{
+    last_command="openshift_infra_network-diagnostic-pod"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--diaglevel=")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--diaglevel=")
+    flags+=("--google-json-key=")
+    flags+=("--log-flush-frequency=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _openshift_infra_recycle()
 {
     last_command="openshift_infra_recycle"
@@ -20191,6 +20219,7 @@ _openshift_infra()
     commands+=("diagnostic-pod")
     commands+=("docker-build")
     commands+=("f5-router")
+    commands+=("network-diagnostic-pod")
     commands+=("recycle")
     commands+=("router")
     commands+=("sti-build")
