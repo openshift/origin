@@ -42,7 +42,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.OAuthAuthorizeToken).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 			return oauthauthorizetoken.Matcher(label, field)
 		},
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {

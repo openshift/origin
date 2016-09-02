@@ -35,7 +35,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Template).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 			return tregistry.Matcher(label, field)
 		},
 		QualifiedResource: api.Resource("templates"),

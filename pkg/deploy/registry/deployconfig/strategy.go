@@ -116,7 +116,7 @@ func (statusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) 
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 	return &generic.SelectionPredicate{
 		Label: label,
 		Field: field,

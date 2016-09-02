@@ -75,7 +75,7 @@ func makeStore(optsGetter restoptions.Getter) (*registry.Store, error) {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*quotaapi.ClusterResourceQuota).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 			return Matcher(label, field)
 		},
 

@@ -560,16 +560,24 @@ func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 	return errs
 }
 
-// MatchImageStream returns a generic matcher for a given label and field selector.
-func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		ir, ok := obj.(*api.ImageStream)
-		if !ok {
-			return false, fmt.Errorf("not an ImageStream")
-		}
-		fields := api.ImageStreamToSelectableFields(ir)
-		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
-	})
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.ImageStream)
+			if !ok {
+				return nil, nil, fmt.Errorf("not an ImageStream")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.ImageStream) fields.Set {
+	return api.ImageStreamToSelectableFields(obj)
 }
 
 // InternalStrategy implements behavior for updating both the spec and status

@@ -36,7 +36,7 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*RE
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Route).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 			return rest.Matcher(label, field)
 		},
 		QualifiedResource: api.Resource("routes"),

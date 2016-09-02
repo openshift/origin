@@ -81,14 +81,22 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-// Matchtoken returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		tokenObj, ok := obj.(*api.OAuthAuthorizeToken)
-		if !ok {
-			return false, fmt.Errorf("not a token")
-		}
-		fields := api.OAuthAuthorizeTokenToSelectableFields(tokenObj)
-		return label.Matches(labels.Set(tokenObj.Labels)) && field.Matches(fields), nil
-	})
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.OAuthAuthorizeToken)
+			if !ok {
+				return nil, nil, fmt.Errorf("not a OAuthAuthorizeToken")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.OAuthAuthorizeToken) fields.Set {
+	return api.OAuthAuthorizeTokenToSelectableFields(obj)
 }
