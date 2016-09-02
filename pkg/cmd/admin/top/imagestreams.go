@@ -144,7 +144,7 @@ func getImageStreamSize(g graph.Graph, node *imagegraph.ImageStreamNode) (int64,
 	storage := int64(0)
 	images := len(imageEdges)
 	layers := 0
-	layerSet := sets.NewString()
+	blobSet := sets.NewString()
 	for _, e := range imageEdges {
 		imageNode, ok := e.To().(*imagegraph.ImageNode)
 		if !ok {
@@ -154,11 +154,15 @@ func getImageStreamSize(g graph.Graph, node *imagegraph.ImageStreamNode) (int64,
 		layers += len(image.DockerImageLayers)
 		// we're counting only unique layers per the entire stream
 		for _, layer := range image.DockerImageLayers {
-			if layerSet.Has(layer.Name) {
+			if blobSet.Has(layer.Name) {
 				continue
 			}
-			layerSet.Insert(layer.Name)
+			blobSet.Insert(layer.Name)
 			storage += layer.LayerSize
+		}
+		if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
+			blobSet.Insert(image.DockerImageMetadata.ID)
+			storage += int64(len(image.DockerImageConfig))
 		}
 	}
 

@@ -452,7 +452,7 @@ func (r *repository) signedManifestFillImageMetadata(manifest *schema1.SignedMan
 
 	refs := manifest.References()
 
-	layerSet := sets.NewString()
+	blobSet := sets.NewString()
 	image.DockerImageMetadata.Size = int64(0)
 
 	blobs := r.Blobs(r.ctx)
@@ -473,10 +473,14 @@ func (r *repository) signedManifestFillImageMetadata(manifest *schema1.SignedMan
 		}
 		layer.LayerSize = desc.Size
 		// count empty layer just once (empty layer may actually have non-zero size)
-		if !layerSet.Has(layer.Name) {
+		if !blobSet.Has(layer.Name) {
 			image.DockerImageMetadata.Size += desc.Size
-			layerSet.Insert(layer.Name)
+			blobSet.Insert(layer.Name)
 		}
+	}
+	if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
+		blobSet.Insert(image.DockerImageMetadata.ID)
+		image.DockerImageMetadata.Size += int64(len(image.DockerImageConfig))
 	}
 
 	return nil

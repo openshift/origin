@@ -545,5 +545,12 @@ os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}
 os::cmd::expect_success_and_text "curl -I -u 'schema2-user:${schema2_user_token}' -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' ${DOCKER_REGISTRY}/v2/schema2tagged/busybox/manifests/latest" "Docker-Content-Digest:\s*${busybox_name}"
 echo "[INFO] Manifest V2 schema 2 successfully converted to schema 1"
 
+echo "[INFO] Verify image size calculation"
+busybox_expected_size=$(oc get -o jsonpath='{.dockerImageManifest}' image ${busybox_name} --context="${CLUSTER_ADMIN_CONTEXT}" | jq -r '[.. | .size?] | add')
+busybox_calculated_size=$(oc get -o go-template='{{.dockerImageMetadata.Size}}' image ${busybox_name} --context="${CLUSTER_ADMIN_CONTEXT}")
+os::cmd::expect_success_and_text "echo ${busybox_expected_size:-}:${busybox_calculated_size:-}" '^[1-9][0-9]*:[1-9][0-9]*$'
+os::cmd::expect_success_and_text "echo '${busybox_expected_size}'" "${busybox_calculated_size}"
+echo "[INFO] Image size matches"
+
 os::test::junit::declare_suite_end
 unset VERBOSE

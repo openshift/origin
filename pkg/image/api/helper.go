@@ -552,8 +552,8 @@ func ImageWithMetadata(image *Image) error {
 		image.DockerImageMetadata.Architecture = config.Architecture
 		image.DockerImageMetadata.Size = int64(len(image.DockerImageConfig))
 
+		layerSet := sets.NewString(image.DockerImageMetadata.ID)
 		if len(image.DockerImageLayers) > 0 {
-			layerSet := sets.NewString()
 			for _, layer := range image.DockerImageLayers {
 				if layerSet.Has(layer.Name) {
 					continue
@@ -561,8 +561,6 @@ func ImageWithMetadata(image *Image) error {
 				layerSet.Insert(layer.Name)
 				image.DockerImageMetadata.Size += layer.LayerSize
 			}
-		} else {
-			image.DockerImageMetadata.Size += config.Size
 		}
 	default:
 		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)

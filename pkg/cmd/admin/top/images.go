@@ -175,13 +175,17 @@ func (o TopImagesOptions) imagesTop() []Info {
 
 func getStorage(image *imageapi.Image) int64 {
 	storage := int64(0)
-	layerSet := sets.NewString()
+	blobSet := sets.NewString()
 	for _, layer := range image.DockerImageLayers {
-		if layerSet.Has(layer.Name) {
+		if blobSet.Has(layer.Name) {
 			continue
 		}
-		layerSet.Insert(layer.Name)
+		blobSet.Insert(layer.Name)
 		storage += layer.LayerSize
+	}
+	if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
+		blobSet.Insert(image.DockerImageMetadata.ID)
+		storage += int64(len(image.DockerImageConfig))
 	}
 	return storage
 }
