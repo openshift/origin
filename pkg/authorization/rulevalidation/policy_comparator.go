@@ -1,6 +1,8 @@
 package rulevalidation
 
 import (
+	"strings"
+
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -46,21 +48,28 @@ func BreakdownRule(rule authorizationapi.PolicyRule) []authorizationapi.PolicyRu
 	subrules := []authorizationapi.PolicyRule{}
 
 	for _, group := range rule.APIGroups {
-		subrules = append(subrules, breadownRuleForGroup(group, rule)...)
+		subrules = append(subrules, breakdownRuleForGroup(group, rule)...)
 	}
 
 	// if no groups are present, then the default group is assumed.  Buidl the subrules, then strip the groups
 	if len(rule.APIGroups) == 0 {
-		for _, subrule := range breadownRuleForGroup("", rule) {
+		for _, subrule := range breakdownRuleForGroup("", rule) {
 			subrule.APIGroups = nil
 			subrules = append(subrules, subrule)
+		}
+	}
+
+	// nonResourceURLs depend only on verb/nonResourceURL pairs
+	for nonResourceURL := range rule.NonResourceURLs {
+		for verb := range rule.Verbs {
+			subrules = append(subrules, authorizationapi.PolicyRule{Verbs: sets.NewString(verb), NonResourceURLs: sets.NewString(nonResourceURL)})
 		}
 	}
 
 	return subrules
 }
 
-func breadownRuleForGroup(group string, rule authorizationapi.PolicyRule) []authorizationapi.PolicyRule {
+func breakdownRuleForGroup(group string, rule authorizationapi.PolicyRule) []authorizationapi.PolicyRule {
 	subrules := []authorizationapi.PolicyRule{}
 
 	for resource := range authorizationapi.NormalizeResources(rule.Resources) {
@@ -73,7 +82,6 @@ func breadownRuleForGroup(group string, rule authorizationapi.PolicyRule) []auth
 			} else {
 				subrules = append(subrules, authorizationapi.PolicyRule{APIGroups: []string{group}, Resources: sets.NewString(resource), Verbs: sets.NewString(verb)})
 			}
-
 		}
 	}
 
@@ -98,5 +106,35 @@ func ruleCovers(ownerRule, subrule authorizationapi.PolicyRule) bool {
 		resourceNameMatches = (len(ownerRule.ResourceNames) == 0) || ownerRule.ResourceNames.HasAll(subrule.ResourceNames.List()...)
 	}
 
-	return verbMatches && resourceMatches && resourceNameMatches && groupMatches
+	nonResourceCovers := nonResourceRuleCovers(ownerRule.NonResourceURLs, subrule.NonResourceURLs)
+
+	return verbMatches && resourceMatches && resourceNameMatches && groupMatches && nonResourceCovers
+}
+
+func nonResourceRuleCovers(allowedPaths sets.String, requestedPaths sets.String) bool {
+	if allowedPaths.Has(authorizationapi.NonResourceAll) {
+		return true
+	}
+
+	for requestedPath := range requestedPaths {
+		// If we contain the exact path, we're good
+		if allowedPaths.Has(requestedPath) {
+			continue
+		}
+
+		// See if one of the rules has a wildcard that allows this path
+		prefixMatch := false
+		for allowedPath := range allowedPaths {
+			if strings.HasSuffix(allowedPath, "*") {
+				if strings.HasPrefix(requestedPath, allowedPath[0:len(allowedPath)-1]) {
+					return true
+				}
+			}
+		}
+		if !prefixMatch {
+			return false
+		}
+	}
+
+	return true
 }
