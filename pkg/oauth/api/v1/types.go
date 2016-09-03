@@ -84,7 +84,7 @@ type OAuthClient struct {
 	RespondWithChallenges bool `json:"respondWithChallenges,omitempty" protobuf:"varint,4,opt,name=respondWithChallenges"`
 
 	// RedirectURIs is the valid redirection URIs associated with a client
-	RedirectURIs []string `json:"redirectURIs,omitempty" protobuf:"bytes,5,rep,name=redirectURIs"`
+	RedirectURIs []string `json:"redirectURIs,omitempty" patchStrategy:"merge" protobuf:"bytes,5,rep,name=redirectURIs"`
 
 	// GrantMethod determines how to handle grants for this client. If no method is provided, the
 	// cluster default grant handling method will be used. Valid grant handling methods are:
