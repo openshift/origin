@@ -4096,13 +4096,17 @@ func TestTryRegisterWithApiServer(t *testing.T) {
 			// Return an existing (matching) node on get.
 			return true, tc.existingNode, tc.getError
 		})
-		kubeClient.AddReactor("update", "nodes", func(action core.Action) (bool, runtime.Object, error) {
-			return true, nil, tc.updateError
+		kubeClient.AddReactor("update", "*", func(action core.Action) (bool, runtime.Object, error) {
+			if action.GetResource().Resource == "nodes" && action.GetSubresource() == "status" {
+				return true, nil, tc.updateError
+			}
+			return true, nil, fmt.Errorf("no reaction implemented for %s", action)
 		})
 		kubeClient.AddReactor("delete", "nodes", func(action core.Action) (bool, runtime.Object, error) {
 			return true, nil, tc.deleteError
 		})
 		kubeClient.AddReactor("*", "*", func(action core.Action) (bool, runtime.Object, error) {
+			t.Logf("no reaction implemented for %s", action)
 			return true, nil, fmt.Errorf("no reaction implemented for %s", action)
 		})
 
