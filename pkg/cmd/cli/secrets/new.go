@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/spf13/cobra"
@@ -24,8 +24,8 @@ const (
 	newLong = `
 Create a new secret based on a file or directory
 
-Key files can be specified using their file path, in which case a default name will be given to them, or optionally 
-with a name and file path, in which case the given name will be used. Specifying a directory will create a secret 
+Key files can be specified using their file path, in which case a default name will be given to them, or optionally
+with a name and file path, in which case the given name will be used. Specifying a directory will create a secret
 using with all valid keys in that directory.
 `
 
@@ -261,8 +261,8 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 }
 
 func addKeyToSecret(keyName, filePath string, secretData map[string][]byte) error {
-	if !kvalidation.IsSecretKey(keyName) {
-		return fmt.Errorf("%v is not a valid key name for a secret", keyName)
+	if errors := kvalidation.IsConfigMapKey(keyName); len(errors) > 0 {
+		return fmt.Errorf("%v is not a valid key name for a secret: %s", keyName, strings.Join(errors, ", "))
 	}
 	if _, entryExists := secretData[keyName]; entryExists {
 		return fmt.Errorf("cannot add key %s from path %s, another key by that name already exists: %v.", keyName, filePath, secretData)
