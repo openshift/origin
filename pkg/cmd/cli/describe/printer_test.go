@@ -61,7 +61,7 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := NewHumanReadablePrinter(nil)
+	printer := NewHumanReadablePrinter(kctl.PrintOptions{})
 
 main:
 	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {

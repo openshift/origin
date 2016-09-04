@@ -10,7 +10,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kunversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	kcontroller "k8s.io/kubernetes/pkg/controller"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
 	ktypes "k8s.io/kubernetes/pkg/types"
 
@@ -42,7 +41,7 @@ func makePod(name, rcName string, t *testing.T) kapi.Pod {
 			Name:      name,
 			Namespace: "somens",
 			Annotations: map[string]string{
-				kcontroller.CreatedByAnnotation: string(createdByRefJson),
+				kapi.CreatedByAnnotation: string(createdByRefJson),
 			},
 		},
 	}
@@ -71,7 +70,7 @@ func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.Replicatio
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		rc.Annotations[kcontroller.CreatedByAnnotation] = string(createdByRefJson)
+		rc.Annotations[kapi.CreatedByAnnotation] = string(createdByRefJson)
 	}
 
 	if dcName != "" {

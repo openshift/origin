@@ -41,7 +41,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 		items = append(items, example)
 	}
 
-	printer, _, err := kubectl.GetPrinter("template", string(template))
+	printer, _, err := kubectl.GetPrinter("template", string(template), false)
 	if err != nil {
 		return err
 	}

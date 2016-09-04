@@ -167,7 +167,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if len(outputFormat) == 0 {
 		outputFormat = "yaml"
 	}
-	p, _, err := kubectl.GetPrinter(outputFormat, templateFile)
+	p, _, err := kubectl.GetPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"))
 	if err != nil {
 		return err
 	}

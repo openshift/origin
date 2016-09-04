@@ -421,8 +421,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	// Saves current resource name (or alias if any) in PrintOptions. Once saved, it will not be overwritten by the
 	// kubernetes resource alias look-up, as it will notice a non-empty value in `options.Kind`
-	w.Printer = func(mapping *meta.RESTMapping, options *kubectl.PrintOptions) (kubectl.ResourcePrinter, error) {
-		if mapping != nil && options != nil {
+	w.Printer = func(mapping *meta.RESTMapping, options kubectl.PrintOptions) (kubectl.ResourcePrinter, error) {
+		if mapping != nil {
 			options.Kind = mapping.Resource
 			if alias, ok := resourceShortFormFor(mapping.Resource); ok {
 				options.Kind = alias

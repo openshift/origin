@@ -1203,7 +1203,7 @@ func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 
 		buffer := new(bytes.Buffer)
 
-		printer := NewHumanReadablePrinter(&kctl.PrintOptions{NoHeaders: true})
+		printer := NewHumanReadablePrinter(kctl.PrintOptions{NoHeaders: true})
 		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}

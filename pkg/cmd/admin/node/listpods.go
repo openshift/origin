@@ -32,7 +32,7 @@ func (l *ListPodsOptions) Run() error {
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
-		printer, _, err = l.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
+		printer, err = l.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
 		if err != nil {
 			return err
 		}
