@@ -148,12 +148,6 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		return nil
 	}
 
-	// these builds are processed/updated/etc by the jenkins sync plugin
-	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
-		glog.V(4).Infof("Ignoring build with jenkins pipeline strategy")
-		return nil
-	}
-
 	// Set the output Docker image reference.
 	ref, err := bc.resolveOutputDockerImageReference(build)
 	if err != nil {
