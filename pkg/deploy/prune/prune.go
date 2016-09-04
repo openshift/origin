@@ -121,5 +121,5 @@ func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationControl
 			}
 		}
 	}
-	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name)
+	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, nil)
 }

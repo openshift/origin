@@ -385,7 +385,7 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 	if err != nil {
 		return config.Status, err
 	}
-	available := deployutil.GetAvailablePods(pods.Items, config.Spec.MinReadySeconds)
+	available := deployutil.GetAvailablePods(pods, config.Spec.MinReadySeconds)
 
 	// UpdatedReplicas represents the replicas that use the deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
@@ -455,7 +455,7 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 			continue
 		}
 
-		err := c.rn.ReplicationControllers(deployment.Namespace).Delete(deployment.Name)
+		err := c.rn.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, nil)
 		if err != nil && !kapierrors.IsNotFound(err) {
 			glog.V(2).Infof("Failed deleting old Replication Controller %q for Deployment Config %q: %v", deployment.Name, deploymentConfig.Name, err)
 			deletionErrors = append(deletionErrors, err)
