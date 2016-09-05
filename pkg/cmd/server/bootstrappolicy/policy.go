@@ -8,6 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -28,22 +30,25 @@ var (
 	readWrite = []string{"get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"}
 	read      = []string{"get", "list", "watch"}
 
-	kapiGroup        = kapi.GroupName
-	appsGroup        = apps.GroupName
-	autoscalingGroup = autoscaling.GroupName
-	batchGroup       = batch.GroupName
-	extensionsGroup  = extensions.GroupName
-	authzGroup       = authorizationapi.GroupName
-	buildGroup       = buildapi.GroupName
-	deployGroup      = deployapi.GroupName
-	imageGroup       = imageapi.GroupName
-	projectGroup     = projectapi.GroupName
-	quotaGroup       = quotaapi.GroupName
-	routeGroup       = routeapi.GroupName
-	templateGroup    = templateapi.GroupName
-	userGroup        = userapi.GroupName
-	oauthGroup       = oauthapi.GroupName
-	sdnGroup         = sdnapi.GroupName
+	kapiGroup         = kapi.GroupName
+	appsGroup         = apps.GroupName
+	autoscalingGroup  = autoscaling.GroupName
+	batchGroup        = batch.GroupName
+	certificatesGroup = certificates.GroupName
+	extensionsGroup   = extensions.GroupName
+	policyGroup       = policy.GroupName
+	storageGroup      = storage.GroupName
+	authzGroup        = authorizationapi.GroupName
+	buildGroup        = buildapi.GroupName
+	deployGroup       = deployapi.GroupName
+	imageGroup        = imageapi.GroupName
+	projectGroup      = projectapi.GroupName
+	quotaGroup        = quotaapi.GroupName
+	routeGroup        = routeapi.GroupName
+	templateGroup     = templateapi.GroupName
+	userGroup         = userapi.GroupName
+	oauthGroup        = oauthapi.GroupName
+	sdnGroup          = sdnapi.GroupName
 )
 
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Role {
@@ -121,6 +126,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"deployments/status", "horizontalpodautoscalers", "horizontalpodautoscalers/status", "ingresses", "ingresses/status", "jobs", "jobs/status",
 					"networkpolicies", "podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers",
 					"replicationcontrollers/scale", "thirdpartyresources").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(policyGroup).Resources("poddisruptionbudgets", "poddisruptionbudgets/status").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(certificatesGroup).Resources("certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("clusterpolicies", "clusterpolicybindings", "clusterroles", "clusterrolebindings",
 					"policies", "policybindings", "roles", "rolebindings").RuleOrDie(),

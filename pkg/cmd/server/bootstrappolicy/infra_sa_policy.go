@@ -8,6 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -567,6 +569,12 @@ func init() {
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
+				},
+				// PersistentVolumeBinder.findProvisionablePlugin()
+				{
+					APIGroups: []string{storage.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("storageclasses"),
 				},
 			},
 		},

@@ -136,6 +136,36 @@ items:
     - list
     - watch
   - apiGroups:
+    - policy
+    attributeRestrictions: null
+    resources:
+    - poddisruptionbudgets
+    - poddisruptionbudgets/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - storage.k8s.io
+    attributeRestrictions: null
+    resources:
+    - storageclasses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests
+    - certificatesigningrequests/approval
+    - certificatesigningrequests/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -2884,6 +2914,14 @@ items:
     - create
     - patch
     - update
+  - apiGroups:
+    - storage.k8s.io
+    attributeRestrictions: null
+    resources:
+    - storageclasses
+    verbs:
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
