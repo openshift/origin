@@ -9,6 +9,8 @@ import (
 	"runtime"
 
 	log "github.com/Sirupsen/logrus"
+	"k8s.io/kubernetes/pkg/util/logs"
+
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
@@ -20,6 +22,8 @@ import (
 )
 
 func main() {
+	logs.InitLogs()
+	defer logs.FlushLogs()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 	startProfiler()
