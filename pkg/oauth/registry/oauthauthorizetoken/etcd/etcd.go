@@ -56,7 +56,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 		UpdateStrategy: strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

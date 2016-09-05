@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -44,7 +45,7 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: clusterpolicybinding.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, ClusterPolicyBindingPath); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, ClusterPolicyBindingPath, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

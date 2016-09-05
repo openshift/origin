@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/policy"
@@ -42,7 +43,7 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: policy.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, PolicyPath); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, PolicyPath, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

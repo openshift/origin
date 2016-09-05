@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
+	"k8s.io/kubernetes/pkg/storage"
 )
 
 // ApplyOptions updates the given generic storage from the provided rest options
 // TODO: remove need for etcdPrefix once Decorator interface is refactored upstream
-func ApplyOptions(optsGetter Getter, store *registry.Store, etcdPrefix string) error {
+func ApplyOptions(optsGetter Getter, store *registry.Store, etcdPrefix string, triggerFn storage.TriggerPublisherFunc) error {
 	if store.QualifiedResource.Empty() {
 		return fmt.Errorf("store must have a non-empty qualified resource")
 	}
@@ -28,7 +29,15 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, etcdPrefix string) e
 	}
 
 	store.DeleteCollectionWorkers = opts.DeleteCollectionWorkers
-	store.Storage = opts.Decorator(opts.Storage, UseConfiguredCacheSize, store.NewFunc(), etcdPrefix, store.CreateStrategy, store.NewListFunc)
+	store.Storage, _ = opts.Decorator(
+		opts.StorageConfig,
+		UseConfiguredCacheSize,
+		store.NewFunc(),
+		etcdPrefix,
+		store.CreateStrategy,
+		store.NewListFunc,
+		triggerFn,
+	)
 	return nil
 
 }

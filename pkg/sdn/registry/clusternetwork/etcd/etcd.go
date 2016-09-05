@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/clusternetwork"
@@ -44,7 +45,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: clusternetwork.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

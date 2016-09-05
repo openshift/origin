@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -45,7 +46,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: oauthclient.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

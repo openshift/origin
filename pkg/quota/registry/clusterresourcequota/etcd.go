@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/util"
@@ -85,7 +86,7 @@ func makeStore(optsGetter restoptions.Getter) (*registry.Store, error) {
 		ReturnDeletedObject: false,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, ClusterResourceQuotaPath); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, ClusterResourceQuotaPath, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

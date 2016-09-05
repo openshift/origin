@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -58,7 +59,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		ReturnDeletedObject: false,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, prefix, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

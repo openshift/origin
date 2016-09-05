@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -62,7 +63,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	if err := restoptions.ApplyOptions(optsGetter, &store, prefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, &store, prefix, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, nil, err
 	}
 
