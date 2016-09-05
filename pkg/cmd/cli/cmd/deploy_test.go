@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -326,5 +327,68 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 		if !trigger.ImageChangeParams.Automatic {
 			t.Errorf("expected trigger to be enabled: %#v", trigger.ImageChangeParams)
 		}
+	}
+}
+
+// TestDeploy_cancelOnDifferentTZ tests that oc deploy --cancel sets the cancellation
+// timestamp based on the timezone of the server.
+func TestDeploy_cancelOnDifferentTZ(t *testing.T) {
+	now := time.Now()
+
+	// location of the client is New York
+	clientLoc, _ := time.LoadLocation("America/New_York")
+	clientTime := now.In(clientLoc)
+
+	// location of the server is Bangkok
+	serverLoc, _ := time.LoadLocation("Asia/Bangkok")
+	serverTime := now.In(serverLoc)
+
+	if serverTime.Format(time.RFC3339) == clientTime.Format(time.RFC3339) {
+		t.Fatalf("the test is not really testing anything")
+	}
+
+	nowFn = func() time.Time {
+		return clientTime
+	}
+
+	updated := false
+
+	kc := &ktc.Fake{}
+	kc.AddReactor("list", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		deployment := deploymentFor(deploytest.OkDeploymentConfig(1), deployapi.DeploymentStatusRunning)
+		deployment.CreationTimestamp.Time = serverTime
+
+		return true, &kapi.ReplicationControllerList{
+			Items: []kapi.ReplicationController{*deployment},
+		}, nil
+	})
+	kc.AddReactor("update", "replicationcontrollers", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+		rc := action.(ktc.UpdateAction).GetObject().(*kapi.ReplicationController)
+
+		if _, ok := rc.Annotations[deployapi.DeploymentCancelledAnnotation]; !ok {
+			t.Fatalf("expected the old cancel annotation to be set")
+		}
+
+		cancelledAt, ok := rc.Annotations[deployapi.DeploymentCancelledAtAnnotation]
+		if !ok {
+			t.Fatalf("expected the new cancel-at annotation to be set")
+		}
+
+		if exp, got := serverTime.Format(time.RFC3339), cancelledAt; exp != got {
+			t.Fatalf("expected cancellation time to be %q, got %q", exp, got)
+		}
+
+		updated = true
+		return true, rc, nil
+	})
+
+	o := &DeployOptions{kubeClient: kc, out: ioutil.Discard}
+
+	if err := o.cancel(deploytest.OkDeploymentConfig(1)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !updated {
+		t.Fatalf("expected a replication controller update")
 	}
 }

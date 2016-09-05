@@ -241,7 +241,11 @@ const (
 	DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
 	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
 	// The annotation value does not matter and its mere presence indicates cancellation
+	// DEPRECATED in favor of openshift.io/deployment.cancelled-at
 	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
+	// DeploymentCancelledAtAnnotation indicates that the deployment has been cancelled
+	// The annotation value holds the time a deployment was cancelled in UTC format.
+	DeploymentCancelledAtAnnotation = "openshift.io/deployment.cancelled-at"
 	// DeploymentReplicasAnnotation is for internal use only and is for
 	// detecting external modifications to deployment replica counts.
 	DeploymentReplicasAnnotation = "openshift.io/deployment.replicas"

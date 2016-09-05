@@ -321,9 +321,12 @@ func DeploymentVersionFor(obj runtime.Object) int64 {
 	return v
 }
 
+// IsDeploymentCancelled returns true if the deployment has been marked as cancelled.
 func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	value := annotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
-	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
+	oldExists := strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
+	_, newExists := deployment.Annotations[deployapi.DeploymentCancelledAtAnnotation]
+	return oldExists || newExists
 }
 
 func HasSynced(dc *deployapi.DeploymentConfig) bool {
