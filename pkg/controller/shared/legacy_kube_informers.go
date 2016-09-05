@@ -8,8 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
-
-	ocache "github.com/openshift/origin/pkg/client/cache"
 )
 
 type PodInformer interface {
@@ -125,6 +123,7 @@ func (f *nodeInformer) Lister() *cache.StoreToNodeLister {
 type PersistentVolumeInformer interface {
 	Informer() framework.SharedIndexInformer
 	Indexer() cache.Indexer
+	Lister() *cache.StoreToPVFetcher
 }
 
 type persistentVolumeInformer struct {
@@ -171,9 +170,15 @@ func (f *persistentVolumeInformer) Indexer() cache.Indexer {
 	return informer.GetIndexer()
 }
 
+func (f *persistentVolumeInformer) Lister() *cache.StoreToPVFetcher {
+	informer := f.Informer()
+	return &cache.StoreToPVFetcher{Store: informer.GetStore()}
+}
+
 type PersistentVolumeClaimInformer interface {
 	Informer() framework.SharedIndexInformer
 	Indexer() cache.Indexer
+	Lister() *cache.StoreToPVCFetcher
 }
 
 type persistentVolumeClaimInformer struct {
@@ -218,6 +223,11 @@ func (f *persistentVolumeClaimInformer) Informer() framework.SharedIndexInformer
 func (f *persistentVolumeClaimInformer) Indexer() cache.Indexer {
 	informer := f.Informer()
 	return informer.GetIndexer()
+}
+
+func (f *persistentVolumeClaimInformer) Lister() *cache.StoreToPVCFetcher {
+	informer := f.Informer()
+	return &cache.StoreToPVCFetcher{Store: informer.GetStore()}
 }
 
 type ReplicationControllerInformer interface {
@@ -277,7 +287,7 @@ func (f *replicationControllerInformer) Lister() *cache.StoreToReplicationContro
 type NamespaceInformer interface {
 	Informer() framework.SharedIndexInformer
 	Indexer() cache.Indexer
-	Lister() *ocache.IndexerToNamespaceLister
+	Lister() *cache.IndexerToNamespaceLister
 }
 
 type namespaceInformer struct {
@@ -323,7 +333,7 @@ func (f *namespaceInformer) Indexer() cache.Indexer {
 	return informer.GetIndexer()
 }
 
-func (f *namespaceInformer) Lister() *ocache.IndexerToNamespaceLister {
+func (f *namespaceInformer) Lister() *cache.IndexerToNamespaceLister {
 	informer := f.Informer()
-	return &ocache.IndexerToNamespaceLister{Indexer: informer.GetIndexer()}
+	return &cache.IndexerToNamespaceLister{Indexer: informer.GetIndexer()}
 }
