@@ -29,6 +29,8 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
+	storagefactory "k8s.io/kubernetes/pkg/storage/storagebackend/factory"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/daemon"
@@ -48,8 +50,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
 	"k8s.io/kubernetes/pkg/volume/cinder"
@@ -84,19 +84,22 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 
 	if c.Master.EnableCoreControllers {
 		glog.V(2).Info("Using the lease endpoint reconciler")
-		leaseStorage, err := c.Master.StorageFactory.New(kapi.Resource("apiServerIPInfo"))
+		config, err := c.Master.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
 		if err != nil {
-			glog.Fatalf(err.Error())
+			return nil, err
 		}
-
+		leaseStorage, _, err := storagefactory.Create(*config)
+		if err != nil {
+			return nil, err
+		}
 		masterLeases := newMasterLeases(leaseStorage)
 
-		storage, err := c.Master.StorageFactory.New(kapi.Resource("endpoints"))
+		endpointConfig, err := c.Master.StorageFactory.NewConfig(kapi.Resource("endpoints"))
 		if err != nil {
-			glog.Fatalf(err.Error())
+			return nil, err
 		}
 		endpointsStorage := endpointsetcd.NewREST(generic.RESTOptions{
-			Storage:                 storage,
+			StorageConfig:           endpointConfig,
 			Decorator:               generic.UndecoratedStorage,
 			DeleteCollectionWorkers: 0,
 		})

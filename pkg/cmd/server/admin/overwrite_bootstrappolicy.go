@@ -104,7 +104,7 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	optsGetter := restoptions.NewConfigGetter(*masterConfig)
+	optsGetter := restoptions.NewConfigGetter(*masterConfig, nil)
 
 	return OverwriteBootstrapPolicy(optsGetter, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }

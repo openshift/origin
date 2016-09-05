@@ -63,6 +63,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -128,8 +129,9 @@ type MasterConfig struct {
 	// is available.
 	RegistryNameFn imageapi.DefaultRegistryFunc
 
-	// TODO: remove direct access to EtcdHelper, require selecting by providing target resource
-	EtcdHelper storage.Interface
+	// ExternalVersionCodec is the codec used when serializing annotations, which cannot be changed
+	// without all clients being aware of the new version.
+	ExternalVersionCodec runtime.Codec
 
 	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
@@ -166,17 +168,13 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
+
+	/*etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
-	}
-	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := NewEtcdStorage(etcdClient, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("Error setting up server storage: %v", err)
-	}
+	}*/
 
-	restOptsGetter := restoptions.NewConfigGetter(options)
+	restOptsGetter := restoptions.NewConfigGetter(options, nil)
 
 	clientCAs, err := configapi.GetClientCertCAPool(options)
 	if err != nil {
@@ -251,8 +249,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	// TODO: look up storage by resource
-	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
+	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +289,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ImageFor:       imageTemplate.ExpandOrDie,
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 
-		EtcdHelper:          etcdHelper,
+		// TODO: migration of versions of resources stored in annotations must be sorted out
+		ExternalVersionCodec: kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: "v1"}),
+
 		KubeletClientConfig: kubeletClientConfig,
 
 		ClientCAs:    clientCAs,
@@ -554,8 +553,7 @@ func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client
 	}
 }
 
-func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {
-	var tokenGetter serviceaccount.ServiceAccountTokenGetter
+func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccount.ServiceAccountTokenGetter, error) {
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
 		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
@@ -563,14 +561,21 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 		if err != nil {
 			return nil, err
 		}
-		tokenGetter = sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient))
-	} else {
-		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, genericapiserveroptions.DefaultDeserializationCacheSize)
-		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
+		return sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient)), nil
 	}
-	return tokenGetter, nil
+
+	// TODO: could be hoisted if other Origin code needs direct access to etcd, otherwise discourage this access pattern
+	// as we move to be more on top of Kube.
+	_, kubeStorageFactory, err := kubernetes.BuildDefaultAPIServer(options)
+	if err != nil {
+		return nil, err
+	}
+
+	storageConfig, err := kubeStorageFactory.NewConfig(kapi.Resource("serviceaccounts"))
+	if err != nil {
+		return nil, err
+	}
+	return sacontroller.NewGetterFromStorageInterface(storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")), kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets"))), nil
 }
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
