@@ -475,7 +475,11 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
 			}
-			plugins = append(plugins, lifecycle.NewLifecycle(kubeClientSet, immortalNamespaces))
+			lc, err := lifecycle.NewLifecycle(kubeClientSet, immortalNamespaces)
+			if err != nil {
+				return nil, err
+			}
+			plugins = append(plugins, lc)
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
