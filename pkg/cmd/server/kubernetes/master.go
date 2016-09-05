@@ -158,22 +158,24 @@ func (c *MasterConfig) RunNamespaceController(kubeClient internalclientset.Inter
 
 func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, namespace, recyclerImageName, recyclerServiceAccountName string) {
 	s := c.ControllerManager
-	provisioner, err := kctrlmgr.NewVolumeProvisioner(c.CloudProvider, s.VolumeConfiguration)
+
+	alphaProvisioner, err := kctrlmgr.NewAlphaVolumeProvisioner(c.CloudProvider, s.VolumeConfiguration)
 	if err != nil {
-		glog.Fatal("A Provisioner could not be created, but one was expected. Provisioning will not work. This functionality is considered an early Alpha version.")
+		glog.Fatalf("A backward-compatible provisioner could not be created: %v, but one was expected. Provisioning will not work. This functionality is considered an early Alpha version.", err)
 	}
 
 	volumeController := persistentvolumecontroller.NewPersistentVolumeController(
 		clientadapter.FromUnversionedClient(client),
 		s.PVClaimBinderSyncPeriod.Duration,
-		provisioner,
+		alphaProvisioner,
 		probeRecyclableVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName),
 		c.CloudProvider,
 		s.ClusterName,
 		nil, nil, nil,
+		nil, // event recorder
 		s.VolumeConfiguration.EnableDynamicProvisioning,
 	)
-	volumeController.Run()
+	volumeController.Run(utilwait.NeverStop)
 }
 
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *client.Client) {
@@ -186,7 +188,9 @@ func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *client.
 			c.Informers.PersistentVolumeClaims().Informer(),
 			c.Informers.PersistentVolumes().Informer(),
 			c.CloudProvider,
-			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration))
+			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration),
+			nil,
+		)
 	if err != nil {
 		glog.Fatalf("Failed to start attach/detach controller: %v", err)
 	} else {
@@ -248,10 +252,12 @@ func probeRecyclableVolumePlugins(config componentconfig.VolumeConfiguration, na
 
 func (c *MasterConfig) RunReplicaSetController(client *client.Client) {
 	controller := replicasetcontroller.NewReplicaSetController(
+		c.Informers.Pods().Informer(),
 		clientadapter.FromUnversionedClient(client),
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		replicasetcontroller.BurstReplicas,
 		int(c.ControllerManager.LookupCacheSizeForRC),
+		c.ControllerManager.EnableGarbageCollector,
 	)
 	go controller.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
 }
@@ -264,6 +270,7 @@ func (c *MasterConfig) RunReplicationController(client *client.Client) {
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		replicationcontroller.BurstReplicas,
 		int(c.ControllerManager.LookupCacheSizeForRC),
+		c.ControllerManager.EnableGarbageCollector,
 	)
 	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
 }
@@ -344,29 +351,31 @@ func (c *MasterConfig) RunNodeController() {
 	_, serviceCIDR, _ := net.ParseCIDR(s.ServiceCIDR)
 
 	controller, err := nodecontroller.NewNodeController(
+		c.Informers.Pods().Informer(),
 		c.CloudProvider,
 		clientadapter.FromUnversionedClient(c.KubeClient),
 		s.PodEvictionTimeout.Duration,
 
-		flowcontrol.NewTokenBucketRateLimiter(s.DeletingPodsQps, int(s.DeletingPodsBurst)),
-		flowcontrol.NewTokenBucketRateLimiter(s.DeletingPodsQps, int(s.DeletingPodsBurst)), // upstream uses the same ones too
+		s.NodeEvictionRate,
+		s.SecondaryNodeEvictionRate,
+		s.LargeClusterSizeThreshold,
+		s.UnhealthyZoneThreshold,
 
 		s.NodeMonitorGracePeriod.Duration,
 		s.NodeStartupGracePeriod.Duration,
 		s.NodeMonitorPeriod.Duration,
 
 		clusterCIDR,
-
 		serviceCIDR,
-		int(s.NodeCIDRMaskSize),
 
+		int(s.NodeCIDRMaskSize),
 		s.AllocateNodeCIDRs,
 	)
 	if err != nil {
 		glog.Fatalf("Unable to start node controller: %v", err)
 	}
 
-	controller.Run(s.NodeSyncPeriod.Duration)
+	controller.Run()
 }
 
 // RunServiceLoadBalancerController starts the service loadbalancer controller if the cloud provider is configured.
@@ -375,10 +384,11 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client *client.Client) {
 		glog.V(2).Infof("Service controller will not start - no cloud provider configured")
 		return
 	}
-	serviceController := servicecontroller.New(c.CloudProvider, clientadapter.FromUnversionedClient(client), c.ControllerManager.ClusterName)
-	if err := serviceController.Run(c.ControllerManager.ServiceSyncPeriod.Duration, c.ControllerManager.NodeSyncPeriod.Duration); err != nil {
+	serviceController, err := servicecontroller.New(c.CloudProvider, clientadapter.FromUnversionedClient(client), c.ControllerManager.ClusterName)
+	if err != nil {
 		glog.Fatalf("Unable to start service controller: %v", err)
 	}
+	serviceController.Run(int(c.ControllerManager.ConcurrentServiceSyncs))
 }
 
 // RunPetSetController starts the PetSet controller

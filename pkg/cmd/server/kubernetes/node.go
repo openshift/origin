@@ -21,6 +21,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/record"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
@@ -33,6 +34,8 @@ import (
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
+	utilnode "k8s.io/kubernetes/pkg/util/node"
+	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 
@@ -232,7 +235,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 		},
 	}
 
-	for idx, plugin := range c.KubeletConfig.VolumePlugins {
+	for idx, plugin := range c.KubeletDeps.VolumePlugins {
 		// Can't really do type checking or use a constant here as they are not exported:
 		if plugin.CanSupport(emptyDirSpec) {
 			wrapper := emptydir.EmptyDirQuotaPlugin{
@@ -240,7 +243,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 				Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
 				QuotaApplicator: quotaApplicator,
 			}
-			c.KubeletConfig.VolumePlugins[idx] = &wrapper
+			c.KubeletDeps.VolumePlugins[idx] = &wrapper
 			wrappedEmptyDirPlugin = true
 		}
 	}
@@ -280,39 +283,43 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
-	if c.KubeletConfig.ClusterDNS == nil {
+	var clusterDNS net.IP
+	if c.KubeletServer.ClusterDNS == "" {
 		if service, err := c.Client.Services(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
-				c.KubeletConfig.ClusterDNS = net.ParseIP(service.Spec.ClusterIP)
+				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
 			}
 		}
 	}
-	if c.KubeletConfig.ClusterDNS == nil {
+	if clusterDNS == nil {
 		if endpoint, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
-				c.KubeletConfig.ClusterDNS = net.ParseIP(endpointIP)
+				clusterDNS = net.ParseIP(endpointIP)
 			} else if endpointIP, ok := firstEndpointIP(endpoint, 53); ok {
 				// Test and use first endpoint if endpoint includes any port 53.
 				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", endpointIP, 53), 50*time.Millisecond, 0, 2); err == nil {
-					c.KubeletConfig.ClusterDNS = net.ParseIP(endpointIP)
+					clusterDNS = net.ParseIP(endpointIP)
 				}
 			}
 		}
 	}
+	if clusterDNS != nil && !clusterDNS.IsUnspecified() {
+		c.KubeletServer.ClusterDNS = clusterDNS.String()
+	}
 
-	c.KubeletConfig.DockerClient = c.DockerClient
+	c.KubeletDeps.DockerClient = c.DockerClient
 	// updated by NodeConfig.EnsureVolumeDir
-	c.KubeletConfig.RootDirectory = c.VolumeDir
+	c.KubeletServer.RootDirectory = c.VolumeDir
 
 	// hook for overriding the cadvisor interface for integration tests
-	c.KubeletConfig.CAdvisorInterface = defaultCadvisorInterface
+	c.KubeletDeps.CAdvisorInterface = defaultCadvisorInterface
 	// hook for overriding the container manager interface for integration tests
-	c.KubeletConfig.ContainerManager = defaultContainerManagerInterface
+	c.KubeletDeps.ContainerManager = defaultContainerManagerInterface
 
 	go func() {
-		glog.Fatal(kubeletapp.Run(c.KubeletServer, c.KubeletConfig))
+		glog.Fatal(kubeletapp.Run(c.KubeletServer, c.KubeletDeps))
 	}()
 }
 
@@ -364,9 +371,11 @@ func (c *NodeConfig) RunProxy() {
 
 	portRange := utilnet.ParsePortRangeOrDie(c.ProxyConfig.PortRange)
 
+	hostname := utilnode.GetHostname(c.KubeletServer.HostnameOverride)
+
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
-	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: hostname})
 
 	execer := kexec.New()
 	dbus := utildbus.New()
@@ -382,7 +391,17 @@ func (c *NodeConfig) RunProxy() {
 			// IPTablesMasqueradeBit must be specified or defaulted.
 			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
 		}
-		proxierIptables, err := iptables.NewProxier(iptInterface, execer, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.MasqueradeAll, int(*c.ProxyConfig.IPTablesMasqueradeBit), c.ProxyConfig.ClusterCIDR)
+		proxierIptables, err := iptables.NewProxier(
+			iptInterface,
+			utilsysctl.New(),
+			execer,
+			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.ProxyConfig.MasqueradeAll,
+			int(*c.ProxyConfig.IPTablesMasqueradeBit),
+			c.ProxyConfig.ClusterCIDR,
+			hostname,
+			getNodeIP(c.Client, hostname),
+		)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -477,6 +496,22 @@ func (c *NodeConfig) RunProxy() {
 	// periodically sync k8s iptables rules
 	go utilwait.Forever(proxier.SyncLoop, 0)
 	glog.Infof("Started Kubernetes Proxy on %s", c.ProxyConfig.BindAddress)
+}
+
+// getNodeIP is copied from the upstream proxy config to retrieve the IP of a node.
+func getNodeIP(client *kclient.Client, hostname string) net.IP {
+	var nodeIP net.IP
+	node, err := client.Nodes().Get(hostname)
+	if err != nil {
+		glog.Warningf("Failed to retrieve node info: %v", err)
+		return nil
+	}
+	nodeIP, err = utilnode.GetNodeHostIP(node)
+	if err != nil {
+		glog.Warningf("Failed to retrieve node IP: %v", err)
+		return nil
+	}
+	return nodeIP
 }
 
 // TODO: more generic location
