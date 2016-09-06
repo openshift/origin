@@ -460,9 +460,19 @@ function os::build::place_bins() {
 }
 readonly -f os::build::place_bins
 
+function os::build::archive_name() {
+  if [[ "${OS_GIT_VERSION}" == *+${OS_GIT_COMMIT} ]]; then
+    echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1"
+    return
+  fi
+  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-$1"
+}
+readonly -f os::build::archive_name
+
 function os::build::archive_zip() {
   local platform_segment="${platform//\//-}"
-  local default_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.zip"
+  local default_name
+  default_name="$( os::build::archive_name "${platform_segment}" ).zip"
   local archive_name="${archive_name:-$default_name}"
   echo "++ Creating ${archive_name}"
   for file in "$@"; do
@@ -476,7 +486,8 @@ readonly -f os::build::archive_zip
 
 function os::build::archive_tar() {
   local platform_segment="${platform//\//-}"
-  local base_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}"
+  local base_name
+  base_name="$( os::build::archive_name "${platform_segment}" )"
   local default_name="${base_name}.tar.gz"
   local archive_name="${archive_name:-$default_name}"
   echo "++ Creating ${archive_name}"
