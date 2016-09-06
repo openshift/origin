@@ -1,6 +1,6 @@
 # OpenShift Command-Line Interface
 
-The `oc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
+The `oc` command line tool is used to interact with the [OpenShift](https://www.openshift.org/) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
 
 `oc` is *verb focused*.
 The base verbs are *[get](#oc-get)*, *[create](#oc-create)*, *[delete](#oc-delete)*, *[replace](#oc-replace)*, and *[describe](#oc-describe)*.
