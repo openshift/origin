@@ -322,6 +322,95 @@ func TestEnumerationNotCoveringResourceNameEmpty(t *testing.T) {
 	}.test(t)
 }
 
+func TestNonResourceCoversExactMatch(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/bar")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/baz")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo", "/bar")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/baz")},
+		},
+
+		expectedCovered: true,
+	}.test(t)
+}
+
+func TestNonResourceCoversWildcard(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/*", "/bar/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/", "/bar/")},
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/1", "/bar/1")},
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo/*", "/bar/*")},
+		},
+
+		expectedCovered: true,
+	}.test(t)
+}
+
+func TestNonResourceUncovered(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/bar/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), NonResourceURLs: sets.NewString("/foo", "/foo/1", "/foo/*", "/bar/baz", "/bar/*")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/foo")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo/1")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/foo/1")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/foo/*")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/foo/*")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/bar/baz")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/bar/*")},
+		},
+	}.test(t)
+}
+
+func TestMixedResourceNonResourceCovered(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("pods"), NonResourceURLs: sets.NewString("/api", "/api/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("pods"), NonResourceURLs: sets.NewString("/api", "/api/v1")},
+		},
+
+		expectedCovered: true,
+	}.test(t)
+}
+
+func TestMixedResourceNonResourceUncovered(t *testing.T) {
+	escalationTest{
+		ownerRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("pods"), NonResourceURLs: sets.NewString("/api", "/api/*")},
+		},
+		servantRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("get", "post"), Resources: sets.NewString("pods", "builds"), NonResourceURLs: sets.NewString("/api", "/apis")},
+		},
+
+		expectedCovered: false,
+		expectedUncoveredRules: []authorizationapi.PolicyRule{
+			{Verbs: sets.NewString("post"), Resources: sets.NewString("pods")},
+			{Verbs: sets.NewString("get"), Resources: sets.NewString("builds")},
+			{Verbs: sets.NewString("post"), Resources: sets.NewString("builds")},
+
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/api")},
+			{Verbs: sets.NewString("get"), NonResourceURLs: sets.NewString("/apis")},
+			{Verbs: sets.NewString("post"), NonResourceURLs: sets.NewString("/apis")},
+		},
+	}.test(t)
+}
+
 func (test escalationTest) test(t *testing.T) {
 	actualCovered, actualUncoveredRules := Covers(test.ownerRules, test.servantRules)
 

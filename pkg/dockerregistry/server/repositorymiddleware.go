@@ -452,7 +452,7 @@ func (r *repository) signedManifestFillImageMetadata(manifest *schema1.SignedMan
 
 	refs := manifest.References()
 
-	layerSet := sets.NewString()
+	blobSet := sets.NewString()
 	image.DockerImageMetadata.Size = int64(0)
 
 	blobs := r.Blobs(r.ctx)
@@ -473,10 +473,14 @@ func (r *repository) signedManifestFillImageMetadata(manifest *schema1.SignedMan
 		}
 		layer.LayerSize = desc.Size
 		// count empty layer just once (empty layer may actually have non-zero size)
-		if !layerSet.Has(layer.Name) {
+		if !blobSet.Has(layer.Name) {
 			image.DockerImageMetadata.Size += desc.Size
-			layerSet.Insert(layer.Name)
+			blobSet.Insert(layer.Name)
 		}
+	}
+	if len(image.DockerImageConfig) > 0 && !blobSet.Has(image.DockerImageMetadata.ID) {
+		blobSet.Insert(image.DockerImageMetadata.ID)
+		image.DockerImageMetadata.Size += int64(len(image.DockerImageConfig))
 	}
 
 	return nil
@@ -544,7 +548,7 @@ func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.ImageStr
 
 // rememberLayersOfImage caches the layer digests of given image
 func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName string) {
-	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 {
+	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 && len(image.DockerImageConfig) == 0 {
 		// image has no layers
 		return
 	}
@@ -552,6 +556,10 @@ func (r *repository) rememberLayersOfImage(image *imageapi.Image, cacheName stri
 	if len(image.DockerImageLayers) > 0 {
 		for _, layer := range image.DockerImageLayers {
 			r.cachedLayers.RememberDigest(digest.Digest(layer.Name), r.blobrepositorycachettl, cacheName)
+		}
+		// remember reference to manifest config as well for schema 2
+		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && len(image.DockerImageMetadata.ID) > 0 {
+			r.cachedLayers.RememberDigest(digest.Digest(image.DockerImageMetadata.ID), r.blobrepositorycachettl, cacheName)
 		}
 		return
 	}

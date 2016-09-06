@@ -1,6 +1,6 @@
 # OpenShift Command-Line Interface
 
-The `oc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
+The `oc` command line tool is used to interact with the [OpenShift](https://www.openshift.org/) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
 
 `oc` is *verb focused*.
 The base verbs are *[get](#oc-get)*, *[create](#oc-create)*, *[delete](#oc-delete)*, *[replace](#oc-replace)*, and *[describe](#oc-describe)*.
@@ -17,7 +17,7 @@ Some verbs support the `-f` flag, which accepts regular file path, URL or `-` fo
 the standard input. For most actions, both JSON and YAML file formats are
 supported.
 
-Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oadm by example](./generated/oc_by_example_content.adoc) documents.
+Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oadm by example](./generated/oadm_by_example_content.adoc) documents.
 
 ## Common Flags
 
