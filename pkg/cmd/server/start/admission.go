@@ -64,7 +64,6 @@ var (
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
-		"openshift.io/OwnerReference",
 		quotaadmission.PluginName,
 		"openshift.io/ClusterResourceQuota",
 	)
@@ -79,6 +78,7 @@ var (
 		imagepolicy.PluginName,
 		"BuildOverrides",
 		"AlwaysPullImages",
+		"openshift.io/OwnerReference",
 	)
 )
 
