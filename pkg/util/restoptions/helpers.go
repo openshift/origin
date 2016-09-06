@@ -76,5 +76,4 @@ func ApplyOptions(optsGetter Getter, store *registry.Store, isNamespaced bool, t
 		triggerFn,
 	)
 	return nil
-
 }

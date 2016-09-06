@@ -11,8 +11,7 @@ import (
 	"strings"
 	"time"
 
-	newetcdclient "github.com/coreos/etcd/client"
-	etcdclient "github.com/coreos/go-etcd/etcd"
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/admission"
@@ -25,12 +24,9 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -165,7 +161,7 @@ type MasterConfig struct {
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
 // provided options
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
-	client, err := etcd.EtcdClient(options.EtcdClientInfo)
+	client, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -532,7 +528,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	return admission.NewChainHandler(plugins...), nil
 }
 
-func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client) (plug.Plug, func()) {
+func newControllerPlug(options configapi.MasterConfig, client etcdclient.Client) (plug.Plug, func()) {
 	switch {
 	case options.ControllerLeaseTTL > 0:
 		// TODO: replace with future API for leasing from Kube
@@ -575,6 +571,9 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 	if err != nil {
 		return nil, err
 	}
+	// TODO: by doing this we will not be able to authenticate while a master quorum is not present - reimplement
+	// as two storages called in succession (non quorum and then quorum).
+	storageConfig.Quorum = true
 	return sacontroller.NewGetterFromStorageInterface(storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")), kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets"))), nil
 }
 
@@ -963,11 +962,6 @@ func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.C
 		glog.Fatal(err)
 	}
 	return osClient, kClient
-}
-
-// NewEtcdStorage returns a storage interface for the provided storage version.
-func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, genericapiserveroptions.DefaultDeserializationCacheSize), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
