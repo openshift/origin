@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 926bedb4f47d15c8e3124614d0819b348df4d18a
+%global commit 4eb2ed57b341a154b2527d8214997006575b998b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.29
+Version:        3.3.0.30
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,24 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Tue Sep 06 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.30
+- Fix wrong oadm document name in cli.md (li.xiaobing1@zte.com.cn)
+- Image size needs to add a size of manifest config file (miminar@redhat.com)
+- New e2e test: fetch manifest schema 2 with old client (miminar@redhat.com)
+- Pullthrough blobs using Get() as well (miminar@redhat.com)
+- Remember image with matching config reference (miminar@redhat.com)
+- website changed for openshift and can be accessed directly
+  (li.xiaobing1@zte.com.cn)
+- UPSTREAM: <carry>: Tolerate node ExternalID changes with no cloud provider
+  (pmorie@redhat.com)
+- UPSTREAM: 32000: Update node status instead of node in kubelet
+  (pmorie@redhat.com)
+- Release should pass OS_GIT_COMMIT as a commit, not a tag
+  (ccoleman@redhat.com)
+- Reconcile non-resource-urls (jliggitt@redhat.com)
+- UPSTREAM: 31627: make deep copy of quota objects before mutations
+  (deads@redhat.com)
+
 * Fri Sep 02 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.29
 - The etc and dot is seprated (yu.peng36@zte.com.cn)
 - Add a Docker image that will be built separately to run observe
