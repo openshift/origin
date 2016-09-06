@@ -57,6 +57,9 @@ type RollingDeploymentStrategy struct {
 	tags client.ImageStreamTagsNamespacer
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
+	// listReplicationControllerEvents knows how to list all events related the
+	// given replication controller.
+	listReplicationControllerEvents func(rc *kapi.ReplicationController) (*kapi.EventList, error)
 	// decoder is used to access the encoded config on a deployment.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
@@ -105,10 +108,31 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
 		},
+		listReplicationControllerEvents: func(rc *kapi.ReplicationController) (*kapi.EventList, error) {
+			return client.Events(rc.Namespace).Search(rc)
+		},
 		hookExecutor: stratsupport.NewHookExecutor(client, tags, events, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
+	}
+}
+
+// recordControllerWarnings records the replication controller warnings into a
+// deployment event sink.
+func (s *RollingDeploymentStrategy) recordControllerWarnings(rc *kapi.ReplicationController) {
+	if rc == nil {
+		return
+	}
+	events, err := s.listReplicationControllerEvents(rc)
+	if err != nil {
+		fmt.Fprintf(s.errOut, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
+	}
+	for _, e := range events.Items {
+		if e.Type == kapi.EventTypeWarning {
+			// TODO: This should be an event
+			fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
+		}
 	}
 }
 
@@ -120,6 +144,10 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	params := config.Spec.Strategy.RollingParams
 	updateAcceptor := s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds)*time.Second, config.Spec.MinReadySeconds)
+
+	// Record all warnings
+	defer s.recordControllerWarnings(from)
+	defer s.recordControllerWarnings(to)
 
 	// If there's no prior deployment, delegate to another strategy since the
 	// rolling updater only supports transitioning between two deployments.

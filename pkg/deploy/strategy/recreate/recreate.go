@@ -33,6 +33,9 @@ type RecreateDeploymentStrategy struct {
 	until string
 	// getReplicationController knows how to get a replication controller.
 	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
+	// listReplicationControllerEvents knows how to list all events related the
+	// given replication controller.
+	listReplicationControllerEvents func(rc *kapi.ReplicationController) (*kapi.EventList, error)
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
 	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
@@ -72,6 +75,9 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
+		listReplicationControllerEvents: func(rc *kapi.ReplicationController) (*kapi.EventList, error) {
+			return client.Events(rc.Namespace).Search(rc)
+		},
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
@@ -86,6 +92,24 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 // Deploy makes deployment active and disables oldDeployments.
 func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
 	return s.DeployWithAcceptor(from, to, desiredReplicas, nil)
+}
+
+// recordControllerWarnings records the replication controller warnings into a
+// deployment event sink.
+func (s *RecreateDeploymentStrategy) recordControllerWarnings(rc *kapi.ReplicationController) {
+	if rc == nil {
+		return
+	}
+	events, err := s.listReplicationControllerEvents(rc)
+	if err != nil {
+		fmt.Fprintf(s.errOut, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
+	}
+	for _, e := range events.Items {
+		if e.Type == kapi.EventTypeWarning {
+			// TODO: This should be an event
+			fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
+		}
+	}
 }
 
 // DeployWithAcceptor scales down from and then scales up to. If
@@ -119,6 +143,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	if s.until == "pre" {
 		return strat.NewConditionReachedErr("pre hook succeeded")
 	}
+
+	// Record all warnings
+	defer s.recordControllerWarnings(to)
+	defer s.recordControllerWarnings(from)
 
 	// Scale down the from deployment.
 	if from != nil {
@@ -173,6 +201,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 			if err != nil {
 				return fmt.Errorf("couldn't scale %s to %d: %v", to.Name, desiredReplicas, err)
 			}
+
 			to = updatedTo
 		}
 
@@ -204,6 +233,7 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 	if err := s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retry, wait); err != nil {
 		return nil, err
 	}
+
 	updatedDeployment, err := s.getReplicationController(deployment.Namespace, deployment.Name)
 	if err != nil {
 		return nil, err
