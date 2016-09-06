@@ -321,7 +321,8 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         GOOS=${platform%/*} GOARCH=${platform##*/} go test \
-          -c -o "${outfile}" \
+          -pkgdir "${OS_OUTPUT_PKGDIR}" \
+          -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "$(dirname ${test})"
