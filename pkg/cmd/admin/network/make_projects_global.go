@@ -42,7 +42,7 @@ func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f *clientcmd.
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Make project network global",
-		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, ovsPluginName),
+		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, sdnapi.MultiTenantPluginName),
 		Example: fmt.Sprintf(makeGlobalProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {

@@ -8,6 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
+	osapi "github.com/openshift/origin/pkg/sdn/api"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -17,33 +19,6 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	utilsets "k8s.io/kubernetes/pkg/util/sets"
 )
-
-const (
-	SingleTenantPluginName string = "redhat/openshift-ovs-subnet"
-	MultiTenantPluginName  string = "redhat/openshift-ovs-multitenant"
-
-	IngressBandwidthAnnotation string = "kubernetes.io/ingress-bandwidth"
-	EgressBandwidthAnnotation  string = "kubernetes.io/egress-bandwidth"
-	AssignMacVlanAnnotation    string = "pod.network.openshift.io/assign-macvlan"
-	AssignHostSubnetAnnotation string = "pod.network.openshift.io/assign-subnet"
-)
-
-func IsOpenShiftNetworkPlugin(pluginName string) bool {
-	switch strings.ToLower(pluginName) {
-	case SingleTenantPluginName, MultiTenantPluginName:
-		return true
-	}
-	return false
-}
-
-func IsOpenShiftMultitenantNetworkPlugin(pluginName string) bool {
-	if strings.ToLower(pluginName) == MultiTenantPluginName {
-		return true
-	}
-	return false
-}
-
-//-----------------------------------------------
 
 const (
 	setUpCmd    = "setup"
@@ -62,9 +37,9 @@ func (plugin *OsdnNode) Init(host knetwork.Host, _ componentconfig.HairpinMode, 
 
 func (plugin *OsdnNode) Name() string {
 	if plugin.multitenant {
-		return MultiTenantPluginName
+		return osapi.MultiTenantPluginName
 	} else {
-		return SingleTenantPluginName
+		return osapi.SingleTenantPluginName
 	}
 }
 
@@ -103,14 +78,14 @@ func parseAndValidateBandwidth(value string) (int64, error) {
 }
 
 func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error) {
-	str, found := pod.Annotations[IngressBandwidthAnnotation]
+	str, found := pod.Annotations[osapi.IngressBandwidthAnnotation]
 	if found {
 		ingress, err = parseAndValidateBandwidth(str)
 		if err != nil {
 			return -1, -1, err
 		}
 	}
-	str, found = pod.Annotations[EgressBandwidthAnnotation]
+	str, found = pod.Annotations[osapi.EgressBandwidthAnnotation]
 	if found {
 		egress, err = parseAndValidateBandwidth(str)
 		if err != nil {
@@ -121,7 +96,7 @@ func extractBandwidthResources(pod *kapi.Pod) (ingress, egress int64, err error)
 }
 
 func wantsMacvlan(pod *kapi.Pod) (bool, error) {
-	val, found := pod.Annotations[AssignMacVlanAnnotation]
+	val, found := pod.Annotations[osapi.AssignMacvlanAnnotation]
 	if !found || val != "true" {
 		return false, nil
 	}
@@ -130,7 +105,7 @@ func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("Pod has %q annotation but is not privileged", AssignMacVlanAnnotation)
+	return false, fmt.Errorf("Pod has %q annotation but is not privileged", osapi.AssignMacvlanAnnotation)
 }
 
 func isScriptError(err error) bool {

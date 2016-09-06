@@ -13,7 +13,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 const (
@@ -79,7 +79,7 @@ func (d CheckServiceNetwork) Check() types.DiagnosticResult {
 		return d.res
 	}
 
-	if sdnplugin.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
+	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		netnsList, err := d.OSClient.NetNamespaces().List(kapi.ListOptions{})
 		if err != nil {
 			d.res.Error("DSvcNet1006", err, fmt.Sprintf("Getting all network namespaces failed. Error: %s", err))

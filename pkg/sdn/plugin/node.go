@@ -10,7 +10,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
-	"github.com/openshift/origin/pkg/sdn/plugin/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"
 
@@ -39,8 +38,8 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (api.OsdnNodePlugin, error) {
-	if !IsOpenShiftNetworkPlugin(pluginName) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+	if !osapi.IsOpenShiftNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
@@ -74,7 +73,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 	}
 
 	plugin := &OsdnNode{
-		multitenant:        IsOpenShiftMultitenantNetworkPlugin(pluginName),
+		multitenant:        osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName),
 		kClient:            kClient,
 		osClient:           osClient,
 		ovs:                ovsif,

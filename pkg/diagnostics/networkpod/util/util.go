@@ -13,7 +13,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/sdn/api"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -41,7 +41,7 @@ func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) 
 		}
 		return "", false, err
 	}
-	return cn.PluginName, sdnplugin.IsOpenShiftNetworkPlugin(cn.PluginName), nil
+	return cn.PluginName, sdnapi.IsOpenShiftNetworkPlugin(cn.PluginName), nil
 }
 
 func GetNodes(kubeClient *kclient.Client) ([]kapi.Node, error) {

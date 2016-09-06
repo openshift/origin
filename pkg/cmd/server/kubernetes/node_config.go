@@ -36,7 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/dns"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
-	sdnpluginapi "github.com/openshift/origin/pkg/sdn/plugin/api"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -77,9 +76,9 @@ type NodeConfig struct {
 	DNSServer *dns.Server
 
 	// SDNPlugin is an optional SDN plugin
-	SDNPlugin sdnpluginapi.OsdnNodePlugin
-	// EndpointsFilterer is an optional endpoints filterer
-	FilteringEndpointsHandler sdnpluginapi.FilteringEndpointsConfigHandler
+	SDNPlugin *sdnplugin.OsdnNode
+	// SDNProxy is an optional service endpoints filterer
+	SDNProxy *sdnplugin.OsdnProxy
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enableDNS bool) (*NodeConfig, error) {
@@ -166,7 +165,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	}
 	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
 
-	if sdnplugin.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
+	if sdnapi.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 		server.ConfigureCBR0 = false
@@ -263,7 +262,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		deps.NetworkPlugins = append(deps.NetworkPlugins, sdnPlugin)
 	}
 
-	endpointFilter, err := sdnplugin.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
+	sdnProxy, err := sdnplugin.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("SDN proxy initialization failed: %v", err)
 	}
@@ -286,8 +285,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		ProxyConfig:    proxyconfig,
 		EnableUnidling: options.EnableUnidling,
 
-		SDNPlugin:                 sdnPlugin,
-		FilteringEndpointsHandler: endpointFilter,
+		SDNPlugin: sdnPlugin,
+		SDNProxy:  sdnProxy,
 	}
 
 	if enableDNS {
@@ -394,7 +393,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 }
 
 func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
-	if sdnplugin.IsOpenShiftNetworkPlugin(pluginName) {
+	if sdnapi.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
 		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
 		if kerrs.IsNotFound(err) {
