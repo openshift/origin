@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -25,6 +26,24 @@ type methodCall struct {
 	args       []interface{}
 }
 
+func NewFakeDockerClient() *FakeDocker {
+	return &FakeDocker{}
+}
+
+var fooBarRunTimes = 0
+
+func fakePushImageFunc(opts docker.PushImageOptions, auth docker.AuthConfiguration) error {
+	switch opts.Tag {
+	case "tag_test_succ_foo_bar":
+		return nil
+	case "tag_test_err_exist_foo_bar":
+		fooBarRunTimes++
+		return errors.New(RetriableErrors[0])
+	case "tag_test_err_no_exist_foo_bar":
+		return errors.New("no_exist_err_foo_bar")
+	}
+	return nil
+}
 func (d *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
 	if d.buildImageFunc != nil {
 		return d.buildImageFunc(opts)
@@ -107,4 +126,50 @@ func TestTagImage(t *testing.T) {
 			t.Errorf("dockerClient called with %#v, want %#v", got, want)
 		}
 	}
+}
+
+func TestPushImage(t *testing.T) {
+	var testImageName string
+
+	bakRetryCount := DefaultPushRetryCount
+	bakRetryDelay := DefaultPushRetryDelay
+
+	fakeDocker := NewFakeDockerClient()
+	fakeDocker.pushImageFunc = fakePushImageFunc
+	testAuth := docker.AuthConfiguration{
+		Username:      "usernname_foo_bar",
+		Password:      "password_foo_bar",
+		Email:         "email_foo_bar",
+		ServerAddress: "serveraddress_foo_bar",
+	}
+
+	//make test quickly, and recover the value after testing
+	DefaultPushRetryCount = 2
+	defer func() { DefaultPushRetryCount = bakRetryCount }()
+	DefaultPushRetryDelay = 1
+	defer func() { DefaultPushRetryDelay = bakRetryDelay }()
+
+	//expect succ
+	testImageName = "repo_foo_bar:tag_test_succ_foo_bar"
+	if err := pushImage(fakeDocker, testImageName, testAuth); err != nil {
+		t.Errorf("Unexpect push image : %v, want succ", err)
+	}
+
+	//expect fail
+	testImageName = "repo_foo_bar:tag_test_err_exist_foo_bar"
+	err := pushImage(fakeDocker, testImageName, testAuth)
+	if err == nil {
+		t.Errorf("Unexpect push image : %v, want error", err)
+	}
+	//expect run 3 times
+	if fooBarRunTimes != (DefaultPushRetryCount + 1) {
+		t.Errorf("Unexpect run times : %d, we expect run three times", fooBarRunTimes)
+	}
+
+	//expect fail
+	testImageName = "repo_foo_bar:tag_test_err_no_exist_foo_bar"
+	if err := pushImage(fakeDocker, testImageName, testAuth); err == nil {
+		t.Errorf("Unexpect push image : %v, want error", err)
+	}
+	defer func() { fooBarRunTimes = 0 }()
 }
