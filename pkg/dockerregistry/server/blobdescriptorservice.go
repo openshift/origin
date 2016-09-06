@@ -203,5 +203,12 @@ func imageHasBlob(
 		}
 	}
 
+	// only manifest V2 schema2 has docker image config filled where dockerImage.Metadata.id is its digest
+	if len(image.DockerImageConfig) > 0 && image.DockerImageMetadata.ID == blobDigest {
+		// remember manifest config reference of schema 2 as well
+		r.rememberLayersOfImage(image, cacheName)
+		return true
+	}
+
 	return false
 }

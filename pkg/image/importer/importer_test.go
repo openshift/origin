@@ -7,7 +7,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/docker/distribution"
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -32,10 +35,23 @@ func expectStatusError(status unversioned.Status, message string) bool {
 }
 
 func TestImport(t *testing.T) {
-	m := &schema1.SignedManifest{}
-	if err := json.Unmarshal([]byte(etcdManifest), m); err != nil {
+	etcdManifestSchema1 := &schema1.SignedManifest{}
+	if err := json.Unmarshal([]byte(etcdManifest), etcdManifestSchema1); err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("etcd manifest schema 1 digest: %q", digest.FromBytes([]byte(etcdManifest)))
+	busyboxManifestSchema2 := &schema2.DeserializedManifest{}
+	if err := busyboxManifestSchema2.UnmarshalJSON([]byte(busyboxManifest)); err != nil {
+		t.Fatal(err)
+	}
+	busyboxConfigDigest := digest.FromBytes([]byte(busyboxManifestConfig))
+	busyboxManifestSchema2.Config = distribution.Descriptor{
+		Digest:    busyboxConfigDigest,
+		Size:      int64(len(busyboxManifestConfig)),
+		MediaType: schema2.MediaTypeConfig,
+	}
+	t.Logf("busybox manifest schema 2 digest: %q", digest.FromBytes([]byte(busyboxManifest)))
+
 	insecureRetriever := &mockRetriever{
 		repo: &mockRepository{
 			getTagErr:   fmt.Errorf("no such tag"),
@@ -125,7 +141,7 @@ func TestImport(t *testing.T) {
 			},
 		},
 		{
-			retriever: &mockRetriever{repo: &mockRepository{manifest: m}},
+			retriever: &mockRetriever{repo: &mockRepository{manifest: etcdManifestSchema1}},
 			isi: api.ImageStreamImport{
 				Spec: api.ImageStreamImportSpec{
 					Images: []api.ImageImportSpec{
@@ -160,7 +176,49 @@ func TestImport(t *testing.T) {
 		{
 			retriever: &mockRetriever{
 				repo: &mockRepository{
-					manifest: m,
+					blobs: &mockBlobStore{
+						blobs: map[digest.Digest][]byte{
+							busyboxConfigDigest: []byte(busyboxManifestConfig),
+						},
+					},
+					manifest: busyboxManifestSchema2,
+				},
+			},
+			isi: api.ImageStreamImport{
+				Spec: api.ImageStreamImportSpec{
+					Images: []api.ImageImportSpec{
+						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test:busybox"}},
+					},
+				},
+			},
+			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+				if len(isi.Status.Images) != 1 {
+					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
+				}
+				image := isi.Status.Images[0]
+				if image.Status.Status != unversioned.StatusSuccess {
+					t.Errorf("unexpected status: %#v", image.Status)
+				}
+				// the image name is always the sha256, and size is calculated
+				if image.Image.Name != busyboxDigest {
+					t.Errorf("unexpected image: %q != %q", image.Image.Name, busyboxDigest)
+				}
+				if image.Image.DockerImageMetadata.Size != busyboxImageSize {
+					t.Errorf("unexpected image size: %d != %d", image.Image.DockerImageMetadata.Size, busyboxImageSize)
+				}
+				// the most specific reference is returned
+				if image.Image.DockerImageReference != "test@"+busyboxDigest {
+					t.Errorf("unexpected ref: %#v", image.Image.DockerImageReference)
+				}
+				if image.Tag != "busybox" {
+					t.Errorf("unexpected tag of status: %s != busybox", image.Tag)
+				}
+			},
+		},
+		{
+			retriever: &mockRetriever{
+				repo: &mockRepository{
+					manifest: etcdManifestSchema1,
 					tags: map[string]string{
 						"v1":    "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
 						"other": "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238",
@@ -259,3 +317,26 @@ const etcdManifest = `
       }
    ]
 }`
+
+const busyboxDigest = "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6"
+
+const busyboxManifest = `{
+   "schemaVersion": 2,
+   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+   "config": {
+      "mediaType": "application/octet-stream",
+      "size": 1459,
+      "digest": "sha256:2b8fd9751c4c0f5dd266fcae00707e67a2545ef34f9a29354585f93dac906749"
+   },
+   "layers": [
+      {
+         "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+         "size": 667590,
+         "digest": "sha256:8ddc19f16526912237dd8af81971d5e4dd0587907234be2b83e249518d5b673f"
+      }
+   ]
+}`
+
+const busyboxManifestConfig = `{"architecture":"amd64","config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["sh"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"container":"764ef4448baa9a1ce19e4ae95f8cdd4eda7a1186c512773e56dc634dff208a59","container_config":{"Hostname":"55cd1f8f6e5b","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop) CMD [\"sh\"]"],"Image":"sha256:e732471cb81a564575aad46b9510161c5945deaf18e9be3db344333d72f0b4b2","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"created":"2016-06-23T23:23:37.198943461Z","docker_version":"1.10.3","history":[{"created":"2016-06-23T23:23:36.73131105Z","created_by":"/bin/sh -c #(nop) ADD file:9ca60502d646bdd815bb51e612c458e2d447b597b95cf435f9673f0966d41c1a in /"},{"created":"2016-06-23T23:23:37.198943461Z","created_by":"/bin/sh -c #(nop) CMD [\"sh\"]","empty_layer":true}],"os":"linux","rootfs":{"type":"layers","diff_ids":["sha256:8ac8bfaff55af948c796026ee867448c5b5b5d9dd3549f4006d9759b25d4a893"]}}`
+
+const busyboxImageSize int64 = int64(1459 + 667590)
