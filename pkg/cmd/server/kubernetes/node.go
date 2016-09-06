@@ -479,11 +479,11 @@ func (c *NodeConfig) RunProxy() {
 
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	// customized handling registration that inserts a filter if needed
-	if c.FilteringEndpointsHandler != nil {
-		if err := c.FilteringEndpointsHandler.Start(endpointsHandler); err != nil {
+	if c.SDNProxy != nil {
+		if err := c.SDNProxy.Start(endpointsHandler); err != nil {
 			glog.Fatalf("error: node proxy plugin startup failed: %v", err)
 		}
-		endpointsHandler = c.FilteringEndpointsHandler
+		endpointsHandler = c.SDNProxy
 	}
 	endpointsConfig.RegisterHandler(endpointsHandler)
 

@@ -26,7 +26,7 @@ type OsdnMaster struct {
 }
 
 func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclient.Client) error {
-	if !IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
+	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
 
@@ -92,7 +92,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		return err
 	}
 
-	if IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
+	if osapi.IsOpenShiftMultitenantNetworkPlugin(networkConfig.NetworkPluginName) {
 		master.vnids = newMasterVNIDMap()
 
 		if err = master.VnidStartMaster(); err != nil {

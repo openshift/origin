@@ -23,7 +23,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -291,7 +291,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		return err
 	}
 
-	if sdnplugin.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
+	if sdnapi.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
 		// TODO: SDN plugin depends on the Kubelet registering as a Node and doesn't retry cleanly,
 		// and Kubelet also can't start the PodSync loop until the SDN plugin has loaded.
 		if components.Enabled(ComponentKubelet) != components.Enabled(ComponentPlugins) {

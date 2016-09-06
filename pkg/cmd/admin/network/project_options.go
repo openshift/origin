@@ -26,10 +26,6 @@ import (
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-const (
-	ovsPluginName = "redhat/openshift-ovs-multitenant"
-)
-
 type ProjectOptions struct {
 	DefaultNamespace string
 	Oclient          *osclient.Client
