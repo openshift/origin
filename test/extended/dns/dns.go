@@ -13,8 +13,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -26,7 +26,7 @@ func createDNSPod(namespace, probeCmd string) *api.Pod {
 			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
 		ObjectMeta: api.ObjectMeta{
-			Name:      "dns-test-" + string(util.NewUUID()),
+			Name:      "dns-test-" + string(uuid.NewUUID()),
 			Namespace: namespace,
 		},
 		Spec: api.PodSpec{
