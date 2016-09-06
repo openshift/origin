@@ -20,6 +20,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
+	strategyutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -71,6 +72,8 @@ type RollingDeploymentStrategy struct {
 	apiRetryPeriod time.Duration
 	// apiRetryTimeout is how long to retry API calls before giving up.
 	apiRetryTimeout time.Duration
+	// events record the events
+	events record.EventSink
 }
 
 // acceptingDeploymentStrategy is a DeploymentStrategy which accepts an
@@ -97,6 +100,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 	return &RollingDeploymentStrategy{
 		out:             out,
 		errOut:          errOut,
+		events:          events,
 		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
@@ -121,7 +125,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 // recordControllerWarnings records the replication controller warnings into a
 // deployment event sink.
 func (s *RollingDeploymentStrategy) recordControllerWarnings(rc *kapi.ReplicationController) {
-	if rc == nil {
+	if rc == nil || s.events == nil {
 		return
 	}
 	events, err := s.listReplicationControllerEvents(rc)
@@ -130,8 +134,8 @@ func (s *RollingDeploymentStrategy) recordControllerWarnings(rc *kapi.Replicatio
 	}
 	for _, e := range events.Items {
 		if e.Type == kapi.EventTypeWarning {
-			// TODO: This should be an event
 			fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
+			strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
 		}
 	}
 }
@@ -144,10 +148,6 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	params := config.Spec.Strategy.RollingParams
 	updateAcceptor := s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds)*time.Second, config.Spec.MinReadySeconds)
-
-	// Record all warnings
-	defer s.recordControllerWarnings(from)
-	defer s.recordControllerWarnings(to)
 
 	// If there's no prior deployment, delegate to another strategy since the
 	// rolling updater only supports transitioning between two deployments.
@@ -178,6 +178,10 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		// All done.
 		return nil
 	}
+
+	// Record all warnings
+	defer s.recordControllerWarnings(from)
+	defer s.recordControllerWarnings(to)
 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.

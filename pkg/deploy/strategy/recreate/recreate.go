@@ -17,6 +17,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
+	strategyutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -52,6 +53,8 @@ type RecreateDeploymentStrategy struct {
 	retryTimeout time.Duration
 	// retryPeriod is how often to try updating the replica count.
 	retryPeriod time.Duration
+	// events records the events
+	events record.EventSink
 }
 
 // AcceptorInterval is how often the UpdateAcceptor should check for
@@ -71,6 +74,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 	return &RecreateDeploymentStrategy{
 		out:    out,
 		errOut: errOut,
+		events: events,
 		until:  until,
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
@@ -97,7 +101,7 @@ func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to
 // recordControllerWarnings records the replication controller warnings into a
 // deployment event sink.
 func (s *RecreateDeploymentStrategy) recordControllerWarnings(rc *kapi.ReplicationController) {
-	if rc == nil {
+	if rc == nil || s.events == nil {
 		return
 	}
 	events, err := s.listReplicationControllerEvents(rc)
@@ -106,8 +110,8 @@ func (s *RecreateDeploymentStrategy) recordControllerWarnings(rc *kapi.Replicati
 	}
 	for _, e := range events.Items {
 		if e.Type == kapi.EventTypeWarning {
-			// TODO: This should be an event
 			fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
+			strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
 		}
 	}
 }

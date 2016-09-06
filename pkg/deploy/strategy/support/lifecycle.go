@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	strategyutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util"
@@ -71,42 +71,6 @@ func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsN
 	}
 }
 
-func (e *HookExecutor) emitEvent(deployment *kapi.ReplicationController, eventType, reason, msg string) {
-	t := unversioned.Time{Time: time.Now()}
-	var ref *kapi.ObjectReference
-	if config, err := deployutil.DecodeDeploymentConfig(deployment, e.decoder); err != nil {
-		glog.Errorf("Unable to decode deployment %s/%s to replication contoller: %v", deployment.Namespace, deployment.Name, err)
-		if ref, err = kapi.GetReference(deployment); err != nil {
-			glog.Errorf("Unable to get reference for %#v: %v", deployment, err)
-			return
-		}
-	} else {
-		if ref, err = kapi.GetReference(config); err != nil {
-			glog.Errorf("Unable to get reference for %#v: %v", config, err)
-			return
-		}
-	}
-	event := &kapi.Event{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
-			Namespace: ref.Namespace,
-		},
-		InvolvedObject: *ref,
-		Reason:         reason,
-		Message:        msg,
-		Source: kapi.EventSource{
-			Component: deployutil.DeployerPodNameFor(deployment),
-		},
-		FirstTimestamp: t,
-		LastTimestamp:  t,
-		Count:          1,
-		Type:           eventType,
-	}
-	if _, err := e.events.Create(event); err != nil {
-		glog.Errorf("Could not send event '%#v': %v", event, err)
-	}
-}
-
 // Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
 func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -120,25 +84,25 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 				tagEventMessages = append(tagEventMessages, fmt.Sprintf("image %q as %q", image, t.To.Name))
 			}
 		}
-		e.emitEvent(deployment, kapi.EventTypeNormal, "Started", fmt.Sprintf("Running %s-hook (TagImages) %s for deployment %s/%s", label, strings.Join(tagEventMessages, ","), deployment.Namespace, deployment.Name))
+		strategyutil.RecordConfigEvent(e.events, deployment, e.decoder, kapi.EventTypeNormal, "Started", fmt.Sprintf("Running %s-hook (TagImages) %s for deployment %s/%s", label, strings.Join(tagEventMessages, ","), deployment.Namespace, deployment.Name))
 		err = e.tagImages(hook, deployment, suffix, label)
 	case hook.ExecNewPod != nil:
-		e.emitEvent(deployment, kapi.EventTypeNormal, "Started", fmt.Sprintf("Running %s-hook (%q) for deployment %s/%s", label, strings.Join(hook.ExecNewPod.Command, " "), deployment.Namespace, deployment.Name))
+		strategyutil.RecordConfigEvent(e.events, deployment, e.decoder, kapi.EventTypeNormal, "Started", fmt.Sprintf("Running %s-hook (%q) for deployment %s/%s", label, strings.Join(hook.ExecNewPod.Command, " "), deployment.Namespace, deployment.Name))
 		err = e.executeExecNewPod(hook, deployment, suffix, label)
 	}
 
 	if err == nil {
-		e.emitEvent(deployment, kapi.EventTypeNormal, "Completed", fmt.Sprintf("The %s-hook for deployment %s/%s completed successfully", label, deployment.Namespace, deployment.Name))
+		strategyutil.RecordConfigEvent(e.events, deployment, e.decoder, kapi.EventTypeNormal, "Completed", fmt.Sprintf("The %s-hook for deployment %s/%s completed successfully", label, deployment.Namespace, deployment.Name))
 		return nil
 	}
 
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
 	case deployapi.LifecycleHookFailurePolicyAbort, deployapi.LifecycleHookFailurePolicyRetry:
-		e.emitEvent(deployment, kapi.EventTypeWarning, "Failed", fmt.Sprintf("The %s-hook failed: %v, aborting deployment %s/%s", label, err, deployment.Namespace, deployment.Name))
+		strategyutil.RecordConfigEvent(e.events, deployment, e.decoder, kapi.EventTypeWarning, "Failed", fmt.Sprintf("The %s-hook failed: %v, aborting deployment %s/%s", label, err, deployment.Namespace, deployment.Name))
 		return fmt.Errorf("the %s hook failed: %v, aborting deployment: %s/%s", label, err, deployment.Namespace, deployment.Name)
 	case deployapi.LifecycleHookFailurePolicyIgnore:
-		e.emitEvent(deployment, kapi.EventTypeWarning, "Failed", fmt.Sprintf("The %s-hook failed: %v (ignore), deployment %s/%s will continue", label, err, deployment.Namespace, deployment.Name))
+		strategyutil.RecordConfigEvent(e.events, deployment, e.decoder, kapi.EventTypeWarning, "Failed", fmt.Sprintf("The %s-hook failed: %v (ignore), deployment %s/%s will continue", label, err, deployment.Namespace, deployment.Name))
 		fmt.Fprintf(e.out, "the %s hook failed: %v (ignore), deployment %s/%s will continue", label, err, deployment.Namespace, deployment.Name)
 		return nil
 	default:
