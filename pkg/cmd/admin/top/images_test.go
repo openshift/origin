@@ -89,6 +89,65 @@ func TestImagesTop(t *testing.T) {
 				},
 			},
 		},
+		"with metadata and image config": {
+			images: &imageapi.ImageList{
+				Items: []imageapi.Image{
+					{
+						ObjectMeta: kapi.ObjectMeta{Name: "image1"},
+						DockerImageLayers: []imageapi.ImageLayer{
+							{Name: "layer1", LayerSize: int64(512)},
+							{Name: "layer2", LayerSize: int64(512)},
+						},
+						DockerImageManifest: "non empty metadata",
+						DockerImageConfig:   "raw image config",
+						DockerImageMetadata: imageapi.DockerImage{
+							ID: "manifestConfigID",
+						},
+					},
+				},
+			},
+			streams: &imageapi.ImageStreamList{},
+			pods:    &kapi.PodList{},
+			expected: []Info{
+				imageInfo{
+					Image:    "image1",
+					Metadata: true,
+					Parents:  []string{},
+					Usage:    []string{},
+					Storage:  int64(1024 + len("raw image config")),
+				},
+			},
+		},
+		"with metadata and image config and some layers duplicated": {
+			images: &imageapi.ImageList{
+				Items: []imageapi.Image{
+					{
+						ObjectMeta: kapi.ObjectMeta{Name: "image1"},
+						DockerImageLayers: []imageapi.ImageLayer{
+							{Name: "layer1", LayerSize: int64(512)},
+							{Name: "layer2", LayerSize: int64(256)},
+							{Name: "layer1", LayerSize: int64(512)},
+						},
+						DockerImageManifest: "non empty metadata",
+						DockerImageConfig:   "raw image config",
+						DockerImageMetadata: imageapi.DockerImage{
+							ID: "layer2",
+						},
+					},
+				},
+			},
+			streams: &imageapi.ImageStreamList{},
+			pods:    &kapi.PodList{},
+			expected: []Info{
+				imageInfo{
+					Image:    "image1",
+					Metadata: true,
+					Parents:  []string{},
+					Usage:    []string{},
+					Storage:  int64(512 + 256),
+				},
+			},
+		},
 		"multiple tags": {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{

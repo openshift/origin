@@ -43,6 +43,12 @@ func (r *pullthroughBlobStore) Stat(ctx context.Context, dgst digest.Digest) (di
 		return desc, err
 	}
 
+	return r.remoteStat(ctx, dgst)
+}
+
+// remoteStat attempts to find requested blob in candidate remote repositories and if found, it updates
+// digestToRepository store. ErrBlobUnknown will be returned if not found.
+func (r *pullthroughBlobStore) remoteStat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	// look up the potential remote repositories that this blob could be part of (at this time,
 	// we don't know which image in the image stream surfaced the content).
 	is, err := r.repo.getImageStream()
@@ -112,13 +118,13 @@ func (r *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseWri
 
 	desc, err := store.Stat(ctx, dgst)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("Failed to stat digest %q: %v", dgst.String(), err)
+		context.GetLogger(ctx).Errorf("failed to stat digest %q: %v", dgst.String(), err)
 		return err
 	}
 
 	remoteReader, err := store.Open(ctx, dgst)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("Failure to open remote store for digest %q: %v", dgst.String(), err)
+		context.GetLogger(ctx).Errorf("failure to open remote store for digest %q: %v", dgst.String(), err)
 		return err
 	}
 	defer remoteReader.Close()
@@ -128,6 +134,30 @@ func (r *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseWri
 	context.GetLogger(ctx).Infof("serving blob %s of type %s %d bytes long", dgst.String(), desc.MediaType, desc.Size)
 	http.ServeContent(w, req, desc.Digest.String(), time.Time{}, remoteReader)
 	return nil
+}
+
+// Get attempts to fetch the requested blob by digest using a remote proxy store if necessary.
+func (r *pullthroughBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
+	store, ok := r.digestToStore[dgst.String()]
+	if ok {
+		return store.Get(ctx, dgst)
+	}
+
+	data, originalErr := r.BlobStore.Get(ctx, dgst)
+	if originalErr == nil {
+		return data, nil
+	}
+
+	desc, err := r.remoteStat(ctx, dgst)
+	if err != nil {
+		context.GetLogger(ctx).Errorf("failed to stat blob %q in remote repositories: %v", dgst.String(), err)
+		return nil, originalErr
+	}
+	store, ok = r.digestToStore[desc.Digest.String()]
+	if !ok {
+		return nil, originalErr
+	}
+	return store.Get(ctx, desc.Digest)
 }
 
 // findCandidateRepository looks in search for a particular blob, referring to previously cached items
