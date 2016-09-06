@@ -102,6 +102,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) ([]string, error
 			StorageConfig:           endpointConfig,
 			Decorator:               generic.UndecoratedStorage,
 			DeleteCollectionWorkers: 0,
+			ResourcePrefix:          c.Master.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
 		})
 
 		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
