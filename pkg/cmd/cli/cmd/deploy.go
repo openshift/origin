@@ -156,7 +156,8 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 
 func (o DeployOptions) Validate() error {
 	if len(o.deploymentConfigName) == 0 {
-		return errors.New("a deployment config name is required.")
+		msg := fmt.Sprintf("a deployment config name is required.\nUse \"%s get dc\" for a list of available deployment configs.", o.baseCommandName)
+		return errors.New(msg)
 	}
 	numOptions := 0
 	if o.deployLatest {
