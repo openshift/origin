@@ -286,6 +286,11 @@ os::build::internal::build_binaries() {
       fi
     done
 
+    # Temporarily enable swap for the duration of the build until we move
+    # to Go 1.7
+    os::build::enable_swap
+    trap "os::build::disable_swap" EXIT
+
     local host_platform=$(os::build::host_platform)
     local platform
     for platform in "${platforms[@]}"; do
@@ -787,6 +792,87 @@ function os::build::ldflags() {
   echo "${ldflags[*]-}"
 }
 readonly -f os::build::ldflags
+
+# os::build::enable_swap attempts to enable swap for the system if a) this is Linux and b)
+# the amount of physical memory is less than 10GB. This is a stopgap until we have
+# better control over memory use in Go 1.7+.
+function os::build::enable_swap() {
+  # if we aren't on linux or have more than 9GB of memory
+  if [[ -n "${OS_BUILD_SWAP_DISABLE-}" || "$(go env GOHOSTOS)" != "linux" || "$( os::build::physmem_gb )" -gt 9 ]]; then
+    return
+  fi
+  # if we don't have the swapon command available
+  if ! swapon &>/dev/null; then
+    return
+  fi
+  # if swap is already on
+  if [[ "$( swapon --show --noheadings | wc -l )" -ne 0 ]]; then
+    return
+  fi
+  echo "++ temporarily enabling swap space to assist in building in limited memory - use OS_BUILD_SWAP_DISABLE=1 to bypass"
+
+  (
+    set -e
+    sudo cp /etc/fstab /origin-backupfstab
+    sudo dd if=/dev/zero of=/origin-swapfile bs=1M count=${OS_BUILD_SWAP_SIZE:-2048}
+    sudo chmod 600 /origin-swapfile
+    sudo mkswap /origin-swapfile
+    sudo swapon /origin-swapfile
+    sudo /bin/sh -c 'echo "/origin-swapfile none swap defaults 0 0" >> /etc/fstab'
+  ) &>/dev/null || true
+}
+readonly -f os::build::enable_swap
+
+# os::build::disable_swap undoes the effects of os::build::enable_swap
+function os::build::disable_swap() {
+  # if we aren't on linux or have more than 9GB of memory
+  if [[ -n "${OS_BUILD_SWAP_DISABLE-}" || "$(go env GOHOSTOS)" != "linux" ]]; then
+    return
+  fi
+  # if we previously set up a swapfile
+  if [[ ! -f /origin-swapfile ]]; then
+    return
+  fi
+  (
+    set +e
+    sudo swapoff /origin-swapfile
+    sudo cp /origin-backupfstab /etc/fstab
+    sudo rm -f /origin-backupfstab /origin-swapfile
+  ) || true
+}
+readonly -f os::build::disable_swap
+
+# os::build::physmem_gb returns the approximate gigabytes of memory on the system
+# This is copied verbatim from kube for the purposes of detecting how much available
+# memory we have for building.
+function os::build::physmem_gb() {
+  local mem
+
+  # Linux kernel version >=3.14, in kb
+  if mem=$(grep MemAvailable /proc/meminfo | awk '{ print $2 }'); then
+    echo $(( ${mem} / 1048576 ))
+    return
+  fi
+
+  # Linux, in kb
+  if mem=$(grep MemTotal /proc/meminfo | awk '{ print $2 }'); then
+    echo $(( ${mem} / 1048576 ))
+    return
+  fi
+
+  # OS X, in bytes. Note that get_physmem, as used, should only ever
+  # run in a Linux container (because it's only used in the multiple
+  # platform case, which is a Dockerized build), but this is provided
+  # for completeness.
+  if mem=$(sysctl -n hw.memsize 2>/dev/null); then
+    echo $(( ${mem} / 1073741824 ))
+    return
+  fi
+
+  # If we can't infer it, just give up and assume a low memory system
+  echo 1
+}
+readonly -f os::build::physmem_gb
 
 # os::build::require_clean_tree exits if the current Git tree is not clean.
 function os::build::require_clean_tree() {
