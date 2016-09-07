@@ -1002,7 +1002,6 @@ readonly -f os::build::find-binary
 # is mounted by default and the output of the command is the container id.
 function os::build::environment::create() {
   set -o errexit
-  local golang_version="${OS_BUILD_ENV_GOLANG}"
   local release_image="${OS_BUILD_ENV_IMAGE}"
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
   if [[ -z "${additional_context}" && "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
@@ -1055,6 +1054,37 @@ function os::build::environment::cleanup() {
 }
 readonly -f os::build::environment::cleanup
 
+# os::build::environment::start starts the container provided as the first argument
+# using whatever content exists in the container already.
+function os::build::environment::start() {
+  local container=$1
+
+  docker start "${container}" > /dev/null
+  docker logs -f "${container}"
+
+  local exitcode
+  exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
+
+  # extract content from the image
+  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
+    local workingdir
+    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+    local oldIFS="${IFS}"
+    IFS=:
+    for path in ${OS_BUILD_ENV_PRESERVE}; do
+      local parent=.
+      if [[ "${path}" != "." ]]; then
+        parent="$( dirname ${path} )"
+        mkdir -p "${parent}"
+      fi
+      docker cp "${container}:${workingdir}/${path}" "${parent}"
+    done
+    IFS="${oldIFS}"
+  fi
+  return $exitcode
+}
+readonly -f os::build::environment::start
+
 # os::build::environment::withsource starts the container provided as the first argument
 # after copying in the contents of the current Git repository at HEAD (or, if specified,
 # the ref specified in the second argument).
@@ -1077,27 +1107,7 @@ function os::build::environment::withsource() {
     git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
   fi
 
-  docker start "${container}" > /dev/null
-  docker logs -f "${container}"
-
-  local exitcode
-  exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
-
-  # extract content from the image
-  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
-    local workingdir
-    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    local oldIFS="${IFS}"
-    IFS=:
-    for path in ${OS_BUILD_ENV_PRESERVE}; do
-      local parent
-      parent="$( dirname ${path} )"
-      mkdir -p "${parent}"
-      docker cp "${container}:${workingdir}/${path}" "${parent}"
-    done
-    IFS="${oldIFS}"
-  fi
-  return $exitcode
+  os::build::environment::start "${container}"
 }
 readonly -f os::build::environment::withsource
 
@@ -1106,14 +1116,21 @@ readonly -f os::build::environment::withsource
 function os::build::environment::run() {
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume="${OS_BUILD_ENV_REUSE_VOLUME:-}"
+  local exists=
   if [[ -z "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
     volume="origin-build-$( git rev-parse "${commit}" )"
+  elif docker volume inspect "${OS_BUILD_ENV_REUSE_VOLUME}" &>/dev/null; then
+    exists=y
   fi
 
   local container
   container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
   trap "os::build::environment::cleanup ${container}" EXIT
 
-  os::build::environment::withsource "${container}" "${commit}"
+  if [[ "${exists}" == "y" ]]; then
+    os::build::environment::start "${container}"
+  else
+    os::build::environment::withsource "${container}" "${commit}"
+  fi
 }
 readonly -f os::build::environment::run
