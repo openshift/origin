@@ -89,9 +89,9 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		t.Errorf("Expected output env 'foo' to have value 'test', got %+v", output[0])
 	}
 	if output[1].Name != "BUILD_LOGLEVEL" {
-		t.Errorf("Expected output to have env 'BUILD_LOGLEVEL', got %+v", output[0])
+		t.Errorf("Expected output to have env 'BUILD_LOGLEVEL', got %+v", output[1])
 	}
 	if output[1].Value != "loglevel" {
-		t.Errorf("Expected output env 'foo' to have value 'loglevel', got %+v", output[0])
+		t.Errorf("Expected output env 'BUILD_LOGLEVEL' to have value 'loglevel', got %+v", output[1])
 	}
 }
