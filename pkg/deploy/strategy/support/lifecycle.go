@@ -12,7 +12,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kdeployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/fields"
@@ -47,11 +46,11 @@ type HookExecutor struct {
 	// decoder is used for encoding/decoding.
 	decoder runtime.Decoder
 	// recorder is used to emit events from hooks
-	events record.EventSink
+	events kclient.EventNamespacer
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, events record.EventSink, out io.Writer, decoder runtime.Decoder) *HookExecutor {
+func NewHookExecutor(client kclient.PodsNamespacer, tags client.ImageStreamTagsNamespacer, events kclient.EventNamespacer, out io.Writer, decoder runtime.Decoder) *HookExecutor {
 	return &HookExecutor{
 		tags:   tags,
 		events: events,

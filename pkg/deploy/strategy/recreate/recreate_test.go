@@ -40,6 +40,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
 		scaler:            scaler,
+		eventClient:       ktestclient.NewSimpleFake(),
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -74,6 +75,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		retryTimeout:      1 * time.Second,
 		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
+		eventClient:       ktestclient.NewSimpleFake(),
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -106,6 +108,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 		retryTimeout:      1 * time.Second,
 		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
+		eventClient:       ktestclient.NewSimpleFake(),
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -139,6 +142,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		getUpdateAcceptor: getUpdateAcceptor,
+		eventClient:       ktestclient.NewSimpleFake(),
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
@@ -170,6 +174,7 @@ func TestRecreate_deploymentMidHookFail(t *testing.T) {
 		retryTimeout:      1 * time.Second,
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
+		eventClient:       ktestclient.NewSimpleFake(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -201,6 +206,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		retryTimeout:      1 * time.Second,
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
+		eventClient:       ktestclient.NewSimpleFake(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -234,6 +240,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		retryTimeout:      1 * time.Second,
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
+		eventClient:       ktestclient.NewSimpleFake(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
@@ -260,6 +267,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	strategy := &RecreateDeploymentStrategy{
 		out:          &bytes.Buffer{},
 		errOut:       &bytes.Buffer{},
+		eventClient:  ktestclient.NewSimpleFake(),
 		decoder:      kapi.Codecs.UniversalDecoder(),
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
@@ -309,6 +317,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		retryTimeout: 1 * time.Second,
 		retryPeriod:  1 * time.Millisecond,
 		scaler:       scaler,
+		eventClient:  ktestclient.NewSimpleFake(),
 	}
 
 	acceptor := &testAcceptor{

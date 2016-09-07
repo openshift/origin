@@ -17,7 +17,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
-	strategyutil "github.com/openshift/origin/pkg/deploy/strategy/util"
+	stratutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -82,7 +82,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 		},
 		scaler:       scaler,
 		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, events, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, client, os.Stdout, decoder),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}
@@ -91,25 +91,6 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 // Deploy makes deployment active and disables oldDeployments.
 func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
 	return s.DeployWithAcceptor(from, to, desiredReplicas, nil)
-}
-
-// recordControllerWarnings records the replication controller warnings into a
-// deployment event sink.
-func (s *RecreateDeploymentStrategy) recordControllerWarnings(rc *kapi.ReplicationController) {
-	if rc == nil || s.events == nil {
-		return
-	}
-	if events, err := s.eventClient.Events(rc.Namespace).Search(rc); err != nil {
-		fmt.Fprintf(s.errOut, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
-	} else {
-		// TODO: Do we need to sort the events?
-		for _, e := range events.Items {
-			if e.Type == kapi.EventTypeWarning {
-				fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
-				strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
-			}
-		}
-	}
 }
 
 // DeployWithAcceptor scales down from and then scales up to. If
@@ -145,8 +126,8 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	}
 
 	// Record all warnings
-	defer s.recordControllerWarnings(to)
-	defer s.recordControllerWarnings(from)
+	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.decoder, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.decoder, s.out)
 
 	// Scale down the from deployment.
 	if from != nil {

@@ -20,7 +20,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
-	strategyutil "github.com/openshift/origin/pkg/deploy/strategy/util"
+	stratutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -54,7 +54,9 @@ type RollingDeploymentStrategy struct {
 	initialStrategy acceptingDeploymentStrategy
 	// rcClient is used to deal with ReplicationControllers.
 	rcClient kclient.ReplicationControllersNamespacer
-	// client is used to perform tag actions
+	// eventClient is a client to access events
+	eventClient kclient.EventNamespacer
+	// tags is a client used to perform tag actions
 	tags client.ImageStreamTagsNamespacer
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
@@ -69,10 +71,6 @@ type RollingDeploymentStrategy struct {
 	apiRetryPeriod time.Duration
 	// apiRetryTimeout is how long to retry API calls before giving up.
 	apiRetryTimeout time.Duration
-	// eventClient is a client to access events
-	eventClient kclient.EventNamespacer
-	// events record the events
-	events record.EventSink
 }
 
 // acceptingDeploymentStrategy is a DeploymentStrategy which accepts an
@@ -99,7 +97,6 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 	return &RollingDeploymentStrategy{
 		out:             out,
 		errOut:          errOut,
-		events:          events,
 		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
@@ -112,29 +109,10 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client, tags, events, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tags, client, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
-	}
-}
-
-// recordControllerWarnings records the replication controller warnings into a
-// deployment event sink.
-func (s *RollingDeploymentStrategy) recordControllerWarnings(rc *kapi.ReplicationController) {
-	if rc == nil || s.events == nil {
-		return
-	}
-	if events, err := s.eventClient.Events(rc.Namespace).Search(rc); err != nil {
-		fmt.Fprintf(s.errOut, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
-	} else {
-		// TODO: Do we need to sort the events?
-		for _, e := range events.Items {
-			if e.Type == kapi.EventTypeWarning {
-				fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
-				strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
-			}
-		}
 	}
 }
 
@@ -178,8 +156,8 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	}
 
 	// Record all warnings
-	defer s.recordControllerWarnings(from)
-	defer s.recordControllerWarnings(to)
+	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.decoder, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.decoder, s.out)
 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
