@@ -233,21 +233,21 @@ func (o PruneImagesOptions) Run() error {
 
 	imageDeleter := &describingImageDeleter{w: w}
 	imageStreamDeleter := &describingImageStreamDeleter{w: w}
-	layerDeleter := &describingLayerDeleter{w: w}
+	layerLinkDeleter := &describingLayerLinkDeleter{w: w}
 	blobDeleter := &describingBlobDeleter{w: w}
 	manifestDeleter := &describingManifestDeleter{w: w}
 
 	if o.Confirm {
 		imageDeleter.delegate = prune.NewImageDeleter(o.Client.Images())
 		imageStreamDeleter.delegate = prune.NewImageStreamDeleter(o.Client)
-		layerDeleter.delegate = prune.NewLayerDeleter()
+		layerLinkDeleter.delegate = prune.NewLayerLinkDeleter()
 		blobDeleter.delegate = prune.NewBlobDeleter()
 		manifestDeleter.delegate = prune.NewManifestDeleter()
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
 	}
 
-	return o.Pruner.Prune(imageDeleter, imageStreamDeleter, layerDeleter, blobDeleter, manifestDeleter)
+	return o.Pruner.Prune(imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
 }
 
 // describingImageStreamDeleter prints information about each image stream update.
@@ -312,33 +312,32 @@ func (p *describingImageDeleter) DeleteImage(image *imageapi.Image) error {
 	return err
 }
 
-// describingLayerDeleter prints information about each repo layer link being
-// deleted. If a delegate exists, its DeleteLayer function is invoked prior to
-// returning.
-type describingLayerDeleter struct {
+// describingLayerLinkDeleter prints information about each repo layer link being deleted. If a delegate
+// exists, its DeleteLayerLink function is invoked prior to returning.
+type describingLayerLinkDeleter struct {
 	w             io.Writer
-	delegate      prune.LayerDeleter
+	delegate      prune.LayerLinkDeleter
 	headerPrinted bool
 }
 
-var _ prune.LayerDeleter = &describingLayerDeleter{}
+var _ prune.LayerLinkDeleter = &describingLayerLinkDeleter{}
 
-func (p *describingLayerDeleter) DeleteLayer(registryClient *http.Client, registryURL, repo, layer string) error {
+func (p *describingLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL, repo, name string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry repository layer links ...")
-		fmt.Fprintln(p.w, "REPO\tLAYER")
+		fmt.Fprintln(p.w, "REPO\tLAYER LINK")
 	}
 
-	fmt.Fprintf(p.w, "%s\t%s\n", repo, layer)
+	fmt.Fprintf(p.w, "%s\t%s\n", repo, name)
 
 	if p.delegate == nil {
 		return nil
 	}
 
-	err := p.delegate.DeleteLayer(registryClient, registryURL, repo, layer)
+	err := p.delegate.DeleteLayerLink(registryClient, registryURL, repo, name)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting repository %s layer link %s from the registry: %v\n", repo, layer, err)
+		fmt.Fprintf(os.Stderr, "error deleting repository %s layer link %s from the registry: %v\n", repo, name, err)
 	}
 
 	return err

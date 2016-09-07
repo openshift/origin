@@ -72,11 +72,11 @@ type BlobDeleter interface {
 	DeleteBlob(registryClient *http.Client, registryURL, blob string) error
 }
 
-// LayerDeleter knows how to delete a repository layer link from the Docker registry.
-type LayerDeleter interface {
-	// DeleteLayer uses registryClient to ask the registry at registryURL to
+// LayerLinkDeleter knows how to delete a repository layer link from the Docker registry.
+type LayerLinkDeleter interface {
+	// DeleteLayerLink uses registryClient to ask the registry at registryURL to
 	// delete the repository layer link.
-	DeleteLayer(registryClient *http.Client, registryURL, repo, layer string) error
+	DeleteLayerLink(registryClient *http.Client, registryURL, repo, linkName string) error
 }
 
 // ManifestDeleter knows how to delete image manifest data for a repository from
@@ -130,12 +130,11 @@ type PrunerOptions struct {
 
 // Pruner knows how to prune images and layers.
 type Pruner interface {
-	// Prune uses imagePruner, streamPruner, layerPruner, blobPruner, and
+	// Prune uses imagePruner, streamPruner, layerLinkPruner, blobPruner, and
 	// manifestPruner to remove images that have been identified as candidates
 	// for pruning based on the Pruner's internal pruning algorithm.
 	// Please see NewPruner for details on the algorithm.
-	Prune(imagePruner ImageDeleter, streamPruner ImageStreamDeleter, layerPruner LayerDeleter,
-		blobPruner BlobDeleter, manifestPruner ManifestDeleter) error
+	Prune(imagePruner ImageDeleter, streamPruner ImageStreamDeleter, layerLinkPruner LayerLinkDeleter, blobPruner BlobDeleter, manifestPruner ManifestDeleter) error
 }
 
 // pruner is an object that knows how to prune a data set
@@ -776,10 +775,16 @@ func (p *pruner) determineRegistry(imageNodes []*imagegraph.ImageNode) (string, 
 	return ref.Registry, nil
 }
 
-// Run identifies images eligible for pruning, invoking imagePruneFunc for each
-// image, and then it identifies layers eligible for pruning, invoking
-// layerPruneFunc for each registry URL that has layers that can be pruned.
-func (p *pruner) Prune(imagePruner ImageDeleter, streamPruner ImageStreamDeleter, layerPruner LayerDeleter, blobPruner BlobDeleter, manifestPruner ManifestDeleter) error {
+// Run identifies images eligible for pruning, invoking imagePruner for each image, and then it identifies
+// image layers eligible for pruning, invoking layerLinkPruner for each registry URL that has
+// layers that can be pruned.
+func (p *pruner) Prune(
+	imagePruner ImageDeleter,
+	streamPruner ImageStreamDeleter,
+	layerLinkPruner LayerLinkDeleter,
+	blobPruner BlobDeleter,
+	manifestPruner ManifestDeleter,
+) error {
 	allNodes := p.g.Nodes()
 
 	imageNodes := getImageNodes(allNodes)
@@ -804,7 +809,7 @@ func (p *pruner) Prune(imagePruner ImageDeleter, streamPruner ImageStreamDeleter
 	errs := []error{}
 
 	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
-	errs = append(errs, pruneLayers(p.g, p.registryClient, registryURL, prunableLayers, layerPruner)...)
+	errs = append(errs, pruneLayers(p.g, p.registryClient, registryURL, prunableLayers, layerLinkPruner)...)
 	errs = append(errs, pruneBlobs(p.g, p.registryClient, registryURL, prunableLayers, blobPruner)...)
 	errs = append(errs, pruneManifests(p.g, p.registryClient, registryURL, prunableImageNodes, manifestPruner)...)
 
@@ -846,9 +851,15 @@ func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) 
 	return ret
 }
 
-// pruneLayers invokes layerPruner.DeleteLayer for each repository layer link to
+// pruneLayers invokes layerLinkDeleter.DeleteLayerLink for each repository layer link to
 // be deleted from the registry.
-func pruneLayers(g graph.Graph, registryClient *http.Client, registryURL string, layerNodes []*imagegraph.ImageLayerNode, layerPruner LayerDeleter) []error {
+func pruneLayers(
+	g graph.Graph,
+	registryClient *http.Client,
+	registryURL string,
+	layerNodes []*imagegraph.ImageLayerNode,
+	layerLinkDeleter LayerLinkDeleter,
+) []error {
 	errs := []error{}
 
 	for _, layerNode := range layerNodes {
@@ -860,7 +871,7 @@ func pruneLayers(g graph.Graph, registryClient *http.Client, registryURL string,
 			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
 			glog.V(4).Infof("Pruning registry=%q, repo=%q, layer=%q", registryURL, streamName, layerNode.Layer)
-			if err := layerPruner.DeleteLayer(registryClient, registryURL, streamName, layerNode.Layer); err != nil {
+			if err := layerLinkDeleter.DeleteLayerLink(registryClient, registryURL, streamName, layerNode.Layer); err != nil {
 				errs = append(errs, fmt.Errorf("error pruning repo %q layer link %q: %v", streamName, layerNode.Layer, err))
 			}
 		}
@@ -1010,19 +1021,19 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 	return err
 }
 
-// layerDeleter removes a repository layer link from the registry.
-type layerDeleter struct{}
+// layerLinkDeleter removes a repository layer link from the registry.
+type layerLinkDeleter struct{}
 
-var _ LayerDeleter = &layerDeleter{}
+var _ LayerLinkDeleter = &layerLinkDeleter{}
 
-// NewLayerDeleter creates a new layerDeleter.
-func NewLayerDeleter() LayerDeleter {
-	return &layerDeleter{}
+// NewLayerLinkDeleter creates a new layerLinkDeleter.
+func NewLayerLinkDeleter() LayerLinkDeleter {
+	return &layerLinkDeleter{}
 }
 
-func (p *layerDeleter) DeleteLayer(registryClient *http.Client, registryURL, repoName, layer string) error {
-	glog.V(4).Infof("Pruning registry %q, repo %q, layer %q", registryURL, repoName, layer)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/blobs/%s", registryURL, repoName, layer))
+func (p *layerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL, repoName, linkName string) error {
+	glog.V(4).Infof("Pruning registry %q, repo %q, layer link %q", registryURL, repoName, linkName)
+	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/blobs/%s", registryURL, repoName, linkName))
 }
 
 // blobDeleter removes a blob from the registry.

@@ -372,14 +372,14 @@ func (p *fakeBlobDeleter) DeleteBlob(registryClient *http.Client, registryURL, b
 	return p.err
 }
 
-type fakeLayerDeleter struct {
+type fakeLayerLinkDeleter struct {
 	invocations sets.String
 	err         error
 }
 
-var _ LayerDeleter = &fakeLayerDeleter{}
+var _ LayerLinkDeleter = &fakeLayerLinkDeleter{}
 
-func (p *fakeLayerDeleter) DeleteLayer(registryClient *http.Client, registryURL, repo, layer string) error {
+func (p *fakeLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL, repo, layer string) error {
 	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, layer))
 	return p.err
 }
@@ -404,20 +404,20 @@ func TestImagePruning(t *testing.T) {
 	registryURL := "registry"
 
 	tests := map[string]struct {
-		pruneOverSizeLimit     *bool
-		registryURLs           []string
-		images                 imageapi.ImageList
-		pods                   kapi.PodList
-		streams                imageapi.ImageStreamList
-		rcs                    kapi.ReplicationControllerList
-		bcs                    buildapi.BuildConfigList
-		builds                 buildapi.BuildList
-		dcs                    deployapi.DeploymentConfigList
-		limits                 map[string][]*kapi.LimitRange
-		expectedImageDeletions []string
-		expectedStreamUpdates  []string
-		expectedLayerDeletions []string
-		expectedBlobDeletions  []string
+		pruneOverSizeLimit         *bool
+		registryURLs               []string
+		images                     imageapi.ImageList
+		pods                       kapi.PodList
+		streams                    imageapi.ImageStreamList
+		rcs                        kapi.ReplicationControllerList
+		bcs                        buildapi.BuildConfigList
+		builds                     buildapi.BuildList
+		dcs                        deployapi.DeploymentConfigList
+		limits                     map[string][]*kapi.LimitRange
+		expectedImageDeletions     []string
+		expectedStreamUpdates      []string
+		expectedLayerLinkDeletions []string
+		expectedBlobDeletions      []string
 	}{
 		"1 pod - phase pending - don't prune": {
 			images: imageList(image("id", registryURL+"/foo/bar@id")),
@@ -735,7 +735,7 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"id4"},
 			expectedStreamUpdates:  []string{"foo/bar|id4"},
-			expectedLayerDeletions: []string{
+			expectedLayerLinkDeletions: []string{
 				registryURL + "|foo/bar|layer5",
 				registryURL + "|foo/bar|layer6",
 				registryURL + "|foo/bar|layer7",
@@ -852,11 +852,11 @@ func TestImagePruning(t *testing.T) {
 
 		imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
 		streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
-		layerDeleter := &fakeLayerDeleter{invocations: sets.NewString()}
+		layerLinkDeleter := &fakeLayerLinkDeleter{invocations: sets.NewString()}
 		blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
 		manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
 
-		p.Prune(imageDeleter, streamDeleter, layerDeleter, blobDeleter, manifestDeleter)
+		p.Prune(imageDeleter, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
 
 		expectedImageDeletions := sets.NewString(test.expectedImageDeletions...)
 		if !reflect.DeepEqual(expectedImageDeletions, imageDeleter.invocations) {
@@ -868,9 +868,9 @@ func TestImagePruning(t *testing.T) {
 			t.Errorf("%s: expected stream updates %q, got %q", name, expectedStreamUpdates.List(), streamDeleter.invocations.List())
 		}
 
-		expectedLayerDeletions := sets.NewString(test.expectedLayerDeletions...)
-		if !reflect.DeepEqual(expectedLayerDeletions, layerDeleter.invocations) {
-			t.Errorf("%s: expected layer deletions %q, got %q", name, expectedLayerDeletions.List(), layerDeleter.invocations.List())
+		expectedLayerLinkDeletions := sets.NewString(test.expectedLayerLinkDeletions...)
+		if !reflect.DeepEqual(expectedLayerLinkDeletions, layerLinkDeleter.invocations) {
+			t.Errorf("%s: expected layer link deletions %q, got %q", name, expectedLayerLinkDeletions.List(), layerLinkDeleter.invocations.List())
 		}
 
 		expectedBlobDeletions := sets.NewString(test.expectedBlobDeletions...)
@@ -925,8 +925,8 @@ func TestLayerDeleter(t *testing.T) {
 		actions = append(actions, req.Method+":"+req.URL.String())
 		return &http.Response{StatusCode: http.StatusServiceUnavailable, Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, nil
 	})
-	layerDeleter := NewLayerDeleter()
-	layerDeleter.DeleteLayer(client, "registry1", "repo", "layer1")
+	layerLinkDeleter := NewLayerLinkDeleter()
+	layerLinkDeleter.DeleteLayerLink(client, "registry1", "repo", "layer1")
 
 	if !reflect.DeepEqual(actions, []string{"DELETE:https://registry1/v2/repo/blobs/layer1",
 		"DELETE:http://registry1/v2/repo/blobs/layer1"}) {
@@ -942,8 +942,8 @@ func TestNotFoundLayerDeleter(t *testing.T) {
 		actions = append(actions, req.Method+":"+req.URL.String())
 		return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, nil
 	})
-	layerDeleter := NewLayerDeleter()
-	layerDeleter.DeleteLayer(client, "registry1", "repo", "layer1")
+	layerLinkDeleter := NewLayerLinkDeleter()
+	layerLinkDeleter.DeleteLayerLink(client, "registry1", "repo", "layer1")
 
 	if !reflect.DeepEqual(actions, []string{"DELETE:https://registry1/v2/repo/blobs/layer1"}) {
 		t.Errorf("Unexpected actions %v", actions)
@@ -954,12 +954,12 @@ func TestRegistryPruning(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 
 	tests := map[string]struct {
-		images                    imageapi.ImageList
-		streams                   imageapi.ImageStreamList
-		expectedLayerDeletions    sets.String
-		expectedBlobDeletions     sets.String
-		expectedManifestDeletions sets.String
-		pingErr                   error
+		images                     imageapi.ImageList
+		streams                    imageapi.ImageStreamList
+		expectedLayerLinkDeletions sets.String
+		expectedBlobDeletions      sets.String
+		expectedManifestDeletions  sets.String
+		pingErr                    error
 	}{
 		"layers unique to id1 pruned": {
 			images: imageList(
@@ -979,7 +979,7 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions: sets.NewString(
+			expectedLayerLinkDeletions: sets.NewString(
 				"registry1|foo/bar|layer1",
 				"registry1|foo/bar|layer2",
 			),
@@ -1002,16 +1002,16 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions:    sets.NewString(),
-			expectedBlobDeletions:     sets.NewString(),
-			expectedManifestDeletions: sets.NewString(),
+			expectedLayerLinkDeletions: sets.NewString(),
+			expectedBlobDeletions:      sets.NewString(),
+			expectedManifestDeletions:  sets.NewString(),
 		},
 		"blobs pruned when streams have already been deleted": {
 			images: imageList(
 				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
 				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
-			expectedLayerDeletions: sets.NewString(),
+			expectedLayerLinkDeletions: sets.NewString(),
 			expectedBlobDeletions: sets.NewString(
 				"registry1|layer1",
 				"registry1|layer2",
@@ -1040,10 +1040,10 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions:    sets.NewString(),
-			expectedBlobDeletions:     sets.NewString(),
-			expectedManifestDeletions: sets.NewString(),
-			pingErr:                   errors.New("foo"),
+			expectedLayerLinkDeletions: sets.NewString(),
+			expectedBlobDeletions:      sets.NewString(),
+			expectedManifestDeletions:  sets.NewString(),
+			pingErr:                    errors.New("foo"),
 		},
 	}
 
@@ -1073,20 +1073,20 @@ func TestRegistryPruning(t *testing.T) {
 
 		imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
 		streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
-		layerDeleter := &fakeLayerDeleter{invocations: sets.NewString()}
+		layerLinkDeleter := &fakeLayerLinkDeleter{invocations: sets.NewString()}
 		blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
 		manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
 
-		p.Prune(imageDeleter, streamDeleter, layerDeleter, blobDeleter, manifestDeleter)
+		p.Prune(imageDeleter, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
 
-		if !reflect.DeepEqual(test.expectedLayerDeletions, layerDeleter.invocations) {
-			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedLayerDeletions, layerDeleter.invocations)
+		if !reflect.DeepEqual(test.expectedLayerLinkDeletions, layerLinkDeleter.invocations) {
+			t.Errorf("%s: expected layer link deletions %#v, got %#v", name, test.expectedLayerLinkDeletions.List(), layerLinkDeleter.invocations.List())
 		}
 		if !reflect.DeepEqual(test.expectedBlobDeletions, blobDeleter.invocations) {
-			t.Errorf("%s: expected blob deletions %#v, got %#v", name, test.expectedBlobDeletions, blobDeleter.invocations)
+			t.Errorf("%s: expected blob deletions %#v, got %#v", name, test.expectedBlobDeletions.List(), blobDeleter.invocations.List())
 		}
 		if !reflect.DeepEqual(test.expectedManifestDeletions, manifestDeleter.invocations) {
-			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions, manifestDeleter.invocations)
+			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions.List(), manifestDeleter.invocations.List())
 		}
 	}
 }
