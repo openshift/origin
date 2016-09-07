@@ -102,7 +102,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		return nil, false, err
 	}
 	if userdata.ID == 0 {
-		return nil, false, errors.New("Could not retrieve GitHub id")
+		return nil, false, errors.New("could not retrieve GitHub id")
 	}
 
 	if len(p.allowedOrganizations) > 0 {
@@ -112,7 +112,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		}
 
 		if !userOrgs.HasAny(p.allowedOrganizations.List()...) {
-			return nil, false, fmt.Errorf("User %s is not a member of any allowed organizations %v (user is a member of %v)", userdata.Login, p.allowedOrganizations.List(), userOrgs.List())
+			return nil, false, fmt.Errorf("user %s is not a member of any allowed organizations %v (user is a member of %v)", userdata.Login, p.allowedOrganizations.List(), userOrgs.List())
 		}
 	}
 

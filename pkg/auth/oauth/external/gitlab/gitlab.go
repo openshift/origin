@@ -48,7 +48,7 @@ func NewProvider(providerName string, transport http.RoundTripper, URL, clientID
 	// Create service URLs
 	u, err := url.Parse(URL)
 	if err != nil {
-		return nil, errors.New("Host URL is invalid")
+		return nil, errors.New("host URL is invalid")
 	}
 
 	return &provider{
@@ -112,7 +112,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 	}
 
 	if userdata.ID == 0 {
-		return nil, false, errors.New("Could not retrieve GitLab id")
+		return nil, false, errors.New("could not retrieve GitLab id")
 	}
 
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, fmt.Sprintf("%d", userdata.ID))
