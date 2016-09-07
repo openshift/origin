@@ -10,6 +10,23 @@
    "version": "latest"
   },
   "paths": {
+   "/.well-known/oauth-authorization-server/": {
+    "get": {
+     "description": "get the server's OAuth 2.0 Authorization Server Metadata",
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "getOAuthAuthorizationServerMetadata",
+     "responses": {
+      "default": {
+       "description": "Default Response."
+      }
+     }
+    }
+   },
    "/api/": {
     "get": {
      "description": "get available API versions",
@@ -44079,9 +44096,6 @@
    "/version/openshift/": {
     "get": {
      "description": "get the code version",
-     "consumes": [
-      "application/json"
-     ],
      "produces": [
       "application/json"
      ],
