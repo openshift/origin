@@ -52,15 +52,12 @@ type RollingDeploymentStrategy struct {
 	until string
 	// initialStrategy is used when there are no prior deployments.
 	initialStrategy acceptingDeploymentStrategy
-	// client is used to deal with ReplicationControllers.
-	client kclient.Interface
+	// rcClient is used to deal with ReplicationControllers.
+	rcClient kclient.ReplicationControllersNamespacer
 	// client is used to perform tag actions
 	tags client.ImageStreamTagsNamespacer
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
-	// listReplicationControllerEvents knows how to list all events related the
-	// given replication controller.
-	listReplicationControllerEvents func(rc *kapi.ReplicationController) (*kapi.EventList, error)
 	// decoder is used to access the encoded config on a deployment.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
@@ -72,6 +69,8 @@ type RollingDeploymentStrategy struct {
 	apiRetryPeriod time.Duration
 	// apiRetryTimeout is how long to retry API calls before giving up.
 	apiRetryTimeout time.Duration
+	// eventClient is a client to access events
+	eventClient kclient.EventNamespacer
 	// events record the events
 	events record.EventSink
 }
@@ -104,16 +103,14 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, ta
 		until:           until,
 		decoder:         decoder,
 		initialStrategy: initialStrategy,
-		client:          client,
+		rcClient:        client,
+		eventClient:     client,
 		tags:            tags,
 		apiRetryPeriod:  DefaultApiRetryPeriod,
 		apiRetryTimeout: DefaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
-		},
-		listReplicationControllerEvents: func(rc *kapi.ReplicationController) (*kapi.EventList, error) {
-			return client.Events(rc.Namespace).Search(rc)
 		},
 		hookExecutor: stratsupport.NewHookExecutor(client, tags, events, os.Stdout, decoder),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
@@ -128,14 +125,15 @@ func (s *RollingDeploymentStrategy) recordControllerWarnings(rc *kapi.Replicatio
 	if rc == nil || s.events == nil {
 		return
 	}
-	events, err := s.listReplicationControllerEvents(rc)
-	if err != nil {
+	if events, err := s.eventClient.Events(rc.Namespace).Search(rc); err != nil {
 		fmt.Fprintf(s.errOut, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
-	}
-	for _, e := range events.Items {
-		if e.Type == kapi.EventTypeWarning {
-			fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
-			strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
+	} else {
+		// TODO: Do we need to sort the events?
+		for _, e := range events.Items {
+			if e.Type == kapi.EventTypeWarning {
+				fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
+				strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
+			}
 		}
 	}
 }
@@ -205,7 +203,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Related upstream issue:
 	// https://github.com/kubernetes/kubernetes/pull/7183
 	err = wait.Poll(s.apiRetryPeriod, s.apiRetryTimeout, func() (done bool, err error) {
-		existing, err := s.client.ReplicationControllers(to.Namespace).Get(to.Name)
+		existing, err := s.rcClient.ReplicationControllers(to.Namespace).Get(to.Name)
 		if err != nil {
 			msg := fmt.Sprintf("couldn't look up deployment %s: %s", to.Name, err)
 			if kerrors.IsNotFound(err) {
@@ -217,7 +215,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		}
 		if _, hasSourceId := existing.Annotations[sourceIdAnnotation]; !hasSourceId {
 			existing.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
-			if _, err := s.client.ReplicationControllers(existing.Namespace).Update(existing); err != nil {
+			if _, err := s.rcClient.ReplicationControllers(existing.Namespace).Update(existing); err != nil {
 				msg := fmt.Sprintf("couldn't assign source annotation to deployment %s: %v", existing.Name, err)
 				if kerrors.IsNotFound(err) {
 					return false, fmt.Errorf("%s", msg)
@@ -232,7 +230,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if err != nil {
 		return err
 	}
-	to, err = s.client.ReplicationControllers(to.Namespace).Get(to.Name)
+	to, err = s.rcClient.ReplicationControllers(to.Namespace).Get(to.Name)
 	if err != nil {
 		return err
 	}

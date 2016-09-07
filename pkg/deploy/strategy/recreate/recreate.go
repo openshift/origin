@@ -32,11 +32,10 @@ type RecreateDeploymentStrategy struct {
 	out, errOut io.Writer
 	// until is a condition that, if reached, will cause the strategy to exit early
 	until string
-	// getReplicationController knows how to get a replication controller.
-	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
-	// listReplicationControllerEvents knows how to list all events related the
-	// given replication controller.
-	listReplicationControllerEvents func(rc *kapi.ReplicationController) (*kapi.EventList, error)
+	// rcClient is a client to access replication controllers
+	rcClient kclient.ReplicationControllersNamespacer
+	// eventClient is a client to access events
+	eventClient kclient.EventNamespacer
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
 	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
@@ -72,16 +71,12 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 	}
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &RecreateDeploymentStrategy{
-		out:    out,
-		errOut: errOut,
-		events: events,
-		until:  until,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.ReplicationControllers(namespace).Get(name)
-		},
-		listReplicationControllerEvents: func(rc *kapi.ReplicationController) (*kapi.EventList, error) {
-			return client.Events(rc.Namespace).Search(rc)
-		},
+		out:         out,
+		errOut:      errOut,
+		events:      events,
+		until:       until,
+		rcClient:    client,
+		eventClient: client,
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
@@ -104,14 +99,15 @@ func (s *RecreateDeploymentStrategy) recordControllerWarnings(rc *kapi.Replicati
 	if rc == nil || s.events == nil {
 		return
 	}
-	events, err := s.listReplicationControllerEvents(rc)
-	if err != nil {
+	if events, err := s.eventClient.Events(rc.Namespace).Search(rc); err != nil {
 		fmt.Fprintf(s.errOut, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
-	}
-	for _, e := range events.Items {
-		if e.Type == kapi.EventTypeWarning {
-			fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
-			strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
+	} else {
+		// TODO: Do we need to sort the events?
+		for _, e := range events.Items {
+			if e.Type == kapi.EventTypeWarning {
+				fmt.Fprintf(s.errOut, "-->  %s: %s %s\n", e.Reason, rc.Name, e.Message)
+				strategyutil.RecordConfigEvent(s.events, rc, s.decoder, e.Type, e.Reason, e.Message)
+			}
 		}
 	}
 }
@@ -238,11 +234,7 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 		return nil, err
 	}
 
-	updatedDeployment, err := s.getReplicationController(deployment.Namespace, deployment.Name)
-	if err != nil {
-		return nil, err
-	}
-	return updatedDeployment, nil
+	return s.rcClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 }
 
 // hookExecutor knows how to execute a deployment lifecycle hook.

@@ -24,8 +24,8 @@ func TestRolling_deployInitial(t *testing.T) {
 	initialStrategyInvoked := false
 
 	strategy := &RollingDeploymentStrategy{
-		decoder: kapi.Codecs.UniversalDecoder(),
-		client:  ktestclient.NewSimpleFake(),
+		decoder:  kapi.Codecs.UniversalDecoder(),
+		rcClient: ktestclient.NewSimpleFake(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				initialStrategyInvoked = true
@@ -81,8 +81,8 @@ func TestRolling_deployRolling(t *testing.T) {
 
 	var rollingConfig *kubectl.RollingUpdaterConfig
 	strategy := &RollingDeploymentStrategy{
-		decoder: kapi.Codecs.UniversalDecoder(),
-		client:  fake,
+		decoder:  kapi.Codecs.UniversalDecoder(),
+		rcClient: fake,
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
@@ -162,8 +162,8 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	})
 
 	strategy := &RollingDeploymentStrategy{
-		decoder: kapi.Codecs.UniversalDecoder(),
-		client:  fake,
+		decoder:  kapi.Codecs.UniversalDecoder(),
+		rcClient: fake,
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
@@ -223,8 +223,8 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	var hookError error
 
 	strategy := &RollingDeploymentStrategy{
-		decoder: kapi.Codecs.UniversalDecoder(),
-		client:  ktestclient.NewSimpleFake(),
+		decoder:  kapi.Codecs.UniversalDecoder(),
+		rcClient: ktestclient.NewSimpleFake(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				return nil
