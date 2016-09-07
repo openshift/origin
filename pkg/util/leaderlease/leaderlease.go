@@ -264,7 +264,7 @@ func (e *Etcd) waitExpiration(held bool, from uint64, stop chan struct{}) (bool,
 		default:
 		}
 		glog.V(5).Infof("watching for expiration of lease %s from %d", e.key, from)
-		w := e.client.Watcher(e.key, &etcdclient.WatcherOptions{AfterIndex: from})
+		w := e.client.Watcher(e.key, &etcdclient.WatcherOptions{AfterIndex: from - 1})
 		resp, err := w.Next(context.Background())
 		if err != nil {
 			return false, etcdIndexFor(err, from), err
