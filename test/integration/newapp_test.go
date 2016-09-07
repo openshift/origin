@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,6 +17,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AaronO/go-git-http"
+	"github.com/AaronO/go-git-http/auth"
+	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -32,6 +37,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/app/cmd"
 	apptest "github.com/openshift/origin/pkg/generate/app/test"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
+	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -1641,6 +1647,186 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 			continue
 		}
 	}
+}
+
+func TestNewAppSourceAuthRequired(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		passwordProtected  bool
+		useProxy           bool
+		expectAuthRequired bool
+	}{
+		{
+			name:               "no auth",
+			passwordProtected:  false,
+			useProxy:           false,
+			expectAuthRequired: false,
+		},
+		{
+			name:               "basic auth",
+			passwordProtected:  true,
+			useProxy:           false,
+			expectAuthRequired: true,
+		},
+		{
+			name:               "proxy required",
+			passwordProtected:  false,
+			useProxy:           true,
+			expectAuthRequired: true,
+		},
+		{
+			name:               "basic auth and proxy required",
+			passwordProtected:  true,
+			useProxy:           true,
+			expectAuthRequired: true,
+		},
+	}
+
+	for _, test := range tests {
+		url := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
+
+		sourceRepo, err := app.NewSourceRepository(url)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		detector := app.SourceRepositoryEnumerator{
+			Detectors: source.DefaultDetectors,
+			Tester:    dockerfile.NewTester(),
+		}
+
+		if err = sourceRepo.Detect(detector, true); err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		_, sourceRef, err := app.StrategyAndSourceForRepository(sourceRepo, nil)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		if test.expectAuthRequired != sourceRef.RequiresAuth {
+			t.Errorf("%s: unexpected auth required result. Expected: %v. Actual: %v", test.name, test.expectAuthRequired, sourceRef.RequiresAuth)
+		}
+	}
+}
+
+func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) string {
+	// Create test directories
+	testDir, err := ioutil.TempDir("", "gitauth")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	initialRepoDir := filepath.Join(testDir, "initial-repo")
+	if err = os.Mkdir(initialRepoDir, 0755); err != nil {
+		t.Fatalf("%v", err)
+	}
+	gitHomeDir := filepath.Join(testDir, "git-home")
+	if err = os.Mkdir(gitHomeDir, 0755); err != nil {
+		t.Fatalf("%v", err)
+	}
+	testRepoDir := filepath.Join(gitHomeDir, "test-repo")
+	if err = os.Mkdir(testRepoDir, 0755); err != nil {
+		t.Fatalf("%v", err)
+	}
+	userHomeDir := filepath.Join(testDir, "user-home")
+	if err = os.Mkdir(userHomeDir, 0755); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Set initial repo contents
+	gitRepo := git.NewRepository()
+	if err = gitRepo.Init(initialRepoDir, false); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if err = ioutil.WriteFile(filepath.Join(initialRepoDir, "Dockerfile"), []byte("FROM mysql\nLABEL mylabel=myvalue\n"), 0644); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if err = gitRepo.Add(initialRepoDir, "."); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if err = gitRepo.Commit(initialRepoDir, "initial commit"); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Clone to repository inside gitHomeDir
+	if err = gitRepo.CloneBare(testRepoDir, initialRepoDir); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Initialize test git server
+	var gitHandler http.Handler
+	gitHandler = githttp.New(gitHomeDir)
+
+	// If password protected, set handler to require password
+	user := "gituser"
+	password := "gitpass"
+	if passwordProtected {
+		authenticator := auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
+			if info.Username != user && info.Password != password {
+				return false, nil
+			}
+			return true, nil
+		})
+		gitHandler = authenticator(gitHandler)
+	}
+	gitServer := httptest.NewServer(gitHandler)
+	gitURLString := fmt.Sprintf("%s/%s", gitServer.URL, "test-repo")
+
+	var proxyServer *httptest.Server
+
+	// If proxy required, create a simple proxy server that will forward any host to the git server
+	if requireProxy {
+		gitURL, err := url.Parse(gitURLString)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		proxy := goproxy.NewProxyHttpServer()
+		proxy.OnRequest().DoFunc(
+			func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+				r.URL.Host = gitURL.Host
+				return r, nil
+			})
+		gitURLString = "http://example.com/test-repo"
+		proxyServer = httptest.NewServer(proxy)
+	}
+
+	gitConfig := `
+[user]
+name = developer
+email = developer@org.org
+`
+	if passwordProtected {
+		authSection := `	
+[url %q]
+insteadOf = %s
+		`
+		urlWithAuth, err := url.Parse(gitURLString)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		urlWithAuth.User = url.UserPassword(user, password)
+		authSection = fmt.Sprintf(authSection, urlWithAuth.String(), gitURLString)
+		gitConfig += authSection
+	}
+
+	if requireProxy {
+		proxySection := `
+[http]
+	proxy = %s
+`
+		proxySection = fmt.Sprintf(proxySection, proxyServer.URL)
+		gitConfig += proxySection
+	}
+
+	if err = ioutil.WriteFile(filepath.Join(userHomeDir, ".gitconfig"), []byte(gitConfig), 0644); err != nil {
+		t.Fatalf("%v", err)
+	}
+	os.Setenv("HOME", userHomeDir)
+	os.Setenv("GIT_ASKPASS", "true")
+
+	return gitURLString
+
 }
 
 func builderImageStream() *imageapi.ImageStream {

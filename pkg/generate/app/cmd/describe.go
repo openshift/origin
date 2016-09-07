@@ -199,6 +199,11 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				fmt.Fprintf(out, "      * Use 'start-build' to trigger a new build\n")
 			}
 		}
+
+		if pipeline.Build.Source.RequiresAuth {
+			fmt.Fprintf(out, "      * WARNING: this source repository may require credentials.\n"+
+				"                 Create a secret with your git credentials and use 'set build-secret' to assign it to the build config.\n")
+		}
 	}
 	if pipeline.Deployment != nil {
 		if pipeline.Deployment.AsTest {
