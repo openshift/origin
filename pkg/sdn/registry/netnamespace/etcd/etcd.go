@@ -19,7 +19,7 @@ type REST struct {
 	registry.Store
 }
 
-const etcdPrefix = "/registry/sdnnetnamespaces"
+const etcdPrefix = "/r"
 
 // NewREST returns a RESTStorage object that will work against netnamespaces
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
@@ -44,7 +44,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: netnamespace.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

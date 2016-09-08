@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -11,11 +10,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
-	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
-
-const ClusterPolicyBindingPath = "/authorization/cluster/policybindings"
 
 type REST struct {
 	*registry.Store
@@ -28,12 +24,6 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicyBinding{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyBindingList{} },
 		QualifiedResource: authorizationapi.Resource("clusterpolicybindings"),
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return ClusterPolicyBindingPath
-		},
-		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return util.NoNamespaceKeyFunc(ctx, ClusterPolicyBindingPath, id)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*authorizationapi.ClusterPolicyBinding).Name, nil
 		},
@@ -45,7 +35,7 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: clusterpolicybinding.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, ClusterPolicyBindingPath, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

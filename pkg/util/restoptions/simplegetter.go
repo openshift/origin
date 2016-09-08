@@ -19,5 +19,6 @@ func (s *simpleGetter) GetRESTOptions(resource unversioned.GroupResource) (gener
 		StorageConfig:           s.storage,
 		Decorator:               genericrest.UndecoratedStorage,
 		DeleteCollectionWorkers: 1,
+		ResourcePrefix:          resource.Resource,
 	}, nil
 }

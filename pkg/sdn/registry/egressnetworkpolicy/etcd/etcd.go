@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -19,19 +18,11 @@ type REST struct {
 	registry.Store
 }
 
-const etcdPrefix = "/registry/egressnetworkpolicy"
-
 // NewREST returns a RESTStorage object that will work against egress network policy
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.EgressNetworkPolicy{} },
 		NewListFunc: func() runtime.Object { return &api.EgressNetworkPolicyList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, etcdPrefix)
-		},
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, etcdPrefix, name)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.EgressNetworkPolicy).Name, nil
 		},
@@ -44,7 +35,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: egressnetworkpolicy.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, etcdPrefix, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

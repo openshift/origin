@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -21,18 +20,9 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against templates.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
-
-	prefix := "/templates"
-
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Template{} },
 		NewListFunc: func() runtime.Object { return &api.TemplateList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, prefix)
-		},
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, prefix, name)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Template).Name, nil
 		},
@@ -47,7 +37,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		ReturnDeletedObject: true,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, prefix, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

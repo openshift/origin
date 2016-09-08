@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/user"
-	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -28,20 +27,12 @@ type REST struct {
 	registry.Store
 }
 
-const EtcdPrefix = "/users"
-
 // NewREST returns a RESTStorage object that will work against users
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.User{} },
 		NewListFunc: func() runtime.Object { return &api.UserList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return EtcdPrefix
-		},
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.User).Name, nil
 		},
@@ -54,7 +45,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: user.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

@@ -64,6 +64,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -169,12 +170,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	/*etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
-	if err != nil {
-		return nil, err
-	}*/
-
-	restOptsGetter := restoptions.NewConfigGetter(options, nil)
+	restOptsGetter := originrest.StorageOptions(options)
 
 	clientCAs, err := configapi.GetClientCertCAPool(options)
 	if err != nil {

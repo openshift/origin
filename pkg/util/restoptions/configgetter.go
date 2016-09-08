@@ -37,21 +37,26 @@ type configRESTOptionsGetter struct {
 	storageFactory        genericapiserver.StorageFactory
 	defaultResourceConfig *genericapiserver.ResourceConfig
 
-	cacheEnabled     bool
-	defaultCacheSize int
-	cacheSizes       map[unversioned.GroupResource]int
+	cacheEnabled            bool
+	defaultCacheSize        int
+	cacheSizes              map[unversioned.GroupResource]int
+	quorumResources         map[unversioned.GroupResource]struct{}
+	defaultResourcePrefixes map[unversioned.GroupResource]string
 }
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
 // By default, the etcd watch cache is enabled with a size of 1000 per resource type.
-func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig *genericapiserver.ResourceConfig) Getter {
+// TODO: this class should either not need to know about configapi.MasterConfig, or not be in pkg/util
+func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig *genericapiserver.ResourceConfig, defaultResourcePrefixes map[unversioned.GroupResource]string, quorumResources map[unversioned.GroupResource]struct{}) Getter {
 	getter := &configRESTOptionsGetter{
-		masterOptions:         masterOptions,
-		cacheEnabled:          true,
-		defaultCacheSize:      1000,
-		cacheSizes:            map[unversioned.GroupResource]int{},
-		restOptionsMap:        map[unversioned.GroupResource]genericrest.RESTOptions{},
-		defaultResourceConfig: defaultResourceConfig,
+		masterOptions:           masterOptions,
+		cacheEnabled:            true,
+		defaultCacheSize:        1000,
+		cacheSizes:              map[unversioned.GroupResource]int{},
+		restOptionsMap:          map[unversioned.GroupResource]genericrest.RESTOptions{},
+		defaultResourceConfig:   defaultResourceConfig,
+		quorumResources:         quorumResources,
+		defaultResourcePrefixes: defaultResourcePrefixes,
 	}
 
 	if err := getter.loadSettings(); err != nil {
@@ -62,13 +67,11 @@ func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig
 }
 
 func (g *configRESTOptionsGetter) loadSettings() error {
-	if g.masterOptions.KubernetesMasterConfig == nil {
-		return nil
-	}
-
 	server := apiserveroptions.NewAPIServer()
-	if errs := cmdflags.Resolve(g.masterOptions.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(errs) > 0 {
-		return kerrors.NewAggregate(errs)
+	if g.masterOptions.KubernetesMasterConfig != nil {
+		if errs := cmdflags.Resolve(g.masterOptions.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(errs) > 0 {
+			return kerrors.NewAggregate(errs)
+		}
 	}
 
 	storageGroupsToEncodingVersion, err := server.StorageGroupsToEncodingVersion()
@@ -76,14 +79,22 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 		return err
 	}
 
+	storageConfig := server.StorageConfig
+	storageConfig.Prefix = g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix
+	storageConfig.ServerList = g.masterOptions.EtcdClientInfo.URLs
+	storageConfig.KeyFile = g.masterOptions.EtcdClientInfo.ClientCert.KeyFile
+	storageConfig.CertFile = g.masterOptions.EtcdClientInfo.ClientCert.CertFile
+	storageConfig.CAFile = g.masterOptions.EtcdClientInfo.CA
+
 	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
-		server.StorageConfig, server.DefaultStorageMediaType, kapi.Codecs,
+		storageConfig, server.DefaultStorageMediaType, kapi.Codecs,
 		genericapiserver.NewDefaultResourceEncodingConfig(), storageGroupsToEncodingVersion,
 		nil,
 		g.defaultResourceConfig, server.RuntimeConfig)
 	if err != nil {
 		return err
 	}
+	storageFactory.DefaultResourcePrefixes = g.defaultResourcePrefixes
 	g.storageFactory = storageFactory
 
 	g.cacheEnabled = server.EnableWatchCache
@@ -121,12 +132,9 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 		return genericrest.RESTOptions{}, err
 	}
 
-	// Override OpenShift specific settings here
-	// config.Prefix = g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix
-	config.ServerList = g.masterOptions.EtcdClientInfo.URLs
-	config.KeyFile = g.masterOptions.EtcdClientInfo.ClientCert.KeyFile
-	config.CertFile = g.masterOptions.EtcdClientInfo.ClientCert.CertFile
-	config.CAFile = g.masterOptions.EtcdClientInfo.CA
+	if _, ok := g.quorumResources[resource]; ok {
+		config.Quorum = true
+	}
 
 	configuredCacheSize, specified := g.cacheSizes[resource]
 	if !specified || configuredCacheSize < 0 {
@@ -144,7 +152,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 			return genericrest.UndecoratedStorage(s, capacity, objectType, resourcePrefix, scopeStrategy, newListFn, triggerFn)
 		}
 
-		glog.V(5).Infof("using watch cache storage (capacity=%d) for %s", capacity, resource.String())
+		glog.V(5).Infof("using watch cache storage (capacity=%d) for %s %#v", capacity, resource.String(), s)
 		return registry.StorageWithCacher(s, capacity, objectType, resourcePrefix, scopeStrategy, newListFn, triggerFn)
 	}
 
@@ -152,7 +160,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource unversioned.GroupResou
 		StorageConfig:           config,
 		Decorator:               decorator,
 		DeleteCollectionWorkers: 1,
-		ResourcePrefix:          g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix,
+		ResourcePrefix:          g.storageFactory.ResourcePrefix(resource),
 	}
 	g.restOptionsMap[resource] = resourceOptions
 

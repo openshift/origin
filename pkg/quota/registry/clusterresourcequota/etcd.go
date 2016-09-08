@@ -11,11 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
-	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
-
-const ClusterResourceQuotaPath = "/" + quotaapi.GroupName + "/clusterresourcequotas"
 
 type REST struct {
 	*registry.Store
@@ -67,12 +64,6 @@ func makeStore(optsGetter restoptions.Getter) (*registry.Store, error) {
 		NewFunc:           func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:       func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
 		QualifiedResource: quotaapi.Resource("clusterresourcequotas"),
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return ClusterResourceQuotaPath
-		},
-		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return util.NoNamespaceKeyFunc(ctx, ClusterResourceQuotaPath, id)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*quotaapi.ClusterResourceQuota).Name, nil
 		},
@@ -86,7 +77,7 @@ func makeStore(optsGetter restoptions.Getter) (*registry.Store, error) {
 		ReturnDeletedObject: false,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, ClusterResourceQuotaPath, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -14,8 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
-const PolicyBindingPath = "/authorization/local/policybindings"
-
 type REST struct {
 	*registry.Store
 }
@@ -26,12 +23,6 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:           func() runtime.Object { return &authorizationapi.PolicyBinding{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.PolicyBindingList{} },
 		QualifiedResource: authorizationapi.Resource("policybindings"),
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, PolicyBindingPath)
-		},
-		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, PolicyBindingPath, id)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*authorizationapi.PolicyBinding).Name, nil
 		},
@@ -43,7 +34,7 @@ func NewStorage(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: policybinding.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, PolicyBindingPath, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

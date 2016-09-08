@@ -25,23 +25,11 @@ type REST struct {
 
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
-	prefix := "/imagestreams"
-
 	store := registry.Store{
 		NewFunc: func() runtime.Object { return &api.ImageStream{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
 		NewListFunc: func() runtime.Object { return &api.ImageStreamList{} },
-		// Produces a path that etcd understands, to the root of the resource
-		// by combining the namespace in the context with the given prefix.
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, prefix)
-		},
-		// Produces a path that etcd understands, to the resource by combining
-		// the namespace in the context with the given prefix
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, prefix, name)
-		},
 		// Retrieve the name field of an image
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.ImageStream).Name, nil
@@ -63,7 +51,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	if err := restoptions.ApplyOptions(optsGetter, &store, prefix, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, &store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, nil, err
 	}
 

@@ -23,17 +23,10 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against routes.
 func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*REST, *StatusREST, error) {
 	strategy := rest.NewStrategy(allocator)
-	prefix := "/routes"
 
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.Route{} },
 		NewListFunc: func() runtime.Object { return &api.RouteList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, prefix)
-		},
-		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, prefix, id)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Route).Name, nil
 		},
@@ -46,7 +39,7 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*RE
 		UpdateStrategy: strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, prefix, storage.NoTriggerPublisher); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, err
 	}
 
