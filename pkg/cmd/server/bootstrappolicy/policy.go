@@ -502,6 +502,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("*").Groups("*").Resources("*").RuleOrDie(),
+				{
+					Verbs:           sets.NewString(authorizationapi.VerbAll),
+					NonResourceURLs: sets.NewString(authorizationapi.NonResourceAll),
+				},
 			},
 		},
 		{
