@@ -13,7 +13,6 @@ items:
     uid: 667e1293-2996-11e5-b9e2-28d2447dc82b
   spec:
     clusterIP: 172.30.197.115
-    portalIP: 172.30.197.115
     ports:
     - nodePort: 0
       port: 5432

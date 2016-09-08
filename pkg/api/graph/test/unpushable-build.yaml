@@ -185,7 +185,6 @@ items:
     name: ruby-hello-world
     namespace: example
   spec:
-    portalIP: ""
     ports:
     - name: tcp-8080
       nodePort: 0

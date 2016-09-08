@@ -438,7 +438,7 @@ items:
     name: database
     namespace: example
   spec:
-    portalIP: 172.30.17.240
+    clusterIP: 172.30.17.240
     ports:
     - nodePort: 0
       port: 5434
@@ -459,7 +459,7 @@ items:
     name: database-external
     namespace: example
   spec:
-    portalIP: 172.30.17.241
+    clusterIP: 172.30.17.241
     ports:
     - nodePort: 31000
       port: 5434
@@ -480,7 +480,7 @@ items:
     name: frontend
     namespace: example
   spec:
-    portalIP: 172.30.17.154
+    clusterIP: 172.30.17.154
     ports:
     - nodePort: 0
       port: 5432

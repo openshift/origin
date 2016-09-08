@@ -79,7 +79,7 @@ wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${
 oc login -u system:admin -n openldap
 
 
-LDAP_SERVICE_IP=$(oc get --output-version=v1 --template="{{ .spec.portalIP }}" service openldap-server)
+LDAP_SERVICE_IP=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}" service openldap-server)
 
 function compare_and_cleanup() {
 	validation_file=$1

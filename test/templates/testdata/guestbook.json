@@ -46,7 +46,6 @@
         "selector": {
           "name": "frontend-service"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -73,7 +72,6 @@
         "selector": {
           "name": "redis-master"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -100,7 +98,6 @@
         "selector": {
           "name": "${SLAVE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

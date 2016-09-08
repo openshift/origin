@@ -339,7 +339,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/complex-scenarios"
 # Make sure no one commits data with allocated values that could flake
-os::cmd::expect_failure 'grep -r "portalIP.*172" test/testdata/app-scenarios'
+os::cmd::expect_failure 'grep -r "clusterIP.*172" test/testdata/app-scenarios'
 os::cmd::expect_success 'oadm new-project example --admin="createuser"'
 os::cmd::expect_success 'oc project example'
 os::cmd::try_until_success 'oc get serviceaccount default'

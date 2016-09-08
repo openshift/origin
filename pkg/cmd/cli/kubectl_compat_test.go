@@ -59,7 +59,6 @@ kubectlLoop:
 
 		t.Errorf("missing %q in oc", kubecmd.Name())
 	}
-
 }
 
 // this only checks one level deep for nested commands, but it does ensure that we've gotten several

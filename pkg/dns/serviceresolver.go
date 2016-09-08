@@ -65,8 +65,8 @@ func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoin
 //   * _endpoints is a special prefix that returns the same as <service_name>.<namespace>.svc.<base>
 // * service_name and namespace must locate a real service
 //   * unless a fallback is defined, in which case the fallback name will be looked up
-// * svc indicates standard service rules apply (portalIP or endpoints as A records)
-//   * reverse lookup of IP is only possible for portalIP
+// * svc indicates standard service rules apply (clusterIP or endpoints as A records)
+//   * reverse lookup of IP is only possible for clusterIP
 //   * SRV records are returned for each host+port combination as:
 //     _<port_name>._<port_protocol>.<dns>
 //     _<port_name>.<endpoint_id>.<dns>
@@ -127,7 +127,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 			return nil, errNoSuchName
 		}
 
-		// no portalIP and not headless, no DNS
+		// no clusterIP and not headless, no DNS
 		if len(svc.Spec.ClusterIP) == 0 {
 			return nil, errNoSuchName
 		}
@@ -274,12 +274,12 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 // ReverseRecord implements the SkyDNS Backend interface and returns standard records for
 // a name.
 func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
-	portalIP, ok := extractIP(name)
+	clusterIP, ok := extractIP(name)
 	if !ok {
 		return nil, fmt.Errorf("does not support reverse lookup with %s", name)
 	}
 
-	svc, err := b.accessor.ServiceByPortalIP(portalIP)
+	svc, err := b.accessor.ServiceByClusterIP(clusterIP)
 	if err != nil {
 		return nil, err
 	}

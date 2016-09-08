@@ -22,7 +22,6 @@
         "selector": {
           "name": "hello-openshift-label"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

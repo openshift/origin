@@ -243,8 +243,8 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 	}
 	service := obj.(*kapi.Service)
 
-	hasPortalIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
-	if hasPortalIP && len(service.Spec.Ports) > 0 {
+	hasClusterIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
+	if hasClusterIP && len(service.Spec.Ports) > 0 {
 		return []string{
 			net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
 			net.JoinHostPort(fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace), fmt.Sprintf("%d", service.Spec.Ports[0].Port)),
