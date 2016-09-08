@@ -5,6 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -29,5 +31,7 @@ func NewCommandTop(name, fullName string, f *clientcmd.Factory, out io.Writer) *
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, out))
+	cmds.AddCommand(kcmd.NewCmdTopNode(f.Factory, out))
+	cmds.AddCommand(kcmd.NewCmdTopPod(f.Factory, out))
 	return cmds
 }
