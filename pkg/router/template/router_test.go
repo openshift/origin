@@ -402,7 +402,7 @@ func TestRemoveRoute(t *testing.T) {
 		t.Fatalf("Route %v did not match serivce alias config %v", route, saCfg)
 	}
 
-	router.RemoveRoute(suKey, route)
+	router.RemoveRoute(route)
 	if _, ok := router.state[routeKey]; ok {
 		t.Errorf("Route %v was expected to be deleted but was still found", route)
 	}
