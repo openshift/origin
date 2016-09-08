@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -32,7 +33,7 @@ spec.Tags may have tag and image information imported.`
 )
 
 // NewCmdImportImage implements the OpenShift cli import-image command.
-func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdImportImage(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	opts := &ImportImageOptions{}
 	cmd := &cobra.Command{
 		Use:        "import-image IMAGESTREAM[:TAG]",
@@ -41,7 +42,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 		Example:    fmt.Sprintf(importImageExample, fullName),
 		SuggestFor: []string{"image"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, out))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, out, errout))
 			kcmdutil.CheckErr(opts.Validate(cmd))
 			kcmdutil.CheckErr(opts.Run())
 		},
@@ -72,13 +73,14 @@ type ImportImageOptions struct {
 
 	// helpers
 	out      io.Writer
+	errout   io.Writer
 	osClient client.Interface
 	isClient client.ImageStreamInterface
 }
 
 // Complete turns a partially defined ImportImageOptions into a solvent structure
 // which can be validated and used for aa import.
-func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, commandName string, out io.Writer) error {
+func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, commandName string, out, errout io.Writer) error {
 	o.CommandName = commandName
 
 	if len(args) > 0 {
@@ -102,6 +104,7 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.osClient = osClient
 	o.isClient = osClient.ImageStreams(namespace)
 	o.out = out
+	o.errout = errout
 
 	return nil
 }
@@ -147,7 +150,11 @@ func (o *ImportImageOptions) Run() error {
 	case err != nil:
 		return err
 	default:
-		fmt.Fprint(o.out, "The import completed successfully.\n\n")
+		if wasError(result) {
+			fmt.Fprintf(o.errout, "The import completed with errors.\n\n")
+		} else {
+			fmt.Fprint(o.out, "The import completed successfully.\n\n")
+		}
 
 		// optimization, use the image stream returned by the call
 		d := describe.ImageStreamDescriber{Interface: o.osClient}
@@ -203,6 +210,18 @@ func (o *ImportImageOptions) Run() error {
 
 	fmt.Fprintln(o.out, info)
 	return nil
+}
+
+func wasError(isi *imageapi.ImageStreamImport) bool {
+	for _, image := range isi.Status.Images {
+		if image.Status.Status == unversioned.StatusFailure {
+			return true
+		}
+	}
+	if isi.Status.Repository != nil && isi.Status.Repository.Status.Status == unversioned.StatusFailure {
+		return true
+	}
+	return false
 }
 
 // TODO: move to image/api as a helper
