@@ -103,6 +103,9 @@ func TestCovers(t *testing.T) {
 	var registryAdmin *authorizationapi.ClusterRole
 	var registryEditor *authorizationapi.ClusterRole
 	var registryViewer *authorizationapi.ClusterRole
+	var systemMaster *authorizationapi.ClusterRole
+	var systemDiscovery *authorizationapi.ClusterRole
+	var clusterAdmin *authorizationapi.ClusterRole
 
 	for i := range allRoles {
 		role := allRoles[i]
@@ -119,6 +122,12 @@ func TestCovers(t *testing.T) {
 			registryEditor = &role
 		case bootstrappolicy.RegistryViewerRoleName:
 			registryViewer = &role
+		case bootstrappolicy.MasterRoleName:
+			systemMaster = &role
+		case bootstrappolicy.DiscoveryRoleName:
+			systemDiscovery = &role
+		case bootstrappolicy.ClusterAdminRoleName:
+			clusterAdmin = &role
 		}
 	}
 
@@ -138,6 +147,15 @@ func TestCovers(t *testing.T) {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 	if covers, miss := rulevalidation.Covers(registryAdmin.Rules, registryViewer.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+
+	// Make sure we can auto-reconcile discovery
+	if covers, miss := rulevalidation.Covers(systemMaster.Rules, systemDiscovery.Rules); !covers {
+		t.Errorf("failed to cover: %#v", miss)
+	}
+	// Make sure the master has full permissions
+	if covers, miss := rulevalidation.Covers(systemMaster.Rules, clusterAdmin.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 }
