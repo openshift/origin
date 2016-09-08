@@ -76,9 +76,13 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	saNames := []string{}
 
 	cmd := &cobra.Command{
-		Use:     name + " ROLE (USER | -z SERVICEACCOUNT) [USER ...]",
-		Short:   "Add a role to users or serviceaccounts for the current project",
-		Long:    `Add a role to users or serviceaccounts for the current project`,
+		Use:   name + " ROLE (USER | -z SERVICEACCOUNT) [USER ...]",
+		Short: "Add a role to users or serviceaccounts for the current project",
+		Long: fmt.Sprintf(`Add a role to users or serviceaccounts for the current project.
+
+To list existing cluster roles, you can run this command:
+
+$ oc get clusterroles`, fullName),
 		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUserWithSA(f, args, saNames); err != nil {
