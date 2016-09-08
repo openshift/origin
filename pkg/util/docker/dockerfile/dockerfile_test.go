@@ -1,6 +1,7 @@
 package dockerfile
 
 import (
+	"bytes"
 	"reflect"
 	"strings"
 	"testing"
@@ -220,7 +221,7 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		if !reflect.DeepEqual(got, want) {
+		if !bytes.Equal(ParseTreeToDockerfile(got), ParseTreeToDockerfile(want)) {
 			t.Errorf("InsertInstructions: %s: got %#v; want %#v", name, got, want)
 		}
 	}
