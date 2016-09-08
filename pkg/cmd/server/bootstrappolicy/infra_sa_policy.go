@@ -640,7 +640,7 @@ func init() {
 				// DaemonSetsController.dsStore.ListWatch
 				{
 					APIGroups: []string{extensions.GroupName},
-					Verbs:     sets.NewString("list", "watch"),
+					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("daemonsets"),
 				},
 				// DaemonSetsController.podStore.ListWatch
