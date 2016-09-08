@@ -149,6 +149,45 @@ func (ovsif *Interface) SetFrags(mode string) error {
 	return err
 }
 
+// Create creates a record in the OVS database, as with "ovs-vsctl create" and
+// returns the UUID of the newly-created item.
+// NOTE: This only works for QoS; for all other tables the created object will
+// immediately be garbage-collected; we'd need an API that calls "create" and "set"
+// in the same "ovs-vsctl" call.
+func (ovsif *Interface) Create(table string, values ...string) (string, error) {
+	args := append([]string{"create", table}, values...)
+	return ovsif.exec(OVS_VSCTL, args...)
+}
+
+// Destroy deletes the indicated record in the OVS database. It is not an error if
+// the record does not exist
+func (ovsif *Interface) Destroy(table, record string) error {
+	_, err := ovsif.exec(OVS_VSCTL, "--if-exists", "destroy", table, record)
+	return err
+}
+
+// Get gets the indicated value from the OVS database. For multi-valued or
+// map-valued columns, the data is returned in the same format as "ovs-vsctl get".
+func (ovsif *Interface) Get(table, record, column string) (string, error) {
+	return ovsif.exec(OVS_VSCTL, "get", table, record, column)
+}
+
+// Set sets one or more columns on a record in the OVS database, as with
+// "ovs-vsctl set"
+func (ovsif *Interface) Set(table, record string, values ...string) error {
+	args := append([]string{"set", table, record}, values...)
+	_, err := ovsif.exec(OVS_VSCTL, args...)
+	return err
+}
+
+// Clear unsets the indicated columns in the OVS database. It is not an error if
+// the value is already unset
+func (ovsif *Interface) Clear(table, record string, columns ...string) error {
+	args := append([]string{"--if-exists", "clear", table, record}, columns...)
+	_, err := ovsif.exec(OVS_VSCTL, args...)
+	return err
+}
+
 type Transaction struct {
 	ovsif *Interface
 	err   error
