@@ -39,8 +39,12 @@ const (
 	// not keep an ImageNode from being a candidate for pruning.
 	WeakReferencedImageEdgeKind = "WeakReferencedImage"
 
+	// ReferencedImageConfigEdgeKind defines an edge from an ImageStreamNode or an
+	// ImageNode to an ImageComponentNode.
+	ReferencedImageConfigEdgeKind = "ReferencedImageConfig"
+
 	// ReferencedImageLayerEdgeKind defines an edge from an ImageStreamNode or an
-	// ImageNode to an ImageLayerNode.
+	// ImageNode to an ImageComponentNode.
 	ReferencedImageLayerEdgeKind = "ReferencedImageLayer"
 )
 
@@ -128,7 +132,7 @@ type PrunerOptions struct {
 	RegistryURL string
 }
 
-// Pruner knows how to prune images and layers.
+// Pruner knows how to prune istags, images, layers and image configs.
 type Pruner interface {
 	// Prune uses imagePruner, streamPruner, layerLinkPruner, blobPruner, and
 	// manifestPruner to remove images that have been identified as candidates
@@ -305,9 +309,16 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(g, image)
 
+		if len(image.DockerImageConfig) > 0 {
+			configName := image.DockerImageMetadata.ID
+			glog.V(4).Infof("Adding image config %q to graph", configName)
+			configNode := imagegraph.EnsureImageComponentConfigNode(g, configName)
+			g.AddEdge(imageNode, configNode, ReferencedImageConfigEdgeKind)
+		}
+
 		for _, layer := range image.DockerImageLayers {
 			glog.V(4).Infof("Adding image layer %q to graph", layer.Name)
-			layerNode := imagegraph.EnsureImageLayerNode(g, layer.Name)
+			layerNode := imagegraph.EnsureImageComponentLayerNode(g, layer.Name)
 			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
 		}
 	}
@@ -377,14 +388,20 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, li
 				glog.V(4).Infof("Adding edge (kind=%s) from %q to %q", kind, imageStreamNode.UniqueName(), imageNode.UniqueName())
 				g.AddEdge(imageStreamNode, imageNode, kind)
 
-				glog.V(4).Infof("Adding stream->layer references")
+				glog.V(4).Infof("Adding stream->(layer|config) references")
 				// add stream -> layer references so we can prune them later
 				for _, s := range g.From(imageNode) {
-					if g.Kind(s) != imagegraph.ImageLayerNodeKind {
+					cn, ok := s.(*imagegraph.ImageComponentNode)
+					if !ok {
 						continue
 					}
-					glog.V(4).Infof("Adding reference from stream %q to layer %q", stream.Name, s.(*imagegraph.ImageLayerNode).Layer)
-					g.AddEdge(imageStreamNode, s, ReferencedImageLayerEdgeKind)
+
+					glog.V(4).Infof("Adding reference from stream %q to %s", stream.Name, cn.Describe())
+					if cn.Type == imagegraph.ImageComponentTypeConfig {
+						g.AddEdge(imageStreamNode, s, ReferencedImageConfigEdgeKind)
+					} else {
+						g.AddEdge(imageStreamNode, s, ReferencedImageLayerEdgeKind)
+					}
 				}
 			}
 		}
@@ -663,26 +680,25 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 	)
 }
 
-// calculatePrunableLayers returns the list of prunable layers.
-func calculatePrunableLayers(g graph.Graph) []*imagegraph.ImageLayerNode {
-	prunable := []*imagegraph.ImageLayerNode{}
-
+// calculatePrunableImageComponents returns the list of prunable image components.
+func calculatePrunableImageComponents(g graph.Graph) []*imagegraph.ImageComponentNode {
+	components := []*imagegraph.ImageComponentNode{}
 	nodes := g.Nodes()
+
 	for i := range nodes {
-		layerNode, ok := nodes[i].(*imagegraph.ImageLayerNode)
+		cn, ok := nodes[i].(*imagegraph.ImageComponentNode)
 		if !ok {
 			continue
 		}
 
-		glog.V(4).Infof("Examining layer %q", layerNode.Layer)
-
-		if layerIsPrunable(g, layerNode) {
-			glog.V(4).Infof("Layer %q is prunable", layerNode.Layer)
-			prunable = append(prunable, layerNode)
+		glog.V(4).Infof("Examining %v", cn)
+		if imageComponentIsPrunable(g, cn) {
+			glog.V(4).Infof("%v is prunable", cn)
+			components = append(components, cn)
 		}
 	}
 
-	return prunable
+	return components
 }
 
 // pruneStreams removes references from all image streams' status.tags entries
@@ -776,8 +792,8 @@ func (p *pruner) determineRegistry(imageNodes []*imagegraph.ImageNode) (string, 
 }
 
 // Run identifies images eligible for pruning, invoking imagePruner for each image, and then it identifies
-// image layers eligible for pruning, invoking layerLinkPruner for each registry URL that has
-// layers that can be pruned.
+// image configs and layers  eligible for pruning, invoking layerLinkPruner for each registry URL that has
+// layers or configs that can be pruned.
 func (p *pruner) Prune(
 	imagePruner ImageDeleter,
 	streamPruner ImageStreamDeleter,
@@ -804,13 +820,13 @@ func (p *pruner) Prune(
 
 	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes)
 	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
-	prunableLayers := calculatePrunableLayers(graphWithoutPrunableImages)
+	prunableComponents := calculatePrunableImageComponents(graphWithoutPrunableImages)
 
 	errs := []error{}
 
 	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
-	errs = append(errs, pruneLayers(p.g, p.registryClient, registryURL, prunableLayers, layerLinkPruner)...)
-	errs = append(errs, pruneBlobs(p.g, p.registryClient, registryURL, prunableLayers, blobPruner)...)
+	errs = append(errs, pruneImageComponents(p.g, p.registryClient, registryURL, prunableComponents, layerLinkPruner)...)
+	errs = append(errs, pruneBlobs(p.g, p.registryClient, registryURL, prunableComponents, blobPruner)...)
 	errs = append(errs, pruneManifests(p.g, p.registryClient, registryURL, prunableImageNodes, manifestPruner)...)
 
 	if len(errs) > 0 {
@@ -824,12 +840,12 @@ func (p *pruner) Prune(
 	return kerrors.NewAggregate(errs)
 }
 
-// layerIsPrunable returns true if the layer is not referenced by any images.
-func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
-	for _, predecessor := range g.To(layerNode) {
-		glog.V(4).Infof("Examining layer predecessor %#v", predecessor)
+// imageComponentIsPrunable returns true if the image component is not referenced by any images.
+func imageComponentIsPrunable(g graph.Graph, cn *imagegraph.ImageComponentNode) bool {
+	for _, predecessor := range g.To(cn) {
+		glog.V(4).Infof("Examining predecessor %#v of image config %v", predecessor, cn)
 		if g.Kind(predecessor) == imagegraph.ImageNodeKind {
-			glog.V(4).Infof("Layer has an image predecessor")
+			glog.V(4).Infof("Config %v has an image predecessor", cn)
 			return false
 		}
 	}
@@ -837,11 +853,11 @@ func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
 	return true
 }
 
-// streamLayerReferences returns a list of ImageStreamNodes that reference a
-// given ImageLayerNode.
-func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) []*imagegraph.ImageStreamNode {
+// streamReferencingImageComponent returns a list of ImageStreamNodes that reference a
+// given ImageComponentNode.
+func streamsReferencingImageComponent(g graph.Graph, cn *imagegraph.ImageComponentNode) []*imagegraph.ImageStreamNode {
 	ret := []*imagegraph.ImageStreamNode{}
-	for _, predecessor := range g.To(layerNode) {
+	for _, predecessor := range g.To(cn) {
 		if g.Kind(predecessor) != imagegraph.ImageStreamNodeKind {
 			continue
 		}
@@ -851,28 +867,28 @@ func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) 
 	return ret
 }
 
-// pruneLayers invokes layerLinkDeleter.DeleteLayerLink for each repository layer link to
+// pruneImageComponents invokes layerLinkDeleter.DeleteLayerLink for each repository layer link to
 // be deleted from the registry.
-func pruneLayers(
+func pruneImageComponents(
 	g graph.Graph,
 	registryClient *http.Client,
 	registryURL string,
-	layerNodes []*imagegraph.ImageLayerNode,
+	imageComponents []*imagegraph.ImageComponentNode,
 	layerLinkDeleter LayerLinkDeleter,
 ) []error {
 	errs := []error{}
 
-	for _, layerNode := range layerNodes {
-		// get streams that reference layer
-		streamNodes := streamLayerReferences(g, layerNode)
+	for _, cn := range imageComponents {
+		// get streams that reference config
+		streamNodes := streamsReferencingImageComponent(g, cn)
 
 		for _, streamNode := range streamNodes {
 			stream := streamNode.ImageStream
 			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
-			glog.V(4).Infof("Pruning registry=%q, repo=%q, layer=%q", registryURL, streamName, layerNode.Layer)
-			if err := layerLinkDeleter.DeleteLayerLink(registryClient, registryURL, streamName, layerNode.Layer); err != nil {
-				errs = append(errs, fmt.Errorf("error pruning repo %q layer link %q: %v", streamName, layerNode.Layer, err))
+			glog.V(4).Infof("Pruning registry=%q, repo=%q, %s", registryURL, streamName, cn.Describe())
+			if err := layerLinkDeleter.DeleteLayerLink(registryClient, registryURL, streamName, cn.Component); err != nil {
+				errs = append(errs, fmt.Errorf("error pruning layer link %s in repo %q: %v", cn.Component, streamName, err))
 			}
 		}
 	}
@@ -882,13 +898,19 @@ func pruneLayers(
 
 // pruneBlobs invokes blobPruner.DeleteBlob for each blob to be deleted from the
 // registry.
-func pruneBlobs(g graph.Graph, registryClient *http.Client, registryURL string, layerNodes []*imagegraph.ImageLayerNode, blobPruner BlobDeleter) []error {
+func pruneBlobs(
+	g graph.Graph,
+	registryClient *http.Client,
+	registryURL string,
+	componentNodes []*imagegraph.ImageComponentNode,
+	blobPruner BlobDeleter,
+) []error {
 	errs := []error{}
 
-	for _, layerNode := range layerNodes {
-		glog.V(4).Infof("Pruning registry=%q, blob=%q", registryURL, layerNode.Layer)
-		if err := blobPruner.DeleteBlob(registryClient, registryURL, layerNode.Layer); err != nil {
-			errs = append(errs, fmt.Errorf("error pruning blob %q: %v", layerNode.Layer, err))
+	for _, cn := range componentNodes {
+		glog.V(4).Infof("Pruning registry=%q, blob=%q", registryURL, cn.Component)
+		if err := blobPruner.DeleteBlob(registryClient, registryURL, cn.Component); err != nil {
+			errs = append(errs, fmt.Errorf("error pruning blob %q: %v", cn.Component, err))
 		}
 	}
 
