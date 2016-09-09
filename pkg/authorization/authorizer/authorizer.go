@@ -6,6 +6,8 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"fmt"
+
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
@@ -51,12 +53,22 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Actio
 	}
 
 	user, _ := kapi.UserFrom(ctx)
-	denyReason, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{user, namespace, attributes})
+	msg, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{user, namespace, attributes})
+	denyReason := suggestPolicyLookupForDenyReason(msg, attributes)
 	if err != nil {
 		denyReason = err.Error()
 	}
 
 	return false, denyReason, nil
+}
+
+func suggestPolicyLookupForDenyReason(denyReason string, attributes *DefaultAuthorizationAttributes) string {
+	verb := attributes.GetVerb()
+	resource := attributes.GetResource()
+	if len(verb) > 0 && len(resource) > 0 {
+		return fmt.Sprintf("%s. Try \"%s %s %s\"", denyReason, "oc policy who-can", verb, resource)
+	}
+	return denyReason
 }
 
 // GetAllowedSubjects returns the subjects it knows can perform the action.
