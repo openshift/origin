@@ -132,6 +132,7 @@ func TestAdmitCaps(t *testing.T) {
 func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
+	serviceAccount.Namespace = namespace.Name
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 	cache := &oscache.IndexerToSecurityContextConstraintsLister{
 		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
