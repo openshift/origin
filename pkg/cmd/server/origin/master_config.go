@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -326,6 +327,7 @@ var (
 		"SecurityContextConstraint",
 		"BuildDefaults",
 		"BuildOverrides",
+		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
@@ -360,6 +362,7 @@ var (
 		"SecurityContextConstraint",
 		"BuildDefaults",
 		"BuildOverrides",
+		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
