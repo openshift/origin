@@ -1,8 +1,6 @@
 package validation
 
 import (
-	_ "github.com/openshift/origin/pkg/api/install"
-
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
 	buildvalidation "github.com/openshift/origin/pkg/build/api/validation"
 	deployvalidation "github.com/openshift/origin/pkg/deploy/api/validation"
@@ -79,6 +77,7 @@ func registerAll() {
 	Validator.MustRegister(&oauthapi.OAuthAuthorizeToken{}, oauthvalidation.ValidateAuthorizeToken, oauthvalidation.ValidateAuthorizeTokenUpdate)
 	Validator.MustRegister(&oauthapi.OAuthClient{}, oauthvalidation.ValidateClient, oauthvalidation.ValidateClientUpdate)
 	Validator.MustRegister(&oauthapi.OAuthClientAuthorization{}, oauthvalidation.ValidateClientAuthorization, oauthvalidation.ValidateClientAuthorizationUpdate)
+	Validator.MustRegister(&oauthapi.OAuthRedirectReference{}, oauthvalidation.ValidateOAuthRedirectReference, nil)
 
 	Validator.MustRegister(&projectapi.Project{}, projectvalidation.ValidateProject, projectvalidation.ValidateProjectUpdate)
 	Validator.MustRegister(&projectapi.ProjectRequest{}, projectvalidation.ValidateProjectRequest, nil)

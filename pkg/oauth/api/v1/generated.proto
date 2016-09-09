@@ -175,6 +175,27 @@ message OAuthClientList {
   repeated OAuthClient items = 2;
 }
 
+// OAuthRedirectReference is a reference to an OAuth redirect object.
+message OAuthRedirectReference {
+  // Standard object's metadata.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+
+  // The reference to an redirect object in the current namespace.
+  optional RedirectReference reference = 2;
+}
+
+// RedirectReference specifies the target in the current namespace that resolves into redirect URIs.  Only the 'Route' kind is currently allowed.
+message RedirectReference {
+  // The group of the target that is being referred to.
+  optional string group = 1;
+
+  // The kind of the target that is being referred to.  Currently, only 'Route' is allowed.
+  optional string kind = 2;
+
+  // The name of the target that is being referred to. e.g. name of the Route.
+  optional string name = 3;
+}
+
 // ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.
 message ScopeRestriction {
   // ExactValues means the scope has to match a particular set of strings exactly
