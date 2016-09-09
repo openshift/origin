@@ -190,3 +190,24 @@ type OAuthClientAuthorizationList struct {
 	// Items is the list of OAuth client authorizations
 	Items []OAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// OAuthRedirectReference is a reference to an OAuth redirect object.
+type OAuthRedirectReference struct {
+	unversioned.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// The reference to an redirect object in the current namespace.
+	Reference RedirectReference `json:"reference,omitempty" protobuf:"bytes,2,opt,name=reference"`
+}
+
+// RedirectReference specifies the target in the current namespace that resolves into redirect URIs.  Only the 'Route' kind is currently allowed.
+type RedirectReference struct {
+	// The group of the target that is being referred to.
+	Group string `json:"group" protobuf:"bytes,1,opt,name=group"`
+
+	// The kind of the target that is being referred to.  Currently, only 'Route' is allowed.
+	Kind string `json:"kind" protobuf:"bytes,2,opt,name=kind"`
+
+	// The name of the target that is being referred to. e.g. name of the Route.
+	Name string `json:"name" protobuf:"bytes,3,opt,name=name"`
+}
