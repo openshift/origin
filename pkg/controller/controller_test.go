@@ -195,8 +195,12 @@ func (l *mockLimiter) Accept() {
 
 func (l *mockLimiter) Stop() {}
 
-func (t *mockLimiter) Saturation() float64 {
-	return float64(0.0)
+func (l *mockLimiter) Saturation() float64 {
+	return 0.0
+}
+
+func (l *mockLimiter) QPS() float32 {
+	return 0.0
 }
 
 type testObj struct {
