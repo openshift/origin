@@ -124,7 +124,7 @@ func TestDescribers(t *testing.T) {
 		name string
 	}{
 		{&BuildDescriber{c, fakeKube}, "bar"},
-		{&BuildConfigDescriber{c, ""}, "bar"},
+		{&BuildConfigDescriber{c, fakeKube, ""}, "bar"},
 		{&ImageDescriber{c}, "bar"},
 		{&ImageStreamDescriber{c}, "bar"},
 		{&ImageStreamTagDescriber{c}, "bar:latest"},
