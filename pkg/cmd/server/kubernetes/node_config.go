@@ -133,6 +133,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	// Defaults are tested in TestKubeletDefaults
 	server := kubeletoptions.NewKubeletServer()
 	// Adjust defaults
+	server.RequireKubeConfig = true
 	server.PodManifestPath = path
 	server.RootDirectory = options.VolumeDirectory
 	server.NodeIP = options.NodeIP
@@ -248,20 +249,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	} else {
 		deps.TLSOptions = nil
 	}
-
-	/*if server.CloudProvider == v1alpha1.AutoDetectCloudProvider {
-		deps.AutoDetectCloudProvider = true
-	} else {
-		// Prepare cloud provider
-		cloud, err := cloudprovider.InitCloudProvider(server.CloudProvider, server.CloudConfigFile)
-		if err != nil {
-			return nil, err
-		}
-		if cloud != nil {
-			glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
-		}
-		deps.Cloud = cloud
-	}*/
 
 	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
 	if err != nil {
