@@ -418,6 +418,12 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			j.Spec.Template.Spec.InitContainers = nil
 			j.Status.Template.Spec.InitContainers = nil
 		},
+		func(j *oauthapi.OAuthAuthorizeToken, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if len(j.CodeChallenge) > 0 && len(j.CodeChallengeMethod) == 0 {
+				j.CodeChallengeMethod = "plain"
+			}
+		},
 		func(j *oauthapi.OAuthClientAuthorization, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if len(j.Scopes) == 0 {

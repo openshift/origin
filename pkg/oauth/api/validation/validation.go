@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -74,6 +75,8 @@ func ValidateAccessTokenUpdate(newToken, oldToken *api.OAuthAccessToken) field.E
 	return append(allErrs, validation.ValidateImmutableField(newToken, &copied, field.NewPath(""))...)
 }
 
+var codeChallengeRegex = regexp.MustCompile("^[a-zA-Z0-9._~-]{43,128}$")
+
 func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
@@ -85,6 +88,24 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 	}
 	if ok, msg := ValidateRedirectURI(authorizeToken.RedirectURI); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), authorizeToken.RedirectURI, msg))
+	}
+
+	if len(authorizeToken.CodeChallenge) > 0 || len(authorizeToken.CodeChallengeMethod) > 0 {
+		switch {
+		case len(authorizeToken.CodeChallenge) == 0:
+			allErrs = append(allErrs, field.Required(field.NewPath("codeChallenge"), "required if codeChallengeMethod is specified"))
+		case !codeChallengeRegex.MatchString(authorizeToken.CodeChallenge):
+			allErrs = append(allErrs, field.Invalid(field.NewPath("codeChallenge"), authorizeToken.CodeChallenge, "must be 43-128 characters [a-zA-Z0-9.~_-]"))
+		}
+
+		switch authorizeToken.CodeChallengeMethod {
+		case "":
+			allErrs = append(allErrs, field.Required(field.NewPath("codeChallengeMethod"), "required if codeChallenge is specified"))
+		case "plain", "S256":
+			// no-op, good
+		default:
+			allErrs = append(allErrs, field.NotSupported(field.NewPath("codeChallengeMethod"), authorizeToken.CodeChallengeMethod, []string{"plain", "S256"}))
+		}
 	}
 
 	return allErrs

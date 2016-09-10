@@ -185,11 +185,13 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthA
 			Name:              data.Code,
 			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
 		},
-		ClientName:  data.Client.GetId(),
-		ExpiresIn:   int64(data.ExpiresIn),
-		Scopes:      scope.Split(data.Scope),
-		RedirectURI: data.RedirectUri,
-		State:       data.State,
+		CodeChallenge:       data.CodeChallenge,
+		CodeChallengeMethod: data.CodeChallengeMethod,
+		ClientName:          data.Client.GetId(),
+		ExpiresIn:           int64(data.ExpiresIn),
+		Scopes:              scope.Split(data.Scope),
+		RedirectURI:         data.RedirectUri,
+		State:               data.State,
 	}
 	if err := s.user.ConvertToAuthorizeToken(data.UserData, token); err != nil {
 		return nil, err
@@ -211,14 +213,16 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 	}
 
 	return &osin.AuthorizeData{
-		Code:        authorize.Name,
-		Client:      &clientWrapper{authorize.ClientName, client},
-		ExpiresIn:   int32(authorize.ExpiresIn),
-		Scope:       scope.Join(authorize.Scopes),
-		RedirectUri: authorize.RedirectURI,
-		State:       authorize.State,
-		CreatedAt:   authorize.CreationTimestamp.Time,
-		UserData:    user,
+		Code:                authorize.Name,
+		CodeChallenge:       authorize.CodeChallenge,
+		CodeChallengeMethod: authorize.CodeChallengeMethod,
+		Client:              &clientWrapper{authorize.ClientName, client},
+		ExpiresIn:           int32(authorize.ExpiresIn),
+		Scope:               scope.Join(authorize.Scopes),
+		RedirectUri:         authorize.RedirectURI,
+		State:               authorize.State,
+		CreatedAt:           authorize.CreationTimestamp.Time,
+		UserData:            user,
 	}, nil
 }
 
