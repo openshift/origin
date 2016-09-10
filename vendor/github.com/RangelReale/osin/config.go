@@ -54,6 +54,9 @@ type ServerConfig struct {
 	// If true allows access request using GET, else only POST - default false
 	AllowGetAccessRequest bool
 
+	// Require PKCE for code flows for public OAuth clients - default false
+	RequirePKCEForPublicClients bool
+
 	// Separator to support multiple URIs in Client.GetRedirectUri().
 	// If blank (the default), don't allow multiple URIs.
 	RedirectUriSeparator string
