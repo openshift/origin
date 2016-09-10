@@ -16,6 +16,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -25,6 +26,7 @@ import (
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
@@ -105,6 +107,7 @@ type MasterConfig struct {
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
+	LimitVerifier                 imageadmission.LimitVerifier
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -296,6 +299,23 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Informers:                          informerFactory,
 	}
 
+	// ensure that the limit range informer will be started
+	informer := config.Informers.LimitRanges().Informer()
+	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
+		list, err := config.Informers.LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
+		if err != nil {
+			return nil, err
+		}
+		// the verifier must return an error
+		if len(list) == 0 && len(informer.LastSyncResourceVersion()) == 0 {
+			glog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", informer)
+			forbiddenErr := kapierrors.NewForbidden(unversioned.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
+			forbiddenErr.ErrStatus.Details.RetryAfterSeconds = 1
+			return nil, forbiddenErr
+		}
+		return list, nil
+	}))
+
 	return config, nil
 }
 
@@ -322,6 +342,7 @@ var (
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
+		"ImagePolicyWebhook",
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
@@ -357,6 +378,7 @@ var (
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
+		"ImagePolicyWebhook",
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",

@@ -26,6 +26,7 @@ type InformerFactory interface {
 	PersistentVolumes() PersistentVolumeInformer
 	PersistentVolumeClaims() PersistentVolumeClaimInformer
 	ReplicationControllers() ReplicationControllerInformer
+	LimitRanges() LimitRangeInformer
 
 	ClusterPolicies() ClusterPolicyInformer
 	ClusterPolicyBindings() ClusterPolicyBindingInformer
@@ -127,6 +128,10 @@ func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerIn
 
 func (f *sharedInformerFactory) Namespaces() NamespaceInformer {
 	return &namespaceInformer{sharedInformerFactory: f}
+}
+
+func (f *sharedInformerFactory) LimitRanges() LimitRangeInformer {
+	return &limitRangeInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) ClusterPolicies() ClusterPolicyInformer {

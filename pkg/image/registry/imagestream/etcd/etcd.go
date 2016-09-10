@@ -43,9 +43,12 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 		ReturnDeletedObject: false,
 	}
 
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier)
-	rest := &REST{Store: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
-	strategy.ImageStreamGetter = rest
+	rest := &REST{
+		Store: &store,
+		subjectAccessReviewRegistry: subjectAccessReviewRegistry,
+	}
+	// strategy must be able to load image streams across namespaces during tag verification
+	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier, rest)
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
@@ -55,10 +58,12 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 		return nil, nil, nil, err
 	}
 
+	statusStrategy := imagestream.NewStatusStrategy(strategy)
 	statusStore := store
 	statusStore.Decorator = nil
 	statusStore.CreateStrategy = nil
-	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
+	statusStore.UpdateStrategy = statusStrategy
+	statusREST := &StatusREST{store: &statusStore}
 
 	internalStore := store
 	internalStrategy := imagestream.NewInternalStrategy(strategy)
@@ -66,7 +71,8 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	internalStore.CreateStrategy = internalStrategy
 	internalStore.UpdateStrategy = internalStrategy
 
-	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}, nil
+	internalREST := &InternalREST{store: &internalStore}
+	return rest, statusREST, internalREST, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image stream.

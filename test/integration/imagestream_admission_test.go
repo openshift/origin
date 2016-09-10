@@ -7,6 +7,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -487,11 +488,31 @@ func setupImageStreamAdmissionTest(t *testing.T) (*kclient.Client, *client.Clien
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	_, err = client.ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
-	if err != nil {
-		t.Fatal(err)
+	for {
+		_, err = client.ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
+		t.Logf("initing: %v", err)
+		if err != nil {
+			if errForbiddenWithRetry(err) {
+				t.Logf("waiting for limit ranger to catch up: %v", err)
+				continue
+			}
+			t.Fatalf("err: %#v", err)
+		}
+		break
 	}
 	return kClient, client
+}
+
+// errForbiddenWithRetry returns true if this is a status error and has requested a retry
+func errForbiddenWithRetry(err error) bool {
+	if err == nil || !kapierrors.IsForbidden(err) {
+		return false
+	}
+	status, ok := err.(kapierrors.APIStatus)
+	if !ok {
+		return false
+	}
+	return status.Status().Details != nil && status.Status().Details.RetryAfterSeconds > 0
 }
 
 // createResourceQuota creates a resource quota with given hard limits in a current namespace and waits until
