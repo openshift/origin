@@ -26,6 +26,7 @@ func TestRunGenerators(t *testing.T) {
 		"deployment/v1beta1",
 		"job/v1",
 		"job/v1beta1",
+		"scheduledjob/v2alpha1",
 
 		// origin generators
 		"run-controller/v1", // legacy alias for run/v1
