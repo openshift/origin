@@ -2,6 +2,7 @@ package admission
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -12,8 +13,6 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/util/diff"
-
-	"sort"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"
@@ -132,7 +131,6 @@ func TestAdmitCaps(t *testing.T) {
 func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
-	serviceAccount.Namespace = namespace.Name
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 	cache := &oscache.IndexerToSecurityContextConstraintsLister{
 		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
@@ -144,7 +142,7 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 
 	plugin := NewTestAdmission(cache, tc)
 
-	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 
 	if shouldPass && err != nil {
@@ -394,11 +392,11 @@ func TestAdmit(t *testing.T) {
 			if i == 0 {
 				containers = v.pod.Spec.InitContainers
 			}
-			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 			err := p.Admit(attrs)
 
 			if v.shouldAdmit && err != nil {
-				t.Errorf("%s expected no errors but received %v", k, err)
+				t.Fatalf("%s expected no errors but received %v", k, err)
 			}
 			if !v.shouldAdmit && err == nil {
 				t.Errorf("%s expected errors but received none", k)
@@ -473,7 +471,7 @@ func TestAdmit(t *testing.T) {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
 
 			if !v.shouldAdmit {
-				attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+				attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 				err := p.Admit(attrs)
 				if err != nil {
 					t.Errorf("Expected %s to pass with escalated scc but got error %v", k, err)
@@ -902,6 +900,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	namespace := createNamespaceForTest()
 	serviceAccount := createSAForTest()
+	serviceAccount.Namespace = namespace.Name
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
 	cache := &oscache.IndexerToSecurityContextConstraintsLister{
@@ -1043,7 +1042,7 @@ func TestAdmitSeccomp(t *testing.T) {
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC string, t *testing.T) {
-	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", "", kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 	if err != nil {
 		t.Errorf("error admitting pod: %v", err)
@@ -1129,7 +1128,8 @@ func createNamespaceForTest() *kapi.Namespace {
 func createSAForTest() *kapi.ServiceAccount {
 	return &kapi.ServiceAccount{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "default",
+			Name:      "default",
+			Namespace: "default",
 		},
 	}
 }
@@ -1139,6 +1139,9 @@ func createSAForTest() *kapi.ServiceAccount {
 // SCC when defaults are filled in.
 func goodPod() *kapi.Pod {
 	return &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "default",
+		},
 		Spec: kapi.PodSpec{
 			ServiceAccountName: "default",
 			SecurityContext:    &kapi.PodSecurityContext{},
