@@ -11,7 +11,7 @@ const GroupName = ""
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs)
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addDefaultingFuncs)
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 

@@ -63,6 +63,12 @@ type OAuthAuthorizeToken struct {
 	// UserUID is the unique UID associated with this token. UserUID and UserName must both match
 	// for this token to be valid.
 	UserUID string `json:"userUID,omitempty" protobuf:"bytes,8,opt,name=userUID"`
+
+	// CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636
+	CodeChallenge string `json:"codeChallenge,omitempty" protobuf:"bytes,9,opt,name=codeChallenge"`
+
+	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
+	CodeChallengeMethod string `json:"codeChallengeMethod,omitempty" protobuf:"bytes,10,opt,name=codeChallengeMethod"`
 }
 
 // +genclient=true
