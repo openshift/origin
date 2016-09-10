@@ -46,11 +46,20 @@ type clientWrapper struct {
 	client *api.OAuthClient
 }
 
+// Ensure we implement the secret matcher method that allows us to validate multiple secrets
+var _ = osin.Client(&clientWrapper{})
+var _ = osin.ClientSecretMatcher(&clientWrapper{})
+
 func (w *clientWrapper) GetId() string {
 	return w.id
 }
 
-func (w *clientWrapper) ValidateSecret(secret string) bool {
+func (w *clientWrapper) GetSecret() string {
+	// Required to implement osin.Client, but should never be called, since we implement osin.ClientSecretMatcher
+	panic("unsupported")
+}
+
+func (w *clientWrapper) ClientSecretMatches(secret string) bool {
 	if w.client.Secret == secret {
 		return true
 	}
