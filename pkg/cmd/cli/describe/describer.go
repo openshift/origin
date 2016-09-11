@@ -11,7 +11,6 @@ import (
 	"time"
 
 	units "github.com/docker/go-units"
-	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
@@ -598,8 +597,11 @@ type ImageStreamTagDescriber struct {
 // Describe returns the description of an imageStreamTag
 func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamTags(namespace)
-	repo, tag := docker.ParseRepositoryTag(name)
-	if tag == "" {
+	repo, tag, err := imageapi.ParseImageStreamTagName(name)
+	if err != nil {
+		return "", err
+	}
+	if len(tag) == 0 {
 		// TODO use repo's preferred default, when that's coded
 		tag = imageapi.DefaultImageTag
 	}
@@ -619,7 +621,10 @@ type ImageStreamImageDescriber struct {
 // Describe returns the description of an imageStreamImage
 func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamImages(namespace)
-	repo, id := docker.ParseRepositoryTag(name)
+	repo, id, err := imageapi.ParseImageStreamImageName(name)
+	if err != nil {
+		return "", err
+	}
 	imageStreamImage, err := c.Get(repo, id)
 	if err != nil {
 		return "", err
