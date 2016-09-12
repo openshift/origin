@@ -40,26 +40,11 @@ defaults
   log global
 {{ end }}
 
-{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "")) }}
-  timeout connect {{env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s"}}
-{{ else }}
-  timeout connect 5s
-{{ end }}
-{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "")) }}
-  timeout client {{env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s"}}
-{{ else }}
-  timeout client 30s
-{{ end }}
-{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_TIMEOUT" "")) }}
-  timeout server {{env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s"}}
-{{ else }}
-  timeout server 30s
-{{ end }}
-{{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_TIMEOUT" "")) }}
-  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
-{{ else }}
-  timeout http-request 10s
-{{ end }}
+  timeout connect {{ envIf "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s" "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
+  timeout client {{ envIf "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s" "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
+  timeout server {{ envIf "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s" "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
+
+  timeout http-request {{ envIf "ROUTER_SLOWLORIS_TIMEOUT" "10s" "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
 
   # Long timeout for WebSocket connections.
 {{ if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "")) }}
@@ -248,18 +233,12 @@ backend be_edge_http_{{$cfgIdx}}
   mode http
   option redispatch
   option forwardfor
-    {{ with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
-      {{ with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
-  balance {{ $balanceAlgo }}
-      {{ end }}
-    {{ else }}
-  balance leastconn
-    {{ end }}
-    {{ with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
-      {{if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
-  timeout server  {{$value}}
-      {{ end }}
-    {{ end }}
+  {{ with annotation (index $cfg.Annotations "haproxy.router.openshift.io/balance") "leastconn" "roundrobin|leastconn|source" }}
+  balance {{.}}
+  {{end}}
+  {{ with annotation (index $cfg.Annotations "haproxy.router.openshift.io/timeout") "" "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
+    timeout server {{.}}
+  {{end}}
 
 {{ if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
   stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
