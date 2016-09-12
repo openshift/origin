@@ -183,8 +183,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// Defaults are tested in TestCMServerDefaults
 	cmserver := cmapp.NewCMServer()
 	// Adjust defaults
-	cmserver.Address = "" // no healthz endpoint
-	cmserver.Port = 0     // no healthz endpoint
+	cmserver.Address = ""                   // no healthz endpoint
+	cmserver.Port = 0                       // no healthz endpoint
+	cmserver.EnableGarbageCollector = false // disabled until we add the controller
 	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
 

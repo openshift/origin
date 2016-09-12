@@ -31,9 +31,11 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/deployment"
+	"k8s.io/kubernetes/pkg/controller/garbagecollector/metaonly"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/storage"
 	storagefactory "k8s.io/kubernetes/pkg/storage/storagebackend/factory"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -42,6 +44,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/daemon"
 	"k8s.io/kubernetes/pkg/controller/disruption"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
+	"k8s.io/kubernetes/pkg/controller/garbagecollector"
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
@@ -363,11 +366,39 @@ func (c *MasterConfig) RunScheduler() {
 	s.Run()
 }
 
+// RunGCController handles deletion of terminated pods.
 func (c *MasterConfig) RunGCController(client *client.Client) {
 	if c.ControllerManager.TerminatedPodGCThreshold > 0 {
 		gcController := gccontroller.New(clientadapter.FromUnversionedClient(client), kctrlmgr.ResyncPeriod(c.ControllerManager), int(c.ControllerManager.TerminatedPodGCThreshold))
 		go gcController.Run(utilwait.NeverStop)
 	}
+}
+
+// RunGarbageCollectorController starts generic garbage collection for the cluster.
+func (c *MasterConfig) RunGarbageCollectorController(client *osclient.Client, config *restclient.Config) {
+	if !c.ControllerManager.EnableGarbageCollector {
+		return
+	}
+
+	groupVersionResources, err := client.Discovery().ServerPreferredResources()
+	if err != nil {
+		glog.Fatalf("Failed to get supported resources from server: %v", err)
+	}
+
+	config = restclient.AddUserAgent(config, "generic-garbage-collector")
+	config.ContentConfig.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: metaonly.NewMetadataCodecFactory()}
+	// TODO: needs to take GVR
+	metaOnlyClientPool := dynamic.NewClientPool(config, dynamic.LegacyAPIPathResolverFunc)
+	config.ContentConfig.NegotiatedSerializer = nil
+	// TODO: needs to take GVR
+	clientPool := dynamic.NewClientPool(config, dynamic.LegacyAPIPathResolverFunc)
+	garbageCollector, err := garbagecollector.NewGarbageCollector(metaOnlyClientPool, clientPool, groupVersionResources)
+	if err != nil {
+		glog.Fatalf("Failed to start the garbage collector: %v", err)
+	}
+
+	workers := int(c.ControllerManager.ConcurrentGCSyncs)
+	go garbageCollector.Run(workers, utilwait.NeverStop)
 }
 
 // RunNodeController starts the node controller
