@@ -159,7 +159,7 @@ func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
 	return nil
 }
 
-func validateClusterNetwork(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
+func getNetworkInfo(network string, hostSubnetLength uint32, serviceNetwork string, pluginName string) (*NetworkInfo, error) {
 	_, cn, err := net.ParseCIDR(network)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse ClusterNetwork CIDR %s: %v", network, err)
@@ -193,7 +193,7 @@ func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
 		return nil, err
 	}
 
-	registry.NetworkInfo, err = validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
+	registry.NetworkInfo, err = getNetworkInfo(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
 	if err != nil {
 		return nil, err
 	}
