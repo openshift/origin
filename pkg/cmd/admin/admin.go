@@ -52,9 +52,9 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 		{
 			Message: "Component Installation:",
 			Commands: []*cobra.Command{
-				router.NewCmdRouter(f, fullName, "router", out),
+				router.NewCmdRouter(f, fullName, "router", out, errout),
 				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout),
-				registry.NewCmdRegistry(f, fullName, "registry", out),
+				registry.NewCmdRegistry(f, fullName, "registry", out, errout),
 			},
 		},
 		{

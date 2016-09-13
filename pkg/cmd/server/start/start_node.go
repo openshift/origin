@@ -44,14 +44,16 @@ will start a node with given configuration file. The node will run in the
 foreground until you terminate the process.`
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
-func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "node",
 		Short: "Launch a node",
 		Long:  fmt.Sprintf(nodeLong, basename),
-		Run:   options.Run,
+		Run: func(c *cobra.Command, args []string) {
+			options.Run(c, errout, args)
+		},
 	}
 
 	flags := cmd.Flags()
@@ -82,14 +84,16 @@ will start the network proxy and SDN plugins with given configuration file. The 
 run in the foreground until you terminate the process.`
 
 // NewCommandStartNetwork provides a CLI handler for 'start network' command
-func NewCommandStartNetwork(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "network",
 		Short: "Launch node network",
 		Long:  fmt.Sprintf(networkLong, basename),
-		Run:   options.Run,
+		Run: func(c *cobra.Command, args []string) {
+			options.Run(c, errout, args)
+		},
 	}
 
 	flags := cmd.Flags()
@@ -107,7 +111,7 @@ func NewCommandStartNetwork(basename string, out io.Writer) (*cobra.Command, *No
 	return cmd, options
 }
 
-func (options *NodeOptions) Run(c *cobra.Command, args []string) {
+func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []string) {
 	kcmdutil.CheckErr(options.Complete())
 	kcmdutil.CheckErr(options.Validate(args))
 
@@ -116,9 +120,9 @@ func (options *NodeOptions) Run(c *cobra.Command, args []string) {
 	if err := options.StartNode(); err != nil {
 		if kerrors.IsInvalid(err) {
 			if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-				fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
+				fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 				for _, cause := range details.Causes {
-					fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+					fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 				}
 				os.Exit(255)
 			}

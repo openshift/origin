@@ -61,7 +61,7 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
-func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
+func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{Output: out, MasterOptions: &MasterOptions{Output: out}}
 	options.MasterOptions.DefaultsFromName(basename)
 
@@ -78,9 +78,9 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 			if err := options.StartAllInOne(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.OutOrStderr(), "error: Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(errout, "error: Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -108,10 +108,10 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
-	startMaster, _ := NewCommandStartMaster(basename, out)
-	startNode, _ := NewCommandStartNode(basename, out)
-	startNodeNetwork, _ := NewCommandStartNetwork(basename, out)
-	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out)
+	startMaster, _ := NewCommandStartMaster(basename, out, errout)
+	startNode, _ := NewCommandStartNode(basename, out, errout)
+	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
+	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 	cmds.AddCommand(startNodeNetwork)

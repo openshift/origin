@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
 const (
@@ -45,7 +46,7 @@ Docker containers. To start an all-in-one server with the default configuration,
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -100,7 +101,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
 
 	root := &cobra.Command{
 		Use:   name,
@@ -111,7 +112,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 	f := clientcmd.New(pflag.NewFlagSet("", pflag.ContinueOnError))
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))

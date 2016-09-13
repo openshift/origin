@@ -30,15 +30,14 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
 const productName = `OpenShift`
 
 const cliLong = productName + ` Client
 
-This client helps you develop, build, deploy, and run your applications on any OpenShift or
-Kubernetes compatible platform. It also includes the administrative commands for managing a
-cluster under the 'adm' subcommand.
+This client helps you develop, build, deploy, and run your applications on any OpenShift or Kubernetes compatible platform. It also includes the administrative commands for managing a cluster under the 'adm' subcommand.
 `
 
 const cliExplain = `
@@ -48,20 +47,15 @@ To create a new application, login to your server and then run new-app:
   %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
   %[1]s logs -f bc/ruby-ex
 
-This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds
-the source code from GitHub. A build will start automatically, push the resulting image to the
-registry, and a deployment will roll that change out in your project.
+This will create an application based on the Docker image 'centos/ruby-22-centos7' that builds the source code from GitHub. A build will start automatically, push the resulting image to the registry, and a deployment will roll that change out in your project.
 
-Once your application is deployed, use the status, describe, and get commands to see more about
-the created components:
+Once your application is deployed, use the status, describe, and get commands to see more about the created components:
 
   %[1]s status
   %[1]s describe deploymentconfig ruby-ex
   %[1]s get pods
 
-To make this application visible outside of the cluster, use the expose command on the service
-we just created to create a 'route' (which will connect your application over the HTTP port
-to a public domain name).
+To make this application visible outside of the cluster, use the expose command on the service we just created to create a 'route' (which will connect your application over the HTTP port to a public domain name).
 
   %[1]s expose svc/ruby-ex
   %[1]s status
@@ -98,8 +92,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Commands: []*cobra.Command{
 				cmd.NewCmdTypes(fullName, f, out),
 				loginCmd,
-				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, out),
-				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, out),
+				cmd.NewCmdRequestProject(cmd.RequestProjectRecommendedCommandName, fullName, f, out, errout),
+				cmd.NewCmdNewApplication(cmd.NewAppRecommendedCommandName, fullName, f, out, errout),
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
 				cmd.NewCmdProjects(fullName, f, out),
@@ -114,9 +108,9 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				rollout.NewCmdRollout(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
-				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, in, out),
-				cmd.NewCmdStartBuild(fullName, f, in, out),
-				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, in, out),
+				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, in, out, errout),
+				cmd.NewCmdStartBuild(fullName, f, in, out, errout),
+				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, in, out, errout),
 				cmd.NewCmdImportImage(fullName, f, out, errout),
 				cmd.NewCmdTag(fullName, f, out),
 			},
@@ -184,7 +178,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	filters := []string{
 		"options",
 		// These commands are deprecated and should not appear in help
-		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out)),
+		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out, errout)),
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
 		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f.Factory, out)),
@@ -273,7 +267,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	in, out, errout := os.Stdin, term.NewResponsiveWriter(os.Stdout), os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {

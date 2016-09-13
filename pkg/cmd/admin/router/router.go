@@ -210,7 +210,7 @@ const (
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
-func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	cfg := &RouterConfig{
 		Name:          "router",
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -233,7 +233,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Long:    routerLong,
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunCmdRouter(f, cmd, out, cfg, args)
+			err := RunCmdRouter(f, cmd, out, errout, cfg, args)
 			if err != cmdutil.ErrExit {
 				kcmdutil.CheckErr(err)
 			} else {
@@ -454,7 +454,7 @@ func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *k
 
 // RunCmdRouter contains all the necessary functionality for the
 // OpenShift CLI router command.
-func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *RouterConfig, args []string) error {
+func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
 	switch len(args) {
 	case 0:
 		// uses default value
@@ -544,7 +544,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	}
 
 	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.OutOrStderr()
+	cfg.Action.Out, cfg.Action.ErrOut = out, errout
 	cfg.Action.Bulk.Op = configcmd.Create
 
 	var clusterIP string
@@ -580,7 +580,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if !cfg.Action.ShouldPrint() {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStderr(), "error: %v\n", err)
+		fmt.Fprintf(errout, "error: %v\n", err)
 		defaultOutputErr = cmdutil.ErrExit
 	}
 
@@ -624,7 +624,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if len(cfg.StatsPassword) == 0 {
 		cfg.StatsPassword = generateStatsPassword()
 		if !cfg.Action.ShouldPrint() {
-			fmt.Fprintf(cmd.OutOrStderr(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+			fmt.Fprintf(errout, "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 	}
 

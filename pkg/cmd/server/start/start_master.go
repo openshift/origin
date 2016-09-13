@@ -79,7 +79,7 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
-func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
 	options.DefaultsFromName(basename)
 
@@ -96,9 +96,9 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -137,8 +137,8 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 	cmd.MarkFlagFilename("write-config")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 
-	startControllers, _ := NewCommandStartMasterControllers("controllers", basename, out)
-	startAPI, _ := NewCommandStartMasterAPI("api", basename, out)
+	startControllers, _ := NewCommandStartMasterControllers("controllers", basename, out, errout)
+	startAPI, _ := NewCommandStartMasterAPI("api", basename, out, errout)
 	cmd.AddCommand(startAPI)
 	cmd.AddCommand(startControllers)
 

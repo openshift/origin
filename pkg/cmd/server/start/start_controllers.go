@@ -25,7 +25,7 @@ will start the controllers that manage the master state, including the scheduler
 will run in the foreground until you terminate the process.`
 
 // NewCommandStartMasterControllers starts only the controllers
-func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMasterControllers(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
 	options.DefaultsFromName(basename)
 
@@ -35,17 +35,17 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 		Long:  fmt.Sprintf(controllersLong, basename, name),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(errout, kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
 			if len(options.ConfigFile) == 0 {
-				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, "--config is required for this command"))
+				fmt.Fprintln(errout, kcmdutil.UsageError(c, "--config is required for this command"))
 				return
 			}
 
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(errout, kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -54,9 +54,9 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}

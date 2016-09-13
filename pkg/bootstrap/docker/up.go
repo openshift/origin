@@ -654,7 +654,7 @@ func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), out)
+	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), out, os.Stderr)
 }
 
 // InstallRouter installs a default router on the server
@@ -667,7 +667,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.RouterIP, c.PortForwarding, out)
+	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.RouterIP, c.PortForwarding, out, os.Stderr)
 }
 
 // ImportImageStreams imports default image streams into the server

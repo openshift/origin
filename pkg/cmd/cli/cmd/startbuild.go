@@ -74,7 +74,7 @@ base image changes will use the source specified on the build config.
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &StartBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -84,7 +84,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, in, out, cmd, fullName, args))
+			kcmdutil.CheckErr(o.Complete(f, in, out, errout, cmd, fullName, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -144,10 +144,10 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.OutOrStderr()
+	o.ErrOut = errout
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig
 	o.Mapper, _ = f.Object(false)

@@ -29,7 +29,7 @@ const (
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images string, out io.Writer) error {
+func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images string, out, errout io.Writer) error {
 	_, err := kubeClient.Services(DefaultNamespace).Get(SvcDockerRegistry)
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -52,9 +52,9 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 			ServiceAccount: "registry",
 		},
 	}
-	cmd := registry.NewCmdRegistry(f, "", "registry", out)
+	cmd := registry.NewCmdRegistry(f, "", "registry", out, errout)
 	output := &bytes.Buffer{}
-	err = opts.Complete(f, cmd, output, []string{})
+	err = opts.Complete(f, cmd, output, output, []string{})
 	if err != nil {
 		return errors.NewError("error completing the registry configuration").WithCause(err)
 	}
@@ -67,7 +67,7 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 }
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out io.Writer) error {
+func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
 	_, err := kubeClient.Services(DefaultNamespace).Get(SvcRouter)
 	if err == nil {
 		// Router service already exists, nothing to do
@@ -148,9 +148,9 @@ func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factor
 		ServiceAccount:     "router",
 	}
 	output := &bytes.Buffer{}
-	cmd := router.NewCmdRouter(f, "", "router", out)
+	cmd := router.NewCmdRouter(f, "", "router", out, errout)
 	cmd.SetOutput(output)
-	err = router.RunCmdRouter(f, cmd, output, cfg, []string{})
+	err = router.RunCmdRouter(f, cmd, output, output, cfg, []string{})
 	glog.V(4).Infof("Router command output:\n%s", output.String())
 	if err != nil {
 		return errors.NewError("cannot install router").WithCause(err).WithDetails(h.OriginLog())

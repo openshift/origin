@@ -69,7 +69,7 @@ type CancelBuildOptions struct {
 }
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
-func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &CancelBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -79,11 +79,8 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader
 		Example:    fmt.Sprintf(cancelBuildExample, baseName, name),
 		SuggestFor: []string{"builds", "stop-build"},
 		Run: func(cmd *cobra.Command, args []string) {
-			err := o.Complete(f, cmd, args, in, out)
-			kcmdutil.CheckErr(err)
-
-			err = o.RunCancelBuild()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, in, out, errout))
+			kcmdutil.CheckErr(o.RunCancelBuild())
 		},
 	}
 
@@ -94,10 +91,10 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader
 }
 
 // Complete completes all the required options.
-func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, in io.Reader, out io.Writer) error {
+func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.OutOrStderr()
+	o.ErrOut = errout
 	o.ReportError = func(err error) {
 		o.HasError = true
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())

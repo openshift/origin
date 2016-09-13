@@ -71,7 +71,7 @@ syntax.`
 )
 
 // NewCmdEnv implements the OpenShift cli env command
-func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	var filenames []string
 	var env []string
 	cmd := &cobra.Command{
@@ -80,7 +80,7 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 		Long:    envLong,
 		Example: fmt.Sprintf(envExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunEnv(f, in, out, cmd, args, env, filenames)
+			err := RunEnv(f, in, out, errout, cmd, args, env, filenames)
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -224,7 +224,7 @@ func getEnvVarRefString(from *kapi.EnvVarSource) string {
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
-func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
+func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, args []string, envParams, filenames []string) error {
 	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
@@ -368,7 +368,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, containerMatch)
 			if len(containers) == 0 {
-				fmt.Fprintf(cmd.OutOrStderr(), "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
+				fmt.Fprintf(errout, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
 				return nil
 			}
 			for _, c := range containers {
@@ -421,7 +421,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 					}
 					sort.Strings(errs)
 					for _, err := range errs {
-						fmt.Fprintln(cmd.OutOrStderr(), err)
+						fmt.Fprintln(errout, err)
 					}
 				}
 			}
@@ -458,7 +458,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			}
 		}
 		if err != nil {
-			fmt.Fprintf(cmd.OutOrStderr(), "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+			fmt.Fprintf(errout, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
 			continue
 		}
 	}
@@ -523,7 +523,7 @@ updates:
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patchBytes)
 		if err != nil {
-			handlePodUpdateError(cmd.OutOrStderr(), err, "environment variables")
+			handlePodUpdateError(errout, err, "environment variables")
 			failed = true
 			continue
 		}

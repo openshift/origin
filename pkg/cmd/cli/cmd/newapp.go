@@ -134,7 +134,7 @@ type NewAppOptions struct {
 }
 
 // NewCmdNewApplication implements the OpenShift cli new-app command.
-func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
 	o := &NewAppOptions{Config: config}
@@ -146,8 +146,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out io.Wr
 		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out))
-
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, errout))
 			err := o.RunNewApp()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -187,9 +186,9 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out io.Wr
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
+func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
 	o.Out = out
-	o.ErrOut = c.OutOrStderr()
+	o.ErrOut = errout
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)

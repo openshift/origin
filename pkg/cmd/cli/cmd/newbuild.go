@@ -96,7 +96,7 @@ type NewBuildOptions struct {
 }
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
-func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
 	config.AddEnvironmentToBuild = true
@@ -109,8 +109,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 		Example:    fmt.Sprintf(newBuildExample, baseName, name),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, in))
-
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out, errout, in))
 			err := o.RunNewBuild()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -147,9 +146,9 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 }
 
 // Complete sets any default behavior for the command
-func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer, in io.Reader) error {
+func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer, in io.Reader) error {
 	o.Out = out
-	o.ErrOut = c.OutOrStderr()
+	o.ErrOut = errout
 	o.Output = kcmdutil.GetFlagString(c, "output")
 	// Only output="" should print descriptions of intermediate steps. Everything
 	// else should print only some specific output (json, yaml, go-template, ...)

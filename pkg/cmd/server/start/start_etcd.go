@@ -38,7 +38,7 @@ will start the server listening for incoming requests. The server will run in
 the foreground until you terminate the process.`
 
 // NewCommandStartEtcdServer starts only the etcd server
-func NewCommandStartEtcdServer(name, basename string, out io.Writer) (*cobra.Command, *EtcdOptions) {
+func NewCommandStartEtcdServer(name, basename string, out, errout io.Writer) (*cobra.Command, *EtcdOptions) {
 	options := &EtcdOptions{Output: out}
 
 	cmd := &cobra.Command{
@@ -53,9 +53,9 @@ func NewCommandStartEtcdServer(name, basename string, out io.Writer) (*cobra.Com
 			if err := options.StartEtcdServer(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}

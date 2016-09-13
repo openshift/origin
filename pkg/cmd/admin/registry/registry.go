@@ -136,7 +136,7 @@ const (
 )
 
 // NewCmdRegistry implements the OpenShift cli registry command
-func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	cfg := &RegistryConfig{
 		ImageTemplate:  variable.NewDefaultImageTemplate(),
 		Name:           "registry",
@@ -157,7 +157,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 			opts := &RegistryOptions{
 				Config: cfg,
 			}
-			kcmdutil.CheckErr(opts.Complete(f, cmd, out, args))
+			kcmdutil.CheckErr(opts.Complete(f, cmd, out, errout, args))
 			err := opts.RunCmdRegistry()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
@@ -196,7 +196,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 }
 
 // Complete completes any options that are required by validate or run steps.
-func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, args []string) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "No arguments are allowed to this command")
 	}
@@ -245,7 +245,7 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 
 	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, cmd.OutOrStderr()
+	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, errout
 	opts.Config.Action.Bulk.Op = configcmd.Create
 	opts.out = out
 	opts.cmd = cmd
