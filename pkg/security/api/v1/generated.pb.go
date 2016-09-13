@@ -27,6 +27,9 @@ import math "math"
 
 import k8s_io_kubernetes_pkg_api_v1 "k8s.io/kubernetes/pkg/api/v1"
 
+import strings "strings"
+import reflect "reflect"
+
 import io "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -34,47 +37,65 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-func (m *PodSecurityPolicyReview) Reset()         { *m = PodSecurityPolicyReview{} }
-func (m *PodSecurityPolicyReview) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicyReview) ProtoMessage()    {}
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+const _ = proto.GoGoProtoPackageIsVersion1
 
-func (m *PodSecurityPolicyReviewSpec) Reset()         { *m = PodSecurityPolicyReviewSpec{} }
-func (m *PodSecurityPolicyReviewSpec) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicyReviewSpec) ProtoMessage()    {}
+func (m *PodSecurityPolicyReview) Reset()                    { *m = PodSecurityPolicyReview{} }
+func (*PodSecurityPolicyReview) ProtoMessage()               {}
+func (*PodSecurityPolicyReview) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{0} }
 
-func (m *PodSecurityPolicyReviewStatus) Reset()         { *m = PodSecurityPolicyReviewStatus{} }
-func (m *PodSecurityPolicyReviewStatus) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicyReviewStatus) ProtoMessage()    {}
+func (m *PodSecurityPolicyReviewSpec) Reset()      { *m = PodSecurityPolicyReviewSpec{} }
+func (*PodSecurityPolicyReviewSpec) ProtoMessage() {}
+func (*PodSecurityPolicyReviewSpec) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{1}
+}
 
-func (m *PodSecurityPolicySelfSubjectReview) Reset()         { *m = PodSecurityPolicySelfSubjectReview{} }
-func (m *PodSecurityPolicySelfSubjectReview) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicySelfSubjectReview) ProtoMessage()    {}
+func (m *PodSecurityPolicyReviewStatus) Reset()      { *m = PodSecurityPolicyReviewStatus{} }
+func (*PodSecurityPolicyReviewStatus) ProtoMessage() {}
+func (*PodSecurityPolicyReviewStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{2}
+}
+
+func (m *PodSecurityPolicySelfSubjectReview) Reset()      { *m = PodSecurityPolicySelfSubjectReview{} }
+func (*PodSecurityPolicySelfSubjectReview) ProtoMessage() {}
+func (*PodSecurityPolicySelfSubjectReview) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{3}
+}
 
 func (m *PodSecurityPolicySelfSubjectReviewSpec) Reset() {
 	*m = PodSecurityPolicySelfSubjectReviewSpec{}
 }
-func (m *PodSecurityPolicySelfSubjectReviewSpec) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicySelfSubjectReviewSpec) ProtoMessage()    {}
+func (*PodSecurityPolicySelfSubjectReviewSpec) ProtoMessage() {}
+func (*PodSecurityPolicySelfSubjectReviewSpec) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{4}
+}
 
-func (m *PodSecurityPolicySubjectReview) Reset()         { *m = PodSecurityPolicySubjectReview{} }
-func (m *PodSecurityPolicySubjectReview) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicySubjectReview) ProtoMessage()    {}
+func (m *PodSecurityPolicySubjectReview) Reset()      { *m = PodSecurityPolicySubjectReview{} }
+func (*PodSecurityPolicySubjectReview) ProtoMessage() {}
+func (*PodSecurityPolicySubjectReview) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{5}
+}
 
-func (m *PodSecurityPolicySubjectReviewSpec) Reset()         { *m = PodSecurityPolicySubjectReviewSpec{} }
-func (m *PodSecurityPolicySubjectReviewSpec) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicySubjectReviewSpec) ProtoMessage()    {}
+func (m *PodSecurityPolicySubjectReviewSpec) Reset()      { *m = PodSecurityPolicySubjectReviewSpec{} }
+func (*PodSecurityPolicySubjectReviewSpec) ProtoMessage() {}
+func (*PodSecurityPolicySubjectReviewSpec) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{6}
+}
 
-func (m *PodSecurityPolicySubjectReviewStatus) Reset()         { *m = PodSecurityPolicySubjectReviewStatus{} }
-func (m *PodSecurityPolicySubjectReviewStatus) String() string { return proto.CompactTextString(m) }
-func (*PodSecurityPolicySubjectReviewStatus) ProtoMessage()    {}
+func (m *PodSecurityPolicySubjectReviewStatus) Reset()      { *m = PodSecurityPolicySubjectReviewStatus{} }
+func (*PodSecurityPolicySubjectReviewStatus) ProtoMessage() {}
+func (*PodSecurityPolicySubjectReviewStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{7}
+}
 
 func (m *ServiceAccountPodSecurityPolicyReviewStatus) Reset() {
 	*m = ServiceAccountPodSecurityPolicyReviewStatus{}
 }
-func (m *ServiceAccountPodSecurityPolicyReviewStatus) String() string {
-	return proto.CompactTextString(m)
-}
 func (*ServiceAccountPodSecurityPolicyReviewStatus) ProtoMessage() {}
+func (*ServiceAccountPodSecurityPolicyReviewStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{8}
+}
 
 func init() {
 	proto.RegisterType((*PodSecurityPolicyReview)(nil), "github.com.openshift.origin.pkg.security.api.v1.PodSecurityPolicyReview")
@@ -544,6 +565,113 @@ func sovGenerated(x uint64) (n int) {
 }
 func sozGenerated(x uint64) (n int) {
 	return sovGenerated(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *PodSecurityPolicyReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicyReview{`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "PodSecurityPolicyReviewSpec", "PodSecurityPolicyReviewSpec", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "PodSecurityPolicyReviewStatus", "PodSecurityPolicyReviewStatus", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicyReviewSpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicyReviewSpec{`,
+		`Template:` + strings.Replace(strings.Replace(this.Template.String(), "PodTemplateSpec", "k8s_io_kubernetes_pkg_api_v1.PodTemplateSpec", 1), `&`, ``, 1) + `,`,
+		`ServiceAccountNames:` + fmt.Sprintf("%v", this.ServiceAccountNames) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicyReviewStatus) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicyReviewStatus{`,
+		`AllowedServiceAccounts:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.AllowedServiceAccounts), "ServiceAccountPodSecurityPolicyReviewStatus", "ServiceAccountPodSecurityPolicyReviewStatus", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicySelfSubjectReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicySelfSubjectReview{`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "PodSecurityPolicySelfSubjectReviewSpec", "PodSecurityPolicySelfSubjectReviewSpec", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "PodSecurityPolicySubjectReviewStatus", "PodSecurityPolicySubjectReviewStatus", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicySelfSubjectReviewSpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicySelfSubjectReviewSpec{`,
+		`Template:` + strings.Replace(strings.Replace(this.Template.String(), "PodTemplateSpec", "k8s_io_kubernetes_pkg_api_v1.PodTemplateSpec", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicySubjectReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicySubjectReview{`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "PodSecurityPolicySubjectReviewSpec", "PodSecurityPolicySubjectReviewSpec", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "PodSecurityPolicySubjectReviewStatus", "PodSecurityPolicySubjectReviewStatus", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicySubjectReviewSpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicySubjectReviewSpec{`,
+		`Template:` + strings.Replace(strings.Replace(this.Template.String(), "PodTemplateSpec", "k8s_io_kubernetes_pkg_api_v1.PodTemplateSpec", 1), `&`, ``, 1) + `,`,
+		`User:` + fmt.Sprintf("%v", this.User) + `,`,
+		`Groups:` + fmt.Sprintf("%v", this.Groups) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PodSecurityPolicySubjectReviewStatus) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PodSecurityPolicySubjectReviewStatus{`,
+		`AllowedBy:` + strings.Replace(fmt.Sprintf("%v", this.AllowedBy), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1) + `,`,
+		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
+		`Template:` + strings.Replace(strings.Replace(this.Template.String(), "PodTemplateSpec", "k8s_io_kubernetes_pkg_api_v1.PodTemplateSpec", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ServiceAccountPodSecurityPolicyReviewStatus) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ServiceAccountPodSecurityPolicyReviewStatus{`,
+		`PodSecurityPolicySubjectReviewStatus:` + strings.Replace(strings.Replace(this.PodSecurityPolicySubjectReviewStatus.String(), "PodSecurityPolicySubjectReviewStatus", "PodSecurityPolicySubjectReviewStatus", 1), `&`, ``, 1) + `,`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringGenerated(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *PodSecurityPolicyReview) Unmarshal(data []byte) error {
 	l := len(data)
@@ -1638,3 +1766,50 @@ var (
 	ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
+
+var fileDescriptorGenerated = []byte{
+	// 687 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xcc, 0x55, 0xcf, 0x6b, 0x13, 0x4f,
+	0x14, 0xef, 0x6e, 0x4a, 0x68, 0xe6, 0xfb, 0x55, 0x64, 0x0b, 0x6d, 0xa9, 0x98, 0x96, 0xa5, 0x94,
+	0x82, 0xed, 0x2c, 0x11, 0x04, 0x0f, 0x82, 0x34, 0x17, 0x11, 0xa4, 0x96, 0x89, 0x45, 0xa8, 0x5e,
+	0x36, 0x9b, 0x97, 0xed, 0xd8, 0x64, 0x67, 0xdd, 0x99, 0xd9, 0x92, 0x83, 0xa0, 0x07, 0xf1, 0xea,
+	0xc9, 0xa3, 0x77, 0xef, 0xfe, 0x0b, 0x62, 0x8f, 0x3d, 0xa9, 0xa7, 0xa2, 0xf5, 0x1f, 0x71, 0x32,
+	0x99, 0x36, 0xa6, 0xf9, 0xe1, 0x06, 0x53, 0xf1, 0x30, 0x90, 0x99, 0x37, 0xef, 0xf3, 0x79, 0xef,
+	0xf3, 0x3e, 0x99, 0x45, 0x77, 0x42, 0x2a, 0xf6, 0x64, 0x15, 0x07, 0xac, 0xe9, 0xb1, 0x18, 0x22,
+	0xbe, 0x47, 0xeb, 0xc2, 0x63, 0x09, 0x0d, 0x69, 0xe4, 0xc5, 0xfb, 0xa1, 0xc7, 0x21, 0x90, 0x09,
+	0x15, 0x2d, 0xcf, 0x8f, 0xa9, 0x97, 0x96, 0xbc, 0x10, 0x22, 0x48, 0x7c, 0x01, 0x35, 0x1c, 0x27,
+	0x4c, 0x30, 0xc7, 0xeb, 0x02, 0xe0, 0x33, 0x00, 0xdc, 0x01, 0xc0, 0x0a, 0x00, 0x9f, 0x02, 0x60,
+	0x05, 0x80, 0xd3, 0xd2, 0xe2, 0xc6, 0x2f, 0x8c, 0x21, 0x0b, 0x99, 0xa7, 0x71, 0xaa, 0xb2, 0xae,
+	0x77, 0x7a, 0xa3, 0x7f, 0x75, 0xf0, 0x17, 0x6f, 0xff, 0xae, 0xc0, 0x67, 0x92, 0x09, 0x7f, 0x48,
+	0x75, 0x8b, 0x37, 0xf7, 0x6f, 0x71, 0x4c, 0x99, 0xb7, 0x2f, 0xab, 0x90, 0x44, 0x20, 0x80, 0xeb,
+	0x9c, 0xf6, 0x6d, 0x19, 0xa5, 0x90, 0x70, 0xca, 0x22, 0xa8, 0xf5, 0xa5, 0xad, 0x0f, 0x4f, 0x1b,
+	0x40, 0xb2, 0x31, 0xf8, 0x76, 0x22, 0x23, 0x41, 0x9b, 0xd0, 0x77, 0xbd, 0x34, 0xf8, 0xba, 0x14,
+	0xb4, 0xe1, 0xd1, 0x48, 0x70, 0x91, 0x9c, 0x4f, 0x71, 0x5f, 0xda, 0x68, 0x7e, 0x9b, 0xd5, 0x2a,
+	0x46, 0xca, 0x6d, 0xd6, 0xa0, 0x41, 0x8b, 0x40, 0x4a, 0xe1, 0xc0, 0x89, 0xd0, 0x34, 0x8f, 0x21,
+	0x58, 0xb0, 0x96, 0xad, 0xb5, 0xff, 0x6e, 0xdc, 0xc7, 0x63, 0xce, 0x03, 0x0f, 0xc1, 0xad, 0x28,
+	0xcc, 0xf2, 0xff, 0x87, 0xc7, 0x4b, 0x53, 0x27, 0xc7, 0x4b, 0xd3, 0xed, 0x1d, 0xd1, 0x3c, 0x4e,
+	0x8a, 0xf2, 0x5c, 0xf8, 0x42, 0xf2, 0x05, 0x5b, 0x33, 0x6e, 0x4d, 0x8c, 0x51, 0xa3, 0x96, 0x2f,
+	0x1b, 0xce, 0x7c, 0x67, 0x4f, 0x0c, 0x9b, 0xfb, 0xd1, 0x42, 0x57, 0x47, 0xd4, 0xea, 0x3c, 0x46,
+	0x33, 0x02, 0x9a, 0x71, 0x43, 0xc9, 0x66, 0xb4, 0xd8, 0xc0, 0x1d, 0xa5, 0x71, 0x57, 0x69, 0x5d,
+	0x4f, 0xb7, 0x8c, 0x87, 0x26, 0x41, 0x37, 0x7b, 0xc5, 0x10, 0xcf, 0x9c, 0x9e, 0x92, 0x33, 0x40,
+	0xe7, 0x1e, 0x9a, 0xe5, 0x90, 0xa4, 0x34, 0x80, 0xcd, 0x20, 0x60, 0x6a, 0xb0, 0x5b, 0x7e, 0x13,
+	0xda, 0x0a, 0xe4, 0xd6, 0x0a, 0xe5, 0x79, 0x95, 0x34, 0x5b, 0xe9, 0x0f, 0x93, 0x41, 0x39, 0xee,
+	0x67, 0x0b, 0x5d, 0x1b, 0xa9, 0x80, 0xf3, 0xc1, 0x42, 0x73, 0x7e, 0xa3, 0xc1, 0x0e, 0xa0, 0xd6,
+	0x8b, 0xca, 0x55, 0x63, 0x39, 0xd5, 0xd8, 0x93, 0xb1, 0x25, 0xef, 0xc5, 0x19, 0x3d, 0x80, 0xa2,
+	0xd1, 0x61, 0x6e, 0x73, 0x60, 0x0d, 0x64, 0x48, 0x6d, 0xee, 0x3b, 0x1b, 0xb9, 0x7d, 0xc8, 0x15,
+	0x68, 0xd4, 0x2b, 0xb2, 0xfa, 0x14, 0x02, 0x61, 0xfc, 0xda, 0xea, 0xf1, 0xeb, 0xa3, 0x3f, 0x77,
+	0x4f, 0x1f, 0xc5, 0x50, 0xeb, 0x3e, 0x3f, 0x67, 0xdd, 0x9d, 0x09, 0x90, 0xf7, 0x10, 0x8f, 0x76,
+	0xf0, 0x2b, 0x0b, 0xad, 0x66, 0xab, 0xfe, 0x42, 0xcd, 0xec, 0xbe, 0xb5, 0x51, 0x71, 0x74, 0x23,
+	0x8e, 0xec, 0x19, 0x52, 0x65, 0xd2, 0x3a, 0xfd, 0xa3, 0x03, 0xfa, 0x64, 0x0d, 0x72, 0xf0, 0x5f,
+	0x1d, 0x8e, 0xb3, 0x8c, 0xa6, 0xa5, 0x7a, 0x36, 0xb4, 0x00, 0x85, 0xae, 0x48, 0x3b, 0xea, 0x8c,
+	0xe8, 0x88, 0xe3, 0xa2, 0x7c, 0x98, 0x30, 0x19, 0xf3, 0x85, 0x9c, 0x7e, 0x7e, 0x50, 0xbb, 0x93,
+	0xbb, 0xfa, 0x84, 0x98, 0x88, 0xfb, 0xda, 0x46, 0x2b, 0x59, 0xa4, 0x70, 0x76, 0x51, 0xc1, 0xfc,
+	0x9d, 0xcb, 0xad, 0x6c, 0xcd, 0x3c, 0x30, 0x20, 0x75, 0x48, 0x20, 0x0a, 0xa0, 0x7c, 0x49, 0xd1,
+	0x17, 0x36, 0x4f, 0x31, 0x48, 0x17, 0xce, 0x59, 0x45, 0xf9, 0x04, 0x7c, 0xce, 0x22, 0xd3, 0xcc,
+	0x99, 0xec, 0x44, 0x9f, 0x12, 0x13, 0xed, 0xd1, 0x33, 0x37, 0x69, 0xb3, 0xbf, 0xb7, 0xd1, 0xf5,
+	0x31, 0x5e, 0x3f, 0xe7, 0x8b, 0x85, 0x56, 0xe2, 0x0c, 0xca, 0x19, 0xb1, 0x2e, 0xc8, 0xa1, 0xeb,
+	0xa6, 0xa3, 0x4c, 0x43, 0x24, 0x99, 0x0a, 0x6e, 0x3b, 0x2b, 0x52, 0x5f, 0xa0, 0xf3, 0xce, 0x6a,
+	0x7f, 0x95, 0x88, 0x8e, 0x94, 0x57, 0x0e, 0xbf, 0x17, 0xa7, 0x8e, 0xd4, 0xfa, 0xaa, 0xd6, 0x8b,
+	0x93, 0xa2, 0x75, 0xa8, 0xd6, 0x91, 0x5a, 0xdf, 0xd4, 0x7a, 0xf3, 0xa3, 0x38, 0xb5, 0x6b, 0xa7,
+	0xa5, 0x9f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xa7, 0x27, 0xea, 0xd4, 0x33, 0x0a, 0x00, 0x00,
+}

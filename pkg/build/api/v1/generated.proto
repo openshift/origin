@@ -307,7 +307,7 @@ message BuildRequest {
 // BuildSource is the SCM used for the build.
 message BuildSource {
   // type of build input to accept
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional string type = 1;
 
   // binary builds accept a binary as their input. The binary is generally assumed to be a tar,
@@ -402,7 +402,7 @@ message BuildStatus {
 // BuildStrategy contains the details of how to perform a build.
 message BuildStrategy {
   // type is the kind of build strategy.
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional string type = 1;
 
   // dockerStrategy holds the parameters to the Docker build strategy.
@@ -560,7 +560,7 @@ message GenericWebHookCause {
 // GenericWebHookEvent is the payload expected for a generic webhook post
 message GenericWebHookEvent {
   // type is the type of source repository
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional string type = 1;
 
   // git is the git information if the Type is BuildSourceGit
@@ -757,7 +757,7 @@ message SourceControlUser {
 // SourceRevision is the revision or commit information from the source for the build
 message SourceRevision {
   // type of the build source, may be one of 'Source', 'Dockerfile', 'Binary', or 'Images'
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional string type = 1;
 
   // Git contains information about git-based build source
