@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
@@ -78,7 +80,12 @@ type UserIdentityMapping struct {
 
 // OptionalNames is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 type OptionalNames []string
+
+func (t OptionalNames) String() string {
+	return fmt.Sprintf("%v", []string(t))
+}
 
 // Group represents a referenceable set of Users
 type Group struct {
