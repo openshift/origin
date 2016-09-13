@@ -1236,7 +1236,7 @@ Jik7E2r1/yY0MrkawljOAxisXs821kJ+Z/51Ud2t5uhGxS6hJypbGspMS7OtBbw7
 8oThK7cWtCXOldNF6ruqY1agWnhRdAq5qSMnuBXuicOP0Kbtx51a1ugE3SnvQenJ
 nZxdtYUXvEsHZC/6bAtTfNh+/SwgxQJuL2ZM+VG3X2JIKY8xTDui+il7uTh422lq
 wED8uwKl+bOj6xFDyw4gWoBxRobsbFaME8pkykP1+GnKDberyAM=
------END CERTIFICATE----- 
+-----END CERTIFICATE-----
 -----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQDNAbvvqB1dcHKYVkWzC1H7fHw+5zxvecbO1Hiz6YRWbkoSIYXQ
 EDKb3LBXoPgYPT1grr942ZY5pNOjC77li38I2H6Pav1fqjmVX01Rx22iDuUU1yTA
@@ -1425,8 +1425,8 @@ func getRouteAddress() string {
 	return addr
 }
 
-// generateTestEvents generates endpoint and route added test events.
-func generateTestEvents(t *testing.T, fakeMasterAndPod *tr.TestHttpService, flag bool, serviceName, routeName, routeAlias string, endpoints []kapi.EndpointSubset) {
+// generateEndpointEvents generates endpoint test events.
+func generateEndpointEvent(t *testing.T, fakeMasterAndPod *tr.TestHttpService, flag bool, serviceName string, endpoints []kapi.EndpointSubset) {
 	endpointEvent := &watch.Event{
 		Type: watch.Added,
 
@@ -1438,7 +1438,18 @@ func generateTestEvents(t *testing.T, fakeMasterAndPod *tr.TestHttpService, flag
 			Subsets: endpoints,
 		},
 	}
+	if flag {
+		//clean up
+		endpointEvent.Type = watch.Modified
+		endpoints := endpointEvent.Object.(*kapi.Endpoints)
+		endpoints.Subsets = []kapi.EndpointSubset{}
+	}
 
+	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
+}
+
+// generateTestEvents generates endpoint and route added test events.
+func generateTestEvents(t *testing.T, fakeMasterAndPod *tr.TestHttpService, flag bool, serviceName, routeName, routeAlias string) {
 	routeEvent := &watch.Event{
 		Type: watch.Added,
 		Object: &routeapi.Route{
@@ -1460,12 +1471,8 @@ func generateTestEvents(t *testing.T, fakeMasterAndPod *tr.TestHttpService, flag
 	if flag {
 		//clean up
 		routeEvent.Type = watch.Deleted
-		endpointEvent.Type = watch.Modified
-		endpoints := endpointEvent.Object.(*kapi.Endpoints)
-		endpoints.Subsets = []kapi.EndpointSubset{}
 	}
 
-	sendTimeout(t, fakeMasterAndPod.EndpointChannel, eventString(endpointEvent), 30*time.Second)
 	sendTimeout(t, fakeMasterAndPod.RouteChannel, eventString(routeEvent), 30*time.Second)
 }
 
@@ -1520,12 +1527,15 @@ func TestRouterReloadCoalesce(t *testing.T) {
 	endpoints := []kapi.EndpointSubset{httpEndpoint}
 	numRoutes := 10
 
+	// use the same endpoints for the entire test
+	generateEndpointEvent(t, fakeMasterAndPod, false, serviceName, endpoints)
+
 	for i := 1; i <= numRoutes; i++ {
 		routeName := fmt.Sprintf("coalesce-route-%v", i)
 		routeAlias = fmt.Sprintf("www.example-coalesce-%v.test", i)
 
 		// Send the add events.
-		generateTestEvents(t, fakeMasterAndPod, false, serviceName, routeName, routeAlias, endpoints)
+		generateTestEvents(t, fakeMasterAndPod, false, serviceName, routeName, routeAlias)
 	}
 
 	// Wait for the last routeAlias to become available.
@@ -1546,7 +1556,7 @@ func TestRouterReloadCoalesce(t *testing.T) {
 		routeAlias = fmt.Sprintf("www.example-coalesce-%v.test", i)
 
 		// Send the cleanup events.
-		generateTestEvents(t, fakeMasterAndPod, true, serviceName, routeName, routeAlias, endpoints)
+		generateTestEvents(t, fakeMasterAndPod, true, serviceName, routeName, routeAlias)
 	}
 
 	// Wait for the first routeAlias to become unavailable.
