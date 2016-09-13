@@ -11,6 +11,12 @@ This example will serve an HTTP response of "Hello OpenShift!".
     $ curl 10.1.0.2:8080
      Hello OpenShift!
 
+The response message can be set by using the RESPONSE environment variable:
+    $ oc set env pod/hello-openshift RESPONSE="Hello World!"
+
+    $ curl 10.1.0.2:8080
+     Hello World!
+
 To test from external network, you need to create router. Please refer to [Running the router](https://github.com/openshift/origin/blob/master/docs/routing.md)
 
 If you need to rebuild the image:
