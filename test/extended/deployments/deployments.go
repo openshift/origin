@@ -379,7 +379,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			out, err := oc.Run("rollout").Args("history", resource).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("checking the history for substrings\n%s", out))
-			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\" history viewed"))
+			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\""))
 			o.Expect(out).To(o.ContainSubstring("REVISION	STATUS		CAUSE"))
 			o.Expect(out).To(o.ContainSubstring("1		Complete	caused by a config change"))
 			o.Expect(out).To(o.ContainSubstring("2		Complete	caused by a config change"))
