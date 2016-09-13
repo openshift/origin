@@ -12,8 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 
@@ -128,7 +128,7 @@ func (o *GetServiceAccountTokenOptions) Run() error {
 			}
 
 			fmt.Fprintf(o.Out, string(token))
-			if util.IsTerminalWriter(o.Out) {
+			if term.IsTerminalWriter(o.Out) {
 				// pretty-print for a TTY
 				fmt.Fprintf(o.Out, "\n")
 			}

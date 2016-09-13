@@ -11,9 +11,9 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/term"
+	kterm "k8s.io/kubernetes/pkg/util/term"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
 const (
@@ -166,11 +166,11 @@ func (o *CreateBasicAuthSecretOptions) Complete(f *kcmdutil.Factory, args []stri
 		if len(o.Password) != 0 {
 			return errors.New("must provide either --prompt or --password flag")
 		}
-		if !term.IsTerminal(o.Reader) {
+		if !kterm.IsTerminal(o.Reader) {
 			return errors.New("provided reader is not a terminal")
 		}
 
-		o.Password = cmdutil.PromptForPasswordString(o.Reader, o.Out, "Password: ")
+		o.Password = term.PromptForPasswordString(o.Reader, o.Out, "Password: ")
 		if len(o.Password) == 0 {
 			return errors.New("password must be provided")
 		}

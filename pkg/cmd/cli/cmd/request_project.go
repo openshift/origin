@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -37,20 +38,21 @@ type NewProjectOptions struct {
 }
 
 // RequestProject command description.
-const (
-	requestProjectLong = `
-Create a new project for yourself
+var (
+	requestProjectLong = templates.LongDesc(`
+		Create a new project for yourself
 
-If your administrator allows self-service, this command will create a new project for you and assign you
-as the project admin.
+		If your administrator allows self-service, this command will create a new project for you and assign you
+		as the project admin.
 
-After your project is created it will become the default project in your config.`
+		After your project is created it will become the default project in your config.`)
 
-	requestProjectExample = `  # Create a new project with minimal information
-  %[1]s %[2]s web-team-dev
+	requestProjectExample = templates.Examples(`
+		# Create a new project with minimal information
+	  %[1]s %[2]s web-team-dev
 
-  # Create a new project with a display name and description
-  %[1]s %[2]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
+	  # Create a new project with a display name and description
+	  %[1]s %[2]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`)
 )
 
 // RequestProject next steps.
@@ -71,7 +73,7 @@ To switch to this project and start adding applications, use:
 )
 
 // NewCmdRequestProject implement the OpenShift cli RequestProject command.
-func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	o := &NewProjectOptions{}
 	o.Out = out
 	o.Name = baseName

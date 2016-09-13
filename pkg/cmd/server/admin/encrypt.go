@@ -12,12 +12,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/util"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
@@ -47,7 +47,7 @@ type EncryptOptions struct {
 
 const encryptExample = `	# Encrypt the content of secret.txt with a generated key:
 	%[1]s --genkey=secret.key --in=secret.txt --out=secret.encrypted
-	
+
 	# Encrypt the content of secret2.txt with an existing key:
 	%[1]s --key=secret.key < secret2.txt > secret2.encrypted
 `
@@ -127,9 +127,9 @@ func (o *EncryptOptions) Encrypt() error {
 		// Don't warn in cases where we're explicitly being given the data to use
 		warnWhitespace = false
 		data = o.CleartextData
-	case o.CleartextReader != nil && util.IsTerminalReader(o.CleartextReader) && o.PromptWriter != nil:
+	case o.CleartextReader != nil && term.IsTerminalReader(o.CleartextReader) && o.PromptWriter != nil:
 		// Read a single line from stdin with prompting
-		data = []byte(util.PromptForString(o.CleartextReader, o.PromptWriter, "Data to encrypt: "))
+		data = []byte(term.PromptForString(o.CleartextReader, o.PromptWriter, "Data to encrypt: "))
 	case o.CleartextReader != nil:
 		// Read data from stdin without prompting (allows binary data and piping)
 		if d, err := ioutil.ReadAll(o.CleartextReader); err != nil {

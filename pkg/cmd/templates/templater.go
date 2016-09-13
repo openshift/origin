@@ -7,6 +7,7 @@ import (
 	"text/template"
 	"unicode"
 
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 )
@@ -81,27 +82,30 @@ func ActsAsRootCommand(cmd *cobra.Command, filters []string, groups ...CommandGr
 	if cmd == nil {
 		panic("nil root command")
 	}
-	cmd.SetHelpTemplate(MainHelpTemplate())
 	templater := &templater{
 		RootCmd:       cmd,
 		UsageTemplate: MainUsageTemplate(),
+		HelpTemplate:  MainHelpTemplate(),
 		CommandGroups: groups,
 		Filtered:      filters,
 	}
 	cmd.SetUsageFunc(templater.UsageFunc())
+	cmd.SetHelpFunc(templater.HelpFunc())
 	return templater
 }
 
 func UseOptionsTemplates(cmd *cobra.Command) {
-	cmd.SetHelpTemplate(OptionsHelpTemplate())
 	templater := &templater{
 		UsageTemplate: OptionsUsageTemplate(),
+		HelpTemplate:  OptionsHelpTemplate(),
 	}
 	cmd.SetUsageFunc(templater.UsageFunc())
+	cmd.SetHelpFunc(templater.HelpFunc())
 }
 
 type templater struct {
 	UsageTemplate string
+	HelpTemplate  string
 	RootCmd       *cobra.Command
 	CommandGroups
 	Filtered []string
@@ -112,39 +116,55 @@ func (templater *templater) ExposeFlags(cmd *cobra.Command, flags ...string) Fla
 	return templater
 }
 
+func (templater *templater) HelpFunc() func(*cobra.Command, []string) {
+	return func(c *cobra.Command, s []string) {
+		t := template.New("help")
+		t.Funcs(templater.templateFuncs())
+		template.Must(t.Parse(templater.HelpTemplate))
+		out := term.NewResponsiveWriter(c.OutOrStdout())
+		err := t.Execute(out, c)
+		if err != nil {
+			c.Println(err)
+		}
+	}
+}
+
 func (templater *templater) UsageFunc(exposedFlags ...string) func(*cobra.Command) error {
 	return func(c *cobra.Command) error {
-		t := template.New("custom")
+		t := template.New("usage")
+		t.Funcs(templater.templateFuncs(exposedFlags...))
+		template.Must(t.Parse(templater.UsageTemplate))
+		out := term.NewResponsiveWriter(c.OutOrStderr())
+		return t.Execute(out, c)
+	}
+}
 
-		t.Funcs(template.FuncMap{
-			"trim":                strings.TrimSpace,
-			"trimRight":           func(s string) string { return strings.TrimRightFunc(s, unicode.IsSpace) },
-			"gt":                  cobra.Gt,
-			"eq":                  cobra.Eq,
-			"rpad":                rpad,
-			"flagsNotIntersected": flagsNotIntersected,
-			"visibleFlags":        visibleFlags,
-			"flagsUsages":         flagsUsages,
-			"cmdGroups":           templater.cmdGroups,
-			"rootCmd":             templater.rootCmdName,
-			"isRootCmd":           templater.isRootCmd,
-			"optionsCmdFor":       templater.optionsCmdFor,
-			"usageLine":           templater.usageLine,
-			"exposed": func(c *cobra.Command) *flag.FlagSet {
-				exposed := flag.NewFlagSet("exposed", flag.ContinueOnError)
-				if len(exposedFlags) > 0 {
-					for _, name := range exposedFlags {
-						if flag := c.Flags().Lookup(name); flag != nil {
-							exposed.AddFlag(flag)
-						}
+func (templater *templater) templateFuncs(exposedFlags ...string) template.FuncMap {
+	return template.FuncMap{
+		"trim":                strings.TrimSpace,
+		"trimRight":           func(s string) string { return strings.TrimRightFunc(s, unicode.IsSpace) },
+		"gt":                  cobra.Gt,
+		"eq":                  cobra.Eq,
+		"rpad":                rpad,
+		"flagsNotIntersected": flagsNotIntersected,
+		"visibleFlags":        visibleFlags,
+		"flagsUsages":         flagsUsages,
+		"cmdGroups":           templater.cmdGroups,
+		"rootCmd":             templater.rootCmdName,
+		"isRootCmd":           templater.isRootCmd,
+		"optionsCmdFor":       templater.optionsCmdFor,
+		"usageLine":           templater.usageLine,
+		"exposed": func(c *cobra.Command) *flag.FlagSet {
+			exposed := flag.NewFlagSet("exposed", flag.ContinueOnError)
+			if len(exposedFlags) > 0 {
+				for _, name := range exposedFlags {
+					if flag := c.Flags().Lookup(name); flag != nil {
+						exposed.AddFlag(flag)
 					}
 				}
-				return exposed
-			},
-		})
-
-		template.Must(t.Parse(templater.UsageTemplate))
-		return t.Execute(c.OutOrStderr(), c)
+			}
+			return exposed
+		},
 	}
 }
 

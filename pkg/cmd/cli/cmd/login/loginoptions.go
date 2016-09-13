@@ -17,7 +17,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/term"
+	kterm "k8s.io/kubernetes/pkg/util/term"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
@@ -25,6 +25,7 @@ import (
 	cmderr "github.com/openshift/origin/pkg/cmd/errors"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -86,11 +87,11 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 
 	if len(o.Server) == 0 {
 		// we need to have a server to talk to
-		if term.IsTerminal(o.Reader) {
+		if kterm.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
 				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
-				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
+				o.Server = term.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
 			}
 		}
 	}

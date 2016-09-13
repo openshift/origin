@@ -78,10 +78,11 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		Short: "Command line tools for managing applications",
 		Long:  cliLong,
 		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
+			explainOut := term.NewResponsiveWriter(out)
+			c.SetOutput(explainOut)
 			cmdutil.RequireNoArguments(c, args)
-			fmt.Fprint(out, cliLong)
-			fmt.Fprintf(out, cliExplain, fullName)
+			fmt.Fprint(explainOut, cliLong)
+			fmt.Fprintf(explainOut, cliExplain, fullName)
 		},
 		BashCompletionFunction: bashCompletionFunc,
 	}
