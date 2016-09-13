@@ -44,6 +44,9 @@ const (
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
 	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
 
+	InfraPersistentVolumeAttachDetachControllerServiceAccountName = "pv-attach-detach-controller"
+	PersistentVolumeAttachDetachControllerRoleName                = "system:pv-attach-detach-controller"
+
 	InfraPersistentVolumeRecyclerControllerServiceAccountName = "pv-recycler-controller"
 	PersistentVolumeRecyclerControllerRoleName                = "system:pv-recycler-controller"
 
@@ -453,6 +456,55 @@ func init() {
 					Resources: sets.NewString("pods"),
 				},
 				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraPersistentVolumeAttachDetachControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: PersistentVolumeAttachDetachControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// shared informer on PVs
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// shared informer on PVCs
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// shared informer on nodes
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
+				// operationexecutor uses get with nodes
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("nodes"),
+				},
+				// strategic patch on nodes/status
+				{
+					Verbs:     sets.NewString("patch", "update"),
+					Resources: sets.NewString("nodes/status"),
+				},
+				// shared informer on pods
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// normal event usage
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),

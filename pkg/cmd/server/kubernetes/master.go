@@ -171,7 +171,10 @@ func (c *MasterConfig) RunPersistentVolumeController(client *client.Client, name
 		s.VolumeConfiguration.EnableDynamicProvisioning,
 	)
 	volumeController.Run()
+}
 
+func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *client.Client) {
+	s := c.ControllerManager
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(
 			clientadapter.FromUnversionedClient(client),
