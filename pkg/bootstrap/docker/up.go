@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -29,6 +30,7 @@ import (
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -44,6 +46,9 @@ const (
 	initialProjectName    = "myproject"
 	initialProjectDisplay = "My Project"
 	initialProjectDesc    = "Initial developer project"
+
+	defaultRedirectClient  = "openshift-web-console"
+	developmentRedirectURI = "https://localhost:9000"
 
 	defaultImages         = "openshift/origin-${component}:${version}"
 	defaultOpenShiftImage = "openshift/origin:${version}"
@@ -257,6 +262,9 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Create an OpenShift configuration and start a container that uses it.
 	c.addTask("Starting OpenShift container", c.StartOpenShift)
+
+	// Add default redirect URI to config
+	c.addTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs)
 
 	// Install a registry
 	c.addTask("Installing registry", c.InstallRegistry)
@@ -509,6 +517,47 @@ func (c *ClientStartConfig) EnsureHostDirectories(io.Writer) error {
 		return nil
 	}
 	return c.HostHelper().EnsureVolumeShare()
+}
+
+// EnsureDefaultRedirectURIs merges a default URL to an auth client's RedirectURIs array
+func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
+	oc, _, err := c.Clients()
+	if err != nil {
+		return nil
+	}
+
+	webConsoleOAuth, err := oc.OAuthClients().Get(defaultRedirectClient)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			fmt.Fprintf(out, "Unable to find OAuthClient %q\n", defaultRedirectClient)
+			return nil
+		}
+
+		// announce fetch error without interrupting remaining tasks
+		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
+		errMsg := fmt.Sprintf("Unable to fetch OAuthClient %q.\nTo manually add a development redirect URI, run %q\n", defaultRedirectClient, suggestedCmd)
+		fmt.Fprintf(out, "%s\n", errMsg)
+		return nil
+	}
+
+	// ensure the default redirect URI is not already present
+	redirects := sets.NewString(webConsoleOAuth.RedirectURIs...)
+	if redirects.Has(developmentRedirectURI) {
+		return nil
+	}
+
+	webConsoleOAuth.RedirectURIs = append(webConsoleOAuth.RedirectURIs, developmentRedirectURI)
+
+	_, err = oc.OAuthClients().Update(webConsoleOAuth)
+	if err != nil {
+		// announce error without interrupting remaining tasks
+		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
+		errMsg := fmt.Sprintf("Unable to add development redirect URI to the %q OAuthClient.\nTo manually add it, run %q\n", defaultRedirectClient, suggestedCmd)
+		fmt.Fprintf(out, "%s\n", errMsg)
+		return nil
+	}
+
+	return nil
 }
 
 // CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
