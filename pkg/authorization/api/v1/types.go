@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
@@ -51,7 +53,12 @@ type Role struct {
 
 // OptionalNames is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 type OptionalNames []string
+
+func (t OptionalNames) String() string {
+	return fmt.Sprintf("%v", []string(t))
+}
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
@@ -201,7 +208,12 @@ type SubjectAccessReviewResponse struct {
 
 // OptionalScopes is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 type OptionalScopes []string
+
+func (t OptionalScopes) String() string {
+	return fmt.Sprintf("%v", []string(t))
+}
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
