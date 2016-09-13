@@ -32,7 +32,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	// Validate command-line/config parameters
-	ni, err := validateClusterNetwork(networkConfig.ClusterNetworkCIDR, networkConfig.HostSubnetLength, networkConfig.ServiceNetworkCIDR, networkConfig.NetworkPluginName)
+	ni, err := getNetworkInfo(networkConfig.ClusterNetworkCIDR, networkConfig.HostSubnetLength, networkConfig.ServiceNetworkCIDR, networkConfig.NetworkPluginName)
 	if err != nil {
 		return err
 	}
