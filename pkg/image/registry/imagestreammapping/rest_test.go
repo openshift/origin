@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
@@ -164,13 +165,15 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
+	ctx := kapi.WithUser(kapi.NewDefaultContext(), &user.DefaultInfo{})
+
 	mapping := validNewMappingWithName()
-	_, err = storage.Create(kapi.NewDefaultContext(), mapping)
+	_, err = storage.Create(ctx, mapping)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
 
-	image, err := storage.imageRegistry.GetImage(kapi.NewDefaultContext(), "imageID1")
+	image, err := storage.imageRegistry.GetImage(ctx, "imageID1")
 	if err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
@@ -181,7 +184,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := storage.imageStreamRegistry.GetImageStream(kapi.NewDefaultContext(), "somerepo")
+	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "somerepo")
 	if err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
@@ -414,7 +417,9 @@ func TestTrackingTags(t *testing.T) {
 		Tag:   "2.0",
 	}
 
-	_, err = storage.Create(kapi.NewDefaultContext(), &mapping)
+	ctx := kapi.WithUser(kapi.NewDefaultContext(), &user.DefaultInfo{})
+
+	_, err = storage.Create(ctx, &mapping)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
