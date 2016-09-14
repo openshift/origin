@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -527,6 +528,10 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	if oc.Options.Controllers == configapi.ControllersDisabled {
 		return nil
+	}
+
+	if sdnplugin.IsOpenShiftNetworkPlugin(oc.Options.NetworkConfig.NetworkPluginName) && oc.Options.ControllerLeaseTTL <= 0 {
+		glog.Fatalf("SDN plugin requires controllerLeaseTTL greater than 0")
 	}
 
 	go func() {
