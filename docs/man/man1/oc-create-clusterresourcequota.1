@@ -108,8 +108,8 @@ Cluster resource quota objects defined quota restrictions that span multiple pro
 .RS
 
 .nf
-  # Create an cluster resource quota limited to 10 pods
-  oc create clusterresourcequota limit\-bob \-\-project\-label\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
+  # Create a cluster resource quota limited to 10 pods
+  oc create clusterresourcequota limit\-bob \-\-project\-annotation\-selector=openshift.io/requester=user\-bob \-\-hard=pods=10
 
 .fi
 .RE

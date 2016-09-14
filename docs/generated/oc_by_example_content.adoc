@@ -1059,8 +1059,8 @@ Create cluster resource quota resource.
 
 [options="nowrap"]
 ----
-  # Create an cluster resource quota limited to 10 pods
-  oc create clusterresourcequota limit-bob --project-label-selector=openshift.io/requester=user-bob --hard=pods=10
+  # Create a cluster resource quota limited to 10 pods
+  oc create clusterresourcequota limit-bob --project-annotation-selector=openshift.io/requester=user-bob --hard=pods=10
 ----
 ====
 
