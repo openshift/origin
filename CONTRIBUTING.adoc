@@ -188,13 +188,13 @@ NOTE: By default your origin directory (on your host machine) will be mounted as
 
 12.  NOTE: to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
-	# shut down openshift
-	$ sudo pkill openshift
-	# stop the docker containers
-	$ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-	# deleting all the internal config files, etcd, etc and starting openshift fresh
-	sudo rm -rf openshift.local.*
-	# if you used the --volume-dir=/home/vagrant/volumes flag, then run these
+    # shut down openshift
+    $ sudo pkill openshift
+    # stop the docker containers
+    $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+    # deleting all the internal config files, etcd, etc and starting openshift fresh
+    $ sudo rm -rf openshift.local.*
+    # if you used the --volume-dir=/home/vagrant/volumes flag, then run these
 
 TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
 
