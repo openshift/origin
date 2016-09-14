@@ -3965,7 +3965,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {
@@ -4129,7 +4129,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {
