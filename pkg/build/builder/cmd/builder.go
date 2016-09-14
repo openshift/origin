@@ -135,6 +135,10 @@ func (c *builderConfig) setupGitEnvironment() ([]string, error) {
 		gitEnv = append(gitEnv, fmt.Sprintf("HTTPS_PROXY=%s", *gitSource.HTTPSProxy))
 		gitEnv = append(gitEnv, fmt.Sprintf("https_proxy=%s", *gitSource.HTTPSProxy))
 	}
+	if gitSource.NoProxy != nil && len(*gitSource.NoProxy) > 0 {
+		gitEnv = append(gitEnv, fmt.Sprintf("NO_PROXY=%s", *gitSource.NoProxy))
+		gitEnv = append(gitEnv, fmt.Sprintf("no_proxy=%s", *gitSource.NoProxy))
+	}
 	return bld.MergeEnv(os.Environ(), gitEnv), nil
 }
 
