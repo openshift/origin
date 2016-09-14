@@ -28,7 +28,7 @@ type ProjectStatus struct {
 	Phase kapi.NamespacePhase
 }
 
-// +genclient=true
+// +genclient=true,nonNamespaced=true
 
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
