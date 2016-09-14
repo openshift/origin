@@ -21,9 +21,11 @@ import (
 )
 
 var (
-	keys           = []string{"different", "used", "important", "every", "large"}
-	values         = []string{"time", "person"}
-	namespaceNames = []string{
+	keys             = []string{"different", "used", "important", "every", "large"}
+	values           = []string{"time", "person"}
+	annotationKeys   = []string{"different", "used", "important", "every", "large", "foo.bar.baz/key", "whitespace key"}
+	annotationValues = []string{"Person", "time and place", "Thing", "me@example.com", "system:admin"}
+	namespaceNames   = []string{
 		"tokillamockingbird", "harrypotter", "1984", "prideandprejudice", "thediaryofayounggirl", "animalfarm", "thehobbit",
 		"thelittleprince", "thegreatgatsby", "thecatcherintherye", "lordoftherings", "janeeyre", "romeoandjuliet", "thechroniclesofnarnia",
 		"lordoftheflies", "thegivingtree", "charlottesweb", "greeneggsandham", "alicesadventuresinwonderland", "littlewomen",
@@ -279,6 +281,14 @@ func NewQuota(name string) *quotaapi.ClusterResourceQuota {
 		ret.Spec.Selector.LabelSelector.MatchLabels[key] = value
 	}
 
+	ret.Spec.Selector.AnnotationSelector = map[string]string{}
+	for i := 0; i < numSelectorKeys; i++ {
+		key := annotationKeys[rand.Intn(len(annotationKeys))]
+		value := annotationValues[rand.Intn(len(annotationValues))]
+
+		ret.Spec.Selector.AnnotationSelector[key] = value
+	}
+
 	return ret
 }
 
@@ -297,6 +307,14 @@ func NewNamespace(name string) *kapi.Namespace {
 		value := values[rand.Intn(len(values))]
 
 		ret.Labels[key] = value
+	}
+
+	ret.Annotations = map[string]string{}
+	for i := 0; i < numLabels; i++ {
+		key := annotationKeys[rand.Intn(len(annotationKeys))]
+		value := annotationValues[rand.Intn(len(annotationValues))]
+
+		ret.Annotations[key] = value
 	}
 
 	return ret
