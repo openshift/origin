@@ -113,49 +113,6 @@ func (registry *Registry) GetPod(nodeName, namespace, podName string) (*kapi.Pod
 	return nil, nil
 }
 
-func (registry *Registry) UpdateClusterNetwork(ni *NetworkInfo) error {
-	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
-	if err != nil {
-		return err
-	}
-	cn.Network = ni.ClusterNetwork.String()
-	cn.HostSubnetLength = ni.HostSubnetLength
-	cn.ServiceNetwork = ni.ServiceNetwork.String()
-	cn.PluginName = ni.PluginName
-	updatedNetwork, err := registry.oClient.ClusterNetwork().Update(cn)
-	if err != nil {
-		return err
-	}
-	log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
-	return nil
-}
-
-func (registry *Registry) CreateClusterNetwork(ni *NetworkInfo) error {
-	cn := &osapi.ClusterNetwork{
-		TypeMeta:         unversioned.TypeMeta{Kind: "ClusterNetwork"},
-		ObjectMeta:       kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
-		Network:          ni.ClusterNetwork.String(),
-		HostSubnetLength: ni.HostSubnetLength,
-		ServiceNetwork:   ni.ServiceNetwork.String(),
-		PluginName:       ni.PluginName,
-	}
-	updatedNetwork, err := registry.oClient.ClusterNetwork().Create(cn)
-	if err != nil {
-		return err
-	}
-	log.Infof("Created ClusterNetwork %s", clusterNetworkToString(updatedNetwork))
-	return nil
-}
-
-func (registry *Registry) GetNetworkInfo() (*NetworkInfo, error) {
-	cn, err := registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
-	if err != nil {
-		return nil, err
-	}
-
-	return validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
-}
-
 func (registry *Registry) GetNetNamespaces() ([]osapi.NetNamespace, error) {
 	netNamespaceList, err := registry.oClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {

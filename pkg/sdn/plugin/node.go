@@ -80,7 +80,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 
 func (node *OsdnNode) Start() error {
 	var err error
-	node.networkInfo, err = node.registry.GetNetworkInfo()
+	node.networkInfo, err = getNetworkInfo(node.registry.oClient)
 	if err != nil {
 		return fmt.Errorf("Failed to get network information: %v", err)
 	}

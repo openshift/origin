@@ -50,7 +50,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
-	proxy.networkInfo, err = proxy.registry.GetNetworkInfo()
+	proxy.networkInfo, err = getNetworkInfo(proxy.registry.oClient)
 	if err != nil {
 		return fmt.Errorf("could not get network info: %s", err)
 	}

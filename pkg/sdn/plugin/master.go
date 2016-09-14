@@ -8,8 +8,11 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
@@ -39,18 +42,45 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		return err
 	}
 
-	changed, net_err := master.isClusterNetworkChanged()
-	if changed {
+	createConfig := false
+	updateConfig := false
+	cn, err := master.registry.oClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	if err == nil {
+		if master.networkInfo.ClusterNetwork.String() != cn.Network ||
+			master.networkInfo.HostSubnetLength != cn.HostSubnetLength ||
+			master.networkInfo.ServiceNetwork.String() != cn.ServiceNetwork ||
+			master.networkInfo.PluginName != cn.PluginName {
+			updateConfig = true
+		}
+	} else {
+		cn = &osapi.ClusterNetwork{
+			TypeMeta:   kapiunversioned.TypeMeta{Kind: "ClusterNetwork"},
+			ObjectMeta: kapi.ObjectMeta{Name: osapi.ClusterNetworkDefault},
+		}
+		createConfig = true
+	}
+	if createConfig || updateConfig {
 		if err = master.validateNetworkConfig(); err != nil {
 			return err
 		}
-		if err = master.registry.UpdateClusterNetwork(master.networkInfo); err != nil {
+		cn.Network = master.networkInfo.ClusterNetwork.String()
+		cn.HostSubnetLength = master.networkInfo.HostSubnetLength
+		cn.ServiceNetwork = master.networkInfo.ServiceNetwork.String()
+		cn.PluginName = master.networkInfo.PluginName
+	}
+
+	if createConfig {
+		cn, err := master.registry.oClient.ClusterNetwork().Create(cn)
+		if err != nil {
 			return err
 		}
-	} else if net_err != nil {
-		if err = master.registry.CreateClusterNetwork(master.networkInfo); err != nil {
+		log.Infof("Created ClusterNetwork %s", clusterNetworkToString(cn))
+	} else if updateConfig {
+		cn, err := master.registry.oClient.ClusterNetwork().Update(cn)
+		if err != nil {
 			return err
 		}
+		log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(cn))
 	}
 
 	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
@@ -121,20 +151,4 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 	}
 
 	return kerrors.NewAggregate(errList)
-}
-
-func (master *OsdnMaster) isClusterNetworkChanged() (bool, error) {
-	oldNetwork, err := master.registry.GetNetworkInfo()
-	if err != nil {
-		return false, err
-	}
-	curNetwork := master.networkInfo
-
-	if curNetwork.ClusterNetwork.String() != oldNetwork.ClusterNetwork.String() ||
-		curNetwork.HostSubnetLength != oldNetwork.HostSubnetLength ||
-		curNetwork.ServiceNetwork.String() != oldNetwork.ServiceNetwork.String() ||
-		curNetwork.PluginName != oldNetwork.PluginName {
-		return true, nil
-	}
-	return false, nil
 }

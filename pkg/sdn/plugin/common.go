@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -71,4 +72,13 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 	}
 
 	return nil
+}
+
+func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
+	cn, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	if err != nil {
+		return nil, err
+	}
+
+	return validateClusterNetwork(cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, cn.PluginName)
 }
