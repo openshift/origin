@@ -583,6 +583,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
 		}
 
+		_, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for attach detach controller: %v", err)
+		}
+
 		_, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
@@ -641,6 +646,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunEndpointController(endpointControllerClient)
 		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
+		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 		kc.RunGCController(gcClient)
 
 		kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
