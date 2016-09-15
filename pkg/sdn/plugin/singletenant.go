@@ -15,7 +15,9 @@ func (sp *singleTenantPlugin) Name() string {
 }
 
 func (sp *singleTenantPlugin) Start(node *OsdnNode) error {
-	return nil
+	otx := node.ovs.NewTransaction()
+	otx.AddFlow("table=80, priority=200, actions=output:NXM_NX_REG2[]")
+	return otx.EndTransaction()
 }
 
 func (sp *singleTenantPlugin) AddNetNamespace(netns *osapi.NetNamespace) {
@@ -33,4 +35,10 @@ func (sp *singleTenantPlugin) GetVNID(namespace string) (uint32, error) {
 
 func (sp *singleTenantPlugin) GetNamespaces(vnid uint32) []string {
 	return nil
+}
+
+func (sp *singleTenantPlugin) RefVNID(vnid uint32) {
+}
+
+func (sp *singleTenantPlugin) UnrefVNID(vnid uint32) {
 }

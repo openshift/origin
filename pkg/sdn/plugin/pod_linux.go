@@ -447,6 +447,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *kubeho
 		return nil, nil, err
 	}
 
+	m.policy.RefVNID(podConfig.vnid)
 	success = true
 	return ipamResult, newPod, nil
 }
@@ -520,6 +521,9 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		} else if err != nil {
 			return err
 		}
+	}
+	if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
+		m.policy.UnrefVNID(vnid)
 	}
 
 	if err := m.ipamDel(req.ContainerId); err != nil {

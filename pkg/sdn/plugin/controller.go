@@ -278,15 +278,19 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// eg, "table=50, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	otx.AddFlow("table=50, priority=0, actions=drop")
 
-	// Table 60: IP to service; filled in by AddServiceRules()
+	// Table 60: IP to service: vnid/port mappings; filled in by AddServiceRules()
 	otx.AddFlow("table=60, priority=200, reg0=0, actions=output:2")
-	// eg, "table=60, priority=100, reg0=${tenant_id}, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=output:2"
+	// eg, "table=60, priority=100, reg0=${tenant_id}, ${service_proto}, nw_dst=${service_ip}, tp_dst=${service_port}, actions=load:${tenant_id}->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80"
 	otx.AddFlow("table=60, priority=0, actions=drop")
 
-	// Table 70: IP to local container; filled in by openshift-sdn-ovs
-	// eg, "table=70, priority=100, reg0=0, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
-	// eg, "table=70, priority=100, reg0=${tenant_id}, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
+	// Table 70: IP to local container: vnid/port mappings; filled in by openshift-sdn-ovs
+	// eg, "table=70, priority=100, ip, nw_dst=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG1[], load:${ovs_port}->NXM_NX_REG2[], goto_table:80"
 	otx.AddFlow("table=70, priority=0, actions=drop")
+
+	// Table 80: IP policy enforcement; mostly managed by the osdnPolicy
+	otx.AddFlow("table=80, priority=300, ip, nw_src=%s/32, actions=output:NXM_NX_REG2[]", localSubnetGateway)
+	// eg, "table=80, priority=100, reg0=${tenant_id}, reg1=${tenant_id}, actions=output:NXM_NX_REG2[]"
+	otx.AddFlow("table=80, priority=0, actions=drop")
 
 	// Table 90: IP to remote container; filled in by AddHostSubnetRules()
 	// eg, "table=90, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
@@ -454,11 +458,7 @@ func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string
 
 func generateAddServiceRule(netID uint32, IP string, protocol kapi.Protocol, port int) string {
 	baseRule := generateBaseServiceRule(IP, protocol, port)
-	if netID == 0 {
-		return fmt.Sprintf("%s, priority=100, actions=output:2", baseRule)
-	} else {
-		return fmt.Sprintf("%s, priority=100, reg0=%d, actions=output:2", baseRule, netID)
-	}
+	return fmt.Sprintf("%s, priority=100, actions=load:%d->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80", baseRule, netID)
 }
 
 func generateDeleteServiceRule(IP string, protocol kapi.Protocol, port int) string {

@@ -40,6 +40,9 @@ type osdnPolicy interface {
 
 	GetVNID(namespace string) (uint32, error)
 	GetNamespaces(vnid uint32) []string
+
+	RefVNID(vnid uint32)
+	UnrefVNID(vnid uint32)
 }
 
 type OsdnNode struct {
@@ -249,6 +252,10 @@ func (node *OsdnNode) Start() error {
 			err = node.UpdatePod(p)
 			if err != nil {
 				log.Warningf("Could not update pod %q: %s", p.Name, err)
+				continue
+			}
+			if vnid, err := node.policy.GetVNID(p.Namespace); err == nil {
+				node.policy.RefVNID(vnid)
 			}
 		}
 	}
@@ -351,9 +358,17 @@ func (node *OsdnNode) watchServices() {
 
 			node.AddServiceRules(serv, netid)
 			services[string(serv.UID)] = serv
+			if !exists {
+				node.policy.RefVNID(netid)
+			}
 		case cache.Deleted:
 			delete(services, string(serv.UID))
 			node.DeleteServiceRules(serv)
+
+			netid, err := node.policy.GetVNID(serv.Namespace)
+			if err == nil {
+				node.policy.UnrefVNID(netid)
+			}
 		}
 		return nil
 	})
