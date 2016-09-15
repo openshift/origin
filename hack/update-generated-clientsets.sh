@@ -21,8 +21,6 @@ fi
 os::build::get_version_vars
 origin_version="v${OS_GIT_MAJOR}_${OS_GIT_MINOR%+}"
 
-exit 0
-
 packages=(
   github.com/openshift/origin/pkg/authorization
   github.com/openshift/origin/pkg/build
@@ -44,6 +42,7 @@ function generate_clientset_for() {
   pushd ${OS_ROOT} >/dev/null
   local common_args="--go-header-file=hack/boilerplate.txt"
   $clientgen --clientset-path="${package}/client/clientset_generated" \
+             --clientset-api-path="/oapi"                             \
              --input-base="${package}/api"                            \
              --output-base="../../.."                                 \
              --clientset-name="${name}"                               \
