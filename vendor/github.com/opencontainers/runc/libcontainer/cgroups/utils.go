@@ -40,6 +40,10 @@ func FindCgroupMountpoint(subsystem string) (string, error) {
 		txt := scanner.Text()
 		fields := strings.Split(txt, " ")
 		for _, opt := range strings.Split(fields[len(fields)-1], ",") {
+			// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
+			if strings.Contains(fields[4], ",") {
+				continue
+			}
 			if opt == subsystem {
 				return fields[4], nil
 			}
@@ -67,6 +71,10 @@ func FindCgroupMountpointAndRoot(subsystem string) (string, string, error) {
 		txt := scanner.Text()
 		fields := strings.Split(txt, " ")
 		for _, opt := range strings.Split(fields[len(fields)-1], ",") {
+			// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
+			if strings.Contains(fields[4], ",") {
+				continue
+			}
 			if opt == subsystem {
 				return fields[4], fields[3], nil
 			}
@@ -99,6 +107,12 @@ func FindCgroupMountpointDir() (string, error) {
 	for scanner.Scan() {
 		text := scanner.Text()
 		fields := strings.Split(text, " ")
+
+		// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
+		if strings.Contains(fields[4], ",") {
+			continue
+		}
+
 		// Safe as mountinfo encodes mountpoints with spaces as \040.
 		index := strings.Index(text, " - ")
 		postSeparatorFields := strings.Fields(text[index+3:])
@@ -153,6 +167,10 @@ func getCgroupMountsHelper(ss map[string]bool, mi io.Reader) ([]Mount, error) {
 			continue
 		}
 		fields := strings.Split(txt, " ")
+		// temporary change to allow containerized cadvisor to start on RHEL (where host and container have reversed cpu,cpuacct)
+		if strings.Contains(fields[4], ",") {
+			continue
+		}
 		m := Mount{
 			Mountpoint: fields[4],
 			Root:       fields[3],
