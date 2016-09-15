@@ -658,6 +658,17 @@ function os::build::os_version_vars() {
 
     # Use git describe to find the version based on annotated tags.
     if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+      # Try to match the "git describe" output to a regex to try to extract
+      # the "major" and "minor" versions and whether this is the exact tagged
+      # version or whether the tree is between two tagged versions.
+      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
+        OS_GIT_MAJOR=${BASH_REMATCH[1]}
+        OS_GIT_MINOR=${BASH_REMATCH[2]}
+        if [[ -n "${BASH_REMATCH[4]}" ]]; then
+          OS_GIT_MINOR+="+"
+        fi
+      fi
+
       # This translates the "git describe" to an actual semver.org
       # compatible semantic version that looks something like this:
       #   v1.1.0-alpha.0.6+84c76d1142ea4d
@@ -671,17 +682,6 @@ function os::build::os_version_vars() {
         # so use our idea of "dirty" from git status instead.
         OS_GIT_SHORT_VERSION+="-dirty"
         OS_GIT_VERSION+="-dirty"
-      fi
-
-      # Try to match the "git describe" output to a regex to try to extract
-      # the "major" and "minor" versions and whether this is the exact tagged
-      # version or whether the tree is between two tagged versions.
-      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
-        OS_GIT_MAJOR=${BASH_REMATCH[1]}
-        OS_GIT_MINOR=${BASH_REMATCH[2]}
-        if [[ -n "${BASH_REMATCH[4]}" ]]; then
-          OS_GIT_MINOR+="+"
-        fi
       fi
     fi
   fi
