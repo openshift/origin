@@ -177,17 +177,22 @@ func TestParameterGenerators(t *testing.T) {
 	}
 }
 
-func TestProcessValueEscape(t *testing.T) {
+func TestProcessValue(t *testing.T) {
 	var template api.Template
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), []byte(`{
 		"kind":"Template", "apiVersion":"v1",
 		"objects": [
 			{
-				"kind": "Service", "apiVersion": "v1${VALUE}",
+				"kind": "Service", "apiVersion": "v${VALUE}",
 				"metadata": {
 					"labels": {
 						"key1": "${VALUE}",
-						"key2": "$${VALUE}"
+						"key2": "$${VALUE}",
+						"s1_s1": "${STRING_1}_${STRING_1}",
+						"s1_s2": "${STRING_1}_${STRING_2}",
+						"i1i1": "${{INT_1}}${{INT_1}}",
+						"i1i2": "${{INT_1}}${{INT_2}}",
+						"i1i2_mixed": "${INT_1}${{INT_2}}"
 					}
 				}
 			}
@@ -195,7 +200,6 @@ func TestProcessValueEscape(t *testing.T) {
 	}`), &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
 	}
@@ -203,19 +207,27 @@ func TestProcessValueEscape(t *testing.T) {
 
 	// Define custom parameter for the transformation:
 	AddParameter(&template, makeParameter("VALUE", "1", "", false))
+	AddParameter(&template, makeParameter("STRING_1", "string1", "", false))
+	AddParameter(&template, makeParameter("STRING_2", "string2", "", false))
+	AddParameter(&template, makeParameter("INT_1", "1", "", false))
+	AddParameter(&template, makeParameter("INT_2", "2", "", false))
 
 	// Transform the template config into the result config
-	errs := processor.Process(&template)
+	errs, err := processor.Process(&template)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected error: %v", errs)
+	}
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 	result, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), &template)
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `{"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v11","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}],"parameters":[{"name":"VALUE","value":"1"}]}`
+	expect := `{"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"i1i1":11,"i1i2":12,"i1i2_mixed":12,"key1":"1","key2":"$1","s1_s1":"string1_string1","s1_s2":"string1_string2"}}}],"parameters":[{"name":"VALUE","value":"1"},{"name":"STRING_1","value":"string1"},{"name":"STRING_2","value":"string2"},{"name":"INT_1","value":"1"},{"name":"INT_2","value":"2"}]}`
 	stringResult := strings.TrimSpace(string(result))
 	if expect != stringResult {
+		//t.Errorf("unexpected output, expected: \n%s\nGot:\n%s\n", expect, stringResult)
 		t.Errorf("unexpected output: %s", diff.StringDiff(expect, stringResult))
 	}
 }
@@ -233,53 +245,9 @@ func TestEvaluateLabels(t *testing.T) {
 				"kind":"Template", "apiVersion":"v1",
 				"objects": [
 					{
-						"kind": "Service", "apiVersion": "v1",
-						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
-					}
-				]
-			}`,
-			Output: `{
-				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
-				"objects":[
-					{
-						"apiVersion":"v1","kind":"Service","metadata":{
-						"labels":{"key1":"v1","key2":"v2"}}
-					}
-				]
-			}`,
-		},
-		"one different label": {
-			Input: `{
-				"kind":"Template", "apiVersion":"v1",
-				"objects": [
-					{
-						"kind": "Service", "apiVersion": "v1",
-						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
-					}
-				]
-			}`,
-			Output: `{
-				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
-				"objects":[
-					{
-						"apiVersion":"v1","kind":"Service","metadata":{
-						"labels":{"key1":"v1","key2":"v2","key3":"v3"}}
-					}
-				],
-				"labels":{"key3":"v3"}
-			}`,
-			Labels: map[string]string{"key3": "v3"},
-		},
-		"when the root object has labels and metadata": {
-			Input: `{
-				"kind":"Template", "apiVersion":"v1",
-				"objects": [
-					{
-						"kind": "Service", "apiVersion": "v1",
-						"metadata": {},
-						"labels": {
-							"key1": "v1",
-							"key2": "v2"
+						"apiVersion": "v1", "kind": "Service",
+						"metadata": {
+							"labels": {"key1": "v1", "key2": "v2"}
 						}
 					}
 				]
@@ -289,21 +257,22 @@ func TestEvaluateLabels(t *testing.T) {
 				"objects":[
 					{
 						"apiVersion":"v1","kind":"Service",
-						"labels":{"key1":"v1","key2":"v2"},
-						"metadata":{"labels":{"key3":"v3"}}
+						"metadata":{
+							"labels":{"key1":"v1","key2":"v2"}
+						}
 					}
-				],
-				"labels":{"key3":"v3"}
+				]
 			}`,
-			Labels: map[string]string{"key3": "v3"},
 		},
-		"overwrites label": {
+		"one different label": {
 			Input: `{
 				"kind":"Template", "apiVersion":"v1",
 				"objects": [
 					{
-						"kind": "Service", "apiVersion": "v1",
-						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+						"apiVersion": "v1", "kind": "Service",
+						"metadata": {
+							"labels": {"key1": "v1", "key2": "v2"}	
+						}
 					}
 				]
 			}`,
@@ -311,8 +280,60 @@ func TestEvaluateLabels(t *testing.T) {
 				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
-						"apiVersion":"v1","kind":"Service","metadata":{
-						"labels":{"key1":"v1","key2":"v3"}}
+						"apiVersion":"v1","kind":"Service",
+						"metadata":{
+							"labels":{"key1":"v1","key2":"v2","key3":"v3"}
+						}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"root object has no labels and metadata": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"apiVersion": "v1", "kind": "Service",
+						"metadata": {}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1","kind":"Service",
+						"metadata":{
+							"labels":{"key3":"v3"}
+						}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"overwrites existing label": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"apiVersion": "v1", "kind": "Service",
+						"metadata": {
+							"labels": {"key1": "v1", "key2": "v2"}
+						}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1","kind":"Service",
+						"metadata":{
+							"labels":{"key1":"v1","key2":"v3"}
+						}
 					}
 				],
 				"labels":{"key2":"v3"}
@@ -336,11 +357,16 @@ func TestEvaluateLabels(t *testing.T) {
 		template.ObjectLabels = testCase.Labels
 
 		// Transform the template config into the result config
-		errs := processor.Process(&template)
+		errs, err := processor.Process(&template)
 		if len(errs) > 0 {
 			t.Errorf("%s: unexpected error: %v", k, errs)
 			continue
 		}
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			continue
+		}
+
 		result, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), &template)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)
@@ -377,9 +403,12 @@ func TestProcessTemplateParameters(t *testing.T) {
 	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
 
 	// Transform the template config into the result config
-	errs := processor.Process(&template)
+	errs, err := processor.Process(&template)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected error: %v", errs)
+	}
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 	result, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), &template)
 	if err != nil {
