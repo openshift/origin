@@ -1,10 +1,10 @@
 package instantiate
 
 import (
-	"errors"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -126,8 +126,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 		param    *deployapi.DeploymentTriggerImageChangeParams
 		notFound bool
 
-		expected    bool
-		expectedErr bool
+		expected bool
 	}{
 		{
 			name: "automatic=true, initial trigger, explicit namespace",
@@ -138,6 +137,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(deploytest.ImageStreamName, imageapi.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
+
 			expected: true,
 		},
 		{
@@ -149,6 +149,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 				From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag(deploytest.ImageStreamName, imageapi.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
+
 			expected: true,
 		},
 		{
@@ -160,7 +161,8 @@ func TestProcess_matchScenarios(t *testing.T) {
 				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(deploytest.ImageStreamName, imageapi.DefaultImageTag)},
 				LastTriggeredImage: "",
 			},
-			expected: true,
+
+			expected: false,
 		},
 		{
 			name: "(no-op) automatic=false, already triggered",
@@ -171,6 +173,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 				From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: imageapi.JoinImageStreamTag(deploytest.ImageStreamName, imageapi.DefaultImageTag)},
 				LastTriggeredImage: deploytest.DockerImageReference,
 			},
+
 			expected: false,
 		},
 		{
@@ -182,6 +185,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 				From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag(deploytest.ImageStreamName, imageapi.DefaultImageTag)},
 				LastTriggeredImage: deploytest.DockerImageReference,
 			},
+
 			expected: false,
 		},
 		{
@@ -195,18 +199,19 @@ func TestProcess_matchScenarios(t *testing.T) {
 			},
 			notFound: true,
 
-			expected:    false,
-			expectedErr: true,
+			expected: false,
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Logf("running test %q", test.name)
 
 		fake := &testclient.Fake{}
 		fake.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
 			if test.notFound {
-				return true, nil, errors.New("requested image stream does not exist")
+				name := action.(ktestclient.GetAction).GetName()
+				return true, nil, errors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			}
 			stream := fakeStream(deploytest.ImageStreamName, imageapi.DefaultImageTag, deploytest.DockerImageReference, deploytest.ImageID)
 			return true, stream, nil
@@ -224,12 +229,8 @@ func TestProcess_matchScenarios(t *testing.T) {
 		image := config.Spec.Template.Spec.Containers[0].Image
 
 		err := processTriggers(config, fake, false)
-		if err != nil && !test.expectedErr {
+		if err != nil {
 			t.Errorf("unexpected error: %v", err)
-			continue
-		}
-		if err == nil && test.expectedErr {
-			t.Errorf("expected an error")
 			continue
 		}
 		if test.expected && config.Spec.Template.Spec.Containers[0].Image == image {

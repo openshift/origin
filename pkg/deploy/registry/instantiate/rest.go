@@ -120,7 +120,7 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 
 		// Forced deployments should always try to resolve the images in the template.
 		// On the other hand, paused deployments or non-automatic triggers shouldn't.
-		if !force && (config.Spec.Paused || !params.Automatic) && len(params.LastTriggeredImage) > 0 {
+		if !force && (config.Spec.Paused || !params.Automatic) {
 			continue
 		}
 
