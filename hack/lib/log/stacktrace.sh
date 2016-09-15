@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This library contains an implementation of a stack trace for Bash scripts. 
+# This library contains an implementation of a stack trace for Bash scripts.
 
 # os::log::stacktrace::install installs the stacktrace as a handler for the ERR signal if one
 # has not already been installed and sets `set -o errtrace` in order to propagate the handler
@@ -25,7 +25,7 @@ readonly -f os::log::stacktrace::install
 
 # os::log::stacktrace::print prints the stacktrace and exits with the return code from the script that
 # called for a stack trace. This function will always return 0 if it is not handling the signal, and if it
-# is handling the signal, this function will always `exit`, not return, the return code it receives as 
+# is handling the signal, this function will always `exit`, not return, the return code it receives as
 # its first argument.
 #
 # Globals:
@@ -54,7 +54,7 @@ function os::log::stacktrace::print() {
         return 0
     fi
 
-    # iterate backwards through the stack until we leave library files, so we can be sure we start logging 
+    # iterate backwards through the stack until we leave library files, so we can be sure we start logging
     # actual script code and not this handler's call
     local stack_begin_index
     for (( stack_begin_index = 0; stack_begin_index < ${#BASH_SOURCE[@]}; stack_begin_index++ )); do
