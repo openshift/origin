@@ -425,12 +425,12 @@ refactorings, architectural changes or behavior changes introduced in Kubernetes
 It is helpful to look at the Kubernetes commit history to be aware of the major topics. Although it
 can potentially break or change any part of Origin, the most affected parts are usually:
 
-1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start.go
+1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start
 2. https://github.com/openshift/origin/blob/master/pkg/cmd/server/kubernetes/master.go
 3. https://github.com/openshift/origin/blob/master/pkg/cmd/server/origin/master.go
-4. https://github.com/openshift/origin/blob/master/pkg/cmd/cli/cmd/factory.go
+4. https://github.com/openshift/origin/blob/master/pkg/cmd/util/clientcmd/factory.go
 5. https://github.com/openshift/origin/blob/master/pkg/cmd/cli/cli.go
-6. https://github.com/openshift/origin/blob/master/pkg/api/meta/multimapper.go
+6. https://github.com/openshift/origin/blob/master/pkg/api/meta/meta.go
 
 Place all your changes in a commit called "Refactor to match changes upstream".
 
