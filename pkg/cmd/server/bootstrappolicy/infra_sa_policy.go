@@ -330,16 +330,24 @@ func init() {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				// JobController.jobController.ListWatch
+				// ScheduledJobController.SyncAll
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("jobs", "scheduledjobs"),
 				},
-				// JobController.syncJob() -> updateJobStatus()
+				// JobController.syncJob
+				// ScheduledJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("jobs/status", "scheduledjobs/status"),
+				},
+				// ScheduledJobController.SyncOne
+				{
+					APIGroups: []string{extensions.GroupName, batch.GroupName},
+					Verbs:     sets.NewString("create", "update", "delete"),
+					Resources: sets.NewString("jobs"),
 				},
 				// JobController.podController.ListWatch
 				{
