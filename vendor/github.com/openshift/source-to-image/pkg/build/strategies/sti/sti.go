@@ -562,7 +562,6 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		}()
 
 		opts.Stdin = r
-		defer wg.Wait()
 	}
 
 	go func(reader io.Reader) {
@@ -593,12 +592,13 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 	go dockerpkg.StreamContainerIO(errReader, &errOutput, func(a ...interface{}) { glog.Info(a...) })
 
 	err := builder.docker.RunContainer(opts)
-	if util.IsTimeoutError(err) {
-		// Cancel waiting for source input if the container timeouts
-		wg.Done()
-	}
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
+	}
+	// Do not wait for source input if the container times out.
+	// FIXME: this potentially leaks a goroutine.
+	if !util.IsTimeoutError(err) {
+		wg.Wait()
 	}
 	return err
 }
