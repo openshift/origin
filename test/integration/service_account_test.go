@@ -366,19 +366,16 @@ func TestEnforcingServiceAccount(t *testing.T) {
 
 	clusterAdminKubeClient.Pods(api.NamespaceDefault).Delete(pod.Name, nil)
 
-	sa, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Get(bootstrappolicy.DeployerServiceAccountName)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if sa.Annotations == nil {
-		sa.Annotations = map[string]string{}
-	}
-	sa.Annotations[serviceaccountadmission.EnforceMountableSecretsAnnotation] = "true"
-
-	time.Sleep(5)
-
 	err = kclient.RetryOnConflict(kclient.DefaultBackoff, func() error {
-		_, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+		sa, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Get(bootstrappolicy.DeployerServiceAccountName)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if sa.Annotations == nil {
+			sa.Annotations = map[string]string{}
+		}
+		sa.Annotations[serviceaccountadmission.EnforceMountableSecretsAnnotation] = "true"
+		_, err = clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
 		return err
 	})
 	if err != nil {
