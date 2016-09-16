@@ -1091,15 +1091,15 @@ function os::build::environment::create() {
   set -o errexit
   local release_image="${OS_BUILD_ENV_IMAGE}"
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
-  if [[ -z "${additional_context}" && "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
-    additional_context="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
+  if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
+    additional_context+="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
     if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
       # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
       # and set the running user to the current user
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
-      additional_context="${additional_context} -v ${OS_ROOT}:${workingdir} -u $(id -u)"
+      additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
     elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
       # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
       # successive iterations can reuse shared code.
@@ -1107,7 +1107,7 @@ function os::build::environment::create() {
       workingdir=$( os::build::environment::release::workingdir )
       name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
       docker volume create --name "${name}" > /dev/null
-      additional_context="${additional_context} -v ${name}:${workingdir}"
+      additional_context+=" -v ${name}:${workingdir}"
     fi
   fi
 
