@@ -69,7 +69,7 @@ func (info Info) LastSemanticVersion() string {
 		parts = parts[:len(parts)-1]
 	}
 	// strip the Git commit
-	if len(parts) > 1 && reCommitSegment.MatchString(parts[len(parts)-1]) {
+	if len(parts) > 0 && reCommitSegment.MatchString(parts[len(parts)-1]) {
 		parts[len(parts)-1] = reCommitSegment.ReplaceAllString(parts[len(parts)-1], "")
 		if len(parts[len(parts)-1]) == 0 {
 			parts = parts[:len(parts)-1]
