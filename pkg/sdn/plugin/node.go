@@ -130,7 +130,7 @@ func (node *OsdnNode) Start() error {
 }
 
 func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
-	fieldSelector := fields.Set{"spec.host": node.hostName}.AsSelector()
+	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := kapi.ListOptions{
 		LabelSelector: labels.Everything(),
 		FieldSelector: fieldSelector,

@@ -156,7 +156,7 @@ func getScriptError(output []byte) string {
 }
 
 func (plugin *OsdnNode) getPod(nodeName, namespace, podName string) (*kapi.Pod, error) {
-	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
+	fieldSelector := fields.Set{"spec.nodeName": nodeName}.AsSelector()
 	opts := kapi.ListOptions{
 		LabelSelector: labels.Everything(),
 		FieldSelector: fieldSelector,
