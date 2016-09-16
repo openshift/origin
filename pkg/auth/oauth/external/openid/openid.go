@@ -193,9 +193,11 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		}
 	}
 
+	glog.V(5).Infof("openid claims: %#v", claims)
+
 	id, _ := getClaimValue(claims, p.IDClaims)
 	if id == "" {
-		return nil, false, fmt.Errorf("Could not retrieve id claim for %#v", p.IDClaims)
+		return nil, false, fmt.Errorf("Could not retrieve id claim for %#v from %#v", p.IDClaims, claims)
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, id)
 
