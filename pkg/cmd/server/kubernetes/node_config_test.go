@@ -104,6 +104,7 @@ func TestKubeletDefaults(t *testing.T) {
 			RuntimeRequestTimeout:          unversioned.Duration{Duration: 2 * time.Minute},
 			ContentType:                    "application/vnd.kubernetes.protobuf",
 			EnableControllerAttachDetach:   true,
+			AllowedUnsafeSysctls:           nil,
 
 			EvictionPressureTransitionPeriod: unversioned.Duration{Duration: 5 * time.Minute},
 		},
