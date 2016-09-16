@@ -25,7 +25,6 @@ os::cmd::expect_failure_and_text 'oc new-app openshift/postgresql-92-centos7 --e
 # When env file contains invalid entries
 printf 'one=first\ntwosecond\nthree=third\n' >> $TEMP_FILE
 os::cmd::expect_failure_and_text 'oc new-app openshift/postgresql-92-centos7 --env-file='"$TEMP_FILE"' --dry-run' 'environment variables must be of the form key=value'
-# Didn't want to use rm -rf
 rm $TEMP_FILE
 rmdir $TEMP_DIR
 # verify we can generate a Docker image based component "mongodb" directly

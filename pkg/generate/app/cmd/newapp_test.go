@@ -25,9 +25,8 @@ import (
 )
 
 // envFileOperation is helper function for creating or deleting a temporary
-// environment file which is used during test cases. Not sure if this
-// function can be here or in some util library. These are idempotent
-// operations. So, I believe no need to have validation.
+// environment file which is used during test cases. These are idempotent
+// operations. So, no need to have validation.
 func envFileOperation(envtmpfile *os.File, option string) string {
 	if option == "create" {
 		envVarList := []byte("one=first\ntwo=second\nthree=third\n")
