@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ func TestNetworkPolicyStrategy(t *testing.T) {
 		},
 	}
 
-	Strategy.PrepareForCreate(np)
+	Strategy.PrepareForCreate(ctx, np)
 	errs := Strategy.Validate(ctx, np)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
@@ -51,7 +51,7 @@ func TestNetworkPolicyStrategy(t *testing.T) {
 	invalidNp := &extensions.NetworkPolicy{
 		ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "4"},
 	}
-	Strategy.PrepareForUpdate(invalidNp, np)
+	Strategy.PrepareForUpdate(ctx, invalidNp, np)
 	errs = Strategy.ValidateUpdate(ctx, invalidNp, np)
 	if len(errs) == 0 {
 		t.Errorf("Expected a validation error")

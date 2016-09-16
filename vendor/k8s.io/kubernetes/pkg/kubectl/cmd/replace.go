@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // ReplaceOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of
@@ -38,25 +40,27 @@ type ReplaceOptions struct {
 	Recursive bool
 }
 
-const (
-	replace_long = `Replace a resource by filename or stdin.
+var (
+	replace_long = dedent.Dedent(`
+		Replace a resource by filename or stdin.
 
-JSON and YAML formats are accepted. If replacing an existing resource, the
-complete resource spec must be provided. This can be obtained by
-$ kubectl get TYPE NAME -o yaml
+		JSON and YAML formats are accepted. If replacing an existing resource, the
+		complete resource spec must be provided. This can be obtained by
+		$ kubectl get TYPE NAME -o yaml
 
-Please refer to the models in https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/v1.3.0-beta.0/docs/api-reference/v1/definitions.html to find if a field is mutable.`
-	replace_example = `# Replace a pod using the data in pod.json.
-kubectl replace -f ./pod.json
+		Please refer to the models in https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/release-1.4/docs/api-reference/v1/definitions.html to find if a field is mutable.`)
+	replace_example = dedent.Dedent(`
+		# Replace a pod using the data in pod.json.
+		kubectl replace -f ./pod.json
 
-# Replace a pod based on the JSON passed into stdin.
-cat pod.json | kubectl replace -f -
+		# Replace a pod based on the JSON passed into stdin.
+		cat pod.json | kubectl replace -f -
 
-# Update a single-container pod's image version (tag) to v4
-kubectl get pod mypod -o yaml | sed 's/\(image: myimage\):.*$/\1:v4/' | kubectl replace -f -
+		# Update a single-container pod's image version (tag) to v4
+		kubectl get pod mypod -o yaml | sed 's/\(image: myimage\):.*$/\1:v4/' | kubectl replace -f -
 
-# Force replace, delete and then re-create the resource
-kubectl replace --force -f ./pod.json`
+		# Force replace, delete and then re-create the resource
+		kubectl replace --force -f ./pod.json`)
 )
 
 func NewCmdReplace(f *cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -66,7 +70,7 @@ func NewCmdReplace(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		Use: "replace -f FILENAME",
 		// update is deprecated.
 		Aliases: []string{"update"},
-		Short:   "Replace a resource by filename or stdin.",
+		Short:   "Replace a resource by filename or stdin",
 		Long:    replace_long,
 		Example: replace_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -184,8 +188,11 @@ func forceReplace(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	mapper, typer := f.Object(cmdutil.GetIncludeThirdPartyAPIs(cmd))
-	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	mapper, typer, err := f.UnstructuredObject()
+	if err != nil {
+		return err
+	}
+	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.UnstructuredClientForMapping), runtime.UnstructuredJSONScheme).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, options.Recursive, options.Filenames...).
@@ -201,7 +208,7 @@ func forceReplace(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []
 	// By default use a reaper to delete all related resources.
 	if cmdutil.GetFlagBool(cmd, "cascade") {
 		glog.Warningf("\"cascade\" is set, kubectl will delete and re-create all resources managed by this resource (e.g. Pods created by a ReplicationController). Consider using \"kubectl rolling-update\" if you want to update a ReplicationController together with its Pods.")
-		err = ReapResult(r, f, out, cmdutil.GetFlagBool(cmd, "cascade"), ignoreNotFound, cmdutil.GetFlagDuration(cmd, "timeout"), cmdutil.GetFlagInt(cmd, "grace-period"), shortOutput, mapper)
+		err = ReapResult(r, f, out, cmdutil.GetFlagBool(cmd, "cascade"), ignoreNotFound, cmdutil.GetFlagDuration(cmd, "timeout"), cmdutil.GetFlagInt(cmd, "grace-period"), shortOutput, mapper, false)
 	} else {
 		err = DeleteResult(r, out, ignoreNotFound, shortOutput, mapper)
 	}
@@ -209,7 +216,7 @@ func forceReplace(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []
 		return err
 	}
 
-	r = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	r = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.UnstructuredClientForMapping), runtime.UnstructuredJSONScheme).
 		Schema(schema).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().

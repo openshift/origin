@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"sort"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/clock"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
@@ -34,14 +34,14 @@ type DelayingInterface interface {
 
 // NewDelayingQueue constructs a new workqueue with delayed queuing ability
 func NewDelayingQueue() DelayingInterface {
-	return newDelayingQueue(util.RealClock{}, "")
+	return newDelayingQueue(clock.RealClock{}, "")
 }
 
 func NewNamedDelayingQueue(name string) DelayingInterface {
-	return newDelayingQueue(util.RealClock{}, name)
+	return newDelayingQueue(clock.RealClock{}, name)
 }
 
-func newDelayingQueue(clock util.Clock, name string) DelayingInterface {
+func newDelayingQueue(clock clock.Clock, name string) DelayingInterface {
 	ret := &delayingType{
 		Interface:          NewNamed(name),
 		clock:              clock,
@@ -62,7 +62,7 @@ type delayingType struct {
 	Interface
 
 	// clock tracks time for delayed firing
-	clock util.Clock
+	clock clock.Clock
 
 	// stopCh lets us signal a shutdown to the waiting loop
 	stopCh chan struct{}

@@ -14,8 +14,6 @@ openshift kube describe \- Show details of a specific resource or group of resou
 .SH DESCRIPTION
 .PP
 Show details of a specific resource or group of resources.
-
-.PP
 This command joins many API calls together to form a detailed description of a
 given resource or group of resources.
 
@@ -24,17 +22,53 @@ $ kubectl describe TYPE NAME\_PREFIX
 
 .PP
 will first check for an exact match on TYPE and NAME\_PREFIX. If no such resource
-exists, it will output details for every resource that has a name prefixed with NAME\_PREFIX
+exists, it will output details for every resource that has a name prefixed with NAME\_PREFIX.
 
 .PP
-Possible resource types include (case insensitive): pods (po), services (svc), deployments,
-replicasets (rs), replicationcontrollers (rc), nodes (no), events (ev), limitranges (limits),
-persistentvolumes (pv), persistentvolumeclaims (pvc), resourcequotas (quota), namespaces (ns),
-serviceaccounts (sa), ingresses (ing), horizontalpodautoscalers (hpa), daemonsets (ds), configmaps,
-componentstatuses (cs), endpoints (ep), and secrets.
+Valid resource types include:
+   * buildconfigs (aka 'bc')
+   * builds
+   * clusters (valid only for federation apiservers)
+   * componentstatuses (aka 'cs')
+   * configmaps (aka 'cm')
+   * daemonsets (aka 'ds')
+   * deployments (aka 'deploy')
+   * deploymentconfigs (aka 'dc')
+   * events (aka 'ev')
+   * endpoints (aka 'ep')
+   * horizontalpodautoscalers (aka 'hpa')
+   * imagestreamimages (aka 'isimage')
+   * imagestreams (aka 'is')
+   * imagestreamtags (aka 'istag')
+   * ingress (aka 'ing')
+   * groups
+   * jobs
+   * limitranges (aka 'limits')
+   * nodes (aka 'no')
+   * namespaces (aka 'ns')
+   * petsets (alpha feature, may be unstable)
+   * pods (aka 'po')
+   * persistentvolumes (aka 'pv')
+   * persistentvolumeclaims (aka 'pvc')
+   * policies
+   * projects
+   * quota
+   * resourcequotas (aka 'quota')
+   * replicasets (aka 'rs')
+   * replicationcontrollers (aka 'rc')
+   * rolebindings
+   * routes
+   * secrets
+   * serviceaccounts (aka 'sa')
+   * services (aka 'svc')
+   * users
 
 
 .SH OPTIONS
+.PP
+\fB\-\-all\-namespaces\fP=false
+    If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with \-\-namespace.
+
 .PP
 \fB\-f\fP, \fB\-\-filename\fP=[]
     Filename, directory, or URL to a file containing the resource to describe
@@ -58,6 +92,10 @@ componentstatuses (cs), endpoints (ep), and secrets.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -71,7 +109,7 @@ componentstatuses (cs), endpoints (ep), and secrets.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -79,15 +117,15 @@ componentstatuses (cs), endpoints (ep), and secrets.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -151,7 +189,7 @@ componentstatuses (cs), endpoints (ep), and secrets.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -219,7 +257,7 @@ componentstatuses (cs), endpoints (ep), and secrets.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -259,7 +297,7 @@ componentstatuses (cs), endpoints (ep), and secrets.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -279,6 +317,7 @@ componentstatuses (cs), endpoints (ep), and secrets.
 .RS
 
 .nf
+
 # Describe a node
 kubectl describe nodes kubernetes\-minion\-emt8.c.myproject.internal
 

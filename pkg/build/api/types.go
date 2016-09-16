@@ -806,6 +806,7 @@ type GitInfo struct {
 	// Refs is a list of GitRefs for the provided repo - generally sent
 	// when used from a post-receive hook. This field is optional and is
 	// used when sending multiple refs
+	// +k8s:conversion-gen=false
 	Refs []GitRefInfo
 }
 

@@ -65,7 +65,7 @@ var (
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
-func NewHumanReadablePrinter(printOptions *kctl.PrintOptions) *kctl.HumanReadablePrinter {
+func NewHumanReadablePrinter(printOptions kctl.PrintOptions) *kctl.HumanReadablePrinter {
 	// TODO: support cross namespace listing
 	p := kctl.NewHumanReadablePrinter(printOptions)
 	p.Handler(buildColumns, printBuild)

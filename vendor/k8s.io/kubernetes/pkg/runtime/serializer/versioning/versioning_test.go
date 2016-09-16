@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,14 +51,14 @@ func (d *testNestedDecodable) GetObjectKind() unversioned.ObjectKind            
 func (d *testNestedDecodable) SetGroupVersionKind(gvk unversioned.GroupVersionKind) { d.gvk = gvk }
 func (d *testNestedDecodable) GroupVersionKind() unversioned.GroupVersionKind       { return d.gvk }
 
-func (n *testNestedDecodable) EncodeNestedObjects(e runtime.Encoder) error {
-	n.nestedCalled = true
-	return n.nestedErr
+func (d *testNestedDecodable) EncodeNestedObjects(e runtime.Encoder) error {
+	d.nestedCalled = true
+	return d.nestedErr
 }
 
-func (n *testNestedDecodable) DecodeNestedObjects(d runtime.Decoder) error {
-	n.nestedCalled = true
-	return n.nestedErr
+func (d *testNestedDecodable) DecodeNestedObjects(_ runtime.Decoder) error {
+	d.nestedCalled = true
+	return d.nestedErr
 }
 
 func TestNestedDecode(t *testing.T) {

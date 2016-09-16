@@ -11,8 +11,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func addDefaultingFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
+func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddDefaultingFuncs(
 		func(obj *MasterConfig) {
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = internal.DefaultOpenShiftAPILevels
@@ -212,14 +212,10 @@ func addDefaultingFuncs(scheme *runtime.Scheme) {
 			}
 		},
 	)
-	if err != nil {
-		// If one of the conversion functions is malformed, detect it immediately.
-		panic(err)
-	}
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddConversionFuncs(
 		convert_runtime_Object_To_runtime_RawExtension,
 		convert_runtime_RawExtension_To_runtime_Object,
 
@@ -336,10 +332,6 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		api.Convert_bool_To_Pointer_bool,
 		api.Convert_Pointer_bool_To_bool,
 	)
-	if err != nil {
-		// If one of the conversion functions is malformed, detect it immediately.
-		panic(err)
-	}
 }
 
 // convert_runtime_Object_To_runtime_RawExtension attempts to convert runtime.Objects to the appropriate target.

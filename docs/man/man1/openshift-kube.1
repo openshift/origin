@@ -22,6 +22,10 @@ Find more information at
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -35,7 +39,7 @@ Find more information at
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -43,15 +47,15 @@ Find more information at
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -111,7 +115,7 @@ Find more information at
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -175,7 +179,7 @@ Find more information at
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -215,7 +219,7 @@ Find more information at
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -242,7 +246,7 @@ Find more information at
 
 .SH SEE ALSO
 .PP
-\fBopenshift(1)\fP, \fBopenshift\-kube\-annotate(1)\fP, \fBopenshift\-kube\-api\-versions(1)\fP, \fBopenshift\-kube\-apply(1)\fP, \fBopenshift\-kube\-attach(1)\fP, \fBopenshift\-kube\-autoscale(1)\fP, \fBopenshift\-kube\-cluster\-info(1)\fP, \fBopenshift\-kube\-completion(1)\fP, \fBopenshift\-kube\-config(1)\fP, \fBopenshift\-kube\-convert(1)\fP, \fBopenshift\-kube\-cordon(1)\fP, \fBopenshift\-kube\-create(1)\fP, \fBopenshift\-kube\-delete(1)\fP, \fBopenshift\-kube\-describe(1)\fP, \fBopenshift\-kube\-drain(1)\fP, \fBopenshift\-kube\-edit(1)\fP, \fBopenshift\-kube\-exec(1)\fP, \fBopenshift\-kube\-explain(1)\fP, \fBopenshift\-kube\-expose(1)\fP, \fBopenshift\-kube\-get(1)\fP, \fBopenshift\-kube\-label(1)\fP, \fBopenshift\-kube\-logs(1)\fP, \fBopenshift\-kube\-namespace(1)\fP, \fBopenshift\-kube\-options(1)\fP, \fBopenshift\-kube\-patch(1)\fP, \fBopenshift\-kube\-port\-forward(1)\fP, \fBopenshift\-kube\-proxy(1)\fP, \fBopenshift\-kube\-replace(1)\fP, \fBopenshift\-kube\-rolling\-update(1)\fP, \fBopenshift\-kube\-rollout(1)\fP, \fBopenshift\-kube\-run(1)\fP, \fBopenshift\-kube\-scale(1)\fP, \fBopenshift\-kube\-set(1)\fP, \fBopenshift\-kube\-stop(1)\fP, \fBopenshift\-kube\-taint(1)\fP, \fBopenshift\-kube\-uncordon(1)\fP, \fBopenshift\-kube\-version(1)\fP,
+\fBopenshift(1)\fP, \fBopenshift\-kube\-annotate(1)\fP, \fBopenshift\-kube\-api\-versions(1)\fP, \fBopenshift\-kube\-apply(1)\fP, \fBopenshift\-kube\-attach(1)\fP, \fBopenshift\-kube\-autoscale(1)\fP, \fBopenshift\-kube\-cluster\-info(1)\fP, \fBopenshift\-kube\-completion(1)\fP, \fBopenshift\-kube\-config(1)\fP, \fBopenshift\-kube\-convert(1)\fP, \fBopenshift\-kube\-cordon(1)\fP, \fBopenshift\-kube\-create(1)\fP, \fBopenshift\-kube\-delete(1)\fP, \fBopenshift\-kube\-describe(1)\fP, \fBopenshift\-kube\-drain(1)\fP, \fBopenshift\-kube\-edit(1)\fP, \fBopenshift\-kube\-exec(1)\fP, \fBopenshift\-kube\-explain(1)\fP, \fBopenshift\-kube\-expose(1)\fP, \fBopenshift\-kube\-get(1)\fP, \fBopenshift\-kube\-label(1)\fP, \fBopenshift\-kube\-logs(1)\fP, \fBopenshift\-kube\-namespace(1)\fP, \fBopenshift\-kube\-options(1)\fP, \fBopenshift\-kube\-options(1)\fP, \fBopenshift\-kube\-patch(1)\fP, \fBopenshift\-kube\-port\-forward(1)\fP, \fBopenshift\-kube\-proxy(1)\fP, \fBopenshift\-kube\-replace(1)\fP, \fBopenshift\-kube\-rolling\-update(1)\fP, \fBopenshift\-kube\-rollout(1)\fP, \fBopenshift\-kube\-run(1)\fP, \fBopenshift\-kube\-scale(1)\fP, \fBopenshift\-kube\-set(1)\fP, \fBopenshift\-kube\-stop(1)\fP, \fBopenshift\-kube\-taint(1)\fP, \fBopenshift\-kube\-top(1)\fP, \fBopenshift\-kube\-uncordon(1)\fP, \fBopenshift\-kube\-version(1)\fP,
 
 
 .SH HISTORY

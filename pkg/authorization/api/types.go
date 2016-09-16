@@ -175,10 +175,10 @@ type ResourceAccessReviewResponse struct {
 	// Namespace is the namespace used for the access review
 	Namespace string
 	// Users is the list of users who can perform the action
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	Users sets.String
 	// Groups is the list of groups who can perform the action
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	Groups sets.String
 
 	// EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned.
@@ -221,7 +221,7 @@ type SubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	Groups sets.String
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
@@ -246,7 +246,7 @@ type LocalSubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	Groups sets.String
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".

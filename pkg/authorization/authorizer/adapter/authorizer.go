@@ -1,8 +1,6 @@
 package adapter
 
 import (
-	"errors"
-
 	"github.com/golang/glog"
 
 	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
@@ -19,19 +17,14 @@ func NewAuthorizer(originAuthorizer oauthorizer.Authorizer) (kauthorizer.Authori
 	return &AdapterAuthorizer{originAuthorizer}, nil
 }
 
-func (z *AdapterAuthorizer) Authorize(kattrs kauthorizer.Attributes) error {
+func (z *AdapterAuthorizer) Authorize(kattrs kauthorizer.Attributes) (bool, string, error) {
 	allowed, reason, err := z.originAuthorizer.Authorize(OriginAuthorizerAttributes(kattrs))
 
 	if err != nil {
 		glog.V(5).Infof("evaluation error: %v", err)
-		return err
+		return allowed, reason, err
 	}
 
 	glog.V(5).Infof("allowed=%v, reason=%s", allowed, reason)
-	if allowed {
-		return nil
-	}
-
-	// Turn the reason into an error so we can reject with the most information possible
-	return errors.New(reason)
+	return allowed, reason, nil
 }

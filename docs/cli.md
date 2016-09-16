@@ -156,7 +156,7 @@ $ oc project
 
 This manually starts a build, using either the specified buildConfig or a build name with the `--from-build` option.
 
-Other options:  
+Other options:
 
 | Name       |  Description                                                                                             |
 |:-----------|:---------------------------------------------------------------------------------------------------------|
@@ -691,7 +691,7 @@ The options are:
 |`-f` *filename*        | Write to *filename* instead of standard output.  |
 |`--as-template` *name* | Output in template format with name *name*.      |
 |`--all-namespace`      | If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace. |
-|`--exact`              | Preserve fields that may be cluster specific, such as service `portalIP`s or generated names. |
+|`--exact`              | Preserve fields that may be cluster specific, such as service `clusterIP`s or generated names. |
 |`--raw`                | Do not alter the resources in any way after they are loaded. |
 
 The following example exports all services to a template with name `test`.

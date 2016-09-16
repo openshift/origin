@@ -82,7 +82,7 @@ func resourceFor(mapper meta.RESTMapper, resourceArg string) unversioned.GroupVe
 	if fullySpecifiedGVR != nil {
 		gvr, _ = mapper.ResourceFor(*fullySpecifiedGVR)
 	}
-	if gvr.IsEmpty() {
+	if gvr.Empty() {
 		var err error
 		gvr, err = mapper.ResourceFor(groupResource.WithVersion(""))
 		if err != nil {

@@ -51,7 +51,6 @@ import (
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/registry/generator"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -463,9 +462,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(c.PrivilegedLoopbackOpenShiftClient.Images())
-	imageStreamLimitVerifier := imageadmission.NewLimitVerifier(c.KubeClient())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, imageStreamLimitVerifier)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, c.LimitVerifier)
 	checkStorageErr(err)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, c.RegistryNameFn)
@@ -509,7 +507,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
 		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
 	}
-	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.EtcdHelper.Codec())
+	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.ExternalVersionCodec)
 
 	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClient.Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
@@ -570,8 +568,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"deploymentConfigs/log":      deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
 
 		// TODO: Deprecate these
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
-		"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, c.EtcdHelper.Codec()),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
+		"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, c.ExternalVersionCodec),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateStorage,

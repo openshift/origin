@@ -384,7 +384,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 	}
 
 	cleanedAll := true
-	for _, deployerPod := range deployerList.Items {
+	for _, deployerPod := range deployerList {
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later

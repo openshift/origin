@@ -1,12 +1,12 @@
 package etcd
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -20,32 +20,18 @@ type REST struct {
 
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
-	prefix := "/images"
-
 	store := &registry.Store{
 		NewFunc: func() runtime.Object { return &api.Image{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
 		NewListFunc: func() runtime.Object { return &api.ImageList{} },
-		// Produces a path that etcd understands, to the root of the resource
-		// by combining the namespace in the context with the given prefix.
-		// Yet images are not namespace scoped, so we're returning just prefix here.
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return prefix
-		},
-		// Produces a path that etcd understands, to the resource by combining
-		// the namespace in the context with the given prefix
-		// Yet images are not namespace scoped, so we're returning just prefix here.
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return registry.NoNamespaceKeyFunc(ctx, prefix, name)
-		},
 		// Retrieve the name field of an image
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Image).Name, nil
 		},
 		// Used to match objects based on labels/fields for list and watch
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return image.MatchImage(label, field)
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+			return image.Matcher(label, field)
 		},
 		QualifiedResource: api.Resource("images"),
 
@@ -58,7 +44,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		ReturnDeletedObject: false,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, prefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

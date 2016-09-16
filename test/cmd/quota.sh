@@ -30,7 +30,7 @@ os::test::junit::declare_suite_start "cmd/quota/imagestreams"
 os::cmd::expect_success 'oc new-project foo-2 --as=deads'
 os::cmd::expect_success 'oc create quota -n foo-2 is-quota --hard openshift.io/imagestreams=1'
 os::cmd::try_until_success 'oc tag -n foo-2 openshift/hello-openshift myis2:v2'
-os::cmd::expect_failure_and_text 'oc tag -n foo-2 busybox mybox:v1' "Exceeded quota"
+os::cmd::expect_failure_and_text 'oc tag -n foo-2 busybox mybox:v1' "exceeded quota"
 
 echo "imagestreams: ok"
 os::test::junit::declare_suite_end

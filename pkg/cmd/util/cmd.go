@@ -115,7 +115,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversio
 				actualOutputVersion = externalVersion
 				break
 			}
-			if actualOutputVersion.IsEmpty() {
+			if actualOutputVersion.Empty() {
 				actualOutputVersion = externalVersion
 			}
 		}

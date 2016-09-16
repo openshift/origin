@@ -273,7 +273,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		return nil
 	}
 
-	p, _, err := kubectl.GetPrinter(outputFormat, "")
+	p, _, err := kubectl.GetPrinter(outputFormat, "", false)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 
 	"time"
 
-	"github.com/docker/docker/pkg/units"
+	units "github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"

@@ -8,7 +8,6 @@ metadata:
   uid: 19cff995-5546-11e5-9f57-080027c5bfa9
 spec:
   clusterIP: 172.30.0.100
-  portalIP: 172.30.0.1
   ports:
   - nodePort: 0
     port: 443

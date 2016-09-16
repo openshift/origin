@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,10 +19,12 @@ package internalclientset
 import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/unversioned"
+	unversionedauthorization "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/unversioned"
 	unversionedautoscaling "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/unversioned"
 	unversionedbatch "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/unversioned"
 	unversionedcore "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/unversioned"
 	unversionedextensions "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned"
+	unversionedstorage "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/storage/unversioned"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	"k8s.io/kubernetes/pkg/client/unversioned"
 )
@@ -47,6 +49,11 @@ func FromUnversionedClient(c *unversioned.Client) *internalclientset.Clientset {
 	} else {
 		clientset.BatchClient = unversionedbatch.New(nil)
 	}
+	if c != nil && c.AuthorizationClient != nil {
+		clientset.AuthorizationClient = unversionedauthorization.New(c.AuthorizationClient.RESTClient)
+	} else {
+		clientset.AuthorizationClient = unversionedauthorization.New(nil)
+	}
 	if c != nil && c.AutoscalingClient != nil {
 		clientset.AutoscalingClient = unversionedautoscaling.New(c.AutoscalingClient.RESTClient)
 	} else {
@@ -61,6 +68,11 @@ func FromUnversionedClient(c *unversioned.Client) *internalclientset.Clientset {
 		clientset.DiscoveryClient = discovery.NewDiscoveryClient(c.DiscoveryClient.RESTClient)
 	} else {
 		clientset.DiscoveryClient = discovery.NewDiscoveryClient(nil)
+	}
+	if c != nil && c.StorageClient != nil {
+		clientset.StorageClient = unversionedstorage.New(c.StorageClient.RESTClient)
+	} else {
+		clientset.StorageClient = unversionedstorage.New(nil)
 	}
 
 	return &clientset

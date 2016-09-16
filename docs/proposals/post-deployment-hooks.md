@@ -298,7 +298,7 @@ A database is exposed to the application using a service:
     "selector": {
       "name": "mysql"
     },
-    "portalIP": "",
+    "clusterIP": "",
     "type": "ClusterIP",
     "sessionAffinity": "None"
   }

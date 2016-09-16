@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube config \- config modifies kubeconfig files
+openshift kube config \- Modify kubeconfig files
 
 
 .SH SYNOPSIS
@@ -13,12 +13,12 @@ openshift kube config \- config modifies kubeconfig files
 
 .SH DESCRIPTION
 .PP
-config modifies kubeconfig files using subcommands like "kubectl config set current\-context my\-context"
+Modify kubeconfig files using subcommands like "kubectl config set current\-context my\-context"
 
 .PP
 The loading order follows these rules:
 1. If the \-\-kubeconfig flag is set, then only that file is loaded.  The flag may only be set once and no merging takes place.
-2. If $KUBECONFIG environment variable is set, then it is used a list of paths (normal path delimitting rules for your system).  These paths are merged together.  When a value is modified, it is modified in the file that defines the stanza.  When a value is created, it is created in the first file that exists.  If no files in the chain exist, then it creates the last file in the list.
+2. If $KUBECONFIG environment variable is set, then it is used a list of paths (normal path delimitting rules for your system).  These paths are merged.  When a value is modified, it is modified in the file that defines the stanza.  When a value is created, it is created in the first file that exists.  If no files in the chain exist, then it creates the last file in the list.
 3. Otherwise, ${HOME}/.kube/config is used and no merging takes place.
 
 
@@ -29,6 +29,10 @@ The loading order follows these rules:
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
 .PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
@@ -43,7 +47,7 @@ The loading order follows these rules:
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -51,15 +55,15 @@ The loading order follows these rules:
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -123,7 +127,7 @@ The loading order follows these rules:
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -187,7 +191,7 @@ The loading order follows these rules:
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -227,7 +231,7 @@ The loading order follows these rules:
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -244,7 +248,7 @@ The loading order follows these rules:
 
 .SH SEE ALSO
 .PP
-\fBopenshift\-kube(1)\fP, \fBopenshift\-kube\-config\-current\-context(1)\fP, \fBopenshift\-kube\-config\-set(1)\fP, \fBopenshift\-kube\-config\-set\-cluster(1)\fP, \fBopenshift\-kube\-config\-set\-context(1)\fP, \fBopenshift\-kube\-config\-set\-credentials(1)\fP, \fBopenshift\-kube\-config\-unset(1)\fP, \fBopenshift\-kube\-config\-use\-context(1)\fP, \fBopenshift\-kube\-config\-view(1)\fP,
+\fBopenshift\-kube(1)\fP, \fBopenshift\-kube\-config\-current\-context(1)\fP, \fBopenshift\-kube\-config\-delete\-cluster(1)\fP, \fBopenshift\-kube\-config\-delete\-context(1)\fP, \fBopenshift\-kube\-config\-get\-clusters(1)\fP, \fBopenshift\-kube\-config\-get\-contexts(1)\fP, \fBopenshift\-kube\-config\-set(1)\fP, \fBopenshift\-kube\-config\-set\-cluster(1)\fP, \fBopenshift\-kube\-config\-set\-context(1)\fP, \fBopenshift\-kube\-config\-set\-credentials(1)\fP, \fBopenshift\-kube\-config\-unset(1)\fP, \fBopenshift\-kube\-config\-use\-context(1)\fP, \fBopenshift\-kube\-config\-view(1)\fP,
 
 
 .SH HISTORY

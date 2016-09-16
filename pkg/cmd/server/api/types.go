@@ -41,21 +41,26 @@ var (
 
 	APIGroupKube           = ""
 	APIGroupExtensions     = "extensions"
-	APIGroupAutoscaling    = "autoscaling"
-	APIGroupAuthentication = "authentication.k8s.io"
-	APIGroupBatch          = "batch"
-	APIGroupPolicy         = "policy"
 	APIGroupApps           = "apps"
+	APIGroupAuthentication = "authentication.k8s.io"
+	APIGroupAutoscaling    = "autoscaling"
+	APIGroupBatch          = "batch"
+	APIGroupCertificates   = "certificates.k8s.io"
 	APIGroupFederation     = "federation"
+	APIGroupPolicy         = "policy"
+	APIGroupStorage        = "storage.k8s.io"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
 		APIGroupKube:           {"v1"},
 		APIGroupExtensions:     {"v1beta1"},
-		APIGroupAutoscaling:    {"v1"},
-		APIGroupAuthentication: {"v1beta1"},
-		APIGroupBatch:          {"v1", "v2alpha1"},
 		APIGroupApps:           {"v1alpha1"},
+		APIGroupAuthentication: {"v1beta1"},
+		APIGroupAutoscaling:    {"v1"},
+		APIGroupBatch:          {"v1", "v2alpha1"},
+		APIGroupCertificates:   {"v1alpha1"},
+		APIGroupPolicy:         {"v1alpha1"},
+		APIGroupStorage:        {"v1beta1"},
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}

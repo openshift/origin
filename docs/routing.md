@@ -186,7 +186,6 @@ service.json
         "selector": {
           "name": "hello-openshift"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       }

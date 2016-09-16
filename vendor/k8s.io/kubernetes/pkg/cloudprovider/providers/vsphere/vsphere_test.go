@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -126,10 +126,12 @@ func TestVSphereLogin(t *testing.T) {
 func TestZones(t *testing.T) {
 	cfg := VSphereConfig{}
 	cfg.Global.Datacenter = "myDatacenter"
+	failureZone := "myCluster"
 
 	// Create vSphere configuration object
 	vs := VSphere{
-		cfg: &cfg,
+		cfg:         &cfg,
+		clusterName: failureZone,
 	}
 
 	z, ok := vs.Zones()
@@ -144,6 +146,10 @@ func TestZones(t *testing.T) {
 
 	if zone.Region != vs.cfg.Global.Datacenter {
 		t.Fatalf("GetZone() returned wrong region (%s)", zone.Region)
+	}
+
+	if zone.FailureDomain != failureZone {
+		t.Fatalf("GetZone() returned wrong Failure Zone (%s)", zone.FailureDomain)
 	}
 }
 

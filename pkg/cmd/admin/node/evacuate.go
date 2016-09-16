@@ -98,7 +98,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		return err
 	}
 
-	printerWithHeaders, printerNoHeaders, err := e.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
+	printer, err := e.Options.GetPrintersByResource(unversioned.GroupVersionResource{Resource: "pod"})
 	if err != nil {
 		return err
 	}
@@ -125,10 +125,9 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		if firstPod {
 			fmt.Fprint(e.Options.ErrWriter, "\nMigrating these pods on node: ", node.ObjectMeta.Name, "\n\n")
 			firstPod = false
-			printerWithHeaders.PrintObj(&pod, e.Options.Writer)
-		} else {
-			printerNoHeaders.PrintObj(&pod, e.Options.Writer)
 		}
+
+		printer.PrintObj(&pod, e.Options.Writer)
 
 		if foundrc || e.Force {
 			if err := e.Options.Kclient.Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {

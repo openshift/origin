@@ -125,7 +125,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
 	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
-	s.createStrategy.PrepareForCreate(obj)
+	s.createStrategy.PrepareForCreate(ctx, obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
 		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
@@ -154,7 +154,7 @@ func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectI
 		return nil, false, fmt.Errorf("not a project: %#v", obj)
 	}
 
-	s.updateStrategy.PrepareForUpdate(obj, oldObj)
+	s.updateStrategy.PrepareForUpdate(ctx, obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
 		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}

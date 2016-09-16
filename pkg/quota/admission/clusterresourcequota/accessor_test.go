@@ -292,7 +292,7 @@ func TestGetQuota(t *testing.T) {
 		for i := range tc.availableNamespaces {
 			namespaceIndexer.Add(tc.availableNamespaces[i])
 		}
-		namespaceLister := &ocache.IndexerToNamespaceLister{Indexer: namespaceIndexer}
+		namespaceLister := &cache.IndexerToNamespaceLister{Indexer: namespaceIndexer}
 
 		client := testclient.NewSimpleFake()
 

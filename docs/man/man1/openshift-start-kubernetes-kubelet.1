@@ -34,7 +34,7 @@ starting from a configuration file.
     List of Kubernetes API servers for publishing events, and reading pods and services. (ip:port), comma separated.
 
 .PP
-\fB\-\-auth\-path\fP="/var/lib/kubelet/kubernetes\_auth"
+\fB\-\-auth\-path\fP=""
     Path to .kubernetes\_auth file, specifying how to authenticate to API server.
 
 .PP
@@ -75,7 +75,7 @@ starting from a configuration file.
 
 .PP
 \fB\-\-config\fP=""
-    Path to the config file or directory of files
+    Path to to the directory containing pod manifest files to run, or the path to a single pod manifest file.
 
 .PP
 \fB\-\-configure\-cbr0\fP=false
@@ -86,6 +86,10 @@ starting from a configuration file.
     The container runtime to use. Possible values: 'docker', 'rkt'. Default: 'docker'.
 
 .PP
+\fB\-\-container\-runtime\-endpoint\fP=""
+    The unix socket endpoint of remote runtime service. If not empty, this option will override \-\-container\-runtime. This is an experimental feature. Intended for testing only.
+
+.PP
 \fB\-\-containerized\fP=false
     Experimental support for running kubelet in a container.  Intended for testing. [default=false]
 
@@ -94,8 +98,8 @@ starting from a configuration file.
     Enable CPU CFS quota enforcement for containers that specify CPU limits
 
 .PP
-\fB\-\-docker\-endpoint\fP=""
-    If non\-empty, use this for the docker endpoint to communicate with
+\fB\-\-docker\-endpoint\fP="unix:///var/run/docker.sock"
+    Use this for the docker endpoint to communicate with
 
 .PP
 \fB\-\-docker\-exec\-handler\fP="native"
@@ -126,12 +130,16 @@ starting from a configuration file.
     If > 0, limit event creations per second to this value. If 0, unlimited.
 
 .PP
-\fB\-\-eviction\-hard\fP=""
+\fB\-\-eviction\-hard\fP="memory.available<100Mi"
     A set of eviction thresholds (e.g. memory.available<1Gi) that if met would trigger a pod eviction.
 
 .PP
 \fB\-\-eviction\-max\-pod\-grace\-period\fP=0
     Maximum allowed grace period (in seconds) to use when terminating pods in response to a soft eviction threshold being met.  If negative, defer to pod specified value.
+
+.PP
+\fB\-\-eviction\-minimum\-reclaim\fP=""
+    A set of minimum reclaims (e.g. imagefs.available=2Gi) that describes the minimum amount of resource the kubelet will reclaim when performing a pod eviction if that resource is under pressure.
 
 .PP
 \fB\-\-eviction\-pressure\-transition\-period\fP=0
@@ -150,12 +158,29 @@ starting from a configuration file.
     Whether kubelet should exit upon lock\-file contention.
 
 .PP
+\fB\-\-experimental\-allowed\-unsafe\-sysctls\fP=[]
+    Comma\-separated whitelist of unsafe sysctls or unsafe sysctl patterns (ending in *). Use these at your own risk.
+
+.PP
+\fB\-\-experimental\-bootstrap\-kubeconfig\fP=""
+    <Warning: Experimental feature> Path to a kubeconfig file that will be used to get client certificate for kubelet. If the file specified by \-\-kubeconfig does not exist, the bootstrap kubeconfig is used to request a client certificate from the API server. On success, a kubeconfig file referencing the generated key and obtained certificate is written to the path specified by \-\-kubeconfig. The certificate and key file will be stored in the directory pointed by \-\-cert\-dir.
+
+.PP
 \fB\-\-experimental\-flannel\-overlay\fP=false
     Experimental support for starting the kubelet with the default overlay network (flannel). Assumes flanneld is already running in client mode. [default=false]
 
 .PP
 \fB\-\-experimental\-nvidia\-gpus\fP=0
     Number of NVIDIA GPU devices on this node. Only 0 (default) and 1 are currently supported.
+
+.PP
+\fB\-\-feature\-gates\fP=
+    A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
+AllAlpha=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AppArmor=true|false (BETA \- default=true)
+DynamicKubeletConfig=true|false (ALPHA \- default=false)
+DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-file\-check\-frequency\fP=0
@@ -174,15 +199,15 @@ starting from a configuration file.
     The port of the localhost healthz endpoint
 
 .PP
-\fB\-\-host\-ipc\-sources\fP="\fI"
+\fB\-\-host\-ipc\-sources\fP=[\fI]
     Comma\-separated list of sources from which the Kubelet allows pods to use the host ipc namespace. [default="\fP"]
 
 .PP
-\fB\-\-host\-network\-sources\fP="\fI"
+\fB\-\-host\-network\-sources\fP=[\fI]
     Comma\-separated list of sources from which the Kubelet allows pods to use of host network. [default="\fP"]
 
 .PP
-\fB\-\-host\-pid\-sources\fP="\fI"
+\fB\-\-host\-pid\-sources\fP=[\fI]
     Comma\-separated list of sources from which the Kubelet allows pods to use the host pid namespace. [default="\fP"]
 
 .PP
@@ -200,6 +225,18 @@ starting from a configuration file.
 .PP
 \fB\-\-image\-gc\-low\-threshold\fP=80
     The percent of disk usage before which image garbage collection is never run. Lowest disk usage to garbage collect to. Default: 80%
+
+.PP
+\fB\-\-image\-service\-endpoint\fP=""
+    The unix socket endpoint of remote image service. If not specified, it will be the same with container\-runtime\-endpoint by default. This is an experimental feature. Intended for testing only.
+
+.PP
+\fB\-\-iptables\-drop\-bit\fP=15
+    The bit of the fwmark space to mark packets for dropping. Must be within the range [0, 31].
+
+.PP
+\fB\-\-iptables\-masquerade\-bit\fP=14
+    The bit of the fwmark space to mark packets for SNAT. Must be within the range [0, 31]. Please match this parameter with corresponding parameter in kube\-proxy.
 
 .PP
 \fB\-\-kube\-api\-burst\fP=10
@@ -220,7 +257,7 @@ starting from a configuration file.
 
 .PP
 \fB\-\-kubeconfig\fP="/var/lib/kubelet/kubeconfig"
-    Path to a kubeconfig file, specifying how to authenticate to API server (the master location is set by the api\-servers flag).
+    Path to a kubeconfig file, specifying how to connect to the API server. \-\-api\-servers will be used for the location unless \-\-require\-kubeconfig is set.
 
 .PP
 \fB\-\-kubelet\-cgroups\fP=""
@@ -233,6 +270,10 @@ starting from a configuration file.
 .PP
 \fB\-\-low\-diskspace\-threshold\-mb\fP=256
     The absolute free disk space, in MB, to maintain. When disk space falls below this threshold, new pods would be rejected. Default: 256
+
+.PP
+\fB\-\-make\-iptables\-util\-chains\fP=true
+    If true, kubelet will ensure iptables utility rules are present on host.
 
 .PP
 \fB\-\-manifest\-url\fP=""
@@ -255,11 +296,11 @@ starting from a configuration file.
     Number of Pods that can run on this Kubelet.
 
 .PP
-\fB\-\-maximum\-dead\-containers\fP=240
+\fB\-\-maximum\-dead\-containers\fP=\-1
     Maximum number of old instances of containers to retain globally.  Each container takes up some disk space.  Default: 100.
 
 .PP
-\fB\-\-maximum\-dead\-containers\-per\-container\fP=2
+\fB\-\-maximum\-dead\-containers\-per\-container\fP=1
     Maximum number of old instances to retain per container.  Each container takes up some disk space.  Default: 2.
 
 .PP
@@ -268,7 +309,7 @@ starting from a configuration file.
 
 .PP
 \fB\-\-minimum\-image\-ttl\-duration\fP=0
-    Minimum age for a unused image before it is garbage collected.  Examples: '300ms', '10s' or '2h45m'. Default: '2m'
+    Minimum age for an unused image before it is garbage collected.  Examples: '300ms', '10s' or '2h45m'. Default: '2m'
 
 .PP
 \fB\-\-network\-plugin\fP=""
@@ -277,6 +318,10 @@ starting from a configuration file.
 .PP
 \fB\-\-network\-plugin\-dir\fP="/usr/libexec/kubernetes/kubelet\-plugins/net/exec/"
     <Warning: Alpha feature> The full path of the directory in which to search for network plugins
+
+.PP
+\fB\-\-network\-plugin\-mtu\fP=0
+    <Warning: Alpha feature> The MTU to be passed to the network plugin, to override the default. Set to 0 to use the default 1460 MTU.
 
 .PP
 \fB\-\-node\-ip\fP=""
@@ -311,12 +356,20 @@ starting from a configuration file.
     The image whose network/ipc namespaces containers in each pod will use.
 
 .PP
+\fB\-\-pod\-manifest\-path\fP=""
+    Path to to the directory containing pod manifest files to run, or the path to a single pod manifest file.
+
+.PP
 \fB\-\-pods\-per\-core\fP=0
     Number of Pods per core that can run on this Kubelet. The total number of Pods on this Kubelet cannot exceed max\-pods, so max\-pods will be used if this calculation results in a larger number of Pods allowed on the Kubelet. A value of 0 disables this limit.
 
 .PP
 \fB\-\-port\fP=10250
     The port for the Kubelet to serve on.
+
+.PP
+\fB\-\-protect\-kernel\-defaults\fP=false
+    Default kubelet behaviour for kernel tuning. If set, kubelet errors if any of kernel tunables is different than kubelet defaults.
 
 .PP
 \fB\-\-read\-only\-port\fP=10255
@@ -345,6 +398,10 @@ starting from a configuration file.
 .PP
 \fB\-\-registry\-qps\fP=5
     If > 0, limit registry pull QPS to this value.  If 0, unlimited. [default=5.0]
+
+.PP
+\fB\-\-require\-kubeconfig\fP=false
+    If true the Kubelet will exit if there are configuration errors, and will ignore the value of \-\-api\-servers in favor of the server defined in the kubeconfig file.
 
 .PP
 \fB\-\-resolv\-conf\fP="/etc/resolv.conf"
@@ -383,7 +440,7 @@ starting from a configuration file.
     Timeout of all runtime requests except long running request \- pull, logs, exec and attach. When timeout exceeded, kubelet will cancel the request, throw out an error and retry later. Default: 2m0s
 
 .PP
-\fB\-\-seccomp\-profile\-root\fP="/var/lib/kubelet/seccomp"
+\fB\-\-seccomp\-profile\-root\fP=""
     Directory path for seccomp profiles.
 
 .PP

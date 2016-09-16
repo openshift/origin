@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package kubectl
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -56,6 +57,31 @@ func TestDescribePod(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(out, "bar") || !strings.Contains(out, "Status:") {
+		t.Errorf("unexpected out: %s", out)
+	}
+}
+
+func TestDescribePodTolerations(t *testing.T) {
+
+	podTolerations := []api.Toleration{{Key: "key1", Value: "value1"},
+		{Key: "key2", Value: "value2"}}
+	pt, _ := json.Marshal(podTolerations)
+	fake := testclient.NewSimpleFake(&api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+			Annotations: map[string]string{
+				api.TolerationsAnnotationKey: string(pt),
+			},
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
+	d := PodDescriber{c}
+	out, err := d.Describe("foo", "bar", DescriberSettings{})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "key1=value1") || !strings.Contains(out, "key2=value2") || !strings.Contains(out, "Tolerations:") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }
@@ -504,6 +530,13 @@ func TestPersistentVolumeDescriber(t *testing.T) {
 				},
 			},
 		},
+		"quobyte": {
+			Spec: api.PersistentVolumeSpec{
+				PersistentVolumeSource: api.PersistentVolumeSource{
+					Quobyte: &api.QuobyteVolumeSource{},
+				},
+			},
+		},
 	}
 
 	for name, pv := range tests {
@@ -578,6 +611,9 @@ func TestDescribeEvents(t *testing.T) {
 	events := &api.EventList{
 		Items: []api.Event{
 			{
+				ObjectMeta: api.ObjectMeta{
+					Namespace: "foo",
+				},
 				Source:         api.EventSource{Component: "kubelet"},
 				Message:        "Item 1",
 				FirstTimestamp: unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"k8s.io/kubernetes/pkg/util/logs"
+
 	"github.com/openshift/origin/pkg/cmd/infra/gitserver"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 
@@ -15,6 +17,8 @@ import (
 )
 
 func main() {
+	logs.InitLogs()
+	defer logs.FlushLogs()
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 

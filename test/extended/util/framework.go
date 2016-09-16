@@ -26,8 +26,9 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/selection"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -634,7 +635,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 	// waitForDeployment waits until okOrFailed returns true or the done
 	// channel is closed.
 	waitForDeployment := func() (err error, retry bool) {
-		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, sets.NewString(name))
+		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, selection.Equals, sets.NewString(name))
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err), false
 		}
@@ -903,7 +904,7 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 
 // GetPodForContainer creates a new Pod that runs specified container
 func GetPodForContainer(container kapi.Container) *kapi.Pod {
-	name := namer.GetPodName("test-pod", string(kutil.NewUUID()))
+	name := namer.GetPodName("test-pod", string(uuid.NewUUID()))
 	return &kapi.Pod{
 		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",

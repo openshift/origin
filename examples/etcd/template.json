@@ -58,7 +58,7 @@
         "selector": {
           "name": "etcd-discovery"
         },
-        "portalIP": "None",
+        "clusterIP": "None",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -96,7 +96,7 @@
         "selector": {
           "name": "etcd"
         },
-        "portalIP": "None",
+        "clusterIP": "None",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

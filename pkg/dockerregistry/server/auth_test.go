@@ -202,7 +202,7 @@ func TestAccessController(t *testing.T) {
 			openshiftResponses: []response{
 				{500, "Uh oh"},
 			},
-			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post localSubjectAccessReviews)"),
+			expectedError:     errors.New("an error on the server (\"unknown\") has prevented the request from succeeding (post localSubjectAccessReviews)"),
 			expectedChallenge: false,
 			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews (Authorization=Bearer awesome)"},
 		},

@@ -262,9 +262,10 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 
 	// Extension files
 	for _, extConfig := range c.Options.Extensions {
-		extPath := path.Join(publicURL.Path, "extensions", extConfig.Name) + "/"
+		extBasePath := path.Join(publicURL.Path, "extensions", extConfig.Name)
+		extPath := extBasePath + "/"
 		extHandler := assets.AssetExtensionHandler(extConfig.SourceDirectory, extPath, extConfig.HTML5Mode)
-		mux.Handle(extPath, http.StripPrefix(extPath, extHandler))
+		mux.Handle(extPath, http.StripPrefix(extBasePath, extHandler))
 	}
 
 	return nil

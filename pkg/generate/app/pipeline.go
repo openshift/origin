@@ -260,8 +260,8 @@ func MakeSimpleName(name string) string {
 	name = strings.ToLower(name)
 	name = invalidServiceChars.ReplaceAllString(name, "")
 	name = strings.TrimFunc(name, func(r rune) bool { return r == '-' })
-	if len(name) > kuval.DNS952LabelMaxLength {
-		name = name[:kuval.DNS952LabelMaxLength]
+	if len(name) > kuval.DNS1035LabelMaxLength {
+		name = name[:kuval.DNS1035LabelMaxLength]
 	}
 	return name
 }

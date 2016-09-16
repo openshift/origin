@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ func PodReplenishmentUpdateFunc(options *ReplenishmentControllerOptions) func(ol
 		oldPod := oldObj.(*api.Pod)
 		newPod := newObj.(*api.Pod)
 		if core.QuotaPod(oldPod) && !core.QuotaPod(newPod) {
-			options.ReplenishmentFunc(options.GroupKind, newPod.Namespace, newPod)
+			options.ReplenishmentFunc(options.GroupKind, newPod.Namespace, oldPod)
 		}
 	}
 }
@@ -129,7 +129,7 @@ func (r *replenishmentControllerFactory) NewController(options *ReplenishmentCon
 			break
 		}
 
-		r.podInformer = informers.CreateSharedPodInformer(r.kubeClient, options.ResyncPeriod())
+		r.podInformer = informers.NewPodInformer(r.kubeClient, options.ResyncPeriod())
 		result = r.podInformer
 
 	case api.Kind("Service"):
@@ -219,13 +219,13 @@ func (r *replenishmentControllerFactory) NewController(options *ReplenishmentCon
 	return result, nil
 }
 
-// ServiceReplenishmentUpdateFunc will replenish if the old service was quota tracked but the new is not
+// ServiceReplenishmentUpdateFunc will replenish if the service was quota tracked has changed service type
 func ServiceReplenishmentUpdateFunc(options *ReplenishmentControllerOptions) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		oldService := oldObj.(*api.Service)
 		newService := newObj.(*api.Service)
-		if core.QuotaServiceType(oldService) || core.QuotaServiceType(newService) {
-			options.ReplenishmentFunc(options.GroupKind, newService.Namespace, newService)
+		if core.GetQuotaServiceType(oldService) != core.GetQuotaServiceType(newService) {
+			options.ReplenishmentFunc(options.GroupKind, newService.Namespace, nil)
 		}
 	}
 }

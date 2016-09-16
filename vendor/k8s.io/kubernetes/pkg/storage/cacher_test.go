@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ func newTestCacher(s storage.Interface) *storage.Cacher {
 		ResourcePrefix: prefix,
 		KeyFunc:        func(obj runtime.Object) (string, error) { return storage.NamespaceKeyFunc(prefix, obj) },
 		NewListFunc:    func() runtime.Object { return &api.PodList{} },
+		Codec:          testapi.Default.Codec(),
 	}
 	return storage.NewCacherFromConfig(config)
 }
@@ -195,7 +196,7 @@ type injectListError struct {
 	storage.Interface
 }
 
-func (self *injectListError) List(ctx context.Context, key string, resourceVersion string, filter storage.FilterFunc, listObj runtime.Object) error {
+func (self *injectListError) List(ctx context.Context, key string, resourceVersion string, filter storage.Filter, listObj runtime.Object) error {
 	if self.errors > 0 {
 		self.errors--
 		return fmt.Errorf("injected error")
@@ -355,7 +356,7 @@ func TestFiltering(t *testing.T) {
 
 	// Set up Watch for object "podFoo" with label filter set.
 	selector := labels.SelectorFromSet(labels.Set{"filter": "foo"})
-	filter := func(obj runtime.Object) bool {
+	filterFunc := func(obj runtime.Object) bool {
 		metadata, err := meta.Accessor(obj)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
@@ -363,6 +364,7 @@ func TestFiltering(t *testing.T) {
 		}
 		return selector.Matches(labels.Set(metadata.GetLabels()))
 	}
+	filter := storage.NewSimpleFilter(filterFunc, storage.NoTriggerFunc)
 	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", fooCreated.ResourceVersion, filter)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

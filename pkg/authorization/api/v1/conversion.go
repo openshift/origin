@@ -340,7 +340,7 @@ func Convert_api_ClusterRoleBindingsByName_To_v1_NamedClusterRoleBindings(in *ne
 	return nil
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) {
+func addConversionFuncs(scheme *runtime.Scheme) error {
 	err := scheme.AddConversionFuncs(
 		Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
@@ -369,44 +369,45 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicy",
 		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyToSelectableFields(&newer.ClusterPolicy{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyBindingToSelectableFields(&newer.ClusterPolicyBinding{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Policy",
 		oapi.GetFieldLabelConversionFunc(newer.PolicyToSelectableFields(&newer.Policy{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Role",
 		oapi.GetFieldLabelConversionFunc(newer.RoleToSelectableFields(&newer.Role{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "RoleBinding",
 		oapi.GetFieldLabelConversionFunc(newer.RoleBindingToSelectableFields(&newer.RoleBinding{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 var _ runtime.NestedObjectDecoder = &PolicyRule{}

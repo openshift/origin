@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -254,7 +256,12 @@ type DeploymentConfig struct {
 
 // DeploymentTriggerPolicies is a list of policies where nil values and different from empty arrays.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 type DeploymentTriggerPolicies []DeploymentTriggerPolicy
+
+func (t DeploymentTriggerPolicies) String() string {
+	return fmt.Sprintf("%v", []DeploymentTriggerPolicy(t))
+}
 
 // DeploymentConfigSpec represents the desired state of the deployment.
 type DeploymentConfigSpec struct {

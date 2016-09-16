@@ -8,10 +8,8 @@ import (
 	oapi "github.com/openshift/origin/pkg/api"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) {
-	if err := scheme.AddFieldLabelConversionFunc("v1", "Project",
+func addConversionFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddFieldLabelConversionFunc("v1", "Project",
 		oapi.GetFieldLabelConversionFunc(namespace.NamespaceToSelectableFields(&kapi.Namespace{}), nil),
-	); err != nil {
-		panic(err)
-	}
+	)
 }

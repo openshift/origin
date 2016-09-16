@@ -31,7 +31,6 @@
         "selector": {
           "name": "frontend-prod"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -156,7 +155,6 @@
         "selector": {
           "name": "frontend"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

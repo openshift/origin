@@ -26,11 +26,8 @@ func SetDefaults_PolicyRule(obj *PolicyRule) {
 	}
 }
 
-func addDefaultingFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
+func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddDefaultingFuncs(
 		SetDefaults_PolicyRule,
 	)
-	if err != nil {
-		panic(err)
-	}
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,13 +24,15 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/runtime"
-	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 func TestReplicationControllerStop(t *testing.T) {
@@ -69,7 +71,7 @@ func TestReplicationControllerStop(t *testing.T) {
 				},
 			},
 			StopError:       nil,
-			ExpectedActions: []string{"get", "list", "get", "update", "get", "get", "delete"},
+			ExpectedActions: []string{"get", "list", "get", "update", "get", "delete"},
 		},
 		{
 			Name: "NoOverlapping",
@@ -107,7 +109,7 @@ func TestReplicationControllerStop(t *testing.T) {
 				},
 			},
 			StopError:       nil,
-			ExpectedActions: []string{"get", "list", "get", "update", "get", "get", "delete"},
+			ExpectedActions: []string{"get", "list", "get", "update", "get", "delete"},
 		},
 		{
 			Name: "OverlappingError",
@@ -242,9 +244,20 @@ func TestReplicationControllerStop(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		copiedForWatch, err := api.Scheme.Copy(test.Objs[0])
+		if err != nil {
+			t.Fatalf("%s unexpected error: %v", test.Name, err)
+		}
 		fake := testclient.NewSimpleFake(test.Objs...)
+		fakeWatch := watch.NewFake()
+		fake.PrependWatchReactor("replicationcontrollers", testclient.DefaultWatchReactor(fakeWatch, nil))
+
+		go func() {
+			fakeWatch.Add(copiedForWatch)
+		}()
+
 		reaper := ReplicationControllerReaper{fake, time.Millisecond, time.Millisecond}
-		err := reaper.Stop(ns, name, 0, nil)
+		err = reaper.Stop(ns, name, 0, nil)
 		if !reflect.DeepEqual(err, test.StopError) {
 			t.Errorf("%s unexpected error: %v", test.Name, err)
 			continue
@@ -713,5 +726,51 @@ func TestSimpleStop(t *testing.T) {
 				t.Errorf("unexpected action: %#v; expected %v (%s)", action, testAction, test.test)
 			}
 		}
+	}
+}
+
+func TestDeploymentNotFoundError(t *testing.T) {
+	name := "foo"
+	ns := "default"
+	deployment := &extensions.Deployment{
+		ObjectMeta: api.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+		Spec: extensions.DeploymentSpec{
+			Replicas: 0,
+			Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
+		},
+		Status: extensions.DeploymentStatus{
+			Replicas: 0,
+		},
+	}
+	template := deploymentutil.GetNewReplicaSetTemplate(deployment)
+
+	fake := &testclient.Fake{}
+	fake.AddReactor("get", "deployments", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deployment, nil
+	})
+	fake.AddReactor("list", "replicasets", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+		list := &extensions.ReplicaSetList{Items: []extensions.ReplicaSet{
+			{
+				ObjectMeta: api.ObjectMeta{
+					Name:      name,
+					Namespace: ns,
+				},
+				Spec: extensions.ReplicaSetSpec{
+					Template: template,
+				},
+			},
+		}}
+		return true, list, nil
+	})
+	fake.AddReactor("get", "replicasets", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, ScaleError{ActualError: errors.NewNotFound(api.Resource("replicaset"), "doesn't-matter")}
+	})
+
+	reaper := DeploymentReaper{fake, time.Millisecond, time.Millisecond}
+	if err := reaper.Stop(ns, name, 0, nil); err != nil {
+		t.Fatalf("unexpected error: %#v", err)
 	}
 }

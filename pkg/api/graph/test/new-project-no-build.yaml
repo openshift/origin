@@ -90,7 +90,7 @@ items:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
   spec:
-    portalIP: 172.30.17.48
+    clusterIP: 172.30.17.48
     ports:
     - nodePort: 0
       port: 8080

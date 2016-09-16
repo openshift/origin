@@ -10,14 +10,13 @@ const GroupName = ""
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "v1"}
 
-func AddToScheme(scheme *runtime.Scheme) {
-	addKnownTypes(scheme)
-	addDefaultingFuncs(scheme)
-	addConversionFuncs(scheme)
-}
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addDefaultingFuncs)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
 
 // Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MasterConfig{},
 		&NodeConfig{},
@@ -39,4 +38,5 @@ func addKnownTypes(scheme *runtime.Scheme) {
 
 		&DefaultAdmissionConfig{},
 	)
+	return nil
 }

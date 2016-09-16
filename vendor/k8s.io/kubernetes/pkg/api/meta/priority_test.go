@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -262,6 +262,14 @@ func TestPriorityRESTMapperRESTMapping(t *testing.T) {
 					{Group: "other", Kind: "Foo", Version: "v1"},
 				},
 			},
+		},
+		{
+			name: "accept only item",
+			mapper: PriorityRESTMapper{
+				Delegate: fixedRESTMapper{mappings: []*RESTMapping{mapping1}},
+			},
+			input:  unversioned.GroupKind{Kind: "Foo"},
+			result: mapping1,
 		},
 		{
 			name: "return single priority",

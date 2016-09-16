@@ -20,6 +20,9 @@ import (
 func TestExecAdmit(t *testing.T) {
 	goodPod := func() *kapi.Pod {
 		return &kapi.Pod{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: "default",
+			},
 			Spec: kapi.PodSpec{
 				ServiceAccountName: "default",
 				Containers: []kapi.Container{

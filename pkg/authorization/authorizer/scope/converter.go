@@ -388,7 +388,7 @@ func removeEscalatingResources(in authorizationapi.PolicyRule) authorizationapi.
 			// we're using a cache of cache of an object that uses pointers to data.  I'm pretty sure we need to do a copy to avoid
 			// muddying the cache
 			ruleCopy = &authorizationapi.PolicyRule{}
-			authorizationapi.DeepCopy_api_PolicyRule(in, ruleCopy, localCloner)
+			authorizationapi.DeepCopy_api_PolicyRule(&in, ruleCopy, localCloner)
 		}
 
 		ruleCopy.Resources.Delete(resource.Resource)

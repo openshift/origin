@@ -79,7 +79,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
 	switch {
 	case len(o.Output) > 0:
-		printer, _, err := kubectl.GetPrinter(o.Output, "")
+		printer, _, err := kubectl.GetPrinter(o.Output, "", false)
 		if err != nil {
 			return err
 		}

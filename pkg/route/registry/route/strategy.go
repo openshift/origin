@@ -40,7 +40,7 @@ func (routeStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
+func (s routeStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	route := obj.(*api.Route)
 	route.Status = api.RouteStatus{}
 	err := s.allocateHost(route)
@@ -50,7 +50,7 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	}
 }
 
-func (s routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s routeStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	route := obj.(*api.Route)
 	oldRoute := old.(*api.Route)
 	route.Status = oldRoute.Status
@@ -110,7 +110,7 @@ type routeStatusStrategy struct {
 
 var StatusStrategy = routeStatusStrategy{NewStrategy(nil)}
 
-func (routeStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (routeStatusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newRoute := obj.(*api.Route)
 	oldRoute := old.(*api.Route)
 	newRoute.Spec = oldRoute.Spec
@@ -121,7 +121,7 @@ func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Obj
 }
 
 // Matcher returns a matcher for a route
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 	return &generic.SelectionPredicate{Label: label, Field: field, GetAttrs: getAttrs}
 }
 

@@ -31,7 +31,6 @@
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

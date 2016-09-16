@@ -17,13 +17,8 @@ import (
 )
 
 func TestCompatibility_v1_Pod(t *testing.T) {
-	// Test "spec.host" -> "spec.nodeName"
-	expectedHost := "my-host"
 	// Test "spec.serviceAccount" -> "spec.serviceAccountName"
 	expectedServiceAccount := "my-service-account"
-	// Test "tcp" protocol gets converted to "TCP" and validated
-	originalProtocol := "tcp"
-	expectedProtocol := "TCP"
 
 	input := []byte(fmt.Sprintf(`
 {
@@ -31,16 +26,14 @@ func TestCompatibility_v1_Pod(t *testing.T) {
 	"apiVersion":"v1",
 	"metadata":{"name":"my-pod-name", "namespace":"my-pod-namespace"},
 	"spec": {
-		"host":"%s",
 		"serviceAccount":"%s",
 		"containers":[{
 			"name":"my-container-name",
-			"image":"my-container-image",
-			"ports":[{"containerPort":1,"protocol":"%s"}]
+			"image":"my-container-image"
 		}]
 	}
 }
-`, expectedHost, expectedServiceAccount, originalProtocol))
+`, expectedServiceAccount))
 
 	t.Log("Testing 1.0.0 v1 migration added in PR #3592")
 	testCompatibility(
@@ -49,13 +42,8 @@ func TestCompatibility_v1_Pod(t *testing.T) {
 			return validation.ValidatePod(obj.(*api.Pod))
 		},
 		map[string]string{
-			"spec.host":     expectedHost,
-			"spec.nodeName": expectedHost,
-
 			"spec.serviceAccount":     expectedServiceAccount,
 			"spec.serviceAccountName": expectedServiceAccount,
-
-			"spec.containers[0].ports[0].protocol": expectedProtocol,
 		},
 	)
 }
@@ -123,68 +111,6 @@ func TestCompatibility_v1_VolumeSource(t *testing.T) {
 		map[string]string{
 			"spec.volumes[0].metadata.items[0].name":    path,
 			"spec.volumes[0].downwardAPI.items[0].path": path,
-		},
-	)
-}
-
-func TestCompatibility_v1_Service(t *testing.T) {
-	// Test "spec.portalIP" -> "spec.clusterIP"
-	expectedIP := "1.2.3.4"
-	// Test "tcp" protocol gets converted to "TCP" and validated
-	originalProtocol := "tcp"
-	expectedProtocol := "TCP"
-
-	input := []byte(fmt.Sprintf(`
-{
-	"kind":"Service",
-	"apiVersion":"v1",
-	"metadata":{"name":"my-service-name", "namespace":"my-service-namespace"},
-	"spec": {
-		"portalIP":"%s",
-		"ports":[{"port":1,"protocol":"%s"}]
-	}
-}
-`, expectedIP, originalProtocol))
-
-	t.Log("Testing 1.0.0 v1 migration added in PR #3592")
-	testCompatibility(
-		t, "v1", input,
-		func(obj runtime.Object) field.ErrorList {
-			return validation.ValidateService(obj.(*api.Service))
-		},
-		map[string]string{
-			"spec.portalIP":          expectedIP,
-			"spec.clusterIP":         expectedIP,
-			"spec.ports[0].protocol": expectedProtocol,
-		},
-	)
-}
-
-func TestCompatibility_v1_Endpoints(t *testing.T) {
-	// Test "tcp" protocol gets converted to "TCP" and validated
-	originalProtocol := "tcp"
-	expectedProtocol := "TCP"
-
-	input := []byte(fmt.Sprintf(`
-{
-	"kind":"Endpoints",
-	"apiVersion":"v1",
-	"metadata":{"name":"my-endpoints-name", "namespace":"my-endpoints-namespace"},
-	"subsets": [{
-		"addresses":[{"ip":"1.2.3.4"}],
-		"ports": [{"port":1,"targetPort":1,"protocol":"%s"}]
-	}]
-}
-`, originalProtocol))
-
-	t.Log("Testing 1.0.0 v1 migration added in PR #3592")
-	testCompatibility(
-		t, "v1", input,
-		func(obj runtime.Object) field.ErrorList {
-			return validation.ValidateEndpoints(obj.(*api.Endpoints))
-		},
-		map[string]string{
-			"subsets[0].ports[0].protocol": expectedProtocol,
 		},
 	)
 }

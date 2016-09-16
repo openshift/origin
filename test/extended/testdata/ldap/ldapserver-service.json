@@ -18,7 +18,6 @@
     "selector": {
       "name": "openldap-server"
     },
-    "portalIP": "",
     "type": "ClusterIP",
     "sessionAffinity": "None"
   },

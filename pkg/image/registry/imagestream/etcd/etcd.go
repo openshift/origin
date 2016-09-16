@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -24,52 +25,45 @@ type REST struct {
 
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
-	prefix := "/imagestreams"
-
 	store := registry.Store{
 		NewFunc: func() runtime.Object { return &api.ImageStream{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
 		NewListFunc: func() runtime.Object { return &api.ImageStreamList{} },
-		// Produces a path that etcd understands, to the root of the resource
-		// by combining the namespace in the context with the given prefix.
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return registry.NamespaceKeyRootFunc(ctx, prefix)
-		},
-		// Produces a path that etcd understands, to the resource by combining
-		// the namespace in the context with the given prefix
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return registry.NamespaceKeyFunc(ctx, prefix, name)
-		},
 		// Retrieve the name field of an image
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.ImageStream).Name, nil
 		},
 		// Used to match objects based on labels/fields for list and watch
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return imagestream.MatchImageStream(label, field)
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+			return imagestream.Matcher(label, field)
 		},
 		QualifiedResource: api.Resource("imagestreams"),
 
 		ReturnDeletedObject: false,
 	}
 
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier)
-	rest := &REST{Store: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
-	strategy.ImageStreamGetter = rest
+	rest := &REST{
+		Store: &store,
+		subjectAccessReviewRegistry: subjectAccessReviewRegistry,
+	}
+	// strategy must be able to load image streams across namespaces during tag verification
+	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier, rest)
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	if err := restoptions.ApplyOptions(optsGetter, &store, prefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, &store, true, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, nil, err
 	}
 
+	statusStrategy := imagestream.NewStatusStrategy(strategy)
 	statusStore := store
 	statusStore.Decorator = nil
 	statusStore.CreateStrategy = nil
-	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
+	statusStore.UpdateStrategy = statusStrategy
+	statusREST := &StatusREST{store: &statusStore}
 
 	internalStore := store
 	internalStrategy := imagestream.NewInternalStrategy(strategy)
@@ -77,7 +71,8 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	internalStore.CreateStrategy = internalStrategy
 	internalStore.UpdateStrategy = internalStrategy
 
-	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}, nil
+	internalREST := &InternalREST{store: &internalStore}
+	return rest, statusREST, internalREST, nil
 }
 
 // StatusREST implements the REST endpoint for changing the status of an image stream.

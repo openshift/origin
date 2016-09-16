@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,16 +17,20 @@ limitations under the License.
 package cni
 
 import (
+	"errors"
 	"fmt"
 	"sort"
+	"sync"
+	"time"
 
-	"github.com/appc/cni/libcni"
-	cnitypes "github.com/appc/cni/pkg/types"
+	"github.com/containernetworking/cni/libcni"
+	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (
@@ -39,28 +43,36 @@ const (
 type cniNetworkPlugin struct {
 	network.NoopNetworkPlugin
 
+	loNetwork *cniNetwork
+
+	sync.RWMutex
 	defaultNetwork *cniNetwork
-	host           network.Host
-	execer         utilexec.Interface
-	nsenterPath    string
+
+	host               network.Host
+	execer             utilexec.Interface
+	nsenterPath        string
+	pluginDir          string
+	vendorCNIDirPrefix string
 }
 
 type cniNetwork struct {
 	name          string
 	NetworkConfig *libcni.NetworkConfig
-	CNIConfig     *libcni.CNIConfig
+	CNIConfig     libcni.CNI
 }
 
 func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir, vendorCNIDirPrefix string) []network.NetworkPlugin {
-	configList := make([]network.NetworkPlugin, 0)
-	network, err := getDefaultCNINetwork(pluginDir, vendorCNIDirPrefix)
-	if err != nil {
-		return configList
+	plugin := &cniNetworkPlugin{
+		defaultNetwork:     nil,
+		loNetwork:          getLoNetwork(vendorCNIDirPrefix),
+		execer:             utilexec.New(),
+		pluginDir:          pluginDir,
+		vendorCNIDirPrefix: vendorCNIDirPrefix,
 	}
-	return append(configList, &cniNetworkPlugin{
-		defaultNetwork: network,
-		execer:         utilexec.New(),
-	})
+
+	// sync NetworkConfig in best effort during probing.
+	plugin.syncNetworkConfig()
+	return []network.NetworkPlugin{plugin}
 }
 
 func ProbeNetworkPlugins(pluginDir string) []network.NetworkPlugin {
@@ -87,9 +99,9 @@ func getDefaultCNINetwork(pluginDir, vendorCNIDirPrefix string) (*cniNetwork, er
 			continue
 		}
 		// Search for vendor-specific plugins as well as default plugins in the CNI codebase.
-		vendorCNIDir := fmt.Sprintf(VendorCNIDirTemplate, vendorCNIDirPrefix, conf.Network.Type)
+		vendorDir := vendorCNIDir(vendorCNIDirPrefix, conf.Network.Type)
 		cninet := &libcni.CNIConfig{
-			Path: []string{DefaultCNIDir, vendorCNIDir},
+			Path: []string{DefaultCNIDir, vendorDir},
 		}
 		network := &cniNetwork{name: conf.Network.Name, NetworkConfig: conf, CNIConfig: cninet}
 		return network, nil
@@ -97,7 +109,34 @@ func getDefaultCNINetwork(pluginDir, vendorCNIDirPrefix string) (*cniNetwork, er
 	return nil, fmt.Errorf("No valid networks found in %s", pluginDir)
 }
 
-func (plugin *cniNetworkPlugin) Init(host network.Host, hairpinMode componentconfig.HairpinMode, nonMasqueradeCIDR string) error {
+func vendorCNIDir(prefix, pluginType string) string {
+	return fmt.Sprintf(VendorCNIDirTemplate, prefix, pluginType)
+}
+
+func getLoNetwork(vendorDirPrefix string) *cniNetwork {
+	loConfig, err := libcni.ConfFromBytes([]byte(`{
+  "cniVersion": "0.1.0",
+  "name": "cni-loopback",
+  "type": "loopback"
+}`))
+	if err != nil {
+		// The hardcoded config above should always be valid and unit tests will
+		// catch this
+		panic(err)
+	}
+	cninet := &libcni.CNIConfig{
+		Path: []string{vendorCNIDir(vendorDirPrefix, loConfig.Network.Type), DefaultCNIDir},
+	}
+	loNetwork := &cniNetwork{
+		name:          "lo",
+		NetworkConfig: loConfig,
+		CNIConfig:     cninet,
+	}
+
+	return loNetwork
+}
+
+func (plugin *cniNetworkPlugin) Init(host network.Host, hairpinMode componentconfig.HairpinMode, nonMasqueradeCIDR string, mtu int) error {
 	var err error
 	plugin.nsenterPath, err = plugin.execer.LookPath("nsenter")
 	if err != nil {
@@ -105,6 +144,39 @@ func (plugin *cniNetworkPlugin) Init(host network.Host, hairpinMode componentcon
 	}
 
 	plugin.host = host
+
+	// sync network config from pluginDir periodically to detect network config updates
+	go wait.Forever(func() {
+		plugin.syncNetworkConfig()
+	}, 10*time.Second)
+	return nil
+}
+
+func (plugin *cniNetworkPlugin) syncNetworkConfig() {
+	network, err := getDefaultCNINetwork(plugin.pluginDir, plugin.vendorCNIDirPrefix)
+	if err != nil {
+		glog.Errorf("error updating cni config: %s", err)
+		return
+	}
+	plugin.setDefaultNetwork(network)
+}
+
+func (plugin *cniNetworkPlugin) getDefaultNetwork() *cniNetwork {
+	plugin.RLock()
+	defer plugin.RUnlock()
+	return plugin.defaultNetwork
+}
+
+func (plugin *cniNetworkPlugin) setDefaultNetwork(n *cniNetwork) {
+	plugin.Lock()
+	defer plugin.Unlock()
+	plugin.defaultNetwork = n
+}
+
+func (plugin *cniNetworkPlugin) checkInitialized() error {
+	if plugin.getDefaultNetwork() == nil {
+		return errors.New("cni config unintialized")
+	}
 	return nil
 }
 
@@ -113,12 +185,21 @@ func (plugin *cniNetworkPlugin) Name() string {
 }
 
 func (plugin *cniNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID) error {
+	if err := plugin.checkInitialized(); err != nil {
+		return err
+	}
 	netnsPath, err := plugin.host.GetRuntime().GetNetNS(id)
 	if err != nil {
 		return fmt.Errorf("CNI failed to retrieve network namespace path: %v", err)
 	}
 
-	_, err = plugin.defaultNetwork.addToNetwork(name, namespace, id, netnsPath)
+	_, err = plugin.loNetwork.addToNetwork(name, namespace, id, netnsPath)
+	if err != nil {
+		glog.Errorf("Error while adding to cni lo network: %s", err)
+		return err
+	}
+
+	_, err = plugin.getDefaultNetwork().addToNetwork(name, namespace, id, netnsPath)
 	if err != nil {
 		glog.Errorf("Error while adding to cni network: %s", err)
 		return err
@@ -128,12 +209,15 @@ func (plugin *cniNetworkPlugin) SetUpPod(namespace string, name string, id kubec
 }
 
 func (plugin *cniNetworkPlugin) TearDownPod(namespace string, name string, id kubecontainer.ContainerID) error {
+	if err := plugin.checkInitialized(); err != nil {
+		return err
+	}
 	netnsPath, err := plugin.host.GetRuntime().GetNetNS(id)
 	if err != nil {
 		return fmt.Errorf("CNI failed to retrieve network namespace path: %v", err)
 	}
 
-	return plugin.defaultNetwork.deleteFromNetwork(name, namespace, id, netnsPath)
+	return plugin.getDefaultNetwork().deleteFromNetwork(name, namespace, id, netnsPath)
 }
 
 // TODO: Use the addToNetwork function to obtain the IP of the Pod. That will assume idempotent ADD call to the plugin.
@@ -160,7 +244,7 @@ func (network *cniNetwork) addToNetwork(podName string, podNamespace string, pod
 	}
 
 	netconf, cninet := network.NetworkConfig, network.CNIConfig
-	glog.V(4).Infof("About to run with conf.Network.Type=%v, c.Path=%v", netconf.Network.Type, cninet.Path)
+	glog.V(4).Infof("About to run with conf.Network.Type=%v", netconf.Network.Type)
 	res, err := cninet.AddNetwork(netconf, rt)
 	if err != nil {
 		glog.Errorf("Error adding network: %v", err)
@@ -178,7 +262,7 @@ func (network *cniNetwork) deleteFromNetwork(podName string, podNamespace string
 	}
 
 	netconf, cninet := network.NetworkConfig, network.CNIConfig
-	glog.V(4).Infof("About to run with conf.Network.Type=%v, c.Path=%v", netconf.Network.Type, cninet.Path)
+	glog.V(4).Infof("About to run with conf.Network.Type=%v", netconf.Network.Type)
 	err = cninet.DelNetwork(netconf, rt)
 	if err != nil {
 		glog.Errorf("Error deleting network: %v", err)

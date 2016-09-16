@@ -5,13 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
@@ -72,13 +70,10 @@ func TestValidationRegistration(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, api.Codecs.LegacyCodec(), "", false, genericapiserveroptions.DefaultDeserializationCacheSize)
-
 	informerFactory := shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	return &MasterConfig{
 		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
-		RESTOptionsGetter:             restoptions.NewSimpleGetter(etcdHelper),
-		EtcdHelper:                    etcdHelper,
+		RESTOptionsGetter:             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
 		Informers:                     informerFactory,
 		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas()),
 	}

@@ -10,8 +10,6 @@ import (
 
 	"github.com/golang/glog"
 
-	newetcdclient "github.com/coreos/etcd/client"
-
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/admission"
@@ -20,17 +18,15 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/genericapiserver"
+	"k8s.io/kubernetes/pkg/genericapiserver/authorizer"
 	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/intstr"
@@ -56,37 +52,24 @@ type MasterConfig struct {
 	Informers shared.InformerFactory
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers shared.InformerFactory, admissionControl admission.Interface, originAuthenticator authenticator.Request) (*MasterConfig, error) {
+// BuildDefaultAPIServer constructs the appropriate APIServer and StorageFactory for the kubernetes server.
+// It returns an error if no KubernetesMasterConfig was defined.
+func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.APIServer, genericapiserver.StorageFactory, error) {
 	if options.KubernetesMasterConfig == nil {
-		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
+		return nil, nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
 	}
-
-	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
-	kubeletClient, err := kubeletclient.NewStaticKubeletClient(kubeletClientConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure Kubelet client: %v", err)
-	}
-
-	// in-order list of plug-ins that should intercept admission decisions
-	// TODO: Push node environment support to upstream in future
-
 	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	port, err := strconv.Atoi(portString)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	portRange, err := knet.ParsePortRange(options.KubernetesMasterConfig.ServicesNodePortRange)
 	if err != nil {
-		return nil, err
-	}
-
-	podEvictionTimeout, err := time.ParseDuration(options.KubernetesMasterConfig.PodEvictionTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
+		return nil, nil, err
 	}
 
 	// Defaults are tested in TestAPIServerDefaults
@@ -106,51 +89,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
 	if err := cmdflags.Resolve(options.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-
-	// Defaults are tested in TestCMServerDefaults
-	cmserver := cmapp.NewCMServer()
-	// Adjust defaults
-	cmserver.Address = "" // no healthz endpoint
-	cmserver.Port = 0     // no healthz endpoint
-	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
-	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
-
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cmserver.AddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	schedulerserver := scheduleroptions.NewSchedulerServer()
-	schedulerserver.PolicyConfigFile = options.KubernetesMasterConfig.SchedulerConfigFile
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-
-	cloud, err := cloudprovider.InitCloudProvider(cmserver.CloudProvider, cmserver.CloudConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	if cloud != nil {
-		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
-	}
-
-	var proxyClientCerts []tls.Certificate
-	if len(options.KubernetesMasterConfig.ProxyClientInfo.CertFile) > 0 {
-		clientCert, err := tls.LoadX509KeyPair(
-			options.KubernetesMasterConfig.ProxyClientInfo.CertFile,
-			options.KubernetesMasterConfig.ProxyClientInfo.KeyFile,
-		)
-		if err != nil {
-			return nil, err
-		}
-		proxyClientCerts = append(proxyClientCerts, clientCert)
+		return nil, nil, kerrors.NewAggregate(err)
 	}
 
 	resourceEncodingConfig := genericapiserver.NewDefaultResourceEncodingConfig()
@@ -178,18 +117,118 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		autoscaling.SchemeGroupVersion,
 	)
 
+	storageGroupsToEncodingVersion, err := server.StorageGroupsToEncodingVersion()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	etcdConfig := storagebackend.Config{
+		Type:       server.StorageConfig.Type,
 		Prefix:     options.EtcdStorageConfig.KubernetesStoragePrefix,
 		ServerList: options.EtcdClientInfo.URLs,
 		KeyFile:    options.EtcdClientInfo.ClientCert.KeyFile,
 		CertFile:   options.EtcdClientInfo.ClientCert.CertFile,
 		CAFile:     options.EtcdClientInfo.CA,
 		DeserializationCacheSize: genericapiserveroptions.DefaultDeserializationCacheSize,
+		Quorum: server.StorageConfig.Quorum,
 	}
-	storageFactory := genericapiserver.NewDefaultStorageFactory(etcdConfig, "", kapi.Codecs, resourceEncodingConfig, master.DefaultAPIResourceConfigSource())
+
+	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
+		etcdConfig,
+		server.DefaultStorageMediaType,
+		kapi.Codecs,
+		genericapiserver.NewDefaultResourceEncodingConfig(),
+		storageGroupsToEncodingVersion,
+		// FIXME: this GroupVersionResource override should be configurable
+		[]unversioned.GroupVersionResource{batch.Resource("scheduledjobs").WithVersion("v2alpha1")},
+		master.DefaultAPIResourceConfigSource(), server.RuntimeConfig,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	/*storageFactory := genericapiserver.NewDefaultStorageFactory(
+		etcdConfig,
+		server.DefaultStorageMediaType,
+		kapi.Codecs,
+		resourceEncodingConfig,
+		master.DefaultAPIResourceConfigSource(),
+	)*/
 	// the order here is important, it defines which version will be used for storage
 	storageFactory.AddCohabitatingResources(extensions.Resource("jobs"), batch.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
+
+	return server, storageFactory, nil
+}
+
+func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, informers shared.InformerFactory, admissionControl admission.Interface, originAuthenticator authenticator.Request) (*MasterConfig, error) {
+	if options.KubernetesMasterConfig == nil {
+		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
+	}
+
+	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
+	kubeletClient, err := kubeletclient.NewStaticKubeletClient(kubeletClientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("unable to configure Kubelet client: %v", err)
+	}
+
+	// in-order list of plug-ins that should intercept admission decisions
+	// TODO: Push node environment support to upstream in future
+
+	podEvictionTimeout, err := time.ParseDuration(options.KubernetesMasterConfig.PodEvictionTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
+	}
+
+	// Defaults are tested in TestCMServerDefaults
+	cmserver := cmapp.NewCMServer()
+	// Adjust defaults
+	cmserver.Address = ""                   // no healthz endpoint
+	cmserver.Port = 0                       // no healthz endpoint
+	cmserver.EnableGarbageCollector = false // disabled until we add the controller
+	cmserver.PodEvictionTimeout = unversioned.Duration{Duration: podEvictionTimeout}
+	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
+
+	// resolve extended arguments
+	// TODO: this should be done in config validation (along with the above) so we can provide
+	// proper errors
+	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cmserver.AddFlags); len(err) > 0 {
+		return nil, kerrors.NewAggregate(err)
+	}
+
+	// resolve extended arguments
+	// TODO: this should be done in config validation (along with the above) so we can provide
+	// proper errors
+	schedulerserver := scheduleroptions.NewSchedulerServer()
+	schedulerserver.PolicyConfigFile = options.KubernetesMasterConfig.SchedulerConfigFile
+	if err := cmdflags.Resolve(options.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
+		return nil, kerrors.NewAggregate(err)
+	}
+
+	cloud, err := cloudprovider.InitCloudProvider(cmserver.CloudProvider, cmserver.CloudConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	if cloud != nil {
+		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", cmserver.CloudProvider, cmserver.CloudConfigFile)
+	}
+
+	var proxyClientCerts []tls.Certificate
+	if len(options.KubernetesMasterConfig.ProxyClientInfo.CertFile) > 0 {
+		clientCert, err := tls.LoadX509KeyPair(
+			options.KubernetesMasterConfig.ProxyClientInfo.CertFile,
+			options.KubernetesMasterConfig.ProxyClientInfo.KeyFile,
+		)
+		if err != nil {
+			return nil, err
+		}
+		proxyClientCerts = append(proxyClientCerts, clientCert)
+	}
+
+	server, storageFactory, err := BuildDefaultAPIServer(options)
+	if err != nil {
+		return nil, err
+	}
 
 	// Preserve previous behavior of using the first non-loopback address
 	// TODO: Deprecate this behavior and just require a valid value to be passed in
@@ -207,10 +246,10 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Config: &genericapiserver.Config{
 
 			PublicAddress: publicAddress,
-			ReadWritePort: port,
+			ReadWritePort: server.SecurePort,
 
 			Authenticator:    originAuthenticator, // this is used to fulfill the tokenreviews endpoint which is used by node authentication
-			Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
+			Authorizer:       authorizer.NewAlwaysAllowAuthorizer(),
 			AdmissionControl: admissionControl,
 
 			StorageFactory: storageFactory,
@@ -310,10 +349,4 @@ func getAPIResourceConfig(options configapi.MasterConfig) genericapiserver.APIRe
 	}
 
 	return resourceConfig
-}
-
-// NewEtcdStorage returns a storage interface for the provided storage version.
-func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (helper storage.Interface, err error) {
-	// TODO: Make the cacheSize(200) configurable
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, 200), nil
 }

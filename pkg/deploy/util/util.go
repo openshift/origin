@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kdeplutil "k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -270,11 +270,11 @@ func GetStatusReplicaCountForDeployments(deployments []api.ReplicationController
 }
 
 // GetAvailablePods returns all the available pods from the provided pod list.
-func GetAvailablePods(pods []api.Pod, minReadySeconds int32) int32 {
+func GetAvailablePods(pods []*api.Pod, minReadySeconds int32) int32 {
 	available := int32(0)
 	for i := range pods {
 		pod := pods[i]
-		if kdeplutil.IsPodAvailable(&pod, minReadySeconds, time.Now()) {
+		if kdeplutil.IsPodAvailable(pod, minReadySeconds, time.Now()) {
 			available++
 		}
 	}

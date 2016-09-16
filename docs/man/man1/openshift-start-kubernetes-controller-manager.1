@@ -45,12 +45,24 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     The instance prefix for the cluster
 
 .PP
+\fB\-\-cluster\-signing\-cert\-file\fP="/etc/kubernetes/ca/ca.pem"
+    Filename containing a PEM\-encoded X509 CA certificate used to issue cluster\-scoped certificates
+
+.PP
+\fB\-\-cluster\-signing\-key\-file\fP="/etc/kubernetes/ca/ca.key"
+    Filename containing a PEM\-encoded RSA or ECDSA private key used to sign cluster\-scoped certificates
+
+.PP
 \fB\-\-concurrent\-deployment\-syncs\fP=5
     The number of deployment objects that are allowed to sync concurrently. Larger number = more responsive deployments, but more CPU (and network) load
 
 .PP
 \fB\-\-concurrent\-endpoint\-syncs\fP=5
     The number of endpoint syncing operations that will be done concurrently. Larger number = faster endpoint updating, but more CPU (and network) load
+
+.PP
+\fB\-\-concurrent\-gc\-syncs\fP=20
+    The number of garbage collector workers that are allowed to sync concurrently.
 
 .PP
 \fB\-\-concurrent\-namespace\-syncs\fP=2
@@ -69,6 +81,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     The number of resource quotas that are allowed to sync concurrently. Larger number = more responsive quota management, but more CPU (and network) load
 
 .PP
+\fB\-\-concurrent\-service\-syncs\fP=1
+    The number of services that are allowed to sync concurrently. Larger number = more responsive service management, but more CPU (and network) load
+
+.PP
 \fB\-\-concurrent\-serviceaccount\-token\-syncs\fP=5
     The number of service account token objects that are allowed to sync concurrently. Larger number = more responsive token generation, but more CPU (and network) load
 
@@ -85,7 +101,7 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     The the size of lookup cache for daemonsets. Larger number = more responsive daemonsets, but more MEM load.
 
 .PP
-\fB\-\-deleting\-pods\-burst\fP=1
+\fB\-\-deleting\-pods\-burst\fP=0
     Number of nodes on which pods are bursty deleted in case of node failure. For more details look into RateLimiter.
 
 .PP
@@ -101,12 +117,21 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Enable dynamic provisioning for environments that support it.
 
 .PP
-\fB\-\-enable\-garbage\-collector\fP=false
-    Enables the generic garbage collector. MUST be synced with the corresponding flag of the kube\-apiserver. WARNING: the generic garbage collector is an alpha feature.
+\fB\-\-enable\-garbage\-collector\fP=true
+    Enables the generic garbage collector. MUST be synced with the corresponding flag of the kube\-apiserver.
 
 .PP
 \fB\-\-enable\-hostpath\-provisioner\fP=false
     Enable HostPath PV provisioning when running without a cloud provider. This allows testing and development of provisioning features.  HostPath provisioning is not supported in any way, won't work in a multi\-node cluster, and should not be used for anything other than testing or development.
+
+.PP
+\fB\-\-feature\-gates\fP=
+    A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
+AllAlpha=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AppArmor=true|false (BETA \- default=true)
+DynamicKubeletConfig=true|false (ALPHA \- default=false)
+DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-flex\-volume\-plugin\-dir\fP="/usr/libexec/kubernetes/kubelet\-plugins/volume/exec/"
@@ -115,6 +140,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 .PP
 \fB\-\-horizontal\-pod\-autoscaler\-sync\-period\fP=0
     The period for syncing the number of pods in horizontal pod autoscaler.
+
+.PP
+\fB\-\-insecure\-experimental\-approve\-all\-kubelet\-csrs\-for\-group\fP=""
+    The group for which the controller\-manager will auto approve all CSRs for kubelet client certificates.
 
 .PP
 \fB\-\-kube\-api\-burst\fP=30
@@ -133,7 +162,11 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Path to kubeconfig file with authorization and master location information.
 
 .PP
-\fB\-\-leader\-elect\fP=false
+\fB\-\-large\-cluster\-size\-threshold\fP=50
+    Number of nodes from which NodeController treats the cluster as large for the eviction logic purposes. \-\-secondary\-node\-eviction\-rate is implicitly overridden to 0 for clusters this size or smaller.
+
+.PP
+\fB\-\-leader\-elect\fP=true
     Start a leader election client and gain leadership before executing the main loop. Enable this when running replicated components for high availability.
 
 .PP
@@ -165,8 +198,12 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     Mask size for node cidr in cluster.
 
 .PP
+\fB\-\-node\-eviction\-rate\fP=0.1
+    Number of nodes per second on which pods are deleted in case of node failure when a zone is healthy (see \-\-unhealthy\-zone\-threshold for definition of healthy/unhealthy). Zone refers to entire cluster in non\-multizone clusters.
+
+.PP
 \fB\-\-node\-monitor\-grace\-period\fP=0
-    Amount of time which we allow running Node to be unresponsive before marking it unhealty. Must be N times more than kubelet's nodeStatusUpdateFrequency, where N means number of retries allowed for kubelet to post node status.
+    Amount of time which we allow running Node to be unresponsive before marking it unhealthy. Must be N times more than kubelet's nodeStatusUpdateFrequency, where N means number of retries allowed for kubelet to post node status.
 
 .PP
 \fB\-\-node\-monitor\-period\fP=0
@@ -174,7 +211,7 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 
 .PP
 \fB\-\-node\-startup\-grace\-period\fP=0
-    Amount of time which we allow starting Node to be unresponsive before marking it unhealty.
+    Amount of time which we allow starting Node to be unresponsive before marking it unhealthy.
 
 .PP
 \fB\-\-node\-sync\-period\fP=0
@@ -241,6 +278,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
     If set, this root certificate authority will be included in service account's token secret. This must be a valid PEM\-encoded CA bundle.
 
 .PP
+\fB\-\-secondary\-node\-eviction\-rate\fP=0.01
+    Number of nodes per second on which pods are deleted in case of node failure when a zone is unhealthy (see \-\-unhealthy\-zone\-threshold for definition of healthy/unhealthy). Zone refers to entire cluster in non\-multizone clusters. This value is implicitly overridden to 0 if the cluster size is smaller than \-\-large\-cluster\-size\-threshold.
+
+.PP
 \fB\-\-service\-account\-private\-key\-file\fP=""
     Filename containing a PEM\-encoded private RSA key used to sign service account tokens.
 
@@ -255,6 +296,10 @@ This command launches an instance of the Kubernetes controller\-manager (kube\-c
 .PP
 \fB\-\-terminated\-pod\-gc\-threshold\fP=12500
     Number of terminated pods that can exist before the terminated pod garbage collector starts deleting terminated pods. If <= 0, the terminated pod garbage collector is disabled.
+
+.PP
+\fB\-\-unhealthy\-zone\-threshold\fP=0.55
+    Fraction of Nodes in a zone which needs to be not Ready (minimum 3) for zone to be treated as unhealthy.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

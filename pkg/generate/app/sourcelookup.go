@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/builder/parser"
+	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/golang/glog"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"

@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube patch \- Update field(s) of a resource using strategic merge patch.
+openshift kube patch \- Update field(s) of a resource using strategic merge patch
 
 
 .SH SYNOPSIS
@@ -20,7 +20,7 @@ JSON and YAML formats are accepted.
 
 .PP
 Please refer to the models in 
-\[la]https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/v1.3.0-beta.0/docs/api-reference/v1/definitions.html\[ra] to find if a field is mutable.
+\[la]https://htmlpreview.github.io/?https://github.com/kubernetes/kubernetes/blob/release-1.4/docs/api-reference/v1/definitions.html\[ra] to find if a field is mutable.
 
 
 .SH OPTIONS
@@ -33,8 +33,23 @@ Please refer to the models in
     If true, include definitions of new APIs via calls to the API server. [default true]
 
 .PP
+\fB\-\-local\fP=false
+    If true, patch will operate on the content of the file, not the server\-side resource.
+
+.PP
+\fB\-\-no\-headers\fP=false
+    When using the default or custom\-column output format, don't print headers.
+
+.PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output mode. Use "\-o name" for shorter output (resource/name).
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
+
+.PP
+\fB\-\-output\-version\fP=""
+    Output the formatted object with the given group version (for ex: 'extensions/v1beta1').
 
 .PP
 \fB\-p\fP, \fB\-\-patch\fP=""
@@ -49,11 +64,32 @@ Please refer to the models in
     Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
 .PP
+\fB\-a\fP, \fB\-\-show\-all\fP=false
+    When printing, show all resources (default hide terminated pods.)
+
+.PP
+\fB\-\-show\-labels\fP=false
+    When printing, show all labels as the last column (default hide labels column)
+
+.PP
+\fB\-\-sort\-by\fP=""
+    If non\-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. '{.metadata.name}'). The field in the API resource specified by this JSONPath expression must be an integer or a string.
+
+.PP
+\fB\-\-template\fP=""
+    Template string or path to template file to use when \-o=go\-template, \-o=go\-template\-file. The template format is golang templates [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]].
+
+.PP
 \fB\-\-type\fP="strategic"
     The type of patch being provided; one of [json merge strategic]
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
 .PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
@@ -68,7 +104,7 @@ Please refer to the models in
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -76,15 +112,15 @@ Please refer to the models in
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -148,7 +184,7 @@ Please refer to the models in
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -216,7 +252,7 @@ Please refer to the models in
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -256,7 +292,7 @@ Please refer to the models in
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -276,6 +312,7 @@ Please refer to the models in
 .RS
 
 .nf
+
 
 # Partially update a node using strategic merge patch
 kubectl patch node k8s\-node\-1 \-p '{"spec":{"unschedulable":true}}'

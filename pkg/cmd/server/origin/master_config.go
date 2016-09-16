@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	newetcdclient "github.com/coreos/etcd/client"
-	etcdclient "github.com/coreos/go-etcd/etcd"
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -25,17 +25,16 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -63,6 +62,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -106,6 +107,7 @@ type MasterConfig struct {
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
+	LimitVerifier                 imageadmission.LimitVerifier
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
@@ -128,8 +130,9 @@ type MasterConfig struct {
 	// is available.
 	RegistryNameFn imageapi.DefaultRegistryFunc
 
-	// TODO: remove direct access to EtcdHelper, require selecting by providing target resource
-	EtcdHelper storage.Interface
+	// ExternalVersionCodec is the codec used when serializing annotations, which cannot be changed
+	// without all clients being aware of the new version.
+	ExternalVersionCodec runtime.Codec
 
 	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
@@ -162,21 +165,12 @@ type MasterConfig struct {
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
 // provided options
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
-	client, err := etcd.EtcdClient(options.EtcdClientInfo)
+	client, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
-	}
-	etcdClient, err := etcd.MakeNewEtcdClient(options.EtcdClientInfo)
-	if err != nil {
-		return nil, err
-	}
-	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
-	etcdHelper, err := NewEtcdStorage(etcdClient, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
 
-	restOptsGetter := restoptions.NewConfigGetter(options)
+	restOptsGetter := originrest.StorageOptions(options)
 
 	clientCAs, err := configapi.GetClientCertCAPool(options)
 	if err != nil {
@@ -251,8 +245,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	// TODO: look up storage by resource
-	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, etcdClient)
+	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +285,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ImageFor:       imageTemplate.ExpandOrDie,
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 
-		EtcdHelper:          etcdHelper,
+		// TODO: migration of versions of resources stored in annotations must be sorted out
+		ExternalVersionCodec: kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: "", Version: "v1"}),
+
 		KubeletClientConfig: kubeletClientConfig,
 
 		ClientCAs:    clientCAs,
@@ -303,6 +298,23 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
 		Informers:                          informerFactory,
 	}
+
+	// ensure that the limit range informer will be started
+	informer := config.Informers.LimitRanges().Informer()
+	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
+		list, err := config.Informers.LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
+		if err != nil {
+			return nil, err
+		}
+		// the verifier must return an error
+		if len(list) == 0 && len(informer.LastSyncResourceVersion()) == 0 {
+			glog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", informer)
+			forbiddenErr := kapierrors.NewForbidden(unversioned.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
+			forbiddenErr.ErrStatus.Details.RetryAfterSeconds = 1
+			return nil, forbiddenErr
+		}
+		return list, nil
+	}))
 
 	return config, nil
 }
@@ -330,11 +342,13 @@ var (
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
+		"ImagePolicyWebhook",
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
 		"BuildDefaults",
 		"BuildOverrides",
+		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
@@ -364,11 +378,13 @@ var (
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
+		"ImagePolicyWebhook",
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
 		"BuildDefaults",
 		"BuildOverrides",
+		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
@@ -480,7 +496,11 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
 			}
-			plugins = append(plugins, lifecycle.NewLifecycle(kubeClientSet, immortalNamespaces))
+			lc, err := lifecycle.NewLifecycle(kubeClientSet, immortalNamespaces)
+			if err != nil {
+				return nil, err
+			}
+			plugins = append(plugins, lc)
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
@@ -533,7 +553,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	return admission.NewChainHandler(plugins...), nil
 }
 
-func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client) (plug.Plug, func()) {
+func newControllerPlug(options configapi.MasterConfig, client etcdclient.Client) (plug.Plug, func()) {
 	switch {
 	case options.ControllerLeaseTTL > 0:
 		// TODO: replace with future API for leasing from Kube
@@ -554,8 +574,7 @@ func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client
 	}
 }
 
-func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {
-	var tokenGetter serviceaccount.ServiceAccountTokenGetter
+func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccount.ServiceAccountTokenGetter, error) {
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
 		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
@@ -563,14 +582,24 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client newetcd
 		if err != nil {
 			return nil, err
 		}
-		tokenGetter = sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient))
-	} else {
-		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		codec := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion})
-		ketcdHelper := etcdstorage.NewEtcdStorage(client, codec, options.EtcdStorageConfig.KubernetesStoragePrefix, false, genericapiserveroptions.DefaultDeserializationCacheSize)
-		tokenGetter = sacontroller.NewGetterFromStorageInterface(ketcdHelper)
+		return sacontroller.NewGetterFromClient(clientadapter.FromUnversionedClient(kubeClient)), nil
 	}
-	return tokenGetter, nil
+
+	// TODO: could be hoisted if other Origin code needs direct access to etcd, otherwise discourage this access pattern
+	// as we move to be more on top of Kube.
+	_, kubeStorageFactory, err := kubernetes.BuildDefaultAPIServer(options)
+	if err != nil {
+		return nil, err
+	}
+
+	storageConfig, err := kubeStorageFactory.NewConfig(kapi.Resource("serviceaccounts"))
+	if err != nil {
+		return nil, err
+	}
+	// TODO: by doing this we will not be able to authenticate while a master quorum is not present - reimplement
+	// as two storages called in succession (non quorum and then quorum).
+	storageConfig.Quorum = true
+	return sacontroller.NewGetterFromStorageInterface(storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")), kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets"))), nil
 }
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
@@ -958,11 +987,6 @@ func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.C
 		glog.Fatal(err)
 	}
 	return osClient, kClient
-}
-
-// NewEtcdStorage returns a storage interface for the provided storage version.
-func NewEtcdStorage(client newetcdclient.Client, version unversioned.GroupVersion, prefix string) (oshelper storage.Interface, err error) {
-	return etcdstorage.NewEtcdStorage(client, kapi.Codecs.LegacyCodec(version), prefix, false, genericapiserveroptions.DefaultDeserializationCacheSize), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the

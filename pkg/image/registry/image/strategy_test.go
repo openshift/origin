@@ -56,6 +56,8 @@ func fuzzImage(t *testing.T, image *api.Image, seed int64) *api.Image {
 }
 
 func TestStrategyPrepareForCreate(t *testing.T) {
+	ctx := kapi.NewDefaultContext()
+
 	original := api.Image{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "image",
@@ -74,7 +76,7 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 		t.Fatalf("fuzzifier failed to generate signatures")
 	}
 
-	Strategy.PrepareForCreate(image)
+	Strategy.PrepareForCreate(ctx, image)
 
 	if len(image.Signatures) != len(fuzzed.Signatures) {
 		t.Errorf("unexpected number of signatures: %d != %d", len(image.Signatures), len(fuzzed.Signatures))

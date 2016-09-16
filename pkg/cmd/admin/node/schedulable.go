@@ -1,7 +1,7 @@
 package node
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
@@ -18,40 +18,26 @@ func (s *SchedulableOptions) Run() error {
 	}
 
 	errList := []error{}
-	ignoreHeaders := false
+	var printer kubectl.ResourcePrinter
 	for _, node := range nodes {
-		err := s.RunSchedulable(node, &ignoreHeaders)
-		if err != nil {
-			// Don't bail out if one node fails
-			errList = append(errList, err)
+		if node.Spec.Unschedulable == !s.Schedulable {
+			node.Spec.Unschedulable = !s.Schedulable
+			node, err = s.Options.Kclient.Nodes().Update(node)
+			if err != nil {
+				errList = append(errList, err)
+				continue
+			}
 		}
+
+		if printer == nil {
+			p, err := s.Options.GetPrintersByObject(node)
+			if err != nil {
+				return err
+			}
+			printer = p
+		}
+
+		printer.PrintObj(node, s.Options.Writer)
 	}
 	return kerrors.NewAggregate(errList)
-}
-
-func (s *SchedulableOptions) RunSchedulable(node *kapi.Node, ignoreHeaders *bool) error {
-	var updatedNode *kapi.Node
-	var err error
-
-	if node.Spec.Unschedulable != !s.Schedulable {
-		node.Spec.Unschedulable = !s.Schedulable
-		updatedNode, err = s.Options.Kclient.Nodes().Update(node)
-		if err != nil {
-			return err
-		}
-	} else {
-		updatedNode = node
-	}
-
-	printerWithHeaders, printerNoHeaders, err := s.Options.GetPrintersByObject(updatedNode)
-	if err != nil {
-		return err
-	}
-	if *ignoreHeaders {
-		printerNoHeaders.PrintObj(updatedNode, s.Options.Writer)
-	} else {
-		printerWithHeaders.PrintObj(updatedNode, s.Options.Writer)
-		*ignoreHeaders = true
-	}
-	return nil
 }

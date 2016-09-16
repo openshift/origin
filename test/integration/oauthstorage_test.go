@@ -11,6 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/oauth/api"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -20,7 +21,6 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	"github.com/openshift/origin/pkg/util/restoptions"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -60,7 +60,7 @@ func TestOAuthStorage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	optsGetter := restoptions.NewConfigGetter(*masterOptions)
+	optsGetter := originrest.StorageOptions(*masterOptions)
 
 	clientStorage, err := clientetcd.NewREST(optsGetter)
 	if err != nil {

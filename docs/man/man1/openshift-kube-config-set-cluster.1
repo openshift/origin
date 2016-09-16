@@ -41,6 +41,10 @@ Specifying a name that already exists will merge new fields on top of existing v
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -50,7 +54,7 @@ Specifying a name that already exists will merge new fields on top of existing v
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -58,11 +62,11 @@ Specifying a name that already exists will merge new fields on top of existing v
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -190,7 +194,7 @@ Specifying a name that already exists will merge new fields on top of existing v
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-stderrthreshold\fP=2
@@ -226,7 +230,7 @@ Specifying a name that already exists will merge new fields on top of existing v
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -246,6 +250,7 @@ Specifying a name that already exists will merge new fields on top of existing v
 .RS
 
 .nf
+
 # Set only the server field on the e2e cluster entry without touching other values.
 kubectl config set\-cluster e2e \-\-server=https://1.2.3.4
 

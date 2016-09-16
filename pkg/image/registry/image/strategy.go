@@ -32,7 +32,7 @@ func (imageStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 // It extracts the latest information from the manifest (if available) and sets that onto the object.
-func (s imageStrategy) PrepareForCreate(obj runtime.Object) {
+func (s imageStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	newImage := obj.(*api.Image)
 	// ignore errors, change in place
 	if err := api.ImageWithMetadata(newImage); err != nil {
@@ -66,7 +66,7 @@ func (imageStrategy) Canonicalize(obj runtime.Object) {
 // It extracts the latest info from the manifest and sets that on the object. It allows a user
 // to update the manifest so that it matches the digest (in case an older server stored a manifest
 // that was malformed, it can always be corrected).
-func (s imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s imageStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newImage := obj.(*api.Image)
 	oldImage := old.(*api.Image)
 
@@ -132,14 +132,22 @@ func (imageStrategy) clearSignatureDetails(image *api.Image) {
 	}
 }
 
-// MatchImage returns a generic matcher for a given label and field selector.
-func MatchImage(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		image, ok := obj.(*api.Image)
-		if !ok {
-			return false, fmt.Errorf("not an image")
-		}
-		fields := api.ImageToSelectableFields(image)
-		return label.Matches(labels.Set(image.Labels)) && field.Matches(fields), nil
-	})
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.Image)
+			if !ok {
+				return nil, nil, fmt.Errorf("not an image")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.Image) fields.Set {
+	return generic.ObjectMetaFieldsSet(&obj.ObjectMeta, false)
 }

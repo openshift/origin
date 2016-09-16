@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -155,7 +155,7 @@ func testService(f *framework.Framework, sem *chaosmonkey.Semaphore, testDuringD
 	tcpService := jig.CreateTCPServiceOrFail(f.Namespace.Name, func(s *api.Service) {
 		s.Spec.Type = api.ServiceTypeLoadBalancer
 	})
-	tcpService = jig.WaitForLoadBalancerOrFail(f.Namespace.Name, tcpService.Name)
+	tcpService = jig.WaitForLoadBalancerOrFail(f.Namespace.Name, tcpService.Name, loadBalancerCreateTimeoutDefault)
 	jig.SanityCheckService(tcpService, api.ServiceTypeLoadBalancer)
 
 	// Get info to hit it with

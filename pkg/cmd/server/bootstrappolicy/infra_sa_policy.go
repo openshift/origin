@@ -8,6 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -34,6 +36,9 @@ const (
 
 	InfraDaemonSetControllerServiceAccountName = "daemonset-controller"
 	DaemonSetControllerRoleName                = "system:daemonset-controller"
+
+	InfraDisruptionControllerServiceAccountName = "disruption-controller"
+	DisruptionControllerRoleName                = "system:disruption-controller"
 
 	InfraHPAControllerServiceAccountName = "hpa-controller"
 	HPAControllerRoleName                = "system:hpa-controller"
@@ -328,13 +333,13 @@ func init() {
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("jobs"),
+					Resources: sets.NewString("jobs", "scheduledjobs"),
 				},
 				// JobController.syncJob() -> updateJobStatus()
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
 					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("jobs/status"),
+					Resources: sets.NewString("jobs/status", "scheduledjobs/status"),
 				},
 				// JobController.podController.ListWatch
 				{
@@ -568,6 +573,12 @@ func init() {
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
+				// PersistentVolumeBinder.findProvisionablePlugin()
+				{
+					APIGroups: []string{storage.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("storageclasses"),
+				},
 			},
 		},
 	)
@@ -629,7 +640,7 @@ func init() {
 				// DaemonSetsController.dsStore.ListWatch
 				{
 					APIGroups: []string{extensions.GroupName},
-					Verbs:     sets.NewString("list", "watch"),
+					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("daemonsets"),
 				},
 				// DaemonSetsController.podStore.ListWatch
@@ -662,6 +673,50 @@ func init() {
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraDisruptionControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: DisruptionControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// DisruptionBudgetController.dStore.ListWatch
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("deployments"),
+				},
+				// DisruptionBudgetController.rsStore.ListWatch
+				{
+					APIGroups: []string{extensions.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("replicasets"),
+				},
+				// DisruptionBudgetController.rcStore.ListWatch
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("replicationcontrollers"),
+				},
+				// DisruptionBudgetController.dStore.ListWatch
+				{
+					APIGroups: []string{policy.GroupName},
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("poddisruptionbudgets"),
+				},
+				// DisruptionBudgetController.dbControl
+				{
+					APIGroups: []string{policy.GroupName},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("poddisruptionbudgets/status"),
 				},
 			},
 		},

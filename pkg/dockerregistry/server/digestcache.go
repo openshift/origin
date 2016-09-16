@@ -8,7 +8,7 @@ import (
 
 	"github.com/docker/distribution/digest"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/clock"
 )
 
 // digestToRepositoryCache maps image digests to recently seen remote repositories that
@@ -16,7 +16,7 @@ import (
 // push old repositories out.
 type digestToRepositoryCache struct {
 	*lru.Cache
-	clock util.Clock
+	clock clock.Clock
 }
 
 // newDigestToRepositoryCache creates a new LRU cache of image digests to possible remote
@@ -29,7 +29,7 @@ func newDigestToRepositoryCache(size int) (digestToRepositoryCache, error) {
 	}
 	return digestToRepositoryCache{
 		Cache: c,
-		clock: &util.RealClock{},
+		clock: &clock.RealClock{},
 	}, nil
 }
 
@@ -87,7 +87,7 @@ func (c digestToRepositoryCache) RepositoryHasBlob(repo string, dgst digest.Dige
 // repositoryBucket contains a list of repositories with eviction timeouts.
 type repositoryBucket struct {
 	mu    sync.Mutex
-	clock util.Clock
+	clock clock.Clock
 	list  []bucketEntry
 }
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jonboulle/clockwork"
+	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -50,17 +51,20 @@ const (
 	triesBeforeBackOff = 1
 )
 
-const (
-	apply_long = `Apply a configuration to a resource by filename or stdin.
-The resource will be created if it doesn't exist yet. 
-To use 'apply', always create the resource initially with either 'apply' or 'create --save-config'.
+var (
+	apply_long = dedent.Dedent(`
+		Apply a configuration to a resource by filename or stdin.
+		This resource will be created if it doesn't exist yet.
+		To use 'apply', always create the resource initially with either 'apply' or 'create --save-config'.
 
-JSON and YAML formats are accepted.`
-	apply_example = `# Apply the configuration in pod.json to a pod.
-kubectl apply -f ./pod.json
+		JSON and YAML formats are accepted.`)
 
-# Apply the JSON passed into stdin to a pod.
-cat pod.json | kubectl apply -f -`
+	apply_example = dedent.Dedent(`
+		# Apply the configuration in pod.json to a pod.
+		kubectl apply -f ./pod.json
+
+		# Apply the JSON passed into stdin to a pod.
+		cat pod.json | kubectl apply -f -`)
 )
 
 func NewCmdApply(f *cmdutil.Factory, out io.Writer) *cobra.Command {
@@ -81,6 +85,7 @@ func NewCmdApply(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	usage := "Filename, directory, or URL to file that contains the configuration to apply"
 	kubectl.AddJsonFilenameFlag(cmd, &options.Filenames, usage)
 	cmd.MarkFlagRequired("filename")
+	cmd.Flags().Bool("overwrite", true, "Automatically resolve conflicts between the modified and live configuration by using values from the modified configuration")
 	cmdutil.AddValidateFlags(cmd)
 	cmdutil.AddRecursiveFlag(cmd, &options.Recursive)
 	cmdutil.AddOutputFlagsForMutation(cmd)
@@ -166,8 +171,9 @@ func RunApply(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, options *Ap
 			return nil
 		}
 
+		overwrite := cmdutil.GetFlagBool(cmd, "overwrite")
 		helper := resource.NewHelper(info.Client, info.Mapping)
-		patcher := NewPatcher(encoder, decoder, info.Mapping, helper)
+		patcher := NewPatcher(encoder, decoder, info.Mapping, helper, overwrite)
 
 		patchBytes, err := patcher.patch(info.Object, modified, info.Source, info.Namespace, info.Name)
 		if err != nil {
@@ -208,16 +214,18 @@ type patcher struct {
 	mapping *meta.RESTMapping
 	helper  *resource.Helper
 
-	backOff clockwork.Clock
+	overwrite bool
+	backOff   clockwork.Clock
 }
 
-func NewPatcher(encoder runtime.Encoder, decoder runtime.Decoder, mapping *meta.RESTMapping, helper *resource.Helper) *patcher {
+func NewPatcher(encoder runtime.Encoder, decoder runtime.Decoder, mapping *meta.RESTMapping, helper *resource.Helper, overwrite bool) *patcher {
 	return &patcher{
-		encoder: encoder,
-		decoder: decoder,
-		mapping: mapping,
-		helper:  helper,
-		backOff: clockwork.NewRealClock(),
+		encoder:   encoder,
+		decoder:   decoder,
+		mapping:   mapping,
+		helper:    helper,
+		overwrite: overwrite,
+		backOff:   clockwork.NewRealClock(),
 	}
 }
 
@@ -245,7 +253,7 @@ func (p *patcher) patchSimple(obj runtime.Object, modified []byte, source, names
 	}
 
 	// Compute a three way strategic merge patch to send to server.
-	patch, err := strategicpatch.CreateThreeWayMergePatch(original, modified, current, versionedObject, true)
+	patch, err := strategicpatch.CreateThreeWayMergePatch(original, modified, current, versionedObject, p.overwrite)
 	if err != nil {
 		format := "creating patch with:\noriginal:\n%s\nmodified:\n%s\ncurrent:\n%s\nfor:"
 		return nil, cmdutil.AddSourceToErr(fmt.Sprintf(format, original, modified, current), source, err)

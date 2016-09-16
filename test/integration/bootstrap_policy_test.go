@@ -13,8 +13,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
-	"github.com/openshift/origin/pkg/util/restoptions"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -110,7 +110,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("timeout: %v", err)
 	}
 
-	optsGetter := restoptions.NewConfigGetter(*masterConfig)
+	optsGetter := originrest.StorageOptions(*masterConfig)
 
 	if err := admin.OverwriteBootstrapPolicy(optsGetter, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)

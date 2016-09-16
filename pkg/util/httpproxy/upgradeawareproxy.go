@@ -15,7 +15,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/client/restclient"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/third_party/golang/netutil"
+	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	"github.com/golang/glog"
 )

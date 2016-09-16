@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -188,7 +188,7 @@ var _ = framework.KubeDescribe("V1Job", func() {
 		Expect(errors.IsNotFound(err)).To(BeTrue())
 	})
 
-	It("should fail a job", func() {
+	It("should fail a job [Slow]", func() {
 		By("Creating a job")
 		job := newTestV1Job("notTerminate", "foo", api.RestartPolicyNever, parallelism, completions)
 		activeDeadlineSeconds := int64(10)

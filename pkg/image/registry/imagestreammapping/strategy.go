@@ -33,7 +33,7 @@ func (s Strategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s Strategy) PrepareForCreate(obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	ism := obj.(*api.ImageStreamMapping)
 	if len(ism.Image.DockerImageReference) == 0 {
 		internalRegistry, ok := s.defaultRegistry.DefaultRegistry()

@@ -14,10 +14,14 @@ openshift kube config unset \- Unsets an individual value in a kubeconfig file
 .SH DESCRIPTION
 .PP
 Unsets an individual value in a kubeconfig file
-PROPERTY\_NAME is a dot delimited name where each token represents either a attribute name or a map key.  Map keys may not contain dots.
+PROPERTY\_NAME is a dot delimited name where each token represents either an attribute name or a map key.  Map keys may not contain dots.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
 .PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
@@ -32,7 +36,7 @@ PROPERTY\_NAME is a dot delimited name where each token represents either a attr
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -40,15 +44,15 @@ PROPERTY\_NAME is a dot delimited name where each token represents either a attr
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -112,7 +116,7 @@ PROPERTY\_NAME is a dot delimited name where each token represents either a attr
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -180,7 +184,7 @@ PROPERTY\_NAME is a dot delimited name where each token represents either a attr
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -220,7 +224,7 @@ PROPERTY\_NAME is a dot delimited name where each token represents either a attr
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""

@@ -53,7 +53,7 @@ func (plugin *OsdnNode) getExecutable() string {
 	return "openshift-sdn-ovs"
 }
 
-func (plugin *OsdnNode) Init(host knetwork.Host, _ componentconfig.HairpinMode, _ string) error {
+func (plugin *OsdnNode) Init(host knetwork.Host, _ componentconfig.HairpinMode, _ string, _ int) error {
 	return nil
 }
 

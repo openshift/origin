@@ -8,6 +8,7 @@ package github.com.openshift.origin.pkg.security.api.v1;
 import "github.com/openshift/origin/pkg/quota/api/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
+import "k8s.io/kubernetes/pkg/runtime/generated.proto";
 import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".

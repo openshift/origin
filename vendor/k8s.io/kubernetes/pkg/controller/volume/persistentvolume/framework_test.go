@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -43,6 +44,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/diff"
+	"k8s.io/kubernetes/pkg/util/wait"
 	vol "k8s.io/kubernetes/pkg/volume"
 )
 
@@ -297,7 +299,7 @@ func (r *volumeReactor) injectReactError(action core.Action) error {
 
 // checkVolumes compares all expectedVolumes with set of volumes at the end of
 // the test and reports differences.
-func (r *volumeReactor) checkVolumes(t *testing.T, expectedVolumes []*api.PersistentVolume) error {
+func (r *volumeReactor) checkVolumes(expectedVolumes []*api.PersistentVolume) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -329,7 +331,7 @@ func (r *volumeReactor) checkVolumes(t *testing.T, expectedVolumes []*api.Persis
 
 // checkClaims compares all expectedClaims with set of claims at the end of the
 // test and reports differences.
-func (r *volumeReactor) checkClaims(t *testing.T, expectedClaims []*api.PersistentVolumeClaim) error {
+func (r *volumeReactor) checkClaims(expectedClaims []*api.PersistentVolumeClaim) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -363,6 +365,7 @@ func checkEvents(t *testing.T, expectedEvents []string, ctrl *PersistentVolumeCo
 	// Read recorded events - wait up to 1 minute to get all the expected ones
 	// (just in case some goroutines are slower with writing)
 	timer := time.NewTimer(time.Minute)
+	defer timer.Stop()
 
 	fakeRecorder := ctrl.eventRecorder.(*record.FakeRecorder)
 	gotEvents := []string{}
@@ -454,9 +457,9 @@ func (r *volumeReactor) getChangeCount() int {
 	return r.changedSinceLastSync
 }
 
-// waitTest waits until all tests, controllers and other goroutines do their
+// waitForIdle waits until all tests, controllers and other goroutines do their
 // job and no new actions are registered for 10 milliseconds.
-func (r *volumeReactor) waitTest() {
+func (r *volumeReactor) waitForIdle() {
 	r.ctrl.runningOperations.Wait()
 	// Check every 10ms if the controller does something and stop if it's
 	// idle.
@@ -470,6 +473,32 @@ func (r *volumeReactor) waitTest() {
 		}
 		oldChanges = changes
 	}
+}
+
+// waitTest waits until all tests, controllers and other goroutines do their
+// job and list of current volumes/claims is equal to list of expected
+// volumes/claims (with ~10 second timeout).
+func (r *volumeReactor) waitTest(test controllerTest) error {
+	// start with 10 ms, multiply by 2 each step, 10 steps = 10.23 seconds
+	backoff := wait.Backoff{
+		Duration: 10 * time.Millisecond,
+		Jitter:   0,
+		Factor:   2,
+		Steps:    10,
+	}
+	err := wait.ExponentialBackoff(backoff, func() (done bool, err error) {
+		// Finish all operations that are in progress
+		r.ctrl.runningOperations.Wait()
+
+		// Return 'true' if the reactor reached the expected state
+		err1 := r.checkClaims(test.expectedClaims)
+		err2 := r.checkVolumes(test.expectedVolumes)
+		if err1 == nil && err2 == nil {
+			return true, nil
+		}
+		return false, nil
+	})
+	return err
 }
 
 // deleteVolumeEvent simulates that a volume has been deleted in etcd and
@@ -555,22 +584,26 @@ func newVolumeReactor(client *fake.Clientset, ctrl *PersistentVolumeController, 
 	return reactor
 }
 
-func newTestController(kubeClient clientset.Interface, volumeSource, claimSource cache.ListerWatcher, enableDynamicProvisioning bool) *PersistentVolumeController {
+func newTestController(kubeClient clientset.Interface, volumeSource, claimSource, classSource cache.ListerWatcher, enableDynamicProvisioning bool) *PersistentVolumeController {
 	if volumeSource == nil {
 		volumeSource = framework.NewFakePVControllerSource()
 	}
 	if claimSource == nil {
 		claimSource = framework.NewFakePVCControllerSource()
 	}
+	if classSource == nil {
+		classSource = framework.NewFakeControllerSource()
+	}
 	ctrl := NewPersistentVolumeController(
 		kubeClient,
 		5*time.Second,        // sync period
-		nil,                  // provisioner
+		nil,                  // alpha provisioner
 		[]vol.VolumePlugin{}, // recyclers
 		nil,                  // cloud
 		"",
 		volumeSource,
 		claimSource,
+		classSource,
 		record.NewFakeRecorder(1000), // event recorder
 		enableDynamicProvisioning,
 	)
@@ -578,27 +611,6 @@ func newTestController(kubeClient clientset.Interface, volumeSource, claimSource
 	// Speed up the test
 	ctrl.createProvisionedPVInterval = 5 * time.Millisecond
 	return ctrl
-}
-
-func addRecyclePlugin(ctrl *PersistentVolumeController, expectedRecycleCalls []error) {
-	plugin := &mockVolumePlugin{
-		recycleCalls: expectedRecycleCalls,
-	}
-	ctrl.recyclePluginMgr.InitPlugins([]vol.VolumePlugin{plugin}, ctrl)
-}
-
-func addDeletePlugin(ctrl *PersistentVolumeController, expectedDeleteCalls []error) {
-	plugin := &mockVolumePlugin{
-		deleteCalls: expectedDeleteCalls,
-	}
-	ctrl.recyclePluginMgr.InitPlugins([]vol.VolumePlugin{plugin}, ctrl)
-}
-
-func addProvisionPlugin(ctrl *PersistentVolumeController, expectedDeleteCalls []error) {
-	plugin := &mockVolumePlugin{
-		provisionCalls: expectedDeleteCalls,
-	}
-	ctrl.provisioner = plugin
 }
 
 // newVolume returns a new volume with given attributes
@@ -636,10 +648,13 @@ func newVolume(name, capacity, boundToClaimUID, boundToClaimName string, phase a
 	if len(annotations) > 0 {
 		volume.Annotations = make(map[string]string)
 		for _, a := range annotations {
-			if a != annDynamicallyProvisioned {
-				volume.Annotations[a] = "yes"
-			} else {
+			switch a {
+			case annDynamicallyProvisioned:
 				volume.Annotations[a] = mockPluginName
+			case annClass:
+				volume.Annotations[a] = "gold"
+			default:
+				volume.Annotations[a] = "yes"
 			}
 		}
 	}
@@ -685,6 +700,17 @@ func withMessage(message string, volumes []*api.PersistentVolume) []*api.Persist
 	return volumes
 }
 
+// volumeWithClass saves given class into annClass annotation.
+// Meant to be used to compose claims specified inline in a test.
+func volumeWithClass(className string, volumes []*api.PersistentVolume) []*api.PersistentVolume {
+	if volumes[0].Annotations == nil {
+		volumes[0].Annotations = map[string]string{annClass: className}
+	} else {
+		volumes[0].Annotations[annClass] = className
+	}
+	return volumes
+}
+
 // newVolumeArray returns array with a single volume that would be returned by
 // newVolume() with the same parameters.
 func newVolumeArray(name, capacity, boundToClaimUID, boundToClaimName string, phase api.PersistentVolumePhase, reclaimPolicy api.PersistentVolumeReclaimPolicy, annotations ...string) []*api.PersistentVolume {
@@ -721,7 +747,12 @@ func newClaim(name, claimUID, capacity, boundToVolume string, phase api.Persiste
 	if len(annotations) > 0 {
 		claim.Annotations = make(map[string]string)
 		for _, a := range annotations {
-			claim.Annotations[a] = "yes"
+			switch a {
+			case annClass:
+				claim.Annotations[a] = "gold"
+			default:
+				claim.Annotations[a] = "yes"
+			}
 		}
 	}
 
@@ -742,6 +773,17 @@ func newClaimArray(name, claimUID, capacity, boundToVolume string, phase api.Per
 	return []*api.PersistentVolumeClaim{
 		newClaim(name, claimUID, capacity, boundToVolume, phase, annotations...),
 	}
+}
+
+// claimWithClass saves given class into annClass annotation.
+// Meant to be used to compose claims specified inline in a test.
+func claimWithClass(className string, claims []*api.PersistentVolumeClaim) []*api.PersistentVolumeClaim {
+	if claims[0].Annotations == nil {
+		claims[0].Annotations = map[string]string{annClass: className}
+	} else {
+		claims[0].Annotations[annClass] = className
+	}
+	return claims
 }
 
 func testSyncClaim(ctrl *PersistentVolumeController, reactor *volumeReactor, test controllerTest) error {
@@ -765,33 +807,51 @@ type operationType string
 
 const operationDelete = "Delete"
 const operationRecycle = "Recycle"
-const operationProvision = "Provision"
 
-// wrapTestWithControllerConfig returns a testCall that:
-// - configures controller with recycler, deleter or provisioner which will
-//   return provided errors when a volume is deleted, recycled or provisioned
+// wrapTestWithPluginCalls returns a testCall that:
+// - configures controller with a volume plugin that implements recycler,
+//   deleter and provisioner. The plugin retunrs provided errors when a volume
+//   is deleted, recycled or provisioned.
 // - calls given testCall
-func wrapTestWithControllerConfig(operation operationType, expectedOperationCalls []error, toWrap testCall) testCall {
-	expected := expectedOperationCalls
-
+func wrapTestWithPluginCalls(expectedRecycleCalls, expectedDeleteCalls []error, expectedProvisionCalls []provisionCall, toWrap testCall) testCall {
 	return func(ctrl *PersistentVolumeController, reactor *volumeReactor, test controllerTest) error {
-		switch operation {
-		case operationDelete:
-			addDeletePlugin(ctrl, expected)
-		case operationRecycle:
-			addRecyclePlugin(ctrl, expected)
-		case operationProvision:
-			addProvisionPlugin(ctrl, expected)
+		plugin := &mockVolumePlugin{
+			recycleCalls:   expectedRecycleCalls,
+			deleteCalls:    expectedDeleteCalls,
+			provisionCalls: expectedProvisionCalls,
 		}
-
+		ctrl.volumePluginMgr.InitPlugins([]vol.VolumePlugin{plugin}, ctrl)
+		if expectedProvisionCalls != nil {
+			ctrl.alphaProvisioner = plugin
+		}
 		return toWrap(ctrl, reactor, test)
 	}
+}
+
+// wrapTestWithReclaimCalls returns a testCall that:
+// - configures controller with recycler or deleter which will return provided
+//   errors when a volume is deleted or recycled
+// - calls given testCall
+func wrapTestWithReclaimCalls(operation operationType, expectedOperationCalls []error, toWrap testCall) testCall {
+	if operation == operationDelete {
+		return wrapTestWithPluginCalls(nil, expectedOperationCalls, nil, toWrap)
+	} else {
+		return wrapTestWithPluginCalls(expectedOperationCalls, nil, nil, toWrap)
+	}
+}
+
+// wrapTestWithProvisionCalls returns a testCall that:
+// - configures controller with a provisioner which will return provided errors
+//   when a claim is provisioned
+// - calls given testCall
+func wrapTestWithProvisionCalls(expectedProvisionCalls []provisionCall, toWrap testCall) testCall {
+	return wrapTestWithPluginCalls(nil, nil, expectedProvisionCalls, toWrap)
 }
 
 // wrapTestWithInjectedOperation returns a testCall that:
 // - starts the controller and lets it run original testCall until
 //   scheduleOperation() call. It blocks the controller there and calls the
-//   injected function to simulate that something is happenning when the
+//   injected function to simulate that something is happening when the
 //   controller waits for the operation lock. Controller is then resumed and we
 //   check how it behaves.
 func wrapTestWithInjectedOperation(toWrap testCall, injectBeforeOperation func(ctrl *PersistentVolumeController, reactor *volumeReactor)) testCall {
@@ -826,11 +886,11 @@ func wrapTestWithInjectedOperation(toWrap testCall, injectBeforeOperation func(c
 
 func evaluateTestResults(ctrl *PersistentVolumeController, reactor *volumeReactor, test controllerTest, t *testing.T) {
 	// Evaluate results
-	if err := reactor.checkClaims(t, test.expectedClaims); err != nil {
+	if err := reactor.checkClaims(test.expectedClaims); err != nil {
 		t.Errorf("Test %q: %v", test.name, err)
 
 	}
-	if err := reactor.checkVolumes(t, test.expectedVolumes); err != nil {
+	if err := reactor.checkVolumes(test.expectedVolumes); err != nil {
 		t.Errorf("Test %q: %v", test.name, err)
 	}
 
@@ -845,13 +905,13 @@ func evaluateTestResults(ctrl *PersistentVolumeController, reactor *volumeReacto
 // 2. Call the tested function (syncClaim/syncVolume) via
 //    controllerTest.testCall *once*.
 // 3. Compare resulting volumes and claims with expected volumes and claims.
-func runSyncTests(t *testing.T, tests []controllerTest) {
+func runSyncTests(t *testing.T, tests []controllerTest, storageClasses []*storage.StorageClass) {
 	for _, test := range tests {
 		glog.V(4).Infof("starting test %q", test.name)
 
 		// Initialize the controller
 		client := &fake.Clientset{}
-		ctrl := newTestController(client, nil, nil, true)
+		ctrl := newTestController(client, nil, nil, nil, true)
 		reactor := newVolumeReactor(client, ctrl, nil, nil, test.errors)
 		for _, claim := range test.initialClaims {
 			ctrl.claims.Add(claim)
@@ -862,14 +922,26 @@ func runSyncTests(t *testing.T, tests []controllerTest) {
 			reactor.volumes[volume.Name] = volume
 		}
 
+		// Convert classes to []interface{} and forcefully inject them into
+		// controller.
+		storageClassPtrs := make([]interface{}, len(storageClasses))
+		for i, s := range storageClasses {
+			storageClassPtrs[i] = s
+		}
+		// 1 is the resource version
+		ctrl.classes.Replace(storageClassPtrs, "1")
+
 		// Run the tested functions
 		err := test.test(ctrl, reactor, test)
 		if err != nil {
 			t.Errorf("Test %q failed: %v", test.name, err)
 		}
 
-		// Wait for all goroutines to finish
-		reactor.waitTest()
+		// Wait for the target state
+		err = reactor.waitTest(test)
+		if err != nil {
+			t.Errorf("Test %q failed: %v", test.name, err)
+		}
 
 		evaluateTestResults(ctrl, reactor, test, t)
 	}
@@ -889,13 +961,22 @@ func runSyncTests(t *testing.T, tests []controllerTest) {
 // 5. When 3. does not do any changes, finish the tests and compare final set
 //    of volumes/claims with expected claims/volumes and report differences.
 // Some limit of calls in enforced to prevent endless loops.
-func runMultisyncTests(t *testing.T, tests []controllerTest) {
+func runMultisyncTests(t *testing.T, tests []controllerTest, storageClasses []*storage.StorageClass, defaultStorageClass string) {
 	for _, test := range tests {
 		glog.V(4).Infof("starting multisync test %q", test.name)
 
 		// Initialize the controller
 		client := &fake.Clientset{}
-		ctrl := newTestController(client, nil, nil, true)
+		ctrl := newTestController(client, nil, nil, nil, true)
+
+		// Convert classes to []interface{}  and forcefully inject them into
+		// controller.
+		storageClassPtrs := make([]interface{}, len(storageClasses))
+		for i, s := range storageClasses {
+			storageClassPtrs[i] = s
+		}
+		ctrl.classes.Replace(storageClassPtrs, "1")
+
 		reactor := newVolumeReactor(client, ctrl, nil, nil, test.errors)
 		for _, claim := range test.initialClaims {
 			ctrl.claims.Add(claim)
@@ -926,7 +1007,7 @@ func runMultisyncTests(t *testing.T, tests []controllerTest) {
 			}
 
 			// Wait for all goroutines to finish
-			reactor.waitTest()
+			reactor.waitForIdle()
 
 			obj := reactor.popChange()
 			if obj == nil {
@@ -991,13 +1072,18 @@ func runMultisyncTests(t *testing.T, tests []controllerTest) {
 // Dummy volume plugin for provisioning, deletion and recycling. It contains
 // lists of expected return values to simulate errors.
 type mockVolumePlugin struct {
-	provisionCalls       []error
+	provisionCalls       []provisionCall
 	provisionCallCounter int
 	deleteCalls          []error
 	deleteCallCounter    int
 	recycleCalls         []error
 	recycleCallCounter   int
 	provisionOptions     vol.VolumeOptions
+}
+
+type provisionCall struct {
+	expectedParameters map[string]string
+	ret                error
 }
 
 var _ vol.VolumePlugin = &mockVolumePlugin{}
@@ -1023,6 +1109,10 @@ func (plugin *mockVolumePlugin) CanSupport(spec *vol.Spec) bool {
 
 func (plugin *mockVolumePlugin) RequiresRemount() bool {
 	return false
+}
+
+func (plugin *mockVolumePlugin) ConstructVolumeSpec(volumeName, mountPath string) (*vol.Spec, error) {
+	return nil, nil
 }
 
 func (plugin *mockVolumePlugin) NewMounter(spec *vol.Spec, podRef *api.Pod, opts vol.VolumeOptions) (vol.Mounter, error) {
@@ -1052,8 +1142,12 @@ func (plugin *mockVolumePlugin) Provision() (*api.PersistentVolume, error) {
 	}
 
 	var pv *api.PersistentVolume
-	err := plugin.provisionCalls[plugin.provisionCallCounter]
-	if err == nil {
+	call := plugin.provisionCalls[plugin.provisionCallCounter]
+	if !reflect.DeepEqual(call.expectedParameters, plugin.provisionOptions.Parameters) {
+		glog.Errorf("invalid provisioner call, expected options: %+v, got: %+v", call.expectedParameters, plugin.provisionOptions.Parameters)
+		return nil, fmt.Errorf("Mock plugin error: invalid provisioner call")
+	}
+	if call.ret == nil {
 		// Create a fake PV with known GCE volume (to match expected volume)
 		pv = &api.PersistentVolume{
 			ObjectMeta: api.ObjectMeta{
@@ -1073,8 +1167,8 @@ func (plugin *mockVolumePlugin) Provision() (*api.PersistentVolume, error) {
 	}
 
 	plugin.provisionCallCounter++
-	glog.V(4).Infof("mock plugin Provision call nr. %d, returning %v: %v", plugin.provisionCallCounter, pv, err)
-	return pv, err
+	glog.V(4).Infof("mock plugin Provision call nr. %d, returning %v: %v", plugin.provisionCallCounter, pv, call.ret)
+	return pv, call.ret
 }
 
 // Deleter interfaces

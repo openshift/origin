@@ -79,6 +79,8 @@ var kubeAdmissionPlugins = sets.NewString(
 	lifecycle.PluginName,
 	"LimitRanger",
 	"ServiceAccount",
+	"DefaultStorageClass",
+	"ImagePolicyWebhook",
 	"AlwaysPullImages",
 	"LimitPodHardAntiAffinityTopology",
 	"SCCExecRestrictions",

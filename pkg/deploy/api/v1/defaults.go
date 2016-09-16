@@ -114,15 +114,12 @@ func mkintp(i int64) *int64 {
 	return &i
 }
 
-func addDefaultingFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
+func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddDefaultingFuncs(
 		SetDefaults_DeploymentConfigSpec,
 		SetDefaults_DeploymentStrategy,
 		SetDefaults_RecreateDeploymentStrategyParams,
 		SetDefaults_RollingDeploymentStrategyParams,
 		SetDefaults_DeploymentConfig,
 	)
-	if err != nil {
-		panic(err)
-	}
 }

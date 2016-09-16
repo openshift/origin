@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ var _ = framework.KubeDescribe("PetSet [Slow] [Feature:PetSet]", func() {
 
 		BeforeEach(func() {
 			By("creating service " + headlessSvcName + " in namespace " + ns)
-			headlessService := createServiceSpec(headlessSvcName, true, labels)
+			headlessService := createServiceSpec(headlessSvcName, "", true, labels)
 			_, err := c.Services(ns).Create(headlessService)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -737,7 +737,7 @@ func newPetSet(name, ns, governingSvcName string, replicas int, petMounts []api.
 					Containers: []api.Container{
 						{
 							Name:         "nginx",
-							Image:        "gcr.io/google_containers/nginx-slim:0.5",
+							Image:        "gcr.io/google_containers/nginx-slim:0.7",
 							VolumeMounts: mounts,
 						},
 					},

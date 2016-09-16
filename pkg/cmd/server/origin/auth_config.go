@@ -7,14 +7,12 @@ import (
 
 	"github.com/pborman/uuid"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -50,25 +48,6 @@ type AuthConfig struct {
 func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 	options := masterConfig.Options
 	kubeClient := masterConfig.KubeClient()
-
-	groupVersion := unversioned.GroupVersion{Group: "", Version: options.EtcdStorageConfig.OpenShiftStorageVersion}
-
-	// TODO: need to build this per-resource to make sure we're hitting the right etcds
-	// Build a list of storage.Interface objects, each of which only speaks to one of the etcd backends
-	etcdBackends := []storage.Interface{}
-	for _, url := range options.EtcdClientInfo.URLs {
-		backendClientInfo := options.EtcdClientInfo
-		backendClientInfo.URLs = []string{url}
-		backendClient, err := etcd.MakeNewEtcdClient(backendClientInfo)
-		if err != nil {
-			return nil, err
-		}
-		backendEtcdHelper, err := NewEtcdStorage(backendClient, groupVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
-		if err != nil {
-			return nil, fmt.Errorf("Error setting up server storage: %v", err)
-		}
-		etcdBackends = append(etcdBackends, backendEtcdHelper)
-	}
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper
@@ -109,7 +88,6 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 
 		AssetPublicAddresses: assetPublicURLs,
 		RESTOptionsGetter:    masterConfig.RESTOptionsGetter,
-		EtcdBackends:         etcdBackends,
 
 		IdentityRegistry: identityRegistry,
 		UserRegistry:     userRegistry,

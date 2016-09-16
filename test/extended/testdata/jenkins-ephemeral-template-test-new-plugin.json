@@ -31,7 +31,6 @@
         "selector": {
           "name": "${JENKINS_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       }

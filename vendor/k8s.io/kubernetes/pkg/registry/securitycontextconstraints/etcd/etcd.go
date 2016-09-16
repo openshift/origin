@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ import (
 	"path"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for security context constraints against etcd
@@ -41,7 +40,15 @@ func NewStorage(opts generic.RESTOptions) *REST {
 
 	newListFunc := func() runtime.Object { return &api.SecurityContextConstraintsList{} }
 
-	storageInterface := opts.Decorator(opts.Storage, cachesize.GetWatchCacheSizeByResource(cachesize.SecurityContextConstraints), &api.SecurityContextConstraints{}, Prefix, securitycontextconstraints.Strategy, newListFunc)
+	storageInterface, _ := opts.Decorator(
+		opts.StorageConfig,
+		cachesize.GetWatchCacheSizeByResource(cachesize.SecurityContextConstraints),
+		&api.SecurityContextConstraints{},
+		Prefix,
+		securitycontextconstraints.Strategy,
+		newListFunc,
+		storage.NoTriggerPublisher,
+	)
 
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.SecurityContextConstraints{} },
@@ -55,9 +62,7 @@ func NewStorage(opts generic.RESTOptions) *REST {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.SecurityContextConstraints).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return securitycontextconstraints.Matcher(label, field)
-		},
+		PredicateFunc:     securitycontextconstraints.Matcher,
 		QualifiedResource: api.Resource("securitycontextconstraints"),
 
 		CreateStrategy:      securitycontextconstraints.Strategy,

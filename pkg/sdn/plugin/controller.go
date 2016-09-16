@@ -322,6 +322,8 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	itx.IgnoreError()
 	_ = itx.EndTransaction()
 
+	sysctl := sysctl.New()
+
 	// Disable iptables for linux bridges (and in particular lbr0), ignoring errors.
 	// (This has to have been performed in advance for docker-in-docker deployments,
 	// since this will fail there).

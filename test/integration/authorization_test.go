@@ -1039,6 +1039,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 
 	// test checking self-permissions doesn't leak whether namespace exists or not
+	// We carry a patch to allow this
 	subjectAccessReviewTest{
 		description:    "harold told he cannot create pods in project nonexistent-project",
 		localInterface: haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
