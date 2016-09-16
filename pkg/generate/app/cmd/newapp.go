@@ -562,13 +562,13 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 func (c *AppConfig) validate() (cmdutil.Environment, cmdutil.Environment, error) {
 	var errs []error
 
-	env, duplicateEnv, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment)
+	env, duplicateEnv, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment, false)
 	for _, s := range duplicateEnv {
 		fmt.Fprintf(c.ErrOut, "warning: The environment variable %q was overwritten", s)
 	}
 	errs = append(errs, envErrs...)
 
-	params, duplicateParams, paramsErrs := cmdutil.ParseEnvironmentArguments(c.TemplateParameters)
+	params, duplicateParams, paramsErrs := cmdutil.ParseEnvironmentArguments(c.TemplateParameters, true)
 	for _, s := range duplicateParams {
 		fmt.Fprintf(c.ErrOut, "warning: The template parameter %q was overwritten", s)
 	}

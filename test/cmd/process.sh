@@ -33,7 +33,7 @@ os::cmd::expect_failure_and_text 'oc process template-name --parameters -t somev
 os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name --value=key=value --value=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value --value=key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --value=key=value --value=other=baz' 'provided more than once: key, other'
+os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --value=key=value --value=other=baz' 'provided more than once: key=value, other=foo'
 
 required_params="${OS_ROOT}/test/testdata/template_required_params.yaml"
 
@@ -49,11 +49,15 @@ os::cmd::expect_success "oc process -f '${required_params}' required_param=somev
 # we should have overwritten the template param
 os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.Name}' 'someval'
 # providing a value not in the template should fail
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=other_param=otherval" 'unknown parameter name "other_param"'
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=other_param=otherval" 'unexpected parameter name "other_param"'
 # failure on values fails the entire call
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=optional_param" 'invalid parameter assignment in'
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=optional_param" 'variables must be of the form key=value or key@file'
 # failure on labels fails the entire call
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --labels======" 'error parsing labels'
+# values can be read from files
+os::cmd::expect_success_and_text "oc process -f '${required_params}' required_param@${OS_ROOT}/test/testdata/template-value-file.txt -o yaml" 'name: fileval'
+# values can be read from files using --value
+os::cmd::expect_success_and_text "oc process -f '${required_params}' --value=required_param@${OS_ROOT}/test/testdata/template-value-file.txt -o yaml" 'name: fileval'
 
 echo "process: ok"
 os::test::junit::declare_suite_end

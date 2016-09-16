@@ -16,11 +16,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/template"
+	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -68,7 +68,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	}
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
-	cmd.Flags().StringSliceP("value", "v", nil, "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
+	cmd.Flags().StringSliceP("value", "v", nil, "Specify a key-value pair (eg. -v FOO=BAR) to set/override parameter value in the template. Use FOO@path/to/file to load the value from a file.")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
@@ -82,9 +82,17 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 
 // RunProject contains all the necessary functionality for the OpenShift cli process command
 func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	if kcmdutil.GetFlagBool(cmd, "parameters") {
+		for _, flag := range []string{"value", "labels", "output", "output-version", "raw", "template"} {
+			if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
+				return kcmdutil.UsageError(cmd, "The --parameters flag does not process the template, can't be used with --%v", flag)
+			}
+		}
+	}
+
 	templateName, valueArgs := "", []string{}
 	for _, s := range args {
-		isValue := strings.Contains(s, "=")
+		isValue := strings.Contains(s, "=") || strings.Contains(s, "@")
 		switch {
 		case isValue:
 			valueArgs = append(valueArgs, s)
@@ -95,45 +103,21 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	keys := sets.NewString()
-	duplicatedKeys := sets.NewString()
-
-	var flagValues []string
 	if cmd.Flag("value").Changed {
-		flagValues = kcmdutil.GetFlagStringSlice(cmd, "value")
+		valueArgs = append(valueArgs, kcmdutil.GetFlagStringSlice(cmd, "value")...)
 	}
 
-	for _, value := range flagValues {
-		key := strings.Split(value, "=")[0]
-		if keys.Has(key) {
-			duplicatedKeys.Insert(key)
-		}
-		keys.Insert(key)
+	env, duplicates, errs := cmdutil.ParseEnvironmentArguments(valueArgs, true)
+	if len(errs) > 0 {
+		return kerrors.NewAggregate(errs)
 	}
-
-	for _, value := range valueArgs {
-		key := strings.Split(value, "=")[0]
-		if keys.Has(key) {
-			duplicatedKeys.Insert(key)
-		}
-		keys.Insert(key)
-	}
-
-	if len(duplicatedKeys) != 0 {
-		return kcmdutil.UsageError(cmd, fmt.Sprintf("The following values were provided more than once: %s", strings.Join(duplicatedKeys.List(), ", ")))
+	if len(duplicates) > 0 {
+		return kcmdutil.UsageError(cmd, fmt.Sprintf("The following values were provided more than once: %s", strings.Join(duplicates, ", ")))
 	}
 
 	filename := kcmdutil.GetFlagString(cmd, "filename")
 	if len(templateName) == 0 && len(filename) == 0 {
 		return kcmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
-	}
-
-	if kcmdutil.GetFlagBool(cmd, "parameters") {
-		for _, flag := range []string{"value", "labels", "output", "output-version", "raw", "template"} {
-			if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
-				return kcmdutil.UsageError(cmd, "The --parameters flag does not process the template, can't be used with --%v", flag)
-			}
-		}
 	}
 
 	namespace, explicit, err := f.DefaultNamespace()
@@ -235,20 +219,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	// Override the values for the current template parameters
-	// when user specify the --value
-	if cmd.Flag("value").Changed {
-		values := kcmdutil.GetFlagStringSlice(cmd, "value")
-		if errs := injectUserVars(values, obj); errs != nil {
-			return kerrors.NewAggregate(errs)
-		}
-	}
-
-	if errs := injectUserVars(valueArgs, obj); errs != nil {
-		return kerrors.NewAggregate(errs)
-	}
-
-	resultObj, err := client.TemplateConfigs(namespace).Create(obj)
+	resultObj, err := newcmd.TransformTemplateWithoutDecoding(obj, client, namespace, env)
 	if err != nil {
 		return fmt.Errorf("error processing the template %q: %v\n", obj.Name, err)
 	}
@@ -296,24 +267,4 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		ListMeta: unversioned.ListMeta{},
 		Items:    objects,
 	}, out)
-}
-
-// injectUserVars injects user specified variables into the Template
-func injectUserVars(values []string, t *templateapi.Template) []error {
-	var errors []error
-	for _, keypair := range values {
-		p := strings.SplitN(keypair, "=", 2)
-		if len(p) != 2 {
-			errors = append(errors, fmt.Errorf("invalid parameter assignment in %q: %q\n", t.Name, keypair))
-		} else {
-			if v := template.GetParameterByName(t, p[0]); v != nil {
-				v.Value = p[1]
-				v.Generate = ""
-				template.AddParameter(t, *v)
-			} else {
-				errors = append(errors, fmt.Errorf("unknown parameter name %q\n", p[0]))
-			}
-		}
-	}
-	return errors
 }
