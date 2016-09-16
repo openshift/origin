@@ -31,6 +31,10 @@ you have failover protection.
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-custom\-certificates\fP=true
+    If true (the default), accept routes that specify custom certificates.
+
+.PP
 \fB\-\-create\fP=false
     deprecated; this is now the default behavior
 
@@ -81,6 +85,10 @@ you have failover protection.
 .PP
 \fB\-\-external\-host\-username\fP=""
     If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.
+
+.PP
+\fB\-\-force\-exceptions\fP=[]
+    A comma\-delimited list of namespaces that should be excepted from \-\-force\-subdomain and \-\-allow\-custom\-certificate=false.  E.g., 'default,openshift'
 
 .PP
 \fB\-\-force\-subdomain\fP=""

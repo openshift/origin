@@ -328,7 +328,7 @@ func TestHandleEndpoints(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, controller.LogRejections)
+	plugin := controller.NewUniqueHost(templatePlugin, controller.LogRejections)
 
 	for _, tc := range testCases {
 		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
@@ -442,7 +442,7 @@ func TestHandleTCPEndpoints(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, false, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, controller.LogRejections)
+	plugin := controller.NewUniqueHost(templatePlugin, controller.LogRejections)
 
 	for _, tc := range testCases {
 		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
@@ -488,7 +488,7 @@ func TestHandleRoute(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, rejections)
+	plugin := controller.NewUniqueHost(templatePlugin, rejections)
 
 	original := unversioned.Time{Time: time.Now()}
 
@@ -667,7 +667,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	extendedValidatorPlugin := controller.NewExtendedValidator(templatePlugin, rejections)
-	plugin := controller.NewUniqueHost(extendedValidatorPlugin, controller.HostForRoute, rejections)
+	plugin := controller.NewUniqueHost(extendedValidatorPlugin, rejections)
 
 	original := unversioned.Time{Time: time.Now()}
 
@@ -1019,7 +1019,10 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	templatePlugin := newDefaultTemplatePlugin(router, true, nil)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
-	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute, controller.LogRejections)
+	uniqueHostPlugin := controller.NewUniqueHost(templatePlugin,
+		controller.LogRejections)
+	plugin := controller.NewRouteValidator(uniqueHostPlugin, "", false,
+		[]string{}, true, controller.LogRejections)
 
 	// no namespaces allowed
 	plugin.HandleNamespaces(sets.String{})
@@ -1039,7 +1042,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	// ignores all events for namespace that doesn't match
 	for _, s := range []watch.EventType{watch.Added, watch.Modified, watch.Deleted} {
 		plugin.HandleRoute(s, route)
-		if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
+		if _, ok := router.FindServiceUnit("foo/TestService"); ok || uniqueHostPlugin.HostLen() != 0 {
 			t.Errorf("unexpected router state %#v", router)
 		}
 	}
@@ -1048,7 +1051,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	plugin.HandleNamespaces(sets.NewString("bar"))
 	for _, s := range []watch.EventType{watch.Added, watch.Modified, watch.Deleted} {
 		plugin.HandleRoute(s, route)
-		if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
+		if _, ok := router.FindServiceUnit("foo/TestService"); ok || uniqueHostPlugin.HostLen() != 0 {
 			t.Errorf("unexpected router state %#v", router)
 		}
 	}
@@ -1056,21 +1059,21 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	// allow foo
 	plugin.HandleNamespaces(sets.NewString("foo", "bar"))
 	plugin.HandleRoute(watch.Added, route)
-	if _, ok := router.FindServiceUnit("foo/TestService"); !ok || plugin.HostLen() != 1 {
+	if _, ok := router.FindServiceUnit("foo/TestService"); !ok || uniqueHostPlugin.HostLen() != 1 {
 		t.Errorf("unexpected router state %#v", router)
 	}
 
 	// forbid foo, and make sure it's cleared
 	plugin.HandleNamespaces(sets.NewString("bar"))
-	if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
+	if _, ok := router.FindServiceUnit("foo/TestService"); ok || uniqueHostPlugin.HostLen() != 0 {
 		t.Errorf("unexpected router state %#v", router)
 	}
 	plugin.HandleRoute(watch.Modified, route)
-	if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
+	if _, ok := router.FindServiceUnit("foo/TestService"); ok || uniqueHostPlugin.HostLen() != 0 {
 		t.Errorf("unexpected router state %#v", router)
 	}
 	plugin.HandleRoute(watch.Added, route)
-	if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
+	if _, ok := router.FindServiceUnit("foo/TestService"); ok || uniqueHostPlugin.HostLen() != 0 {
 		t.Errorf("unexpected router state %#v", router)
 	}
 }
