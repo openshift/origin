@@ -21,6 +21,7 @@ type ImageInterface interface {
 	Get(name string) (*api.Image, error)
 	List(opts pkg_api.ListOptions) (*api.ImageList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Image, err error)
 	ImageExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *images) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 		Resource("images").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched image.
+func (c *images) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Image, err error) {
+	result = &api.Image{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("images").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

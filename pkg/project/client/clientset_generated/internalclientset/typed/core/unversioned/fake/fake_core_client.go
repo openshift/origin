@@ -10,8 +10,8 @@ type FakeCore struct {
 	*core.Fake
 }
 
-func (c *FakeCore) Projects(namespace string) unversioned.ProjectInterface {
-	return &FakeProjects{c, namespace}
+func (c *FakeCore) Projects() unversioned.ProjectInterface {
+	return &FakeProjects{c}
 }
 
 // GetRESTClient returns a RESTClient that is used to communicate

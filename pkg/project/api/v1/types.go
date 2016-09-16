@@ -31,7 +31,8 @@ type ProjectStatus struct {
 	Phase kapi.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/kubernetes/pkg/api/v1.NamespacePhase"`
 }
 
-// +genclient=true,nonNamespaced=true
+// +genclient=true
+// +nonNamespaced=true
 
 // Project is a logical top-level container for a set of origin resources
 type Project struct {

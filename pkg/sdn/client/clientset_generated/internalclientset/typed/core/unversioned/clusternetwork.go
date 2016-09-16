@@ -21,6 +21,7 @@ type ClusterNetworkInterface interface {
 	Get(name string) (*api.ClusterNetwork, error)
 	List(opts pkg_api.ListOptions) (*api.ClusterNetworkList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error)
 	ClusterNetworkExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *clusterNetworks) Watch(opts pkg_api.ListOptions) (watch.Interface, erro
 		Resource("clusternetworks").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched clusterNetwork.
+func (c *clusterNetworks) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error) {
+	result = &api.ClusterNetwork{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("clusternetworks").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

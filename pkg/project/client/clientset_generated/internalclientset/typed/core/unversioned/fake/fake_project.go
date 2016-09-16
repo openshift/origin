@@ -12,15 +12,13 @@ import (
 // FakeProjects implements ProjectInterface
 type FakeProjects struct {
 	Fake *FakeCore
-	ns   string
 }
 
 var projectsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
 
 func (c *FakeProjects) Create(project *api.Project) (result *api.Project, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(projectsResource, c.ns, project), &api.Project{})
-
+		Invokes(core.NewRootCreateAction(projectsResource, project), &api.Project{})
 	if obj == nil {
 		return nil, err
 	}
@@ -29,8 +27,7 @@ func (c *FakeProjects) Create(project *api.Project) (result *api.Project, err er
 
 func (c *FakeProjects) Update(project *api.Project) (result *api.Project, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(projectsResource, c.ns, project), &api.Project{})
-
+		Invokes(core.NewRootUpdateAction(projectsResource, project), &api.Project{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,13 +36,12 @@ func (c *FakeProjects) Update(project *api.Project) (result *api.Project, err er
 
 func (c *FakeProjects) Delete(name string, options *pkg_api.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(projectsResource, c.ns, name), &api.Project{})
-
+		Invokes(core.NewRootDeleteAction(projectsResource, name), &api.Project{})
 	return err
 }
 
 func (c *FakeProjects) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(projectsResource, c.ns, listOptions)
+	action := core.NewRootDeleteCollectionAction(projectsResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ProjectList{})
 	return err
@@ -53,8 +49,7 @@ func (c *FakeProjects) DeleteCollection(options *pkg_api.DeleteOptions, listOpti
 
 func (c *FakeProjects) Get(name string) (result *api.Project, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(projectsResource, c.ns, name), &api.Project{})
-
+		Invokes(core.NewRootGetAction(projectsResource, name), &api.Project{})
 	if obj == nil {
 		return nil, err
 	}
@@ -63,8 +58,7 @@ func (c *FakeProjects) Get(name string) (result *api.Project, err error) {
 
 func (c *FakeProjects) List(opts pkg_api.ListOptions) (result *api.ProjectList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(projectsResource, c.ns, opts), &api.ProjectList{})
-
+		Invokes(core.NewRootListAction(projectsResource, opts), &api.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -85,6 +79,15 @@ func (c *FakeProjects) List(opts pkg_api.ListOptions) (result *api.ProjectList, 
 // Watch returns a watch.Interface that watches the requested projects.
 func (c *FakeProjects) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(projectsResource, c.ns, opts))
+		InvokesWatch(core.NewRootWatchAction(projectsResource, opts))
+}
 
+// Patch applies the patch and returns the patched project.
+func (c *FakeProjects) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Project, err error) {
+	obj, err := c.Fake.
+		Invokes(core.NewRootPatchSubresourceAction(projectsResource, name, data, subresources...), &api.Project{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.Project), err
 }

@@ -88,3 +88,14 @@ func (c *FakeDeploymentConfigs) Watch(opts pkg_api.ListOptions) (watch.Interface
 		InvokesWatch(core.NewWatchAction(deploymentconfigsResource, c.ns, opts))
 
 }
+
+// Patch applies the patch and returns the patched deploymentConfig.
+func (c *FakeDeploymentConfigs) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error) {
+	obj, err := c.Fake.
+		Invokes(core.NewPatchSubresourceAction(deploymentconfigsResource, c.ns, name, data, subresources...), &api.DeploymentConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.DeploymentConfig), err
+}

@@ -16,8 +16,8 @@ type CoreClient struct {
 	*restclient.RESTClient
 }
 
-func (c *CoreClient) Projects(namespace string) ProjectInterface {
-	return newProjects(c, namespace)
+func (c *CoreClient) Projects() ProjectInterface {
+	return newProjects(c)
 }
 
 // NewForConfig creates a new CoreClient for the given config.
@@ -54,7 +54,7 @@ func setConfigDefaults(config *restclient.Config) error {
 	if err != nil {
 		return err
 	}
-	config.APIPath = "/api"
+	config.APIPath = "/oapi"
 	if config.UserAgent == "" {
 		config.UserAgent = restclient.DefaultKubernetesUserAgent()
 	}

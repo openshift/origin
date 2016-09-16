@@ -21,6 +21,7 @@ type UserInterface interface {
 	Get(name string) (*api.User, error)
 	List(opts pkg_api.ListOptions) (*api.UserList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.User, err error)
 	UserExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *users) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 		Resource("users").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched user.
+func (c *users) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.User, err error) {
+	result = &api.User{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("users").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }
