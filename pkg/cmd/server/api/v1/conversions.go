@@ -45,20 +45,28 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 				v := false
 				obj.JenkinsPipelineConfig.AutoProvisionEnabled = &v
 			}
+
 			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
-				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &ClientConnectionOverrides{
-					// historical values
-					QPS:   150.0,
-					Burst: 300,
-				}
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &ClientConnectionOverrides{}
+			}
+			// historical values
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.QPS <= 0 {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.QPS = 150.0
+			}
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.Burst <= 0 {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.Burst = 300
 			}
 			setDefault_ClientConnectionOverrides(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+
 			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
-				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &ClientConnectionOverrides{
-					// historical values
-					QPS:   100.0,
-					Burst: 200,
-				}
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &ClientConnectionOverrides{}
+			}
+			// historical values
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS <= 0 {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS = 100.0
+			}
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst <= 0 {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst = 200
 			}
 			setDefault_ClientConnectionOverrides(obj.MasterClients.ExternalKubernetesClientConnectionOverrides)
 

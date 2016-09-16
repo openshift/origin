@@ -54,11 +54,15 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 
 			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &configapi.ClientConnectionOverrides{
-					QPS:                2.0,
-					Burst:              2,
 					AcceptContentTypes: "test/second",
 					ContentType:        "test/first",
 				}
+			}
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.QPS <= 0 {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.QPS = 2.0
+			}
+			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.Burst <= 0 {
+				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.Burst = 2
 			}
 			if len(obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.AcceptContentTypes) == 0 {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides.AcceptContentTypes = "test/fourth"
@@ -68,11 +72,15 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			}
 			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides == nil {
 				obj.MasterClients.ExternalKubernetesClientConnectionOverrides = &configapi.ClientConnectionOverrides{
-					QPS:                1.0,
-					Burst:              1,
 					AcceptContentTypes: "test/other",
 					ContentType:        "test/third",
 				}
+			}
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS <= 0 {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.QPS = 2.0
+			}
+			if obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst <= 0 {
+				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.Burst = 2
 			}
 			if len(obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes) == 0 {
 				obj.MasterClients.ExternalKubernetesClientConnectionOverrides.AcceptContentTypes = "test/fourth"
