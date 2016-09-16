@@ -22,7 +22,7 @@ const (
 	// We must avoid creating processing deployment configs until the deployment config and image
 	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
-	StoreSyncedPollPeriod = 100 * time.Millisecond
+	storeSyncedPollPeriod = 100 * time.Millisecond
 )
 
 // NewDeploymentController creates a new DeploymentController.
@@ -89,7 +89,7 @@ func (c *DeploymentController) waitForSyncedStores(ready chan<- struct{}, stopCh
 	for !c.rcStoreSynced() || !c.podStoreSynced() {
 		glog.V(4).Infof("Waiting for the rc and pod caches to sync before starting the deployment controller workers")
 		select {
-		case <-time.After(StoreSyncedPollPeriod):
+		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
 			return
 		}

@@ -20,7 +20,7 @@ import (
 const (
 	// We must avoid creating processing image stream until the deployment config and image
 	// stream stores have synced.
-	StoreSyncedPollPeriod = 100 * time.Millisecond
+	storeSyncedPollPeriod = 100 * time.Millisecond
 	// MaxRetries is the number of times an image stream will be retried before it is dropped
 	// out of the queue.
 	MaxRetries = 5
@@ -78,7 +78,7 @@ func (c *ImageChangeController) waitForSyncedStore(ready chan<- struct{}, stopCh
 	for !c.streamStoreSynced() || !c.dcStoreSynced() {
 		glog.V(4).Infof("Waiting for the image stream and deployment config caches to sync before starting the image change controller workers")
 		select {
-		case <-time.After(StoreSyncedPollPeriod):
+		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
 			return
 		}
