@@ -225,7 +225,7 @@ func TestValidateLoginTemplate(t *testing.T) {
 		TemplateValid bool
 	}{
 		"default login template": {
-			Template:      defaultLoginTemplateString,
+			Template:      defaultLoginTemplateString(),
 			TemplateValid: true,
 		},
 		"login template example": {

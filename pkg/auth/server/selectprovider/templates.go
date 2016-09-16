@@ -47,9 +47,12 @@ the example below.  The Name matches the name of an identity provider in the mas
 </html>
 `
 
-var defaultSelectProviderTemplate = template.Must(template.New("defaultSelectProvider").Parse(defaultSelectProviderTemplateString))
+func defaultSelectProviderTemplate() *template.Template {
+	return template.Must(template.New("defaultSelectProvider").Parse(defaultSelectProviderTemplateString()))
+}
 
-const defaultSelectProviderTemplateString = `<!DOCTYPE html>
+func defaultSelectProviderTemplateString() string {
+	return `<!DOCTYPE html>
 <!--[if IE 8]><html class="ie8 login-pf"><![endif]-->
 <!--[if IE 9]><html class="ie9 login-pf"><![endif]-->
 <!--[if gt IE 9]><!-->
@@ -1933,3 +1936,4 @@ hr {
   </body>
 </html>
 `
+}

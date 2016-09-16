@@ -72,9 +72,12 @@ oauthConfig:
 </html>
 `
 
-var defaultLoginTemplate = template.Must(template.New("defaultLoginForm").Parse(defaultLoginTemplateString))
+func defaultLoginTemplate() *template.Template {
+	return template.Must(template.New("defaultLoginForm").Parse(defaultLoginTemplateString()))
+}
 
-const defaultLoginTemplateString = `<!DOCTYPE html>
+func defaultLoginTemplateString() string {
+	return `<!DOCTYPE html>
 <!--[if IE 8]><html class="ie8 login-pf"><![endif]-->
 <!--[if IE 9]><html class="ie9 login-pf"><![endif]-->
 <!--[if gt IE 9]><!-->
@@ -2437,3 +2440,4 @@ hr {
   </body>
 </html>
 `
+}

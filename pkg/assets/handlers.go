@@ -142,24 +142,28 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 	}), nil
 }
 
-var versionTemplate = template.Must(template.New("webConsoleVersion").Parse(`
+func versionTemplate() *template.Template {
+	return template.Must(template.New("webConsoleVersion").Parse(`
 window.OPENSHIFT_VERSION = {
   openshift: "{{ .OpenShiftVersion | js}}",
   kubernetes: "{{ .KubernetesVersion | js}}"
 };
 `))
+}
 
 type WebConsoleVersion struct {
 	KubernetesVersion string
 	OpenShiftVersion  string
 }
 
-var extensionPropertiesTemplate = template.Must(template.New("webConsoleExtensionProperties").Parse(`
+func extensionPropertiesTemplate() *template.Template {
+	return template.Must(template.New("webConsoleExtensionProperties").Parse(`
 window.OPENSHIFT_EXTENSION_PROPERTIES = {
 {{ range $i, $property := .ExtensionProperties }}{{ if $i }},{{ end }}
   "{{ $property.Key | js }}": "{{ $property.Value | js }}"{{ end }}
 };
 `))
+}
 
 type WebConsoleExtensionProperty struct {
 	Key   string
@@ -170,7 +174,8 @@ type WebConsoleExtensionProperties struct {
 	ExtensionProperties []WebConsoleExtensionProperty
 }
 
-var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
+func configTemplate() *template.Template {
+	return template.Must(template.New("webConsoleConfig").Parse(`
 window.OPENSHIFT_CONFIG = {
   apis: {
     hostPort: "{{ .APIGroupAddr | js}}",
@@ -203,6 +208,7 @@ window.OPENSHIFT_CONFIG = {
   metricsURL: "{{ .MetricsURL | js}}"
 };
 `))
+}
 
 type WebConsoleConfig struct {
 	// APIGroupAddr is the host:port the UI should call the API groups on. Scheme is derived from the scheme the UI is served on, so they must be the same.
@@ -244,16 +250,16 @@ type WebConsoleConfig struct {
 
 func GeneratedConfigHandler(config WebConsoleConfig, version WebConsoleVersion, extensionProps WebConsoleExtensionProperties) (http.Handler, error) {
 	var buffer bytes.Buffer
-	if err := configTemplate.Execute(&buffer, config); err != nil {
+	if err := configTemplate().Execute(&buffer, config); err != nil {
 		return nil, err
 	}
-	if err := versionTemplate.Execute(&buffer, version); err != nil {
+	if err := versionTemplate().Execute(&buffer, version); err != nil {
 		return nil, err
 	}
 
 	// We include the extension properties in config.js and not extensions.js because we
 	// want them treated with the same caching behavior as the rest of the values in config.js
-	if err := extensionPropertiesTemplate.Execute(&buffer, extensionProps); err != nil {
+	if err := extensionPropertiesTemplate().Execute(&buffer, extensionProps); err != nil {
 		return nil, err
 	}
 	content := buffer.Bytes()

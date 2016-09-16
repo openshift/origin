@@ -2,6 +2,7 @@ package grant
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
@@ -336,15 +337,19 @@ func getScopeData(scopeName string, grantedScopeNames []string) Scope {
 
 // DefaultFormRenderer displays a page prompting the user to approve an OAuth grant.
 // The requesting client id, requested scopes, and redirect URI are displayed to the user.
-var DefaultFormRenderer = grantTemplateRenderer{}
+func NewDefaultFormRenderer() FormRenderer {
+	return &grantTemplateRenderer{template: defaultGrantTemplate()}
+}
 
-type grantTemplateRenderer struct{}
+type grantTemplateRenderer struct {
+	template *template.Template
+}
 
-func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *http.Request) {
+func (r *grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
-	if err := defaultGrantTemplate.Execute(w, form); err != nil {
+	if err := r.template.Execute(w, form); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render grant template: %v", err))
 	}
 }

@@ -123,19 +123,26 @@ func (c *Confirm) handleConfirm(w http.ResponseWriter, req *http.Request) {
 	c.auth.AuthenticationSucceeded(user, then, w, req)
 }
 
-var DefaultConfirmFormRenderer = confirmTemplateRenderer{}
+func NewDefaultConfirmFormRenderer() ConfirmFormRenderer {
+	return &confirmTemplateRenderer{
+		template: confirmTemplate(),
+	}
+}
 
-type confirmTemplateRenderer struct{}
+type confirmTemplateRenderer struct {
+	template *template.Template
+}
 
-func (r confirmTemplateRenderer) Render(form ConfirmForm, w http.ResponseWriter, req *http.Request) {
+func (r *confirmTemplateRenderer) Render(form ConfirmForm, w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	if err := confirmTemplate.Execute(w, form); err != nil {
+	if err := r.template.Execute(w, form); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable render confirm template: %v", err))
 	}
 }
 
-var confirmTemplate = template.Must(template.New("ConfirmForm").Parse(`
+func confirmTemplate() *template.Template {
+	return template.Must(template.New("ConfirmForm").Parse(`
 {{ if .Error }}<div class="message">{{ .Error }}</div>{{ end }}
 <form action="{{ .Action }}" method="POST">
   <input type="hidden" name="then" value="{{ .Values.Then }}">
@@ -149,3 +156,4 @@ var confirmTemplate = template.Must(template.New("ConfirmForm").Parse(`
   {{ end }}
 </form>
 `))
+}

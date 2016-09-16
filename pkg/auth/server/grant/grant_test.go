@@ -376,7 +376,7 @@ func TestGrant(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		server := httptest.NewServer(NewGrant(testCase.CSRF, testCase.Auth, DefaultFormRenderer, testCase.ClientRegistry, testCase.AuthRegistry))
+		server := httptest.NewServer(NewGrant(testCase.CSRF, testCase.Auth, NewDefaultFormRenderer(), testCase.ClientRegistry, testCase.AuthRegistry))
 
 		var resp *http.Response
 		if testCase.PostValues != nil {

@@ -22,6 +22,7 @@ const (
 
 type endpointDetails struct {
 	publicMasterURL   string
+	template          *template.Template
 	originOAuthClient *osincli.Client
 }
 
@@ -30,7 +31,7 @@ type Endpoints interface {
 }
 
 func NewEndpoints(publicMasterURL string, originOAuthClient *osincli.Client) Endpoints {
-	return &endpointDetails{publicMasterURL, originOAuthClient}
+	return &endpointDetails{publicMasterURL, tokenTemplate(), originOAuthClient}
 }
 
 // Install registers the request token endpoints into a mux. It is expected that the
@@ -60,7 +61,7 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 	if err != nil {
 		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		renderToken(w, data)
+		renderToken(w, endpoints.template, data)
 		return
 	}
 
@@ -69,16 +70,16 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 	if err != nil {
 		data.Error = fmt.Sprintf("Error getting token: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		renderToken(w, data)
+		renderToken(w, endpoints.template, data)
 		return
 	}
 
 	data.AccessToken = accessData.AccessToken
-	renderToken(w, data)
+	renderToken(w, endpoints.template, data)
 }
 
-func renderToken(w io.Writer, data tokenData) {
-	if err := tokenTemplate.Execute(w, data); err != nil {
+func renderToken(w io.Writer, t *template.Template, data tokenData) {
+	if err := t.Execute(w, data); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render token template: %v", err))
 	}
 }
@@ -91,7 +92,8 @@ type tokenData struct {
 }
 
 // TODO: allow template to be read from an external file
-var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
+func tokenTemplate() *template.Template {
+	return template.Must(template.New("tokenTemplate").Parse(`
 <style>
 	body     { font-family: sans-serif; font-size: 14px; margin: 2em 2%; background-color: #F9F9F9; }
 	h2       { font-size: 1.4em;}
@@ -122,6 +124,7 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 <br><br>
 <a href="{{.RequestURL}}">Request another token</a>
 `))
+}
 
 func (endpoints *endpointDetails) implicitToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
