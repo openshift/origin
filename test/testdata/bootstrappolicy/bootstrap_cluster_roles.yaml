@@ -2715,6 +2715,16 @@ items:
     verbs:
     - update
   - apiGroups:
+    - extensions
+    - batch
+    attributeRestrictions: null
+    resources:
+    - jobs
+    verbs:
+    - create
+    - delete
+    - update
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
