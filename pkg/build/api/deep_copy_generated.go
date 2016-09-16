@@ -426,6 +426,15 @@ func DeepCopy_api_BuildSpec(in BuildSpec, out *BuildSpec, c *conversion.Cloner) 
 	} else {
 		out.TriggeredBy = nil
 	}
+	if in.Config != nil {
+		in, out := in.Config, &out.Config
+		*out = new(api.ObjectReference)
+		if err := api.DeepCopy_api_ObjectReference(*in, *out, c); err != nil {
+			return err
+		}
+	} else {
+		out.Config = nil
+	}
 	return nil
 }
 
@@ -454,15 +463,6 @@ func DeepCopy_api_BuildStatus(in BuildStatus, out *BuildStatus, c *conversion.Cl
 	}
 	out.Duration = in.Duration
 	out.OutputDockerImageReference = in.OutputDockerImageReference
-	if in.Config != nil {
-		in, out := in.Config, &out.Config
-		*out = new(api.ObjectReference)
-		if err := api.DeepCopy_api_ObjectReference(*in, *out, c); err != nil {
-			return err
-		}
-	} else {
-		out.Config = nil
-	}
 	return nil
 }
 

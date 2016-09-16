@@ -29,7 +29,7 @@ func withStatus(build *buildapi.Build, status buildapi.BuildPhase) *buildapi.Bui
 func mockBuild(namespace, name string, buildConfig *buildapi.BuildConfig) *buildapi.Build {
 	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
 	if buildConfig != nil {
-		build.Status.Config = &kapi.ObjectReference{
+		build.Spec.Config = &kapi.ObjectReference{
 			Name:      buildConfig.Name,
 			Namespace: buildConfig.Namespace,
 		}
@@ -40,7 +40,7 @@ func mockBuild(namespace, name string, buildConfig *buildapi.BuildConfig) *build
 
 func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 	buildWithConfig := &buildapi.Build{
-		Status: buildapi.BuildStatus{
+		Spec: buildapi.BuildSpec{
 			Config: &kapi.ObjectReference{
 				Name:      "buildConfigName",
 				Namespace: "buildConfigNamespace",
@@ -51,7 +51,7 @@ func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	expectedKey := []string{buildWithConfig.Status.Config.Namespace + "/" + buildWithConfig.Status.Config.Name}
+	expectedKey := []string{buildWithConfig.Spec.Config.Namespace + "/" + buildWithConfig.Spec.Config.Name}
 	if !reflect.DeepEqual(actualKey, expectedKey) {
 		t.Errorf("expected %#v, actual %#v", expectedKey, actualKey)
 	}
@@ -141,17 +141,17 @@ func TestPopuldatedDataSet(t *testing.T) {
 	dataSet := NewDataSet(buildConfigs, builds)
 	for _, build := range builds {
 		buildConfig, exists, err := dataSet.GetBuildConfig(build)
-		if build.Status.Config != nil {
+		if build.Spec.Config != nil {
 			if err != nil {
 				t.Errorf("Item %v, unexpected error: %v", build, err)
 			}
 			if !exists {
 				t.Errorf("Item %v, unexpected result: %v", build, exists)
 			}
-			if expected, actual := build.Status.Config.Name, buildConfig.Name; expected != actual {
+			if expected, actual := build.Spec.Config.Name, buildConfig.Name; expected != actual {
 				t.Errorf("expected %v, actual %v", expected, actual)
 			}
-			if expected, actual := build.Status.Config.Namespace, buildConfig.Namespace; expected != actual {
+			if expected, actual := build.Spec.Config.Namespace, buildConfig.Namespace; expected != actual {
 				t.Errorf("expected %v, actual %v", expected, actual)
 			}
 		} else {

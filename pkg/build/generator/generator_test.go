@@ -135,12 +135,11 @@ func TestInstantiateDeletingError(t *testing.T) {
 							},
 						},
 					},
-				},
-				Status: buildapi.BuildStatus{
 					Config: &kapi.ObjectReference{
 						Name: "buildconfig",
 					},
 				},
+				Status: buildapi.BuildStatus{},
 			}
 			return build, nil
 		},
@@ -184,12 +183,11 @@ func TestInstantiateBinaryRemoved(t *testing.T) {
 						Binary: &buildapi.BinaryBuildSource{},
 					},
 				},
-			},
-			Status: buildapi.BuildStatus{
 				Config: &kapi.ObjectReference{
 					Name: "buildconfig",
 				},
 			},
+			Status: buildapi.BuildStatus{},
 		}
 		return build, nil
 	}
@@ -778,8 +776,8 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if build.Labels[buildapi.BuildConfigLabelDeprecated] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
-	if build.Status.Config.Name != bc.Name || build.Status.Config.Namespace != bc.Namespace || build.Status.Config.Kind != "BuildConfig" {
-		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Status.Config)
+	if build.Spec.Config.Name != bc.Name || build.Spec.Config.Namespace != bc.Namespace || build.Spec.Config.Kind != "BuildConfig" {
+		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Spec.Config)
 	}
 	if build.Annotations[buildapi.BuildNumberAnnotation] != "13" {
 		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildapi.BuildNumberAnnotation])

@@ -134,8 +134,8 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		// output like "duration: 1.2724395728934s"
 		formatString(out, "Duration", describeBuildDuration(build))
 
-		if build.Status.Config != nil {
-			formatString(out, "Build Config", build.Status.Config.Name)
+		if build.Spec.Config != nil {
+			formatString(out, "Build Config", build.Spec.Config.Name)
 		}
 		formatString(out, "Build Pod", buildapi.GetBuildPodName(build))
 

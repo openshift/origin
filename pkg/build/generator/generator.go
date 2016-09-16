@@ -330,8 +330,8 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 	}
 
 	var buildConfig *buildapi.BuildConfig
-	if build.Status.Config != nil {
-		buildConfig, err = g.Client.GetBuildConfig(ctx, build.Status.Config.Name)
+	if build.Spec.Config != nil {
+		buildConfig, err = g.Client.GetBuildConfig(ctx, build.Spec.Config.Name)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
@@ -403,17 +403,17 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 				PostCommit:                bcCopy.Spec.PostCommit,
 				CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
 			},
+			Config: &kapi.ObjectReference{
+				Kind:      "BuildConfig",
+				Name:      bc.Name,
+				Namespace: bc.Namespace,
+			},
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,
-			Config: &kapi.ObjectReference{
-				Kind:      "BuildConfig",
-				Name:      bc.Name,
-				Namespace: bc.Namespace,
-			},
 		},
 	}
 	if binary != nil {
@@ -492,7 +492,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
 		if image == "" {
-			image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.SourceStrategy.From, build.Status.Config.Namespace)
+			image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.SourceStrategy.From, build.Spec.Config.Namespace)
 			if err != nil {
 				return nil, err
 			}
@@ -502,7 +502,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 			Name: image,
 		}
 		if build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
-			runtimeImageName, err := g.resolveImageStreamReference(ctx, *build.Spec.Strategy.SourceStrategy.RuntimeImage, build.Status.Config.Namespace)
+			runtimeImageName, err := g.resolveImageStreamReference(ctx, *build.Spec.Strategy.SourceStrategy.RuntimeImage, build.Spec.Config.Namespace)
 			if err != nil {
 				return nil, err
 			}
@@ -527,7 +527,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	case build.Spec.Strategy.DockerStrategy != nil &&
 		build.Spec.Strategy.DockerStrategy.From != nil:
 		if image == "" {
-			image, err = g.resolveImageStreamReference(ctx, *build.Spec.Strategy.DockerStrategy.From, build.Status.Config.Namespace)
+			image, err = g.resolveImageStreamReference(ctx, *build.Spec.Strategy.DockerStrategy.From, build.Spec.Config.Namespace)
 			if err != nil {
 				return nil, err
 			}
@@ -541,7 +541,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		}
 	case build.Spec.Strategy.CustomStrategy != nil:
 		if image == "" {
-			image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.CustomStrategy.From, build.Status.Config.Namespace)
+			image, err = g.resolveImageStreamReference(ctx, build.Spec.Strategy.CustomStrategy.From, build.Spec.Config.Namespace)
 			if err != nil {
 				return nil, err
 			}
@@ -716,8 +716,7 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 			Annotations: buildCopy.ObjectMeta.Annotations,
 		},
 		Status: buildapi.BuildStatus{
-			Phase:  buildapi.BuildPhaseNew,
-			Config: buildCopy.Status.Config,
+			Phase: buildapi.BuildPhaseNew,
 		},
 	}
 	// TODO remove/update this when we support cloning binary builds

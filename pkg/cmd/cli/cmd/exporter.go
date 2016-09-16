@@ -168,8 +168,8 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		if exact {
 			return nil
 		}
-		if t.Status.Config != nil {
-			t.Status.Config = &kapi.ObjectReference{Name: t.Status.Config.Name}
+		if t.Spec.Config != nil {
+			t.Spec.Config = &kapi.ObjectReference{Name: t.Spec.Config.Name}
 		}
 	case *routeapi.Route:
 	case *imageapi.Image:

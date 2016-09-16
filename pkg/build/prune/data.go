@@ -17,7 +17,7 @@ func BuildByBuildConfigIndexFunc(obj interface{}) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("not a build: %v", build)
 	}
-	config := build.Status.Config
+	config := build.Spec.Config
 	if config == nil {
 		return []string{"orphan"}, nil
 	}
@@ -95,7 +95,7 @@ func NewDataSet(buildConfigs []*buildapi.BuildConfig, builds []*buildapi.Build) 
 }
 
 func (d *dataSet) GetBuildConfig(build *buildapi.Build) (*buildapi.BuildConfig, bool, error) {
-	config := build.Status.Config
+	config := build.Spec.Config
 	if config == nil {
 		return nil, false, nil
 	}
@@ -128,7 +128,7 @@ func (d *dataSet) ListBuilds() ([]*buildapi.Build, error) {
 func (d *dataSet) ListBuildsByBuildConfig(buildConfig *buildapi.BuildConfig) ([]*buildapi.Build, error) {
 	results := []*buildapi.Build{}
 	key := &buildapi.Build{}
-	key.Status.Config = &kapi.ObjectReference{Name: buildConfig.Name, Namespace: buildConfig.Namespace}
+	key.Spec.Config = &kapi.ObjectReference{Name: buildConfig.Name, Namespace: buildConfig.Namespace}
 	items, err := d.buildIndexer.Index("buildConfig", key)
 	if err != nil {
 		return nil, err
