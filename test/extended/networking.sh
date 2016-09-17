@@ -220,7 +220,11 @@ function run-extended-tests() {
   fi
 
   if [[ -n "${log_path}" ]]; then
-    test_cmd="${test_cmd} | tee ${log_path}"
+    if [[ -n "${dlv_debug}" ]]; then
+      os::log::warn "Not logging to file since DLV_DEBUG is enabled"
+    else
+      test_cmd="${test_cmd} | tee ${log_path}"
+    fi
   fi
 
   pushd "${EXTENDED_TEST_PATH}/networking" > /dev/null
