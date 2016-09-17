@@ -12,20 +12,22 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-const (
-	DeploymentConfigRecommendedName = "deploymentconfig"
+var DeploymentConfigRecommendedName = "deploymentconfig"
 
-	deploymentConfigLong = `
-Create a deployment config that uses a given image.
+var (
+	deploymentConfigLong = templates.LongDesc(`
+		Create a deployment config that uses a given image.
 
-Deployment configs define the template for a pod and manages deploying new images or configuration changes.`
+		Deployment configs define the template for a pod and manages deploying new images or configuration changes.`)
 
-	deploymentConfigExample = `  # Create an nginx deployment config named my-nginx
-  %[1]s my-nginx --image=nginx`
+	deploymentConfigExample = templates.Examples(`
+		# Create an nginx deployment config named my-nginx
+  	%[1]s my-nginx --image=nginx`)
 )
 
 type CreateDeploymentConfigOptions struct {

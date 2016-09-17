@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
@@ -36,12 +37,12 @@ type DecryptOptions struct {
 	KeyFile string
 }
 
-const decryptExample = `	# Decrypt an encrypted file to a cleartext file:
+var decryptExample = templates.Examples(`
+	# Decrypt an encrypted file to a cleartext file:
 	%[1]s --key=secret.key --in=secret.encrypted --out=secret.decrypted
 
 	# Decrypt from stdin to stdout:
-	%[1]s --key=secret.key < secret2.encrypted > secret2.decrypted
-`
+	%[1]s --key=secret.key < secret2.encrypted > secret2.decrypted`)
 
 func NewCommandDecrypt(commandName string, fullName, encryptFullName string, out io.Writer) *cobra.Command {
 	options := &DecryptOptions{

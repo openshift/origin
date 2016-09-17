@@ -9,27 +9,27 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/auth/server/selectprovider"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	CreateProviderSelectionTemplateCommand = "create-provider-selection-template"
-	providerSelectionLongDescription       = `
-Create a template for customizing the provider selection page
+const CreateProviderSelectionTemplateCommand = "create-provider-selection-template"
 
-This command creates a basic template to use as a starting point for
-customizing the login provider selection page. Save the output to a file and edit
-the template to change the look and feel or add content. Be careful not to remove
-any parameter values inside curly braces.
+var providerSelectionLongDescription = templates.LongDesc(`
+	Create a template for customizing the provider selection page
 
-To use the template, set oauthConfig.templates.providerSelection in the master
-configuration to point to the template file. For example,
+	This command creates a basic template to use as a starting point for
+	customizing the login provider selection page. Save the output to a file and edit
+	the template to change the look and feel or add content. Be careful not to remove
+	any parameter values inside curly braces.
 
-    oauthConfig:
-      templates:
-        providerSelection: templates/provider-selection.html
-`
-)
+	To use the template, set oauthConfig.templates.providerSelection in the master
+	configuration to point to the template file. For example,
+
+	    oauthConfig:
+	      templates:
+	        providerSelection: templates/provider-selection.html
+	`)
 
 type CreateProviderSelectionTemplateOptions struct{}
 

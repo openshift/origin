@@ -31,14 +31,14 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
-const (
-	openshiftLong = `
-%[2]s
+var (
+	openshiftLong = templates.LongDesc(`
+		%[2]s
 
-The %[3]s helps you build, deploy, and manage your applications on top of
-Docker containers. To start an all-in-one server with the default configuration, run:
+		The %[3]s helps you build, deploy, and manage your applications on top of
+		Docker containers. To start an all-in-one server with the default configuration, run:
 
-  %[1]s start &`
+		    $ %[1]s start &`)
 )
 
 // CommandFor returns the appropriate command for this base name,
@@ -178,26 +178,26 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	return experimental
 }
 
-const (
-	completion_long = `Output shell completion code for the given shell (bash or zsh).
+var (
+	completion_long = templates.LongDesc(`
+		Output shell completion code for the given shell (bash or zsh).
 
-This command prints shell code which must be evaluation to provide interactive
-completion of kubectl commands.
-`
-	completion_example = `
-$ source <(kubectl completion bash)
+		This command prints shell code which must be evaluation to provide interactive
+		completion of kubectl commands.`)
 
-will load the kubectl completion code for bash. Note that this depends on the bash-completion
-framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
+	completion_example = templates.Examples(`
+		$ source <(kubectl completion bash)
 
-$ brew install bash-completion
-$ source $(brew --prefix)/etc/bash_completion
-$ source <(kubectl completion bash)
+		will load the kubectl completion code for bash. Note that this depends on the bash-completion
+		framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
 
-If you use zsh, the following will load kubectl zsh completion:
+		$ brew install bash-completion
+		$ source $(brew --prefix)/etc/bash_completion
+		$ source <(kubectl completion bash)
 
-$ source <(kubectl completion zsh)
-`
+		If you use zsh, the following will load kubectl zsh completion:
+
+		$ source <(kubectl completion zsh)`)
 )
 
 func newCompletionCommand(name, fullName string) *cobra.Command {

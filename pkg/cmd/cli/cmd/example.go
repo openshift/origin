@@ -9,17 +9,18 @@ import (
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	internalTYPELong = `
-Single line title
+var (
+	internalTYPELong = templates.LongDesc(`
+		Single line title
 
-Description body`
+		Description body`)
 
-	internalTYPEExample = `%s`
+	internalTYPEExample = templates.Examples(`%s`)
 )
 
 type TYPEOptions struct {

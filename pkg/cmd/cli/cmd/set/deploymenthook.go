@@ -13,45 +13,46 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-const (
-	deploymentHookLong = `
-Set or remove a deployment hook on a deployment config
+var (
+	deploymentHookLong = templates.LongDesc(`
+		Set or remove a deployment hook on a deployment config
 
-Deployment configs allow hooks to execute at different points in the lifecycle of the
-deployment, depending on the deployment strategy.
+		Deployment configs allow hooks to execute at different points in the lifecycle of the
+		deployment, depending on the deployment strategy.
 
-For deployments with a Recreate strategy, a Pre, Mid, and Post hook can be specified.
-The Pre hook will execute before the deployment starts. The Mid hook will execute once the
-previous deployment has been scaled down to 0, but before the new one ramps up.
-The Post hook will execute once the deployment has completed.
+		For deployments with a Recreate strategy, a Pre, Mid, and Post hook can be specified.
+		The Pre hook will execute before the deployment starts. The Mid hook will execute once the
+		previous deployment has been scaled down to 0, but before the new one ramps up.
+		The Post hook will execute once the deployment has completed.
 
-For deployments with a Rolling strategy, a Pre and Post hook can be specified.
-The Pre hook will execute before the deployment starts and the Post hook will execute once
-the deployment has completed.
+		For deployments with a Rolling strategy, a Pre and Post hook can be specified.
+		The Pre hook will execute before the deployment starts and the Post hook will execute once
+		the deployment has completed.
 
-For each hook, a new pod will be started using one of the containers in the deployment's pod
-template with a specific command to execute. Additional environment variables may be specified
-for the hook, as well as which volumes from the pod template will be mounted on the hook pod.
+		For each hook, a new pod will be started using one of the containers in the deployment's pod
+		template with a specific command to execute. Additional environment variables may be specified
+		for the hook, as well as which volumes from the pod template will be mounted on the hook pod.
 
-Each hook can have its own cancellation policy. One of: abort, retry, or ignore. Not all cancellation
-policies can be set on all hooks. For example, a Post hook on a rolling strategy does not support
-the abort policy, because at that point the deployment has already happened.
-`
+		Each hook can have its own cancellation policy. One of: abort, retry, or ignore. Not all cancellation
+		policies can be set on all hooks. For example, a Post hook on a rolling strategy does not support
+		the abort policy, because at that point the deployment has already happened.`)
 
-	deploymentHookExample = `  # Clear pre and post hooks on a deployment config
-  %[1]s deployment-hook dc/myapp --remove --pre --post
+	deploymentHookExample = templates.Examples(`
+		# Clear pre and post hooks on a deployment config
+	  %[1]s deployment-hook dc/myapp --remove --pre --post
 
-  # Set the pre deployment hook to execute a db migration command for an application
-  # using the data volume from the application
-  %[1]s deployment-hook dc/myapp --pre -v data -- /var/lib/migrate-db.sh
+	  # Set the pre deployment hook to execute a db migration command for an application
+	  # using the data volume from the application
+	  %[1]s deployment-hook dc/myapp --pre -v data -- /var/lib/migrate-db.sh
 
-  # Set a mid deployment hook along with additional environment variables
-  %[1]s deployment-hook dc/myapp --mid -v data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh`
+	  # Set a mid deployment hook along with additional environment variables
+	  %[1]s deployment-hook dc/myapp --mid -v data -e VAR1=value1 -e VAR2=value2 -- /var/lib/prepare-deploy.sh`)
 )
 
 type DeploymentHookOptions struct {

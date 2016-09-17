@@ -18,49 +18,56 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
+	"github.com/openshift/origin/pkg/cmd/templates"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-const (
-	internalMigrateImagesLong = `
-Migrate references to Docker images
+var (
+	internalMigrateImagesLong = templates.LongDesc(`
+		Migrate references to Docker images
 
-This command updates embedded Docker image references on the server in place. By default it
-will update image streams and images, and may be used to update resources with a pod template
-(deployments, replication controllers, daemon sets).
+		This command updates embedded Docker image references on the server in place. By default it
+		will update image streams and images, and may be used to update resources with a pod template
+		(deployments, replication controllers, daemon sets).
 
-References are changed by providing a mapping between a source registry and name and the
-desired registry and name. Either name or registry can be set to '*' to change all values.
-The registry value "docker.io" is special and will handle any image reference that refers to
-the DockerHub. You may pass multiple mappings - the first matching mapping will be applied
-per resource.
+		References are changed by providing a mapping between a source registry and name and the
+		desired registry and name. Either name or registry can be set to '*' to change all values.
+		The registry value "docker.io" is special and will handle any image reference that refers to
+		the DockerHub. You may pass multiple mappings - the first matching mapping will be applied
+		per resource.
 
-The following resource types may be migrated by this command:
+		The following resource types may be migrated by this command:
 
-* images               * daemonsets
-* imagestreams         * jobs
-* buildconfigs         * replicationcontrollers
-* deploymentconfigs    * pods
-* secrets (docker)
+		* buildconfigs
+		* daemonsets
+		* deploymentconfigs
+		* images
+		* imagestreams
+		* jobs
+		* pods
+		* replicationcontrollers
+		* secrets (docker)
 
-Only images, imagestreams, and secrets are updated by default. Updating images and image
-streams requires administrative privileges.`
+		Only images, imagestreams, and secrets are updated by default. Updating images and image
+		streams requires administrative privileges.`)
 
-	internalMigrateImagesExample = `  # Perform a dry-run of migrating all "docker.io" references to "myregistry.com"
-  %[1]s docker.io/*=myregistry.com/*
+	internalMigrateImagesExample = templates.Examples(`
+		# Perform a dry-run of migrating all "docker.io" references to "myregistry.com"
+	  %[1]s docker.io/*=myregistry.com/*
 
-  # To actually perform the migration, the confirm flag must be appended
-  %[1]s docker.io/*=myregistry.com/* --confirm
+	  # To actually perform the migration, the confirm flag must be appended
+	  %[1]s docker.io/*=myregistry.com/* --confirm
 
-  # To see more details of what will be migrated, use the loglevel and output flags
-  %[1]s docker.io/*=myregistry.com/* --loglevel=2 -o yaml
+	  # To see more details of what will be migrated, use the loglevel and output flags
+	  %[1]s docker.io/*=myregistry.com/* --loglevel=2 -o yaml
 
-  # Migrate from a service IP to an internal service DNS name
-  %[1]s 172.30.1.54/*=registry.openshift.svc.cluster.local/*
+	  # Migrate from a service IP to an internal service DNS name
+	  %[1]s 172.30.1.54/*=registry.openshift.svc.cluster.local/*
 
-  # Migrate from a service IP to an internal service DNS name for all deployment configs and builds
-  %[1]s 172.30.1.54/*=registry.openshift.svc.cluster.local/* --include=buildconfigs,deploymentconfigs`
+	  # Migrate from a service IP to an internal service DNS name for all deployment configs and builds
+	  %[1]s 172.30.1.54/*=registry.openshift.svc.cluster.local/* --include=buildconfigs,deploymentconfigs`)
 )
 
 type MigrateImageReferenceOptions struct {

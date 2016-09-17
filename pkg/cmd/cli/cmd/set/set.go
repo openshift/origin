@@ -12,11 +12,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	setLong = `
-Configure application resources
+var (
+	setLong = templates.LongDesc(`
+		Configure application resources
 
-These commands help you make changes to existing application resources.`
+		These commands help you make changes to existing application resources.`)
 )
 
 // NewCmdSet exposes commands for modifying objects.
@@ -66,22 +66,22 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	return set
 }
 
-const (
-	setImageLong = `
-Update existing container image(s) of resources.
-`
+var (
+	setImageLong = templates.LongDesc(`
+Update existing container image(s) of resources.`)
 
-	setImageExample = `  # Set a deployment configs's nginx container image to 'nginx:1.9.1', and its busybox container image to 'busybox'.
-  %[1]s image dc/nginx busybox=busybox nginx=nginx:1.9.1
+	setImageExample = templates.Examples(`
+		# Set a deployment configs's nginx container image to 'nginx:1.9.1', and its busybox container image to 'busybox'.
+	  %[1]s image dc/nginx busybox=busybox nginx=nginx:1.9.1
 
-  # Update all deployments' and rc's nginx container's image to 'nginx:1.9.1'
-  %[1]s image deployments,rc nginx=nginx:1.9.1 --all
+	  # Update all deployments' and rc's nginx container's image to 'nginx:1.9.1'
+	  %[1]s image deployments,rc nginx=nginx:1.9.1 --all
 
-  # Update image of all containers of daemonset abc to 'nginx:1.9.1'
-  %[1]s image daemonset abc *=nginx:1.9.1
+	  # Update image of all containers of daemonset abc to 'nginx:1.9.1'
+	  %[1]s image daemonset abc *=nginx:1.9.1
 
-  # Print result (in yaml format) of updating nginx container image from local file, without hitting the server
-  %[1]s image -f path/to/file.yaml nginx=nginx:1.9.1 --local -o yaml`
+	  # Print result (in yaml format) of updating nginx container image from local file, without hitting the server
+	  %[1]s image -f path/to/file.yaml nginx=nginx:1.9.1 --local -o yaml`)
 )
 
 // NewCmdImage is a wrapper for the Kubernetes CLI set image command

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -15,20 +16,22 @@ import (
 	"github.com/openshift/origin/pkg/gitserver/autobuild"
 )
 
-const longCommandDesc = `
-Start a Git server
-
-This command launches a Git HTTP/HTTPS server that supports push and pull, mirroring,
-and automatic creation of applications on push.
-
-%[1]s
-`
 const LogLevelEnv = "LOGLEVEL"
-const repositoryBuildConfigsDesc = `
-Retrieve build configs for a gitserver repository
 
-This command lists build configurations in the current namespace that correspond to a given git repository.
-`
+var (
+	longCommandDesc = templates.LongDesc(`
+		Start a Git server
+
+		This command launches a Git HTTP/HTTPS server that supports push and pull, mirroring,
+		and automatic creation of applications on push.
+
+		%[1]s`)
+
+	repositoryBuildConfigsDesc = templates.LongDesc(`
+		Retrieve build configs for a gitserver repository
+
+		This command lists build configurations in the current namespace that correspond to a given git repository.`)
+)
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command

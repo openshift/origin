@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -47,62 +48,62 @@ type usage interface {
 	UsageError(baseName string) string
 }
 
-const (
-	newAppLong = `
-Create a new application by specifying source code, templates, and/or images
+var (
+	newAppLong = templates.LongDesc(`
+		Create a new application by specifying source code, templates, and/or images
 
-This command will try to build up the components of an application using images, templates,
-or code that has a public repository. It will lookup the images on the local Docker installation
-(if available), a Docker registry, an integrated image stream, or stored templates.
+		This command will try to build up the components of an application using images, templates,
+		or code that has a public repository. It will lookup the images on the local Docker installation
+		(if available), a Docker registry, an integrated image stream, or stored templates.
 
-If you specify a source code URL, it will set up a build that takes your source code and converts
-it into an image that can run inside of a pod. Local source must be in a git repository that has a
-remote repository that the server can see. The images will be deployed via a deployment
-configuration, and a service will be connected to the first public port of the app. You may either specify
-components using the various existing flags or let %[2]s autodetect what kind of components
-you have provided.
+		If you specify a source code URL, it will set up a build that takes your source code and converts
+		it into an image that can run inside of a pod. Local source must be in a git repository that has a
+		remote repository that the server can see. The images will be deployed via a deployment
+		configuration, and a service will be connected to the first public port of the app. You may either specify
+		components using the various existing flags or let %[2]s autodetect what kind of components
+		you have provided.
 
-If you provide source code, a new build will be automatically triggered.
-You can use '%[1]s status' to check the progress.`
+		If you provide source code, a new build will be automatically triggered.
+		You can use '%[1]s status' to check the progress.`)
 
-	newAppExample = `
-  # List all local templates and image streams that can be used to create an app
-  %[1]s %[2]s --list
+	newAppExample = templates.Examples(`
+	  # List all local templates and image streams that can be used to create an app
+	  %[1]s %[2]s --list
 
-  # Create an application based on the source code in the current git repository (with a public remote)
-  # and a Docker image
-  %[1]s %[2]s . --docker-image=repo/langimage
+	  # Create an application based on the source code in the current git repository (with a public remote)
+	  # and a Docker image
+	  %[1]s %[2]s . --docker-image=repo/langimage
 
-  # Create a Ruby application based on the provided [image]~[source code] combination
-  %[1]s %[2]s centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+	  # Create a Ruby application based on the provided [image]~[source code] combination
+	  %[1]s %[2]s centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
-  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  %[1]s %[2]s mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+	  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+	  %[1]s %[2]s mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
-  # Use a MySQL image in a private registry to create an app and override application artifacts' names
-  %[1]s %[2]s --docker-image=myregistry.com/mycompany/mysql --name=private
+	  # Use a MySQL image in a private registry to create an app and override application artifacts' names
+	  %[1]s %[2]s --docker-image=myregistry.com/mycompany/mysql --name=private
 
-  # Create an application from a remote repository using its beta4 branch
-  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta4
+	  # Create an application from a remote repository using its beta4 branch
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta4
 
-  # Create an application based on a stored template, explicitly setting a parameter value
-  %[1]s %[2]s --template=ruby-helloworld-sample --param=MYSQL_USER=admin
+	  # Create an application based on a stored template, explicitly setting a parameter value
+	  %[1]s %[2]s --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
-  # Create an application from a remote repository and specify a context directory
-  %[1]s %[2]s https://github.com/youruser/yourgitrepo --context-dir=src/build
+	  # Create an application from a remote repository and specify a context directory
+	  %[1]s %[2]s https://github.com/youruser/yourgitrepo --context-dir=src/build
 
-  # Create an application based on a template file, explicitly setting a parameter value
-  %[1]s %[2]s --file=./example/myapp/template.json --param=MYSQL_USER=admin
+	  # Create an application based on a template file, explicitly setting a parameter value
+	  %[1]s %[2]s --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
-  # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  %[1]s %[2]s --search ruby
+	  # Search all templates, image streams, and Docker images for the ones that match "ruby"
+	  %[1]s %[2]s --search ruby
 
-  # Search for "ruby", but only in stored templates (--template, --image-stream and --docker-image
-  # can be used to filter search results)
-  %[1]s %[2]s --search --template=ruby
+	  # Search for "ruby", but only in stored templates (--template, --image-stream and --docker-image
+	  # can be used to filter search results)
+	  %[1]s %[2]s --search --template=ruby
 
-  # Search for "ruby" in stored templates and print the output as an YAML
-  %[1]s %[2]s --search --template=ruby --output=yaml`
+	  # Search for "ruby" in stored templates and print the output as an YAML
+	  %[1]s %[2]s --search --template=ruby --output=yaml`)
 
 	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
 

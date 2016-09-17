@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/prune"
@@ -21,18 +22,19 @@ import (
 
 const PruneDeploymentsRecommendedName = "deployments"
 
-const (
-	deploymentsLongDesc = `Prune old completed and failed deployments
+var (
+	deploymentsLongDesc = templates.LongDesc(`
+		Prune old completed and failed deployments
 
-By default, the prune operation performs a dry run making no changes to the deployments.
-A --confirm flag is needed for changes to be effective.
-`
+		By default, the prune operation performs a dry run making no changes to the deployments.
+		A --confirm flag is needed for changes to be effective.`)
 
-	deploymentsExample = `  # Dry run deleting all but the last complete deployment for every deployment config
-  %[1]s %[2]s --keep-complete=1
+	deploymentsExample = templates.Examples(`
+		# Dry run deleting all but the last complete deployment for every deployment config
+	  %[1]s %[2]s --keep-complete=1
 
-  # To actually perform the prune operation, the confirm flag must be appended
-  %[1]s %[2]s --keep-complete=1 --confirm`
+	  # To actually perform the prune operation, the confirm flag must be appended
+	  %[1]s %[2]s --keep-complete=1 --confirm`)
 )
 
 // PruneDeploymentsOptions holds all the required options for pruning deployments.

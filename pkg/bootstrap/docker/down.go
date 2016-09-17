@@ -14,27 +14,26 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 )
 
-const (
-	cmdDownLong = `
-Stops the container running OpenShift on Docker and associated containers.
+const CmdDownRecommendedName = "down"
 
-If you started your OpenShift with a specific docker-machine, you need to specify the 
-same machine using the --docker-machine argument.
-`
+var (
+	cmdDownLong = templates.LongDesc(`
+		Stops the container running OpenShift on Docker and associated containers.
 
-	cmdDownExample = `
-  # Stop local Docker cluster
-  %[1]s
+		If you started your OpenShift with a specific docker-machine, you need to specify the
+		same machine using the --docker-machine argument.`)
 
-  # Stop cluster running on Docker machine 'mymachine'
-  %[1]s --docker-machine=mymachine
-`
+	cmdDownExample = templates.Examples(`
+	  # Stop local Docker cluster
+	  %[1]s
 
-	CmdDownRecommendedName = "down"
+	  # Stop cluster running on Docker machine 'mymachine'
+	  %[1]s --docker-machine=mymachine`)
 )
 
 type ClientStopConfig struct {

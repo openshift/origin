@@ -13,16 +13,18 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
-const controllersLong = `Start the master controllers
+var controllersLong = templates.LongDesc(`
+	Start the master controllers
 
-This command starts the controllers for the master.  Running
+	This command starts the controllers for the master.  Running
 
-  %[1]s start master %[2]s
+	    %[1]s start master %[2]s
 
-will start the controllers that manage the master state, including the scheduler. The controllers
-will run in the foreground until you terminate the process.`
+	will start the controllers that manage the master state, including the scheduler. The controllers
+	will run in the foreground until you terminate the process.`)
 
 // NewCommandStartMasterControllers starts only the controllers
 func NewCommandStartMasterControllers(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {

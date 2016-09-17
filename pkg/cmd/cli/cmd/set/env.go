@@ -19,55 +19,57 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	envLong = `
-Update environment variables on a pod template or a build config
+var (
+	envLong = templates.LongDesc(`
+		Update environment variables on a pod template or a build config
 
-List environment variable definitions in one or more pods, pod templates or build
-configuration.
-Add, update, or remove container environment variable definitions in one or
-more pod templates (within replication controllers or deployment configurations) or
-build configurations.
-View or modify the environment variable definitions on all containers in the
-specified pods or pod templates, or just those that match a wildcard.
+		List environment variable definitions in one or more pods, pod templates or build
+		configuration.
+		Add, update, or remove container environment variable definitions in one or
+		more pod templates (within replication controllers or deployment configurations) or
+		build configurations.
+		View or modify the environment variable definitions on all containers in the
+		specified pods or pod templates, or just those that match a wildcard.
 
-If "--env -" is passed, environment variables can be read from STDIN using the standard env
-syntax.`
+		If "--env -" is passed, environment variables can be read from STDIN using the standard env
+		syntax.`)
 
-	envExample = `  # Update deployment 'registry' with a new environment variable
-  %[1]s env dc/registry STORAGE_DIR=/local
+	envExample = templates.Examples(`
+		# Update deployment 'registry' with a new environment variable
+	  %[1]s env dc/registry STORAGE_DIR=/local
 
-  # List the environment variables defined on a build config 'sample-build'
-  %[1]s env bc/sample-build --list
+	  # List the environment variables defined on a build config 'sample-build'
+	  %[1]s env bc/sample-build --list
 
-  # List the environment variables defined on all pods
-  %[1]s env pods --all --list
+	  # List the environment variables defined on all pods
+	  %[1]s env pods --all --list
 
-  # Output modified build config in YAML, and does not alter the object on the server
-  %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
+	  # Output modified build config in YAML, and does not alter the object on the server
+	  %[1]s env bc/sample-build STORAGE_DIR=/data -o yaml
 
-  # Update all containers in all replication controllers in the project to have ENV=prod
-  %[1]s env rc --all ENV=prod
+	  # Update all containers in all replication controllers in the project to have ENV=prod
+	  %[1]s env rc --all ENV=prod
 
-  # Import environment from a secret
-  %[1]s env --from=secret/mysecret dc/myapp
+	  # Import environment from a secret
+	  %[1]s env --from=secret/mysecret dc/myapp
 
-  # Import environment from a config map with a prefix
-  %[1]s env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
+	  # Import environment from a config map with a prefix
+	  %[1]s env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
 
-  # Remove the environment variable ENV from container 'c1' in all deployment configs
-  %[1]s env dc --all --containers="c1" ENV-
+	  # Remove the environment variable ENV from container 'c1' in all deployment configs
+	  %[1]s env dc --all --containers="c1" ENV-
 
-  # Remove the environment variable ENV from a deployment config definition on disk and
-  # update the deployment config on the server
-  %[1]s env -f dc.json ENV-
+	  # Remove the environment variable ENV from a deployment config definition on disk and
+	  # update the deployment config on the server
+	  %[1]s env -f dc.json ENV-
 
-  # Set some of the local shell environment into a deployment config on the server
-  env | grep RAILS_ | %[1]s env -e - dc/registry`
+	  # Set some of the local shell environment into a deployment config on the server
+	  env | grep RAILS_ | %[1]s env -e - dc/registry`)
 )
 
 // NewCmdEnv implements the OpenShift cli env command

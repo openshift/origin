@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -39,26 +40,26 @@ type AllInOneOptions struct {
 	Output             io.Writer
 }
 
-const allInOneLong = `
-Start an all-in-one server
+var allInOneLong = templates.LongDesc(`
+	Start an all-in-one server
 
-This command helps you launch an all-in-one server, which allows you to run all of the
-components of an enterprise Kubernetes system on a server with Docker. Running:
+	This command helps you launch an all-in-one server, which allows you to run all of the
+	components of an enterprise Kubernetes system on a server with Docker. Running:
 
-  %[1]s start
+	    %[1]s start
 
-will start listening on all interfaces, launch an etcd server to store persistent
-data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "%[1]s start master" and
-"%[1]s start node".
+	will start listening on all interfaces, launch an etcd server to store persistent
+	data, and launch the Kubernetes system components. The server will run in the foreground until
+	you terminate the process.  This command delegates to "%[1]s start master" and
+	"%[1]s start node".
 
-Note: starting OpenShift without passing the --master address will attempt to find the IP
-address that will be visible inside running Docker containers. This is not always successful,
-so if you have problems tell OpenShift what public address it will be via --master=<ip>.
+	Note: starting OpenShift without passing the --master address will attempt to find the IP
+	address that will be visible inside running Docker containers. This is not always successful,
+	so if you have problems tell OpenShift what public address it will be via --master=<ip>.
 
-You may also pass --etcd=<address> to connect to an external etcd server.
+	You may also pass --etcd=<address> to connect to an external etcd server.
 
-You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
+	You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`)
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Command, *AllInOneOptions) {

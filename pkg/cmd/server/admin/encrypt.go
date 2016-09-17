@@ -18,6 +18,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
@@ -45,12 +46,12 @@ type EncryptOptions struct {
 	PromptWriter io.Writer
 }
 
-const encryptExample = `	# Encrypt the content of secret.txt with a generated key:
+var encryptExample = templates.Examples(`
+	# Encrypt the content of secret.txt with a generated key:
 	%[1]s --genkey=secret.key --in=secret.txt --out=secret.encrypted
 
 	# Encrypt the content of secret2.txt with an existing key:
-	%[1]s --key=secret.key < secret2.txt > secret2.encrypted
-`
+	%[1]s --key=secret.key < secret2.txt > secret2.encrypted`)
 
 func NewCommandEncrypt(commandName string, fullName string, out io.Writer, errout io.Writer) *cobra.Command {
 	options := &EncryptOptions{

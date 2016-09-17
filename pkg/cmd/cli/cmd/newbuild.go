@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -25,43 +26,43 @@ import (
 // NewBuildRecommendedCommandName is the recommended command name.
 const NewBuildRecommendedCommandName = "new-build"
 
-const (
-	newBuildLong = `
-Create a new build by specifying source code
+var (
+	newBuildLong = templates.LongDesc(`
+		Create a new build by specifying source code
 
-This command will try to create a build configuration for your application using images and
-code that has a public repository. It will lookup the images on the local Docker installation
-(if available), a Docker registry, or an image stream.
+		This command will try to create a build configuration for your application using images and
+		code that has a public repository. It will lookup the images on the local Docker installation
+		(if available), a Docker registry, or an image stream.
 
-If you specify a source code URL, it will set up a build that takes your source code and converts
-it into an image that can run inside of a pod. Local source must be in a git repository that has a
-remote repository that the server can see.
+		If you specify a source code URL, it will set up a build that takes your source code and converts
+		it into an image that can run inside of a pod. Local source must be in a git repository that has a
+		remote repository that the server can see.
 
-Once the build configuration is created a new build will be automatically triggered.
-You can use '%[1]s status' to check the progress.`
+		Once the build configuration is created a new build will be automatically triggered.
+		You can use '%[1]s status' to check the progress.`)
 
-	newBuildExample = `
-  # Create a build config based on the source code in the current git repository (with a public
-  # remote) and a Docker image
-  %[1]s %[2]s . --docker-image=repo/langimage
+	newBuildExample = templates.Examples(`
+	  # Create a build config based on the source code in the current git repository (with a public
+	  # remote) and a Docker image
+	  %[1]s %[2]s . --docker-image=repo/langimage
 
-  # Create a NodeJS build config based on the provided [image]~[source code] combination
-  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+	  # Create a NodeJS build config based on the provided [image]~[source code] combination
+	  %[1]s %[2]s openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
 
-  # Create a build config from a remote repository using its beta2 branch
-  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta2
+	  # Create a build config from a remote repository using its beta2 branch
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta2
 
-  # Create a build config using a Dockerfile specified as an argument
-  %[1]s %[2]s -D $'FROM centos:7\nRUN yum install -y httpd'
+	  # Create a build config using a Dockerfile specified as an argument
+	  %[1]s %[2]s -D $'FROM centos:7\nRUN yum install -y httpd'
 
-  # Create a build config from a remote repository and add custom environment variables
-  %[1]s %[2]s https://github.com/openshift/ruby-hello-world RACK_ENV=development
+	  # Create a build config from a remote repository and add custom environment variables
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world RACK_ENV=development
 
-  # Create a build config from a remote repository and inject the npmrc into a build
-  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
+	  # Create a build config from a remote repository and inject the npmrc into a build
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
 
-  # Create a build config that gets its input from a remote repository and another Docker image
-  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`
+	  # Create a build config that gets its input from a remote repository and another Docker image
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --source-image=openshift/jenkins-1-centos7 --source-image-path=/var/lib/jenkins:tmp`)
 
 	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
 

@@ -20,6 +20,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiinstall "github.com/openshift/origin/pkg/cmd/server/api/install"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -39,11 +40,11 @@ type PatchOptions struct {
 	Out io.Writer
 }
 
-const (
-	patch_long    = `Patch the master-config.yaml or node-config.yaml`
-	patch_example = `
-# Set the auditConfig.enabled value to true
-%[1]s openshift.local.config/master/master-config.yaml --patch='{"auditConfig": {"enabled": true}}'`
+var (
+	patch_long    = templates.LongDesc(`Patch the master-config.yaml or node-config.yaml`)
+	patch_example = templates.Examples(`
+		# Set the auditConfig.enabled value to true
+		%[1]s openshift.local.config/master/master-config.yaml --patch='{"auditConfig": {"enabled": true}}'`)
 )
 
 func NewCmdPatch(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

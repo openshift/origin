@@ -11,25 +11,27 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	UserRecommendedName = "user"
+const UserRecommendedName = "user"
 
-	userLong = `
-This command can be used to create a user object.
+var (
+	userLong = templates.LongDesc(`
+		This command can be used to create a user object.
 
-Typically, users are created automatically during login. If automatic 
-creation is disabled (by using the "lookup" mapping method), users must
-be created manually.
+		Typically, users are created automatically during login. If automatic
+		creation is disabled (by using the "lookup" mapping method), users must
+		be created manually.
 
-Corresponding identity and useridentitymapping objects must also be created 
-to allow logging in as the created user.`
+		Corresponding identity and useridentitymapping objects must also be created
+		to allow logging in as the created user.`)
 
-	userExample = `  # Create a user with the username "ajones" and the display name "Adam Jones"
-  %[1]s ajones --full-name="Adam Jones"`
+	userExample = templates.Examples(`
+		# Create a user with the username "ajones" and the display name "Adam Jones"
+  	%[1]s ajones --full-name="Adam Jones"`)
 )
 
 type CreateUserOptions struct {

@@ -12,21 +12,23 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	UserIdentityMappingRecommendedName = "useridentitymapping"
+const UserIdentityMappingRecommendedName = "useridentitymapping"
 
-	userIdentityMappingLong = `
-Typically, identities are automatically mapped to users during login. If automatic 
-mapping is disabled (by using the "lookup" mapping method), or a mapping needs to 
-be manually established between an identity and a user, this command can be used 
-to create a useridentitymapping object.`
+var (
+	userIdentityMappingLong = templates.LongDesc(`
+		Typically, identities are automatically mapped to users during login. If automatic
+		mapping is disabled (by using the "lookup" mapping method), or a mapping needs to
+		be manually established between an identity and a user, this command can be used
+		to create a useridentitymapping object.`)
 
-	userIdentityMappingExample = `  # Map the identity "acme_ldap:adamjones" to the user "ajones"
-  %[1]s acme_ldap:adamjones ajones`
+	userIdentityMappingExample = templates.Examples(`
+		# Map the identity "acme_ldap:adamjones" to the user "ajones"
+  	%[1]s acme_ldap:adamjones ajones`)
 )
 
 type CreateUserIdentityMappingOptions struct {

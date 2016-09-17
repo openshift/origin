@@ -12,25 +12,27 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	IdentityRecommendedName = "identity"
+const IdentityRecommendedName = "identity"
 
-	identityLong = `
-This command can be used to create an identity object.
+var (
+	identityLong = templates.LongDesc(`
+		This command can be used to create an identity object.
 
-Typically, identities are created automatically during login. If automatic 
-creation is disabled (by using the "lookup" mapping method), identities must
-be created manually.
+		Typically, identities are created automatically during login. If automatic
+		creation is disabled (by using the "lookup" mapping method), identities must
+		be created manually.
 
-Corresponding user and useridentitymapping objects must also be created 
-to allow logging in with the created identity.`
+		Corresponding user and useridentitymapping objects must also be created
+		to allow logging in with the created identity.`)
 
-	identityExample = `  # Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
-  %[1]s acme_ldap:adamjones`
+	identityExample = templates.Examples(`
+		# Create an identity with identity provider "acme_ldap" and the identity provider username "adamjones"
+  	%[1]s acme_ldap:adamjones`)
 )
 
 type CreateIdentityOptions struct {

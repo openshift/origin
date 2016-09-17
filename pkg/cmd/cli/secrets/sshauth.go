@@ -10,30 +10,33 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
+
 	"github.com/spf13/cobra"
 )
 
-const (
-	// CreateSSHAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
-	CreateSSHAuthSecretRecommendedCommandName = "new-sshauth"
+// CreateSSHAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
+const CreateSSHAuthSecretRecommendedCommandName = "new-sshauth"
 
-	createSSHAuthSecretLong = `
-Create a new SSH authentication secret
+var (
+	createSSHAuthSecretLong = templates.LongDesc(`
+    Create a new SSH authentication secret
 
-SSH authentication secrets are used to authenticate against SCM servers.
+    SSH authentication secrets are used to authenticate against SCM servers.
 
-When creating applications, you may have a SCM server that requires SSH authentication - private SSH key.
-In order for the nodes to clone source code on your behalf, they have to have the credentials. You can
-provide this information by creating a 'sshauth' secret and attaching it to your service account.`
+    When creating applications, you may have a SCM server that requires SSH authentication - private SSH key.
+    In order for the nodes to clone source code on your behalf, they have to have the credentials. You can
+    provide this information by creating a 'sshauth' secret and attaching it to your service account.`)
 
-	createSSHAuthSecretExample = `  // If your SSH authentication method requires only private SSH key, add it by using:
-  %[1]s SECRET --ssh-privatekey=FILENAME
+	createSSHAuthSecretExample = templates.Examples(`
+    # If your SSH authentication method requires only private SSH key, add it by using:
+    %[1]s SECRET --ssh-privatekey=FILENAME
 
-  // If your SSH authentication method requires also CA certificate, add it by using:
-  %[1]s SECRET --ssh-privatekey=FILENAME --ca-cert=FILENAME
+    # If your SSH authentication method requires also CA certificate, add it by using:
+    %[1]s SECRET --ssh-privatekey=FILENAME --ca-cert=FILENAME
 
-  // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
-  %[2]s SECRET path/to/.gitconfig`
+    # If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
+    %[2]s SECRET path/to/.gitconfig`)
 )
 
 // CreateSSHAuthSecretOptions holds the credential needed to authenticate against SCM servers.

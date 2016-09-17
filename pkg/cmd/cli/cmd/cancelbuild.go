@@ -19,6 +19,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -26,27 +27,28 @@ import (
 // CancelBuildRecommendedCommandName is the recommended command name.
 const CancelBuildRecommendedCommandName = "cancel-build"
 
-const (
-	cancelBuildLong = `
-Cancel running, pending, or new builds
+var (
+	cancelBuildLong = templates.LongDesc(`
+		Cancel running, pending, or new builds
 
-This command requests a graceful shutdown of the build. There may be a delay between requesting
-the build and the time the build is terminated.`
+		This command requests a graceful shutdown of the build. There may be a delay between requesting
+		the build and the time the build is terminated.`)
 
-	cancelBuildExample = `  # Cancel the build with the given name
-  %[1]s %[2]s ruby-build-2
+	cancelBuildExample = templates.Examples(`
+	  # Cancel the build with the given name
+	  %[1]s %[2]s ruby-build-2
 
-  # Cancel the named build and print the build logs
-  %[1]s %[2]s ruby-build-2 --dump-logs
+	  # Cancel the named build and print the build logs
+	  %[1]s %[2]s ruby-build-2 --dump-logs
 
-  # Cancel the named build and create a new one with the same parameters
-  %[1]s %[2]s ruby-build-2 --restart
+	  # Cancel the named build and create a new one with the same parameters
+	  %[1]s %[2]s ruby-build-2 --restart
 
-  # Cancel multiple builds
-  %[1]s %[2]s ruby-build-1 ruby-build-2 ruby-build-3
+	  # Cancel multiple builds
+	  %[1]s %[2]s ruby-build-1 ruby-build-2 ruby-build-3
 
-  # Cancel all builds created from 'ruby-build' build configuration that are in 'new' state
-  %[1]s %[2]s bc/ruby-build --state=new`
+	  # Cancel all builds created from 'ruby-build' build configuration that are in 'new' state
+	  %[1]s %[2]s bc/ruby-build --state=new`)
 )
 
 // CancelBuildOptions contains all the options for running the CancelBuild cli command.

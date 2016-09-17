@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -53,42 +54,41 @@ const (
 
 	defaultImages         = "openshift/origin-${component}:${version}"
 	defaultOpenShiftImage = "openshift/origin:${version}"
-
-	cmdUpLong = `
-Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
-initial templates, and a default project.
-
-This command will attempt to use an existing connection to a Docker daemon. Before running
-the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
-
-Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
-driver when the --create-machine argument is specified. The machine will be named 'openshift'
-by default. To name the machine differently, use the --docker-machine=NAME argument. If the
---docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
-to find an existing docker machine with that name and start it if it's not running.
-
-By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
-This is to allow dynamic host names to be created for routes. An alternate routing suffix
-can be specified using the --routing-suffix flag.
-
-A public hostname can also be specified for the server with the --public-hostname flag.
-`
-	cmdUpExample = `
-  # Start OpenShift on a new docker machine named 'openshift'
-  %[1]s --create-machine
-
-  # Start OpenShift using a specific public host name
-  %[1]s --public-hostname=my.address.example.com
-
-  # Start OpenShift and preserve data and config between restarts
-  %[1]s --host-data-dir=/mydata --use-existing-config
-
-  # Use a different set of images
-  %[1]s --image="registry.example.com/origin" --version="v1.1"
-`
 )
 
 var (
+	cmdUpLong = templates.LongDesc(`
+		Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
+		initial templates, and a default project.
+
+		This command will attempt to use an existing connection to a Docker daemon. Before running
+		the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
+
+		Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
+		driver when the --create-machine argument is specified. The machine will be named 'openshift'
+		by default. To name the machine differently, use the --docker-machine=NAME argument. If the
+		--docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
+		to find an existing docker machine with that name and start it if it's not running.
+
+		By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
+		This is to allow dynamic host names to be created for routes. An alternate routing suffix
+		can be specified using the --routing-suffix flag.
+
+		A public hostname can also be specified for the server with the --public-hostname flag.`)
+
+	cmdUpExample = templates.Examples(`
+	  # Start OpenShift on a new docker machine named 'openshift'
+	  %[1]s --create-machine
+
+	  # Start OpenShift using a specific public host name
+	  %[1]s --public-hostname=my.address.example.com
+
+	  # Start OpenShift and preserve data and config between restarts
+	  %[1]s --host-data-dir=/mydata --use-existing-config
+
+	  # Use a different set of images
+	  %[1]s --image="registry.example.com/origin" --version="v1.1"`)
+
 	imageStreamLocations = map[string]string{
 		"origin centos7 image streams": "examples/image-streams/image-streams-centos7.json",
 	}

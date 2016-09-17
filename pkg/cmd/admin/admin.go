@@ -31,11 +31,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const adminLong = `
-Administrative Commands
+var adminLong = templates.LongDesc(`
+	Administrative Commands
 
-Commands for managing a cluster are exposed here. Many administrative
-actions involve interaction with the command-line client as well.`
+	Commands for managing a cluster are exposed here. Many administrative
+	actions involve interaction with the command-line client as well.`)
 
 func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout io.Writer) *cobra.Command {
 	// Main command
@@ -72,10 +72,10 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 			Commands: []*cobra.Command{
 				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out, errout),
-				cmdutil.ReplaceCommandName("kubectl", fullName, kubectl.NewCmdCordon(f.Factory, out)),
-				cmdutil.ReplaceCommandName("kubectl", fullName, kubectl.NewCmdUncordon(f.Factory, out)),
-				cmdutil.ReplaceCommandName("kubectl", fullName, kubectl.NewCmdDrain(f.Factory, out)),
-				cmdutil.ReplaceCommandName("kubectl", fullName, kubectl.NewCmdTaint(f.Factory, out)),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdCordon(f.Factory, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdUncordon(f.Factory, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdDrain(f.Factory, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubectl.NewCmdTaint(f.Factory, out))),
 				network.NewCmdPodNetwork(network.PodNetworkCommandName, fullName+" "+network.PodNetworkCommandName, f, out),
 			},
 		},

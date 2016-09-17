@@ -24,52 +24,55 @@ import (
 	"k8s.io/kubernetes/pkg/util/intstr"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 )
 
-const (
-	registryLong = `
-Install or configure an integrated Docker registry
+var (
+	registryLong = templates.LongDesc(`
+		Install or configure an integrated Docker registry
 
-This command sets up a Docker registry integrated with your cluster to provide notifications when
-images are pushed. With no arguments, the command will check for the existing registry service
-called 'docker-registry' and try to create it. If you want to test whether the registry has
-been created add the --dry-run flag and the command will exit with 1 if the registry does not
-exist.
+		This command sets up a Docker registry integrated with your cluster to provide notifications when
+		images are pushed. With no arguments, the command will check for the existing registry service
+		called 'docker-registry' and try to create it. If you want to test whether the registry has
+		been created add the --dry-run flag and the command will exit with 1 if the registry does not
+		exist.
 
-To run a highly available registry, you should be using a remote storage mechanism like an
-object store (several are supported by the Docker registry). The default Docker registry image
-is configured to accept configuration as environment variables - refer to the configuration file in
-that image for more on setting up alternative storage. Once you've made those changes, you can
-pass --replicas=2 or higher to ensure you have failover protection. The default registry setup
-uses a local volume and the data will be lost if you delete the running pod.
+		To run a highly available registry, you should be using a remote storage mechanism like an
+		object store (several are supported by the Docker registry). The default Docker registry image
+		is configured to accept configuration as environment variables - refer to the configuration file in
+		that image for more on setting up alternative storage. Once you've made those changes, you can
+		pass --replicas=2 or higher to ensure you have failover protection. The default registry setup
+		uses a local volume and the data will be lost if you delete the running pod.
 
-If multiple ports are specified using the option --ports, the first specified port will be
-chosen for use as the REGISTRY_HTTP_ADDR and will be passed to Docker registry.
+		If multiple ports are specified using the option --ports, the first specified port will be
+		chosen for use as the REGISTRY_HTTP_ADDR and will be passed to Docker registry.
 
-NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new
-  installation. Some configuration beyond this command is still required to make
-  your registry persist data.`
+		NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new
+		installation. Some configuration beyond this command is still required to make
+		your registry persist data.`)
 
-	registryExample = `  # Check if default Docker registry ("docker-registry") has been created
-  %[1]s %[2]s --dry-run
+	registryExample = templates.Examples(`
+		# Check if default Docker registry ("docker-registry") has been created
+	  %[1]s %[2]s --dry-run
 
-  # See what the registry will look like if created
-  %[1]s %[2]s -o yaml
+	  # See what the registry will look like if created
+	  %[1]s %[2]s -o yaml
 
-  # Create a registry with two replicas if it does not exist
-  %[1]s %[2]s --replicas=2
+	  # Create a registry with two replicas if it does not exist
+	  %[1]s %[2]s --replicas=2
 
-  # Use a different registry image
-  %[1]s %[2]s --images=myrepo/docker-registry:mytag
+	  # Use a different registry image
+	  %[1]s %[2]s --images=myrepo/docker-registry:mytag
 
-  # Enforce quota and limits on images
-  %[1]s %[2]s --enforce-quota`
+	  # Enforce quota and limits on images
+	  %[1]s %[2]s --enforce-quota`)
 )
 
 // RegistryOptions contains the configuration for the registry as well as any other

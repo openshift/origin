@@ -9,44 +9,46 @@ import (
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	ManageNodeCommandName = "manage-node"
+const ManageNodeCommandName = "manage-node"
 
-	manageNodeLong = `
-Manage nodes
+var (
+	manageNodeLong = templates.LongDesc(`
+		Manage nodes
 
-This command provides common operations on nodes for administrators.
+		This command provides common operations on nodes for administrators.
 
-schedulable: Marking node schedulable will allow pods to be schedulable on the node and
-	     marking node unschedulable will block pods to be scheduled on the node.
+		schedulable: Marking node schedulable will allow pods to be schedulable on the node and
+				 marking node unschedulable will block pods to be scheduled on the node.
 
-evacuate: Migrate all/selected pod on the provided nodes.
+		evacuate: Migrate all/selected pod on the provided nodes.
 
-list-pods: List all/selected pods on given/selected nodes. It can list the output in json/yaml format.`
+		list-pods: List all/selected pods on given/selected nodes. It can list the output in json/yaml format.`)
 
-	manageNodeExample = `	# Block accepting any pods on given nodes
-	%[1]s <mynode> --schedulable=false
+	manageNodeExample = templates.Examples(`
+		# Block accepting any pods on given nodes
+	  %[1]s <mynode> --schedulable=false
 
-	# Mark selected nodes as schedulable
-	%[1]s --selector="<env=dev>" --schedulable=true
+	  # Mark selected nodes as schedulable
+	  %[1]s --selector="<env=dev>" --schedulable=true
 
-	# Migrate selected pods
-	%[1]s <mynode> --evacuate --pod-selector="<service=myapp>"
+	  # Migrate selected pods
+	  %[1]s <mynode> --evacuate --pod-selector="<service=myapp>"
 
-	# Migrate selected pods, use a grace period of 60 seconds
-	%[1]s <mynode> --evacuate --grace-period=60 --pod-selector="<service=myapp>"
+	  # Migrate selected pods, use a grace period of 60 seconds
+	  %[1]s <mynode> --evacuate --grace-period=60 --pod-selector="<service=myapp>"
 
-	# Migrate selected pods not backed by replication controller
-	%[1]s <mynode> --evacuate --force --pod-selector="<service=myapp>"
+	  # Migrate selected pods not backed by replication controller
+	  %[1]s <mynode> --evacuate --force --pod-selector="<service=myapp>"
 
-	# Show pods that will be migrated
-	%[1]s <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
+	  # Show pods that will be migrated
+	  %[1]s <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
 
-	# List all pods on given nodes
-	%[1]s <mynode1> <mynode2> --list-pods`
+	  # List all pods on given nodes
+	  %[1]s <mynode1> <mynode2> --list-pods`)
 )
 
 var schedulable, evacuate, listpods bool

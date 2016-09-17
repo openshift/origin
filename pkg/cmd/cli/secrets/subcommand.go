@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -25,13 +26,13 @@ const (
 	SourceGitConfig = scmauth.GitConfigName
 )
 
-const (
-	secretsLong = `
-Manage secrets in your project
+var (
+	secretsLong = templates.LongDesc(`
+    Manage secrets in your project
 
-Secrets are used to store confidential information that should not be contained inside of an image.
-They are commonly used to hold things like keys for authentication to other internal systems like 
-Docker registries.`
+    Secrets are used to store confidential information that should not be contained inside of an image.
+    They are commonly used to hold things like keys for authentication to other internal systems like
+    Docker registries.`)
 )
 
 func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, ocEditFullName string) *cobra.Command {

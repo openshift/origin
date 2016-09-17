@@ -15,37 +15,37 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	buildSecretLong = `
-Set or remove a build secret on a build config
+var (
+	buildSecretLong = templates.LongDesc(`
+		Set or remove a build secret on a build config
 
-A build config can reference a secret to push or pull images from private registries or
-to access private source repositories.
+		A build config can reference a secret to push or pull images from private registries or
+		to access private source repositories.
 
-Specify the type of secret being set by using the --push, --pull, or --source flags.
-A secret reference can be removed by using --remove flag.
+		Specify the type of secret being set by using the --push, --pull, or --source flags.
+		A secret reference can be removed by using --remove flag.
 
-A label selector may be specified with the --selector flag to select the build configs
-on which to set or remove secrets. Alternatively, all build configs in the namespace can
-be selected with the --all flag.
-`
+		A label selector may be specified with the --selector flag to select the build configs
+		on which to set or remove secrets. Alternatively, all build configs in the namespace can
+		be selected with the --all flag.`)
 
-	buildSecretExample = `  # Clear push secret on a build config
-  %[1]s build-secret --push --remove bc/mybuild
+	buildSecretExample = templates.Examples(`  
+		# Clear push secret on a build config
+		%[1]s build-secret --push --remove bc/mybuild
 
-  # Set the pull secret on a build config
-  %[1]s build-secret --pull bc/mybuild mysecret
+		# Set the pull secret on a build config
+		%[1]s build-secret --pull bc/mybuild mysecret
 
-  # Set the push and pull secret on a build config
-  %[1]s build-secret --push --pull bc/mybuild mysecret
+		# Set the push and pull secret on a build config
+		%[1]s build-secret --push --pull bc/mybuild mysecret
 
-  # Set the source secret on a set of build configs matching a selector
-  %[1]s build-secret --source -l app=myapp gitsecret
-`
+		# Set the source secret on a set of build configs matching a selector
+		%[1]s build-secret --source -l app=myapp gitsecret`)
 )
 
 type BuildSecretOptions struct {

@@ -14,16 +14,18 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
-const apiLong = `Start the master API
+var apiLong = templates.LongDesc(`
+	Start the master API
 
-This command starts the master API.  Running
+	This command starts the master API.  Running
 
-  %[1]s start master %[2]s
+	    %[1]s start master %[2]s
 
-will start the server listening for incoming API requests. The server
-will run in the foreground until you terminate the process.`
+	will start the server listening for incoming API requests. The server
+	will run in the foreground until you terminate the process.`)
 
 // NewCommandStartMasterAPI starts only the APIserver
 func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {

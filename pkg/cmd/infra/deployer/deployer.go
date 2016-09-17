@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/strategy"
@@ -25,29 +26,28 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const (
-	deployerLong = `
-Perform a deployment
+var (
+	deployerLong = templates.LongDesc(`
+		Perform a deployment
 
-This command launches a deployment as described by a deployment configuration. It accepts the name
-of a replication controller created by a deployment and runs that deployment to completion. You can
-use the --until flag to run the deployment until you reach the specified condition.
+		This command launches a deployment as described by a deployment configuration. It accepts the name
+		of a replication controller created by a deployment and runs that deployment to completion. You can
+		use the --until flag to run the deployment until you reach the specified condition.
 
-Available conditions:
+		Available conditions:
 
-* "start": after old deployments are scaled to zero
-* "pre": after the pre hook completes (even if no hook specified)
-* "mid": after the mid hook completes (even if no hook specified)
-* A percentage of the deployment, based on which strategy is in use
-  * "0%"   Recreate after the previous deployment is scaled to zero
-  * "N%"   Recreate after the acceptance check if this is not the first deployment
-  * "0%"   Rolling  before the rolling deployment is started, equivalent to "pre"
-  * "N%"   Rolling  the percentage of pods in the target deployment that are ready
-  * "100%" All      after the deployment is at full scale, but before the post hook runs
+		* "start": after old deployments are scaled to zero
+		* "pre": after the pre hook completes (even if no hook specified)
+		* "mid": after the mid hook completes (even if no hook specified)
+		* A percentage of the deployment, based on which strategy is in use
+		  * "0%"   Recreate after the previous deployment is scaled to zero
+		  * "N%"   Recreate after the acceptance check if this is not the first deployment
+		  * "0%"   Rolling  before the rolling deployment is started, equivalent to "pre"
+		  * "N%"   Rolling  the percentage of pods in the target deployment that are ready
+		  * "100%" All      after the deployment is at full scale, but before the post hook runs
 
-Unrecognized conditions will be ignored and the deployment will run to completion. You can run this
-command multiple times when --until is specified - hooks will only be executed once.
-`
+		Unrecognized conditions will be ignored and the deployment will run to completion. You can run this
+		command multiple times when --until is specified - hooks will only be executed once.`)
 )
 
 type config struct {

@@ -13,30 +13,32 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
-const (
-	// CreateBasicAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
-	CreateBasicAuthSecretRecommendedCommandName = "new-basicauth"
+// CreateBasicAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command
+const CreateBasicAuthSecretRecommendedCommandName = "new-basicauth"
 
-	createBasicAuthSecretLong = `
-Create a new basic authentication secret
+var (
+	createBasicAuthSecretLong = templates.LongDesc(`
+    Create a new basic authentication secret
 
-Basic authentication secrets are used to authenticate against SCM servers.
+    Basic authentication secrets are used to authenticate against SCM servers.
 
-When creating applications, you may have a SCM server that requires basic authentication - username, password.
-In order for the nodes to clone source code on your behalf, they have to have the credentials. You can provide
-this information by creating a 'basicauth' secret and attaching it to your service account.`
+    When creating applications, you may have a SCM server that requires basic authentication - username, password.
+    In order for the nodes to clone source code on your behalf, they have to have the credentials. You can provide
+    this information by creating a 'basicauth' secret and attaching it to your service account.`)
 
-	createBasicAuthSecretExample = `  // If your basic authentication method requires only username and password or token, add it by using:
-  %[1]s SECRET --username=USERNAME --password=PASSWORD
+	createBasicAuthSecretExample = templates.Examples(`
+    # If your basic authentication method requires only username and password or token, add it by using:
+    %[1]s SECRET --username=USERNAME --password=PASSWORD
 
-  // If your basic authentication method requires also CA certificate, add it by using:
-  %[1]s SECRET --username=USERNAME --password=PASSWORD --ca-cert=FILENAME
+    # If your basic authentication method requires also CA certificate, add it by using:
+    %[1]s SECRET --username=USERNAME --password=PASSWORD --ca-cert=FILENAME
 
-  // If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
-  %[2]s SECRET path/to/.gitconfig`
+    # If you do already have a .gitconfig file needed for authentication, you can create a gitconfig secret by using:
+    %[2]s SECRET path/to/.gitconfig`)
 )
 
 // CreateBasicAuthSecretOptions holds the credential needed to authenticate against SCM servers.

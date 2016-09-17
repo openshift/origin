@@ -17,6 +17,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/serviceaccounts"
@@ -28,25 +29,26 @@ const (
 
 	newServiceAccountTokenShort = `Generate a new token for a service account.`
 
-	newServiceAccountTokenLong = `
-Generate a new token for a service account.
-
-Service account API tokens are used by service accounts to authenticate to the API.
-This command will generate a new token, which could be used to compartmentalize service
-account actions by executing them with distinct tokens, to rotate out pre-existing token
-on the service account, or for use by an external client. If a label is provided, it will
-be applied to any created token so that tokens created with this command can be idenitifed.
-`
-
 	newServiceAccountTokenUsage = `%s SA-NAME`
+)
 
-	newServiceAccountTokenExamples = `  # Generate a new token for service account 'default'
-  %[1]s 'default'
+var (
+	newServiceAccountTokenLong = templates.LongDesc(`
+    Generate a new token for a service account.
 
-  # Generate a new token for service account 'default' and apply
-  # labels 'foo' and 'bar' to the new token for identification
-  # %[1]s 'default' --labels foo=foo-value,bar=bar-value
-`
+    Service account API tokens are used by service accounts to authenticate to the API.
+    This command will generate a new token, which could be used to compartmentalize service
+    account actions by executing them with distinct tokens, to rotate out pre-existing token
+    on the service account, or for use by an external client. If a label is provided, it will
+    be applied to any created token so that tokens created with this command can be idenitifed.`)
+
+	newServiceAccountTokenExamples = templates.Examples(`
+    # Generate a new token for service account 'default'
+    %[1]s 'default'
+
+    # Generate a new token for service account 'default' and apply
+    # labels 'foo' and 'bar' to the new token for identification
+    # %[1]s 'default' --labels foo=foo-value,bar=bar-value`)
 )
 
 type NewServiceAccountTokenOptions struct {

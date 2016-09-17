@@ -9,26 +9,26 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/auth/server/errorpage"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	CreateErrorTemplateCommand = "create-error-template"
-	errorLongDescription       = `
-Create a template for customizing the error page
+const CreateErrorTemplateCommand = "create-error-template"
 
-This command creates a basic template to use as a starting point for
-customizing the authentication error page. Save the output to a file and edit
-the template to change the look and feel or add content.
+var errorLongDescription = templates.LongDesc(`
+		Create a template for customizing the error page
 
-To use the template, set oauthConfig.templates.error in the master
-configuration to point to the template file. For example,
+		This command creates a basic template to use as a starting point for
+		customizing the authentication error page. Save the output to a file and edit
+		the template to change the look and feel or add content.
 
-    oauthConfig:
-      templates:
-        error: templates/error.html
-`
-)
+		To use the template, set oauthConfig.templates.error in the master
+		configuration to point to the template file. For example,
+
+		    oauthConfig:
+		      templates:
+		        error: templates/error.html
+		`)
 
 type CreateErrorTemplateOptions struct{}
 
