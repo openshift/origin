@@ -36,7 +36,7 @@ func (DeploymentCauseImageTrigger) SwaggerDoc() map[string]string {
 }
 
 var map_DeploymentConfig = map[string]string{
-	"":         "DeploymentConfig represents a configuration for a single deployment (represented as a ReplicationController). It also contains details about changes which resulted in the current state of the DeploymentConfig. Each change to the DeploymentConfig which should result in a new deployment results in an increment of LatestVersion.",
+	"":         "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
 	"metadata": "Standard object's metadata.",
 	"spec":     "Spec represents a desired deployment state and how to deploy to it.",
 	"status":   "Status represents the current deployment state.",
