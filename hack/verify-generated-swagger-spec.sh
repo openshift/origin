@@ -3,10 +3,9 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 echo "===== Verifying API Swagger Spec ====="
 
-SPECROOT_REL="api/swagger-spec"
-SPECROOT="${OS_ROOT}/${SPECROOT_REL}"
+SPECROOT="${OS_ROOT}/api"
 REL_TMP_PATH="_output/verify-generated-swagger-spec"
-TMP_SPECROOT="${OS_ROOT}/${REL_TMP_PATH}/${SPECROOT_REL}"
+TMP_SPECROOT="${OS_ROOT}/${REL_TMP_PATH}/api"
 
 echo "Generating a fresh spec..."
 if ! output=`${OS_ROOT}/hack/update-generated-swagger-spec.sh ${REL_TMP_PATH} 2>&1`
@@ -15,6 +14,9 @@ then
 	echo "$output"
   exit 1
 fi
+
+# TODO: more effective way to do this, or have readme be generated
+cp "${SPECROOT}/README.md" "${TMP_SPECROOT}"
 
 echo "Diffing current spec against freshly generated spec..."
 ret=0
