@@ -255,7 +255,11 @@ type BuildSource struct {
 	Secrets []SecretBuildSource `json:"secrets,omitempty" protobuf:"bytes,8,rep,name=secrets"`
 }
 
-// ImageSource describes an image that is used as source for the build
+// ImageSource is used to describe build source that will be extracted from an image. A reference of
+// type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified
+// to pull the image from an external registry or override the default service account secret if pulling
+// from the internal registry. A list of paths to copy from the image and their respective destination
+// within the build directory must be specified in the paths array.
 type ImageSource struct {
 	// from is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
 	// copy source from.
@@ -611,7 +615,9 @@ type BuildOutput struct {
 	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty" protobuf:"bytes,2,opt,name=pushSecret"`
 }
 
-// BuildConfig is a template which can be used to create new builds.
+// Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
+//
+// Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
 type BuildConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 	// metadata for BuildConfig.

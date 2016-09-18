@@ -7,12 +7,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
-// Auth system gets identity name and provider
-// POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
-
 // +genclient=true
 
-// User describes someone that makes requests to the API
+// Upon log in, every user of the system receives a User and Identity resource. Administrators
+// may directly manipulate the attributes of the users for their own tracking, or set groups
+// via the API. The user name is unique and is chosen based on the value provided by the
+// identity provider - if a user already exists with the incoming name, the user name may have
+// a number appended to it depending on the configuration of the system.
 type User struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -37,7 +38,11 @@ type UserList struct {
 	Items []User `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// Identity records a successful authentication of a user with an identity provider
+// Identity records a successful authentication of a user with an identity provider. The
+// information about the source of authentication is stored on the identity, and the identity
+// is then associated with a single user object. Multiple identities can reference a single
+// user. Information retrieved from the authentication provider is stored in the extra field
+// using a schema determined by the provider.
 type Identity struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.
