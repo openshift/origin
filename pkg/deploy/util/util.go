@@ -326,8 +326,10 @@ func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
 }
 
-func HasSynced(dc *deployapi.DeploymentConfig) bool {
-	return dc.Status.ObservedGeneration >= dc.Generation
+// HasSynced checks if the provided deployment config has been noticed by the deployment
+// config controller.
+func HasSynced(dc *deployapi.DeploymentConfig, generation int64) bool {
+	return dc.Status.ObservedGeneration >= generation
 }
 
 // IsOwnedByConfig checks whether the provided replication controller is part of a
