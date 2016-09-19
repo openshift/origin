@@ -185,7 +185,6 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				if err := c.cleanupDeployerPods(deployment); err != nil {
 					return err
 				}
-				c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "DeploymentCancelled", fmt.Sprintf("Deployment %q cancelled", deployutil.LabelForDeployment(deployment)))
 			}
 		}
 
@@ -226,6 +225,10 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
+
+		if deployutil.IsDeploymentCancelled(deployment) && deployutil.IsFailedDeployment(deployment) {
+			c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "DeploymentCancelled", fmt.Sprintf("Deployment %q cancelled", deployutil.LabelForDeployment(deployment)))
+		}
 	}
 	return nil
 }
