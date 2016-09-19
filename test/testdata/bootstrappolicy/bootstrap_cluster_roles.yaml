@@ -1653,6 +1653,13 @@ items:
     - '*'
     verbs:
     - '*'
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - '*'
+    resources: []
+    verbs:
+    - '*'
 - apiVersion: v1
   kind: ClusterRole
   metadata:
