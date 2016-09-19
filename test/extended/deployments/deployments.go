@@ -38,6 +38,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
+		readinessFixture                = exutil.FixturePath("testdata", "readiness-test.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -616,6 +617,21 @@ var _ = g.Describe("deploymentconfigs", func() {
 			out, err = oc.Run("get").Args("pod", fmt.Sprintf("%s-1-hook-pre", name)).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("not found"))
+		})
+	})
+
+	g.Describe("initially", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "readiness", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should not deploy if pods never transition to ready [Conformance]", func() {
+			_, name, err := createFixture(oc, readinessFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deployment to fail")
+			err = waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentFailed)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 

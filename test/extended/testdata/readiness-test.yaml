@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: readiness
+spec:
+  replicas: 1
+  strategy:
+    rollingParams:
+      timeoutSeconds: 30
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        name: readiness-test
+    spec:
+      containers:
+      - command:
+        - /bin/sleep
+        - "10000"
+        image: docker.io/centos:centos7
+        imagePullPolicy: IfNotPresent
+        name: never-ready
+        readinessProbe:
+          exec:
+            command:
+            - /bin/false
+          failureThreshold: 1
