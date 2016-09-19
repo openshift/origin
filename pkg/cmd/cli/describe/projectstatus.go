@@ -961,7 +961,7 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test, restartCount))
 		switch {
 		case count == -1:
-			if deployutil.DeploymentStatusFor(deployment.ReplicationController) == deployapi.DeploymentStatusComplete {
+			if deployutil.IsCompleteDeployment(deployment.ReplicationController) {
 				return out
 			}
 		default:
