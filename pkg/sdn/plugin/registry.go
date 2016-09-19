@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
@@ -263,8 +262,12 @@ func (registry *Registry) GetEgressNetworkPolicies() ([]osapi.EgressNetworkPolic
 	return policyList.Items, nil
 }
 
-// Run event queue for the given resource
-func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.EventQueue {
+// Run event queue for the given resource. The 'process' function is called
+// repeatedly with each available cache.Delta that describes state changes
+// to an object. If the process function returns an error queued changes
+// for that object are dropped but processing continues with the next available
+// object's cache.Deltas.  The error is logged with call stack information.
+func (registry *Registry) RunEventQueue(resourceName ResourceName, process ProcessEventFunc) {
 	var client cache.Getter
 	var expectedType interface{}
 
@@ -295,11 +298,15 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName) *oscache.Even
 	}
 
 	lw := cache.NewListWatchFromClient(client, strings.ToLower(string(resourceName)), kapi.NamespaceAll, fields.Everything())
-	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	eventQueue := NewEventQueue(cache.MetaNamespaceKeyFunc)
 	// Repopulate event queue every 30 mins
 	// Existing items in the event queue will have watch.Modified event type
 	cache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
-	return eventQueue
+
+	// Run the queue
+	for {
+		eventQueue.Pop(process)
+	}
 }
 
 func (registry *Registry) ValidateNodeIP(nodeIP string) error {
