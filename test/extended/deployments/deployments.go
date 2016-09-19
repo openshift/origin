@@ -39,6 +39,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "readiness-test.yaml")
+		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployment-with-ref-env.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -284,6 +285,22 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
+	g.Describe("with env in params referencing the configmap", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
+		})
+		g.It("should expand the config map key to a value", func() {
+			_, err := oc.Run("create").Args("configmap", "test", "--from-literal=foo=bar").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, name, err := createFixture(oc, envRefDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			out, err := oc.Run("deploy").Args("dc/"+name, "--latest", "--follow").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("hello bar"))
+		})
+	})
 	g.Describe("with multiple image change triggers", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
