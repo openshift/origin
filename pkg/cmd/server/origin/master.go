@@ -40,6 +40,7 @@ import (
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
@@ -480,7 +481,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 
 	buildGenerator := &buildgenerator.BuildGenerator{
-		Client: buildgenerator.Client{
+		Client: buildutil.BuildClientImpl{
 			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
 			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
 			GetBuildFunc:            buildRegistry.GetBuild,
