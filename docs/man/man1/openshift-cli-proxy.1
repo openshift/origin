@@ -135,11 +135,11 @@ Run a proxy to the API server
 .nf
   # Run a proxy to the api server on port 8011, serving static content from ./local/www/
   openshift cli proxy \-\-port=8011 \-\-www=./local/www/
-
+  
   # Run a proxy to the api server on an arbitrary local port.
   # The chosen port for the server will be output to stdout.
   openshift cli proxy \-\-port=0
-
+  
   # Run a proxy to the api server, changing the api prefix to my\-api
   # This makes e.g. the pods api available at localhost:8011/my\-api/api/v1/pods/
   openshift cli proxy \-\-api\-prefix=/my\-api

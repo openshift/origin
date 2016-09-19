@@ -16,17 +16,10 @@ oc set env \- Update environment variables on a pod template
 Update environment variables on a pod template or a build config
 
 .PP
-List environment variable definitions in one or more pods, pod templates or build
-configuration.
-Add, update, or remove container environment variable definitions in one or
-more pod templates (within replication controllers or deployment configurations) or
-build configurations.
-View or modify the environment variable definitions on all containers in the
-specified pods or pod templates, or just those that match a wildcard.
+List environment variable definitions in one or more pods, pod templates or build configuration. Add, update, or remove container environment variable definitions in one or more pod templates (within replication controllers or deployment configurations) or build configurations. View or modify the environment variable definitions on all containers in the specified pods or pod templates, or just those that match a wildcard.
 
 .PP
-If "\-\-env \-" is passed, environment variables can be read from STDIN using the standard env
-syntax.
+If "\-\-env \-" is passed, environment variables can be read from STDIN using the standard env syntax.
 
 
 .SH OPTIONS
@@ -156,32 +149,32 @@ syntax.
 .nf
   # Update deployment 'registry' with a new environment variable
   oc set env dc/registry STORAGE\_DIR=/local
-
+  
   # List the environment variables defined on a build config 'sample\-build'
   oc set env bc/sample\-build \-\-list
-
+  
   # List the environment variables defined on all pods
   oc set env pods \-\-all \-\-list
-
+  
   # Output modified build config in YAML, and does not alter the object on the server
   oc set env bc/sample\-build STORAGE\_DIR=/data \-o yaml
-
+  
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc set env rc \-\-all ENV=prod
-
+  
   # Import environment from a secret
   oc set env \-\-from=secret/mysecret dc/myapp
-
+  
   # Import environment from a config map with a prefix
   oc set env \-\-from=configmap/myconfigmap \-\-prefix=MYSQL\_ dc/myapp
-
+  
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc set env dc \-\-all \-\-containers="c1" ENV\-
-
+  
   # Remove the environment variable ENV from a deployment config definition on disk and
   # update the deployment config on the server
   oc set env \-f dc.json ENV\-
-
+  
   # Set some of the local shell environment into a deployment config on the server
   env | grep RAILS\_ | oc set env \-e \- dc/registry
 

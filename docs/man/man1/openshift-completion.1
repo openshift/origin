@@ -13,8 +13,7 @@ openshift completion \- Output shell completion code for the given shell (bash o
 
 .SH DESCRIPTION
 .PP
-This command prints shell code which must be evaluated to provide interactive
-completion of openshift commands.
+This command prints shell code which must be evaluated to provide interactive completion of openshift commands.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -35,18 +34,19 @@ completion of openshift commands.
   # Generate the openshift completion code for bash
   openshift completion bash > bash\_completion.sh
   source bash\_completion.sh
-
+  
   # The above example depends on the bash\-completion framework.
-  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
-
+  # It must be sourced before sourcing the openshift cli completion,
+  # i.e. on the Mac:
+  
   brew install bash\-completion
   source $(brew \-\-prefix)/etc/bash\_completion
   openshift completion bash > bash\_completion.sh
   source bash\_completion.sh
-
+  
   # In zsh*, the following will load openshift cli zsh completion:
   source <(openshift completion zsh)
-
+  
   * zsh completions are only supported in versions of zsh >= 5.2
 
 .fi

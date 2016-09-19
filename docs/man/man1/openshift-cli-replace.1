@@ -142,10 +142,10 @@ JSON and YAML formats are accepted.
 .nf
   # Replace a pod using the data in pod.json.
   openshift cli replace \-f pod.json
-
+  
   # Replace a pod based on the JSON passed into stdin.
   cat pod.json | openshift cli replace \-f \-
-
+  
   # Force replace, delete and then re\-create the resource
   openshift cli replace \-\-force \-f pod.json
 

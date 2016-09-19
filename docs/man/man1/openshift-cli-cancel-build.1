@@ -16,8 +16,7 @@ openshift cli cancel\-build \- Cancel running, pending, or new builds
 Cancel running, pending, or new builds
 
 .PP
-This command requests a graceful shutdown of the build. There may be a delay between requesting
-the build and the time the build is terminated.
+This command requests a graceful shutdown of the build. There may be a delay between requesting the build and the time the build is terminated.
 
 
 .SH OPTIONS
@@ -107,16 +106,16 @@ the build and the time the build is terminated.
 .nf
   # Cancel the build with the given name
   openshift cli cancel\-build ruby\-build\-2
-
+  
   # Cancel the named build and print the build logs
   openshift cli cancel\-build ruby\-build\-2 \-\-dump\-logs
-
+  
   # Cancel the named build and create a new one with the same parameters
   openshift cli cancel\-build ruby\-build\-2 \-\-restart
-
+  
   # Cancel multiple builds
   openshift cli cancel\-build ruby\-build\-1 ruby\-build\-2 ruby\-build\-3
-
+  
   # Cancel all builds created from 'ruby\-build' build configuration that are in 'new' state
   openshift cli cancel\-build bc/ruby\-build \-\-state=new
 

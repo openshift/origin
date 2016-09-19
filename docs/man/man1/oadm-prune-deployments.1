@@ -16,8 +16,7 @@ oadm prune deployments \- Remove old completed and failed deployments
 Prune old completed and failed deployments
 
 .PP
-By default, the prune operation performs a dry run making no changes to the deployments.
-A \-\-confirm flag is needed for changes to be effective.
+By default, the prune operation performs a dry run making no changes to the deployments. A \-\-confirm flag is needed for changes to be effective.
 
 
 .SH OPTIONS
@@ -115,7 +114,7 @@ A \-\-confirm flag is needed for changes to be effective.
 .nf
   # Dry run deleting all but the last complete deployment for every deployment config
   oadm prune deployments \-\-keep\-complete=1
-
+  
   # To actually perform the prune operation, the confirm flag must be appended
   oadm prune deployments \-\-keep\-complete=1 \-\-confirm
 

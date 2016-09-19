@@ -101,12 +101,11 @@ Decrypt data encrypted with "openshift admin ca encrypt"
 .RS
 
 .nf
-	# Decrypt an encrypted file to a cleartext file:
-	openshift admin ca decrypt \-\-key=secret.key \-\-in=secret.encrypted \-\-out=secret.decrypted
-	
-	# Decrypt from stdin to stdout:
-	openshift admin ca decrypt \-\-key=secret.key < secret2.encrypted > secret2.decrypted
-
+  # Decrypt an encrypted file to a cleartext file:
+  openshift admin ca decrypt \-\-key=secret.key \-\-in=secret.encrypted \-\-out=secret.decrypted
+  
+  # Decrypt from stdin to stdout:
+  openshift admin ca decrypt \-\-key=secret.key < secret2.encrypted > secret2.decrypted
 
 .fi
 .RE

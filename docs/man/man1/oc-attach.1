@@ -16,8 +16,7 @@ oc attach \- Attach to a running container
 Attach to a running container
 
 .PP
-Attach the current shell to a remote container, returning output or setting up a full
-terminal session. Can be used to debug containers and invoke interactive commands.
+Attach the current shell to a remote container, returning output or setting up a full terminal session. Can be used to debug containers and invoke interactive commands.
 
 
 .SH OPTIONS
@@ -107,10 +106,10 @@ terminal session. Can be used to debug containers and invoke interactive command
 .nf
   # Get output from running pod 123456\-7890, using the first container by default
   oc attach 123456\-7890
-
+  
   # Get output from ruby\-container from pod 123456\-7890
   oc attach 123456\-7890 \-c ruby\-container
-
+  
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby\-container from pod 123456\-780
   # and sends stdout/stderr from 'bash' back to the client
   oc attach 123456\-7890 \-c ruby\-container \-i \-t

@@ -16,8 +16,7 @@ oc cluster down \- Stop OpenShift on Docker
 Stops the container running OpenShift on Docker and associated containers.
 
 .PP
-If you started your OpenShift with a specific docker\-machine, you need to specify the
-same machine using the \-\-docker\-machine argument.
+If you started your OpenShift with a specific docker\-machine, you need to specify the same machine using the \-\-docker\-machine argument.
 
 
 .SH OPTIONS
@@ -97,13 +96,11 @@ same machine using the \-\-docker\-machine argument.
 .RS
 
 .nf
-
   # Stop local Docker cluster
   oc cluster down
-
+  
   # Stop cluster running on Docker machine 'mymachine'
   oc cluster down \-\-docker\-machine=mymachine
-
 
 .fi
 .RE

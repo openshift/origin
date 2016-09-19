@@ -16,11 +16,7 @@ openshift cli rollout latest \- Start a new rollout for a deployment config with
 Start a new rollout for a deployment config with the latest state from its triggers
 
 .PP
-This command is appropriate for running manual rollouts. If you want full control over
-running new rollouts, use "oc set triggers \-\-manual" to disable all triggers in your
-deployment config and then whenever you want to run a new deployment process, use this
-command in order to pick up the latest images found in the cluster that are pointed by
-your image change triggers.
+This command is appropriate for running manual rollouts. If you want full control over running new rollouts, use "oc set triggers \-\-manual" to disable all triggers in your deployment config and then whenever you want to run a new deployment process, use this command in order to pick up the latest images found in the cluster that are pointed by your image change triggers.
 
 
 .SH OPTIONS
@@ -106,7 +102,6 @@ your image change triggers.
 .nf
   # Start a new rollout based on the latest images defined in the image change triggers.
   openshift cli rollout latest dc/nginx
-
 
 .fi
 .RE

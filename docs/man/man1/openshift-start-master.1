@@ -22,20 +22,16 @@ This command helps you launch a master server.  Running
 openshift start master
 
 .PP
-will start a master listening on all interfaces, launch an etcd server to store
-persistent data, and launch the Kubernetes system components. The server will run in the
-foreground until you terminate the process.
+will start a master listening on all interfaces, launch an etcd server to store persistent data, and launch the Kubernetes system components. The server will run in the foreground until you terminate the process.
 
 .PP
-Note: starting the master without passing the \-\-master address will attempt to find the IP
-address that will be visible inside running Docker containers. This is not always successful,
-so if you have problems tell the master what public address it should use via \-\-master=<ip>.
+Note: starting the master without passing the \-\-master address will attempt to find the IP address that will be visible inside running Docker containers. This is not always successful, so if you have problems tell the master what public address it should use via \-\-master= <ip>.
 
 .PP
-You may also pass \-\-etcd=<address> to connect to an external etcd server.
+You may also pass \-\-etcd= <address>to connect to an external etcd server.
 
 .PP
-You may also pass \-\-kubeconfig=<path> to connect to an external Kubernetes cluster.
+You may also pass \-\-kubeconfig= <path>to connect to an external Kubernetes cluster.
 
 
 .SH OPTIONS

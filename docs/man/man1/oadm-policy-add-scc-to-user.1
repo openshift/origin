@@ -95,7 +95,7 @@ Add users or serviceaccount to a security context constraint
 .nf
   # Add the 'restricted' security context contraint to user1 and user2
   oadm policy add\-scc\-to\-user restricted user1 user2
-
+  
   # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
   oadm policy add\-scc\-to\-user privileged \-z serviceaccount1
 

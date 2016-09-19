@@ -105,12 +105,11 @@ Encrypt data with AES\-256\-CBC encryption
 .RS
 
 .nf
-	# Encrypt the content of secret.txt with a generated key:
-	oadm ca encrypt \-\-genkey=secret.key \-\-in=secret.txt \-\-out=secret.encrypted
-	
-	# Encrypt the content of secret2.txt with an existing key:
-	oadm ca encrypt \-\-key=secret.key < secret2.txt > secret2.encrypted
-
+  # Encrypt the content of secret.txt with a generated key:
+  oadm ca encrypt \-\-genkey=secret.key \-\-in=secret.txt \-\-out=secret.encrypted
+  
+  # Encrypt the content of secret2.txt with an existing key:
+  oadm ca encrypt \-\-key=secret.key < secret2.txt > secret2.encrypted
 
 .fi
 .RE

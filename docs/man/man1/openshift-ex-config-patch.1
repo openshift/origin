@@ -97,9 +97,8 @@ Patch the master\-config.yaml or node\-config.yaml
 .RS
 
 .nf
-
-# Set the auditConfig.enabled value to true
-%[1]s openshift.local.config/master/master\-config.yaml \-\-patch='{"auditConfig": {"enabled": true}}'
+  # Set the auditConfig.enabled value to true
+  %[1]s openshift.local.config/master/master\-config.yaml \-\-patch='{"auditConfig": {"enabled": true}}'
 
 .fi
 .RE

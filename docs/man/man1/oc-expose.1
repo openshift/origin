@@ -16,9 +16,7 @@ oc expose \- Expose a replicated application as a service or route
 Expose containers internally as services or externally via routes
 
 .PP
-There is also the ability to expose a deployment configuration, replication controller, service, or pod
-as a new service on a specified port. If no labels are specified, the new object will re\-use the
-labels from the object it exposes.
+There is also the ability to expose a deployment configuration, replication controller, service, or pod as a new service on a specified port. If no labels are specified, the new object will re\-use the labels from the object it exposes.
 
 
 .SH OPTIONS
@@ -216,16 +214,16 @@ labels from the object it exposes.
 .nf
   # Create a route based on service nginx. The new route will re\-use nginx's labels
   oc expose service nginx
-
+  
   # Create a route and specify your own label and route name
   oc expose service nginx \-l name=myroute \-\-name=fromdowntown
-
+  
   # Create a route and specify a hostname
   oc expose service nginx \-\-hostname=www.example.com
-
+  
   # Expose a deployment configuration as a service and use the specified port
   oc expose dc ruby\-hello\-world \-\-port=8080
-
+  
   # Expose a service as a route in the specified path
   oc expose service nginx \-\-path=/nginx
 

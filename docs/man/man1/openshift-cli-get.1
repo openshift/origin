@@ -16,10 +16,7 @@ openshift cli get \- Display one or many resources
 Display one or many resources
 
 .PP
-Possible resources include builds, buildConfigs, services, pods, etc. To see a
-list of common resources, use 'openshift cli get'. Some resources may omit
-advanced details that you can see with '\-o wide'.  If you want an even more
-detailed view, use 'openshift cli describe'.
+Possible resources include builds, buildConfigs, services, pods, etc. To see a list of common resources, use 'openshift cli get'. Some resources may omit advanced details that you can see with '\-o wide'.  If you want an even more detailed view, use 'openshift cli describe'.
 
 
 .SH OPTIONS
@@ -173,16 +170,16 @@ detailed view, use 'openshift cli describe'.
 .nf
   # List all pods in ps output format.
   openshift cli get pods
-
+  
   # List a single replication controller with specified ID in ps output format.
   openshift cli get rc redis
-
+  
   # List all pods and show more details about them.
   openshift cli get \-o wide pods
-
+  
   # List a single pod in JSON output format.
   openshift cli get \-o json pod redis\-pod
-
+  
   # Return only the status value of the specified pod.
   openshift cli get \-o template pod redis\-pod \-\-template={{.currentState.status}}
 
