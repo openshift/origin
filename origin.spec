@@ -178,7 +178,11 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %build
 # Create Binaries
+%if 0%{?make_redistributable}
 %{os_git_vars} hack/build-cross.sh
+%else
+%{os_git_vars} hack/build-go.sh
+%endif
 
 # Create extended.test
 %{os_git_vars} hack/build-go.sh test/extended/extended.test
