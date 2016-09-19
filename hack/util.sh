@@ -735,12 +735,12 @@ function os::log::info() {
 readonly -f os::log::info
 
 function os::log::warn() {
-  os::log::with-severity "${1}" "WARNING"
+  os::log::with-severity "${1}" "WARNING" 1>&2
 }
 readonly -f os::log::warn
 
 function os::log::error() {
-  os::log::with-severity "${1}" "ERROR"
+  os::log::with-severity "${1}" "ERROR" 1>&2
 }
 readonly -f os::log::error
 

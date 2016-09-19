@@ -76,8 +76,24 @@ trap "cleanup" EXIT
 
 set -e
 
-function find_tests {
-  find "${OS_ROOT}/test/cmd" -name '*.sh' -not -wholename '*images_tests.sh' | grep -E "${1}" | sort -u
+function find_tests() {
+    local test_regex="${1}"
+    local full_test_list=()
+    local selected_tests=()
+
+    full_test_list=( $(find "${OS_ROOT}/test/cmd" -name '*.sh' -not -wholename '*images_tests.sh') )
+    for test in "${full_test_list[@]}"; do
+        if grep -q -E "${test_regex}" <<< "${test}"; then
+            selected_tests+=( "${test}" )
+        fi
+    done
+
+    if [[ "${#selected_tests[@]}" -eq 0 ]]; then
+        os::log::error "No tests were selected due to invalid regex."
+        return 1
+    else
+        echo "${selected_tests[@]}"
+    fi
 }
 tests=( $(find_tests ${1:-.*}) )
 
