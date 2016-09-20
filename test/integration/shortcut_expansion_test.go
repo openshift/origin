@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -38,6 +39,11 @@ func TestCachingDiscoveryClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer func() {
+		if !t.Failed() {
+			os.RemoveAll(cacheDir)
+		}
+	}()
 	// this client should prime the cache
 	originCachedDiscoveryClient := clientcmd.NewCachedDiscoveryClient(originDiscoveryClient, cacheDir, time.Duration(10*time.Minute))
 	originCachedMapper := clientcmd.NewShortcutExpander(originCachedDiscoveryClient, nil)
