@@ -26,8 +26,9 @@ type REST struct {
 	*registry.Store
 }
 
-// NewStorage returns a DeploymentConfigStorage containing the REST storage for
-// DeploymentConfig objects and their Scale subresources.
+// NewREST returns a deploymentConfigREST containing the REST storage for DeploymentConfig objects,
+// a statusREST containing the REST storage for changing the status of a DeploymentConfig,
+// and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
 func NewREST(optsGetter restoptions.Getter, rcNamespacer kclient.ReplicationControllersNamespacer) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
