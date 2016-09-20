@@ -94,6 +94,9 @@ func preamble(out *bytes.Buffer, cmdName, name, short, long string) {
 
 func printFlags(out *bytes.Buffer, flags *pflag.FlagSet) {
 	flags.VisitAll(func(flag *pflag.Flag) {
+		if flag.Hidden {
+			return
+		}
 		format := "**--%s**=%s\n\t%s\n\n"
 		if flag.Value.Type() == "string" {
 			// put quotes on the value

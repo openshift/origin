@@ -11,13 +11,21 @@ import (
 // SchemeGroupVersion is group version used to register these objects
 var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addDefaultingFuncs)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
+
 // Adds the list of known types to api.Scheme.
-func AddToScheme(scheme *runtime.Scheme) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ImagePolicyConfig{},
 	)
-	addDefaultingFuncs(scheme)
-	scheme.AddConversionFuncs(
+	return nil
+}
+
+func addConversionFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddConversionFuncs(
 		// TODO: remove when MatchSignatures is implemented
 		func(in *ImageCondition, out *api.ImageCondition, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)

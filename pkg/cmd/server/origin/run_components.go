@@ -332,7 +332,7 @@ func (c *MasterConfig) RunDeploymentController() {
 		bootstrappolicy.DeployerServiceAccountName,
 		c.ImageFor("deployer"),
 		env,
-		c.EtcdHelper.Codec(),
+		c.ExternalVersionCodec,
 	)
 	go controller.Run(5, utilwait.NeverStop)
 }
@@ -344,7 +344,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	podInformer := c.Informers.Pods().Informer()
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
-	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.EtcdHelper.Codec())
+	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.ExternalVersionCodec)
 	go controller.Run(5, utilwait.NeverStop)
 }
 
@@ -354,7 +354,7 @@ func (c *MasterConfig) RunDeploymentTriggerController() {
 	streamInformer := c.Informers.ImageStreams().Informer()
 	osclient, kclient := c.DeploymentTriggerControllerClients()
 
-	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, kclient, c.EtcdHelper.Codec())
+	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, kclient, c.ExternalVersionCodec)
 	go controller.Run(5, utilwait.NeverStop)
 }
 
@@ -420,14 +420,19 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 
 	// TODO: move range initialization to run_config
 	uidRange, err := uid.ParseRange(alloc.UIDAllocatorRange)
-
 	if err != nil {
 		glog.Fatalf("Unable to describe UID range: %v", err)
 	}
+
+	opts, err := c.RESTOptionsGetter.GetRESTOptions(unversioned.GroupResource{Resource: "securityuidranges"})
+	if err != nil {
+		glog.Fatalf("Unable to load storage options for security UID ranges")
+	}
+
 	var etcdAlloc *etcdallocator.Etcd
 	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
-		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", kapi.Resource("uidallocation"), c.EtcdHelper)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", kapi.Resource("uidallocation"), opts.StorageConfig)
 		return etcdAlloc
 	})
 	mcsRange, err := mcs.ParseRange(alloc.MCSAllocatorRange)

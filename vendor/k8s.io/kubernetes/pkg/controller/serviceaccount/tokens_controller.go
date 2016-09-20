@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -87,8 +87,8 @@ func NewTokensController(cl clientset.Interface, options TokensControllerOptions
 		rootCA:           options.RootCA,
 		serviceServingCA: options.ServiceServingCA,
 
-		syncServiceAccountQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		syncSecretQueue:         workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		syncServiceAccountQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "serviceaccount_tokens_service"),
+		syncSecretQueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "serviceaccount_tokens_secret"),
 
 		maxRetries: maxRetries,
 	}

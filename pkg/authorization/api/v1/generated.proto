@@ -103,11 +103,11 @@ message ClusterRoleBinding {
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional OptionalNames userNames = 2;
 
   // GroupNames holds all the groups directly bound to the role
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional OptionalNames groupNames = 3;
 
   // Subjects hold object references to authorize with this rule
@@ -156,7 +156,7 @@ message LocalSubjectAccessReview {
   optional string user = 2;
 
   // Groups is optional.  Groups is the list of groups to which the User belongs.
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   repeated string groups = 3;
 
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
@@ -203,15 +203,19 @@ message NamedRoleBinding {
 
 // OptionalNames is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 message OptionalNames {
   // items, if empty, will result in an empty slice
+
   repeated string items = 1;
 }
 
 // OptionalScopes is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 message OptionalScopes {
   // items, if empty, will result in an empty slice
+
   repeated string items = 1;
 }
 
@@ -301,11 +305,11 @@ message ResourceAccessReviewResponse {
   optional string namespace = 1;
 
   // UsersSlice is the list of users who can perform the action
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   repeated string users = 2;
 
   // GroupsSlice is the list of groups who can perform the action
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   repeated string groups = 3;
 
   // EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned.
@@ -331,11 +335,11 @@ message RoleBinding {
   optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional OptionalNames userNames = 2;
 
   // GroupNames holds all the groups directly bound to the role
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   optional OptionalNames groupNames = 3;
 
   // Subjects hold object references to authorize with this rule
@@ -390,7 +394,7 @@ message SubjectAccessReview {
   optional string user = 2;
 
   // GroupsSlice is optional. Groups is the list of groups to which the User belongs.
-  // +genconversion=false
+  // +k8s:conversion-gen=false
   repeated string groups = 3;
 
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".

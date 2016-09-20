@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -104,7 +105,8 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	optsGetter := restoptions.NewConfigGetter(*masterConfig)
+	// this brings in etcd server client libraries
+	optsGetter := originrest.StorageOptions(*masterConfig)
 
 	return OverwriteBootstrapPolicy(optsGetter, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }

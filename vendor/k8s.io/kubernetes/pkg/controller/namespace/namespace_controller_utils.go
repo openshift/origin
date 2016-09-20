@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package namespace
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -195,8 +196,12 @@ func listCollection(
 	}
 
 	apiResource := unversioned.APIResource{Name: gvr.Resource, Namespaced: true}
-	unstructuredList, err := dynamicClient.Resource(&apiResource, namespace).List(&v1.ListOptions{})
+	obj, err := dynamicClient.Resource(&apiResource, namespace).List(&v1.ListOptions{})
 	if err == nil {
+		unstructuredList, ok := obj.(*runtime.UnstructuredList)
+		if !ok {
+			return nil, false, fmt.Errorf("resource: %s, expected *runtime.UnstructuredList, got %#v", apiResource.Name, obj)
+		}
 		return unstructuredList, true, nil
 	}
 
@@ -314,6 +319,8 @@ func deleteAllContent(
 	estimate := int64(0)
 	glog.V(4).Infof("namespace controller - deleteAllContent - namespace: %s, gvrs: %v", namespace, groupVersionResources)
 	// iterate over each group version, and attempt to delete all of its resources
+	// we sort resources to delete in a priority order that deletes pods LAST
+	sort.Sort(sortableGroupVersionResources(groupVersionResources))
 	for _, gvr := range groupVersionResources {
 		gvrEstimate, err := deleteAllContentForGroupVersionResource(kubeClient, clientPool, opCache, gvr, namespace, namespaceDeletedAt)
 		if err != nil {
@@ -448,4 +455,21 @@ func estimateGracefulTerminationForPods(kubeClient clientset.Interface, ns strin
 		}
 	}
 	return estimate, nil
+}
+
+// sortableGroupVersionResources sorts the input set of resources for deletion, and orders pods to always be last.
+// the idea is that the namespace controller will delete all things that spawn pods first in order to reduce the time
+// those controllers spend creating pods only to be told NO in admission and potentially overwhelming cluster especially if they lack rate limiting.
+type sortableGroupVersionResources []unversioned.GroupVersionResource
+
+func (list sortableGroupVersionResources) Len() int {
+	return len(list)
+}
+
+func (list sortableGroupVersionResources) Swap(i, j int) {
+	list[i], list[j] = list[j], list[i]
+}
+
+func (list sortableGroupVersionResources) Less(i, j int) bool {
+	return list[j].Group == "" && list[j].Resource == "pods"
 }

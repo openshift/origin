@@ -105,7 +105,6 @@ items:
     uid: 38fb3915-4f5b-11e6-b8a1-080027242396
   spec:
     clusterIP: None
-    portalIP: None
     ports:
     - name: mysql
       port: 3306

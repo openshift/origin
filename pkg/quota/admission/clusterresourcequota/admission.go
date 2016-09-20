@@ -11,6 +11,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/quota"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
@@ -35,7 +36,7 @@ type clusterQuotaAdmission struct {
 
 	// these are used to create the accessor
 	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister    *ocache.IndexerToNamespaceLister
+	namespaceLister    *cache.IndexerToNamespaceLister
 	clusterQuotaSynced func() bool
 	namespaceSynced    func() bool
 	clusterQuotaClient oclient.ClusterResourceQuotasInterface

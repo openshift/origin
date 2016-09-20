@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ func (f *FakeCache) UpdateNode(oldNode, newNode *api.Node) error { return nil }
 
 func (f *FakeCache) RemoveNode(node *api.Node) error { return nil }
 
-func (f *FakeCache) GetNodeNameToInfoMap() (map[string]*schedulercache.NodeInfo, error) {
-	return nil, nil
+func (f *FakeCache) UpdateNodeNameToInfoMap(infoMap map[string]*schedulercache.NodeInfo) error {
+	return nil
 }
 
 func (f *FakeCache) List(s labels.Selector) ([]*api.Pod, error) { return nil, nil }

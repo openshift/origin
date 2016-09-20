@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -164,7 +164,52 @@ func TestMatchVolume(t *testing.T) {
 					AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
 					Resources: api.ResourceRequirements{
 						Requests: api.ResourceList{
-							api.ResourceName(api.ResourceStorage): resource.MustParse("10000G"),
+							api.ResourceName(api.ResourceStorage): resource.MustParse("20000G"),
+						},
+					},
+				},
+			},
+		},
+		"successful-match-with-class": {
+			expectedMatch: "gce-pd-silver1",
+			claim: &api.PersistentVolumeClaim{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "claim01",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						annClass: "silver",
+					},
+				},
+				Spec: api.PersistentVolumeClaimSpec{
+					AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
+					Selector: &unversioned.LabelSelector{
+						MatchLabels: map[string]string{
+							"should-exist": "true",
+						},
+					},
+					Resources: api.ResourceRequirements{
+						Requests: api.ResourceList{
+							api.ResourceName(api.ResourceStorage): resource.MustParse("1G"),
+						},
+					},
+				},
+			},
+		},
+		"successful-match-with-class-and-labels": {
+			expectedMatch: "gce-pd-silver2",
+			claim: &api.PersistentVolumeClaim{
+				ObjectMeta: api.ObjectMeta{
+					Name:      "claim01",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						annClass: "silver",
+					},
+				},
+				Spec: api.PersistentVolumeClaimSpec{
+					AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
+					Resources: api.ResourceRequirements{
+						Requests: api.ResourceList{
+							api.ResourceName(api.ResourceStorage): resource.MustParse("1G"),
 						},
 					},
 				},
@@ -563,7 +608,70 @@ func createTestVolumes() []*api.PersistentVolume {
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
+					api.ResourceName(api.ResourceStorage): resource.MustParse("20000G"),
+				},
+				PersistentVolumeSource: api.PersistentVolumeSource{
+					GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},
+				},
+				AccessModes: []api.PersistentVolumeAccessMode{
+					api.ReadWriteOnce,
+				},
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				UID:  "gce-pd-silver1",
+				Name: "gce0023",
+				Labels: map[string]string{
+					"should-exist": "true",
+				},
+				Annotations: map[string]string{
+					annClass: "silver",
+				},
+			},
+			Spec: api.PersistentVolumeSpec{
+				Capacity: api.ResourceList{
 					api.ResourceName(api.ResourceStorage): resource.MustParse("10000G"),
+				},
+				PersistentVolumeSource: api.PersistentVolumeSource{
+					GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},
+				},
+				AccessModes: []api.PersistentVolumeAccessMode{
+					api.ReadWriteOnce,
+				},
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				UID:  "gce-pd-silver2",
+				Name: "gce0024",
+				Annotations: map[string]string{
+					annClass: "silver",
+				},
+			},
+			Spec: api.PersistentVolumeSpec{
+				Capacity: api.ResourceList{
+					api.ResourceName(api.ResourceStorage): resource.MustParse("100G"),
+				},
+				PersistentVolumeSource: api.PersistentVolumeSource{
+					GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},
+				},
+				AccessModes: []api.PersistentVolumeAccessMode{
+					api.ReadWriteOnce,
+				},
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				UID:  "gce-pd-gold",
+				Name: "gce0025",
+				Annotations: map[string]string{
+					annClass: "gold",
+				},
+			},
+			Spec: api.PersistentVolumeSpec{
+				Capacity: api.ResourceList{
+					api.ResourceName(api.ResourceStorage): resource.MustParse("50G"),
 				},
 				PersistentVolumeSource: api.PersistentVolumeSource{
 					GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},

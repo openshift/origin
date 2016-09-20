@@ -286,6 +286,11 @@ os::build::internal::build_binaries() {
       fi
     done
 
+    # Temporarily enable swap for the duration of the build until we move
+    # to Go 1.7
+    os::build::enable_swap
+    trap "os::build::disable_swap" EXIT
+
     local host_platform=$(os::build::host_platform)
     local platform
     for platform in "${platforms[@]}"; do
@@ -321,7 +326,8 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         GOOS=${platform%/*} GOARCH=${platform##*/} go test \
-          -c -o "${outfile}" \
+          -pkgdir "${OS_OUTPUT_PKGDIR}" \
+          -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
           -ldflags "${version_ldflags}" \
           "$(dirname ${test})"
@@ -658,6 +664,17 @@ function os::build::os_version_vars() {
 
     # Use git describe to find the version based on annotated tags.
     if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+      # Try to match the "git describe" output to a regex to try to extract
+      # the "major" and "minor" versions and whether this is the exact tagged
+      # version or whether the tree is between two tagged versions.
+      if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?([-].*)?$ ]]; then
+        OS_GIT_MAJOR=${BASH_REMATCH[1]}
+        OS_GIT_MINOR=${BASH_REMATCH[2]}
+        if [[ -n "${BASH_REMATCH[4]}" ]]; then
+          OS_GIT_MINOR+="+"
+        fi
+      fi
+
       # This translates the "git describe" to an actual semver.org
       # compatible semantic version that looks something like this:
       #   v1.1.0-alpha.0.6+84c76d1142ea4d
@@ -786,6 +803,87 @@ function os::build::ldflags() {
   echo "${ldflags[*]-}"
 }
 readonly -f os::build::ldflags
+
+# os::build::enable_swap attempts to enable swap for the system if a) this is Linux and b)
+# the amount of physical memory is less than 10GB. This is a stopgap until we have
+# better control over memory use in Go 1.7+.
+function os::build::enable_swap() {
+  # if we aren't on linux or have more than 9GB of memory
+  if [[ -n "${OS_BUILD_SWAP_DISABLE-}" || "$(go env GOHOSTOS)" != "linux" || "$( os::build::physmem_gb )" -gt 9 ]]; then
+    return
+  fi
+  # if we don't have the swapon command available
+  if ! swapon &>/dev/null; then
+    return
+  fi
+  # if swap is already on
+  if [[ "$( swapon --show --noheadings | wc -l )" -ne 0 ]]; then
+    return
+  fi
+  echo "++ temporarily enabling swap space to assist in building in limited memory - use OS_BUILD_SWAP_DISABLE=1 to bypass"
+
+  (
+    set -e
+    sudo cp /etc/fstab /origin-backupfstab
+    sudo dd if=/dev/zero of=/origin-swapfile bs=1M count=${OS_BUILD_SWAP_SIZE:-2048}
+    sudo chmod 600 /origin-swapfile
+    sudo mkswap /origin-swapfile
+    sudo swapon /origin-swapfile
+    sudo /bin/sh -c 'echo "/origin-swapfile none swap defaults 0 0" >> /etc/fstab'
+  ) &>/dev/null || true
+}
+readonly -f os::build::enable_swap
+
+# os::build::disable_swap undoes the effects of os::build::enable_swap
+function os::build::disable_swap() {
+  # if we aren't on linux or have more than 9GB of memory
+  if [[ -n "${OS_BUILD_SWAP_DISABLE-}" || "$(go env GOHOSTOS)" != "linux" ]]; then
+    return
+  fi
+  # if we previously set up a swapfile
+  if [[ ! -f /origin-swapfile ]]; then
+    return
+  fi
+  (
+    set +e
+    sudo swapoff /origin-swapfile
+    sudo cp /origin-backupfstab /etc/fstab
+    sudo rm -f /origin-backupfstab /origin-swapfile
+  ) || true
+}
+readonly -f os::build::disable_swap
+
+# os::build::physmem_gb returns the approximate gigabytes of memory on the system
+# This is copied verbatim from kube for the purposes of detecting how much available
+# memory we have for building.
+function os::build::physmem_gb() {
+  local mem
+
+  # Linux kernel version >=3.14, in kb
+  if mem=$(grep MemAvailable /proc/meminfo | awk '{ print $2 }'); then
+    echo $(( ${mem} / 1048576 ))
+    return
+  fi
+
+  # Linux, in kb
+  if mem=$(grep MemTotal /proc/meminfo | awk '{ print $2 }'); then
+    echo $(( ${mem} / 1048576 ))
+    return
+  fi
+
+  # OS X, in bytes. Note that get_physmem, as used, should only ever
+  # run in a Linux container (because it's only used in the multiple
+  # platform case, which is a Dockerized build), but this is provided
+  # for completeness.
+  if mem=$(sysctl -n hw.memsize 2>/dev/null); then
+    echo $(( ${mem} / 1073741824 ))
+    return
+  fi
+
+  # If we can't infer it, just give up and assume a low memory system
+  echo 1
+}
+readonly -f os::build::physmem_gb
 
 # os::build::require_clean_tree exits if the current Git tree is not clean.
 function os::build::require_clean_tree() {
@@ -1002,18 +1100,17 @@ readonly -f os::build::find-binary
 # is mounted by default and the output of the command is the container id.
 function os::build::environment::create() {
   set -o errexit
-  local golang_version="${OS_BUILD_ENV_GOLANG}"
   local release_image="${OS_BUILD_ENV_IMAGE}"
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
-  if [[ -z "${additional_context}" && "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
-    additional_context="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
+  if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
+    additional_context+="--privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
     if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
       # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
       # and set the running user to the current user
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
-      additional_context="${additional_context} -v ${OS_ROOT}:${workingdir} -u $(id -u)"
+      additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
     elif [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
       # if OS_BUILD_ENV_REUSE_VOLUME is set, create a docker volume to store the working output so
       # successive iterations can reuse shared code.
@@ -1021,7 +1118,7 @@ function os::build::environment::create() {
       workingdir=$( os::build::environment::release::workingdir )
       name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
       docker volume create --name "${name}" > /dev/null
-      additional_context="${additional_context} -v ${name}:${workingdir}"
+      additional_context+=" -v ${name}:${workingdir}"
     fi
   fi
 
@@ -1055,6 +1152,37 @@ function os::build::environment::cleanup() {
 }
 readonly -f os::build::environment::cleanup
 
+# os::build::environment::start starts the container provided as the first argument
+# using whatever content exists in the container already.
+function os::build::environment::start() {
+  local container=$1
+
+  docker start "${container}" > /dev/null
+  docker logs -f "${container}"
+
+  local exitcode
+  exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
+
+  # extract content from the image
+  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
+    local workingdir
+    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
+    local oldIFS="${IFS}"
+    IFS=:
+    for path in ${OS_BUILD_ENV_PRESERVE}; do
+      local parent=.
+      if [[ "${path}" != "." ]]; then
+        parent="$( dirname ${path} )"
+        mkdir -p "${parent}"
+      fi
+      docker cp "${container}:${workingdir}/${path}" "${parent}"
+    done
+    IFS="${oldIFS}"
+  fi
+  return $exitcode
+}
+readonly -f os::build::environment::start
+
 # os::build::environment::withsource starts the container provided as the first argument
 # after copying in the contents of the current Git repository at HEAD (or, if specified,
 # the ref specified in the second argument).
@@ -1077,27 +1205,7 @@ function os::build::environment::withsource() {
     git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
   fi
 
-  docker start "${container}" > /dev/null
-  docker logs -f "${container}"
-
-  local exitcode
-  exitcode="$( docker inspect --type container -f '{{ .State.ExitCode }}' "${container}" )"
-
-  # extract content from the image
-  if [[ -n "${OS_BUILD_ENV_PRESERVE-}" ]]; then
-    local workingdir
-    workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    local oldIFS="${IFS}"
-    IFS=:
-    for path in ${OS_BUILD_ENV_PRESERVE}; do
-      local parent
-      parent="$( dirname ${path} )"
-      mkdir -p "${parent}"
-      docker cp "${container}:${workingdir}/${path}" "${parent}"
-    done
-    IFS="${oldIFS}"
-  fi
-  return $exitcode
+  os::build::environment::start "${container}"
 }
 readonly -f os::build::environment::withsource
 
@@ -1106,14 +1214,21 @@ readonly -f os::build::environment::withsource
 function os::build::environment::run() {
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume="${OS_BUILD_ENV_REUSE_VOLUME:-}"
+  local exists=
   if [[ -z "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
     volume="origin-build-$( git rev-parse "${commit}" )"
+  elif docker volume inspect "${OS_BUILD_ENV_REUSE_VOLUME}" &>/dev/null; then
+    exists=y
   fi
 
   local container
   container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
   trap "os::build::environment::cleanup ${container}" EXIT
 
-  os::build::environment::withsource "${container}" "${commit}"
+  if [[ "${exists}" == "y" ]]; then
+    os::build::environment::start "${container}"
+  else
+    os::build::environment::withsource "${container}" "${commit}"
+  fi
 }
 readonly -f os::build::environment::run

@@ -19,10 +19,11 @@ func (t testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 }
 
 func TestEmptyHostDefaulting(t *testing.T) {
+	ctx := kapi.NewContext()
 	strategy := NewStrategy(testAllocator{})
 
 	hostlessCreatedRoute := &api.Route{}
-	strategy.PrepareForCreate(hostlessCreatedRoute)
+	strategy.PrepareForCreate(ctx, hostlessCreatedRoute)
 	if hostlessCreatedRoute.Spec.Host != "mygeneratedhost.com" {
 		t.Fatalf("Expected host to be allocated, got %s", hostlessCreatedRoute.Spec.Host)
 	}
@@ -41,7 +42,7 @@ func TestEmptyHostDefaulting(t *testing.T) {
 	obj, _ := kapi.Scheme.DeepCopy(persistedRoute)
 	hostlessUpdatedRoute := obj.(*api.Route)
 	hostlessUpdatedRoute.Spec.Host = ""
-	strategy.PrepareForUpdate(hostlessUpdatedRoute, persistedRoute)
+	strategy.PrepareForUpdate(ctx, hostlessUpdatedRoute, persistedRoute)
 	if hostlessUpdatedRoute.Spec.Host != "myhost.com" {
 		t.Fatalf("expected empty spec.host to default to existing spec.host, got %s", hostlessUpdatedRoute.Spec.Host)
 	}

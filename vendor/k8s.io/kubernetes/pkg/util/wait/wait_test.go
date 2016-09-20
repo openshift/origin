@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ func TestUntilReturnsImmediately(t *testing.T) {
 func TestJitterUntil(t *testing.T) {
 	ch := make(chan struct{})
 	// if a channel is closed JitterUntil never calls function f
-	// and returns imidiatelly
+	// and returns immediately
 	close(ch)
 	JitterUntil(func() {
 		t.Fatal("should not have been invoked")

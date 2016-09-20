@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -34,7 +34,7 @@ import (
 )
 
 func scTestPod(hostIPC bool, hostPID bool) *api.Pod {
-	podName := "security-context-" + string(util.NewUUID())
+	podName := "security-context-" + string(uuid.NewUUID())
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Name:        podName,
@@ -168,11 +168,11 @@ func testPodSELinuxLabeling(f *framework.Framework, hostIPC bool, hostPID bool) 
 	pod.Spec.Containers[0].Command = []string{"sleep", "6000"}
 
 	client := f.Client.Pods(f.Namespace.Name)
-	_, err := client.Create(pod)
+	pod, err := client.Create(pod)
 
 	framework.ExpectNoError(err, "Error creating pod %v", pod)
 	defer client.Delete(pod.Name, nil)
-	framework.ExpectNoError(framework.WaitForPodRunningInNamespace(f.Client, pod.Name, f.Namespace.Name))
+	framework.ExpectNoError(framework.WaitForPodRunningInNamespace(f.Client, pod))
 
 	testContent := "hello"
 	testFilePath := mountPath + "/TEST"

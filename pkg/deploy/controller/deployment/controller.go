@@ -85,7 +85,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	nextStatus := currentStatus
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
-	deployer, deployerErr := c.getPod(deployment.Namespace, deployerPodName)
+	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName)
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
 	}
@@ -176,16 +176,13 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 		default: /* err == nil */
 			// If the deployment has been cancelled, delete any deployer pods
-			// found and transition the deployment to Pending so that the
-			// deployment config controller continues to see the deployment
-			// as in-flight. Eventually the deletion of the deployer pod should
-			// cause a requeue of this deployment and then it can be transitioned
-			// to Failed by this controller.
+			// found. Eventually the deletion of the deployer pod should cause
+			// a requeue of this deployment and then it can be transitioned to
+			// Failed.
 			if deployutil.IsDeploymentCancelled(deployment) {
 				if err := c.cleanupDeployerPods(deployment); err != nil {
 					return err
 				}
-				c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "DeploymentCancelled", fmt.Sprintf("Deployment %q cancelled", deployutil.LabelForDeployment(deployment)))
 			}
 		}
 
@@ -226,6 +223,10 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
+
+		if deployutil.IsDeploymentCancelled(deployment) && deployutil.IsFailedDeployment(deployment) {
+			c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "DeploymentCancelled", fmt.Sprintf("Deployment %q cancelled", deployutil.LabelForDeployment(deployment)))
+		}
 	}
 	return nil
 }
@@ -384,7 +385,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 	}
 
 	cleanedAll := true
-	for _, deployerPod := range deployerList.Items {
+	for _, deployerPod := range deployerList {
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later

@@ -52,6 +52,9 @@ import math "math"
 
 import k8s_io_kubernetes_pkg_api_v1 "k8s.io/kubernetes/pkg/api/v1"
 
+import strings "strings"
+import reflect "reflect"
+
 import io "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -59,141 +62,163 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-func (m *Action) Reset()         { *m = Action{} }
-func (m *Action) String() string { return proto.CompactTextString(m) }
-func (*Action) ProtoMessage()    {}
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+const _ = proto.GoGoProtoPackageIsVersion1
 
-func (m *ClusterPolicy) Reset()         { *m = ClusterPolicy{} }
-func (m *ClusterPolicy) String() string { return proto.CompactTextString(m) }
-func (*ClusterPolicy) ProtoMessage()    {}
+func (m *Action) Reset()                    { *m = Action{} }
+func (*Action) ProtoMessage()               {}
+func (*Action) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{0} }
 
-func (m *ClusterPolicyBinding) Reset()         { *m = ClusterPolicyBinding{} }
-func (m *ClusterPolicyBinding) String() string { return proto.CompactTextString(m) }
-func (*ClusterPolicyBinding) ProtoMessage()    {}
+func (m *ClusterPolicy) Reset()                    { *m = ClusterPolicy{} }
+func (*ClusterPolicy) ProtoMessage()               {}
+func (*ClusterPolicy) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{1} }
 
-func (m *ClusterPolicyBindingList) Reset()         { *m = ClusterPolicyBindingList{} }
-func (m *ClusterPolicyBindingList) String() string { return proto.CompactTextString(m) }
-func (*ClusterPolicyBindingList) ProtoMessage()    {}
+func (m *ClusterPolicyBinding) Reset()                    { *m = ClusterPolicyBinding{} }
+func (*ClusterPolicyBinding) ProtoMessage()               {}
+func (*ClusterPolicyBinding) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{2} }
 
-func (m *ClusterPolicyList) Reset()         { *m = ClusterPolicyList{} }
-func (m *ClusterPolicyList) String() string { return proto.CompactTextString(m) }
-func (*ClusterPolicyList) ProtoMessage()    {}
+func (m *ClusterPolicyBindingList) Reset()      { *m = ClusterPolicyBindingList{} }
+func (*ClusterPolicyBindingList) ProtoMessage() {}
+func (*ClusterPolicyBindingList) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{3}
+}
 
-func (m *ClusterRole) Reset()         { *m = ClusterRole{} }
-func (m *ClusterRole) String() string { return proto.CompactTextString(m) }
-func (*ClusterRole) ProtoMessage()    {}
+func (m *ClusterPolicyList) Reset()                    { *m = ClusterPolicyList{} }
+func (*ClusterPolicyList) ProtoMessage()               {}
+func (*ClusterPolicyList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{4} }
 
-func (m *ClusterRoleBinding) Reset()         { *m = ClusterRoleBinding{} }
-func (m *ClusterRoleBinding) String() string { return proto.CompactTextString(m) }
-func (*ClusterRoleBinding) ProtoMessage()    {}
+func (m *ClusterRole) Reset()                    { *m = ClusterRole{} }
+func (*ClusterRole) ProtoMessage()               {}
+func (*ClusterRole) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{5} }
 
-func (m *ClusterRoleBindingList) Reset()         { *m = ClusterRoleBindingList{} }
-func (m *ClusterRoleBindingList) String() string { return proto.CompactTextString(m) }
-func (*ClusterRoleBindingList) ProtoMessage()    {}
+func (m *ClusterRoleBinding) Reset()                    { *m = ClusterRoleBinding{} }
+func (*ClusterRoleBinding) ProtoMessage()               {}
+func (*ClusterRoleBinding) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{6} }
 
-func (m *ClusterRoleList) Reset()         { *m = ClusterRoleList{} }
-func (m *ClusterRoleList) String() string { return proto.CompactTextString(m) }
-func (*ClusterRoleList) ProtoMessage()    {}
+func (m *ClusterRoleBindingList) Reset()                    { *m = ClusterRoleBindingList{} }
+func (*ClusterRoleBindingList) ProtoMessage()               {}
+func (*ClusterRoleBindingList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{7} }
 
-func (m *IsPersonalSubjectAccessReview) Reset()         { *m = IsPersonalSubjectAccessReview{} }
-func (m *IsPersonalSubjectAccessReview) String() string { return proto.CompactTextString(m) }
-func (*IsPersonalSubjectAccessReview) ProtoMessage()    {}
+func (m *ClusterRoleList) Reset()                    { *m = ClusterRoleList{} }
+func (*ClusterRoleList) ProtoMessage()               {}
+func (*ClusterRoleList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{8} }
 
-func (m *LocalResourceAccessReview) Reset()         { *m = LocalResourceAccessReview{} }
-func (m *LocalResourceAccessReview) String() string { return proto.CompactTextString(m) }
-func (*LocalResourceAccessReview) ProtoMessage()    {}
+func (m *IsPersonalSubjectAccessReview) Reset()      { *m = IsPersonalSubjectAccessReview{} }
+func (*IsPersonalSubjectAccessReview) ProtoMessage() {}
+func (*IsPersonalSubjectAccessReview) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{9}
+}
 
-func (m *LocalSubjectAccessReview) Reset()         { *m = LocalSubjectAccessReview{} }
-func (m *LocalSubjectAccessReview) String() string { return proto.CompactTextString(m) }
-func (*LocalSubjectAccessReview) ProtoMessage()    {}
+func (m *LocalResourceAccessReview) Reset()      { *m = LocalResourceAccessReview{} }
+func (*LocalResourceAccessReview) ProtoMessage() {}
+func (*LocalResourceAccessReview) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{10}
+}
 
-func (m *NamedClusterRole) Reset()         { *m = NamedClusterRole{} }
-func (m *NamedClusterRole) String() string { return proto.CompactTextString(m) }
-func (*NamedClusterRole) ProtoMessage()    {}
+func (m *LocalSubjectAccessReview) Reset()      { *m = LocalSubjectAccessReview{} }
+func (*LocalSubjectAccessReview) ProtoMessage() {}
+func (*LocalSubjectAccessReview) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{11}
+}
 
-func (m *NamedClusterRoleBinding) Reset()         { *m = NamedClusterRoleBinding{} }
-func (m *NamedClusterRoleBinding) String() string { return proto.CompactTextString(m) }
-func (*NamedClusterRoleBinding) ProtoMessage()    {}
+func (m *NamedClusterRole) Reset()                    { *m = NamedClusterRole{} }
+func (*NamedClusterRole) ProtoMessage()               {}
+func (*NamedClusterRole) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{12} }
 
-func (m *NamedRole) Reset()         { *m = NamedRole{} }
-func (m *NamedRole) String() string { return proto.CompactTextString(m) }
-func (*NamedRole) ProtoMessage()    {}
+func (m *NamedClusterRoleBinding) Reset()      { *m = NamedClusterRoleBinding{} }
+func (*NamedClusterRoleBinding) ProtoMessage() {}
+func (*NamedClusterRoleBinding) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{13}
+}
 
-func (m *NamedRoleBinding) Reset()         { *m = NamedRoleBinding{} }
-func (m *NamedRoleBinding) String() string { return proto.CompactTextString(m) }
-func (*NamedRoleBinding) ProtoMessage()    {}
+func (m *NamedRole) Reset()                    { *m = NamedRole{} }
+func (*NamedRole) ProtoMessage()               {}
+func (*NamedRole) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{14} }
 
-func (m *OptionalNames) Reset()         { *m = OptionalNames{} }
-func (m *OptionalNames) String() string { return proto.CompactTextString(m) }
-func (*OptionalNames) ProtoMessage()    {}
+func (m *NamedRoleBinding) Reset()                    { *m = NamedRoleBinding{} }
+func (*NamedRoleBinding) ProtoMessage()               {}
+func (*NamedRoleBinding) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{15} }
 
-func (m *OptionalScopes) Reset()         { *m = OptionalScopes{} }
-func (m *OptionalScopes) String() string { return proto.CompactTextString(m) }
-func (*OptionalScopes) ProtoMessage()    {}
+func (m *OptionalNames) Reset()                    { *m = OptionalNames{} }
+func (*OptionalNames) ProtoMessage()               {}
+func (*OptionalNames) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{16} }
 
-func (m *Policy) Reset()         { *m = Policy{} }
-func (m *Policy) String() string { return proto.CompactTextString(m) }
-func (*Policy) ProtoMessage()    {}
+func (m *OptionalScopes) Reset()                    { *m = OptionalScopes{} }
+func (*OptionalScopes) ProtoMessage()               {}
+func (*OptionalScopes) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{17} }
 
-func (m *PolicyBinding) Reset()         { *m = PolicyBinding{} }
-func (m *PolicyBinding) String() string { return proto.CompactTextString(m) }
-func (*PolicyBinding) ProtoMessage()    {}
+func (m *Policy) Reset()                    { *m = Policy{} }
+func (*Policy) ProtoMessage()               {}
+func (*Policy) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{18} }
 
-func (m *PolicyBindingList) Reset()         { *m = PolicyBindingList{} }
-func (m *PolicyBindingList) String() string { return proto.CompactTextString(m) }
-func (*PolicyBindingList) ProtoMessage()    {}
+func (m *PolicyBinding) Reset()                    { *m = PolicyBinding{} }
+func (*PolicyBinding) ProtoMessage()               {}
+func (*PolicyBinding) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{19} }
 
-func (m *PolicyList) Reset()         { *m = PolicyList{} }
-func (m *PolicyList) String() string { return proto.CompactTextString(m) }
-func (*PolicyList) ProtoMessage()    {}
+func (m *PolicyBindingList) Reset()                    { *m = PolicyBindingList{} }
+func (*PolicyBindingList) ProtoMessage()               {}
+func (*PolicyBindingList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{20} }
 
-func (m *PolicyRule) Reset()         { *m = PolicyRule{} }
-func (m *PolicyRule) String() string { return proto.CompactTextString(m) }
-func (*PolicyRule) ProtoMessage()    {}
+func (m *PolicyList) Reset()                    { *m = PolicyList{} }
+func (*PolicyList) ProtoMessage()               {}
+func (*PolicyList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{21} }
 
-func (m *ResourceAccessReview) Reset()         { *m = ResourceAccessReview{} }
-func (m *ResourceAccessReview) String() string { return proto.CompactTextString(m) }
-func (*ResourceAccessReview) ProtoMessage()    {}
+func (m *PolicyRule) Reset()                    { *m = PolicyRule{} }
+func (*PolicyRule) ProtoMessage()               {}
+func (*PolicyRule) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{22} }
 
-func (m *ResourceAccessReviewResponse) Reset()         { *m = ResourceAccessReviewResponse{} }
-func (m *ResourceAccessReviewResponse) String() string { return proto.CompactTextString(m) }
-func (*ResourceAccessReviewResponse) ProtoMessage()    {}
+func (m *ResourceAccessReview) Reset()                    { *m = ResourceAccessReview{} }
+func (*ResourceAccessReview) ProtoMessage()               {}
+func (*ResourceAccessReview) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{23} }
 
-func (m *Role) Reset()         { *m = Role{} }
-func (m *Role) String() string { return proto.CompactTextString(m) }
-func (*Role) ProtoMessage()    {}
+func (m *ResourceAccessReviewResponse) Reset()      { *m = ResourceAccessReviewResponse{} }
+func (*ResourceAccessReviewResponse) ProtoMessage() {}
+func (*ResourceAccessReviewResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{24}
+}
 
-func (m *RoleBinding) Reset()         { *m = RoleBinding{} }
-func (m *RoleBinding) String() string { return proto.CompactTextString(m) }
-func (*RoleBinding) ProtoMessage()    {}
+func (m *Role) Reset()                    { *m = Role{} }
+func (*Role) ProtoMessage()               {}
+func (*Role) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{25} }
 
-func (m *RoleBindingList) Reset()         { *m = RoleBindingList{} }
-func (m *RoleBindingList) String() string { return proto.CompactTextString(m) }
-func (*RoleBindingList) ProtoMessage()    {}
+func (m *RoleBinding) Reset()                    { *m = RoleBinding{} }
+func (*RoleBinding) ProtoMessage()               {}
+func (*RoleBinding) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{26} }
 
-func (m *RoleList) Reset()         { *m = RoleList{} }
-func (m *RoleList) String() string { return proto.CompactTextString(m) }
-func (*RoleList) ProtoMessage()    {}
+func (m *RoleBindingList) Reset()                    { *m = RoleBindingList{} }
+func (*RoleBindingList) ProtoMessage()               {}
+func (*RoleBindingList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{27} }
 
-func (m *SelfSubjectRulesReview) Reset()         { *m = SelfSubjectRulesReview{} }
-func (m *SelfSubjectRulesReview) String() string { return proto.CompactTextString(m) }
-func (*SelfSubjectRulesReview) ProtoMessage()    {}
+func (m *RoleList) Reset()                    { *m = RoleList{} }
+func (*RoleList) ProtoMessage()               {}
+func (*RoleList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{28} }
 
-func (m *SelfSubjectRulesReviewSpec) Reset()         { *m = SelfSubjectRulesReviewSpec{} }
-func (m *SelfSubjectRulesReviewSpec) String() string { return proto.CompactTextString(m) }
-func (*SelfSubjectRulesReviewSpec) ProtoMessage()    {}
+func (m *SelfSubjectRulesReview) Reset()                    { *m = SelfSubjectRulesReview{} }
+func (*SelfSubjectRulesReview) ProtoMessage()               {}
+func (*SelfSubjectRulesReview) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{29} }
 
-func (m *SubjectAccessReview) Reset()         { *m = SubjectAccessReview{} }
-func (m *SubjectAccessReview) String() string { return proto.CompactTextString(m) }
-func (*SubjectAccessReview) ProtoMessage()    {}
+func (m *SelfSubjectRulesReviewSpec) Reset()      { *m = SelfSubjectRulesReviewSpec{} }
+func (*SelfSubjectRulesReviewSpec) ProtoMessage() {}
+func (*SelfSubjectRulesReviewSpec) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{30}
+}
 
-func (m *SubjectAccessReviewResponse) Reset()         { *m = SubjectAccessReviewResponse{} }
-func (m *SubjectAccessReviewResponse) String() string { return proto.CompactTextString(m) }
-func (*SubjectAccessReviewResponse) ProtoMessage()    {}
+func (m *SubjectAccessReview) Reset()                    { *m = SubjectAccessReview{} }
+func (*SubjectAccessReview) ProtoMessage()               {}
+func (*SubjectAccessReview) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{31} }
 
-func (m *SubjectRulesReviewStatus) Reset()         { *m = SubjectRulesReviewStatus{} }
-func (m *SubjectRulesReviewStatus) String() string { return proto.CompactTextString(m) }
-func (*SubjectRulesReviewStatus) ProtoMessage()    {}
+func (m *SubjectAccessReviewResponse) Reset()      { *m = SubjectAccessReviewResponse{} }
+func (*SubjectAccessReviewResponse) ProtoMessage() {}
+func (*SubjectAccessReviewResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{32}
+}
+
+func (m *SubjectRulesReviewStatus) Reset()      { *m = SubjectRulesReviewStatus{} }
+func (*SubjectRulesReviewStatus) ProtoMessage() {}
+func (*SubjectRulesReviewStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{33}
+}
 
 func init() {
 	proto.RegisterType((*Action)(nil), "github.com.openshift.origin.pkg.authorization.api.v1.Action")
@@ -2198,6 +2223,390 @@ func sovGenerated(x uint64) (n int) {
 }
 func sozGenerated(x uint64) (n int) {
 	return sovGenerated(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *Action) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Action{`,
+		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
+		`Verb:` + fmt.Sprintf("%v", this.Verb) + `,`,
+		`Group:` + fmt.Sprintf("%v", this.Group) + `,`,
+		`Version:` + fmt.Sprintf("%v", this.Version) + `,`,
+		`Resource:` + fmt.Sprintf("%v", this.Resource) + `,`,
+		`ResourceName:` + fmt.Sprintf("%v", this.ResourceName) + `,`,
+		`Content:` + strings.Replace(strings.Replace(this.Content.String(), "RawExtension", "k8s_io_kubernetes_pkg_runtime.RawExtension", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterPolicy) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterPolicy{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`Roles:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Roles), "NamedClusterRole", "NamedClusterRole", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterPolicyBinding) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterPolicyBinding{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`PolicyRef:` + strings.Replace(strings.Replace(this.PolicyRef.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`RoleBindings:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.RoleBindings), "NamedClusterRoleBinding", "NamedClusterRoleBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterPolicyBindingList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterPolicyBindingList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterPolicyBinding", "ClusterPolicyBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterPolicyList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterPolicyList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterPolicy", "ClusterPolicy", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterRole) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterRole{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Rules:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Rules), "PolicyRule", "PolicyRule", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterRoleBinding) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterRoleBinding{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`UserNames:` + strings.Replace(fmt.Sprintf("%v", this.UserNames), "OptionalNames", "OptionalNames", 1) + `,`,
+		`GroupNames:` + strings.Replace(fmt.Sprintf("%v", this.GroupNames), "OptionalNames", "OptionalNames", 1) + `,`,
+		`Subjects:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Subjects), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`RoleRef:` + strings.Replace(strings.Replace(this.RoleRef.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterRoleBindingList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterRoleBindingList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterRoleBinding", "ClusterRoleBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterRoleList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterRoleList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterRole", "ClusterRole", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *IsPersonalSubjectAccessReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&IsPersonalSubjectAccessReview{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *LocalResourceAccessReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&LocalResourceAccessReview{`,
+		`Action:` + strings.Replace(strings.Replace(this.Action.String(), "Action", "Action", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *LocalSubjectAccessReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&LocalSubjectAccessReview{`,
+		`Action:` + strings.Replace(strings.Replace(this.Action.String(), "Action", "Action", 1), `&`, ``, 1) + `,`,
+		`User:` + fmt.Sprintf("%v", this.User) + `,`,
+		`GroupsSlice:` + fmt.Sprintf("%v", this.GroupsSlice) + `,`,
+		`Scopes:` + strings.Replace(fmt.Sprintf("%v", this.Scopes), "OptionalScopes", "OptionalScopes", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NamedClusterRole) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NamedClusterRole{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`Role:` + strings.Replace(strings.Replace(this.Role.String(), "ClusterRole", "ClusterRole", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NamedClusterRoleBinding) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NamedClusterRoleBinding{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`RoleBinding:` + strings.Replace(strings.Replace(this.RoleBinding.String(), "ClusterRoleBinding", "ClusterRoleBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NamedRole) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NamedRole{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`Role:` + strings.Replace(strings.Replace(this.Role.String(), "Role", "Role", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NamedRoleBinding) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NamedRoleBinding{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`RoleBinding:` + strings.Replace(strings.Replace(this.RoleBinding.String(), "RoleBinding", "RoleBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Policy) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Policy{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`Roles:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Roles), "NamedRole", "NamedRole", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PolicyBinding) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PolicyBinding{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`LastModified:` + strings.Replace(strings.Replace(this.LastModified.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`PolicyRef:` + strings.Replace(strings.Replace(this.PolicyRef.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`RoleBindings:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.RoleBindings), "NamedRoleBinding", "NamedRoleBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PolicyBindingList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PolicyBindingList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "PolicyBinding", "PolicyBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PolicyList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PolicyList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Policy", "Policy", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PolicyRule) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PolicyRule{`,
+		`Verbs:` + fmt.Sprintf("%v", this.Verbs) + `,`,
+		`AttributeRestrictions:` + strings.Replace(strings.Replace(this.AttributeRestrictions.String(), "RawExtension", "k8s_io_kubernetes_pkg_runtime.RawExtension", 1), `&`, ``, 1) + `,`,
+		`APIGroups:` + fmt.Sprintf("%v", this.APIGroups) + `,`,
+		`Resources:` + fmt.Sprintf("%v", this.Resources) + `,`,
+		`ResourceNames:` + fmt.Sprintf("%v", this.ResourceNames) + `,`,
+		`NonResourceURLsSlice:` + fmt.Sprintf("%v", this.NonResourceURLsSlice) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ResourceAccessReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ResourceAccessReview{`,
+		`Action:` + strings.Replace(strings.Replace(this.Action.String(), "Action", "Action", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ResourceAccessReviewResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ResourceAccessReviewResponse{`,
+		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
+		`UsersSlice:` + fmt.Sprintf("%v", this.UsersSlice) + `,`,
+		`GroupsSlice:` + fmt.Sprintf("%v", this.GroupsSlice) + `,`,
+		`EvaluationError:` + fmt.Sprintf("%v", this.EvaluationError) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Role) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Role{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Rules:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Rules), "PolicyRule", "PolicyRule", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RoleBinding) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RoleBinding{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`UserNames:` + strings.Replace(fmt.Sprintf("%v", this.UserNames), "OptionalNames", "OptionalNames", 1) + `,`,
+		`GroupNames:` + strings.Replace(fmt.Sprintf("%v", this.GroupNames), "OptionalNames", "OptionalNames", 1) + `,`,
+		`Subjects:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Subjects), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`RoleRef:` + strings.Replace(strings.Replace(this.RoleRef.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RoleBindingList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RoleBindingList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "RoleBinding", "RoleBinding", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RoleList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RoleList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "Role", "Role", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SelfSubjectRulesReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SelfSubjectRulesReview{`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "SelfSubjectRulesReviewSpec", "SelfSubjectRulesReviewSpec", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "SubjectRulesReviewStatus", "SubjectRulesReviewStatus", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SelfSubjectRulesReviewSpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SelfSubjectRulesReviewSpec{`,
+		`Scopes:` + strings.Replace(fmt.Sprintf("%v", this.Scopes), "OptionalScopes", "OptionalScopes", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SubjectAccessReview) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SubjectAccessReview{`,
+		`Action:` + strings.Replace(strings.Replace(this.Action.String(), "Action", "Action", 1), `&`, ``, 1) + `,`,
+		`User:` + fmt.Sprintf("%v", this.User) + `,`,
+		`GroupsSlice:` + fmt.Sprintf("%v", this.GroupsSlice) + `,`,
+		`Scopes:` + strings.Replace(fmt.Sprintf("%v", this.Scopes), "OptionalScopes", "OptionalScopes", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SubjectAccessReviewResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SubjectAccessReviewResponse{`,
+		`Namespace:` + fmt.Sprintf("%v", this.Namespace) + `,`,
+		`Allowed:` + fmt.Sprintf("%v", this.Allowed) + `,`,
+		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
+		`EvaluationError:` + fmt.Sprintf("%v", this.EvaluationError) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SubjectRulesReviewStatus) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SubjectRulesReviewStatus{`,
+		`Rules:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Rules), "PolicyRule", "PolicyRule", 1), `&`, ``, 1) + `,`,
+		`EvaluationError:` + fmt.Sprintf("%v", this.EvaluationError) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringGenerated(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *Action) Unmarshal(data []byte) error {
 	l := len(data)
@@ -6702,3 +7111,112 @@ var (
 	ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
+
+var fileDescriptorGenerated = []byte{
+	// 1675 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xec, 0x59, 0xcd, 0x6f, 0x1b, 0x45,
+	0x14, 0xcf, 0x3a, 0x8e, 0x13, 0x3f, 0xe7, 0xa3, 0x99, 0xa6, 0xad, 0x49, 0x69, 0x53, 0xad, 0x2a,
+	0x68, 0xd5, 0x76, 0x4d, 0x22, 0x10, 0xa5, 0x54, 0x2a, 0x76, 0xbf, 0x28, 0x4a, 0xdb, 0x68, 0x42,
+	0x2b, 0x54, 0xbe, 0xb4, 0x59, 0x4f, 0x9c, 0xa5, 0xce, 0xae, 0xb5, 0xb3, 0x9b, 0x14, 0x2e, 0xf4,
+	0xc0, 0xc7, 0x01, 0x0e, 0x5c, 0x10, 0x70, 0x43, 0x42, 0xe2, 0x82, 0xc4, 0x5f, 0x00, 0x37, 0x24,
+	0x22, 0x0e, 0xa8, 0x12, 0x97, 0x1e, 0x4a, 0x81, 0x82, 0x38, 0xf0, 0x27, 0x70, 0x62, 0x66, 0x76,
+	0xf6, 0xcb, 0x59, 0xab, 0x8e, 0xed, 0x58, 0xa2, 0xca, 0x61, 0x15, 0xef, 0xcc, 0x9b, 0xf7, 0xde,
+	0xef, 0xbd, 0x79, 0x6f, 0xdf, 0x7b, 0x81, 0x73, 0x35, 0xd3, 0x5d, 0xf1, 0x96, 0x34, 0xc3, 0x5e,
+	0x2d, 0xd9, 0x0d, 0x62, 0xd1, 0x15, 0x73, 0xd9, 0x2d, 0xd9, 0x8e, 0x59, 0x33, 0xad, 0x52, 0xe3,
+	0x66, 0xad, 0xa4, 0x7b, 0xee, 0x0a, 0x7b, 0x7d, 0x47, 0x77, 0x4d, 0xdb, 0x2a, 0xe9, 0x0d, 0xb3,
+	0xb4, 0x36, 0x5b, 0xaa, 0x11, 0x8b, 0x38, 0xba, 0x4b, 0xaa, 0x5a, 0xc3, 0xb1, 0x5d, 0x1b, 0x3d,
+	0x1d, 0x71, 0xd1, 0x42, 0x2e, 0x9a, 0xcf, 0x45, 0x63, 0x5c, 0xb4, 0x04, 0x17, 0x8d, 0x71, 0xd1,
+	0xd6, 0x66, 0xa7, 0x4f, 0xc4, 0x64, 0xd7, 0xec, 0x9a, 0x5d, 0x12, 0xcc, 0x96, 0xbc, 0x65, 0xf1,
+	0x26, 0x5e, 0xc4, 0x2f, 0x5f, 0xc8, 0xf4, 0x33, 0x37, 0x4f, 0x52, 0xcd, 0xb4, 0x4b, 0x37, 0xbd,
+	0x25, 0xe2, 0x58, 0xc4, 0x25, 0xd4, 0x57, 0x90, 0xa9, 0xe4, 0x59, 0x6b, 0xc4, 0xa1, 0x8c, 0x35,
+	0xa9, 0x36, 0xeb, 0x36, 0x7d, 0xbc, 0xf5, 0xb1, 0xcd, 0x48, 0xa6, 0x4f, 0xa4, 0x53, 0x3b, 0x9e,
+	0xe5, 0x9a, 0xab, 0x64, 0x13, 0xf9, 0x6c, 0x3a, 0xb9, 0xe7, 0x9a, 0xf5, 0x92, 0x69, 0xb9, 0xd4,
+	0x75, 0x9a, 0x8f, 0xa8, 0x9f, 0x0d, 0x42, 0xae, 0x6c, 0x70, 0x3b, 0xa0, 0x12, 0xe4, 0x2d, 0x7d,
+	0x95, 0xd0, 0x86, 0x6e, 0x90, 0xa2, 0x72, 0x48, 0x39, 0x92, 0xaf, 0x4c, 0x6e, 0xdc, 0x9f, 0x19,
+	0x78, 0x70, 0x7f, 0x26, 0x7f, 0x25, 0xd8, 0xc0, 0x11, 0x0d, 0x3a, 0x04, 0x59, 0x06, 0x74, 0xa9,
+	0x98, 0x11, 0xb4, 0xa3, 0x92, 0x36, 0x7b, 0x9d, 0xad, 0x61, 0xb1, 0x83, 0x9e, 0x83, 0x5d, 0x0e,
+	0xa1, 0xb6, 0xe7, 0x18, 0xa4, 0xbc, 0x70, 0xe9, 0xa2, 0x63, 0x7b, 0x8d, 0xe2, 0xa0, 0xa0, 0x1e,
+	0x93, 0xd4, 0x43, 0x62, 0x11, 0x6f, 0x22, 0x43, 0x67, 0x00, 0xc5, 0xd6, 0xae, 0xfb, 0x06, 0x2d,
+	0x66, 0xc5, 0xe1, 0x09, 0x79, 0x78, 0x58, 0x2e, 0xe3, 0x14, 0x52, 0x74, 0x1c, 0x46, 0x82, 0xd5,
+	0xe2, 0x90, 0x38, 0xb6, 0x4b, 0x1e, 0x1b, 0xc1, 0x72, 0x1d, 0x87, 0x14, 0xe8, 0x24, 0x8c, 0x06,
+	0xbf, 0x39, 0xd6, 0x62, 0x4e, 0x9c, 0x98, 0x92, 0x27, 0x46, 0x71, 0x6c, 0x0f, 0x27, 0x28, 0xd1,
+	0x75, 0x18, 0x36, 0x6c, 0xcb, 0x25, 0x96, 0x5b, 0x1c, 0x66, 0x87, 0x0a, 0x73, 0xc7, 0x34, 0xdf,
+	0x0d, 0x5a, 0xe4, 0x06, 0x71, 0xeb, 0xa4, 0xd7, 0x34, 0xac, 0xaf, 0x9f, 0xbf, 0xc5, 0xe8, 0xb9,
+	0x96, 0x11, 0x94, 0xb3, 0x3e, 0x0f, 0x1c, 0x30, 0x53, 0x7f, 0xc9, 0xc0, 0xd8, 0xd9, 0xba, 0x47,
+	0x5d, 0xe2, 0x2c, 0xd8, 0x75, 0xd3, 0x78, 0x1b, 0xbd, 0x02, 0x23, 0xab, 0xc4, 0xd5, 0xab, 0xba,
+	0xab, 0x0b, 0xff, 0x14, 0xe6, 0x8e, 0xb4, 0x10, 0xe5, 0x5f, 0x69, 0xed, 0xea, 0xd2, 0x5b, 0xc4,
+	0x70, 0x2f, 0xb3, 0x33, 0x15, 0x24, 0xe5, 0x40, 0xb4, 0x86, 0x43, 0x6e, 0x88, 0xc0, 0x68, 0x5d,
+	0xa7, 0xee, 0x65, 0xbb, 0x6a, 0x2e, 0x9b, 0xa4, 0x2a, 0x3c, 0xda, 0x1a, 0x08, 0xe7, 0x1e, 0xbb,
+	0xe3, 0xda, 0xcb, 0x0c, 0x55, 0x64, 0xaa, 0xf9, 0x18, 0x23, 0x9c, 0x60, 0x8b, 0x6e, 0x2b, 0x30,
+	0xe4, 0xd8, 0x75, 0x42, 0xd9, 0x25, 0x18, 0x64, 0x02, 0x2e, 0x68, 0x9d, 0x44, 0xaa, 0xc6, 0xcd,
+	0x5e, 0x95, 0xa6, 0xc1, 0x8c, 0x5d, 0x45, 0x0d, 0x2e, 0x13, 0x7f, 0xa3, 0xff, 0xde, 0x9f, 0x99,
+	0x6c, 0x26, 0xa1, 0xd8, 0x17, 0xac, 0xfe, 0x3a, 0x08, 0x53, 0x09, 0xab, 0x56, 0x4c, 0xab, 0x6a,
+	0x5a, 0xb5, 0xff, 0xbf, 0x71, 0xdf, 0x80, 0x7c, 0x43, 0x20, 0xc2, 0x64, 0x59, 0x04, 0x59, 0x61,
+	0xee, 0x44, 0x3b, 0x08, 0x18, 0x39, 0x71, 0x88, 0x65, 0x90, 0x28, 0xda, 0x17, 0x02, 0x3e, 0x38,
+	0x62, 0x89, 0xbe, 0x52, 0x58, 0x88, 0x70, 0x6b, 0xfb, 0x06, 0xa3, 0x2c, 0x16, 0xb9, 0x0f, 0x2f,
+	0xf7, 0xc8, 0x87, 0x3e, 0xd7, 0xca, 0x53, 0x61, 0xc4, 0xc5, 0x44, 0x31, 0x8f, 0x16, 0x5b, 0x1c,
+	0xa0, 0x38, 0xa1, 0x94, 0xfa, 0x8f, 0x02, 0xc5, 0x34, 0xff, 0xce, 0x9b, 0xd4, 0x45, 0xaf, 0x6f,
+	0xf2, 0x71, 0xa9, 0x4d, 0x2f, 0xf0, 0xe3, 0xc2, 0xd5, 0x61, 0x0e, 0x09, 0x56, 0x62, 0x8e, 0xb6,
+	0x61, 0xc8, 0x74, 0xc9, 0x2a, 0x65, 0x1e, 0xe6, 0x96, 0x79, 0xa9, 0x33, 0xcb, 0xa4, 0x69, 0x1f,
+	0xa5, 0xcb, 0x4b, 0x5c, 0x00, 0xf6, 0xe5, 0xa8, 0xf7, 0x14, 0x98, 0x4c, 0x90, 0xf7, 0x03, 0xe5,
+	0x4a, 0x12, 0xe5, 0xd9, 0x5e, 0xa0, 0x4c, 0x87, 0xf7, 0xb3, 0x02, 0x85, 0x98, 0xc7, 0xb7, 0x35,
+	0x44, 0x87, 0x1c, 0x8f, 0xe7, 0x25, 0x1f, 0xd3, 0x0b, 0x9d, 0x61, 0x92, 0x61, 0xc3, 0x18, 0x45,
+	0x80, 0xf8, 0x1b, 0x4f, 0x3e, 0xfc, 0x8f, 0xfa, 0x71, 0x16, 0xd0, 0xe6, 0x2b, 0xbc, 0x8d, 0xb8,
+	0x1a, 0x90, 0xf7, 0x28, 0x71, 0xc4, 0xd7, 0x5b, 0xe6, 0x9d, 0x0e, 0xfd, 0x75, 0xb5, 0xc1, 0xdf,
+	0xf4, 0xba, 0x60, 0x55, 0x19, 0xe3, 0x59, 0xe2, 0x5a, 0xc0, 0x19, 0x47, 0x42, 0x10, 0x05, 0xa8,
+	0xf1, 0xef, 0xb7, 0x2f, 0x72, 0xb0, 0x77, 0x22, 0xc7, 0x39, 0xc8, 0x8b, 0x21, 0x6b, 0x1c, 0x13,
+	0x83, 0x5e, 0x85, 0x11, 0xea, 0x09, 0xfc, 0x41, 0x56, 0xda, 0x62, 0xe6, 0x0b, 0xef, 0xfb, 0xa2,
+	0x64, 0x83, 0x43, 0x86, 0xcc, 0x3b, 0xc3, 0x3c, 0xc3, 0xf0, 0xac, 0x3a, 0xd4, 0x49, 0x56, 0x0d,
+	0xbf, 0xf0, 0xd8, 0xe7, 0x82, 0x03, 0x76, 0xea, 0xdf, 0x0a, 0xec, 0xdd, 0x7c, 0x1d, 0xfa, 0x11,
+	0xc3, 0xab, 0xc9, 0x18, 0x7e, 0xb1, 0xab, 0x18, 0x8e, 0xa7, 0xef, 0xf4, 0x40, 0xbe, 0xab, 0xc0,
+	0x44, 0x8c, 0xb8, 0x1f, 0x08, 0x97, 0x93, 0x08, 0xcb, 0xdd, 0x23, 0x4c, 0x87, 0x36, 0x03, 0x07,
+	0x2e, 0xd1, 0x05, 0xa6, 0x1b, 0xbf, 0xa9, 0xf2, 0xf6, 0x94, 0x0d, 0x83, 0x50, 0x8a, 0xc9, 0x9a,
+	0x49, 0xd6, 0xd5, 0x75, 0x78, 0x6c, 0xde, 0x36, 0xf4, 0x7a, 0x50, 0x41, 0xc6, 0x37, 0xd1, 0x8d,
+	0xa0, 0xf8, 0x96, 0x26, 0x38, 0xdd, 0x99, 0x9a, 0x3e, 0x8f, 0x4a, 0x96, 0x6b, 0x88, 0x73, 0xba,
+	0x78, 0x53, 0xbf, 0xc9, 0x40, 0x51, 0x48, 0x4e, 0xd1, 0x6a, 0x3b, 0x05, 0xf3, 0xb6, 0x80, 0xe7,
+	0x83, 0xe6, 0xb6, 0x80, 0xa7, 0x0b, 0x2c, 0x76, 0xd0, 0x93, 0x90, 0x13, 0xd1, 0xeb, 0xd7, 0x81,
+	0xac, 0x9e, 0x67, 0xfb, 0x05, 0x11, 0xdb, 0x74, 0x91, 0xa5, 0x50, 0x82, 0xe5, 0x36, 0xfb, 0xd6,
+	0xe4, 0xa8, 0xc1, 0xd4, 0xa1, 0xa2, 0xf0, 0x2f, 0xcc, 0x9d, 0xeb, 0x2e, 0x93, 0x2c, 0x0a, 0x5e,
+	0x15, 0x60, 0xe2, 0x72, 0xfe, 0x6f, 0x2c, 0xf9, 0xab, 0x5f, 0x28, 0xb0, 0xab, 0xb9, 0xc4, 0xe0,
+	0x48, 0x78, 0xb7, 0x23, 0x9b, 0xa1, 0x10, 0x89, 0x68, 0x02, 0xc4, 0x0e, 0x32, 0x20, 0xcb, 0xa3,
+	0x59, 0xe6, 0xd6, 0x1e, 0xdc, 0xb2, 0x50, 0x88, 0xc8, 0x16, 0x82, 0xb9, 0xfa, 0x9d, 0x02, 0xfb,
+	0x5a, 0x94, 0x3f, 0x6d, 0xa8, 0xf8, 0x2e, 0x14, 0x62, 0x15, 0x92, 0xd4, 0xb4, 0x77, 0x11, 0xbf,
+	0x5b, 0x8a, 0x2c, 0xc4, 0x16, 0x71, 0x5c, 0xa2, 0xfa, 0x91, 0x02, 0xa2, 0x7f, 0xac, 0xb6, 0x69,
+	0xd3, 0xd7, 0x12, 0x36, 0x3d, 0xd5, 0x99, 0xa6, 0x2d, 0x8d, 0xf9, 0x6d, 0xe0, 0xe8, 0xad, 0x59,
+	0xf1, 0x56, 0x9a, 0x15, 0xcb, 0x5d, 0xe8, 0xd6, 0xb6, 0xf9, 0x4e, 0xc1, 0x58, 0xe2, 0x4b, 0x88,
+	0x66, 0x82, 0xd4, 0xa6, 0x88, 0xe0, 0xc9, 0x37, 0xe7, 0xa4, 0x53, 0x23, 0x9f, 0x7f, 0x39, 0x33,
+	0x70, 0xfb, 0xde, 0xa1, 0x01, 0xf5, 0x79, 0x18, 0x4f, 0xde, 0xfd, 0xad, 0x1c, 0xfe, 0x3e, 0x03,
+	0xb9, 0x47, 0xa5, 0xf3, 0x74, 0x92, 0x8d, 0xe7, 0x99, 0x2e, 0x9a, 0x16, 0xe1, 0xa8, 0xfd, 0xcd,
+	0x1d, 0x27, 0x84, 0x7b, 0x61, 0xab, 0xb9, 0x31, 0x08, 0x63, 0x3b, 0x3d, 0xe6, 0x96, 0x7a, 0xcc,
+	0x4f, 0xd3, 0x7b, 0xcc, 0x0b, 0xdd, 0xba, 0x4b, 0x06, 0xdb, 0xd1, 0x16, 0xcd, 0xe5, 0x64, 0x33,
+	0x65, 0x73, 0x57, 0xc9, 0x1b, 0xad, 0xbe, 0xb7, 0x93, 0xbd, 0x69, 0xb4, 0xda, 0xe9, 0x23, 0x59,
+	0xa3, 0x05, 0xfd, 0x6b, 0x20, 0xf5, 0x24, 0xae, 0xd3, 0x5d, 0xe1, 0x4a, 0x07, 0xf4, 0xe1, 0x60,
+	0x00, 0x88, 0xf7, 0x5f, 0x3c, 0xe9, 0xf1, 0x71, 0x64, 0x22, 0xe9, 0xf1, 0x29, 0x25, 0xa3, 0x17,
+	0xeb, 0x7c, 0x30, 0xb5, 0x47, 0x77, 0x5d, 0xc7, 0x5c, 0xf2, 0x5c, 0x56, 0x9a, 0x53, 0xf6, 0x4b,
+	0xd4, 0x32, 0xf4, 0x21, 0x81, 0x94, 0x3a, 0xd2, 0x3b, 0x20, 0x55, 0xda, 0x53, 0x4e, 0xe3, 0x88,
+	0xd3, 0x05, 0xa1, 0x63, 0x90, 0x67, 0xc8, 0x2e, 0xc6, 0xcb, 0x22, 0xd1, 0x65, 0x05, 0x03, 0x51,
+	0xd6, 0x65, 0x85, 0xfb, 0x9c, 0x38, 0x98, 0x41, 0xfa, 0x31, 0x22, 0x89, 0x83, 0x22, 0x93, 0x11,
+	0x87, 0xfb, 0xe8, 0x59, 0x18, 0x8b, 0x0f, 0x2c, 0x29, 0x6b, 0x63, 0xf8, 0x81, 0x49, 0x76, 0x60,
+	0x2c, 0x3e, 0xd7, 0xa4, 0x38, 0x49, 0x87, 0x2a, 0x30, 0x61, 0xd9, 0x56, 0x40, 0x72, 0x0d, 0xcf,
+	0xd3, 0x62, 0x4e, 0x1c, 0x2d, 0xb2, 0xa3, 0x53, 0x57, 0x92, 0x5b, 0x7e, 0xe1, 0xd6, 0x7c, 0x40,
+	0x75, 0x60, 0xaa, 0xef, 0x95, 0xef, 0x6f, 0x0a, 0x3c, 0x9e, 0x26, 0x94, 0xad, 0x35, 0x98, 0xa9,
+	0xc9, 0xd6, 0x27, 0xdd, 0x87, 0x61, 0x88, 0x17, 0xae, 0xfe, 0x95, 0xcd, 0xfb, 0xbd, 0x28, 0xaf,
+	0x67, 0x25, 0x6a, 0x7f, 0xb3, 0xfd, 0xb2, 0xf6, 0x0c, 0x8c, 0x93, 0x35, 0xbd, 0xee, 0x71, 0x6d,
+	0xcf, 0x3b, 0x8e, 0xed, 0xc8, 0xb9, 0xf6, 0x3e, 0xa9, 0xc4, 0xc4, 0x79, 0xbe, 0xab, 0x87, 0xdb,
+	0xb8, 0x89, 0x5c, 0xfd, 0x51, 0x81, 0xec, 0xa3, 0x31, 0x12, 0x79, 0x3f, 0x0b, 0x85, 0x9d, 0x59,
+	0xc8, 0xce, 0x2c, 0x84, 0x8f, 0x08, 0xfa, 0x3c, 0x04, 0xe9, 0xcd, 0x88, 0xe0, 0xe1, 0xd3, 0x8f,
+	0x9f, 0x14, 0x18, 0xe9, 0xd7, 0xd8, 0xe3, 0xcd, 0x24, 0xa6, 0x6e, 0x9a, 0xa7, 0x74, 0x30, 0xef,
+	0x65, 0x60, 0xef, 0x22, 0xa9, 0x2f, 0xcb, 0xcb, 0xe1, 0xc7, 0xb2, 0x9f, 0xd2, 0x1d, 0xc8, 0xd2,
+	0x06, 0x31, 0x24, 0xac, 0x85, 0xce, 0x44, 0xa7, 0xf3, 0x5e, 0x64, 0x7c, 0xa3, 0xb6, 0x8c, 0xbf,
+	0x61, 0x21, 0x0b, 0xad, 0x41, 0x8e, 0xba, 0xba, 0xeb, 0x05, 0x11, 0x7d, 0xa5, 0x43, 0xa9, 0x9b,
+	0x25, 0x0a, 0xae, 0x95, 0x71, 0x29, 0x33, 0xe7, 0xbf, 0x63, 0x29, 0x4d, 0xfd, 0x40, 0x81, 0xe9,
+	0xd6, 0xaa, 0xc6, 0xe6, 0x16, 0xca, 0x36, 0xcf, 0x2d, 0xbe, 0xce, 0xc0, 0xee, 0x9d, 0x01, 0x4f,
+	0x1b, 0x86, 0xfa, 0x4b, 0x81, 0xfd, 0x29, 0x86, 0xea, 0xbc, 0x26, 0x38, 0x0a, 0xc3, 0x7a, 0xbd,
+	0x6e, 0xaf, 0xcb, 0x6e, 0x6b, 0x24, 0x4a, 0x6e, 0x65, 0x7f, 0x19, 0x07, 0xfb, 0xe8, 0x09, 0xc8,
+	0x39, 0x44, 0xa7, 0xcc, 0x19, 0xfe, 0x3f, 0xbf, 0xc3, 0x5b, 0x85, 0xc5, 0x2a, 0x96, 0xbb, 0xa8,
+	0x0c, 0x13, 0x24, 0xf9, 0xe5, 0x7f, 0x58, 0x61, 0xd0, 0x4c, 0xaf, 0xfe, 0xa0, 0x40, 0xb1, 0xd5,
+	0x6d, 0x8e, 0xbe, 0xe9, 0xca, 0x76, 0x7e, 0xd3, 0xd3, 0x60, 0x64, 0xb6, 0x06, 0xa3, 0x72, 0x78,
+	0xe3, 0x8f, 0x83, 0x03, 0x77, 0xd8, 0x73, 0x97, 0x3d, 0xb7, 0x1f, 0x1c, 0x54, 0x36, 0xd8, 0x73,
+	0x87, 0x3d, 0xbf, 0xb3, 0xe7, 0x93, 0x3f, 0x0f, 0x0e, 0xdc, 0xc8, 0xac, 0xcd, 0xfe, 0x17, 0x00,
+	0x00, 0xff, 0xff, 0xf7, 0xf8, 0x99, 0xb5, 0x2f, 0x22, 0x00, 0x00,
+}

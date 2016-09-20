@@ -271,8 +271,10 @@ message DeploymentTriggerImageChangeParams {
 
 // DeploymentTriggerPolicies is a list of policies where nil values and different from empty arrays.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 message DeploymentTriggerPolicies {
   // items, if empty, will result in an empty slice
+
   repeated DeploymentTriggerPolicy items = 1;
 }
 

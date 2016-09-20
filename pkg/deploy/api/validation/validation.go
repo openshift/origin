@@ -334,8 +334,8 @@ func validateEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
 		if len(ev.Name) == 0 {
 			vErrs = append(vErrs, field.Required(idxPath, ""))
 		}
-		if !kvalidation.IsCIdentifier(ev.Name) {
-			vErrs = append(vErrs, field.Invalid(idxPath, ev.Name, "must match regex "+kvalidation.CIdentifierFmt))
+		if errs := kvalidation.IsCIdentifier(ev.Name); len(errs) > 0 {
+			vErrs = append(vErrs, field.Invalid(idxPath, ev.Name, strings.Join(errs, ", ")))
 		}
 		allErrs = append(allErrs, vErrs...)
 	}

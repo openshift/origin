@@ -15,7 +15,7 @@
 function os::test::junit::declare_suite_start() {
     local suite_name=$1
     local num_suites=${NUM_OS_JUNIT_SUITES_IN_FLIGHT:-0}
-    
+
     echo "=== BEGIN TEST SUITE github.com/openshift/origin/test/${suite_name} ===" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
     NUM_OS_JUNIT_SUITES_IN_FLIGHT=$(( ${num_suites} + 1 ))
     export NUM_OS_JUNIT_SUITES_IN_FLIGHT
@@ -102,7 +102,7 @@ function os::test::junit::declare_test_end() {
 readonly -f os::test::junit::declare_test_end
 
 # os::test::junit::check_test_counters checks that we do not have any test suites or test cases in flight
-# This function should be called at the very end of any test script using jUnit markers to make sure no error in 
+# This function should be called at the very end of any test script using jUnit markers to make sure no error in
 # marking has occured.
 #
 # Globals:

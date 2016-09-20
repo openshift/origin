@@ -10,7 +10,7 @@ import (
 
 	"time"
 
-	"github.com/docker/docker/pkg/units"
+	units "github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -156,7 +156,8 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 
 func (o DeployOptions) Validate() error {
 	if len(o.deploymentConfigName) == 0 {
-		return errors.New("a deployment config name is required.")
+		msg := fmt.Sprintf("a deployment config name is required.\nUse \"%s get dc\" for a list of available deployment configs.", o.baseCommandName)
+		return errors.New(msg)
 	}
 	numOptions := 0
 	if o.deployLatest {
@@ -235,16 +236,13 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
-	if err == nil {
+	if err == nil && !deployutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
-		status := deployutil.DeploymentStatusFor(deployment)
-		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
-			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.Status.LatestVersion, status)
-		}
-	} else {
-		if !kerrors.IsNotFound(err) {
-			return err
-		}
+		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.",
+			config.Status.LatestVersion, deployutil.DeploymentStatusFor(deployment))
+	}
+	if err != nil && !kerrors.IsNotFound(err) {
+		return err
 	}
 
 	config.Status.LatestVersion++
@@ -279,17 +277,17 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.Status.LatestVersion)
+			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment with 'oc deploy --latest dc/%s'.", config.Status.LatestVersion, config.Name)
 		}
 		return err
 	}
 
-	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
-		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion, status)
-		if status == deployapi.DeploymentStatusComplete {
-			message += "You can start a new deployment using the --latest option."
+	if !deployutil.IsFailedDeployment(deployment) {
+		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.Status.LatestVersion, deployutil.DeploymentStatusFor(deployment))
+		if deployutil.IsCompleteDeployment(deployment) {
+			message += fmt.Sprintf("You can start a new deployment with 'oc deploy --latest dc/%s'.", config.Name)
 		} else {
-			message += "Optionally, you can cancel this deployment using the --cancel option."
+			message += fmt.Sprintf("Optionally, you can cancel this deployment with 'oc deploy --cancel dc/%s'.", config.Name)
 		}
 
 		return fmt.Errorf(message)

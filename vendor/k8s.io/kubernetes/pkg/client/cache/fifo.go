@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -166,7 +166,6 @@ func (f *FIFO) addIfNotPresent(id string, obj interface{}) {
 	f.items[id] = obj
 	f.itemsInQueue.Insert(id)
 	f.cond.Broadcast()
-	return
 }
 
 // Update is the same as Add in this implementation.
@@ -253,6 +252,7 @@ func (f *FIFO) Pop(process PopProcessFunc) (interface{}, error) {
 			// Item may have been deleted subsequently.
 			continue
 		}
+
 		f.itemsInQueue.Delete(id)
 		if !f.keepCache {
 			delete(f.items, id)

@@ -3,7 +3,6 @@ package etcd
 import (
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -15,7 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/observe"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -25,25 +23,16 @@ type REST struct {
 	*registry.Store
 }
 
-const EtcdPrefix = "/oauth/accesstokens"
-
 // NewREST returns a RESTStorage object that will work against access tokens
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
-
 	strategy := oauthaccesstoken.NewStrategy(clientGetter)
 	store := &registry.Store{
 		NewFunc:     func() runtime.Object { return &api.OAuthAccessToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAccessTokenList{} },
-		KeyRootFunc: func(ctx kapi.Context) string {
-			return EtcdPrefix
-		},
-		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
-		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.OAuthAccessToken).Name, nil
 		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
+		PredicateFunc: func(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 			return oauthaccesstoken.Matcher(label, field)
 		},
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
@@ -57,7 +46,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 		UpdateStrategy: strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, EtcdPrefix); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,11 +52,11 @@ type ruleMatch struct {
 }
 
 func TestOpenPodHostports(t *testing.T) {
-	fakeIptables := NewFakeIptables()
+	fakeIPTables := NewFakeIPTables()
 
 	h := &handler{
 		hostPortMap: make(map[hostport]closeable),
-		iptables:    fakeIptables,
+		iptables:    fakeIPTables,
 		portOpener:  openFakeSocket,
 	}
 
@@ -198,7 +198,7 @@ func TestOpenPodHostports(t *testing.T) {
 	}
 
 	for _, rule := range genericRules {
-		_, chain, err := fakeIptables.getChain(utiliptables.TableNAT, utiliptables.Chain(rule.chain))
+		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(rule.chain))
 		if err != nil {
 			t.Fatalf("Expected NAT chain %s did not exist", rule.chain)
 		}
@@ -211,7 +211,7 @@ func TestOpenPodHostports(t *testing.T) {
 	for _, test := range tests {
 		for _, match := range test.matches {
 			// Ensure chain exists
-			_, chain, err := fakeIptables.getChain(utiliptables.TableNAT, utiliptables.Chain(match.chain))
+			_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(match.chain))
 			if err != nil {
 				t.Fatalf("Expected NAT chain %s did not exist", match.chain)
 			}

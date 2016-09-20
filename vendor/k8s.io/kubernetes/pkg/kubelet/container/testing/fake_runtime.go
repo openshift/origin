@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -382,6 +382,14 @@ func (f *FakeRuntime) GarbageCollect(gcPolicy ContainerGCPolicy, ready bool) err
 	defer f.Unlock()
 
 	f.CalledFunctions = append(f.CalledFunctions, "GarbageCollect")
+	return f.Err
+}
+
+func (f *FakeRuntime) DeleteContainer(containerID ContainerID) error {
+	f.Lock()
+	defer f.Unlock()
+
+	f.CalledFunctions = append(f.CalledFunctions, "DeleteContainer")
 	return f.Err
 }
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -214,17 +213,4 @@ func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController
 	}
 
 	return obj.(*kapi.ReplicationController), nil
-}
-
-// TODO: Move this in the upstream pod lister
-func (c *DeploymentController) getPod(namespace, name string) (*kapi.Pod, error) {
-	key := namespace + "/" + name
-	obj, exists, err := c.podStore.Indexer.GetByKey(key)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, kerrors.NewNotFound(kapi.Resource("pod"), name)
-	}
-	return obj.(*kapi.Pod), nil
 }

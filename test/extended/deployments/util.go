@@ -189,6 +189,18 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []kapi.Repl
 	return true, nil
 }
 
+func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
+	if len(rcs) == 0 {
+		return false, nil
+	}
+	rc := rcs[len(rcs)-1]
+	version := deployutil.DeploymentVersionFor(&rc)
+	if version != dc.Status.LatestVersion {
+		return false, nil
+	}
+	return deployutil.IsFailedDeployment(&rc), nil
+}
+
 func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
@@ -262,7 +274,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []kapi.ReplicationController, pods []kapi.Pod) (bool, error)
 
 func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
-	return wait.Poll(200*time.Millisecond, timeout, func() (bool, error) {
+	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
 		dc, rcs, pods, err := deploymentInfo(oc, name)
 		if err != nil {
 			return false, err
@@ -271,6 +283,20 @@ func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, 
 			return false, err
 		}
 		return fn(dc, rcs, pods)
+	})
+}
+
+func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) error {
+	dc, rcs, pods, err := deploymentInfo(oc, name)
+	if err != nil {
+		return err
+	}
+	if err := checkDeploymentInvariants(dc, rcs, pods); err != nil {
+		return err
+	}
+	generation := dc.Generation
+	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
+		return deployutil.HasSynced(dc, generation), nil
 	})
 }
 
@@ -325,8 +351,4 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
 	}
-}
-
-func checkDeploymentConfigHasSynced(dc *deployapi.DeploymentConfig, _ []kapi.ReplicationController, _ []kapi.Pod) (bool, error) {
-	return deployutil.HasSynced(dc), nil
 }

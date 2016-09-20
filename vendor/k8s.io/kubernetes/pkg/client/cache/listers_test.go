@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ func TestStoreToNodeConditionLister(t *testing.T) {
 		store.Add(n)
 	}
 
-	predicate := func(node api.Node) bool {
+	predicate := func(node *api.Node) bool {
 		for _, cond := range node.Status.Conditions {
 			if cond.Type == api.NodeOutOfDisk && cond.Status == api.ConditionTrue {
 				return false
@@ -114,9 +114,9 @@ func TestStoreToNodeConditionLister(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	got := make([]string, len(gotNodes.Items))
-	for ix := range gotNodes.Items {
-		got[ix] = gotNodes.Items[ix].Name
+	got := make([]string, len(gotNodes))
+	for ix := range gotNodes {
+		got[ix] = gotNodes[ix].Name
 	}
 	if !want.HasAll(got...) || len(got) != len(want) {
 		t.Errorf("Expected %v, got %v", want, got)
@@ -143,7 +143,7 @@ func TestStoreToReplicationControllerLister(t *testing.T) {
 				},
 			},
 			list: func(lister StoreToReplicationControllerLister) ([]api.ReplicationController, error) {
-				return lister.ReplicationControllers(api.NamespaceAll).List(labels.Set{}.AsSelector())
+				return lister.ReplicationControllers(api.NamespaceAll).List(labels.Set{}.AsSelectorPreValidated())
 			},
 			outRCNames: sets.NewString("hmm", "foo"),
 		},
@@ -158,7 +158,7 @@ func TestStoreToReplicationControllerLister(t *testing.T) {
 				},
 			},
 			list: func(lister StoreToReplicationControllerLister) ([]api.ReplicationController, error) {
-				return lister.ReplicationControllers("hmm").List(labels.Set{}.AsSelector())
+				return lister.ReplicationControllers("hmm").List(labels.Set{}.AsSelectorPreValidated())
 			},
 			outRCNames: sets.NewString("hmm"),
 		},
@@ -715,17 +715,17 @@ func TestStoreToPodLister(t *testing.T) {
 		spl := StoreToPodLister{store}
 
 		// Verify that we can always look up by Namespace.
-		defaultPods, err := spl.Pods(api.NamespaceDefault).List(labels.Set{}.AsSelector())
+		defaultPods, err := spl.Pods(api.NamespaceDefault).List(labels.Set{}.AsSelectorPreValidated())
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
-		} else if e, a := 1, len(defaultPods.Items); e != a {
+		} else if e, a := 1, len(defaultPods); e != a {
 			t.Errorf("Expected %v, got %v", e, a)
-		} else if e, a := "quux", defaultPods.Items[0].Name; e != a {
+		} else if e, a := "quux", defaultPods[0].Name; e != a {
 			t.Errorf("Expected %v, got %v", e, a)
 		}
 
 		for _, id := range ids {
-			got, err := spl.List(labels.Set{"name": id}.AsSelector())
+			got, err := spl.List(labels.Set{"name": id}.AsSelectorPreValidated())
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				continue

@@ -38,7 +38,7 @@ function os::util::trap::init_exit() {
 readonly -f os::util::trap::init_exit
 
 # os::util::trap::err_handler is the handler for the ERR signal.
-# 
+#
 # Globals:
 #  - OS_TRAP_DEBUG
 #  - OS_USE_STACKTRACE
@@ -55,7 +55,7 @@ function os::util::trap::err_handler() {
     fi
 
     if [[ "${OS_TRAP_DEBUG:-}" = "true" ]]; then
-        echo "[DEBUG] Error handler executing with return code \`${return_code}\`, last command \`${last_command}\`, and errexit set \`${errexit_set:-}\`" 
+        echo "[DEBUG] Error handler executing with return code \`${return_code}\`, last command \`${last_command}\`, and errexit set \`${errexit_set:-}\`"
     fi
 
     if [[ "${OS_USE_STACKTRACE:-}" = "true" ]]; then
@@ -85,7 +85,7 @@ function os::util::trap::exit_handler() {
     set +o errexit
 
     if [[ "${OS_TRAP_DEBUG:-}" = "true" ]]; then
-        echo "[DEBUG] Exit handler executing with return code \`${return_code}\`" 
+        echo "[DEBUG] Exit handler executing with return code \`${return_code}\`"
     fi
 
     # the following envars selectively enable optional exit traps, all of which are run inside of

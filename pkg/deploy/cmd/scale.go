@@ -37,10 +37,11 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 		// Make it try only once, immediately
 		retry = &kubectl.RetryParams{Interval: time.Millisecond, Timeout: time.Millisecond}
 	}
-	cond := kubectl.ScaleCondition(scaler, preconditions, namespace, name, newSize)
+	cond := kubectl.ScaleCondition(scaler, preconditions, namespace, name, newSize, nil)
 	if err := wait.Poll(retry.Interval, retry.Timeout, cond); err != nil {
 		return err
 	}
+	// TODO: convert to a watch and use resource version from the ScaleCondition - kubernetes/kubernetes#31051
 	if waitForReplicas != nil {
 		dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
 		if err != nil {
@@ -56,17 +57,18 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 }
 
 // ScaleSimple does a simple one-shot attempt at scaling - not useful on its
-// own, but a necessary building block for Scale
-func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) error {
+// own, but a necessary building block for Scale.
+func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) (string, error) {
 	scale, err := scaler.dcClient.DeploymentConfigs(namespace).GetScale(name)
 	if err != nil {
-		return err
+		return "", err
 	}
 	scale.Spec.Replicas = int32(newSize)
-	if _, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale); err != nil {
-		return kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: "Unknown", ActualError: err}
+	updated, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale)
+	if err != nil {
+		return "", kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: "Unknown", ActualError: err}
 	}
-	return nil
+	return updated.ResourceVersion, nil
 }
 
 // controllerHasSpecifiedReplicas returns a condition that will be true if and

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import (
 	"net/url"
 
 	dockerterm "github.com/docker/docker/pkg/term"
+	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
@@ -34,16 +34,21 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 )
 
-const (
-	exec_example = `# Get output from running 'date' from pod 123456-7890, using the first container by default
-kubectl exec 123456-7890 date
-	
-# Get output from running 'date' in ruby-container from pod 123456-7890
-kubectl exec 123456-7890 -c ruby-container date
+var (
+	exec_example = dedent.Dedent(`
+		# Get output from running 'date' from pod 123456-7890, using the first container by default
+		kubectl exec 123456-7890 date
 
-# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-7890
-# and sends stdout/stderr from 'bash' back to the client
-kubectl exec 123456-7890 -c ruby-container -i -t -- bash -il`
+		# Get output from running 'date' in ruby-container from pod 123456-7890
+		kubectl exec 123456-7890 -c ruby-container date
+
+		# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-7890
+		# and sends stdout/stderr from 'bash' back to the client
+		kubectl exec 123456-7890 -c ruby-container -i -t -- bash -il`)
+)
+
+const (
+	execUsageStr = "expected 'exec POD_NAME COMMAND [ARG1] [ARG2] ... [ARGN]'.\nPOD_NAME and COMMAND are required arguments for the exec command"
 )
 
 func NewCmdExec(cmdFullName string, f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
@@ -55,13 +60,13 @@ func NewCmdExec(cmdFullName string, f *cmdutil.Factory, cmdIn io.Reader, cmdOut,
 		},
 
 		FullCmdName: cmdFullName,
-		
+
 		Executor: &DefaultRemoteExecutor{},
 	}
 
 	cmd := &cobra.Command{
 		Use:     "exec POD [-c CONTAINER] -- COMMAND [args...]",
-		Short:   "Execute a command in a container.",
+		Short:   "Execute a command in a container",
 		Long:    "Execute a command in a container.",
 		Example: exec_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -108,6 +113,8 @@ type StreamOptions struct {
 	ContainerName string
 	Stdin         bool
 	TTY           bool
+	// minimize unnecessary output
+	Quiet bool
 	// InterruptParent, if set, is used to handle interrupts while attached
 	InterruptParent *interrupt.Handler
 	In              io.Reader
@@ -140,19 +147,19 @@ func (p *ExecOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn []
 
 	// Let kubectl exec follow rules for `--`, see #13004 issue
 	if len(p.PodName) == 0 && (len(argsIn) == 0 || argsLenAtDash == 0) {
-		return cmdutil.UsageError(cmd, "POD is required for exec")
+		return cmdutil.UsageError(cmd, execUsageStr)
 	}
 	if len(p.PodName) != 0 {
-		printDeprecationWarning("exec POD", "-p POD")
+		printDeprecationWarning("exec POD_NAME", "-p POD_NAME")
 		if len(argsIn) < 1 {
-			return cmdutil.UsageError(cmd, "COMMAND is required for exec")
+			return cmdutil.UsageError(cmd, execUsageStr)
 		}
 		p.Command = argsIn
 	} else {
 		p.PodName = argsIn[0]
 		p.Command = argsIn[1:]
 		if len(p.Command) < 1 {
-			return cmdutil.UsageError(cmd, "COMMAND is required for exec")
+			return cmdutil.UsageError(cmd, execUsageStr)
 		}
 	}
 
@@ -253,6 +260,10 @@ func (p *ExecOptions) Run() error {
 		return err
 	}
 
+	if pod.Status.Phase == api.PodSucceeded || pod.Status.Phase == api.PodFailed {
+		return fmt.Errorf("cannot exec into a container in a completed pod; current phase is %s", pod.Status.Phase)
+	}
+
 	containerName := p.ContainerName
 	if len(containerName) == 0 {
 		if len(pod.Spec.Containers) > 1 {
@@ -291,39 +302,7 @@ func (p *ExecOptions) Run() error {
 			TTY:       t.Raw,
 		}, api.ParameterCodec)
 
-		postErr := p.Executor.Execute("POST", req.URL(), p.Config, p.In, p.Out, p.Err, t.Raw, sizeQueue)
-
-		// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with exec running as a GET.
-		if postErr == nil {
-			return nil
-		}
-		// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
-		if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
-			return postErr
-		}
-
-		getReq := p.Client.RESTClient.Get().
-			Resource("pods").
-			Name(pod.Name).
-			Namespace(pod.Namespace).
-			SubResource("exec").
-			Param("container", containerName)
-		getReq.VersionedParams(&api.PodExecOptions{
-			Container: containerName,
-			Command:   p.Command,
-			Stdin:     p.Stdin,
-			Stdout:    p.Out != nil,
-			Stderr:    p.Err != nil,
-			TTY:       t.Raw,
-		}, api.ParameterCodec)
-
-		getErr := p.Executor.Execute("GET", getReq.URL(), p.Config, p.In, p.Out, p.Err, t.Raw, sizeQueue)
-		if getErr == nil {
-			return nil
-		}
-
-		// if we got a getErr, return the postErr because it's more likely to be correct.  GET is legacy
-		return postErr
+		return p.Executor.Execute("POST", req.URL(), p.Config, p.In, p.Out, p.Err, t.Raw, sizeQueue)
 	}
 
 	if err := t.Safe(fn); err != nil {

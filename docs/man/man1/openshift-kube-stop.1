@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift kube stop \- Deprecated: Gracefully shut down a resource by name or filename.
+openshift kube stop \- Deprecated: delete
 
 
 .SH SYNOPSIS
@@ -13,15 +13,7 @@ openshift kube stop \- Deprecated: Gracefully shut down a resource by name or fi
 
 .SH DESCRIPTION
 .PP
-Deprecated: Gracefully shut down a resource by name or filename.
-
-.PP
-The stop command is deprecated, all its functionalities are covered by delete command.
-See 'kubectl delete \-\-help' for more details.
-
-.PP
-Attempts to shut down and delete a resource that supports graceful termination.
-If the resource is scalable it will be scaled to 0 before deletion.
+Deprecated: This command is deprecated, all its functionalities are covered by "kubectl delete"
 
 
 .SH OPTIONS
@@ -64,6 +56,10 @@ If the resource is scalable it will be scaled to 0 before deletion.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -77,7 +73,7 @@ If the resource is scalable it will be scaled to 0 before deletion.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -85,15 +81,15 @@ If the resource is scalable it will be scaled to 0 before deletion.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -157,7 +153,7 @@ If the resource is scalable it will be scaled to 0 before deletion.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -225,7 +221,7 @@ If the resource is scalable it will be scaled to 0 before deletion.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -265,7 +261,7 @@ If the resource is scalable it will be scaled to 0 before deletion.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -285,6 +281,7 @@ If the resource is scalable it will be scaled to 0 before deletion.
 .RS
 
 .nf
+
 # Shut down foo.
 kubectl stop replicationcontroller foo
 

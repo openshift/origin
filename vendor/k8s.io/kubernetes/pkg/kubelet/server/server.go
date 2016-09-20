@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -225,8 +225,15 @@ func (s *Server) InstallAuthFilter() {
 		attrs := s.auth.GetRequestAttributes(u, req.Request)
 
 		// Authorize
-		if err := s.auth.Authorize(attrs); err != nil {
-			msg := fmt.Sprintf("Forbidden (user=%s, verb=%s, namespace=%s, resource=%s)", u.GetName(), attrs.GetVerb(), attrs.GetNamespace(), attrs.GetResource())
+		authorized, reason, err := s.auth.Authorize(attrs)
+		if err != nil {
+			msg := fmt.Sprintf("Error (user=%s, verb=%s, namespace=%s, resource=%s)", u.GetName(), attrs.GetVerb(), attrs.GetNamespace(), attrs.GetResource())
+			glog.Errorf(msg, err)
+			resp.WriteErrorString(http.StatusInternalServerError, msg)
+			return
+		}
+		if !authorized {
+			msg := fmt.Sprintf("Forbidden (reason=%s, user=%s, verb=%s, namespace=%s, resource=%s)", reason, u.GetName(), attrs.GetVerb(), attrs.GetNamespace(), attrs.GetResource())
 			glog.V(2).Info(msg)
 			resp.WriteErrorString(http.StatusForbidden, msg)
 			return

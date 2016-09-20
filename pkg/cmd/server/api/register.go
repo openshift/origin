@@ -25,15 +25,15 @@ func Resource(resource string) unversioned.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
-func AddToScheme(scheme *runtime.Scheme) {
-	// Add the API to Scheme.
-	addKnownTypes(scheme)
-}
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
 
 // Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	if err := scheme.AddIgnoredConversionType(&unversioned.TypeMeta{}, &unversioned.TypeMeta{}); err != nil {
-		panic(err)
+		return err
 	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MasterConfig{},
@@ -56,4 +56,5 @@ func addKnownTypes(scheme *runtime.Scheme) {
 
 		&DefaultAdmissionConfig{},
 	)
+	return nil
 }

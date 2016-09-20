@@ -72,6 +72,8 @@ preload-remote "github.com/skynetservices" "skydns" "github.com/openshift" "skyd
 preload-remote "github.com/coreos" "etcd" "github.com/openshift" "etcd"
 preload-remote "github.com/emicklei" "go-restful" "github.com/openshift" "go-restful"
 preload-remote "github.com/golang" "glog" "github.com/openshift" "glog"
+preload-remote "github.com/cloudflare" "cfssl" "github.com/openshift" "cfssl"
+preload-remote "github.com/google" "certificate-transparency" "github.com/openshift" "certificate-transparency"
 preload-remote "github.com/RangelReale" "osin" "github.com/openshift" "osin"
 preload-remote "github.com/google" "cadvisor" "github.com/openshift" "cadvisor"
 

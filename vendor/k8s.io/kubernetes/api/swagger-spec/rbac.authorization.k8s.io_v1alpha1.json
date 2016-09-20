@@ -3,6 +3,10 @@
   "apiVersion": "rbac.authorization.k8s.io/v1alpha1",
   "basePath": "https://10.10.10.10:6443",
   "resourcePath": "/apis/rbac.authorization.k8s.io/v1alpha1",
+  "info": {
+   "title": "",
+   "description": ""
+  },
   "apis": [
    {
     "path": "/apis/rbac.authorization.k8s.io/v1alpha1/clusterrolebindings",
@@ -2726,11 +2730,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "unversioned.ListMeta",
@@ -2755,7 +2759,7 @@
      },
      "resourceVersion": {
       "type": "string",
-      "description": "String that identifies the server's internal version of this object that can be used by clients to determine when objects have changed. Value must be treated as opaque by clients and passed unmodified back to the server. Populated by the system. Read-only. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#concurrency-control-and-consistency"
+      "description": "String that identifies the server's internal version of this object that can be used by clients to determine when objects have changed. Value must be treated as opaque by clients and passed unmodified back to the server. Populated by the system. Read-only. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#concurrency-control-and-consistency"
      }
     }
    },
@@ -2769,11 +2773,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -2798,15 +2802,15 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names"
+      "description": "Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: http://releases.k8s.io/release-1.4/docs/user-guide/identifiers.md#names"
      },
      "generateName": {
       "type": "string",
-      "description": "GenerateName is an optional prefix, used by the server, to generate a unique name ONLY IF the Name field has not been provided. If this field is used, the name returned to the client will be different than the name passed. This value will also be combined with a unique suffix. The provided value has the same validation rules as the Name field, and may be truncated by the length of the suffix required to make the value unique on the server.\n\nIf this field is specified and the generated name exists, the server will NOT return a 409 - instead, it will either return 201 Created or 500 with Reason ServerTimeout indicating a unique name could not be found in the time allotted, and the client should retry (optionally after the time indicated in the Retry-After header).\n\nApplied only if Name is not specified. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#idempotency"
+      "description": "GenerateName is an optional prefix, used by the server, to generate a unique name ONLY IF the Name field has not been provided. If this field is used, the name returned to the client will be different than the name passed. This value will also be combined with a unique suffix. The provided value has the same validation rules as the Name field, and may be truncated by the length of the suffix required to make the value unique on the server.\n\nIf this field is specified and the generated name exists, the server will NOT return a 409 - instead, it will either return 201 Created or 500 with Reason ServerTimeout indicating a unique name could not be found in the time allotted, and the client should retry (optionally after the time indicated in the Retry-After header).\n\nApplied only if Name is not specified. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#idempotency"
      },
      "namespace": {
       "type": "string",
-      "description": "Namespace defines the space within each name must be unique. An empty namespace is equivalent to the \"default\" namespace, but \"default\" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info: http://releases.k8s.io/release-1.3/docs/user-guide/namespaces.md"
+      "description": "Namespace defines the space within each name must be unique. An empty namespace is equivalent to the \"default\" namespace, but \"default\" is the canonical representation. Not all objects are required to be scoped to a namespace - the value of this field for those objects will be empty.\n\nMust be a DNS_LABEL. Cannot be updated. More info: http://releases.k8s.io/release-1.4/docs/user-guide/namespaces.md"
      },
      "selfLink": {
       "type": "string",
@@ -2814,11 +2818,11 @@
      },
      "uid": {
       "type": "string",
-      "description": "UID is the unique in time and space value for this object. It is typically generated by the server on successful creation of a resource and is not allowed to change on PUT operations.\n\nPopulated by the system. Read-only. More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#uids"
+      "description": "UID is the unique in time and space value for this object. It is typically generated by the server on successful creation of a resource and is not allowed to change on PUT operations.\n\nPopulated by the system. Read-only. More info: http://releases.k8s.io/release-1.4/docs/user-guide/identifiers.md#uids"
      },
      "resourceVersion": {
       "type": "string",
-      "description": "An opaque value that represents the internal version of this object that can be used by clients to determine when objects have changed. May be used for optimistic concurrency, change detection, and the watch operation on a resource or set of resources. Clients must treat these values as opaque and passed unmodified back to the server. They may only be valid for a particular resource or set of resources.\n\nPopulated by the system. Read-only. Value must be treated as opaque by clients and . More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#concurrency-control-and-consistency"
+      "description": "An opaque value that represents the internal version of this object that can be used by clients to determine when objects have changed. May be used for optimistic concurrency, change detection, and the watch operation on a resource or set of resources. Clients must treat these values as opaque and passed unmodified back to the server. They may only be valid for a particular resource or set of resources.\n\nPopulated by the system. Read-only. Value must be treated as opaque by clients and . More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#concurrency-control-and-consistency"
      },
      "generation": {
       "type": "integer",
@@ -2827,11 +2831,13 @@
      },
      "creationTimestamp": {
       "type": "string",
-      "description": "CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC.\n\nPopulated by the system. Read-only. Null for lists. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata"
+      "format": "date-time",
+      "description": "CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC.\n\nPopulated by the system. Read-only. Null for lists. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#metadata"
      },
      "deletionTimestamp": {
       "type": "string",
-      "description": "DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource will be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. Once the resource is deleted in the API, the Kubelet will send a hard termination signal to the container. If not set, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested. Read-only. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#metadata"
+      "format": "date-time",
+      "description": "DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource will be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. Once the resource is deleted in the API, the Kubelet will send a hard termination signal to the container. If not set, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested. Read-only. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#metadata"
      },
      "deletionGracePeriodSeconds": {
       "type": "integer",
@@ -2840,11 +2846,11 @@
      },
      "labels": {
       "type": "object",
-      "description": "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://releases.k8s.io/release-1.3/docs/user-guide/labels.md"
+      "description": "Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://releases.k8s.io/release-1.4/docs/user-guide/labels.md"
      },
      "annotations": {
       "type": "object",
-      "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/release-1.3/docs/user-guide/annotations.md"
+      "description": "Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://releases.k8s.io/release-1.4/docs/user-guide/annotations.md"
      },
      "ownerReferences": {
       "type": "array",
@@ -2859,6 +2865,10 @@
        "type": "string"
       },
       "description": "Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed."
+     },
+     "clusterName": {
+      "type": "string",
+      "description": "The name of the cluster which the object belongs to. This is used to distinguish resources with same name and namespace in different clusters. This field is not set anywhere right now and apiserver is going to ignore it if set in create or update request."
      }
     }
    },
@@ -2878,15 +2888,15 @@
      },
      "kind": {
       "type": "string",
-      "description": "Kind of the referent. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind of the referent. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "name": {
       "type": "string",
-      "description": "Name of the referent. More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names"
+      "description": "Name of the referent. More info: http://releases.k8s.io/release-1.4/docs/user-guide/identifiers.md#names"
      },
      "uid": {
       "type": "string",
-      "description": "UID of the referent. More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#uids"
+      "description": "UID of the referent. More info: http://releases.k8s.io/release-1.4/docs/user-guide/identifiers.md#uids"
      },
      "controller": {
       "type": "boolean",
@@ -2926,19 +2936,19 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind of the referent. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind of the referent. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "namespace": {
       "type": "string",
-      "description": "Namespace of the referent. More info: http://releases.k8s.io/release-1.3/docs/user-guide/namespaces.md"
+      "description": "Namespace of the referent. More info: http://releases.k8s.io/release-1.4/docs/user-guide/namespaces.md"
      },
      "name": {
       "type": "string",
-      "description": "Name of the referent. More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names"
+      "description": "Name of the referent. More info: http://releases.k8s.io/release-1.4/docs/user-guide/identifiers.md#names"
      },
      "uid": {
       "type": "string",
-      "description": "UID of the referent. More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#uids"
+      "description": "UID of the referent. More info: http://releases.k8s.io/release-1.4/docs/user-guide/identifiers.md#uids"
      },
      "apiVersion": {
       "type": "string",
@@ -2946,7 +2956,7 @@
      },
      "resourceVersion": {
       "type": "string",
-      "description": "Specific resourceVersion to which this reference is made, if any. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#concurrency-control-and-consistency"
+      "description": "Specific resourceVersion to which this reference is made, if any. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#concurrency-control-and-consistency"
      },
      "fieldPath": {
       "type": "string",
@@ -2960,19 +2970,19 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "unversioned.ListMeta",
-      "description": "Standard list metadata. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Standard list metadata. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "status": {
       "type": "string",
-      "description": "Status of the operation. One of: \"Success\" or \"Failure\". More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#spec-and-status"
+      "description": "Status of the operation. One of: \"Success\" or \"Failure\". More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#spec-and-status"
      },
      "message": {
       "type": "string",
@@ -3007,7 +3017,7 @@
      },
      "kind": {
       "type": "string",
-      "description": "The kind attribute of the resource associated with the status StatusReason. On some operations may differ from the requested resource Kind. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "The kind attribute of the resource associated with the status StatusReason. On some operations may differ from the requested resource Kind. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "causes": {
       "type": "array",
@@ -3056,11 +3066,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "gracePeriodSeconds": {
       "type": "integer",
@@ -3100,11 +3110,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "unversioned.ListMeta",
@@ -3128,11 +3138,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -3151,9 +3161,7 @@
     "id": "v1alpha1.PolicyRule",
     "description": "PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.",
     "required": [
-     "verbs",
-     "apiGroups",
-     "resources"
+     "verbs"
     ],
     "properties": {
      "verbs": {
@@ -3193,7 +3201,7 @@
       "items": {
        "type": "string"
       },
-      "description": "NonResourceURLsSlice is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different. Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding."
+      "description": "NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different. Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"),  but not both."
      }
     }
    },
@@ -3206,11 +3214,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "unversioned.ListMeta",
@@ -3235,11 +3243,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -3267,11 +3275,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "unversioned.ListMeta",
@@ -3295,11 +3303,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -3324,11 +3332,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
      },
      "groupVersion": {
       "type": "string",

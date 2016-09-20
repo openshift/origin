@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -203,7 +203,7 @@ func (c *Fake) InvokesProxy(action Action) restclient.ResponseWrapper {
 // ClearActions clears the history of actions called on the fake client
 func (c *Fake) ClearActions() {
 	c.Lock()
-	c.Unlock()
+	defer c.Unlock()
 
 	c.actions = make([]Action, 0)
 }
@@ -285,12 +285,20 @@ func (c *Fake) Apps() client.AppsInterface {
 	return &FakeApps{c}
 }
 
+func (c *Fake) Authorization() client.AuthorizationInterface {
+	return &FakeAuthorization{c}
+}
+
 func (c *Fake) Autoscaling() client.AutoscalingInterface {
 	return &FakeAutoscaling{c}
 }
 
 func (c *Fake) Batch() client.BatchInterface {
 	return &FakeBatch{c}
+}
+
+func (c *Fake) Certificates() client.CertificatesInterface {
+	return &FakeCertificates{c}
 }
 
 func (c *Fake) Extensions() client.ExtensionsInterface {
@@ -311,6 +319,10 @@ func (c *Fake) ConfigMaps(namespace string) client.ConfigMapsInterface {
 
 func (c *Fake) Rbac() client.RbacInterface {
 	return &FakeRbac{Fake: c}
+}
+
+func (c *Fake) Storage() client.StorageInterface {
+	return &FakeStorage{Fake: c}
 }
 
 func (c *Fake) Authentication() client.AuthenticationInterface {
@@ -342,6 +354,19 @@ type FakeApps struct {
 
 func (c *FakeApps) PetSets(namespace string) client.PetSetInterface {
 	return &FakePetSets{Fake: c, Namespace: namespace}
+}
+
+// NewSimpleFakeAuthorization returns a client that will respond with the provided objects
+func NewSimpleFakeAuthorization(objects ...runtime.Object) *FakeAuthorization {
+	return &FakeAuthorization{Fake: NewSimpleFake(objects...)}
+}
+
+type FakeAuthorization struct {
+	*Fake
+}
+
+func (c *FakeAuthorization) SubjectAccessReviews() client.SubjectAccessReviewInterface {
+	return &FakeSubjectAccessReviews{Fake: c}
 }
 
 // NewSimpleFakeAutoscaling returns a client that will respond with the provided objects
@@ -449,6 +474,18 @@ func (c *FakeRbac) ClusterRoles() client.ClusterRoleInterface {
 
 func (c *FakeRbac) ClusterRoleBindings() client.ClusterRoleBindingInterface {
 	return &FakeClusterRoleBindings{Fake: c}
+}
+
+func NewSimpleFakeStorage(objects ...runtime.Object) *FakeStorage {
+	return &FakeStorage{Fake: NewSimpleFake(objects...)}
+}
+
+type FakeStorage struct {
+	*Fake
+}
+
+func (c *FakeStorage) StorageClasses() client.StorageClassInterface {
+	return &FakeStorageClasses{Fake: c}
 }
 
 type FakeDiscovery struct {

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,12 +28,18 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
+	"k8s.io/kubernetes/pkg/storage/storagebackend/factory"
 )
 
-func newStorage(t *testing.T) (*ScaleREST, *etcdtesting.EtcdTestServer, storage.Interface) {
+func newStorage(t *testing.T) (*ScaleREST, *etcdtesting.EtcdTestServer, storage.Interface, factory.DestroyFunc) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	restOptions := generic.RESTOptions{Storage: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
-	return NewStorage(restOptions).Scale, server, etcdStorage
+	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "controllers"}
+	s, d := generic.NewRawStorage(etcdStorage)
+	destroyFunc := func() {
+		d()
+		server.Terminate(t)
+	}
+	return NewStorage(restOptions).Scale, server, s, destroyFunc
 }
 
 var validPodTemplate = api.PodTemplate{
@@ -82,8 +88,8 @@ var validScale = extensions.Scale{
 }
 
 func TestGet(t *testing.T) {
-	storage, server, si := newStorage(t)
-	defer server.Terminate(t)
+	storage, _, si, destroyFunc := newStorage(t)
+	defer destroyFunc()
 
 	ctx := api.WithNamespace(api.NewContext(), "test")
 	key := etcdtest.AddPrefix("/controllers/test/foo")
@@ -101,8 +107,8 @@ func TestGet(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	storage, server, si := newStorage(t)
-	defer server.Terminate(t)
+	storage, _, si, destroyFunc := newStorage(t)
+	defer destroyFunc()
 
 	ctx := api.WithNamespace(api.NewContext(), "test")
 	key := etcdtest.AddPrefix("/controllers/test/foo")

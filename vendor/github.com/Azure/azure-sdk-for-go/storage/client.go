@@ -4,7 +4,9 @@ package storage
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -22,18 +25,23 @@ const (
 
 	// DefaultAPIVersion is the  Azure Storage API version string used when a
 	// basic client is created.
-	DefaultAPIVersion = "2014-02-14"
+	DefaultAPIVersion = "2015-02-21"
 
 	defaultUseHTTPS = true
 
 	blobServiceName  = "blob"
 	tableServiceName = "table"
 	queueServiceName = "queue"
+	fileServiceName  = "file"
 )
 
 // Client is the object that needs to be constructed to perform
 // operations on the storage account.
 type Client struct {
+	// HTTPClient is the http.Client used to initiate API
+	// requests.  If it is nil, http.DefaultClient is used.
+	HTTPClient *http.Client
+
 	accountName string
 	accountKey  []byte
 	useHTTPS    bool
@@ -45,6 +53,11 @@ type storageResponse struct {
 	statusCode int
 	headers    http.Header
 	body       io.ReadCloser
+}
+
+type odataResponse struct {
+	storageResponse
+	odata odataErrorMessage
 }
 
 // AzureStorageServiceError contains fields of the error response from
@@ -59,6 +72,20 @@ type AzureStorageServiceError struct {
 	Reason                    string `xml:"Reason"`
 	StatusCode                int
 	RequestID                 string
+}
+
+type odataErrorMessageMessage struct {
+	Lang  string `json:"lang"`
+	Value string `json:"value"`
+}
+
+type odataErrorMessageInternal struct {
+	Code    string                   `json:"code"`
+	Message odataErrorMessageMessage `json:"message"`
+}
+
+type odataErrorMessage struct {
+	Err odataErrorMessageInternal `json:"odata.error"`
 }
 
 // UnexpectedStatusCodeError is returned when a storage service responds with neither an error
@@ -77,6 +104,11 @@ func (e UnexpectedStatusCodeError) Error() string {
 		expected = append(expected, s(v))
 	}
 	return fmt.Sprintf("storage: status code from service response is %s; was expecting %s", got, strings.Join(expected, " or "))
+}
+
+// Got is the actual status code returned by Azure.
+func (e UnexpectedStatusCodeError) Got() int {
+	return e.got
 }
 
 // NewBasicClient constructs a Client with given storage service name and
@@ -100,7 +132,7 @@ func NewClient(accountName, accountKey, blobServiceBaseURL, apiVersion string, u
 
 	key, err := base64.StdEncoding.DecodeString(accountKey)
 	if err != nil {
-		return c, err
+		return c, fmt.Errorf("azure: malformed storage account key: %v", err)
 	}
 
 	return Client{
@@ -152,6 +184,18 @@ func (c Client) GetBlobService() BlobStorageClient {
 // service of the storage account.
 func (c Client) GetQueueService() QueueServiceClient {
 	return QueueServiceClient{c}
+}
+
+// GetTableService returns a TableServiceClient which can operate on the table
+// service of the storage account.
+func (c Client) GetTableService() TableServiceClient {
+	return TableServiceClient{c}
+}
+
+// GetFileService returns a FileServiceClient which can operate on the file
+// service of the storage account.
+func (c Client) GetFileService() FileServiceClient {
+	return FileServiceClient{c}
 }
 
 func (c Client) createAuthorizationHeader(canonicalizedString string) string {
@@ -210,6 +254,22 @@ func (c Client) buildCanonicalizedHeader(headers map[string]string) string {
 	return ch
 }
 
+func (c Client) buildCanonicalizedResourceTable(uri string) (string, error) {
+	errMsg := "buildCanonicalizedResourceTable error: %s"
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", fmt.Errorf(errMsg, err.Error())
+	}
+
+	cr := "/" + c.accountName
+
+	if len(u.Path) > 0 {
+		cr += u.Path
+	}
+
+	return cr, nil
+}
+
 func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 	errMsg := "buildCanonicalizedResource error: %s"
 	u, err := url.Parse(uri)
@@ -218,6 +278,7 @@ func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 	}
 
 	cr := "/" + c.accountName
+
 	if len(u.Path) > 0 {
 		cr += u.Path
 	}
@@ -248,22 +309,27 @@ func (c Client) buildCanonicalizedResource(uri string) (string, error) {
 			}
 		}
 	}
+
 	return cr, nil
 }
 
 func (c Client) buildCanonicalizedString(verb string, headers map[string]string, canonicalizedResource string) string {
+	contentLength := headers["Content-Length"]
+	if contentLength == "0" {
+		contentLength = ""
+	}
 	canonicalizedString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
 		verb,
 		headers["Content-Encoding"],
 		headers["Content-Language"],
-		headers["Content-Length"],
+		contentLength,
 		headers["Content-MD5"],
 		headers["Content-Type"],
 		headers["Date"],
-		headers["If-Modified-Singe"],
+		headers["If-Modified-Since"],
 		headers["If-Match"],
 		headers["If-None-Match"],
-		headers["If-Unmodified-Singe"],
+		headers["If-Unmodified-Since"],
 		headers["Range"],
 		c.buildCanonicalizedHeader(headers),
 		canonicalizedResource)
@@ -283,10 +349,28 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 	}
 
 	req, err := http.NewRequest(verb, url, body)
+	if err != nil {
+		return nil, errors.New("azure/storage: error creating request: " + err.Error())
+	}
+
+	if clstr, ok := headers["Content-Length"]; ok {
+		// content length header is being signed, but completely ignored by golang.
+		// instead we have to use the ContentLength property on the request struct
+		// (see https://golang.org/src/net/http/request.go?s=18140:18370#L536 and
+		// https://golang.org/src/net/http/transfer.go?s=1739:2467#L49)
+		req.ContentLength, err = strconv.ParseInt(clstr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for k, v := range headers {
 		req.Header.Add(k, v)
 	}
-	httpClient := http.Client{}
+
+	httpClient := c.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -324,6 +408,70 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 		body:       resp.Body}, nil
 }
 
+func (c Client) execInternalJSON(verb, url string, headers map[string]string, body io.Reader) (*odataResponse, error) {
+	req, err := http.NewRequest(verb, url, body)
+	for k, v := range headers {
+		req.Header.Add(k, v)
+	}
+
+	httpClient := c.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respToRet := &odataResponse{}
+	respToRet.body = resp.Body
+	respToRet.statusCode = resp.StatusCode
+	respToRet.headers = resp.Header
+
+	statusCode := resp.StatusCode
+	if statusCode >= 400 && statusCode <= 505 {
+		var respBody []byte
+		respBody, err = readResponseBody(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(respBody) == 0 {
+			// no error in response body
+			err = fmt.Errorf("storage: service returned without a response body (%d)", resp.StatusCode)
+			return respToRet, err
+		}
+		// try unmarshal as odata.error json
+		err = json.Unmarshal(respBody, &respToRet.odata)
+		return respToRet, err
+	}
+
+	return respToRet, nil
+}
+
+func (c Client) createSharedKeyLite(url string, headers map[string]string) (string, error) {
+	can, err := c.buildCanonicalizedResourceTable(url)
+
+	if err != nil {
+		return "", err
+	}
+	strToSign := headers["x-ms-date"] + "\n" + can
+
+	hmac := c.computeHmac256(strToSign)
+	return fmt.Sprintf("SharedKeyLite %s:%s", c.accountName, hmac), nil
+}
+
+func (c Client) execTable(verb, url string, headers map[string]string, body io.Reader) (*odataResponse, error) {
+	var err error
+	headers["Authorization"], err = c.createSharedKeyLite(url, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.execInternalJSON(verb, url, headers, body)
+}
+
 func readResponseBody(resp *http.Response) ([]byte, error) {
 	defer resp.Body.Close()
 	out, err := ioutil.ReadAll(resp.Body)
@@ -344,7 +492,8 @@ func serviceErrFromXML(body []byte, statusCode int, requestID string) (AzureStor
 }
 
 func (e AzureStorageServiceError) Error() string {
-	return fmt.Sprintf("storage: service returned error: StatusCode=%d, ErrorCode=%s, ErrorMessage=%s, RequestId=%s", e.StatusCode, e.Code, e.Message, e.RequestID)
+	return fmt.Sprintf("storage: service returned error: StatusCode=%d, ErrorCode=%s, ErrorMessage=%s, RequestId=%s, QueryParameterName=%s, QueryParameterValue=%s",
+		e.StatusCode, e.Code, e.Message, e.RequestID, e.QueryParameterName, e.QueryParameterValue)
 }
 
 // checkRespCode returns UnexpectedStatusError if the given response code is not

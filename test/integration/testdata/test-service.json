@@ -20,7 +20,6 @@
     "selector": {
       "name": "frontend"
     },
-    "portalIP": "",
     "type": "ClusterIP",
     "sessionAffinity": "None"
   },

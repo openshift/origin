@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -104,6 +104,10 @@ func (c *Client) Setup(t *testing.T) *Client {
 		c.RbacClient = client.NewRbacOrDie(&restclient.Config{
 			Host:          c.server.URL,
 			ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Rbac.GroupVersion()},
+		})
+		c.StorageClient = client.NewStorageOrDie(&restclient.Config{
+			Host:          c.server.URL,
+			ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Storage.GroupVersion()},
 		})
 
 		c.Clientset = clientset.NewForConfigOrDie(&restclient.Config{Host: c.server.URL})

@@ -18,15 +18,17 @@ func Resource(resource string) unversioned.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
-func AddToScheme(scheme *runtime.Scheme) {
-	addKnownTypes(scheme)
-}
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
 
 // Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) {
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&BuildOverridesConfig{},
 	)
+	return nil
 }
 
 func (obj *BuildOverridesConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

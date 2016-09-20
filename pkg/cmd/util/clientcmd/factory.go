@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
+	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
@@ -198,7 +199,6 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	w.Object = func(bool) (meta.RESTMapper, runtime.ObjectTyper) {
-
 		defaultMapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: restMapper}}
 		defaultTyper := api.Scheme
 
@@ -233,6 +233,43 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersions: []unversioned.GroupVersion{cmdApiVersion}}, api.Scheme
 	}
 
+	w.UnstructuredObject = func() (meta.RESTMapper, runtime.ObjectTyper, error) {
+		// load a discovery client from the default config
+		cfg, err := clients.ClientConfigForVersion(nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		dc, err := discovery.NewDiscoveryClientForConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
+		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(dc.RESTClient), cacheDir, time.Duration(10*time.Minute))
+
+		// enumerate all group resources
+		groupResources, err := discovery.GetAPIGroupResources(cachedDiscoverClient)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Register unknown APIs as third party for now to make
+		// validation happy. TODO perhaps make a dynamic schema
+		// validator to avoid this.
+		for _, group := range groupResources {
+			for _, version := range group.Group.Versions {
+				gv := unversioned.GroupVersion{Group: group.Group.Name, Version: version.Version}
+				if !registered.IsRegisteredVersion(gv) {
+					registered.AddThirdPartyAPIGroupVersions(gv)
+				}
+			}
+		}
+
+		// construct unstructured mapper and typer
+		mapper := discovery.NewRESTMapper(groupResources, meta.InterfacesForUnstructured)
+		typer := discovery.NewUnstructuredObjectTyper(groupResources)
+		return NewShortcutExpander(cachedDiscoverClient, kubectl.ShortcutExpander{RESTMapper: mapper}), typer, nil
+	}
+
 	kClientForMapping := w.Factory.ClientForMapping
 	w.ClientForMapping = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		if latest.OriginKind(mapping.GroupVersionKind) {
@@ -244,6 +281,28 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return client.RESTClient, nil
 		}
 		return kClientForMapping(mapping)
+	}
+
+	kUnstructuredClientForMapping := w.Factory.UnstructuredClientForMapping
+	w.UnstructuredClientForMapping = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+		if latest.OriginKind(mapping.GroupVersionKind) {
+			cfg, err := clientConfig.ClientConfig()
+			if err != nil {
+				return nil, err
+			}
+			if err := client.SetOpenShiftDefaults(cfg); err != nil {
+				return nil, err
+			}
+			cfg.APIPath = "/apis"
+			if mapping.GroupVersionKind.Group == api.GroupName {
+				cfg.APIPath = "/oapi"
+			}
+			gv := mapping.GroupVersionKind.GroupVersion()
+			cfg.ContentConfig = dynamic.ContentConfig()
+			cfg.GroupVersion = &gv
+			return restclient.RESTClientFor(cfg)
+		}
+		return kUnstructuredClientForMapping(mapping)
 	}
 
 	// Save original Describer function
@@ -421,8 +480,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 	// Saves current resource name (or alias if any) in PrintOptions. Once saved, it will not be overwritten by the
 	// kubernetes resource alias look-up, as it will notice a non-empty value in `options.Kind`
-	w.Printer = func(mapping *meta.RESTMapping, options *kubectl.PrintOptions) (kubectl.ResourcePrinter, error) {
-		if mapping != nil && options != nil {
+	w.Printer = func(mapping *meta.RESTMapping, options kubectl.PrintOptions) (kubectl.ResourcePrinter, error) {
+		if mapping != nil {
 			options.Kind = mapping.Resource
 			if alias, ok := resourceShortFormFor(mapping.Resource); ok {
 				options.Kind = alias
@@ -854,7 +913,7 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
 func (f *Factory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
-	if version.IsEmpty() {
+	if version.Empty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}
 	body, err := client.Get().AbsPath("/").Suffix("swaggerapi", "oapi", version.Version).Do().Raw()

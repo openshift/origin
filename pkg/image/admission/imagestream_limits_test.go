@@ -6,8 +6,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/client/cache"
-	fake "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -214,11 +212,10 @@ func TestGetMaxLimits(t *testing.T) {
 			},
 		},
 	} {
-		lrs := make([]interface{}, len(tc.lrs))
+		var limits kapi.ResourceList
 		for i := range tc.lrs {
-			lrs[i] = &tc.lrs[i]
+			limits = getMaxLimits(&tc.lrs[i], limits)
 		}
-		limits := getMaxLimits(lrs)
 		if len(limits) != len(tc.expectedLimits) {
 			t.Errorf("[%s] got unexpected number of limits (%d != %d)", tc.name, len(limits), len(tc.expectedLimits))
 		}
@@ -390,13 +387,10 @@ func TestVerifyLimits(t *testing.T) {
 			},
 		}
 
-		kubeClient := fake.NewSimpleFake(limitRange)
-		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
-		indexer.Add(limitRange)
-
 		verifier := &limitVerifier{
-			client:  kubeClient,
-			indexer: indexer,
+			limiter: LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
+				return []*kapi.LimitRange{limitRange}, nil
+			}),
 		}
 
 		err := verifier.VerifyLimits("test", &tc.is)

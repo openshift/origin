@@ -63,16 +63,18 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)
 	}
+	ctx := kapi.NewContext()
+
 	switch t := obj.(type) {
 	case *kapi.Endpoints:
-		endpoint.Strategy.PrepareForCreate(obj)
+		endpoint.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.ResourceQuota:
-		resourcequota.Strategy.PrepareForCreate(obj)
+		resourcequota.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.LimitRange:
 	// TODO: this needs to be fixed
 	//  limitrange.Strategy.PrepareForCreate(obj)
 	case *kapi.Node:
-		node.Strategy.PrepareForCreate(obj)
+		node.Strategy.PrepareForCreate(ctx, obj)
 		if exact {
 			return nil
 		}
@@ -80,15 +82,15 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		// we clear that without exact so that the node value can be reused.
 		t.Status = kapi.NodeStatus{}
 	case *kapi.Namespace:
-		namespace.Strategy.PrepareForCreate(obj)
+		namespace.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.PersistentVolumeClaim:
-		persistentvolumeclaim.Strategy.PrepareForCreate(obj)
+		persistentvolumeclaim.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.PersistentVolume:
-		persistentvolume.Strategy.PrepareForCreate(obj)
+		persistentvolume.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.ReplicationController:
-		controller.Strategy.PrepareForCreate(obj)
+		controller.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.Pod:
-		pod.Strategy.PrepareForCreate(obj)
+		pod.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.PodTemplate:
 	case *kapi.Service:
 		// TODO: service does not yet have a strategy
@@ -105,7 +107,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 		}
 	case *kapi.Secret:
-		secret.Strategy.PrepareForCreate(obj)
+		secret.Strategy.PrepareForCreate(ctx, obj)
 		if exact {
 			return nil
 		}
@@ -114,7 +116,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			return ErrExportOmit
 		}
 	case *kapi.ServiceAccount:
-		serviceaccount.Strategy.PrepareForCreate(obj)
+		serviceaccount.Strategy.PrepareForCreate(ctx, obj)
 		if exact {
 			return nil
 		}
@@ -150,7 +152,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 		}
 	case *buildapi.BuildConfig:
-		buildconfigrest.Strategy.PrepareForCreate(obj)
+		buildconfigrest.Strategy.PrepareForCreate(ctx, obj)
 		// TODO: should be handled by prepare for create
 		t.Status.LastVersion = 0
 		for i := range t.Spec.Triggers {
@@ -159,7 +161,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 		}
 	case *buildapi.Build:
-		buildrest.Strategy.PrepareForCreate(obj)
+		buildrest.Strategy.PrepareForCreate(ctx, obj)
 		// TODO: should be handled by prepare for create
 		t.Status.Duration = 0
 		t.Status.Phase = buildapi.BuildPhaseNew

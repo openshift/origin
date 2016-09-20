@@ -37,9 +37,10 @@ func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
 const (
 	getLong = `Display one or many resources
 
-Possible resources include builds, buildConfigs, services, pods, etc.
-Some resources may omit advanced details that you can see with '-o wide'.
-If you want an even more detailed view, use '%[1]s describe'.`
+Possible resources include builds, buildConfigs, services, pods, etc. To see a
+list of common resources, use '%[1]s get'. Some resources may omit
+advanced details that you can see with '-o wide'.  If you want an even more
+detailed view, use '%[1]s describe'.`
 
 	getExample = `  # List all pods in ps output format.
   %[1]s get pods
@@ -58,8 +59,8 @@ If you want an even more detailed view, use '%[1]s describe'.`
 )
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
-func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdGet(f.Factory, out)
+func NewCmdGet(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdGet(f.Factory, out, errOut)
 	cmd.Long = fmt.Sprintf(getLong, fullName)
 	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.SuggestFor = []string{"list"}
@@ -277,8 +278,8 @@ given resource.`
 )
 
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
-func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdDescribe(f.Factory, out)
+func NewCmdDescribe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdDescribe(f.Factory, out, errOut)
 	cmd.Long = describeLong
 	cmd.Example = fmt.Sprintf(describeExample, fullName)
 	cmd.ValidArgs = describe.DescribableResources()
@@ -545,8 +546,8 @@ resourcequotas (quota), namespaces (ns) or endpoints (ep).`
 )
 
 // NewCmdExplain is a wrapper for the Kubernetes cli explain command
-func NewCmdExplain(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdExplain(f.Factory, out)
+func NewCmdExplain(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdExplain(f.Factory, out, errOut)
 	cmd.Long = explainLong
 	cmd.Example = fmt.Sprintf(explainExample, fullName)
 	return cmd

@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package generators
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -109,20 +108,18 @@ func packageForGroup(gv unversioned.GroupVersion, typeList []*types.Type, packag
 			})
 
 			expansionFileName := "generated_expansion"
-			// To avoid overriding user's manual modification, only generate the expansion file if it doesn't exist.
-			if _, err := os.Stat(filepath.Join(srcTreePath, outputPackagePath, expansionFileName+".go")); os.IsNotExist(err) {
-				generators = append(generators, &genExpansion{
-					DefaultGen: generator.DefaultGen{
-						OptionalName: expansionFileName,
-					},
-					types: typeList,
-				})
-			}
+			generators = append(generators, &genExpansion{
+				groupPath: filepath.Join(srcTreePath, outputPackagePath),
+				DefaultGen: generator.DefaultGen{
+					OptionalName: expansionFileName,
+				},
+				types: typeList,
+			})
 
 			return generators
 		},
 		FilterFunc: func(c *generator.Context, t *types.Type) bool {
-			return types.ExtractCommentTags("+", t.SecondClosestCommentLines)["genclient"] == "true"
+			return extractBoolTagOrDie("genclient", t.SecondClosestCommentLines) == true
 		},
 	}
 }
@@ -192,7 +189,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 			} else {
 				// User has not specified any override for this group version.
 				// filter out types which dont have genclient=true.
-				if types.ExtractCommentTags("+", t.SecondClosestCommentLines)["genclient"] != "true" {
+				if extractBoolTagOrDie("genclient", t.SecondClosestCommentLines) == false {
 					continue
 				}
 			}

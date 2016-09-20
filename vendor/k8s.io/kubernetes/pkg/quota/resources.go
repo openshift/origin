@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -167,6 +167,18 @@ func IsZero(a api.ResourceList) bool {
 		}
 	}
 	return true
+}
+
+// IsNegative returns the set of resource names that have a negative value.
+func IsNegative(a api.ResourceList) []api.ResourceName {
+	results := []api.ResourceName{}
+	zero := resource.MustParse("0")
+	for k, v := range a {
+		if v.Cmp(zero) < 0 {
+			results = append(results, k)
+		}
+	}
+	return results
 }
 
 // ToSet takes a list of resource names and converts to a string set

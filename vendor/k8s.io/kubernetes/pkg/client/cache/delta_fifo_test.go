@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -326,6 +326,29 @@ func TestDeltaFIFO_ReplaceMakesDeletions(t *testing.T) {
 		// Since "bar" didn't have a delete event and wasn't in the Replace list
 		// it should get a tombstone key with the right Obj.
 		{{Deleted, DeletedFinalStateUnknown{Key: "bar", Obj: mkFifoObj("bar", 6)}}},
+	}
+
+	for _, expected := range expectedList {
+		cur := Pop(f).(Deltas)
+		if e, a := expected, cur; !reflect.DeepEqual(e, a) {
+			t.Errorf("Expected %#v, got %#v", e, a)
+		}
+	}
+}
+
+func TestDeltaFIFO_UpdateResyncRace(t *testing.T) {
+	f := NewDeltaFIFO(
+		testFifoObjectKeyFunc,
+		nil,
+		keyLookupFunc(func() []testFifoObject {
+			return []testFifoObject{mkFifoObj("foo", 5)}
+		}),
+	)
+	f.Update(mkFifoObj("foo", 6))
+	f.Resync()
+
+	expectedList := []Deltas{
+		{{Updated, mkFifoObj("foo", 6)}},
 	}
 
 	for _, expected := range expectedList {

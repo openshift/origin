@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
@@ -51,7 +53,12 @@ type Role struct {
 
 // OptionalNames is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 type OptionalNames []string
+
+func (t OptionalNames) String() string {
+	return fmt.Sprintf("%v", []string(t))
+}
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
@@ -62,10 +69,10 @@ type RoleBinding struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule
 	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
@@ -162,10 +169,10 @@ type ResourceAccessReviewResponse struct {
 	// Namespace is the namespace used for the access review
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,1,opt,name=namespace"`
 	// UsersSlice is the list of users who can perform the action
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	UsersSlice []string `json:"users" protobuf:"bytes,2,rep,name=users"`
 	// GroupsSlice is the list of groups who can perform the action
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	GroupsSlice []string `json:"groups" protobuf:"bytes,3,rep,name=groups"`
 
 	// EvaluationError is an indication that some error occurred during resolution, but partial results can still be returned.
@@ -201,7 +208,12 @@ type SubjectAccessReviewResponse struct {
 
 // OptionalScopes is an array that may also be left nil to distinguish between set and unset.
 // +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
 type OptionalScopes []string
+
+func (t OptionalScopes) String() string {
+	return fmt.Sprintf("%v", []string(t))
+}
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
@@ -212,7 +224,7 @@ type SubjectAccessReview struct {
 	// User is optional. If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" protobuf:"bytes,2,opt,name=user"`
 	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	GroupsSlice []string `json:"groups" protobuf:"bytes,3,rep,name=groups"`
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
@@ -237,7 +249,7 @@ type LocalSubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" protobuf:"bytes,2,opt,name=user"`
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	GroupsSlice []string `json:"groups" protobuf:"bytes,3,rep,name=groups"`
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
@@ -324,10 +336,10 @@ type ClusterRoleBinding struct {
 	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// UserNames holds all the usernames directly bound to the role
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	UserNames OptionalNames `json:"userNames" protobuf:"bytes,2,rep,name=userNames"`
 	// GroupNames holds all the groups directly bound to the role
-	// +genconversion=false
+	// +k8s:conversion-gen=false
 	GroupNames OptionalNames `json:"groupNames" protobuf:"bytes,3,rep,name=groupNames"`
 	// Subjects hold object references to authorize with this rule
 	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`

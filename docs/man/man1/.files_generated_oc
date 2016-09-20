@@ -8,6 +8,10 @@ oc-adm-ca-encrypt.1
 oc-adm-ca.1
 oc-adm-completion.1
 oc-adm-config-current-context.1
+oc-adm-config-delete-cluster.1
+oc-adm-config-delete-context.1
+oc-adm-config-get-clusters.1
+oc-adm-config-get-contexts.1
 oc-adm-config-set-cluster.1
 oc-adm-config-set-context.1
 oc-adm-config-set-credentials.1
@@ -78,6 +82,8 @@ oc-adm-router.1
 oc-adm-taint.1
 oc-adm-top-images.1
 oc-adm-top-imagestreams.1
+oc-adm-top-node.1
+oc-adm-top-pod.1
 oc-adm-top.1
 oc-adm-uncordon.1
 oc-adm.1
@@ -92,6 +98,10 @@ oc-cluster-up.1
 oc-cluster.1
 oc-completion.1
 oc-config-current-context.1
+oc-config-delete-cluster.1
+oc-config-delete-context.1
+oc-config-get-clusters.1
+oc-config-get-contexts.1
 oc-config-set-cluster.1
 oc-config-set-context.1
 oc-config-set-credentials.1
@@ -103,6 +113,7 @@ oc-config.1
 oc-convert.1
 oc-create-clusterresourcequota.1
 oc-create-configmap.1
+oc-create-deployment.1
 oc-create-deploymentconfig.1
 oc-create-identity.1
 oc-create-imagestream.1
@@ -117,6 +128,10 @@ oc-create-secret-docker-registry.1
 oc-create-secret-generic.1
 oc-create-secret-tls.1
 oc-create-secret.1
+oc-create-service-clusterip.1
+oc-create-service-loadbalancer.1
+oc-create-service-nodeport.1
+oc-create-service.1
 oc-create-serviceaccount.1
 oc-create-user.1
 oc-create-useridentitymapping.1

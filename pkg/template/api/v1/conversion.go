@@ -8,12 +8,10 @@ import (
 	"github.com/openshift/origin/pkg/template/api"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) {
-	if err := scheme.AddFieldLabelConversionFunc("v1", "Template",
+func addConversionFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddFieldLabelConversionFunc("v1", "Template",
 		oapi.GetFieldLabelConversionFunc(api.TemplateToSelectableFields(&api.Template{}), nil),
-	); err != nil {
-		panic(err)
-	}
+	)
 }
 
 var _ runtime.NestedObjectDecoder = &Template{}

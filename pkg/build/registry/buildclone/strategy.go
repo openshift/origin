@@ -28,7 +28,7 @@ func (s strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Validate validates a new role.

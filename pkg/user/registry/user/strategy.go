@@ -23,7 +23,7 @@ type userStrategy struct {
 // objects via the REST API.
 var Strategy = userStrategy{kapi.Scheme}
 
-func (userStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (userStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
 func (userStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (userStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (userStrategy) PrepareForCreate(obj runtime.Object) {
+func (userStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Validate validates a new user
@@ -61,13 +61,21 @@ func (userStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fi
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		userObj, ok := obj.(*api.User)
-		if !ok {
-			return false, fmt.Errorf("not a user")
-		}
-		fields := api.UserToSelectableFields(userObj)
-		return label.Matches(labels.Set(userObj.Labels)) && field.Matches(fields), nil
-	})
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.User)
+			if !ok {
+				return nil, nil, fmt.Errorf("not a User")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.User) fields.Set {
+	return api.UserToSelectableFields(obj)
 }

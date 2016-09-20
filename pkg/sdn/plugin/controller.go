@@ -16,11 +16,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 const (
@@ -322,6 +321,8 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	itx.IgnoreError()
 	_ = itx.EndTransaction()
 
+	sysctl := sysctl.New()
+
 	// Disable iptables for linux bridges (and in particular lbr0), ignoring errors.
 	// (This has to have been performed in advance for docker-in-docker deployments,
 	// since this will fail there).
@@ -418,20 +419,12 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 }
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	eventQueue := plugin.registry.RunEventQueue(EgressNetworkPolicies)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for EgressNetworkPolicy: %v", err))
-			return
-		}
-		policy := obj.(*osapi.EgressNetworkPolicy)
+	plugin.registry.RunEventQueue(EgressNetworkPolicies, func(delta cache.Delta) error {
+		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
 		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
 		if err != nil {
-			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
-			continue
+			return fmt.Errorf("could not find netid for namespace %q: %v", policy.Namespace, err)
 		}
 
 		policies := plugin.egressPolicies[vnid]
@@ -441,17 +434,17 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 				break
 			}
 		}
-		if eventType != watch.Deleted && len(policy.Spec.Egress) > 0 {
+		if delta.Type != cache.Deleted && len(policy.Spec.Egress) > 0 {
 			policies = append(policies, policy)
 		}
 		plugin.egressPolicies[vnid] = policies
 
 		err = plugin.updateEgressNetworkPolicy(vnid)
 		if err != nil {
-			utilruntime.HandleError(err)
-			return
+			return err
 		}
-	}
+		return nil
+	})
 }
 
 func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) error {

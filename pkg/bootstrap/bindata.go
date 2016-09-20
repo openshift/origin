@@ -1771,7 +1771,6 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -2007,7 +2006,6 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -2266,7 +2264,6 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -2715,7 +2712,6 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -2938,7 +2934,6 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
         "selector": {
           "name": "${DATABASE_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -3346,7 +3341,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
         "selector": {
           "name": "${JENKINS_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       }
@@ -3375,7 +3369,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
          "selector": {
            "name": "${JENKINS_SERVICE_NAME}"
          },
-         "portalIP": "",
          "type": "ClusterIP",
          "sessionAffinity": "None"
        }
@@ -3493,7 +3486,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
           }
         }
       }
-    },    
+    },
     {
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
@@ -3653,7 +3646,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
         "selector": {
           "name": "${JENKINS_SERVICE_NAME}"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       }
@@ -3682,7 +3674,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
          "selector": {
            "name": "${JENKINS_SERVICE_NAME}"
          },
-         "portalIP": "",
          "type": "ClusterIP",
          "sessionAffinity": "None"
        }
@@ -3829,7 +3820,6 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
         "selector": {
           "name": "frontend"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -3965,7 +3955,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {
@@ -4074,7 +4064,6 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
         "selector": {
           "name": "database"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -4129,7 +4118,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {

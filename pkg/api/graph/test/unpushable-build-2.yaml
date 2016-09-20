@@ -134,7 +134,6 @@ items:
       app: ruby
     name: ruby-hello-world
   spec:
-    portalIP: ""
     ports:
     - name: tcp-8080
       nodePort: 0

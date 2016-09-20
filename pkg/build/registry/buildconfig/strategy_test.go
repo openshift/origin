@@ -86,7 +86,7 @@ func TestBuildConfigStrategy(t *testing.T) {
 			LastVersion: 9,
 		},
 	}
-	Strategy.PrepareForCreate(buildConfig)
+	Strategy.PrepareForCreate(ctx, buildConfig)
 	errs := Strategy.Validate(ctx, buildConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
@@ -94,19 +94,19 @@ func TestBuildConfigStrategy(t *testing.T) {
 
 	// lastversion cannot go backwards
 	newBC.Status.LastVersion = 9
-	Strategy.PrepareForUpdate(newBC, buildConfig)
+	Strategy.PrepareForUpdate(ctx, newBC, buildConfig)
 	if newBC.Status.LastVersion != buildConfig.Status.LastVersion {
 		t.Errorf("Expected version=%d, got %d", buildConfig.Status.LastVersion, newBC.Status.LastVersion)
 	}
 
 	// lastversion can go forwards
 	newBC.Status.LastVersion = 11
-	Strategy.PrepareForUpdate(newBC, buildConfig)
+	Strategy.PrepareForUpdate(ctx, newBC, buildConfig)
 	if newBC.Status.LastVersion != 11 {
 		t.Errorf("Expected version=%d, got %d", 11, newBC.Status.LastVersion)
 	}
 
-	Strategy.PrepareForCreate(buildConfig)
+	Strategy.PrepareForCreate(ctx, buildConfig)
 	errs = Strategy.Validate(ctx, buildConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)

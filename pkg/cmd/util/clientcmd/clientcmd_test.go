@@ -18,6 +18,7 @@ import (
 
 type fakeLimiter struct {
 	FakeSaturation float64
+	FakeQPS        float32
 }
 
 func (t *fakeLimiter) TryAccept() bool {
@@ -26,6 +27,10 @@ func (t *fakeLimiter) TryAccept() bool {
 
 func (t *fakeLimiter) Saturation() float64 {
 	return t.FakeSaturation
+}
+
+func (t *fakeLimiter) QPS() float32 {
+	return t.FakeQPS
 }
 
 func (t *fakeLimiter) Stop() {}

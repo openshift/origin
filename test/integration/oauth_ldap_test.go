@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/uuid"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/client"
@@ -26,7 +26,7 @@ import (
 
 func TestOAuthLDAP(t *testing.T) {
 	var (
-		randomSuffix = string(kutil.NewUUID())
+		randomSuffix = string(uuid.NewUUID())
 
 		providerName = "myldapprovider"
 

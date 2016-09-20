@@ -35,7 +35,6 @@
                 "name": "frontend-service"
             },
             "spec": {
-                "portalIP": "",
                 "ports": [
                     {
                         "nodePort": 0,
@@ -62,7 +61,6 @@
                 "name": "redis-master"
             },
             "spec": {
-                "portalIP": "",
                 "ports": [
                     {
                         "nodePort": 0,
@@ -89,7 +87,6 @@
                 "name": "redis-slave"
             },
             "spec": {
-                "portalIP": "",
                 "ports": [
                     {
                         "nodePort": 0,

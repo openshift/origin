@@ -10,8 +10,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/docker/docker/pkg/parsers"
-	"github.com/docker/docker/pkg/units"
+	units "github.com/docker/go-units"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
@@ -598,8 +597,11 @@ type ImageStreamTagDescriber struct {
 // Describe returns the description of an imageStreamTag
 func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamTags(namespace)
-	repo, tag := parsers.ParseRepositoryTag(name)
-	if tag == "" {
+	repo, tag, err := imageapi.ParseImageStreamTagName(name)
+	if err != nil {
+		return "", err
+	}
+	if len(tag) == 0 {
 		// TODO use repo's preferred default, when that's coded
 		tag = imageapi.DefaultImageTag
 	}
@@ -619,7 +621,10 @@ type ImageStreamImageDescriber struct {
 // Describe returns the description of an imageStreamImage
 func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
 	c := d.ImageStreamImages(namespace)
-	repo, id := parsers.ParseRepositoryTag(name)
+	repo, id, err := imageapi.ParseImageStreamImageName(name)
+	if err != nil {
+		return "", err
+	}
 	imageStreamImage, err := c.Get(repo, id)
 	if err != nil {
 		return "", err
@@ -1203,7 +1208,7 @@ func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 
 		buffer := new(bytes.Buffer)
 
-		printer := NewHumanReadablePrinter(&kctl.PrintOptions{NoHeaders: true})
+		printer := NewHumanReadablePrinter(kctl.PrintOptions{NoHeaders: true})
 		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}

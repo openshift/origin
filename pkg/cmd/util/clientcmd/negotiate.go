@@ -3,6 +3,9 @@ package clientcmd
 import (
 	"fmt"
 
+	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -24,16 +27,20 @@ func negotiateVersion(client *kclient.Client, config *restclient.Config, request
 		}
 	}
 
-	// Get server versions
-	serverGVs, err := serverAPIVersions(client, "/oapi")
-	if err != nil {
-		return nil, err
-	}
-
 	// Determine our preferred version
 	preferredGV := copyGroupVersion(requestedGV)
 	if preferredGV == nil {
 		preferredGV = copyGroupVersion(config.GroupVersion)
+	}
+
+	// Get server versions
+	serverGVs, err := serverAPIVersions(client, "/oapi")
+	if err != nil {
+		if errors.IsNotFound(err) {
+			glog.V(4).Infof("Server path /oapi was not found, returning the requested group version %v", preferredGV)
+			return preferredGV, nil
+		}
+		return nil, err
 	}
 
 	// Find a version we can all agree on

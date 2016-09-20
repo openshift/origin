@@ -40,7 +40,7 @@ func (strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	binding := obj.(*authorizationapi.ClusterPolicyBinding)
 
 	s.scrubBindingRefs(binding)
@@ -61,7 +61,7 @@ func (s strategy) scrubBindingRefs(binding *authorizationapi.ClusterPolicyBindin
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	binding := obj.(*authorizationapi.ClusterPolicyBinding)
 
 	s.scrubBindingRefs(binding)
@@ -82,7 +82,7 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 	return &generic.SelectionPredicate{
 		Label: label,
 		Field: field,

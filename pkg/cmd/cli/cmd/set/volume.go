@@ -456,7 +456,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	}
 
 	if len(v.Output) != 0 {
-		p, _, err := kubectl.GetPrinter(v.Output, "")
+		p, _, err := kubectl.GetPrinter(v.Output, "", false)
 		if err != nil {
 			return err
 		}

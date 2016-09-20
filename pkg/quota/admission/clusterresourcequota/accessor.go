@@ -7,6 +7,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/cache"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/storage/etcd"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -19,7 +21,7 @@ import (
 
 type clusterQuotaAccessor struct {
 	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister    *ocache.IndexerToNamespaceLister
+	namespaceLister    *cache.IndexerToNamespaceLister
 	clusterQuotaClient oclient.ClusterResourceQuotasInterface
 
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
@@ -31,7 +33,7 @@ type clusterQuotaAccessor struct {
 }
 
 // newQuotaAccessor creates an object that conforms to the QuotaAccessor interface to be used to retrieve quota objects.
-func newQuotaAccessor(clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *ocache.IndexerToNamespaceLister, clusterQuotaClient oclient.ClusterResourceQuotasInterface, clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper) *clusterQuotaAccessor {
+func newQuotaAccessor(clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *cache.IndexerToNamespaceLister, clusterQuotaClient oclient.ClusterResourceQuotasInterface, clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper) *clusterQuotaAccessor {
 	updatedCache, err := lru.New(100)
 	if err != nil {
 		// this should never happen
@@ -147,10 +149,14 @@ func (e *clusterQuotaAccessor) waitForReadyClusterQuotaNames(namespaceName strin
 	err := utilwait.PollImmediate(100*time.Millisecond, 8*time.Second, func() (done bool, err error) {
 		var namespaceSelectionFields clusterquotamapping.SelectionFields
 		clusterQuotaNames, namespaceSelectionFields = e.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
-		namespace, err := e.namespaceLister.Get(namespaceName)
+		obj, ok, err := e.namespaceLister.Get(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: namespaceName}})
 		if err != nil {
 			return false, err
 		}
+		if !ok {
+			return false, kapierrors.NewNotFound(unversioned.GroupResource{Resource: "namespace"}, namespaceName)
+		}
+		namespace := obj.(*kapi.Namespace)
 		if kapi.Semantic.DeepEqual(namespaceSelectionFields, clusterquotamapping.GetSelectionFields(namespace)) {
 			return true, nil
 		}

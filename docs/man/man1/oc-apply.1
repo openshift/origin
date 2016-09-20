@@ -33,6 +33,10 @@ JSON and YAML formats are accepted.
     Output mode. Use "\-o name" for shorter output (resource/name).
 
 .PP
+\fB\-\-overwrite\fP=true
+    Automatically resolve conflicts between the modified and live configuration by using values from the modified configuration
+
+.PP
 \fB\-\-record\fP=false
     Record current kubectl command in the resource annotation. If set to false, do not record the command. If set to true, record the command. If not set, default to updating the existing annotation value only if one already exists.
 
@@ -56,19 +60,19 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -88,7 +92,7 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-log\-flush\-frequency\fP=0
@@ -100,7 +104,7 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -108,7 +112,7 @@ JSON and YAML formats are accepted.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""

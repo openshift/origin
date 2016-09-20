@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,8 +41,8 @@ func (p PodsToCache) UpdateNode(oldNode, newNode *api.Node) error { return nil }
 
 func (p PodsToCache) RemoveNode(node *api.Node) error { return nil }
 
-func (p PodsToCache) GetNodeNameToInfoMap() (map[string]*schedulercache.NodeInfo, error) {
-	return schedulercache.CreateNodeNameToInfoMap(p), nil
+func (p PodsToCache) UpdateNodeNameToInfoMap(infoMap map[string]*schedulercache.NodeInfo) error {
+	return nil
 }
 
 func (p PodsToCache) List(s labels.Selector) (selected []*api.Pod, err error) {

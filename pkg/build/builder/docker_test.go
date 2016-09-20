@@ -1,14 +1,14 @@
 package builder
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/builder/parser"
+	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -63,8 +63,7 @@ RUN echo "hello world"
 ENV "PATH"="/bin" "GOPATH"="/go" "PATH"="/go/bin:$PATH"
 FROM busybox
 ENV "PATH"="/bin" "GOPATH"="/go" "PATH"="/go/bin:$PATH"
-RUN echo "hello world"
-`},
+RUN echo "hello world"`},
 	}
 	for name, test := range tests {
 		got, err := parser.Parse(strings.NewReader(test.original))
@@ -78,7 +77,7 @@ RUN echo "hello world"
 			continue
 		}
 		insertEnvAfterFrom(got, test.env)
-		if !reflect.DeepEqual(got, want) {
+		if !bytes.Equal(dockerfile.ParseTreeToDockerfile(got), dockerfile.ParseTreeToDockerfile(want)) {
 			t.Errorf("%s: insertEnvAfterFrom(node, %+v) = %+v; want %+v", name, test.env, got, want)
 			t.Logf("resulting Dockerfile:\n%s", dockerfile.ParseTreeToDockerfile(got))
 		}
@@ -130,7 +129,7 @@ RUN echo "hello world"
 			continue
 		}
 		replaceLastFrom(got, test.image)
-		if !reflect.DeepEqual(got, want) {
+		if !bytes.Equal(dockerfile.ParseTreeToDockerfile(got), dockerfile.ParseTreeToDockerfile(want)) {
 			t.Errorf("test[%d]: replaceLastFrom(node, %+v) = %+v; want %+v", i, test.image, got, want)
 			t.Logf("resulting Dockerfile:\n%s", dockerfile.ParseTreeToDockerfile(got))
 		}

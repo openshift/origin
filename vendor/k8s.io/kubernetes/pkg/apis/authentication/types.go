@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,21 @@ package authentication
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+)
+
+const (
+	// ImpersonateUserHeader is used to impersonate a particular user during an API server request
+	ImpersonateUserHeader = "Impersonate-User"
+
+	// ImpersonateGroupHeader is used to impersonate a particular group during an API server request.
+	// It can be repeated multiplied times for multiple groups.
+	ImpersonateGroupHeader = "Impersonate-Group"
+
+	// ImpersonateUserExtraHeaderPrefix is a prefix for any header used to impersonate an entry in the
+	// extra map[string][]string for user.Info.  The key will be every after the prefix.
+	// It can be repeated multiplied times for multiple map keys and the same key can be repeated multiple
+	// times to have multiple elements in the slice under a single key
+	ImpersonateUserExtraHeaderPrefix = "Impersonate-Extra-"
 )
 
 // +genclient=true

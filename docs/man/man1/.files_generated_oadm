@@ -8,6 +8,10 @@ oadm-ca-encrypt.1
 oadm-ca.1
 oadm-completion.1
 oadm-config-current-context.1
+oadm-config-delete-cluster.1
+oadm-config-delete-context.1
+oadm-config-get-clusters.1
+oadm-config-get-contexts.1
 oadm-config-set-cluster.1
 oadm-config-set-context.1
 oadm-config-set-credentials.1
@@ -78,6 +82,8 @@ oadm-router.1
 oadm-taint.1
 oadm-top-images.1
 oadm-top-imagestreams.1
+oadm-top-node.1
+oadm-top-pod.1
 oadm-top.1
 oadm-uncordon.1
 oadm-version.1

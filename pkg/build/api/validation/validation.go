@@ -626,7 +626,7 @@ func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) field.ErrorList {
 	return allErrs
 }
 
-const cIdentifierErrorMsg string = `must be a C identifier (matching regex ` + kvalidation.CIdentifierFmt + `): e.g. "my_name" or "MyName"`
+var cIdentifierErrorMsg string = `must be a C identifier (mixed-case letters, numbers, and underscores): e.g. "my_name" or "MyName"`
 
 func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
@@ -635,7 +635,7 @@ func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorLis
 		idxPath := fldPath.Index(i)
 		if len(ev.Name) == 0 {
 			allErrs = append(allErrs, field.Required(idxPath.Child("name"), ""))
-		} else if !kvalidation.IsCIdentifier(ev.Name) {
+		} else if len(kvalidation.IsCIdentifier(ev.Name)) > 0 {
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), ev.Name, cIdentifierErrorMsg))
 		}
 		if ev.ValueFrom != nil {

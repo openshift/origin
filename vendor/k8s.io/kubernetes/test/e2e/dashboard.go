@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ var _ = framework.KubeDescribe("Kubernetes Dashboard", func() {
 	f := framework.NewDefaultFramework(uiServiceName)
 
 	It("should check that the kubernetes-dashboard instance is alive", func() {
+		framework.Skipf("UI is disabled")
 		By("Checking whether the kubernetes-dashboard service exists.")
 		err := framework.WaitForService(f.Client, uiNamespace, uiServiceName, true, framework.Poll, framework.ServiceStartTimeout)
 		Expect(err).NotTo(HaveOccurred())

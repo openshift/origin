@@ -16,9 +16,10 @@ oc get \- Display one or many resources
 Display one or many resources
 
 .PP
-Possible resources include builds, buildConfigs, services, pods, etc.
-Some resources may omit advanced details that you can see with '\-o wide'.
-If you want an even more detailed view, use 'oc describe'.
+Possible resources include builds, buildConfigs, services, pods, etc. To see a
+list of common resources, use 'oc get'. Some resources may omit
+advanced details that you can see with '\-o wide'.  If you want an even more
+detailed view, use 'oc describe'.
 
 
 .SH OPTIONS
@@ -40,17 +41,18 @@ If you want an even more detailed view, use 'oc describe'.
 
 .PP
 \fB\-L\fP, \fB\-\-label\-columns\fP=[]
-    Accepts a comma separated list of labels that are going to be presented as columns. Names are case\-sensitive. You can also use multiple flag statements like \-L label1 \-L label2...
+    Accepts a comma separated list of labels that are going to be presented as columns. Names are case\-sensitive. You can also use multiple flag options like \-L label1 \-L label2...
 
 .PP
 \fB\-\-no\-headers\fP=false
-    When using the default output, don't print headers.
+    When using the default or custom\-column output format, don't print headers.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -74,7 +76,7 @@ If you want an even more detailed view, use 'oc describe'.
 
 .PP
 \fB\-\-show\-kind\fP=false
-    If present, list the kind of each requested resource.
+    If present, list the resource type for the requested object(s).
 
 .PP
 \fB\-\-show\-labels\fP=false
@@ -105,19 +107,19 @@ If you want an even more detailed view, use 'oc describe'.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -137,7 +139,7 @@ If you want an even more detailed view, use 'oc describe'.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-log\-flush\-frequency\fP=0
@@ -149,7 +151,7 @@ If you want an even more detailed view, use 'oc describe'.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -157,7 +159,7 @@ If you want an even more detailed view, use 'oc describe'.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""

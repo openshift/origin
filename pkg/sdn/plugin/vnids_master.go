@@ -2,16 +2,14 @@ package plugin
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	pnetid "github.com/openshift/origin/pkg/sdn/plugin/netid"
@@ -269,56 +267,41 @@ func (master *OsdnMaster) VnidStartMaster() error {
 
 func (master *OsdnMaster) watchNamespaces() {
 	registry := master.registry
-	eventQueue := registry.RunEventQueue(Namespaces)
 
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for namespaces: %v", err))
-			return
-		}
-		ns := obj.(*kapi.Namespace)
+	registry.RunEventQueue(Namespaces, func(delta cache.Delta) error {
+		ns := delta.Object.(*kapi.Namespace)
 		name := ns.ObjectMeta.Name
 
-		log.V(5).Infof("Watch %s event for Namespace %q", strings.Title(string(eventType)), name)
-		switch eventType {
-		case watch.Added, watch.Modified:
-			err = master.vnids.assignVNID(registry, name)
-			if err != nil {
-				log.Errorf("Error assigning netid: %v", err)
-				continue
+		log.V(5).Infof("Watch %s event for Namespace %q", delta.Type, name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
+			if err := master.vnids.assignVNID(registry, name); err != nil {
+				return fmt.Errorf("Error assigning netid: %v", err)
 			}
-		case watch.Deleted:
-			err = master.vnids.revokeVNID(registry, name)
-			if err != nil {
-				log.Errorf("Error revoking netid: %v", err)
-				continue
+		case cache.Deleted:
+			if err := master.vnids.revokeVNID(registry, name); err != nil {
+				return fmt.Errorf("Error revoking netid: %v", err)
 			}
 		}
-	}
+		return nil
+	})
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
 	registry := master.registry
-	eventQueue := registry.RunEventQueue(NetNamespaces)
 
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for network namespaces: %v", err))
-			return
-		}
-		netns := obj.(*osapi.NetNamespace)
+	registry.RunEventQueue(NetNamespaces, func(delta cache.Delta) error {
+		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 
-		log.V(5).Infof("Watch %s event for NetNamespace %q", strings.Title(string(eventType)), name)
-		switch eventType {
-		case watch.Added, watch.Modified:
-			err = master.vnids.updateVNID(registry, netns)
+		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, name)
+		switch delta.Type {
+		case cache.Sync, cache.Added, cache.Updated:
+			err := master.vnids.updateVNID(registry, netns)
 			if err != nil {
-				log.Errorf("Error updating netid: %v", err)
-				continue
+				return fmt.Errorf("Error updating netid: %v", err)
 			}
 		}
-	}
+		return nil
+	})
 }

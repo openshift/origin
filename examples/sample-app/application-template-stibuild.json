@@ -31,7 +31,6 @@
         "selector": {
           "name": "frontend"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -189,7 +188,7 @@
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {
@@ -301,7 +300,6 @@
         "selector": {
           "name": "database"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -356,7 +354,7 @@
               "failurePolicy": "Ignore",
               "execNewPod": {
                 "command": [
-                  "/bin/false"
+                  "/bin/true"
                 ],
                 "env": [
                   {

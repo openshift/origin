@@ -7,22 +7,23 @@ import (
 	"github.com/openshift/origin/pkg/user/api"
 )
 
-func addConversionFuncs(scheme *runtime.Scheme) {
+func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Group",
 		oapi.GetFieldLabelConversionFunc(api.GroupToSelectableFields(&api.Group{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Identity",
 		oapi.GetFieldLabelConversionFunc(api.IdentityToSelectableFields(&api.Identity{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "User",
 		oapi.GetFieldLabelConversionFunc(api.UserToSelectableFields(&api.User{}), nil),
 	); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }

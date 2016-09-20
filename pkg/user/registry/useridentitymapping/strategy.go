@@ -36,7 +36,7 @@ func (userIdentityMappingStrategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
+func (s userIdentityMappingStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	mapping := obj.(*api.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
@@ -55,7 +55,7 @@ func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update
-func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s userIdentityMappingStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	mapping := obj.(*api.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {

@@ -102,7 +102,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdStatus(cmd.StatusRecommendedName, fullName, fullName+" "+cmd.StatusRecommendedName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
 				cmd.NewCmdProjects(fullName, f, out),
-				cmd.NewCmdExplain(fullName, f, out),
+				cmd.NewCmdExplain(fullName, f, out, errout),
 				cluster.NewCmdCluster(cluster.ClusterRecommendedName, fullName+" "+cluster.ClusterRecommendedName, f, out),
 				cmd.NewCmdIdle(fullName, f, out, errout),
 			},
@@ -123,8 +123,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Application Management Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdGet(fullName, f, out),
-				cmd.NewCmdDescribe(fullName, f, out),
+				cmd.NewCmdGet(fullName, f, out, errout),
+				cmd.NewCmdDescribe(fullName, f, out, errout),
 				cmd.NewCmdEdit(fullName, f, out, errout),
 				set.NewCmdSet(fullName, f, in, out, errout),
 				cmd.NewCmdLabel(fullName, f, out),

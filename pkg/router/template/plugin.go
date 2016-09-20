@@ -78,8 +78,8 @@ type routerInterface interface {
 	// pointed to by the route. Returns true if a
 	// change was made and the state should be stored with Commit().
 	AddRoute(id string, weight int32, route *routeapi.Route, host string) bool
-	// RemoveRoute removes the given route for the given id.
-	RemoveRoute(id string, route *routeapi.Route)
+	// RemoveRoute removes the given route
+	RemoveRoute(route *routeapi.Route)
 	// Reduce the list of routes to only these namespaces
 	FilterNamespaces(namespaces sets.String)
 	// Commit applies the changes in the background. It kicks off a rate-limited
@@ -188,11 +188,9 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	switch eventType {
 	case watch.Added, watch.Modified:
 		// Delete the route first, because modify is to be treated as delete+add
-		for i := range serviceKeys {
-			key := serviceKeys[i]
-			p.Router.RemoveRoute(key, route)
-		}
-		// Now add it back again
+		p.Router.RemoveRoute(route)
+
+		// Now add the route back again
 		commit := false
 		for i := range serviceKeys {
 			key := serviceKeys[i]
@@ -210,10 +208,8 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 			p.Router.Commit()
 		}
 	case watch.Deleted:
-		for _, key := range serviceKeys {
-			glog.V(4).Infof("Deleting routes for %s", key)
-			p.Router.RemoveRoute(key, route)
-		}
+		glog.V(4).Infof("Deleting route %v", route)
+		p.Router.RemoveRoute(route)
 		p.Router.Commit()
 	}
 	return nil

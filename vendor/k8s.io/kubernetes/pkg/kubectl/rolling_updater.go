@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,9 +28,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/util/integer"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -206,7 +206,7 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 	}
 	// maxSurge is the maximum scaling increment and maxUnavailable are the maximum pods
 	// that can be unavailable during a rollout.
-	maxSurge, maxUnavailable, err := deployment.ResolveFenceposts(&config.MaxSurge, &config.MaxUnavailable, desired)
+	maxSurge, maxUnavailable, err := deploymentutil.ResolveFenceposts(&config.MaxSurge, &config.MaxUnavailable, desired)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 	if desired > 0 && maxUnavailable == 0 && maxSurge == 0 {
 		return fmt.Errorf("one of maxSurge or maxUnavailable must be specified")
 	}
-	// The minumum pods which must remain available througout the update
+	// The minimum pods which must remain available throughout the update
 	// calculated for internal convenience.
 	minAvailable := int32(integer.IntMax(0, int(desired-maxUnavailable)))
 	// If the desired new scale is 0, then the max unavailable is necessarily
@@ -420,7 +420,7 @@ func (r *RollingUpdater) readyPods(oldRc, newRc *api.ReplicationController, minR
 			return 0, 0, err
 		}
 		for _, pod := range pods.Items {
-			if !deployment.IsPodAvailable(&pod, minReadySeconds, r.nowFn().Time) {
+			if !deploymentutil.IsPodAvailable(&pod, minReadySeconds, r.nowFn().Time) {
 				continue
 			}
 			switch controller.Name {
@@ -513,14 +513,14 @@ func (r *RollingUpdater) cleanupWithClients(oldRc, newRc *api.ReplicationControl
 	case DeleteRollingUpdateCleanupPolicy:
 		// delete old rc
 		fmt.Fprintf(config.Out, "Update succeeded. Deleting %s\n", oldRc.Name)
-		return r.c.ReplicationControllers(r.ns).Delete(oldRc.Name)
+		return r.c.ReplicationControllers(r.ns).Delete(oldRc.Name, nil)
 	case RenameRollingUpdateCleanupPolicy:
 		// delete old rc
 		fmt.Fprintf(config.Out, "Update succeeded. Deleting old controller: %s\n", oldRc.Name)
-		if err := r.c.ReplicationControllers(r.ns).Delete(oldRc.Name); err != nil {
+		if err := r.c.ReplicationControllers(r.ns).Delete(oldRc.Name, nil); err != nil {
 			return err
 		}
-		fmt.Fprintf(config.Out, "Renaming %s to %s\n", newRc.Name, oldRc.Name)
+		fmt.Fprintf(config.Out, "Renaming %s to %s\n", oldRc.Name, newRc.Name)
 		return Rename(r.c, newRc, oldRc.Name)
 	case PreserveRollingUpdateCleanupPolicy:
 		return nil
@@ -533,13 +533,28 @@ func Rename(c client.ReplicationControllersNamespacer, rc *api.ReplicationContro
 	oldName := rc.Name
 	rc.Name = newName
 	rc.ResourceVersion = ""
-
-	_, err := c.ReplicationControllers(rc.Namespace).Create(rc)
+	// First delete the oldName RC and orphan its pods.
+	trueVar := true
+	err := c.ReplicationControllers(rc.Namespace).Delete(oldName, &api.DeleteOptions{OrphanDependents: &trueVar})
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	err = wait.Poll(5*time.Second, 60*time.Second, func() (bool, error) {
+		_, err := c.ReplicationControllers(rc.Namespace).Get(oldName)
+		if err == nil {
+			return false, nil
+		} else if errors.IsNotFound(err) {
+			return true, nil
+		} else {
+			return false, err
+		}
+	})
 	if err != nil {
 		return err
 	}
-	err = c.ReplicationControllers(rc.Namespace).Delete(oldName)
-	if err != nil && !errors.IsNotFound(err) {
+	// Then create the same RC with the new name.
+	_, err = c.ReplicationControllers(rc.Namespace).Create(rc)
+	if err != nil {
 		return err
 	}
 	return nil

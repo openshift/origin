@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ func TestAppliesTo(t *testing.T) {
 			subjects: []rbac.Subject{
 				{Kind: rbac.UserKind, Name: "barfoo"},
 				{Kind: rbac.GroupKind, Name: "foobar"},
-				{Kind: rbac.ServiceAccountKind, Name: "kube-system", Namespace: "default"},
+				{Kind: rbac.ServiceAccountKind, Namespace: "kube-system", Name: "default"},
 			},
 			ctx: api.WithNamespace(
 				api.WithUser(api.NewContext(), &user.DefaultInfo{Name: "system:serviceaccount:kube-system:default"}),

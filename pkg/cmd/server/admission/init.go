@@ -51,6 +51,9 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		if wantsInformers, ok := plugin.(WantsInformers); ok {
 			wantsInformers.SetInformers(i.Informers)
 		}
+		if wantsInformerFactory, ok := plugin.(admission.WantsInformerFactory); ok {
+			wantsInformerFactory.SetInformerFactory(i.Informers.KubernetesInformers())
+		}
 		if wantsClusterQuotaMapper, ok := plugin.(WantsClusterQuotaMapper); ok {
 			wantsClusterQuotaMapper.SetClusterQuotaMapper(i.ClusterQuotaMapper)
 		}

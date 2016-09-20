@@ -169,6 +169,7 @@ readonly EXCLUDED_TESTS=(
   "\[Feature:Example\]"      # may need to pre-pull images
   "ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414
   "NodeProblemDetector"        # requires a non-master node to run on
+  "unchanging, static URL paths for kubernetes api services" # the test needs to exclude URLs that are not part of conformance (/logs)
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE
@@ -181,6 +182,12 @@ readonly EXCLUDED_TESTS=(
 
   # Test will never work
   "should proxy to cadvisor" # we don't expose cAdvisor port directly for security reasons
+
+  # Need to relax security restrictions
+  "validates that InterPod Affinity and AntiAffinity is respected if matching" # this *may* now be safe
+
+  # Need multiple nodes
+  "validates that InterPodAntiAffinity is respected if matching 2"
 
   # Inordinately slow tests
   "should create and stop a working application"

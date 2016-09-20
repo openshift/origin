@@ -19,12 +19,12 @@ func GetMatcher(selector ClusterResourceQuotaSelector) (func(obj runtime.Object)
 		}
 	}
 
-	var annotationSelector labels.Selector
+	var annotationSelector map[string]string
 	if len(selector.AnnotationSelector) > 0 {
-		var err error
-		annotationSelector, err = unversioned.LabelSelectorAsSelector(&unversioned.LabelSelector{MatchLabels: selector.AnnotationSelector})
-		if err != nil {
-			return nil, err
+		// ensure our matcher has a stable copy of the map
+		annotationSelector = make(map[string]string, len(selector.AnnotationSelector))
+		for k, v := range selector.AnnotationSelector {
+			annotationSelector[k] = v
 		}
 	}
 
@@ -44,8 +44,10 @@ func GetMatcher(selector ClusterResourceQuotaSelector) (func(obj runtime.Object)
 			if err != nil {
 				return false, err
 			}
-			if !annotationSelector.Matches(labels.Set(objAnnotations)) {
-				return false, nil
+			for k, v := range annotationSelector {
+				if objValue, exists := objAnnotations[k]; !exists || objValue != v {
+					return false, nil
+				}
 			}
 		}
 

@@ -197,14 +197,14 @@ function wait_for_app() {
 
 	echo "[INFO] Waiting for database service to start"
 	wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
-	DB_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.portalIP }}" service database)
+	DB_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.clusterIP }}" service database)
 
 	echo "[INFO] Waiting for frontend pod to start"
 	wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
 	echo "[INFO] Waiting for frontend service to start"
 	wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))
-	FRONTEND_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.portalIP }}" service frontend)
+	FRONTEND_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.clusterIP }}" service frontend)
 
 	echo "[INFO] Waiting for database to start..."
 	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -312,7 +312,7 @@ echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]]

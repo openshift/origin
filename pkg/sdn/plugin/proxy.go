@@ -13,11 +13,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 type proxyFirewallItem struct {
@@ -68,16 +67,9 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 }
 
 func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
-	eventQueue := proxy.registry.RunEventQueue(EgressNetworkPolicies)
-
-	for {
-		eventType, obj, err := eventQueue.Pop()
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("EventQueue failed for EgressNetworkPolicy: %v", err))
-			return
-		}
-		policy := obj.(*osapi.EgressNetworkPolicy)
-		if eventType == watch.Deleted {
+	proxy.registry.RunEventQueue(EgressNetworkPolicies, func(delta cache.Delta) error {
+		policy := delta.Object.(*osapi.EgressNetworkPolicy)
+		if delta.Type == cache.Deleted {
 			policy.Spec.Egress = nil
 		}
 
@@ -89,7 +81,8 @@ func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
 				proxy.updateEndpoints()
 			}
 		}()
-	}
+		return nil
+	})
 }
 
 func (proxy *ovsProxyPlugin) updateNetworkPolicy(policy osapi.EgressNetworkPolicy) {

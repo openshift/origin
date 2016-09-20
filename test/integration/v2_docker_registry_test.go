@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
@@ -19,6 +20,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -118,6 +120,10 @@ middleware:
 	os.Setenv("DOCKER_REGISTRY_URL", "127.0.0.1:5000")
 
 	go dockerregistry.Execute(strings.NewReader(config))
+
+	if err := cmdutil.WaitForSuccessfulDial(false, "tcp", "127.0.0.1:5000", 100*time.Millisecond, 1*time.Second, 35); err != nil {
+		t.Fatal(err)
+	}
 
 	stream := imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{

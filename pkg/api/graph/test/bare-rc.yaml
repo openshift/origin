@@ -113,7 +113,6 @@ items:
     name: database
   spec:
     clusterIP: 172.30.17.240
-    portalIP: 172.30.17.240
     ports:
     - nodePort: 0
       port: 5434

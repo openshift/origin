@@ -27,6 +27,9 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 
+import strings "strings"
+import reflect "reflect"
+
 import io "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -34,49 +37,53 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-func (m *ClusterNetwork) Reset()         { *m = ClusterNetwork{} }
-func (m *ClusterNetwork) String() string { return proto.CompactTextString(m) }
-func (*ClusterNetwork) ProtoMessage()    {}
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+const _ = proto.GoGoProtoPackageIsVersion1
 
-func (m *ClusterNetworkList) Reset()         { *m = ClusterNetworkList{} }
-func (m *ClusterNetworkList) String() string { return proto.CompactTextString(m) }
-func (*ClusterNetworkList) ProtoMessage()    {}
+func (m *ClusterNetwork) Reset()                    { *m = ClusterNetwork{} }
+func (*ClusterNetwork) ProtoMessage()               {}
+func (*ClusterNetwork) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{0} }
 
-func (m *EgressNetworkPolicy) Reset()         { *m = EgressNetworkPolicy{} }
-func (m *EgressNetworkPolicy) String() string { return proto.CompactTextString(m) }
-func (*EgressNetworkPolicy) ProtoMessage()    {}
+func (m *ClusterNetworkList) Reset()                    { *m = ClusterNetworkList{} }
+func (*ClusterNetworkList) ProtoMessage()               {}
+func (*ClusterNetworkList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{1} }
 
-func (m *EgressNetworkPolicyList) Reset()         { *m = EgressNetworkPolicyList{} }
-func (m *EgressNetworkPolicyList) String() string { return proto.CompactTextString(m) }
-func (*EgressNetworkPolicyList) ProtoMessage()    {}
+func (m *EgressNetworkPolicy) Reset()                    { *m = EgressNetworkPolicy{} }
+func (*EgressNetworkPolicy) ProtoMessage()               {}
+func (*EgressNetworkPolicy) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{2} }
 
-func (m *EgressNetworkPolicyPeer) Reset()         { *m = EgressNetworkPolicyPeer{} }
-func (m *EgressNetworkPolicyPeer) String() string { return proto.CompactTextString(m) }
-func (*EgressNetworkPolicyPeer) ProtoMessage()    {}
+func (m *EgressNetworkPolicyList) Reset()                    { *m = EgressNetworkPolicyList{} }
+func (*EgressNetworkPolicyList) ProtoMessage()               {}
+func (*EgressNetworkPolicyList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{3} }
 
-func (m *EgressNetworkPolicyRule) Reset()         { *m = EgressNetworkPolicyRule{} }
-func (m *EgressNetworkPolicyRule) String() string { return proto.CompactTextString(m) }
-func (*EgressNetworkPolicyRule) ProtoMessage()    {}
+func (m *EgressNetworkPolicyPeer) Reset()                    { *m = EgressNetworkPolicyPeer{} }
+func (*EgressNetworkPolicyPeer) ProtoMessage()               {}
+func (*EgressNetworkPolicyPeer) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{4} }
 
-func (m *EgressNetworkPolicySpec) Reset()         { *m = EgressNetworkPolicySpec{} }
-func (m *EgressNetworkPolicySpec) String() string { return proto.CompactTextString(m) }
-func (*EgressNetworkPolicySpec) ProtoMessage()    {}
+func (m *EgressNetworkPolicyRule) Reset()                    { *m = EgressNetworkPolicyRule{} }
+func (*EgressNetworkPolicyRule) ProtoMessage()               {}
+func (*EgressNetworkPolicyRule) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{5} }
 
-func (m *HostSubnet) Reset()         { *m = HostSubnet{} }
-func (m *HostSubnet) String() string { return proto.CompactTextString(m) }
-func (*HostSubnet) ProtoMessage()    {}
+func (m *EgressNetworkPolicySpec) Reset()                    { *m = EgressNetworkPolicySpec{} }
+func (*EgressNetworkPolicySpec) ProtoMessage()               {}
+func (*EgressNetworkPolicySpec) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{6} }
 
-func (m *HostSubnetList) Reset()         { *m = HostSubnetList{} }
-func (m *HostSubnetList) String() string { return proto.CompactTextString(m) }
-func (*HostSubnetList) ProtoMessage()    {}
+func (m *HostSubnet) Reset()                    { *m = HostSubnet{} }
+func (*HostSubnet) ProtoMessage()               {}
+func (*HostSubnet) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{7} }
 
-func (m *NetNamespace) Reset()         { *m = NetNamespace{} }
-func (m *NetNamespace) String() string { return proto.CompactTextString(m) }
-func (*NetNamespace) ProtoMessage()    {}
+func (m *HostSubnetList) Reset()                    { *m = HostSubnetList{} }
+func (*HostSubnetList) ProtoMessage()               {}
+func (*HostSubnetList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{8} }
 
-func (m *NetNamespaceList) Reset()         { *m = NetNamespaceList{} }
-func (m *NetNamespaceList) String() string { return proto.CompactTextString(m) }
-func (*NetNamespaceList) ProtoMessage()    {}
+func (m *NetNamespace) Reset()                    { *m = NetNamespace{} }
+func (*NetNamespace) ProtoMessage()               {}
+func (*NetNamespace) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{9} }
+
+func (m *NetNamespaceList) Reset()                    { *m = NetNamespaceList{} }
+func (*NetNamespaceList) ProtoMessage()               {}
+func (*NetNamespaceList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{10} }
 
 func init() {
 	proto.RegisterType((*ClusterNetwork)(nil), "github.com.openshift.origin.pkg.sdn.api.v1.ClusterNetwork")
@@ -646,6 +653,139 @@ func sovGenerated(x uint64) (n int) {
 }
 func sozGenerated(x uint64) (n int) {
 	return sovGenerated(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *ClusterNetwork) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterNetwork{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Network:` + fmt.Sprintf("%v", this.Network) + `,`,
+		`HostSubnetLength:` + fmt.Sprintf("%v", this.HostSubnetLength) + `,`,
+		`ServiceNetwork:` + fmt.Sprintf("%v", this.ServiceNetwork) + `,`,
+		`PluginName:` + fmt.Sprintf("%v", this.PluginName) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ClusterNetworkList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ClusterNetworkList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "ClusterNetwork", "ClusterNetwork", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EgressNetworkPolicy) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&EgressNetworkPolicy{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "EgressNetworkPolicySpec", "EgressNetworkPolicySpec", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EgressNetworkPolicyList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&EgressNetworkPolicyList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "EgressNetworkPolicy", "EgressNetworkPolicy", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EgressNetworkPolicyPeer) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&EgressNetworkPolicyPeer{`,
+		`CIDRSelector:` + fmt.Sprintf("%v", this.CIDRSelector) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EgressNetworkPolicyRule) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&EgressNetworkPolicyRule{`,
+		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
+		`To:` + strings.Replace(strings.Replace(this.To.String(), "EgressNetworkPolicyPeer", "EgressNetworkPolicyPeer", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *EgressNetworkPolicySpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&EgressNetworkPolicySpec{`,
+		`Egress:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Egress), "EgressNetworkPolicyRule", "EgressNetworkPolicyRule", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *HostSubnet) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&HostSubnet{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Host:` + fmt.Sprintf("%v", this.Host) + `,`,
+		`HostIP:` + fmt.Sprintf("%v", this.HostIP) + `,`,
+		`Subnet:` + fmt.Sprintf("%v", this.Subnet) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *HostSubnetList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&HostSubnetList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "HostSubnet", "HostSubnet", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NetNamespace) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NetNamespace{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`NetName:` + fmt.Sprintf("%v", this.NetName) + `,`,
+		`NetID:` + fmt.Sprintf("%v", this.NetID) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *NetNamespaceList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&NetNamespaceList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "NetNamespace", "NetNamespace", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringGenerated(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *ClusterNetwork) Unmarshal(data []byte) error {
 	l := len(data)
@@ -2055,3 +2195,58 @@ var (
 	ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
+
+var fileDescriptorGenerated = []byte{
+	// 806 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xbc, 0x55, 0x5d, 0x6b, 0x13, 0x4d,
+	0x14, 0xee, 0xa6, 0x49, 0x3f, 0xa6, 0x69, 0xde, 0xb0, 0xef, 0xcb, 0x6b, 0x88, 0xd0, 0x96, 0x55,
+	0xa4, 0x7e, 0x74, 0x97, 0x14, 0x94, 0xd2, 0x0b, 0x0b, 0xdb, 0x0a, 0x2d, 0xd4, 0x1a, 0x26, 0xbd,
+	0x10, 0xa5, 0x48, 0x3e, 0x4e, 0x37, 0x63, 0x92, 0x9d, 0x65, 0x67, 0x36, 0xd2, 0x3b, 0xaf, 0xbc,
+	0xf6, 0xe7, 0x08, 0xfe, 0x81, 0x5e, 0x08, 0xf6, 0x42, 0xa4, 0x57, 0x41, 0xeb, 0xbf, 0xf0, 0xca,
+	0xd9, 0xd9, 0xc9, 0x57, 0xb3, 0x11, 0x8b, 0x6d, 0x2f, 0x86, 0x64, 0xe7, 0x9c, 0xe7, 0x39, 0xcf,
+	0x39, 0x67, 0xe6, 0x0c, 0x5a, 0x77, 0x08, 0xaf, 0x07, 0x15, 0xb3, 0x4a, 0x5b, 0x16, 0xf5, 0xc0,
+	0x65, 0x75, 0x72, 0xc8, 0x2d, 0xea, 0x13, 0x87, 0xb8, 0x96, 0xd7, 0x70, 0x2c, 0x56, 0x73, 0xad,
+	0xb2, 0x47, 0xac, 0x76, 0xc1, 0x72, 0xc0, 0x05, 0xbf, 0xcc, 0xa1, 0x66, 0x7a, 0x3e, 0xe5, 0x54,
+	0xbf, 0xd7, 0xc7, 0x9a, 0x3d, 0xac, 0x19, 0x61, 0x4d, 0x81, 0x35, 0x05, 0xd6, 0x14, 0x58, 0xb3,
+	0x5d, 0xc8, 0xaf, 0x0c, 0xc4, 0x71, 0xa8, 0x43, 0x2d, 0x49, 0x51, 0x09, 0x0e, 0xe5, 0x97, 0xfc,
+	0x90, 0xff, 0x22, 0xea, 0xfc, 0xc3, 0xc6, 0x1a, 0x33, 0x09, 0xb5, 0x1a, 0x41, 0x05, 0x7c, 0x17,
+	0x38, 0x30, 0x29, 0x26, 0x14, 0x12, 0xb8, 0x6d, 0xf0, 0x19, 0xa1, 0x2e, 0xd4, 0xce, 0x2b, 0xca,
+	0x3f, 0x18, 0x0f, 0x1b, 0xd5, 0x9f, 0x5f, 0x89, 0xf7, 0xf6, 0x03, 0x97, 0x93, 0x16, 0x8c, 0xb8,
+	0x17, 0xe2, 0xdd, 0x03, 0x4e, 0x9a, 0x16, 0x71, 0x39, 0xe3, 0xfe, 0x79, 0x88, 0xf1, 0x39, 0x81,
+	0x32, 0x9b, 0xcd, 0x80, 0x71, 0xf0, 0xf7, 0x80, 0xbf, 0xa1, 0x7e, 0x43, 0x7f, 0x8e, 0x66, 0x5a,
+	0xc0, 0xcb, 0xb5, 0x32, 0x2f, 0xe7, 0xb4, 0x25, 0x6d, 0x79, 0x6e, 0x75, 0xd9, 0x8c, 0x88, 0xcd,
+	0x3e, 0xb1, 0xac, 0x5e, 0x54, 0x39, 0xf3, 0x59, 0xe5, 0x35, 0x54, 0xf9, 0x53, 0x81, 0xb1, 0xf5,
+	0xe3, 0xce, 0xe2, 0xc4, 0x59, 0x67, 0x11, 0xf5, 0xf7, 0x70, 0x8f, 0x4d, 0xbf, 0x8b, 0xa6, 0xdd,
+	0x28, 0x48, 0x2e, 0x21, 0x88, 0x67, 0xed, 0x7f, 0x94, 0xfb, 0xb4, 0x8a, 0x8d, 0xbb, 0x76, 0x7d,
+	0x0b, 0x65, 0xeb, 0x94, 0x71, 0x16, 0x54, 0xc4, 0x4e, 0x13, 0x5c, 0x87, 0xd7, 0x73, 0x93, 0x02,
+	0x33, 0x6f, 0xe7, 0x14, 0x26, 0xbb, 0x2d, 0xec, 0x25, 0x69, 0xdf, 0x95, 0x76, 0x3c, 0x82, 0xd0,
+	0x1f, 0xa3, 0x0c, 0x03, 0xbf, 0x4d, 0xaa, 0xa0, 0x02, 0xe4, 0x92, 0x32, 0xee, 0xff, 0x8a, 0x23,
+	0x53, 0x1a, 0xb2, 0xe2, 0x73, 0xde, 0xfa, 0x2a, 0x42, 0x5e, 0x33, 0x10, 0x87, 0x65, 0xaf, 0xdc,
+	0x82, 0x5c, 0x4a, 0x62, 0x7b, 0x29, 0x16, 0x7b, 0x16, 0x3c, 0xe0, 0x65, 0x7c, 0xd1, 0x90, 0x3e,
+	0x5c, 0xd1, 0x5d, 0xc2, 0xb8, 0x7e, 0x30, 0x52, 0x55, 0xeb, 0x37, 0x55, 0x1d, 0x38, 0x42, 0x66,
+	0x08, 0x97, 0xc5, 0xcd, 0xaa, 0xc8, 0x33, 0xdd, 0x9d, 0x81, 0xd2, 0xbe, 0x42, 0x29, 0xc2, 0xa1,
+	0xc5, 0x44, 0x61, 0x27, 0x05, 0xf7, 0xba, 0xf9, 0xe7, 0x27, 0xdf, 0x1c, 0x56, 0x6b, 0xcf, 0xab,
+	0x30, 0xa9, 0x9d, 0x90, 0x10, 0x47, 0xbc, 0xc6, 0x57, 0x0d, 0xfd, 0xfb, 0xc4, 0xf1, 0x81, 0x31,
+	0xe5, 0x57, 0xa4, 0x4d, 0x52, 0x3d, 0xba, 0xc2, 0xd3, 0x02, 0x28, 0xc9, 0x3c, 0xa8, 0xca, 0xa3,
+	0x32, 0xb7, 0xba, 0x79, 0x91, 0x8c, 0x62, 0x84, 0x96, 0x04, 0x95, 0x9d, 0x56, 0x01, 0x93, 0xe1,
+	0x17, 0x96, 0xf4, 0x46, 0x47, 0x43, 0x37, 0x62, 0xfc, 0xaf, 0xa3, 0x69, 0xb5, 0xe1, 0xa6, 0x6d,
+	0xfc, 0x65, 0x8a, 0x63, 0x3a, 0x57, 0x8a, 0xcd, 0xaf, 0x08, 0xe0, 0xeb, 0x6b, 0x28, 0x5d, 0x25,
+	0x35, 0xbf, 0x04, 0x4d, 0x51, 0x7e, 0xea, 0xcb, 0x1c, 0x67, 0xed, 0xff, 0x14, 0x4d, 0x7a, 0x73,
+	0x67, 0x0b, 0x77, 0x6d, 0x78, 0xc8, 0xd3, 0xf8, 0x18, 0x5f, 0x35, 0x1c, 0x34, 0x41, 0xdf, 0x40,
+	0x49, 0x7e, 0xe4, 0x81, 0x62, 0xbb, 0xdf, 0xad, 0xf9, 0xbe, 0xd8, 0xfb, 0xd9, 0x59, 0xbc, 0x39,
+	0x06, 0x16, 0x9a, 0xb1, 0x04, 0x8a, 0xc3, 0x9c, 0xe0, 0xf4, 0x92, 0xfa, 0x1e, 0xe6, 0x69, 0x23,
+	0xa5, 0x21, 0xb1, 0x4f, 0xb1, 0xa0, 0x36, 0xde, 0xc5, 0xab, 0x0f, 0x4f, 0x85, 0xde, 0x40, 0x53,
+	0x20, 0x4d, 0x42, 0xff, 0xe4, 0x25, 0x08, 0x08, 0x73, 0xb3, 0x33, 0x4a, 0xc0, 0x54, 0xe4, 0x80,
+	0x55, 0x08, 0xe3, 0x54, 0x43, 0xa8, 0x3f, 0xc7, 0xae, 0xf0, 0x32, 0x2d, 0xa1, 0x64, 0x38, 0x1d,
+	0xd5, 0xdc, 0xed, 0xdd, 0x83, 0x30, 0x36, 0x96, 0x16, 0xfd, 0x0e, 0x9a, 0x0a, 0x7f, 0x77, 0x8a,
+	0x72, 0xce, 0xce, 0xf6, 0x25, 0x6f, 0xcb, 0x5d, 0xac, 0xac, 0xa1, 0x5f, 0x34, 0x63, 0xd5, 0x2c,
+	0xed, 0xf9, 0x45, 0x39, 0x60, 0x65, 0x35, 0x3e, 0x69, 0x28, 0x33, 0x30, 0xa2, 0xaf, 0xe1, 0x3a,
+	0xbd, 0x1c, 0xbe, 0x4e, 0x8f, 0x2e, 0xd2, 0xb8, 0xbe, 0xd2, 0x31, 0xb7, 0xe8, 0x83, 0x86, 0xd2,
+	0xa2, 0xaf, 0xe1, 0x88, 0x67, 0x5e, 0xb9, 0x0a, 0x57, 0xfe, 0x4c, 0xba, 0xe1, 0x93, 0x33, 0xfa,
+	0x4c, 0xca, 0xf7, 0xa6, 0x6b, 0xd7, 0x6f, 0xa1, 0x94, 0xf8, 0x4b, 0x6a, 0xea, 0x6d, 0xec, 0x49,
+	0x17, 0x8e, 0xe2, 0xee, 0x46, 0x36, 0xe3, 0x44, 0x43, 0xd9, 0x41, 0xe9, 0xd7, 0xd1, 0x8b, 0x83,
+	0xe1, 0x5e, 0xac, 0x5d, 0xa4, 0x17, 0x83, 0x5a, 0xe3, 0xbb, 0x61, 0xdf, 0x3e, 0xfe, 0xbe, 0x30,
+	0x71, 0x22, 0xd6, 0xa9, 0x58, 0x6f, 0xcf, 0x16, 0xb4, 0x63, 0xb1, 0x4e, 0xc4, 0xfa, 0x26, 0xd6,
+	0xfb, 0x1f, 0x0b, 0x13, 0x2f, 0x12, 0xed, 0xc2, 0xaf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xa7, 0x69,
+	0x56, 0x2d, 0x3b, 0x0a, 0x00, 0x00,
+}

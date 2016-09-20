@@ -34,13 +34,14 @@ Currently taint can only apply to node.
 
 .PP
 \fB\-\-no\-headers\fP=false
-    When using the default output, don't print headers.
+    When using the default or custom\-column output format, don't print headers.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -87,19 +88,19 @@ Currently taint can only apply to node.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -119,7 +120,7 @@ Currently taint can only apply to node.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-log\-flush\-frequency\fP=0
@@ -131,7 +132,7 @@ Currently taint can only apply to node.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -139,7 +140,7 @@ Currently taint can only apply to node.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -151,10 +152,15 @@ Currently taint can only apply to node.
 .RS
 
 .nf
+
 # Update node 'foo' with a taint with key 'dedicated' and value 'special\-user' and effect 'NoSchedule'.
-# If a taint with that key already exists, its value and effect are replaced as specified.
+# If a taint with that key and effect already exists, its value is replaced as specified.
 oc adm taint nodes foo dedicated=special\-user:NoSchedule
-# Remove from node 'foo' the taint with key 'dedicated' if one exists.
+
+# Remove from node 'foo' the taint with key 'dedicated' and effect 'NoSchedule' if one exists.
+oc adm taint nodes foo dedicated:NoSchedule\-
+
+# Remove from node 'foo' all the taints with key 'dedicated'
 oc adm taint nodes foo dedicated\-
 
 .fi

@@ -23,7 +23,7 @@ type identityStrategy struct {
 // objects via the REST API.
 var Strategy = identityStrategy{kapi.Scheme}
 
-func (identityStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (identityStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
 func (identityStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (identityStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (identityStrategy) PrepareForCreate(obj runtime.Object) {
+func (identityStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	identity := obj.(*api.Identity)
 	identity.Name = identityName(identity.ProviderName, identity.ProviderUserName)
 }
@@ -64,13 +64,21 @@ func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		identityObj, ok := obj.(*api.Identity)
-		if !ok {
-			return false, fmt.Errorf("not an identity")
-		}
-		fields := api.IdentityToSelectableFields(identityObj)
-		return label.Matches(labels.Set(identityObj.Labels)) && field.Matches(fields), nil
-	})
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.Identity)
+			if !ok {
+				return nil, nil, fmt.Errorf("not an Identity")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.Identity) fields.Set {
+	return api.IdentityToSelectableFields(obj)
 }

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/builder/parser"
+	"github.com/docker/docker/builder/dockerfile/parser"
 	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
