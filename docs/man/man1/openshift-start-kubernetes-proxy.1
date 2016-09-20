@@ -37,12 +37,25 @@ This command launches an instance of the Kubernetes proxy (kube\-proxy).
     How often configuration from the apiserver is refreshed.  Must be greater than 0.
 
 .PP
-\fB\-\-conntrack\-max\fP=262144
-    Maximum number of NAT connections to track (0 to leave as\-is)
+\fB\-\-conntrack\-max\fP=0
+    Maximum number of NAT connections to track (0 to leave as\-is).
+
+.PP
+\fB\-\-conntrack\-max\-per\-core\fP=32768
+    Maximum number of NAT connections to track per CPU core (0 to leave as\-is). This is only considered if conntrack\-max is 0.
 
 .PP
 \fB\-\-conntrack\-tcp\-timeout\-established\fP=0
     Idle timeout for established TCP connections (0 to leave as\-is)
+
+.PP
+\fB\-\-feature\-gates\fP=
+    A set of key=value pairs that describe feature gates for alpha/experimental features. Options are:
+AllAlpha=true|false (ALPHA \- default=false)
+AllowExtTrafficLocalEndpoints=true|false (ALPHA \- default=false)
+AppArmor=true|false (BETA \- default=true)
+DynamicKubeletConfig=true|false (ALPHA \- default=false)
+DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
 
 .PP
 \fB\-\-healthz\-bind\-address\fP=127.0.0.1

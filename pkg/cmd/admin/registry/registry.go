@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -157,7 +158,11 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 				Config: cfg,
 			}
 			kcmdutil.CheckErr(opts.Complete(f, cmd, out, args))
-			kcmdutil.CheckErr(opts.RunCmdRegistry())
+			err := opts.RunCmdRegistry()
+			if err == cmdutil.ErrExit {
+				os.Exit(1)
+			}
+			kcmdutil.CheckErr(err)
 		},
 	}
 

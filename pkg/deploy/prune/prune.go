@@ -108,7 +108,7 @@ func NewDeploymentDeleter(deployments kclient.ReplicationControllersNamespacer, 
 func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationController) error {
 	glog.V(4).Infof("Deleting deployment %q", deployment.Name)
 	// If the deployment is failed we need to remove its deployer pods, too.
-	if deployutil.DeploymentStatusFor(deployment) == deployapi.DeploymentStatusFailed {
+	if deployutil.IsFailedDeployment(deployment) {
 		dpSelector := deployutil.DeployerPodSelector(deployment.Name)
 		deployers, err := p.pods.Pods(deployment.Namespace).List(kapi.ListOptions{LabelSelector: dpSelector})
 		if err != nil {
@@ -121,5 +121,5 @@ func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationControl
 			}
 		}
 	}
-	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name)
+	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, nil)
 }

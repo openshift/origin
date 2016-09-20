@@ -25,7 +25,6 @@
         "selector": {
           "name": "empty-service"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

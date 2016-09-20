@@ -3,6 +3,7 @@ package appliedclusterresourcequota
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -16,10 +17,10 @@ import (
 type AppliedClusterResourceQuotaREST struct {
 	quotaMapper     clusterquotamapping.ClusterQuotaMapper
 	quotaLister     *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister *ocache.IndexerToNamespaceLister
+	namespaceLister *cache.IndexerToNamespaceLister
 }
 
-func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *ocache.IndexerToNamespaceLister) *AppliedClusterResourceQuotaREST {
+func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *cache.IndexerToNamespaceLister) *AppliedClusterResourceQuotaREST {
 	return &AppliedClusterResourceQuotaREST{
 		quotaMapper:     quotaMapper,
 		quotaLister:     quotaLister,

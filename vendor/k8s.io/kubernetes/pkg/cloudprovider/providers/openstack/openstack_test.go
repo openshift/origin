@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import (
 const volumeAvailableStatus = "available"
 const volumeInUseStatus = "in-use"
 const volumeCreateTimeoutSeconds = 30
+const testClusterName = "testCluster"
 
 func WaitForVolumeStatus(t *testing.T, os *OpenStack, volumeName string, status string, timeoutSeconds int) {
 	timeout := timeoutSeconds
@@ -204,50 +205,29 @@ func TestLoadBalancer(t *testing.T) {
 		t.Skipf("No config found in environment")
 	}
 
-	cfg.LoadBalancer.LBVersion = "v2"
+	versions := []string{"v1", "v2", ""}
 
-	os, err := newOpenStack(cfg)
-	if err != nil {
-		t.Fatalf("Failed to construct/authenticate OpenStack: %s", err)
-	}
+	for _, v := range versions {
+		t.Logf("Trying LBVersion = '%s'\n", v)
+		cfg.LoadBalancer.LBVersion = v
 
-	lb, ok := os.LoadBalancer()
-	if !ok {
-		t.Fatalf("LoadBalancer() returned false - perhaps your stack doesn't support Neutron?")
-	}
+		os, err := newOpenStack(cfg)
+		if err != nil {
+			t.Fatalf("Failed to construct/authenticate OpenStack: %s", err)
+		}
 
-	_, exists, err := lb.GetLoadBalancer(&api.Service{ObjectMeta: api.ObjectMeta{Name: "noexist"}})
-	if err != nil {
-		t.Fatalf("GetLoadBalancer(\"noexist\") returned error: %s", err)
-	}
-	if exists {
-		t.Fatalf("GetLoadBalancer(\"noexist\") returned exists")
-	}
-}
+		lb, ok := os.LoadBalancer()
+		if !ok {
+			t.Fatalf("LoadBalancer() returned false - perhaps your stack doesn't support Neutron?")
+		}
 
-func TestLoadBalancerV2(t *testing.T) {
-	cfg, ok := configFromEnv()
-	if !ok {
-		t.Skipf("No config found in environment")
-	}
-	cfg.LoadBalancer.LBVersion = "v2"
-
-	os, err := newOpenStack(cfg)
-	if err != nil {
-		t.Fatalf("Failed to construct/authenticate OpenStack: %s", err)
-	}
-
-	lbaas, ok := os.LoadBalancer()
-	if !ok {
-		t.Fatalf("LoadBalancer() returned false - perhaps your stack doesn't support Neutron?")
-	}
-
-	_, exists, err := lbaas.GetLoadBalancer(&api.Service{ObjectMeta: api.ObjectMeta{Name: "noexist"}})
-	if err != nil {
-		t.Fatalf("GetLoadBalancer(\"noexist\") returned error: %s", err)
-	}
-	if exists {
-		t.Fatalf("GetLoadBalancer(\"noexist\") returned exists")
+		_, exists, err := lb.GetLoadBalancer(testClusterName, &api.Service{ObjectMeta: api.ObjectMeta{Name: "noexist"}})
+		if err != nil {
+			t.Fatalf("GetLoadBalancer(\"noexist\") returned error: %s", err)
+		}
+		if exists {
+			t.Fatalf("GetLoadBalancer(\"noexist\") returned exists")
+		}
 	}
 }
 
@@ -288,7 +268,7 @@ func TestVolumes(t *testing.T) {
 	tags := map[string]string{
 		"test": "value",
 	}
-	vol, err := os.CreateVolume("kubernetes-test-volume-"+rand.String(10), 1, &tags)
+	vol, err := os.CreateVolume("kubernetes-test-volume-"+rand.String(10), 1, "", "", &tags)
 	if err != nil {
 		t.Fatalf("Cannot create a new Cinder volume: %v", err)
 	}

@@ -593,28 +593,19 @@ func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeap
 	return true
 }
 
-// RemoveRoute removes the given route for the given id.
-func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
+// RemoveRoute removes the given route
+func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-
-	_, ok := r.serviceUnits[id]
-	if !ok {
-		return
-	}
 
 	routeKey := r.routeKey(route)
 	serviceAliasConfig, ok := r.state[routeKey]
 	if !ok {
 		return
 	}
-	delete(serviceAliasConfig.ServiceUnitNames, id)
 
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
-
-	if len(serviceAliasConfig.ServiceUnitNames) == 0 {
-		delete(r.state, routeKey)
-	}
+	delete(r.state, routeKey)
 }
 
 // AddEndpoints adds new Endpoints for the given id.

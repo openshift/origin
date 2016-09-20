@@ -207,7 +207,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 		if candidate.Name == to.Name {
 			continue
 		}
-		if deployutil.DeploymentStatusFor(&candidate) == deployapi.DeploymentStatusComplete {
+		if deployutil.IsCompleteDeployment(&candidate) {
 			from = &candidate
 			break
 		}

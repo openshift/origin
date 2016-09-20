@@ -31,7 +31,6 @@
         "selector": {
           "name": "frontend"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },
@@ -290,7 +289,6 @@
         "selector": {
           "name": "database"
         },
-        "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
       },

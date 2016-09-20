@@ -70,7 +70,7 @@ func TestCreateProjectBadObject(t *testing.T) {
 func TestCreateInvalidProject(t *testing.T) {
 	mockClient := &testclient.Fake{}
 	storage := NewREST(mockClient.Namespaces(), &mockLister{}, nil, nil)
-	_, err := storage.Create(nil, &api.Project{
+	_, err := storage.Create(kapi.NewContext(), &api.Project{
 		ObjectMeta: kapi.ObjectMeta{
 			Annotations: map[string]string{"openshift.io/display-name": "h\t\ni"},
 		},

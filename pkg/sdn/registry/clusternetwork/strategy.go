@@ -23,7 +23,7 @@ type sdnStrategy struct {
 // objects via the REST API.
 var Strategy = sdnStrategy{kapi.Scheme}
 
-func (sdnStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (sdnStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for sdns
 func (sdnStrategy) NamespaceScoped() bool {
@@ -34,7 +34,7 @@ func (sdnStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (sdnStrategy) PrepareForCreate(obj runtime.Object) {
+func (sdnStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -61,13 +61,21 @@ func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fie
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		network, ok := obj.(*api.ClusterNetwork)
-		if !ok {
-			return false, fmt.Errorf("not a ClusterNetwork")
-		}
-		fields := api.ClusterNetworkToSelectableFields(network)
-		return label.Matches(labels.Set(network.Labels)) && field.Matches(fields), nil
-	})
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.ClusterNetwork)
+			if !ok {
+				return nil, nil, fmt.Errorf("not a ClusterNetwork")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.ClusterNetwork) fields.Set {
+	return api.ClusterNetworkToSelectableFields(obj)
 }

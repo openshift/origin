@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/util"
 	kflag "k8s.io/kubernetes/pkg/util/flag"
+	"k8s.io/kubernetes/pkg/util/logs"
 	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 )
@@ -29,8 +29,8 @@ func NewSchedulerCommand(name, fullName string, out io.Writer) *cobra.Command {
 		Run: func(c *cobra.Command, args []string) {
 			startProfiler()
 
-			util.InitLogs()
-			defer util.FlushLogs()
+			logs.InitLogs()
+			defer logs.FlushLogs()
 
 			if err := schedulerapp.Run(schedulerOptions); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)

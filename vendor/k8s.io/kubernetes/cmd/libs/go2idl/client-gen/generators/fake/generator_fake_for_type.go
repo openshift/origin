@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	pkg := filepath.Base(t.Name.Package)
 	const pkgTestingCore = "k8s.io/kubernetes/pkg/client/testing/core"
-	namespaced := !(types.ExtractCommentTags("+", t.SecondClosestCommentLines)["nonNamespaced"] == "true")
+	namespaced := !extractBoolTagOrDie("nonNamespaced", t.SecondClosestCommentLines)
 	canonicalGroup := g.group
 	if canonicalGroup == "core" {
 		canonicalGroup = ""
@@ -95,11 +95,9 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 	}
 
 	// allow user to define a group name that's different from the one parsed from the directory.
-	for _, comment := range c.Universe.Package(g.inputPackage).DocComments {
-		comment = strings.TrimLeft(comment, "//")
-		if override, ok := types.ExtractCommentTags("+", comment)["groupName"]; ok {
-			groupName = override
-		}
+	p := c.Universe.Package(g.inputPackage)
+	if override := types.ExtractCommentTags("+", p.DocComments)["groupName"]; override != nil {
+		groupName = override[0]
 	}
 
 	m := map[string]interface{}{
@@ -115,6 +113,7 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 		"apiDeleteOptions":     c.Universe.Type(types.Name{Package: "k8s.io/kubernetes/pkg/api", Name: "DeleteOptions"}),
 		"apiListOptions":       c.Universe.Type(types.Name{Package: "k8s.io/kubernetes/pkg/api", Name: "ListOptions"}),
 		"GroupVersionResource": c.Universe.Type(types.Name{Package: "k8s.io/kubernetes/pkg/api/unversioned", Name: "GroupVersionResource"}),
+		"PatchType":            c.Universe.Type(types.Name{Package: "k8s.io/kubernetes/pkg/api", Name: "PatchType"}),
 		"Everything":           c.Universe.Function(types.Name{Package: "k8s.io/kubernetes/pkg/labels", Name: "Everything"}),
 
 		"NewRootListAction":              c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewRootListAction"}),
@@ -133,9 +132,13 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 		"NewWatchAction":                 c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewWatchAction"}),
 		"NewUpdateSubresourceAction":     c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewUpdateSubresourceAction"}),
 		"NewRootUpdateSubresourceAction": c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewRootUpdateSubresourceAction"}),
+		"NewRootPatchAction":             c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewRootPatchAction"}),
+		"NewPatchAction":                 c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewPatchAction"}),
+		"NewRootPatchSubresourceAction":  c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewRootPatchSubresourceAction"}),
+		"NewPatchSubresourceAction":      c.Universe.Function(types.Name{Package: pkgTestingCore, Name: "NewPatchSubresourceAction"}),
 	}
 
-	noMethods := types.ExtractCommentTags("+", t.SecondClosestCommentLines)["noMethods"] == "true"
+	noMethods := extractBoolTagOrDie("noMethods", t.SecondClosestCommentLines) == true
 
 	if namespaced {
 		sw.Do(structNamespaced, m)
@@ -160,7 +163,7 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 			sw.Do(listTemplate, m)
 		}
 		sw.Do(watchTemplate, m)
-
+		sw.Do(patchTemplate, m)
 	}
 
 	return sw.Error()
@@ -295,5 +298,18 @@ func (c *Fake$.type|publicPlural$) Watch(opts $.apiListOptions|raw$) ($.watchInt
 	return c.Fake.
 		$if .namespaced$InvokesWatch($.NewWatchAction|raw$($.type|allLowercasePlural$Resource, c.ns, opts))
 		$else$InvokesWatch($.NewRootWatchAction|raw$($.type|allLowercasePlural$Resource, opts))$end$
+}
+`
+
+var patchTemplate = `
+// Patch applies the patch and returns the patched $.type|private$.
+func (c *Fake$.type|publicPlural$) Patch(name string, pt $.PatchType|raw$, data []byte, subresources ...string) (result *$.type|raw$, err error) {
+	obj, err := c.Fake.
+		$if .namespaced$Invokes($.NewPatchSubresourceAction|raw$($.type|allLowercasePlural$Resource, c.ns, name, data, subresources... ), &$.type|raw${})
+		$else$Invokes($.NewRootPatchSubresourceAction|raw$($.type|allLowercasePlural$Resource, name, data, subresources...), &$.type|raw${})$end$
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*$.type|raw$), err
 }
 `

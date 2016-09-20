@@ -4,6 +4,11 @@
 # documentation.
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
+echo "+"
+echo "+ FIXME: Networking tests are disabled due to a broken configuration"
+echo "+"
+exit 0
+
 if [[ -n "${OPENSHIFT_VERBOSE_OUTPUT:-}" ]]; then
   set -o xtrace
   export PS4='+ \D{%b %d %H:%M:%S} $(basename ${BASH_SOURCE}):${LINENO} ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'

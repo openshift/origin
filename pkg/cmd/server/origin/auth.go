@@ -97,7 +97,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) ([]string, error) 
 	}
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
+	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
 	if err != nil {
 		return nil, err
 	}

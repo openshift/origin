@@ -25,7 +25,7 @@ func (projectStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (projectStrategy) PrepareForCreate(obj runtime.Object) {
+func (projectStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	project := obj.(*api.Project)
 	hasProjectFinalizer := false
 	for i := range project.Spec.Finalizers {
@@ -44,7 +44,7 @@ func (projectStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (projectStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (projectStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newProject := obj.(*api.Project)
 	oldProject := old.(*api.Project)
 	newProject.Spec.Finalizers = oldProject.Spec.Finalizers

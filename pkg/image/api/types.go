@@ -308,6 +308,7 @@ type ImageStreamMapping struct {
 
 	// The Docker image repository the specified image is located in
 	// DEPRECATED: remove once v1beta1 support is dropped
+	// +k8s:conversion-gen=false
 	DockerImageRepository string
 	// A Docker image.
 	Image Image

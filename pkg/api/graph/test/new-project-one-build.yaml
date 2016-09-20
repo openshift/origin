@@ -121,7 +121,7 @@ items:
     name: sinatra-example-1
     namespace: example
   spec:
-    portalIP: 172.30.17.47
+    clusterIP: 172.30.17.47
     ports:
     - nodePort: 0
       port: 8080

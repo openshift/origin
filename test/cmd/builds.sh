@@ -65,7 +65,7 @@ os::cmd::expect_failure_and_text 'oc new-build ruby-22-centos7~https://github.co
 os::cmd::expect_success 'oc delete all --all'
 
 os::cmd::expect_success "oc new-build -D \$'FROM centos:7' --no-output"
-os::cmd::expect_success_and_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '^<nil>$'
+os::cmd::expect_success_and_text 'oc get bc/centos -o=jsonpath="{.spec.output.to}"' '^nil$'
 
 # Ensure output is valid JSON
 os::cmd::expect_success 'oc new-build -D "FROM centos:7" -o json | python -m json.tool'

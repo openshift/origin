@@ -485,7 +485,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		if len(objects) != len(infos) {
 			return fmt.Errorf("could not convert all objects to API version %q", outputVersion)
 		}
-		p, _, err := kubectl.GetPrinter(outputFormat, "")
+		p, _, err := kubectl.GetPrinter(outputFormat, "", false)
 		if err != nil {
 			return err
 		}

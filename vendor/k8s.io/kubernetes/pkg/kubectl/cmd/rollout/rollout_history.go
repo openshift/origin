@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/renstrom/dedent"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -34,26 +35,33 @@ type HistoryOptions struct {
 	Recursive bool
 }
 
-const (
-	history_long    = `View previous rollout revisions and configurations.`
-	history_example = `# View the rollout history of a deployment
-kubectl rollout history deployment/abc
+var (
+	history_long = dedent.Dedent(`
+		View previous rollout revisions and configurations.`)
+	history_example = dedent.Dedent(`
+		# View the rollout history of a deployment
+		kubectl rollout history deployment/abc
 
-# View the details of deployment revision 3
-kubectl rollout history deployment/abc --revision=3`
+		# View the details of deployment revision 3
+		kubectl rollout history deployment/abc --revision=3`)
 )
 
 func NewCmdRolloutHistory(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := &HistoryOptions{}
 
+	validArgs := []string{"deployment"}
+	argAliases := kubectl.ResourceAliases(validArgs)
+
 	cmd := &cobra.Command{
 		Use:     "history (TYPE NAME | TYPE/NAME) [flags]",
-		Short:   "view rollout history",
+		Short:   "View rollout history",
 		Long:    history_long,
 		Example: history_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(RunHistory(f, cmd, out, args, options))
 		},
+		ValidArgs:  validArgs,
+		ArgAliases: argAliases,
 	}
 
 	cmd.Flags().Int64("revision", 0, "See the details, including podTemplate of the revision specified")
@@ -89,7 +97,7 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 		return err
 	}
 
-	err = r.Visit(func(info *resource.Info, err error) error {
+	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
 		}
@@ -103,14 +111,12 @@ func RunHistory(f *cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []st
 			return err
 		}
 
-		header := fmt.Sprintf("%s %q history viewed", mapping.Resource, info.Name)
+		header := fmt.Sprintf("%s %q", mapping.Resource, info.Name)
 		if revision > 0 {
-			header = fmt.Sprintf("%s (revision: %d)", header, revision)
+			header = fmt.Sprintf("%s with revision #%d", header, revision)
 		}
 		fmt.Fprintf(out, "%s\n", header)
 		fmt.Fprintf(out, "%s\n", historyInfo)
 		return nil
 	})
-
-	return err
 }

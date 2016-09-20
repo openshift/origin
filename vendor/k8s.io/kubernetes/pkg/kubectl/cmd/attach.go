@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"net/url"
 
 	"github.com/golang/glog"
+	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -34,16 +35,17 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 )
 
-const (
-	attach_example = `# Get output from running pod 123456-7890, using the first container by default
-kubectl attach 123456-7890
+var (
+	attach_example = dedent.Dedent(`
+		# Get output from running pod 123456-7890, using the first container by default
+		kubectl attach 123456-7890
 
-# Get output from ruby-container from pod 123456-7890
-kubectl attach 123456-7890 -c ruby-container
+		# Get output from ruby-container from pod 123456-7890
+		kubectl attach 123456-7890 -c ruby-container
 
-# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-7890
-# and sends stdout/stderr from 'bash' back to the client
-kubectl attach 123456-7890 -c ruby-container -i -t`
+		# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-7890
+		# and sends stdout/stderr from 'bash' back to the client
+		kubectl attach 123456-7890 -c ruby-container -i -t`)
 )
 
 func NewCmdAttach(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
@@ -58,7 +60,7 @@ func NewCmdAttach(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer)
 	}
 	cmd := &cobra.Command{
 		Use:     "attach POD -c CONTAINER",
-		Short:   "Attach to a running container.",
+		Short:   "Attach to a running container",
 		Long:    "Attach to a process that is already running inside an existing container.",
 		Example: attach_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -178,7 +180,10 @@ func (p *AttachOptions) Run() error {
 	pod := p.Pod
 
 	// check for TTY
-	containerToAttach := p.GetContainer(pod)
+	containerToAttach, err := p.containerToAttachTo(pod)
+	if err != nil {
+		return fmt.Errorf("cannot attach to the container: %v", err)
+	}
 	if p.TTY && !containerToAttach.TTY {
 		p.TTY = false
 		if p.Err != nil {
@@ -215,7 +220,8 @@ func (p *AttachOptions) Run() error {
 	}
 
 	fn := func() error {
-		if stderr != nil {
+
+		if !p.Quiet && stderr != nil {
 			fmt.Fprintln(stderr, "If you don't see a command prompt, try pressing enter.")
 		}
 
@@ -246,26 +252,32 @@ func (p *AttachOptions) Run() error {
 	return nil
 }
 
-// GetContainer returns the container to attach to, with a fallback.
-func (p *AttachOptions) GetContainer(pod *api.Pod) api.Container {
+// containerToAttach returns a reference to the container to attach to, given
+// by name or the first container if name is empty.
+func (p *AttachOptions) containerToAttachTo(pod *api.Pod) (*api.Container, error) {
 	if len(p.ContainerName) > 0 {
-		for _, container := range pod.Spec.Containers {
-			if container.Name == p.ContainerName {
-				return container
+		for i := range pod.Spec.Containers {
+			if pod.Spec.Containers[i].Name == p.ContainerName {
+				return &pod.Spec.Containers[i], nil
 			}
 		}
-		for _, container := range pod.Spec.InitContainers {
-			if container.Name == p.ContainerName {
-				return container
+		for i := range pod.Spec.InitContainers {
+			if pod.Spec.InitContainers[i].Name == p.ContainerName {
+				return &pod.Spec.InitContainers[i], nil
 			}
 		}
+		return nil, fmt.Errorf("container not found (%s)", p.ContainerName)
 	}
 
 	glog.V(4).Infof("defaulting container name to %s", pod.Spec.Containers[0].Name)
-	return pod.Spec.Containers[0]
+	return &pod.Spec.Containers[0], nil
 }
 
 // GetContainerName returns the name of the container to attach to, with a fallback.
-func (p *AttachOptions) GetContainerName(pod *api.Pod) string {
-	return p.GetContainer(pod).Name
+func (p *AttachOptions) GetContainerName(pod *api.Pod) (string, error) {
+	c, err := p.containerToAttachTo(pod)
+	if err != nil {
+		return "", err
+	}
+	return c.Name, nil
 }

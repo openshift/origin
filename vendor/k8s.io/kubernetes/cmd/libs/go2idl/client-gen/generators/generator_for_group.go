@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package generators
 
 import (
 	"io"
-	"strings"
 
 	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/normalization"
 	"k8s.io/kubernetes/cmd/libs/go2idl/generator"
@@ -74,11 +73,9 @@ func (g *genGroup) GenerateType(c *generator.Context, t *types.Type, w io.Writer
 		groupName = ""
 	}
 	// allow user to define a group name that's different from the one parsed from the directory.
-	for _, comment := range c.Universe.Package(g.inputPacakge).DocComments {
-		comment = strings.TrimLeft(comment, "//")
-		if override, ok := types.ExtractCommentTags("+", comment)["groupName"]; ok && override != "" {
-			groupName = override
-		}
+	p := c.Universe.Package(g.inputPacakge)
+	if override := types.ExtractCommentTags("+", p.DocComments)["groupName"]; override != nil {
+		groupName = override[0]
 	}
 
 	m := map[string]interface{}{
@@ -104,7 +101,7 @@ func (g *genGroup) GenerateType(c *generator.Context, t *types.Type, w io.Writer
 			"type":  t,
 			"Group": namer.IC(normalization.BeforeFirstDot(g.group)),
 		}
-		namespaced := !(types.ExtractCommentTags("+", t.SecondClosestCommentLines)["nonNamespaced"] == "true")
+		namespaced := !extractBoolTagOrDie("nonNamespaced", t.SecondClosestCommentLines)
 		if namespaced {
 			sw.Do(getterImplNamespaced, wrapper)
 		} else {
@@ -244,12 +241,6 @@ func setConfigDefaults(config *$.Config|raw$) error {
 
 	config.NegotiatedSerializer = $.directCodecFactory|raw${CodecFactory: $.codecs|raw$}
 
-	if config.QPS == 0 {
-		config.QPS = 5
-	}
-	if config.Burst == 0 {
-		config.Burst = 10
-	}
 	return nil
 }
 `

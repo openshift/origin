@@ -31,7 +31,6 @@ spec:
       nodePort: 0
   selector:
     name: "gssapiproxy-server"
-  portalIP: ""
   type: "ClusterIP"
   sessionAffinity: "None"
 status:

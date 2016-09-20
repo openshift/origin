@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4eb2ed57b341a154b2527d8214997006575b998b
+%global commit e0d5c2411fabd012bbbe8fbe15c8dbd3fa3c26ea
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.3.0.30
+Version:        3.4.0.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,157 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Tue Sep 20 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.1
+- Update tito to build for 3.4 (tdawson@redhat.com)
+- Change spec file to the 3.4 branch (tdawson@redhat.com)
+- Do not due bundled deps when building (tdawson@redhat.com)
+- Enable defaults from upstream e2e framework, including logging
+  (ccoleman@redhat.com)
+- Suggest `oc get dc` in output of `oc deploy` (jvallejo@redhat.com)
+- Add verbose output for `oadm groups new` (mkhan@redhat.com)
+- Immediate exit if the return of  is (miao.yanqiang@zte.com.cn)
+- Delete the extra dot (yu.peng36@zte.com.cn)
+- Add bash symbol (yu.peng36@zte.com.cn)
+- bump(github.com/coreos/etcd):v3.0.9 (ccoleman@redhat.com)
+- Retry service account update correctly (jliggitt@redhat.com)
+- Added necessary policies for running scheduled jobs (maszulik@redhat.com)
+- Fix invalid hyperlink. (warmchang@outlook.com)
+- Allow context to be provided to hack/env itself (ccoleman@redhat.com)
+- UPSTREAM: docker/docker: <carry>: WORD/DWORD changed (ccoleman@redhat.com)
+- Default qps/burst to historical values (jliggitt@redhat.com)
+- Ensure system:master has full permissions on non-resource-urls
+  (jliggitt@redhat.com)
+- Disable go 1.6 in travis - it can't compile in under 10 minutes
+  (ccoleman@redhat.com)
+- Disable networking until it has been fixed (ccoleman@redhat.com)
+- UPSTREAM: google/cadvisor: <drop>: Hack around cgroup load
+  (ccoleman@redhat.com)
+- generated: proto (ccoleman@redhat.com)
+- generated: docs, swagger, and completions (ccoleman@redhat.com)
+- Protobuf stringers disabled for OptionalNames (ccoleman@redhat.com)
+- Debug: use master IP instead of localhost in nodeips (ccoleman@redhat.com)
+- ImageStream tests now require user on context (ccoleman@redhat.com)
+- Router event sends ADDED twice in violation of EventQueue semantics
+  (ccoleman@redhat.com)
+- Extended tests that are not yet ready for origin (ccoleman@redhat.com)
+- Add the GC controller but default to off for now (ccoleman@redhat.com)
+- Quota exceeded error message changed (ccoleman@redhat.com)
+- test/cmd/migrate can race on image import under load (ccoleman@redhat.com)
+- JSONPath output for nil changed slightly (ccoleman@redhat.com)
+- Finalizers are reenabled temporarily (ccoleman@redhat.com)
+- Describe should use imageapi.ParseImageStreamImageName (ccoleman@redhat.com)
+- Check for GNU sed in os::util::sed (ccoleman@redhat.com)
+- Add a simple prometheus config file (ccoleman@redhat.com)
+- Error message from server has changed (ccoleman@redhat.com)
+- Generators added scheduled jobs (ccoleman@redhat.com)
+- Security admission now uses indexer and requires namespaces
+  (ccoleman@redhat.com)
+- Deployment related refactors (ccoleman@redhat.com)
+- ImageStream limits should not start its own reflector (ccoleman@redhat.com)
+- Wait for v2 registry test for server to come up (ccoleman@redhat.com)
+- Update all permissions (ccoleman@redhat.com)
+- Small refactors to tests to pass (ccoleman@redhat.com)
+- Add DefaultStorageClass admission and disable by default ImagePolicyWebhook
+  (ccoleman@redhat.com)
+- Master configuration changes (ccoleman@redhat.com)
+- Enable scheduled jobs controller and disruption budgets conditionally
+  (ccoleman@redhat.com)
+- Changes to util package reflected in tests (ccoleman@redhat.com)
+- Add new top commands to 'oadm top' (ccoleman@redhat.com)
+- Remove support for spec.portalIP (ccoleman@redhat.com)
+- Dockerfile parser updates (ccoleman@redhat.com)
+- Comment that SAR on namespace requires an upstream patch
+  (ccoleman@redhat.com)
+- DeepCopy requires pointer inputs now (ccoleman@redhat.com)
+- Go 1.7 does not allow empty string req.URL.Path (ccoleman@redhat.com)
+- Man page generation should skip hidden flags (ccoleman@redhat.com)
+- LeaderLease off by one (ccoleman@redhat.com)
+- Update integration tests with compilation changes (ccoleman@redhat.com)
+- util.Clock moved to util/clock (ccoleman@redhat.com)
+- Owner references are now required for kubernetes controllers
+  (ccoleman@redhat.com)
+- Update extended test code for 1.4 (ccoleman@redhat.com)
+- Move the leaderlease package to the new etcd client (ccoleman@redhat.com)
+- MasterLeaser was incorrect with new storage config (ccoleman@redhat.com)
+- Use Quorum reads for OAuth and service account token reads
+  (ccoleman@redhat.com)
+- Support new Unstructured flows for get and create in factory
+  (ccoleman@redhat.com)
+- Add StorageClass access to the PV binder (ccoleman@redhat.com)
+- Register Kubernetes log package early (ccoleman@redhat.com)
+- Update Kubernetes node and controllers (ccoleman@redhat.com)
+- Simple master signature changes (ccoleman@redhat.com)
+- Refactor NewConfigGetter again to get closer to correct behavior
+  (ccoleman@redhat.com)
+- Switch to using storagebackend.Factory consistently (ccoleman@redhat.com)
+- Use kubernetes Namespace informer, send Informers to admission
+  (ccoleman@redhat.com)
+- Accept cache.TriggerPublisher on ApplyOptions, use StorageFactory
+  (ccoleman@redhat.com)
+- Signature changes to CLI commands (ccoleman@redhat.com)
+- Other kubectl and smaller moves (ccoleman@redhat.com)
+- Printer takes options by value and GetPrinter takes noHeaders
+  (ccoleman@redhat.com)
+- Simplify AuthorizationAdapter now that upstream matches our signature
+  (ccoleman@redhat.com)
+- Deployment changes related to Scaler/Rollbacker/Client (ccoleman@redhat.com)
+- Repair package changed (ccoleman@redhat.com)
+- Validation constants are no longer public (ccoleman@redhat.com)
+- Use go-dockerclient.ParseRepositoryTag() (ccoleman@redhat.com)
+- Update to use generic.SelectionPredicate (ccoleman@redhat.com)
+- Rename GV*.IsEmpty() to GV*.Empty() (ccoleman@redhat.com)
+- Switch to new SchemeBuilder registration (ccoleman@redhat.com)
+- Add kapi.Context to PrepareForCreate/PrepareForUpdate (ccoleman@redhat.com)
+- Update API types with proper generator tags (ccoleman@redhat.com)
+- Update gendeepcopy and genconversion (ccoleman@redhat.com)
+- bump(k8s.io/kubernetes):d19513fe86f3e0769dd5c4674c093a88a5adb8b4
+  (ccoleman@redhat.com)
+- Enable temporary swap when on Linux and memory is low (ccoleman@redhat.com)
+- Preserve Go build artifacts from test compilation (ccoleman@redhat.com)
+- Update generated clientsets should use get_version_vars (ccoleman@redhat.com)
+- Add cloudflare/cfssl as an upstream to restore Godeps from
+  (ccoleman@redhat.com)
+- The pod GC controller has been moved to a different package
+  (ccoleman@redhat.com)
+- Switch to github.com/docker/go-units (ccoleman@redhat.com)
+- Net utilities have been moved, update imports (ccoleman@redhat.com)
+- Strip removed deployment utility package (ccoleman@redhat.com)
+- Refactor dockerfile code to latest Docker 1.12 (ccoleman@redhat.com)
+- Magic Git tag transformations are awesome too (ccoleman@redhat.com)
+- Release regex is awesome (ccoleman@redhat.com)
+- remove the redundant spaces (haowang@redhat.com)
+- Run zookeeper as non-root user. Fix zookeeper conf volumeMount.
+  (ghyde@redhat.com)
+- The promt is missed (yu.peng36@zte.com.cn)
+- The 'eg' is should be 'e.g.', and 'for example' is better here
+  (yu.peng36@zte.com.cn)
+- use a post deploy hook that will pass, not fail (bparees@redhat.com)
+- Allow annotation selector to match annotation values (jliggitt@redhat.com)
+- Add service account for attach-detach controller (pmorie@redhat.com)
+- Add logging to assist in determining openid claims (jliggitt@redhat.com)
+- tolerate multiple =s in a parameter value (bparees@redhat.com)
+- remove all tmp dir after test (li.guangxu@zte.com.cn)
+- Fix issue#10853. Route cleanup does not need service key cleanup.
+  (rchopra@redhat.com)
+- sdn: convert from OpenShift client cache to k8s DeltaFIFO (dcbw@redhat.com)
+- delete the unused function NameFromImageStream (li.guangxu@zte.com.cn)
+- hack/release.sh should os::log::warn (ccoleman@redhat.com)
+- Allow hack/env to reuse volumes (ccoleman@redhat.com)
+-   Fix some typos for router_sharding.md (li.xiaobing1@zte.com.cn)
+- Don't fail during negotiation when /oapi is missing (ccoleman@redhat.com)
+- Make Kube version info best effort, and don't fail fast (ccoleman@redhat.com)
+- JenkinsPipelineStrategy nil no need check again (li.guangxu@zte.com.cn)
+- Added a mention of 'oc get' to 'oc get --help' (rymurphy@redhat.com)
+- extended: add readiness test for initial deployments (mkargaki@redhat.com)
+- deploy: deployment utilities and cmd fixes (mkargaki@redhat.com)
+- extended: update polling for deployment tests (mkargaki@redhat.com)
+- delete the redundant loop that save slice to map (li.guangxu@zte.com.cn)
+- deploy: use upstream pod lister method (mkargaki@redhat.com)
+- deploy: move cancellation event just after the deployment update
+  (mkargaki@redhat.com)
+- Fix a func name and return value in the comment of NewREST
+  (wang.yuexiao@zte.com.cn)
+
 * Tue Sep 06 2016 Troy Dawson <tdawson@redhat.com> 3.3.0.30
 - Fix wrong oadm document name in cli.md (li.xiaobing1@zte.com.cn)
 - Image size needs to add a size of manifest config file (miminar@redhat.com)

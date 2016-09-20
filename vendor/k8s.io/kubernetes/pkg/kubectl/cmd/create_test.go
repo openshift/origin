@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"testing"
 
+	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 )
 
@@ -28,7 +29,7 @@ func TestExtraArgsFail(t *testing.T) {
 	initTestErrorHandler(t)
 	buf := bytes.NewBuffer([]byte{})
 
-	f, _, _ := NewAPIFactory()
+	f, _, _, _ := NewAPIFactory()
 	c := NewCmdCreate(f, buf)
 	if ValidateArgs(c, []string{"rc"}) == nil {
 		t.Errorf("unexpected non-error")
@@ -40,14 +41,15 @@ func TestCreateObject(t *testing.T) {
 	_, _, rc := testData()
 	rc.Items[0].Name = "redis-master-controller"
 
-	f, tf, codec := NewAPIFactory()
+	f, tf, codec, _ := NewAPIFactory()
+	ns := dynamic.ContentConfig().NegotiatedSerializer
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
-		Codec: codec,
+		NegotiatedSerializer: ns,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
-			case p == "/namespaces/test/replicationcontrollers" && m == "POST":
-				return &http.Response{StatusCode: 201, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+			case p == "/namespaces/test/replicationcontrollers" && m == http.MethodPost:
+				return &http.Response{StatusCode: http.StatusCreated, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
 			default:
 				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 				return nil, nil
@@ -72,16 +74,17 @@ func TestCreateMultipleObject(t *testing.T) {
 	initTestErrorHandler(t)
 	_, svc, rc := testData()
 
-	f, tf, codec := NewAPIFactory()
+	f, tf, codec, _ := NewAPIFactory()
+	ns := dynamic.ContentConfig().NegotiatedSerializer
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
-		Codec: codec,
+		NegotiatedSerializer: ns,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
-			case p == "/namespaces/test/services" && m == "POST":
-				return &http.Response{StatusCode: 201, Header: defaultHeader(), Body: objBody(codec, &svc.Items[0])}, nil
-			case p == "/namespaces/test/replicationcontrollers" && m == "POST":
-				return &http.Response{StatusCode: 201, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+			case p == "/namespaces/test/services" && m == http.MethodPost:
+				return &http.Response{StatusCode: http.StatusCreated, Header: defaultHeader(), Body: objBody(codec, &svc.Items[0])}, nil
+			case p == "/namespaces/test/replicationcontrollers" && m == http.MethodPost:
+				return &http.Response{StatusCode: http.StatusCreated, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
 			default:
 				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 				return nil, nil
@@ -108,14 +111,15 @@ func TestCreateDirectory(t *testing.T) {
 	_, _, rc := testData()
 	rc.Items[0].Name = "name"
 
-	f, tf, codec := NewAPIFactory()
+	f, tf, codec, _ := NewAPIFactory()
+	ns := dynamic.ContentConfig().NegotiatedSerializer
 	tf.Printer = &testPrinter{}
 	tf.Client = &fake.RESTClient{
-		Codec: codec,
+		NegotiatedSerializer: ns,
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
-			case p == "/namespaces/test/replicationcontrollers" && m == "POST":
-				return &http.Response{StatusCode: 201, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
+			case p == "/namespaces/test/replicationcontrollers" && m == http.MethodPost:
+				return &http.Response{StatusCode: http.StatusCreated, Header: defaultHeader(), Body: objBody(codec, &rc.Items[0])}, nil
 			default:
 				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 				return nil, nil

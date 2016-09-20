@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kdeplutil "k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -46,7 +46,7 @@ func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.Replicatio
 	for i := range input {
 		deployment := &input[i]
 		deploymentVersion := DeploymentVersionFor(deployment)
-		if DeploymentStatusFor(deployment) == deployapi.DeploymentStatusComplete && deploymentVersion > lastCompleteDeploymentVersion {
+		if IsCompleteDeployment(deployment) && deploymentVersion > lastCompleteDeploymentVersion {
 			activeDeployment = deployment
 			lastCompleteDeploymentVersion = deploymentVersion
 		}
@@ -270,11 +270,11 @@ func GetStatusReplicaCountForDeployments(deployments []api.ReplicationController
 }
 
 // GetAvailablePods returns all the available pods from the provided pod list.
-func GetAvailablePods(pods []api.Pod, minReadySeconds int32) int32 {
+func GetAvailablePods(pods []*api.Pod, minReadySeconds int32) int32 {
 	available := int32(0)
 	for i := range pods {
 		pod := pods[i]
-		if kdeplutil.IsPodAvailable(&pod, minReadySeconds, time.Now()) {
+		if kdeplutil.IsPodAvailable(pod, minReadySeconds, time.Now()) {
 			available++
 		}
 	}
@@ -326,8 +326,10 @@ func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
 }
 
-func HasSynced(dc *deployapi.DeploymentConfig) bool {
-	return dc.Status.ObservedGeneration >= dc.Generation
+// HasSynced checks if the provided deployment config has been noticed by the deployment
+// config controller.
+func HasSynced(dc *deployapi.DeploymentConfig, generation int64) bool {
+	return dc.Status.ObservedGeneration >= generation
 }
 
 // IsOwnedByConfig checks whether the provided replication controller is part of a
@@ -341,8 +343,13 @@ func IsOwnedByConfig(deployment *api.ReplicationController) bool {
 // IsTerminatedDeployment returns true if the passed deployment has terminated (either
 // complete or failed).
 func IsTerminatedDeployment(deployment *api.ReplicationController) bool {
+	return IsCompleteDeployment(deployment) || IsFailedDeployment(deployment)
+}
+
+// IsCompleteDeployment returns true if the passed deployment failed.
+func IsCompleteDeployment(deployment *api.ReplicationController) bool {
 	current := DeploymentStatusFor(deployment)
-	return current == deployapi.DeploymentStatusComplete || current == deployapi.DeploymentStatusFailed
+	return current == deployapi.DeploymentStatusComplete
 }
 
 // IsFailedDeployment returns true if the passed deployment failed.

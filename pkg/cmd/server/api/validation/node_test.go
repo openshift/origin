@@ -48,7 +48,7 @@ func TestFailingKubeletArgs(t *testing.T) {
 	if e, a := "invalid-value", portErr.BadValue.(string); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
-	if e, a := `could not be set: strconv.ParseUint: parsing "invalid-value": invalid syntax`, portErr.Detail; e != a {
+	if e, a := `could not be set: strconv.ParseInt: parsing "invalid-value": invalid syntax`, portErr.Detail; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
 

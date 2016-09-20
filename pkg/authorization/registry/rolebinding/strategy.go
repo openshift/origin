@@ -44,12 +44,12 @@ func (s strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	_ = obj.(*authorizationapi.RoleBinding)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	_ = obj.(*authorizationapi.RoleBinding)
 }
 
@@ -68,7 +68,7 @@ func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 	return &generic.SelectionPredicate{
 		Label: label,
 		Field: field,

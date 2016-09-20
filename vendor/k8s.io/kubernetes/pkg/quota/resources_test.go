@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -253,6 +253,40 @@ func TestIsZero(t *testing.T) {
 	for testName, testCase := range testCases {
 		if result := IsZero(testCase.a); result != testCase.expected {
 			t.Errorf("%s expected: %v, actual: %v", testName, testCase.expected, result)
+		}
+	}
+}
+
+func TestIsNegative(t *testing.T) {
+	testCases := map[string]struct {
+		a        api.ResourceList
+		expected []api.ResourceName
+	}{
+		"empty": {
+			a:        api.ResourceList{},
+			expected: []api.ResourceName{},
+		},
+		"some-negative": {
+			a: api.ResourceList{
+				api.ResourceCPU:    resource.MustParse("-10"),
+				api.ResourceMemory: resource.MustParse("0"),
+			},
+			expected: []api.ResourceName{api.ResourceCPU},
+		},
+		"all-negative": {
+			a: api.ResourceList{
+				api.ResourceCPU:    resource.MustParse("-200m"),
+				api.ResourceMemory: resource.MustParse("-1Gi"),
+			},
+			expected: []api.ResourceName{api.ResourceCPU, api.ResourceMemory},
+		},
+	}
+	for testName, testCase := range testCases {
+		actual := IsNegative(testCase.a)
+		actualSet := ToSet(actual)
+		expectedSet := ToSet(testCase.expected)
+		if !actualSet.Equal(expectedSet) {
+			t.Errorf("%s expected: %v, actual: %v", testName, expectedSet, actualSet)
 		}
 	}
 }

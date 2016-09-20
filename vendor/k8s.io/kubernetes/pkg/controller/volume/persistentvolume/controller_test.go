@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import (
 // can't reliably simulate periodic sync of volumes/claims - it would be
 // either very timing-sensitive or slow to wait for real periodic sync.
 func TestControllerSync(t *testing.T) {
-	expectedChanges := []int{4, 1, 1, 2, 1, 1, 1}
 	tests := []controllerTest{
 		// [Unit test set 5] - controller tests.
 		// We test the controller as if
@@ -157,14 +156,14 @@ func TestControllerSync(t *testing.T) {
 		},
 	}
 
-	for ix, test := range tests {
+	for _, test := range tests {
 		glog.V(4).Infof("starting test %q", test.name)
 
 		// Initialize the controller
 		client := &fake.Clientset{}
 		volumeSource := framework.NewFakePVControllerSource()
 		claimSource := framework.NewFakePVCControllerSource()
-		ctrl := newTestController(client, volumeSource, claimSource, true)
+		ctrl := newTestController(client, volumeSource, claimSource, nil, true)
 		reactor := newVolumeReactor(client, ctrl, volumeSource, claimSource, test.errors)
 		for _, claim := range test.initialClaims {
 			claimSource.Add(claim)
@@ -176,8 +175,8 @@ func TestControllerSync(t *testing.T) {
 		}
 
 		// Start the controller
-		count := reactor.getChangeCount()
-		go ctrl.Run()
+		stopCh := make(chan struct{})
+		ctrl.Run(stopCh)
 
 		// Wait for the controller to pass initial sync and fill its caches.
 		for !ctrl.volumeController.HasSynced() ||
@@ -199,14 +198,11 @@ func TestControllerSync(t *testing.T) {
 		ctrl.claims.Resync()
 		ctrl.volumes.store.Resync()
 
-		// Wait at least once, just in case expectedChanges[ix] == 0
-		reactor.waitTest()
-		// Wait for expected number of operations.
-		for reactor.getChangeCount() < count+expectedChanges[ix] {
-			reactor.waitTest()
+		err = reactor.waitTest(test)
+		if err != nil {
+			t.Errorf("Failed to run test %s: %v", test.name, err)
 		}
-
-		ctrl.Stop()
+		close(stopCh)
 
 		evaluateTestResults(ctrl, reactor, test, t)
 	}
@@ -234,7 +230,7 @@ func storeVersion(t *testing.T, prefix string, c cache.Store, version string, ex
 	}
 	pv, ok := pvObj.(*api.PersistentVolume)
 	if !ok {
-		t.Errorf("expected volume in the cache, got different object instead: %+v", pvObj)
+		t.Errorf("expected volume in the cache, got different object instead: %#v", pvObj)
 	}
 
 	if ret {

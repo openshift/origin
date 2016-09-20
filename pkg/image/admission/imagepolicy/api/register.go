@@ -7,11 +7,16 @@ import (
 
 var SchemeGroupVersion = unversioned.GroupVersion{Group: "", Version: runtime.APIVersionInternal}
 
-// Adds the list of known types to api.Scheme.
-func AddToScheme(scheme *runtime.Scheme) {
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	AddToScheme   = SchemeBuilder.AddToScheme
+)
+
+func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ImagePolicyConfig{},
 	)
+	return nil
 }
 
 func (obj *ImagePolicyConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }

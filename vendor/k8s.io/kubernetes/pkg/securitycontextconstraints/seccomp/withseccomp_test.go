@@ -172,7 +172,7 @@ func TestValidateContainer(t *testing.T) {
 		pod := &api.Pod{
 			Spec: api.PodSpec{
 				Containers: []api.Container{
-					api.Container{
+					{
 						Name: "test",
 					},
 				},
@@ -189,37 +189,37 @@ func TestValidateContainer(t *testing.T) {
 
 	tests := map[string]struct {
 		allowedProfiles []string
-		pod       *api.Pod
+		pod             *api.Pod
 		expectedMsg     string
 	}{
 		"empty allowed profiles, no container profile": {
 			allowedProfiles: nil,
-			pod:       newPod(""),
+			pod:             newPod(""),
 			expectedMsg:     "",
 		},
 		"empty allowed profiles, container profile": {
 			allowedProfiles: nil,
-			pod:       newPod("foo"),
+			pod:             newPod("foo"),
 			expectedMsg:     "seccomp may not be set",
 		},
 		"good container profile": {
 			allowedProfiles: []string{"foo"},
-			pod:       newPod("foo"),
+			pod:             newPod("foo"),
 			expectedMsg:     "",
 		},
 		"bad container profile": {
 			allowedProfiles: []string{"foo"},
-			pod:       newPod("bar"),
+			pod:             newPod("bar"),
 			expectedMsg:     "bar is not a valid seccomp profile",
 		},
 		"wildcard allows container profile": {
 			allowedProfiles: []string{"*"},
-			pod:       newPod("foo"),
+			pod:             newPod("foo"),
 			expectedMsg:     "",
 		},
 		"wildcard allows no profile": {
 			allowedProfiles: []string{"*"},
-			pod:       newPod(""),
+			pod:             newPod(""),
 			expectedMsg:     "",
 		},
 	}

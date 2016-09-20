@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -162,6 +162,8 @@ func (e *streamExecutor) Stream(options StreamOptions) error {
 	var streamer streamProtocolHandler
 
 	switch protocol {
+	case remotecommand.StreamProtocolV4Name:
+		streamer = newStreamProtocolV4(options)
 	case remotecommand.StreamProtocolV3Name:
 		streamer = newStreamProtocolV3(options)
 	case remotecommand.StreamProtocolV2Name:

@@ -194,18 +194,15 @@ func (r *TestRouter) AddRoute(id string, weight int32, route *routeapi.Route, ho
 	return true
 }
 
-// RemoveRoute removes the service alias config for Route from the ServiceUnit
-func (r *TestRouter) RemoveRoute(id string, route *routeapi.Route) {
+// RemoveRoute removes the service alias config for Route
+func (r *TestRouter) RemoveRoute(route *routeapi.Route) {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	routeKey := r.routeKey(route)
-	serviceAliasConfig, ok := r.State[routeKey]
+	_, ok := r.State[routeKey]
 	if !ok {
 		return
 	} else {
-		delete(serviceAliasConfig.ServiceUnitNames, id)
-		if len(serviceAliasConfig.ServiceUnitNames) == 0 {
-			delete(r.State, routeKey)
-		}
+		delete(r.State, routeKey)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/golang/glog"
 	"golang.org/x/net/websocket"
@@ -18,6 +19,9 @@ import (
 // to itself) if the actual default local address cannot be determined.
 func GetDefaultLocalAddress() string {
 	addr := "0.0.0.0"
+	if a := os.Getenv("OPENSHIFT_ROUTER_SERVER_ADDRESS"); len(a) > 0 {
+		return a
+	}
 	ip, err := util.DefaultLocalIP4()
 	if err == nil {
 		addr = ip.String()

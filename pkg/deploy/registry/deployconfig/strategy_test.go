@@ -23,7 +23,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec:       deploytest.OkDeploymentConfigSpec(),
 	}
-	Strategy.PrepareForCreate(deploymentConfig)
+	Strategy.PrepareForCreate(ctx, deploymentConfig)
 	errs := Strategy.Validate(ctx, deploymentConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
@@ -52,6 +52,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 
 // TestPrepareForUpdate exercises various client updates.
 func TestPrepareForUpdate(t *testing.T) {
+	ctx := kapi.NewDefaultContext()
 	tests := []struct {
 		name string
 
@@ -74,7 +75,7 @@ func TestPrepareForUpdate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		strategy{}.PrepareForUpdate(test.after, test.prev)
+		strategy{}.PrepareForUpdate(ctx, test.after, test.prev)
 		if !reflect.DeepEqual(test.expected, test.after) {
 			t.Errorf("%s: unexpected object mismatch! Expected:\n%#v\ngot:\n%#v", test.name, test.expected, test.after)
 		}

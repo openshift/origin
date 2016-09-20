@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -212,11 +212,12 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 
 	ep := &api.Endpoints{
 		ObjectMeta: api.ObjectMeta{
-			Name: "ep",
+			Namespace: "nsA",
+			Name:      "ep",
 		},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "127.0.0.1"}},
-			Ports:     []api.EndpointPort{{"foo", 80, api.ProtocolTCP}},
+			Ports:     []api.EndpointPort{{Name: "foo", Port: 80, Protocol: api.ProtocolTCP}},
 		}},
 	}
 
@@ -228,7 +229,7 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 
 	// readOnly bool is supplied by persistent-claim volume source when its mounter creates other volumes
 	spec := volume.NewSpecFromPersistentVolume(pv, true)
-	pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
+	pod := &api.Pod{ObjectMeta: api.ObjectMeta{Namespace: "nsA", UID: types.UID("poduid")}}
 	mounter, _ := plug.NewMounter(spec, pod, volume.VolumeOptions{})
 
 	if !mounter.GetAttributes().ReadOnly {

@@ -17,7 +17,7 @@ if [[ "${SDN_NODE}" = "true" ]]; then
   # master.  This capability is used extensively in the kube e2e
   # tests.
   NODE_NAMES+=(${SDN_NODE_NAME})
-  NODE_IPS+=(127.0.0.1)
+  NODE_IPS+=(${MASTER_IP})
   # Force the addition of a hosts entry for the sdn node.
   os::provision::add-to-hosts-file "${MASTER_IP}" "${SDN_NODE_NAME}" 1
 fi

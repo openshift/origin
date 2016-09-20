@@ -3,7 +3,7 @@
 
 .SH NAME
 .PP
-openshift cli config view \- Displays merged kubeconfig settings or a specified kubeconfig file.
+openshift cli config view \- Display merged kubeconfig settings or a specified kubeconfig file
 
 
 .SH SYNOPSIS
@@ -13,7 +13,7 @@ openshift cli config view \- Displays merged kubeconfig settings or a specified 
 
 .SH DESCRIPTION
 .PP
-Displays merged kubeconfig settings or a specified kubeconfig file.
+Display merged kubeconfig settings or a specified kubeconfig file.
 
 .PP
 You can use \-\-output jsonpath={...} to extract specific values using a jsonpath expression.
@@ -22,11 +22,11 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 .SH OPTIONS
 .PP
 \fB\-\-flatten\fP=false
-    flatten the resulting kubeconfig file into self contained output (useful for creating portable kubeconfig files)
+    flatten the resulting kubeconfig file into self\-contained output (useful for creating portable kubeconfig files)
 
 .PP
 \fB\-\-merge\fP=true
-    merge together the full hierarchy of kubeconfig files
+    merge the full hierarchy of kubeconfig files
 
 .PP
 \fB\-\-minify\fP=false
@@ -34,13 +34,14 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-\-no\-headers\fP=false
-    When using the default output, don't print headers.
+    When using the default or custom\-column output format, don't print headers.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -75,19 +76,19 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -107,7 +108,7 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-log\-flush\-frequency\fP=0
@@ -119,7 +120,7 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -127,7 +128,7 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -139,6 +140,7 @@ You can use \-\-output jsonpath={...} to extract specific values using a jsonpat
 .RS
 
 .nf
+  
   # Show Merged kubeconfig settings.
   openshift cli config view
   

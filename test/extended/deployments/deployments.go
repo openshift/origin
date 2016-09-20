@@ -38,6 +38,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
+		readinessFixture                = exutil.FixturePath("testdata", "readiness-test.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -216,7 +217,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("ensuring no scale up of the deployment happens")
-			wait.Poll(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+			wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 				rc, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).Get("deployment-test-1")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(rc.Spec.Replicas).Should(o.BeEquivalentTo(0))
@@ -379,7 +380,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			out, err := oc.Run("rollout").Args("history", resource).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By(fmt.Sprintf("checking the history for substrings\n%s", out))
-			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\" history viewed"))
+			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\""))
 			o.Expect(out).To(o.ContainSubstring("REVISION	STATUS		CAUSE"))
 			o.Expect(out).To(o.ContainSubstring("1		Complete	caused by a config change"))
 			o.Expect(out).To(o.ContainSubstring("2		Complete	caused by a config change"))
@@ -396,53 +397,80 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying that both latestVersion and generation are updated")
-			version, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
-			version = strings.Trim(version, "\"")
+			var generation, version string
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				version, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+				if err != nil {
+					return false, nil
+				}
+				version = strings.Trim(version, "\"")
+				g.By(fmt.Sprintf("checking the latest version for %s: %s", resource, version))
+
+				generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+				if err != nil {
+					return false, nil
+				}
+				generation = strings.Trim(generation, "\"")
+				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
+
+				return strings.Contains(generation, "1") && strings.Contains(version, "1"), nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("expected generation: 1, got: %s, expected latestVersion: 1, got: %s", generation, version)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("checking the latest version for %s: %s", resource, version))
-			o.Expect(version).To(o.ContainSubstring("1"))
-			generation, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
-			o.Expect(generation).To(o.ContainSubstring("1"))
 
 			g.By("verifying the deployment is marked complete")
-			err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				rc, err := oc.KubeREST().ReplicationControllers(oc.Namespace()).Get(name + "-" + version)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				return deployutil.IsTerminatedDeployment(rc), nil
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying that scaling updates the generation")
 			_, err = oc.Run("scale").Args(resource, "--replicas=2").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+				if err != nil {
+					return false, nil
+				}
+				generation = strings.Trim(generation, "\"")
+				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
+
+				return strings.Contains(generation, "2"), nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("expected generation: 2, got: %s", generation)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
-			o.Expect(generation).To(o.ContainSubstring("2"))
 
 			g.By("deploying a second time [new client]")
 			_, err = oc.Run("deploy").Args("--latest", name).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying that both latestVersion and generation are updated")
-			version, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
-			version = strings.Trim(version, "\"")
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				version, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+				if err != nil {
+					return false, nil
+				}
+				version = strings.Trim(version, "\"")
+				g.By(fmt.Sprintf("checking the latest version for %s: %s", resource, version))
+
+				generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
+				if err != nil {
+					return false, nil
+				}
+				generation = strings.Trim(generation, "\"")
+				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
+
+				return strings.Contains(generation, "3") && strings.Contains(version, "2"), nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("expected generation: 3, got: %s, expected latestVersion: 2, got: %s", generation, version)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("checking the latest version for %s: %s", resource, version))
-			o.Expect(version).To(o.ContainSubstring("2"))
-			generation, err = oc.Run("get").Args(resource, "--output=jsonpath=\"{.metadata.generation}\"").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
-			o.Expect(generation).To(o.ContainSubstring("3"))
 
 			g.By("verifying that observedGeneration equals generation")
-			err = wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-				dc, _, _, err := deploymentInfo(oc, name)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				return deployutil.HasSynced(dc), nil
-			})
+			o.Expect(waitForSyncedConfig(oc, name, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 		})
 	})
 
@@ -592,6 +620,21 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
+	g.Describe("initially", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "readiness", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should not deploy if pods never transition to ready [Conformance]", func() {
+			_, name, err := createFixture(oc, readinessFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deployment to fail")
+			err = waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentFailed)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
 	g.Describe("with revision history limits", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "history-limit", g.CurrentGinkgoTestDescription().Failed)
@@ -613,7 +656,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring("updated"))
 			}
 
-			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, checkDeploymentConfigHasSynced)).NotTo(o.HaveOccurred(),
+			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred(),
 				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
 			deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
 			o.Expect(err).NotTo(o.HaveOccurred())

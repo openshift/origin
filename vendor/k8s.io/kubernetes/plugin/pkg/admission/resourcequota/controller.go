@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -105,7 +105,7 @@ func NewQuotaEvaluator(quotaAccessor QuotaAccessor, registry quota.Registry, loc
 
 		registry: registry,
 
-		queue:      workqueue.New(),
+		queue:      workqueue.NewNamed("admission_quota_controller"),
 		work:       map[string][]*admissionWaiter{},
 		dirtyWork:  map[string][]*admissionWaiter{},
 		inProgress: sets.String{},
@@ -180,7 +180,7 @@ func (e *quotaEvaluator) checkAttributes(ns string, admissionAttributes []*admis
 	e.checkQuotas(quotas, admissionAttributes, 3)
 }
 
-// checkQuotas checks the admission atttributes against the passed quotas.  If a quota applies, it will attempt to update it
+// checkQuotas checks the admission attributes against the passed quotas.  If a quota applies, it will attempt to update it
 // AFTER it has checked all the admissionAttributes.  The method breaks down into phase like this:
 // 0. make a copy of the quotas to act as a "running" quota so we know what we need to update and can still compare against the
 //    originals
@@ -348,10 +348,10 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 		evaluatorResources := evaluator.MatchesResources()
 		requiredResources := quota.Intersection(hardResources, evaluatorResources)
 		if err := evaluator.Constraints(requiredResources, inputObject); err != nil {
-			return nil, admission.NewForbidden(a, fmt.Errorf("Failed quota: %s: %v", resourceQuota.Name, err))
+			return nil, admission.NewForbidden(a, fmt.Errorf("failed quota: %s: %v", resourceQuota.Name, err))
 		}
 		if !hasUsageStats(&resourceQuota) {
-			return nil, admission.NewForbidden(a, fmt.Errorf("Status unknown for quota: %s", resourceQuota.Name))
+			return nil, admission.NewForbidden(a, fmt.Errorf("status unknown for quota: %s", resourceQuota.Name))
 		}
 
 		interestingQuotaIndexes = append(interestingQuotaIndexes, i)
@@ -375,10 +375,16 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 	// on updates, we need to subtract the previous measured usage
 	// if usage shows no change, just return since it has no impact on quota
 	deltaUsage := evaluator.Usage(inputObject)
+
+	// ensure that usage for input object is never negative (this would mean a resource made a negative resource requirement)
+	if negativeUsage := quota.IsNegative(deltaUsage); len(negativeUsage) > 0 {
+		return nil, admission.NewForbidden(a, fmt.Errorf("quota usage is negative for resource(s): %s", prettyPrintResourceNames(negativeUsage)))
+	}
+
 	if admission.Update == op {
 		prevItem := a.GetOldObject()
 		if prevItem == nil {
-			return nil, admission.NewForbidden(a, fmt.Errorf("Unable to get previous usage since prior version of object was not found"))
+			return nil, admission.NewForbidden(a, fmt.Errorf("unable to get previous usage since prior version of object was not found"))
 		}
 
 		// if we can definitively determine that this is not a case of "create on update",
@@ -411,7 +417,7 @@ func (e *quotaEvaluator) checkRequest(quotas []api.ResourceQuota, a admission.At
 			failedUsed := quota.Mask(resourceQuota.Status.Used, exceeded)
 			failedHard := quota.Mask(resourceQuota.Status.Hard, exceeded)
 			return nil, admission.NewForbidden(a,
-				fmt.Errorf("Exceeded quota: %s, requested: %s, used: %s, limited: %s",
+				fmt.Errorf("exceeded quota: %s, requested: %s, used: %s, limited: %s",
 					resourceQuota.Name,
 					prettyPrint(failedRequestedUsage),
 					prettyPrint(failedUsed),
@@ -527,6 +533,15 @@ func prettyPrint(item api.ResourceList) string {
 		parts = append(parts, constraint)
 	}
 	return strings.Join(parts, ",")
+}
+
+func prettyPrintResourceNames(a []api.ResourceName) string {
+	values := []string{}
+	for _, value := range a {
+		values = append(values, string(value))
+	}
+	sort.Strings(values)
+	return strings.Join(values, ",")
 }
 
 // hasUsageStats returns true if for each hard constraint there is a value for its current usage

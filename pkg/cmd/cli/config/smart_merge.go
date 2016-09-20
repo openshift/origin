@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/client/restclient"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/third_party/golang/netutil"
+	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	osclient "github.com/openshift/origin/pkg/client"

@@ -12,10 +12,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/runtime"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -165,13 +164,10 @@ func TestAdmissionLifecycle(t *testing.T) {
 
 // TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
-	etcdHelper := etcdstorage.NewEtcdStorage(nil, kapi.Codecs.LegacyCodec(), "", false, genericapiserveroptions.DefaultDeserializationCacheSize)
-
 	informerFactory := shared.NewInformerFactory(testclient.NewSimpleFake(), otestclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	config := &origin.MasterConfig{
 		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
-		RESTOptionsGetter:             restoptions.NewSimpleGetter(etcdHelper),
-		EtcdHelper:                    etcdHelper,
+		RESTOptionsGetter:             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
 		Informers:                     informerFactory,
 		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(informerFactory.Namespaces(), informerFactory.ClusterResourceQuotas()),
 	}

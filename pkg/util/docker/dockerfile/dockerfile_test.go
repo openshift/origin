@@ -1,12 +1,13 @@
 package dockerfile
 
 import (
+	"bytes"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/builder/command"
-	"github.com/docker/docker/builder/parser"
+	"github.com/docker/docker/builder/dockerfile/command"
+	"github.com/docker/docker/builder/dockerfile/parser"
 )
 
 // TestParseTreeToDockerfile tests calling ParseTreeToDockerfile with multiple
@@ -220,7 +221,7 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		if !reflect.DeepEqual(got, want) {
+		if !bytes.Equal(ParseTreeToDockerfile(got), ParseTreeToDockerfile(want)) {
 			t.Errorf("InsertInstructions: %s: got %#v; want %#v", name, got, want)
 		}
 	}

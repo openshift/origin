@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/clock"
 	"k8s.io/kubernetes/pkg/util/diff"
 )
 
@@ -20,7 +20,7 @@ const (
 
 func TestRepositoryBucketAdd(t *testing.T) {
 	now := time.Now()
-	clock := util.NewFakeClock(now)
+	clock := clock.NewFakeClock(now)
 
 	generated := make([]bucketEntry, bucketSize)
 	for i := 0; i < bucketSize; i++ {
@@ -337,7 +337,7 @@ func TestRepositoryBucketAdd(t *testing.T) {
 }
 
 func TestRepositoryBucketAddOversize(t *testing.T) {
-	clock := util.NewFakeClock(time.Now())
+	clock := clock.NewFakeClock(time.Now())
 
 	b := repositoryBucket{
 		clock: clock,
@@ -390,7 +390,7 @@ func TestRepositoryBucketAddOversize(t *testing.T) {
 
 func TestRepositoryBucketRemove(t *testing.T) {
 	now := time.Now()
-	clock := util.NewFakeClock(now)
+	clock := clock.NewFakeClock(now)
 
 	for _, tc := range []struct {
 		name            string
@@ -563,7 +563,7 @@ func TestRepositoryBucketRemove(t *testing.T) {
 
 func TestRepositoryBucketCopy(t *testing.T) {
 	now := time.Now()
-	clock := util.NewFakeClock(now)
+	clock := clock.NewFakeClock(now)
 
 	ttl5m := time.Minute * 5
 	for _, tc := range []struct {

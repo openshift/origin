@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/docker/builder/command"
-	"github.com/docker/docker/builder/parser"
+	"github.com/docker/docker/builder/dockerfile/command"
+	"github.com/docker/docker/builder/dockerfile/parser"
 )
 
 // Environment variable interpolation will happen on these statements only.

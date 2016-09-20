@@ -6,8 +6,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/uuid"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 
@@ -583,7 +583,7 @@ func GetBootstrapPolicy() *authorizationapi.ClusterPolicy {
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              authorizationapi.PolicyName,
 			CreationTimestamp: unversioned.Now(),
-			UID:               util.NewUUID(),
+			UID:               uuid.NewUUID(),
 		},
 		LastModified: unversioned.Now(),
 		Roles:        make(map[string]*authorizationapi.ClusterRole),
@@ -602,7 +602,7 @@ func GetBootstrapPolicyBinding() *authorizationapi.ClusterPolicyBinding {
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              ":Default",
 			CreationTimestamp: unversioned.Now(),
-			UID:               util.NewUUID(),
+			UID:               uuid.NewUUID(),
 		},
 		LastModified: unversioned.Now(),
 		RoleBindings: make(map[string]*authorizationapi.ClusterRoleBinding),

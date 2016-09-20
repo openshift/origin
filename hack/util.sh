@@ -768,10 +768,10 @@ function os::util::host_platform() {
 readonly -f os::util::host_platform
 
 function os::util::sed() {
-  if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
-  	sed -i '' "$@"
-  else
+  if LANG=C sed --help 2>&1 | grep -qs "GNU sed"; then
   	sed -i'' "$@"
+  else
+  	sed -i '' "$@"
   fi
 }
 readonly -f os::util::sed

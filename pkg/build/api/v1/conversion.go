@@ -150,8 +150,8 @@ func Convert_api_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, out 
 	return nil
 }
 
-func addConversionFuncs(scheme *runtime.Scheme) {
-	scheme.AddConversionFuncs(
+func addConversionFuncs(scheme *runtime.Scheme) error {
+	if err := scheme.AddConversionFuncs(
 		Convert_v1_BuildConfig_To_api_BuildConfig,
 		Convert_api_BuildConfig_To_v1_BuildConfig,
 		Convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy,
@@ -170,17 +170,20 @@ func addConversionFuncs(scheme *runtime.Scheme) {
 		Convert_api_BuildSource_To_v1_BuildSource,
 		Convert_v1_BuildStrategy_To_api_BuildStrategy,
 		Convert_api_BuildStrategy_To_v1_BuildStrategy,
-	)
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Build",
 		oapi.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), map[string]string{"name": "metadata.name"}),
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "BuildConfig",
 		oapi.GetFieldLabelConversionFunc(newer.BuildConfigToSelectableFields(&newer.BuildConfig{}), map[string]string{"name": "metadata.name"}),
 	); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }

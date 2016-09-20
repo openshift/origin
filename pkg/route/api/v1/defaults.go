@@ -26,12 +26,9 @@ func SetDefaults_TLSConfig(obj *TLSConfig) {
 	}
 }
 
-func addDefaultingFuncs(scheme *runtime.Scheme) {
-	err := scheme.AddDefaultingFuncs(
+func addDefaultingFuncs(scheme *runtime.Scheme) error {
+	return scheme.AddDefaultingFuncs(
 		SetDefaults_RouteTargetReference,
 		SetDefaults_TLSConfig,
 	)
-	if err != nil {
-		panic(err)
-	}
 }

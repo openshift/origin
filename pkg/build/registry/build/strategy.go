@@ -58,7 +58,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	build := obj.(*api.Build)
 	if len(build.Status.Phase) == 0 {
 		build.Status.Phase = api.BuildPhaseNew
@@ -66,7 +66,7 @@ func (strategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	_ = obj.(*api.Build)
 }
 
@@ -90,7 +90,7 @@ func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOpti
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
 	return &generic.SelectionPredicate{
 		Label: label,
 		Field: field,
@@ -110,7 +110,7 @@ type detailsStrategy struct {
 
 // Prepares a build for update by only allowing an update to build details.
 // For now, this is the Spec.Revision field
-func (detailsStrategy) PrepareForUpdate(obj, old runtime.Object) {
+func (detailsStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newBuild := obj.(*api.Build)
 	oldBuild := old.(*api.Build)
 	revision := newBuild.Spec.Revision

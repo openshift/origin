@@ -128,38 +128,37 @@ func (o VersionOptions) RunVersion() error {
 			return
 		}
 
-		ocVersionBody, err := oClient.Get().AbsPath("/version/openshift").Do().Raw()
-		if kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err) {
-			return
-		}
-		if err != nil {
-			done <- err
-			return
-		}
-		var ocServerInfo version.Info
-		err = json.Unmarshal(ocVersionBody, &ocServerInfo)
-		if err != nil && len(ocVersionBody) > 0 {
-			done <- err
-			return
-		}
-		oVersion = fmt.Sprintf("%v", ocServerInfo)
-
 		kubeVersionBody, err := kClient.Get().AbsPath("/version").Do().Raw()
-		if kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err) {
-			return
-		}
-		if err != nil {
+		switch {
+		case err == nil:
+			var kubeServerInfo kubeversion.Info
+			err = json.Unmarshal(kubeVersionBody, &kubeServerInfo)
+			if err != nil && len(kubeVersionBody) > 0 {
+				done <- err
+				return
+			}
+			kVersion = fmt.Sprintf("%v", kubeServerInfo)
+		case kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err):
+		default:
 			done <- err
 			return
 		}
-		var kubeServerInfo kubeversion.Info
-		err = json.Unmarshal(kubeVersionBody, &kubeServerInfo)
-		if err != nil && len(kubeVersionBody) > 0 {
-			done <- err
-			return
-		}
-		kVersion = fmt.Sprintf("%v", kubeServerInfo)
 
+		ocVersionBody, err := oClient.Get().AbsPath("/version/openshift").Do().Raw()
+		switch {
+		case err == nil:
+			var ocServerInfo version.Info
+			err = json.Unmarshal(ocVersionBody, &ocServerInfo)
+			if err != nil && len(ocVersionBody) > 0 {
+				done <- err
+				return
+			}
+			oVersion = fmt.Sprintf("%v", ocServerInfo)
+		case kapierrors.IsNotFound(err) || kapierrors.IsUnauthorized(err) || kapierrors.IsForbidden(err):
+		default:
+			done <- err
+			return
+		}
 	}()
 
 	select {

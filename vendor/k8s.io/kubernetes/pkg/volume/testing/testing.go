@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
 	utilstrings "k8s.io/kubernetes/pkg/util/strings"
 	utiltesting "k8s.io/kubernetes/pkg/util/testing"
+	"k8s.io/kubernetes/pkg/util/uuid"
 	. "k8s.io/kubernetes/pkg/volume"
 )
 
@@ -292,6 +292,14 @@ func (plugin *FakeVolumePlugin) GetAccessModes() []api.PersistentVolumeAccessMod
 	return []api.PersistentVolumeAccessMode{}
 }
 
+func (plugin *FakeVolumePlugin) ConstructVolumeSpec(volumeName, mountPath string) (*Spec, error) {
+	return nil, nil
+}
+
+func (plugin *FakeVolumePlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {
+	return []string{}, nil
+}
+
 type FakeVolume struct {
 	sync.RWMutex
 	PodUID  types.UID
@@ -478,7 +486,7 @@ type FakeProvisioner struct {
 }
 
 func (fc *FakeProvisioner) Provision() (*api.PersistentVolume, error) {
-	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", util.NewUUID())
+	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", uuid.NewUUID())
 
 	pv := &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
@@ -725,9 +733,16 @@ func VerifyZeroDetachCallCount(fakeVolumePlugin *FakeVolumePlugin) error {
 // manager and fake volume plugin using a fake volume host.
 func GetTestVolumePluginMgr(
 	t *testing.T) (*VolumePluginMgr, *FakeVolumePlugin) {
+	v := NewFakeVolumeHost(
+		"",  /* rootDir */
+		nil, /* kubeClient */
+		nil, /* plugins */
+		"",  /* rootContext */
+	)
 	plugins := ProbeVolumePlugins(VolumeConfig{})
-	volumePluginMgr := NewFakeVolumeHost(
-		"" /* rootDir */, nil /* kubeClient */, plugins, "" /* rootContext */).pluginMgr
+	if err := v.pluginMgr.InitPlugins(plugins, v); err != nil {
+		t.Fatal(err)
+	}
 
-	return &volumePluginMgr, plugins[0].(*FakeVolumePlugin)
+	return &v.pluginMgr, plugins[0].(*FakeVolumePlugin)
 }

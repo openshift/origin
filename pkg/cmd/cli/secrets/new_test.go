@@ -58,9 +58,13 @@ func TestCreateSecret(t *testing.T) {
 			args:     []string{"testSecret", "./bsFixtures/www.google.com", "./bsFixtures/dirNoSubdir"},
 		},
 		{
-			testName: "invalidDNS",
+			testName: "allowsMixedCaseAndDash",
 			args:     []string{"testSecret", "./bsFixtures/invalid/invalid-DNS"},
-			expErr:   true, // "/bsFixtures/invalid-DNS cannot be used as a key in a secret"
+		},
+		{
+			testName: "failsWithUnderscore",
+			args:     []string{"testSecret", "./bsFixtures/invalid/not\\valid"},
+			expErr:   true,
 		},
 		{
 			testName: "leadingDotsAllowed",

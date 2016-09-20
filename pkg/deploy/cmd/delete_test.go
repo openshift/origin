@@ -8,7 +8,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -72,12 +74,11 @@ func TestStop(t *testing.T) {
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
-				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"})}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
 			},
@@ -96,12 +97,11 @@ func TestStop(t *testing.T) {
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
-				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"})}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
 			},
@@ -120,40 +120,35 @@ func TestStop(t *testing.T) {
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
-				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"})}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-2"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-3"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-5"),
 			},
@@ -172,40 +167,35 @@ func TestStop(t *testing.T) {
 				ktestclient.NewDeleteAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
-				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"})}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-2"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-2"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-3"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-3"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-4"),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-4"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-5"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-5"),
 			},
@@ -221,12 +211,11 @@ func TestStop(t *testing.T) {
 				ktestclient.NewGetAction("deploymentconfigs", "default", "config"),
 			},
 			kexpected: []ktestclient.Action{
-				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{}),
+				ktestclient.NewListAction("replicationcontrollers", "default", kapi.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"})}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewListAction("replicationcontrollers", "", kapi.ListOptions{}),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewUpdateAction("replicationcontrollers", "", nil),
-				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewGetAction("replicationcontrollers", "", "config-1"),
 				ktestclient.NewDeleteAction("replicationcontrollers", "", "config-1"),
 			},
@@ -293,7 +282,8 @@ func TestStop(t *testing.T) {
 			t.Errorf("%s: expected an error", test.testName)
 		}
 		if len(test.oc.Actions()) != len(test.expected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions(), test.expected)
+			t.Errorf("%s: unexpected actions: %s", test.testName, diff.ObjectReflectDiff(test.oc.Actions(), test.expected))
+			continue
 		}
 		for j, actualAction := range test.oc.Actions() {
 			e, a := test.expected[j], actualAction
@@ -307,12 +297,13 @@ func TestStop(t *testing.T) {
 				}
 			default:
 				if !reflect.DeepEqual(actualAction, test.expected[j]) {
-					t.Errorf("%s: unexpected action: got:\n%#+v\nexpected:\n%#+v", test.testName, actualAction, test.expected[j])
+					t.Errorf("%s: unexpected action: %s", test.testName, diff.ObjectReflectDiff(actualAction, test.expected[j]))
 				}
 			}
 		}
 		if len(test.kc.Actions()) != len(test.kexpected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.kc.Actions(), test.kexpected)
+			t.Errorf("%s: unexpected actions: %s", test.testName, diff.ObjectReflectDiff(test.kc.Actions(), test.kexpected))
+			continue
 		}
 		for j, actualAction := range test.kc.Actions() {
 			e, a := test.kexpected[j], actualAction

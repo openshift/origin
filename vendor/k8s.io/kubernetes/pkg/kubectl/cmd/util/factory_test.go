@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -263,7 +263,7 @@ func TestRefetchSchemaWhenValidationFails(t *testing.T) {
 	requests := map[string]int{}
 
 	c := &fake.RESTClient{
-		Codec: testapi.Default.Codec(),
+		NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case strings.HasPrefix(p, "/swaggerapi") && m == "GET":
@@ -320,7 +320,7 @@ func TestValidateCachesSchema(t *testing.T) {
 	requests := map[string]int{}
 
 	c := &fake.RESTClient{
-		Codec: testapi.Default.Codec(),
+		NegotiatedSerializer: testapi.Default.NegotiatedSerializer(),
 		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case strings.HasPrefix(p, "/swaggerapi") && m == "GET":

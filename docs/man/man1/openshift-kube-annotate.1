@@ -22,11 +22,43 @@ If \-\-overwrite is true, then existing annotations can be overwritten, otherwis
 If \-\-resource\-version is specified, then updates will use this resource version, otherwise the existing resource\-version will be used.
 
 .PP
-Possible resources include (case insensitive):
-  pod (po), service (svc), replicationcontroller (rc),
-  node (no), event (ev), componentstatuse (cs),
-  limitrange (limits), persistentvolume (pv), persistentvolumeclaim (pvc),
-  horizontalpodautoscaler (hpa), resourcequota (quota), secret
+Valid resource types include:
+   * buildconfigs (aka 'bc')
+   * builds
+   * clusters (valid only for federation apiservers)
+   * componentstatuses (aka 'cs')
+   * configmaps (aka 'cm')
+   * daemonsets (aka 'ds')
+   * deployments (aka 'deploy')
+   * deploymentconfigs (aka 'dc')
+   * events (aka 'ev')
+   * endpoints (aka 'ep')
+   * horizontalpodautoscalers (aka 'hpa')
+   * imagestreamimages (aka 'isimage')
+   * imagestreams (aka 'is')
+   * imagestreamtags (aka 'istag')
+   * ingress (aka 'ing')
+   * groups
+   * jobs
+   * limitranges (aka 'limits')
+   * nodes (aka 'no')
+   * namespaces (aka 'ns')
+   * petsets (alpha feature, may be unstable)
+   * pods (aka 'po')
+   * persistentvolumes (aka 'pv')
+   * persistentvolumeclaims (aka 'pvc')
+   * policies
+   * projects
+   * quota
+   * resourcequotas (aka 'quota')
+   * replicasets (aka 'rs')
+   * replicationcontrollers (aka 'rc')
+   * rolebindings
+   * routes
+   * secrets
+   * serviceaccounts (aka 'sa')
+   * services (aka 'svc')
+   * users
 
 
 .SH OPTIONS
@@ -44,13 +76,14 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-no\-headers\fP=false
-    When using the default output, don't print headers.
+    When using the default or custom\-column output format, don't print headers.
 
 .PP
 \fB\-o\fP, \fB\-\-output\fP=""
-    Output format. One of: json|yaml|wide|name|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See golang template [
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
 \[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
-\[la]http://releases.k8s.io/release-1.3/docs/user-guide/jsonpath.md\[ra]].
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
 
 .PP
 \fB\-\-output\-version\fP=""
@@ -96,6 +129,10 @@ Possible resources include (case insensitive):
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -109,7 +146,7 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -117,15 +154,15 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -189,7 +226,7 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -257,7 +294,7 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -297,7 +334,7 @@ Possible resources include (case insensitive):
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -317,6 +354,7 @@ Possible resources include (case insensitive):
 .RS
 
 .nf
+
 # Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
 # If the same annotation is set multiple times, only the last value will be applied
 kubectl annotate pods foo description='my frontend'

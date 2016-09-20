@@ -22,6 +22,10 @@ completion of kubectl commands.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
+\fB\-\-allow\-verification\-with\-non\-compliant\-keys\fP=false
+    Allow a SignatureVerifier to use keys which are technically non\-compliant with RFC6962.
+
+.PP
 \fB\-\-alsologtostderr\fP=false
     log to standard error as well as files
 
@@ -35,7 +39,7 @@ completion of kubectl commands.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-boot\-id\-file\fP="/proc/sys/kernel/random/boot\_id"
@@ -43,15 +47,15 @@ completion of kubectl commands.
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -115,7 +119,7 @@ completion of kubectl commands.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-ir\-data\-source\fP="influxdb"
@@ -183,7 +187,7 @@ completion of kubectl commands.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -223,7 +227,7 @@ completion of kubectl commands.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -246,8 +250,9 @@ completion of kubectl commands.
 
 $ source <(kubectl completion bash)
 
-will load the kubectl completion code for bash. Note that this depends on the bash\-completion
-framework. It must be sourced before sourcing the kubectl completion, i.e. on the Mac:
+will load the kubectl completion code for bash. Note that this depends on the
+bash\-completion framework. It must be sourced before sourcing the kubectl
+completion, e.g. on the Mac:
 
 $ brew install bash\-completion
 $ source $(brew \-\-prefix)/etc/bash\_completion

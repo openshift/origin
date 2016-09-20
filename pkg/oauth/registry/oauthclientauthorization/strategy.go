@@ -27,7 +27,7 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -41,7 +41,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	auth := obj.(*api.OAuthClientAuthorization)
 	auth.Name = fmt.Sprintf("%s:%s", auth.UserName, auth.ClientName)
 }
@@ -91,14 +91,22 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
-// Matchtoken returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		clientObj, ok := obj.(*api.OAuthClientAuthorization)
-		if !ok {
-			return false, fmt.Errorf("not a client authorization")
-		}
-		fields := api.OAuthClientAuthorizationToSelectableFields(clientObj)
-		return label.Matches(labels.Set(clientObj.Labels)) && field.Matches(fields), nil
-	})
+// Matcher returns a generic matcher for a given label and field selector.
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+			obj, ok := o.(*api.OAuthClientAuthorization)
+			if !ok {
+				return nil, nil, fmt.Errorf("not a OAuthClientAuthorization")
+			}
+			return labels.Set(obj.Labels), SelectableFields(obj), nil
+		},
+	}
+}
+
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.OAuthClientAuthorization) fields.Set {
+	return api.OAuthClientAuthorizationToSelectableFields(obj)
 }

@@ -17,7 +17,11 @@ import (
 
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/apis/apps"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
@@ -569,7 +573,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for deployment controller: %v", err)
 		}
-		_, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
+		jobConfig, _, jobClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraJobControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
@@ -583,9 +587,19 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
 		}
 
+		_, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for attach detach controller: %v", err)
+		}
+
 		_, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
+		}
+
+		_, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
 		}
 
 		_, _, gcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGCControllerServiceAccountName)
@@ -624,27 +638,39 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 
-		// TODO: enable this check once the job controller can use the batch API if the extensions API is disabled
-		// batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, batch.GroupName)) > 0
-		if extensionsEnabled /*|| batchEnabled*/ {
+		batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, batch.GroupName)) > 0
+		if extensionsEnabled || batchEnabled {
 			kc.RunJobController(jobClient)
 		}
+		if batchEnabled {
+			kc.RunScheduledJobController(jobConfig)
+		}
 		// TODO: enable this check once the HPA controller can use the autoscaling API if the extensions API is disabled
-		// autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
-		if extensionsEnabled /*|| autoscalingEnabled*/ {
+		autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
+		if extensionsEnabled || autoscalingEnabled {
 			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
 		}
 		if extensionsEnabled {
 			kc.RunDaemonSetsController(daemonSetClient)
 		}
 
+		policyEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, policy.GroupName)) > 0
+		if policyEnabled {
+			kc.RunDisruptionBudgetController(disruptionClient)
+		}
+
 		kc.RunEndpointController(endpointControllerClient)
 		kc.RunNamespaceController(namespaceControllerClientSet, namespaceControllerClientPool)
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
+		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 		kc.RunGCController(gcClient)
 
 		kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
-		kc.RunPetSetController(petSetClient)
+
+		appsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, apps.GroupName)) > 0
+		if appsEnabled {
+			kc.RunPetSetController(petSetClient)
+		}
 
 		glog.Infof("Started Kubernetes Controllers")
 	}

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ func (g *ClientConfigGetter) GetLoadingPrecedence() []string {
 	return nil
 }
 func (g *ClientConfigGetter) GetStartingConfig() (*clientcmdapi.Config, error) {
-	return nil, nil
+	return g.kubeconfigGetter()
 }
 func (g *ClientConfigGetter) GetDefaultFilename() string {
 	return ""
@@ -215,7 +215,6 @@ func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
 			errlist = append(errlist, err)
 		}
 	}
-
 	return config, utilerrors.NewAggregate(errlist)
 }
 
@@ -385,35 +384,10 @@ func WriteToFile(config clientcmdapi.Config, filename string) error {
 		}
 	}
 
-	err = lockFile(filename)
-	if err != nil {
-		return err
-	}
-	defer unlockFile(filename)
-
 	if err := ioutil.WriteFile(filename, content, 0600); err != nil {
 		return err
 	}
 	return nil
-}
-
-func lockFile(filename string) error {
-	// TODO: find a way to do this with actual file locks. Will
-	// probably need seperate solution for windows and linux.
-	f, err := os.OpenFile(lockName(filename), os.O_CREATE|os.O_EXCL, 0)
-	if err != nil {
-		return err
-	}
-	f.Close()
-	return nil
-}
-
-func unlockFile(filename string) error {
-	return os.Remove(lockName(filename))
-}
-
-func lockName(filename string) string {
-	return filename + ".lock"
 }
 
 // Write serializes the config to yaml.
@@ -528,7 +502,7 @@ func GetClusterFileReferences(cluster *clientcmdapi.Cluster) []*string {
 }
 
 func GetAuthInfoFileReferences(authInfo *clientcmdapi.AuthInfo) []*string {
-	return []*string{&authInfo.ClientCertificate, &authInfo.ClientKey}
+	return []*string{&authInfo.ClientCertificate, &authInfo.ClientKey, &authInfo.TokenFile}
 }
 
 // ResolvePaths updates the given refs to be absolute paths, relative to the given base directory

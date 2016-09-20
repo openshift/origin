@@ -19,6 +19,40 @@ Create a new group.
 This command will create a new group with an optional list of users.
 
 
+.SH OPTIONS
+.PP
+\fB\-\-no\-headers\fP=false
+    When using the default or custom\-column output format, don't print headers.
+
+.PP
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output format. One of: json|yaml|wide|name|custom\-columns=...|custom\-columns\-file=...|go\-template=...|go\-template\-file=...|jsonpath=...|jsonpath\-file=... See custom columns [
+\[la]http://kubernetes.io/docs/user-guide/kubectl-overview/#custom-columns\[ra]], golang template [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]] and jsonpath template [
+\[la]http://kubernetes.io/docs/user-guide/jsonpath\[ra]].
+
+.PP
+\fB\-\-output\-version\fP=""
+    Output the formatted object with the given group version (for ex: 'extensions/v1beta1').
+
+.PP
+\fB\-a\fP, \fB\-\-show\-all\fP=false
+    When printing, show all resources (default hide terminated pods.)
+
+.PP
+\fB\-\-show\-labels\fP=false
+    When printing, show all labels as the last column (default hide labels column)
+
+.PP
+\fB\-\-sort\-by\fP=""
+    If non\-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. '{.metadata.name}'). The field in the API resource specified by this JSONPath expression must be an integer or a string.
+
+.PP
+\fB\-\-template\fP=""
+    Template string or path to template file to use when \-o=go\-template, \-o=go\-template\-file. The template format is golang templates [
+\[la]http://golang.org/pkg/text/template/#pkg-overview\[ra]].
+
+
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
 \fB\-\-api\-version\fP=""
@@ -26,19 +60,19 @@ This command will create a new group with an optional list of users.
 
 .PP
 \fB\-\-as\fP=""
-    Username to impersonate for the operation.
+    Username to impersonate for the operation
 
 .PP
 \fB\-\-certificate\-authority\fP=""
-    Path to a cert. file for the certificate authority.
+    Path to a cert. file for the certificate authority
 
 .PP
 \fB\-\-client\-certificate\fP=""
-    Path to a client certificate file for TLS.
+    Path to a client certificate file for TLS
 
 .PP
 \fB\-\-client\-key\fP=""
-    Path to a client key file for TLS.
+    Path to a client key file for TLS
 
 .PP
 \fB\-\-cluster\fP=""
@@ -58,7 +92,7 @@ This command will create a new group with an optional list of users.
 
 .PP
 \fB\-\-insecure\-skip\-tls\-verify\fP=false
-    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.
+    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
 
 .PP
 \fB\-\-log\-flush\-frequency\fP=0
@@ -70,7 +104,7 @@ This command will create a new group with an optional list of users.
 
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
-    If present, the namespace scope for this CLI request.
+    If present, the namespace scope for this CLI request
 
 .PP
 \fB\-\-server\fP=""
@@ -78,7 +112,7 @@ This command will create a new group with an optional list of users.
 
 .PP
 \fB\-\-token\fP=""
-    Bearer token for authentication to the API server.
+    Bearer token for authentication to the API server
 
 .PP
 \fB\-\-user\fP=""
@@ -95,6 +129,9 @@ This command will create a new group with an optional list of users.
 
   # Add a group with two users
   openshift admin groups new my\-group user1 user2
+
+  # Add a group with one user and shorter output
+  openshift admin groups new my\-group user1 \-o name
 
 .fi
 .RE

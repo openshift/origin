@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -90,6 +90,7 @@ type KubeDNS struct {
 
 	// stores DNS records for the domain.
 	// A Records and SRV Records for (regular) services and headless Services.
+	// CNAME Records for ExternalName Services.
 	cache *TreeCache
 
 	// TODO(nikhiljindal): Remove this. It can be recreated using clusterIPServiceMap.
@@ -98,7 +99,7 @@ type KubeDNS struct {
 	// Map of cluster IP to service object. Headless services are not part of this map.
 	// Used to get a service when given its cluster IP.
 	// Access to this is coordinated using cacheLock. We use the same lock for cache and this map
-	// to ensure that they dont get out of sync.
+	// to ensure that they don't get out of sync.
 	clusterIPServiceMap map[string]*kapi.Service
 
 	// caller is responsible for using the cacheLock before invoking methods on cache
@@ -241,13 +242,18 @@ func assertIsService(obj interface{}) (*kapi.Service, bool) {
 func (kd *KubeDNS) newService(obj interface{}) {
 	if service, ok := assertIsService(obj); ok {
 		glog.V(4).Infof("Add/Updated for service %v", service.Name)
+		// ExternalName services are a special kind that return CNAME records
+		if service.Spec.Type == kapi.ServiceTypeExternalName {
+			kd.newExternalNameService(service)
+			return
+		}
 		// if ClusterIP is not set, a DNS entry should not be created
 		if !kapi.IsServiceIPSet(service) {
 			kd.newHeadlessService(service)
 			return
 		}
 		if len(service.Spec.Ports) == 0 {
-			glog.Warning("Unexpected service with no ports, this should not have happend: %v", service)
+			glog.Warningf("Unexpected service with no ports, this should not have happened: %v", service)
 		}
 		kd.newPortalService(service)
 	}
@@ -258,14 +264,27 @@ func (kd *KubeDNS) removeService(obj interface{}) {
 		subCachePath := append(kd.domainPath, serviceSubdomain, s.Namespace, s.Name)
 		kd.cacheLock.Lock()
 		defer kd.cacheLock.Unlock()
-		kd.cache.deletePath(subCachePath...)
-		delete(kd.reverseRecordMap, s.Spec.ClusterIP)
-		delete(kd.clusterIPServiceMap, s.Spec.ClusterIP)
+		success := kd.cache.deletePath(subCachePath...)
+		glog.V(2).Infof("Removing service %v at path %v. Success: ", s.Name, subCachePath, success)
+		// ExternalName services have no IP
+		if kapi.IsServiceIPSet(s) {
+			delete(kd.reverseRecordMap, s.Spec.ClusterIP)
+			delete(kd.clusterIPServiceMap, s.Spec.ClusterIP)
+		}
 	}
 }
 
 func (kd *KubeDNS) updateService(oldObj, newObj interface{}) {
-	kd.newService(newObj)
+	if new, ok := assertIsService(newObj); ok {
+		if old, ok := assertIsService(oldObj); ok {
+			// Remove old cache path only if changing type to/from ExternalName.
+			// In all other cases, we'll update records in place.
+			if (new.Spec.Type == kapi.ServiceTypeExternalName) != (old.Spec.Type == kapi.ServiceTypeExternalName) {
+				kd.removeService(oldObj)
+			}
+			kd.newService(newObj)
+		}
+	}
 }
 
 func (kd *KubeDNS) handleEndpointAdd(obj interface{}) {
@@ -431,18 +450,32 @@ func (kd *KubeDNS) newHeadlessService(service *kapi.Service) error {
 	return nil
 }
 
+// Generates skydns records for an ExternalName service.
+func (kd *KubeDNS) newExternalNameService(service *kapi.Service) {
+	// Create a CNAME record for the service's ExternalName.
+	// TODO: TTL?
+	recordValue, _ := getSkyMsg(service.Spec.ExternalName, 0)
+	cachePath := append(kd.domainPath, serviceSubdomain, service.Namespace)
+	fqdn := kd.fqdn(service)
+	glog.V(2).Infof("newExternalNameService: storing key %s with value %v as %s under %v", service.Name, recordValue, fqdn, cachePath)
+	kd.cacheLock.Lock()
+	defer kd.cacheLock.Unlock()
+	// Store the service name directly as the leaf key
+	kd.cache.setEntry(service.Name, recordValue, fqdn, cachePath...)
+}
+
 // Records responds with DNS records that match the given name, in a format
 // understood by the skydns server. If "exact" is true, a single record
 // matching the given name is returned, otherwise all records stored under
 // the subtree matching the name are returned.
 func (kd *KubeDNS) Records(name string, exact bool) (retval []skymsg.Service, err error) {
-	glog.Infof("Received DNS Request:%s, exact:%v", name, exact)
+	glog.V(2).Infof("Received DNS Request:%s, exact:%v", name, exact)
 	trimmed := strings.TrimRight(name, ".")
 	segments := strings.Split(trimmed, ".")
 	isFederationQuery := false
 	federationSegments := []string{}
 	if !exact && kd.isFederationQuery(segments) {
-		glog.Infof("federation service query: Received federation query. Going to try to find local service first")
+		glog.V(2).Infof("federation service query: Received federation query. Going to try to find local service first")
 		// Try quering the non-federation (local) service first.
 		// Will try the federation one later, if this fails.
 		isFederationQuery = true
@@ -471,7 +504,7 @@ func (kd *KubeDNS) Records(name string, exact bool) (retval []skymsg.Service, er
 		if !kd.isHeadlessServiceRecord(&val) {
 			ok, err := kd.serviceWithClusterIPHasEndpoints(&val)
 			if err != nil {
-				glog.Infof("federation service query: unexpected error while trying to find if service has endpoint: %v")
+				glog.V(2).Infof("federation service query: unexpected error while trying to find if service has endpoint: %v")
 				continue
 			}
 			if !ok {
@@ -498,7 +531,7 @@ func (kd *KubeDNS) Records(name string, exact bool) (retval []skymsg.Service, er
 	// If the name query is not an exact query and does not match any records in the local store,
 	// attempt to send a federation redirect (CNAME) response.
 	if !exact {
-		glog.Infof("federation service query: Did not find a local service. Trying federation redirect (CNAME) response")
+		glog.V(2).Infof("federation service query: Did not find a local service. Trying federation redirect (CNAME) response")
 		return kd.federationRecords(reverseArray(federationSegments))
 	}
 
@@ -524,19 +557,21 @@ func (kd *KubeDNS) getRecordsForPath(path []string, exact bool) ([]skymsg.Servic
 		kd.cacheLock.RLock()
 		defer kd.cacheLock.RUnlock()
 		if record, ok := kd.cache.getEntry(key, path[:len(path)-1]...); ok {
+			glog.V(2).Infof("Exact match %v for %v received from cache", record, path[:len(path)-1])
 			return []skymsg.Service{*(record.(*skymsg.Service))}, nil
 		}
+		glog.V(2).Infof("Exact match for %v not found in cache", path)
 		return nil, etcd.Error{Code: etcd.ErrorCodeKeyNotFound}
 	}
 
 	kd.cacheLock.RLock()
 	defer kd.cacheLock.RUnlock()
 	records := kd.cache.getValuesForPathWithWildcards(path...)
-	glog.V(2).Infof("Received %d records from cache", len(records))
+	glog.V(2).Infof("Received %d records for %v from cache", len(records), path)
 	for _, val := range records {
 		retval = append(retval, *val)
 	}
-	glog.Infof("records:%v, retval:%v, path:%v", records, retval, path)
+	glog.V(2).Infof("records:%v, retval:%v, path:%v", records, retval, path)
 	return retval, nil
 }
 
@@ -580,7 +615,7 @@ func (kd *KubeDNS) serviceWithClusterIPHasEndpoints(msg *skymsg.Service) (bool, 
 
 // ReverseRecords performs a reverse lookup for the given name.
 func (kd *KubeDNS) ReverseRecord(name string) (*skymsg.Service, error) {
-	glog.Infof("Received ReverseRecord Request:%s", name)
+	glog.V(2).Infof("Received ReverseRecord Request:%s", name)
 
 	// if portalIP is not a valid IP, the reverseRecordMap lookup will fail
 	portalIP, ok := extractIP(name)
@@ -657,7 +692,7 @@ func newServiceRecord(ip string, port int) *skymsg.Service {
 func getSkyMsg(ip string, port int) (*skymsg.Service, string) {
 	msg := newServiceRecord(ip, port)
 	hash := hashServiceRecord(msg)
-	glog.Infof("DNS Record:%s, hash:%s", fmt.Sprintf("%v", msg), hash)
+	glog.V(2).Infof("DNS Record:%s, hash:%s", fmt.Sprintf("%v", msg), hash)
 	return msg, fmt.Sprintf("%x", hash)
 }
 
@@ -665,7 +700,7 @@ func getSkyMsg(ip string, port int) (*skymsg.Service, string) {
 // The conjunction of the following conditions forms the test for the federated service query
 // pattern:
 //   1. `path` has exactly 4+len(domainPath) segments: mysvc.myns.myfederation.svc.domain.path.
-//   2. Service name component must be a valid RFC 952 name.
+//   2. Service name component must be a valid RFC 1035 name.
 //   3. Namespace component must be a valid RFC 1123 name.
 //   4. Federation component must also be a valid RFC 1123 name.
 //   5. Fourth segment is exactly "svc"
@@ -679,8 +714,8 @@ func (kd *KubeDNS) isFederationQuery(path []string) bool {
 		glog.V(2).Infof("not a federation query: len(%q) != 4+len(%q)", path, kd.domainPath)
 		return false
 	}
-	if errs := validation.IsDNS952Label(path[0]); len(errs) != 0 {
-		glog.V(2).Infof("not a federation query: %q is not an RFC 952 label: %q", path[0], errs)
+	if errs := validation.IsDNS1035Label(path[0]); len(errs) != 0 {
+		glog.V(2).Infof("not a federation query: %q is not an RFC 1035 label: %q", path[0], errs)
 		return false
 	}
 	if errs := validation.IsDNS1123Label(path[1]); len(errs) != 0 {

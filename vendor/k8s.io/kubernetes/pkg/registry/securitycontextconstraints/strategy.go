@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,10 +54,10 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (strategy) PrepareForCreate(_ api.Context, obj runtime.Object) {
 }
 
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (strategy) PrepareForUpdate(_ api.Context, obj, old runtime.Object) {
 }
 
 func (strategy) Canonicalize(obj runtime.Object) {
@@ -72,20 +72,22 @@ func (strategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) field.E
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		scc, ok := obj.(*api.SecurityContextConstraints)
-		if !ok {
-			return false, fmt.Errorf("not a securitycontextconstraint")
-		}
-		fields := SelectableFields(scc)
-		return label.Matches(labels.Set(scc.Labels)) && field.Matches(fields), nil
-	})
+func Matcher(label labels.Selector, field fields.Selector) *generic.SelectionPredicate {
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
+			scc, ok := obj.(*api.SecurityContextConstraints)
+			if !ok {
+				return nil, nil, fmt.Errorf("not a securitycontextconstraint")
+			}
+			return labels.Set(scc.Labels), SelectableFields(scc), nil
+		},
+	}
 }
 
-// SelectableFields returns a label set that represents the object
-func SelectableFields(obj *api.SecurityContextConstraints) labels.Set {
-	return labels.Set{
-		"metadata.name": obj.Name,
-	}
+// SelectableFields returns a field set that can be used for filter selection
+func SelectableFields(obj *api.SecurityContextConstraints) fields.Set {
+	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&obj.ObjectMeta, true)
+	return objectMetaFieldsSet
 }

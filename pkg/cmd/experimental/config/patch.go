@@ -136,7 +136,7 @@ func (o *PatchOptions) RunPatch() error {
 	rawExtension := &runtime.Unknown{
 		Raw: originalPatchedObjJS,
 	}
-	printer, _, err := kubectl.GetPrinter("yaml", "")
+	printer, _, err := kubectl.GetPrinter("yaml", "", false)
 	if err != nil {
 		return err
 	}

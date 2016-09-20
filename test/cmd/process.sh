@@ -42,14 +42,16 @@ os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/testdata/basic-
 
 # not providing required parameter should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'
-# not providiing an optional param is OK
+# not providing an optional param is OK
 os::cmd::expect_success "oc process -f '${required_params}' --value=required_param=someval | oc create -f -"
+# parameters with multiple equal signs are OK
+os::cmd::expect_success "oc process -f '${required_params}' required_param=someval=moreval | oc create -f -"
 # we should have overwritten the template param
 os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.Name}' 'someval'
 # providing a value not in the template should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=other_param=otherval" 'unknown parameter name "other_param"'
 # failure on values fails the entire call
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=optional_param=some=series=of=values=" 'invalid parameter assignment in'
+os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=optional_param" 'invalid parameter assignment in'
 # failure on labels fails the entire call
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --labels======" 'error parsing labels'
 

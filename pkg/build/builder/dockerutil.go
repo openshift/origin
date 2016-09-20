@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/pkg/parsers"
 	docker "github.com/fsouza/go-dockerclient"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -123,7 +122,7 @@ func buildImage(client DockerClient, dir string, tar tar.Tar, opts *docker.Build
 // helper to facilitate the usage of dockerClient.TagImage, because the former
 // requires the name to be split into more explicit parts.
 func tagImage(dockerClient DockerClient, image, name string) error {
-	repo, tag := parsers.ParseRepositoryTag(name)
+	repo, tag := docker.ParseRepositoryTag(name)
 	return dockerClient.TagImage(image, docker.TagImageOptions{
 		Repo: repo,
 		Tag:  tag,

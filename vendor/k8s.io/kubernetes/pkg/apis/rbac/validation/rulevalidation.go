@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
@@ -201,8 +202,7 @@ func appliesToUser(user user.Info, subject rbac.Subject) (bool, error) {
 		if subject.Namespace == "" {
 			return false, fmt.Errorf("subject of kind service account without specified namespace")
 		}
-		// TODO(ericchiang): Is there a better way of matching a service account name?
-		return "system:serviceaccount:"+subject.Name+":"+subject.Namespace == user.GetName(), nil
+		return serviceaccount.MakeUsername(subject.Namespace, subject.Name) == user.GetName(), nil
 	default:
 		return false, fmt.Errorf("unknown subject kind: %s", subject.Kind)
 	}

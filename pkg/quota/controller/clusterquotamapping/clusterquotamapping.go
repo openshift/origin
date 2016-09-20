@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
+	"k8s.io/kubernetes/pkg/labels"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -76,7 +77,7 @@ func NewClusterQuotaMappingController(namespaceInformer shared.NamespaceInformer
 
 type ClusterQuotaMappingController struct {
 	namespaceQueue   workqueue.RateLimitingInterface
-	namespaceLister  *ocache.IndexerToNamespaceLister
+	namespaceLister  *cache.IndexerToNamespaceLister
 	namespacesSynced func() bool
 
 	quotaQueue   workqueue.RateLimitingInterface
@@ -120,7 +121,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 		return err
 	}
 
-	allNamespaces, err := c.namespaceLister.List(kapi.ListOptions{})
+	allNamespaces, err := c.namespaceLister.List(labels.Everything())
 	if err != nil {
 		return err
 	}
@@ -146,8 +147,8 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 			if !quotaMatches {
 				return nil
 			}
-			namespace, err = c.namespaceLister.Get(namespace.Name)
-			if kapierrors.IsNotFound(err) {
+			obj, ok, err := c.namespaceLister.Get(namespace.Name)
+			if kapierrors.IsNotFound(err) || !ok {
 				// if the namespace is gone, then the deleteNamespace path will be called, just continue
 				break
 			}
@@ -155,6 +156,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 				utilruntime.HandleError(err)
 				break
 			}
+			namespace = obj.(*kapi.Namespace)
 		}
 
 	}

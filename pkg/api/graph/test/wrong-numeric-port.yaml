@@ -8,7 +8,6 @@ items:
     name: frontend
   spec:
     clusterIP: 172.30.204.42
-    portalIP: 172.30.204.42
     ports:
     - name: web
       port: 5432
