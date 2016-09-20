@@ -279,5 +279,10 @@ func transformBuildError(err error, fullName, commandPath string, groups errorGr
 		)
 		return
 	}
+	switch err {
+	case newcmd.ErrNoInputs:
+		groups.Add("", "", usageError(commandPath, newBuildNoInput, fullName))
+		return
+	}
 	transformError(err, fullName, commandPath, groups)
 }
