@@ -198,7 +198,23 @@ TODO
 
 === Tests
 
-TODO
+Cli test cases can be written either in shell or golang. The tests using shell are present in test/cmd directory. 
+
+Following is an example format for it:
+====
+[source,bash,options="nowrap"]
+----
+$ os::cmd::expect_success_and_text '<oc <list of arguments>>' '<text that can be matched against>'
+Example:
+$ os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.6" for "mysql"'
+----
+====
+Note that, the cases can also be written using:
+os::cmd::try_until_success
+os::cmd::expect_success
+os::cmd::expect_failure
+os::cmd::expect_failure_and_text
+For detailed usage, please look at test/cmd/
 
 === Helper Functions
 
