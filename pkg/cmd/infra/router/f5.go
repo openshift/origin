@@ -76,6 +76,17 @@ type F5Router struct {
 	// normally used to create access control boundaries for users
 	// and applications.
 	PartitionPath string
+
+	// VxlanGateway is the ip address assigned to the local tunnel interface
+	// inside F5 box. This address is the one that the packets generated from F5
+	// will carry. The pods will return the packets to this address itself.
+	// It is important that the gateway be one of the ip addresses of the subnet
+	// that has been generated for F5.
+	VxlanGateway string
+
+	// InternalAddress is the ip address of the vtep interface used to connect to
+	// VxLAN overlay. It is the hostIP address listed in the subnet generated for F5
+	InternalAddress string
 }
 
 // Bind binds F5Router arguments to flags
@@ -89,6 +100,8 @@ func (o *F5Router) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.PrivateKey, "f5-private-key", util.Env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
 	flag.BoolVar(&o.Insecure, "f5-insecure", util.Env("ROUTER_EXTERNAL_HOST_INSECURE", "") == "true", "Skip strict certificate verification")
 	flag.StringVar(&o.PartitionPath, "f5-partition-path", util.Env("ROUTER_EXTERNAL_HOST_PARTITION_PATH", f5plugin.F5DefaultPartitionPath), "The F5 BIG-IP partition path to use")
+	flag.StringVar(&o.InternalAddress, "f5-internal-address", util.Env("ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS", ""), "The F5 BIG-IP internal interface's IP address")
+	flag.StringVar(&o.VxlanGateway, "f5-vxlan-gateway-cidr", util.Env("ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR", ""), "The F5 BIG-IP gateway-ip-address/cidr-mask for setting up the VxLAN")
 }
 
 // Validate verifies the required F5 flags are present
@@ -107,6 +120,11 @@ func (o *F5Router) Validate() error {
 
 	if len(o.HttpVserver) == 0 && len(o.HttpsVserver) == 0 {
 		return errors.New("F5 HTTP and HTTPS vservers cannot both be blank")
+	}
+
+	valid := (len(o.VxlanGateway) == 0 && len(o.InternalAddress) == 0) || (len(o.VxlanGateway) != 0 && len(o.InternalAddress) != 0)
+	if !valid {
+		return errors.New("For VxLAN setup, both internal-address and gateway-cidr must be specified")
 	}
 
 	return nil
@@ -158,14 +176,16 @@ func (o *F5RouterOptions) Validate() error {
 // Run launches an F5 route sync process using the provided options. It never exits.
 func (o *F5RouterOptions) Run() error {
 	cfg := f5plugin.F5PluginConfig{
-		Host:          o.Host,
-		Username:      o.Username,
-		Password:      o.Password,
-		HttpVserver:   o.HttpVserver,
-		HttpsVserver:  o.HttpsVserver,
-		PrivateKey:    o.PrivateKey,
-		Insecure:      o.Insecure,
-		PartitionPath: o.PartitionPath,
+		Host:            o.Host,
+		Username:        o.Username,
+		Password:        o.Password,
+		HttpVserver:     o.HttpVserver,
+		HttpsVserver:    o.HttpsVserver,
+		PrivateKey:      o.PrivateKey,
+		Insecure:        o.Insecure,
+		PartitionPath:   o.PartitionPath,
+		InternalAddress: o.InternalAddress,
+		VxlanGateway:    o.VxlanGateway,
 	}
 	f5Plugin, err := f5plugin.NewF5Plugin(cfg)
 	if err != nil {
@@ -181,7 +201,8 @@ func (o *F5RouterOptions) Run() error {
 	plugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), statusPlugin)
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
-	controller := factory.Create(plugin)
+	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
+	controller := factory.Create(plugin, watchNodes)
 	controller.Run()
 
 	select {}

@@ -238,6 +238,11 @@ func (p *DelayPlugin) HandleRoute(eventType watch.EventType, route *routeapi.Rou
 	return p.plugin.HandleRoute(eventType, route)
 }
 
+func (p *DelayPlugin) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	p.delay()
+	return p.plugin.HandleNode(eventType, node)
+}
+
 func (p *DelayPlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
 	p.delay()
 	return p.plugin.HandleEndpoints(eventType, endpoints)
@@ -277,7 +282,7 @@ func launchRouter(oc osclient.Interface, kc kclient.Interface, maxDelay int32, n
 	}
 
 	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
-	controller := factory.Create(plugin)
+	controller := factory.Create(plugin, false)
 	controller.Run()
 
 	return

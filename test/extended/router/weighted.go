@@ -27,7 +27,9 @@ var _ = g.Describe("[networking][router] weighted openshift router", func() {
 
 	g.BeforeEach(func() {
 		// defer oc.Run("delete").Args("-f", configPath).Execute()
-		err := oc.Run("create").Args("-f", configPath).Execute()
+		err := oc.AsAdmin().Run("policy").Args("add-role-to-user", "system:router", oc.Username()).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.Run("create").Args("-f", configPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

@@ -28,6 +28,11 @@ func (p *fakePlugin) HandleRoute(t watch.EventType, route *routeapi.Route) error
 	p.t, p.route = t, route
 	return p.err
 }
+
+func (p *fakePlugin) HandleNode(t watch.EventType, node *kapi.Node) error {
+	return fmt.Errorf("not expected")
+}
+
 func (p *fakePlugin) HandleEndpoints(watch.EventType, *kapi.Endpoints) error {
 	return fmt.Errorf("not expected")
 }

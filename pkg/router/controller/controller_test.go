@@ -17,6 +17,9 @@ type fakeRouterPlugin struct {
 func (p *fakeRouterPlugin) HandleRoute(t watch.EventType, route *routeapi.Route) error {
 	return nil
 }
+func (p *fakeRouterPlugin) HandleNode(t watch.EventType, node *kapi.Node) error {
+	return nil
+}
 func (p *fakeRouterPlugin) HandleEndpoints(watch.EventType, *kapi.Endpoints) error {
 	return nil
 }
@@ -45,6 +48,9 @@ func TestRouterController_updateLastSyncProcessed(t *testing.T) {
 		},
 		NextRoute: func() (watch.EventType, *routeapi.Route, error) {
 			return watch.Modified, &routeapi.Route{}, nil
+		},
+		NextNode: func() (watch.EventType, *kapi.Node, error) {
+			return watch.Modified, &kapi.Node{}, nil
 		},
 		EndpointsListConsumed: func() bool {
 			return true
