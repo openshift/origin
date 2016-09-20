@@ -224,6 +224,15 @@ build-cross: clean
 	hack/build-cross.sh
 .PHONY: build-cross
 
+# Build the release binaries for only the platform of the build host
+# (no cross compile)
+#
+# Example:
+#   make build-platform
+build-platform: clean
+	hack/build-platform.sh
+.PHONY: build-platform
+
 # Install travis dependencies
 #
 # Example:

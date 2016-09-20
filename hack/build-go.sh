@@ -22,7 +22,6 @@ if [[ -z "$@" ]]; then
 fi
 
 os::build::build_binaries "$@"
-OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
 os::build::place_bins "$@"
 os::build::make_openshift_binary_symlinks
 
