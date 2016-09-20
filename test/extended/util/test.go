@@ -1,7 +1,6 @@
 package util
 
 import (
-	rflag "flag"
 	"fmt"
 	"os"
 	"path"
@@ -34,6 +33,8 @@ var (
 	quiet          bool
 )
 
+var TestContext *e2e.TestContextType = &e2e.TestContext
+
 // init initialize the extended testing suite.
 // You can set these environment variables to configure extended tests:
 // KUBECONFIG - Path to kubeconfig containing embedded authinfo
@@ -42,6 +43,9 @@ var (
 func InitTest() {
 	// Add hooks to skip all kubernetes or origin tests
 	ginkgo.BeforeEach(checkSuiteSkips)
+
+	e2e.RegisterCommonFlags()
+	e2e.RegisterClusterFlags()
 
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
@@ -73,15 +77,10 @@ func InitTest() {
 	}
 
 	quiet = os.Getenv("TEST_OUTPUT_QUIET") == "true"
-	//flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
-	rflag.StringVar(&config.GinkgoConfig.FocusString, "focus", "", "DEPRECATED: use --ginkgo.focus")
 
 	// Ensure that Kube tests run privileged (like they do upstream)
 	TestContext.CreateTestingNS = createTestingNS
-
-	// Override the default Kubernetes E2E configuration
-	e2e.TestContext = TestContext
 }
 
 func ExecuteTest(t *testing.T, suite string) {
