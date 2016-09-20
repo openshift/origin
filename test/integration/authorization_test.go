@@ -730,7 +730,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -742,7 +742,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -754,7 +754,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -766,7 +766,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		},
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule",
+			Reason:    "allowed by rule in any-project",
 			Namespace: "any-project",
 		},
 	}.run(t)
