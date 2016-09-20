@@ -28,7 +28,7 @@ import (
 
 const (
 	// defaultTimeout is the default time to wait for the logs of a deployment.
-	defaultTimeout time.Duration = 20 * time.Second
+	defaultTimeout time.Duration = 60 * time.Second
 	// defaultInterval is the default interval for polling a not found deployment.
 	defaultInterval time.Duration = 1 * time.Second
 )
