@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrNoGitHubEvent = errors.New("missing X-GitHub-Event or X-Gogs-Event or X-Gitlab-Event")
+	ErrNoGitHubEvent = errors.New("missing X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event")
 )
 
 // WebHook used for processing github webhook requests.
@@ -58,7 +58,7 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	}
 	method := getEvent(req.Header)
 	if method != "ping" && method != "push" && method != "Push Hook" {
-		return revision, envvars, proceed, fmt.Errorf("Unknown X-GitHub-Event or X-Gogs-Event or X-Gitlab-Event %s", method)
+		return revision, envvars, proceed, fmt.Errorf("Unknown X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event %s", method)
 	}
 	if method == "ping" {
 		return revision, envvars, proceed, err
