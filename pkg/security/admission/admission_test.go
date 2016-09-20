@@ -16,6 +16,7 @@ import (
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"
+	admissiontesting "github.com/openshift/origin/pkg/security/admission/testing"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
@@ -129,8 +130,8 @@ func TestAdmitCaps(t *testing.T) {
 }
 
 func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
-	namespace := createNamespaceForTest()
-	serviceAccount := createSAForTest()
+	namespace := admissiontesting.CreateNamespaceForTest()
+	serviceAccount := admissiontesting.CreateSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 	cache := &oscache.IndexerToSecurityContextConstraintsLister{
 		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
@@ -155,8 +156,8 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 
 func TestAdmit(t *testing.T) {
 	// create the annotated namespace and add it to the fake client
-	namespace := createNamespaceForTest()
-	serviceAccount := createSAForTest()
+	namespace := admissiontesting.CreateNamespaceForTest()
+	serviceAccount := admissiontesting.CreateSAForTest()
 
 	// used for cases where things are preallocated
 	defaultGroup := int64(2)
@@ -898,8 +899,8 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// SCCs and ensure that they come out with the right annotation.  This means admission
 	// is using the sort strategy we expect.
 
-	namespace := createNamespaceForTest()
-	serviceAccount := createSAForTest()
+	namespace := admissiontesting.CreateNamespaceForTest()
+	serviceAccount := admissiontesting.CreateSAForTest()
 	serviceAccount.Namespace = namespace.Name
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
@@ -1109,28 +1110,6 @@ func restrictiveSCC() *kapi.SecurityContextConstraints {
 			},
 		},
 		Groups: []string{"system:serviceaccounts"},
-	}
-}
-
-func createNamespaceForTest() *kapi.Namespace {
-	return &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "default",
-			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation:           "1/3",
-				allocator.MCSAnnotation:                "s0:c1,c0",
-				allocator.SupplementalGroupsAnnotation: "2/3",
-			},
-		},
-	}
-}
-
-func createSAForTest() *kapi.ServiceAccount {
-	return &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:      "default",
-			Namespace: "default",
-		},
 	}
 }
 
