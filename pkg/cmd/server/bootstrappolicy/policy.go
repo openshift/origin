@@ -166,7 +166,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"selfsubjectrulesreviews", "subjectaccessreviews").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups("authentication.k8s.io").Resources("tokenreviews").RuleOrDie(),
 				// Allow read access to node metrics
-				authorizationapi.NewRule("get").Groups(kapiGroup).Resources(authorizationapi.NodeMetricsResource).RuleOrDie(),
+				authorizationapi.NewRule("get").Groups(kapiGroup).Resources(authorizationapi.NodeMetricsResource, authorizationapi.NodeSpecResource).RuleOrDie(),
 				// Allow read access to stats
 				// Node stats requests are submitted as POSTs.  These creates are non-mutating
 				authorizationapi.NewRule("get", "create").Groups(kapiGroup).Resources(authorizationapi.NodeStatsResource).RuleOrDie(),
@@ -559,7 +559,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 				// Allow all API calls to the nodes
 				authorizationapi.NewRule("proxy").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
-				authorizationapi.NewRule("*").Groups(kapiGroup).Resources("nodes/proxy", authorizationapi.NodeMetricsResource, authorizationapi.NodeStatsResource, authorizationapi.NodeLogResource).RuleOrDie(),
+				authorizationapi.NewRule("*").Groups(kapiGroup).Resources("nodes/proxy", authorizationapi.NodeMetricsResource, authorizationapi.NodeSpecResource, authorizationapi.NodeStatsResource, authorizationapi.NodeLogResource).RuleOrDie(),
 			},
 		},
 		{
@@ -570,7 +570,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// Allow read-only access to the API objects
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 				// Allow read access to node metrics
-				authorizationapi.NewRule("get").Groups(kapiGroup).Resources(authorizationapi.NodeMetricsResource).RuleOrDie(),
+				authorizationapi.NewRule("get").Groups(kapiGroup).Resources(authorizationapi.NodeMetricsResource, authorizationapi.NodeSpecResource).RuleOrDie(),
 				// Allow read access to stats
 				// Node stats requests are submitted as POSTs.  These creates are non-mutating
 				authorizationapi.NewRule("get", "create").Groups(kapiGroup).Resources(authorizationapi.NodeStatsResource).RuleOrDie(),
