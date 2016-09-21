@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -38,7 +39,7 @@ func NewDockerfileFromFile(path string) (Dockerfile, error) {
 
 func NewDockerfile(contents string) (Dockerfile, error) {
 	if len(contents) == 0 {
-		return nil, fmt.Errorf("Dockerfile is empty")
+		return nil, errors.New("Dockerfile is empty")
 	}
 	node, err := parser.Parse(strings.NewReader(contents))
 	if err != nil {
@@ -428,7 +429,7 @@ type SourceRepositoryEnumerator struct {
 
 // ErrNoLanguageDetected is the error returned when no language can be detected by all
 // source code detectors.
-var ErrNoLanguageDetected = fmt.Errorf("No language matched the source repository")
+var ErrNoLanguageDetected = errors.New("No language matched the source repository")
 
 // Detect extracts source code information about the provided source repository
 func (e SourceRepositoryEnumerator) Detect(dir string, dockerStrategy bool) (*SourceRepositoryInfo, error) {
@@ -506,7 +507,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 	return strategy, source, nil
 }
 
-// CloneAndCheckoutSources clones the remote repository using either regulare
+// CloneAndCheckoutSources clones the remote repository using either regular
 // git clone operation or shallow git clone, based on the "ref" provided (you
 // cannot shallow clone using the 'ref').
 // This function will return the full path to the buildable sources, including

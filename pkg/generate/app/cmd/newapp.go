@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -17,7 +18,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
+	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -42,7 +43,7 @@ const (
 
 // ErrNoDockerfileDetected is the error returned when the requested build strategy is Docker
 // and no Dockerfile is detected in the repository.
-var ErrNoDockerfileDetected = fmt.Errorf("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
+var ErrNoDockerfileDetected = errors.New("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
 
 // GenerationInputs control how new-app creates output
 // TODO: split these into finer grained structs
@@ -131,7 +132,7 @@ func (e ErrRequiresExplicitAccess) Error() string {
 }
 
 // ErrNoInputs is returned when no inputs are specified
-var ErrNoInputs = fmt.Errorf("no inputs provided")
+var ErrNoInputs = errors.New("no inputs provided")
 
 // AppResult contains the results of an application
 type AppResult struct {
@@ -260,7 +261,7 @@ func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
 			continue
 		}
 	}
-	return errors.NewAggregate(errs)
+	return kutilerrors.NewAggregate(errs)
 }
 
 func validateEnforcedName(name string) error {
@@ -428,7 +429,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 		var ok bool
 		name, ok = imageRef.SuggestName()
 		if !ok {
-			return nil, "", fmt.Errorf("can't suggest a valid name, please specify a name with --name")
+			return nil, "", errors.New("can't suggest a valid name, please specify a name with --name")
 		}
 	}
 	imageRef.ObjectName = name
@@ -495,10 +496,10 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 
 	if c.AsList {
 		if c.AsSearch {
-			return nil, fmt.Errorf("--list and --search can't be used together")
+			return nil, errors.New("--list and --search can't be used together")
 		}
 		if c.HasArguments() {
-			return nil, fmt.Errorf("--list can't be used with arguments")
+			return nil, errors.New("--list can't be used with arguments")
 		}
 		c.Components = append(c.Components, "*")
 	}
@@ -509,7 +510,7 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	}
 	components, repositories, errs := b.Result()
 	if len(errs) > 0 {
-		return nil, errors.NewAggregate(errs)
+		return nil, kutilerrors.NewAggregate(errs)
 	}
 
 	if len(components) == 0 && !c.AsList {
@@ -517,16 +518,16 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	}
 
 	if len(repositories) > 0 {
-		errs = append(errs, fmt.Errorf("--search can't be used with source code"))
+		errs = append(errs, errors.New("--search can't be used with source code"))
 	}
 	if len(environment) > 0 {
-		errs = append(errs, fmt.Errorf("--search can't be used with --env"))
+		errs = append(errs, errors.New("--search can't be used with --env"))
 	}
 	if len(parameters) > 0 {
-		errs = append(errs, fmt.Errorf("--search can't be used with --param"))
+		errs = append(errs, errors.New("--search can't be used with --param"))
 	}
 	if len(errs) > 0 {
-		return nil, errors.NewAggregate(errs)
+		return nil, kutilerrors.NewAggregate(errs)
 	}
 
 	if err := components.Search(); err != nil {
@@ -574,7 +575,7 @@ func (c *AppConfig) validate() (cmdutil.Environment, cmdutil.Environment, error)
 	}
 	errs = append(errs, paramsErrs...)
 
-	return env, params, errors.NewAggregate(errs)
+	return env, params, kutilerrors.NewAggregate(errs)
 }
 
 // Run executes the provided config to generate objects.
@@ -621,10 +622,10 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	}
 
 	if len(components.ImageComponentRefs().Group()) > 1 && len(c.Name) > 0 {
-		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
+		return nil, errors.New("only one component or source repository can be used when specifying a name")
 	}
 	if len(components.UseSource()) > 1 && len(c.To) > 0 {
-		return nil, fmt.Errorf("only one component with source can be used when specifying an output image reference")
+		return nil, errors.New("only one component with source can be used when specifying an output image reference")
 	}
 
 	env := app.Environment(environment)
@@ -647,7 +648,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), env)
 	if err != nil {
 		if err == app.ErrNameRequired {
-			return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
+			return nil, errors.New("can't suggest a valid name, please specify a name with --name")
 		}
 		return nil, err
 	}
@@ -730,7 +731,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext *imageapi.ImageStream, objects app.Objects) (*kapi.ObjectReference, error) {
 
 	if ref == nil {
-		return nil, fmt.Errorf("Unable to follow nil")
+		return nil, errors.New("Unable to follow nil")
 	}
 
 	if ref.Kind == "DockerImage" {
