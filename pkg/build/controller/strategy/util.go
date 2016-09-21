@@ -109,7 +109,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 			continue
 		}
 		mountPath := filepath.Join(SourceImagePullSecretMountPath, strconv.Itoa(i))
-		mountSecretVolume(pod, imageSource.PullSecret.Name, mountPath, "source-image")
+		mountSecretVolume(pod, imageSource.PullSecret.Name, mountPath, fmt.Sprintf("%s%d", "source-image", i))
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: mountPath},
 		}...)
