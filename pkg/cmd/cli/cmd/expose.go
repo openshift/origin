@@ -89,7 +89,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		Do()
 	infos, err := r.Infos()
 	if err != nil {
-		return err
+		return kcmdutil.UsageError(cmd, err.Error())
 	}
 	if len(infos) > 1 {
 		return fmt.Errorf("multiple resources provided: %v", args)
