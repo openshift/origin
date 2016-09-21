@@ -334,16 +334,16 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 
 	// Build a merged environment; hook environment takes precedence over base
 	// container environment
-	envMap := map[string]string{}
+	envMap := map[string]kapi.EnvVar{}
 	mergedEnv := []kapi.EnvVar{}
 	for _, env := range baseContainer.Env {
-		envMap[env.Name] = env.Value
+		envMap[env.Name] = env
 	}
 	for _, env := range exec.Env {
-		envMap[env.Name] = env.Value
+		envMap[env.Name] = env
 	}
 	for k, v := range envMap {
-		mergedEnv = append(mergedEnv, kapi.EnvVar{Name: k, Value: v})
+		mergedEnv = append(mergedEnv, kapi.EnvVar{Name: k, Value: v.Value, ValueFrom: v.ValueFrom})
 	}
 	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: deployment.Name})
 	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: deployment.Namespace})
