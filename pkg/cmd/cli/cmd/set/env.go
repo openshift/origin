@@ -538,7 +538,7 @@ updates:
 		}
 
 		shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-		kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
+		kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, false, "updated")
 	}
 	if failed {
 		return cmdutil.ErrExit

@@ -252,6 +252,7 @@ func (o *RollbackOptions) Run() error {
 			return err
 		}
 		o.out.Write([]byte(description))
+		fmt.Fprintf(o.out, "%s\n", "(dry run)")
 		return nil
 	}
 

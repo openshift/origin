@@ -314,7 +314,7 @@ func (o *StartBuildOptions) Run() error {
 		}
 	}
 
-	kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, "started")
+	kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, false, "started")
 
 	// Stream the logs from the build
 	if o.Follow {

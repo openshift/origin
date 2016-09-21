@@ -484,7 +484,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		}
 
 		info.Refresh(obj, true)
-		kcmdutil.PrintSuccess(v.Mapper, false, v.Out, info.Mapping.Resource, info.Name, "updated")
+		kcmdutil.PrintSuccess(v.Mapper, false, v.Out, info.Mapping.Resource, info.Name, false, "updated")
 	}
 	if failed {
 		return cmdutil.ErrExit
