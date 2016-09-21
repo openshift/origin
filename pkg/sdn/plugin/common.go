@@ -12,6 +12,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/fields"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -94,6 +95,7 @@ const (
 	HostSubnets           ResourceName = "HostSubnets"
 	Pods                  ResourceName = "Pods"
 	EgressNetworkPolicies ResourceName = "EgressNetworkPolicies"
+	NetworkPolicies       ResourceName = "NetworkPolicies"
 )
 
 // Run event queue for the given resource. The 'process' function is called
@@ -137,6 +139,8 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 		expectedType = &kapi.Pod{}
 	case EgressNetworkPolicies:
 		expectedType = &osapi.EgressNetworkPolicy{}
+	case NetworkPolicies:
+		expectedType = &extensions.NetworkPolicy{}
 	default:
 		glog.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}

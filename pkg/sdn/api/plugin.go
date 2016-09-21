@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	SingleTenantPluginName = "redhat/openshift-ovs-subnet"
-	MultiTenantPluginName  = "redhat/openshift-ovs-multitenant"
+	SingleTenantPluginName  = "redhat/openshift-ovs-subnet"
+	MultiTenantPluginName   = "redhat/openshift-ovs-multitenant"
+	NetworkPolicyPluginName = "redhat/openshift-ovs-networkpolicy"
 
 	IngressBandwidthAnnotation = "kubernetes.io/ingress-bandwidth"
 	EgressBandwidthAnnotation  = "kubernetes.io/egress-bandwidth"
@@ -17,7 +18,7 @@ const (
 
 func IsOpenShiftNetworkPlugin(pluginName string) bool {
 	switch strings.ToLower(pluginName) {
-	case SingleTenantPluginName, MultiTenantPluginName:
+	case SingleTenantPluginName, MultiTenantPluginName, NetworkPolicyPluginName:
 		return true
 	}
 	return false

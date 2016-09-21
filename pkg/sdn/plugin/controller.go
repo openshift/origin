@@ -25,7 +25,7 @@ import (
 
 const (
 	// rule versioning; increment each time flow rules change
-	VERSION        = 2
+	VERSION        = 3
 	VERSION_TABLE  = "table=253"
 	VERSION_ACTION = "actions=note:"
 
@@ -47,6 +47,8 @@ func (plugin *OsdnNode) getPluginVersion() []string {
 		pluginId = "00"
 	case *multiTenantPlugin:
 		pluginId = "01"
+	case *networkPolicyPlugin:
+		pluginId = "02"
 	default:
 		panic("Not an OpenShift-SDN plugin")
 	}
@@ -254,10 +256,13 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	otx.AddFlow("table=10, priority=0, actions=drop")
 
 	// Table 20: from OpenShift container; validate IP/MAC, assign tenant-id; filled in by openshift-sdn-ovs
-	// eg, "table=20, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
-	//     "table=20, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
+	// eg, "table=20, priority=100, in_port=${ovs_port}, arp, nw_src=${ipaddr}, arp_sha=${macaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:21"
+	//     "table=20, priority=100, in_port=${ovs_port}, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:21"
 	// (${tenant_id} is always 0 for single-tenant)
 	otx.AddFlow("table=20, priority=0, actions=drop")
+
+	// Table 21: from OpenShift container; NetworkPolicy plugin uses this for connection tracking
+	otx.AddFlow("table=21, priority=0, actions=goto_table:30")
 
 	// Table 30: general routing
 	otx.AddFlow("table=30, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
