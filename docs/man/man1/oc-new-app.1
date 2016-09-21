@@ -67,6 +67,10 @@ You can use 'oc status' to check the progress.
     Specify key\-value pairs of environment variables to set into each container. This doesn't apply to objects created from a template, use parameters instead.
 
 .PP
+\fB\-\-env\-file\fP=""
+    Specify a file containing key\-value pairs of environment variables to set into each container. This doesn't apply to objects created from a template, use parameters instead.
+
+.PP
 \fB\-f\fP, \fB\-\-file\fP=[]
     Path to a template file to use for the app.
 
@@ -215,6 +219,9 @@ You can use 'oc status' to check the progress.
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   oc new\-app mysql MYSQL\_USER=user MYSQL\_PASSWORD=pass MYSQL\_DATABASE=testdb \-l db=mysql
+  
+  # Use the public Docker Hub MySQL image to create an app. On each container, set multiple environment variables present in a file containing key\-value pairs.
+  oc new\-app mysql \-\-env\-file=/path/to/env\-file
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
   oc new\-app \-\-docker\-image=myregistry.com/mycompany/mysql \-\-name=private
