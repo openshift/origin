@@ -26,15 +26,17 @@ import (
 type VirtualStorage struct {
 	PolicyStorage policyregistry.Registry
 
-	RuleResolver   rulevalidation.AuthorizationRuleResolver
+	RuleResolver       rulevalidation.AuthorizationRuleResolver
+	CachedRuleResolver rulevalidation.AuthorizationRuleResolver
+
 	CreateStrategy rest.RESTCreateStrategy
 	UpdateStrategy rest.RESTUpdateStrategy
 	Resource       unversioned.GroupResource
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(policyStorage policyregistry.Registry, ruleResolver rulevalidation.AuthorizationRuleResolver, resource unversioned.GroupResource) roleregistry.Storage {
-	return &VirtualStorage{policyStorage, ruleResolver, roleregistry.LocalStrategy, roleregistry.LocalStrategy, resource}
+func NewVirtualStorage(policyStorage policyregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource unversioned.GroupResource) roleregistry.Storage {
+	return &VirtualStorage{policyStorage, ruleResolver, cachedRuleResolver, roleregistry.LocalStrategy, roleregistry.LocalStrategy, resource}
 }
 
 func (m *VirtualStorage) New() runtime.Object {
@@ -130,7 +132,7 @@ func (m *VirtualStorage) createRole(ctx kapi.Context, obj runtime.Object, allowE
 
 	role := obj.(*authorizationapi.Role)
 	if !allowEscalation {
-		if err := rulevalidation.ConfirmNoEscalation(ctx, m.Resource, role.Name, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
+		if err := rulevalidation.ConfirmNoEscalation(ctx, m.Resource, role.Name, m.RuleResolver, m.CachedRuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
 			return nil, err
 		}
 	}
@@ -201,7 +203,7 @@ func (m *VirtualStorage) updateRole(ctx kapi.Context, name string, objInfo rest.
 		}
 
 		if !allowEscalation {
-			if err := rulevalidation.ConfirmNoEscalation(ctx, m.Resource, role.Name, m.RuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
+			if err := rulevalidation.ConfirmNoEscalation(ctx, m.Resource, role.Name, m.RuleResolver, m.CachedRuleResolver, authorizationinterfaces.NewLocalRoleAdapter(role)); err != nil {
 				return err
 			}
 		}

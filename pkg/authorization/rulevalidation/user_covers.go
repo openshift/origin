@@ -14,7 +14,7 @@ import (
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 )
 
-func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, name string, ruleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
+func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, name string, ruleResolver, cachedRuleResolver AuthorizationRuleResolver, role authorizationinterfaces.Role) error {
 	var ruleResolutionErrors []error
 
 	user, ok := kapi.UserFrom(ctx)
@@ -22,6 +22,16 @@ func ConfirmNoEscalation(ctx kapi.Context, resource unversioned.GroupResource, n
 		return kapierrors.NewForbidden(resource, name, fmt.Errorf("no user provided in context"))
 	}
 	namespace, _ := kapi.NamespaceFrom(ctx)
+
+	// if a cached resolver is provided, attempt to verify coverage against the cache, then fall back to the normal
+	// path otherwise
+	if cachedRuleResolver != nil {
+		if ownerRules, err := cachedRuleResolver.RulesFor(user, namespace); err == nil {
+			if ownerRightsCover, _ := Covers(ownerRules, role.Rules()); ownerRightsCover {
+				return nil
+			}
+		}
+	}
 
 	ownerRules, err := ruleResolver.RulesFor(user, namespace)
 	if err != nil {
