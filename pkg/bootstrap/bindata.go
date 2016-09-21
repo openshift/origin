@@ -1799,7 +1799,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:3.2",
+                "name": "mongodb:${MONGODB_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -1949,6 +1949,13 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "generate": "expression",
       "from": "[a-zA-Z0-9]{16}",
       "required": true
+    },
+    {
+      "name": "MONGODB_VERSION",
+      "displayName": "Version of MongoDB Image",
+      "description": "Version of MongoDB image to be used (2.4, 2.6, 3.2 or latest).",
+      "value": "3.2",
+      "required": true
     }
   ],
   "labels": {
@@ -2051,7 +2058,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:3.2",
+                "name": "mongodb:${MONGODB_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2208,6 +2215,13 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "1Gi",
       "required": true
+    },
+    {
+      "name": "MONGODB_VERSION",
+      "displayName": "Version of MongoDB Image",
+      "description": "Version of MongoDB image to be used (2.4, 2.6, 3.2 or latest).",
+      "value": "3.2",
+      "required": true
     }
   ],
   "labels": {
@@ -2292,7 +2306,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:5.6",
+                "name": "mysql:${MYSQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2431,6 +2445,13 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "description": "Name of the MySQL database accessed.",
       "value": "sampledb",
       "required": true
+    },
+    {
+      "name": "MYSQL_VERSION",
+      "displayName": "Version of MySQL Image",
+      "description": "Version of MySQL image to be used (5.5, 5.6 or latest).",
+      "value": "5.6",
+      "required": true
     }
   ],
   "labels": {
@@ -2521,7 +2542,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:5.6",
+                "name": "mysql:${MYSQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               }
             }
@@ -2656,6 +2677,13 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "1Gi",
       "required": true
+    },
+    {
+      "name": "MYSQL_VERSION",
+      "displayName": "Version of MySQL Image",
+      "description": "Version of MySQL image to be used (5.5, 5.6 or latest).",
+      "value": "5.6",
+      "required": true
     }
   ],
   "labels": {
@@ -2740,7 +2768,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:9.5",
+                "name": "postgresql:${POSTGRESQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -2878,6 +2906,13 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "description": "Name of the PostgreSQL database accessed.",
       "value": "sampledb",
       "required": true
+    },
+    {
+      "name": "POSTGRESQL_VERSION",
+      "displayName": "Version of PostgreSQL Image",
+      "description": "Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).",
+      "value": "9.5",
+      "required": true
     }
   ],
   "labels": {
@@ -2979,7 +3014,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:9.5",
+                "name": "postgresql:${POSTGRESQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -3123,6 +3158,13 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "displayName": "Volume Capacity",
       "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "POSTGRESQL_VERSION",
+      "displayName": "Version of PostgreSQL Image",
+      "description": "Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).",
+      "value": "9.5",
       "required": true
     }
   ],

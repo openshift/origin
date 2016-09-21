@@ -76,7 +76,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:9.5",
+                "name": "postgresql:${POSTGRESQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               },
               "lastTriggeredImage": ""
@@ -220,6 +220,13 @@
       "displayName": "Volume Capacity",
       "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "POSTGRESQL_VERSION",
+      "displayName": "Version of PostgreSQL Image",
+      "description": "Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).",
+      "value": "9.5",
       "required": true
     }
   ],
