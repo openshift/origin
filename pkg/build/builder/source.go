@@ -213,7 +213,8 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	}
 
 	cloneOptions := []string{}
-	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
+	usingRevision := revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0
+	usingRef := len(gitSource.Ref) != 0 || usingRevision
 
 	// check if we specify a commit, ref, or branch to check out
 	// Recursive clone if we're not going to checkout a ref and submodule update later
@@ -236,7 +237,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 	if usingRef {
 		commit := gitSource.Ref
 
-		if revision != nil && revision.Git != nil && revision.Git.Commit != "" {
+		if usingRevision {
 			commit = revision.Git.Commit
 		}
 
