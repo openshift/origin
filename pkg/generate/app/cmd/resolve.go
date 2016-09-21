@@ -77,8 +77,7 @@ type ComponentInputs struct {
 	DockerImages  []string
 	Templates     []string
 	TemplateFiles []string
-
-	Groups []string
+	Groups        []string
 }
 
 // ResolvedComponents is the input to generation
@@ -91,7 +90,6 @@ type ResolvedComponents struct {
 // a set of resolved components, or returns an error.
 func Resolve(r *Resolvers, c *ComponentInputs, g *GenerationInputs) (*ResolvedComponents, error) {
 	b := &app.ReferenceBuilder{}
-
 	if err := AddComponentInputsToRefBuilder(b, r, c, g); err != nil {
 		return nil, err
 	}
@@ -103,16 +101,13 @@ func Resolve(r *Resolvers, c *ComponentInputs, g *GenerationInputs) (*ResolvedCo
 	// TODO: the second half of this method is potentially splittable - each chunk below amends or qualifies
 	// the inputs provided by the user (mostly via flags). c is cleared to prevent it from being used accidentally.
 	c = nil
-
 	// set context dir on all repositories
 	for _, repo := range repositories {
 		repo.SetContextDir(g.ContextDir)
 	}
-
 	if len(g.Strategy) != 0 && len(repositories) == 0 && !g.BinaryBuild {
 		return nil, fmt.Errorf("when --strategy is specified you must provide at least one source code location")
 	}
-
 	if g.BinaryBuild && (len(repositories) > 0 || components.HasSource()) {
 		return nil, fmt.Errorf("specifying binary builds and source repositories at the same time is not allowed")
 	}
