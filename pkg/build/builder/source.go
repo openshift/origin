@@ -212,12 +212,23 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 		return true, err
 	}
 
-	// check if we specify a commit, ref, or branch to check out
+	cloneOptions := []string{}
 	usingRef := len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0)
 
+	// check if we specify a commit, ref, or branch to check out
+	// Recursive clone if we're not going to checkout a ref and submodule update later
+	if !usingRef {
+		cloneOptions = append(cloneOptions, "--recursive")
+		cloneOptions = append(cloneOptions, git.Shallow)
+	}
+
+	glog.V(3).Infof("Cloning source from %s", gitSource.URI)
+
 	// Only use the quiet flag if Verbosity is not 5 or greater
-	quiet := !glog.Is(5)
-	if err := gitClient.CloneWithOptions(dir, gitSource.URI, git.CloneOptions{Recursive: !usingRef, Quiet: quiet, Shallow: !usingRef}); err != nil {
+	if !glog.Is(5) {
+		cloneOptions = append(cloneOptions, "--quiet")
+	}
+	if err := gitClient.CloneWithOptions(dir, gitSource.URI, cloneOptions...); err != nil {
 		return true, err
 	}
 

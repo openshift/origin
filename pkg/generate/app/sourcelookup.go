@@ -514,7 +514,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 func CloneAndCheckoutSources(repo git.Repository, remote, ref, localDir, contextDir string) (string, error) {
 	if len(ref) == 0 {
 		glog.V(5).Infof("No source ref specified, using shallow git clone")
-		if err := repo.CloneWithOptions(localDir, remote, git.CloneOptions{Recursive: true, Shallow: true}); err != nil {
+		if err := repo.CloneWithOptions(localDir, remote, git.Shallow, "--recursive"); err != nil {
 			return "", fmt.Errorf("shallow cloning repository %q to %q failed: %v", remote, localDir, err)
 		}
 	} else {

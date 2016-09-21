@@ -25,7 +25,7 @@ type Repository interface {
 	GetOriginURL(dir string) (string, bool, error)
 	GetRef(dir string) string
 	Clone(dir string, url string) error
-	CloneWithOptions(dir string, url string, opts CloneOptions) error
+	CloneWithOptions(dir string, url string, args ...string) error
 	CloneBare(dir string, url string) error
 	CloneMirror(dir string, url string) error
 	Fetch(dir string) error
@@ -45,6 +45,10 @@ const (
 	// defaultCommandTimeout is the default timeout for git commands that we want to enforce timeouts on
 	defaultCommandTimeout = 30 * time.Second
 
+	// Shallow maps to --depth=1, which clones a Git repository without
+	// downloading history
+	Shallow = "--depth=1"
+
 	// noCommandTimeout signals that there should be no timeout for the command when passed as the timeout
 	// for the default timedExecGitFunc
 	noCommandTimeout = 0 * time.Second
@@ -57,15 +61,6 @@ var ErrGitNotAvailable = fmt.Errorf("git binary not available")
 // SourceInfo stores information about the source code
 type SourceInfo struct {
 	s2iapi.SourceInfo
-}
-
-// CloneOptions are options used in cloning a git repository
-type CloneOptions struct {
-	Recursive bool
-	Quiet     bool
-
-	// Shallow perform a shallow git clone that only fetches the latest master.
-	Shallow bool
 }
 
 // execGitFunc is a function that executes a Git command
@@ -206,27 +201,38 @@ func (r *repository) AddLocalConfig(location, name, value string) error {
 }
 
 // CloneWithOptions clones a remote git repository to a local directory
-func (r *repository) CloneWithOptions(location string, url string, opts CloneOptions) error {
-	args := []string{"clone"}
-	if opts.Quiet {
-		args = append(args, "--quiet")
+func (r *repository) CloneWithOptions(location string, url string, args ...string) error {
+	gitArgs := []string{"clone"}
+	gitArgs = append(gitArgs, args...)
+	gitArgs = append(gitArgs, url)
+	gitArgs = append(gitArgs, location)
+
+	// We need to check to see if we're importing reference information, for
+	// for error checking later on
+	for _, opt := range gitArgs {
+		if opt == Shallow {
+			r.shallow = true
+			break
+		}
 	}
-	if opts.Recursive {
-		args = append(args, "--recursive")
-	}
-	if opts.Shallow {
-		args = append(args, "--depth=1")
-		r.shallow = true
-	}
-	args = append(args, url)
-	args = append(args, location)
-	_, _, err := r.git("", args...)
+
+	_, _, err := r.git("", gitArgs...)
 	return err
 }
 
 // Clone clones a remote git repository to a local directory
 func (r *repository) Clone(location string, url string) error {
-	return r.CloneWithOptions(location, url, CloneOptions{Recursive: true})
+	return r.CloneWithOptions(location, url, "--recursive")
+}
+
+// CloneMirror clones a remote git repository to a local directory as a mirror
+func (r *repository) CloneMirror(location string, url string) error {
+	return r.CloneWithOptions(location, url, "--mirror")
+}
+
+// CloneBare clones a remote git repository to a local directory
+func (r *repository) CloneBare(location string, url string) error {
+	return r.CloneWithOptions(location, url, "--bare")
 }
 
 // ListRemote lists references in a remote repository
@@ -245,18 +251,6 @@ func (r *repository) TimedListRemote(timeout time.Duration, url string, args ...
 	// `git ls-remote` does not allow for any timeout to be set, and defaults to a timeout
 	// of five minutes, so we enforce a timeout here to allow it to fail eariler than that
 	return r.timedGit(timeout, "", gitArgs...)
-}
-
-// CloneMirror clones a remote git repository to a local directory as a mirror
-func (r *repository) CloneMirror(location string, url string) error {
-	_, _, err := r.git("", "clone", "--mirror", url, location)
-	return err
-}
-
-// CloneBare clones a remote git repository to a local directory
-func (r *repository) CloneBare(location string, url string) error {
-	_, _, err := r.git("", "clone", "--bare", url, location)
-	return err
 }
 
 // Fetch updates the provided git repository
