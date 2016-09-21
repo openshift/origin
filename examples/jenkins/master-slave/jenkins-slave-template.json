@@ -55,7 +55,7 @@
         "name": "${IMAGE_STREAM_NAME}-jenkins-slave",
         "annotations": {
           "slave-label": "${IMAGE_STREAM_NAME}",
-          "slave-directory": "/opt/app-root/jenkins"
+          "slave-directory": "/tmp"
         },
         "labels": {
           "role": "jenkins-slave"
