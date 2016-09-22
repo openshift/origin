@@ -184,7 +184,8 @@ openshift start \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
   --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
+  --images="${USE_IMAGES}" \
+  --network-plugin=redhat/openshift-ovs-multitenant
 
 # Set deconflicted etcd ports in the config
 cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
