@@ -14,6 +14,7 @@ os::test::junit::declare_suite_start "cmd/routes"
 
 os::cmd::expect_success 'oc get routes'
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-route.json'
+os::cmd::expect_success_and_text 'oc get routes testroute --show-labels' 'rtlabel1'
 os::cmd::expect_success 'oc delete routes testroute'
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-service.json'
 os::cmd::expect_success 'oc create route passthrough --service=svc/frontend'

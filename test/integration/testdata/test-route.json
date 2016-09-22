@@ -3,7 +3,10 @@
   "apiVersion": "v1",
   "metadata": {
     "name": "testroute",
-    "creationTimestamp": null
+    "creationTimestamp": null,
+    "labels": {
+       "rtlabel1": "greatroute"
+    }
   },
   "spec": {
     "host": "test.example.com",
