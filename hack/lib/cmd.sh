@@ -392,7 +392,8 @@ readonly -f os::cmd::internal::print_try_until_results
 # os::cmd::internal::mark_attempt marks the end of an attempt in the stdout and stderr log files
 # this is used to make the try_until_* output more concise
 function os::cmd::internal::mark_attempt() {
-	echo -e '\x1e' >> "${os_cmd_internal_tmpout}" | tee "${os_cmd_internal_tmperr}"
+	echo -e '\x1e' >> "${os_cmd_internal_tmpout}"
+	echo -e '\x1e' >> "${os_cmd_internal_tmperr}"
 }
 readonly -f os::cmd::internal::mark_attempt
 
