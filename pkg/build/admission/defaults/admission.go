@@ -131,6 +131,10 @@ func getBuildEnv(build *buildapi.Build) *[]kapi.EnvVar {
 }
 
 func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
+	if envVars == nil {
+		return
+	}
+
 	found := false
 	for i := range *envVars {
 		if (*envVars)[i].Name == v.Name {
