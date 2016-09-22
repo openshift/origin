@@ -63,6 +63,7 @@ type Helper struct {
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
 	ServerIP           string
+	RouterIP           string
 	DNSPort            int
 	UseSharedVolume    bool
 	SetPropagationMode bool
@@ -289,7 +290,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.HostConfigDir, opt.ServerIP, opt.MetricsHost)
+		err = h.updateConfig(configDir, opt.HostConfigDir, opt.RouterIP, opt.MetricsHost)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -443,7 +444,7 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 	return filepath.Join(tempDir, filepath.Base(hostDir)), nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) error {
+func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) error {
 	masterConfig := filepath.Join(configDir, "master", "master-config.yaml")
 	glog.V(1).Infof("Reading master config from %s", masterConfig)
 	cfg, err := configapilatest.ReadMasterConfig(masterConfig)
@@ -455,7 +456,7 @@ func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) 
 	if len(h.routingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = h.routingSuffix
 	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", serverIP)
+		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", routerIP)
 	}
 
 	if len(metricsHost) > 0 && cfg.AssetConfig != nil {

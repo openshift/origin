@@ -172,6 +172,7 @@ type ClientStartConfig struct {
 	Tasks              []task
 	HostName           string
 	ServerIP           string
+	RouterIP           string
 	CACert             string
 	PublicHostname     string
 	RoutingSuffix      string
@@ -588,8 +589,14 @@ func (c *ClientStartConfig) DetermineServerIP(out io.Writer) error {
 	if err != nil {
 		return errors.NewError("cannot determine a server IP to use").WithCause(err)
 	}
-	c.ServerIP = ip
-	fmt.Fprintf(out, "Using %s as the server IP\n", ip)
+	if c.PortForwarding {
+		c.ServerIP = "127.0.0.1"
+		c.RouterIP = ip
+	} else {
+		c.ServerIP = ip
+		c.RouterIP = ip
+	}
+	fmt.Fprintf(out, "Using %s as the server IP\n", c.ServerIP)
 	return nil
 }
 
@@ -598,6 +605,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	var err error
 	opt := &openshift.StartOptions{
 		ServerIP:           c.ServerIP,
+		RouterIP:           c.RouterIP,
 		UseSharedVolume:    !c.UseNsenterMount,
 		SetPropagationMode: c.SetPropagationMode,
 		Images:             c.imageFormat(),
@@ -644,7 +652,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out)
+	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.RouterIP, c.PortForwarding, out)
 }
 
 // ImportImageStreams imports default image streams into the server
@@ -814,27 +822,7 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("cannot determine local IP address").WithCause(err)
 		}
-		glog.V(2).Infof("Testing local IP %s", ip4.String())
-		err = c.OpenShiftHelper().TestForwardedIP(ip4.String())
-		if err == nil {
-			return ip4.String(), nil
-		}
-		glog.V(2).Infof("Failed to use %s: %v", ip4.String(), err)
-		otherIPs, err := cmdutil.AllLocalIP4()
-		if err != nil {
-			return "", errors.NewError("cannot find local IP addresses to test").WithCause(err)
-		}
-		for _, ip := range otherIPs {
-			if ip.String() == ip4.String() {
-				continue
-			}
-			err = c.OpenShiftHelper().TestForwardedIP(ip.String())
-			if err == nil {
-				return ip.String(), nil
-			}
-			glog.V(2).Infof("Failed to use %s: %v", ip.String(), err)
-		}
-		return "", errors.NewError("could not determine local IP address to use").WithCause(err)
+		return ip4.String(), nil
 	}
 
 	// First, try to get the host from the DOCKER_HOST if communicating via tcp
