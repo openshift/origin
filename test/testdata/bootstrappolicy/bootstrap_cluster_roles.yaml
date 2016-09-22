@@ -328,6 +328,7 @@ items:
     attributeRestrictions: null
     resources:
     - nodes/metrics
+    - nodes/spec
     verbs:
     - get
   - apiGroups:
@@ -1839,6 +1840,7 @@ items:
     - nodes/log
     - nodes/metrics
     - nodes/proxy
+    - nodes/spec
     - nodes/stats
     verbs:
     - '*'
@@ -1862,6 +1864,7 @@ items:
     attributeRestrictions: null
     resources:
     - nodes/metrics
+    - nodes/spec
     verbs:
     - get
   - apiGroups:

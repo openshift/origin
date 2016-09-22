@@ -112,6 +112,14 @@ echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'...
 os::cmd::expect_success 'oc login -u e2e-user -p pass'
 os::cmd::expect_success_and_text 'oc whoami' 'e2e-user'
 
+# check to make sure that cluster-admin and node-reader can see node endpoint
+os::test::junit::declare_suite_start "end-to-end/core/node-access"
+os::cmd::expect_success "oc get --context='${CLUSTER_ADMIN_CONTEXT}' --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --raw spec/"
+os::cmd::expect_success "openshift admin policy add-cluster-role-to-user --context='${CLUSTER_ADMIN_CONTEXT}' system:node-reader e2e-user"
+os::cmd::try_until_text "oc policy can-i get nodes/spec" "yes"
+os::cmd::expect_success "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --raw spec/"
+os::test::junit::declare_suite_end
+
 # make sure viewers can see oc status
 os::cmd::expect_success 'oc status -n default'
 
@@ -198,6 +206,12 @@ os::cmd::expect_success 'oc login -u schema2-user -p pass'
 os::cmd::expect_success "oc new-project schema2"
 os::cmd::expect_success "oc project schema2"
 schema2_user_token=$(oc whoami -t)
+
+# check to make sure that schema2-user is denied node access
+os::test::junit::declare_suite_start "end-to-end/core/node-access-denial"
+os::cmd::expect_failure_and_text "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --raw spec/" "Forbidden"
+os::test::junit::declare_suite_end
+
 
 echo "[INFO] Fetch manifest V2 schema 2 image with old client using pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest hello-world:pullthrough"
