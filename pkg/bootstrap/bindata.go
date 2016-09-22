@@ -407,7 +407,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "10.0"
+              "name": "10.1"
             }
           },
           {
@@ -453,6 +453,21 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "openshift/wildfly-100-centos7:latest"
+            }
+          },
+          {
+            "name": "10.1",
+            "annotations": {
+              "description": "Build and run Java applications on Wildfly 10.1",
+              "iconClass": "icon-wildfly",
+              "tags": "builder,wildfly,java",
+              "supports":"wildfly:10.1,jee,java",
+              "version": "10.1",
+              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "openshift/wildfly-101-centos7:latest"
             }
           }
         ]
