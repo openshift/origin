@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -19,6 +20,78 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
+
+const (
+	// Reasons for deployment config conditions:
+	//
+	// ReplicationControllerUpdatedReason is added in a deployment config when one of its replication
+	// controllers is updated as part of the rollout process.
+	ReplicationControllerUpdatedReason = "ReplicationControllerUpdated"
+	// FailedRcCreateReason is added in a deployment config when it cannot create a new replication
+	// controller.
+	FailedRcCreateReason = "ReplicationControllerCreateError"
+	// NewReplicationControllerReason is added in a deployment config when it creates a new replication
+	// controller.
+	NewReplicationControllerReason = "NewReplicationControllerCreated"
+	// NewRcAvailableReason is added in a deployment config when its newest replication controller is made
+	// available ie. the number of new pods that have passed readiness checks and run for at least
+	// minReadySeconds is at least the minimum available pods that need to run for the deployment config.
+	NewRcAvailableReason = "NewReplicationControllerAvailable"
+	// TimedOutReason is added in a deployment config when its newest replication controller fails to show
+	// any progress within the given deadline (progressDeadlineSeconds).
+	TimedOutReason = "ProgressDeadlineExceeded"
+	// PausedDeployReason is added in a deployment config when it is paused. Lack of progress shouldn't be
+	// estimated once a deployment config is paused.
+	PausedDeployReason = "DeploymentConfigPaused"
+	// ResumedDeployReason is added in a deployment config when it is resumed. Useful for not failing accidentally
+	// deployment configs that paused amidst a rollout.
+	ResumedDeployReason = "DeploymentConfigResumed"
+)
+
+// NewDeploymentCondition creates a new deployment condition.
+func NewDeploymentCondition(condType deployapi.DeploymentConditionType, status api.ConditionStatus, reason, message string) *deployapi.DeploymentCondition {
+	return &deployapi.DeploymentCondition{
+		Type:               condType,
+		Status:             status,
+		LastTransitionTime: unversioned.Now(),
+		Reason:             reason,
+		Message:            message,
+	}
+}
+
+// GetDeploymentCondition returns the condition with the provided type.
+func GetDeploymentCondition(status deployapi.DeploymentConfigStatus, condType deployapi.DeploymentConditionType) *deployapi.DeploymentCondition {
+	for i := range status.Conditions {
+		c := status.Conditions[i]
+		if c.Type == condType {
+			return &c
+		}
+	}
+	return nil
+}
+
+// SetDeploymentCondition updates the deployment to include the provided condition.
+func SetDeploymentCondition(status *deployapi.DeploymentConfigStatus, condition deployapi.DeploymentCondition) {
+	newConditions := filterOutCondition(status.Conditions, condition.Type)
+	status.Conditions = append(newConditions, condition)
+}
+
+// RemoveDeploymentCondition removes the deployment condition with the provided type.
+func RemoveDeploymentCondition(status *deployapi.DeploymentConfigStatus, condType deployapi.DeploymentConditionType) {
+	status.Conditions = filterOutCondition(status.Conditions, condType)
+}
+
+// filterOutCondition returns a new slice of deployment conditions without conditions with the provided type.
+func filterOutCondition(conditions []deployapi.DeploymentCondition, condType deployapi.DeploymentConditionType) []deployapi.DeploymentCondition {
+	var newConditions []deployapi.DeploymentCondition
+	for _, c := range conditions {
+		if c.Type == condType {
+			continue
+		}
+		newConditions = append(newConditions, c)
+	}
+	return newConditions
+}
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
@@ -383,6 +456,31 @@ func CanTransitionPhase(current, next deployapi.DeploymentStatus) bool {
 		}
 	}
 	return false
+}
+
+// IsRollingConfig returns true if the strategy type is a rolling update.
+func IsRollingConfig(config *deployapi.DeploymentConfig) bool {
+	return config.Spec.Strategy.Type == deployapi.DeploymentStrategyTypeRolling
+}
+
+// MaxUnavailable returns the maximum unavailable pods a rolling deployment config can take.
+func MaxUnavailable(config deployapi.DeploymentConfig) int32 {
+	if !IsRollingConfig(&config) {
+		return int32(0)
+	}
+	// Error caught by validation
+	_, maxUnavailable, _ := kdeplutil.ResolveFenceposts(&config.Spec.Strategy.RollingParams.MaxSurge, &config.Spec.Strategy.RollingParams.MaxUnavailable, config.Spec.Replicas)
+	return maxUnavailable
+}
+
+// MaxSurge returns the maximum surge pods a rolling deployment config can take.
+func MaxSurge(config deployapi.DeploymentConfig) int32 {
+	if !IsRollingConfig(&config) {
+		return int32(0)
+	}
+	// Error caught by validation
+	maxSurge, _, _ := kdeplutil.ResolveFenceposts(&config.Spec.Strategy.RollingParams.MaxSurge, &config.Spec.Strategy.RollingParams.MaxUnavailable, config.Spec.Replicas)
+	return maxSurge
 }
 
 // annotationFor returns the annotation with key for obj.
