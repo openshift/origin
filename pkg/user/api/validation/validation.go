@@ -155,10 +155,10 @@ func ValidateIdentity(identity *api.Identity) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, strings.Join(reasons, ", ")))
 	}
 	if len(identity.User.Name) == 0 && len(identity.User.UID) != 0 {
-		allErrs = append(allErrs, field.Invalid(userPath.Child("uid"), identity.User.UID, "may not be set if user.name is empty"))
+		allErrs = append(allErrs, field.Invalid(userPath.Child("username"), "username is required when uid is provided"))
 	}
 	if len(identity.User.Name) != 0 && len(identity.User.UID) == 0 {
-		allErrs = append(allErrs, field.Required(userPath.Child("uid"), ""))
+		allErrs = append(allErrs, field.Required(userPath.Child("uid"), "uid is required when username is provided"))
 	}
 	return allErrs
 }
