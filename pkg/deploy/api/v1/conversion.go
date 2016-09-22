@@ -144,9 +144,12 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		return err
 	}
 
-	if err := scheme.AddFieldLabelConversionFunc("v1", "DeploymentConfig",
-		oapi.GetFieldLabelConversionFunc(newer.DeploymentConfigToSelectableFields(&newer.DeploymentConfig{}), nil),
-	); err != nil {
+	err = scheme.AddFieldLabelConversionFunc(
+	    "v1", "DeploymentConfig",
+		oapi.GetFieldLabelConversionFunc(newer.DeploymentConfigToSelectableFields(&newer.DeploymentConfig{}),
+		nil
+	)
+	if err != nil {
 		return err
 	}
 	return nil
