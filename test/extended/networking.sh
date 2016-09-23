@@ -110,26 +110,14 @@ function save-artifacts() {
 function deploy-cluster() {
   local name=$1
   local plugin=$2
-  local isolation=$3
-  local log_dir=$4
+  local log_dir=$3
 
   os::log::info "Launching a docker-in-docker cluster for the ${name} plugin"
-  export OPENSHIFT_NETWORK_PLUGIN="${plugin}"
   export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
-  export OPENSHIFT_NETWORK_ISOLATION="${isolation}"
-  # Images have already been built
-  export OPENSHIFT_DIND_BUILD_IMAGES=0
   DIND_CLEANUP_REQUIRED=1
 
   local exit_status=0
-
-  # Restart instead of start to ensure that an existing test cluster is
-  # always torn down.
-  if ${CLUSTER_CMD} restart; then
-    if ! ${CLUSTER_CMD} wait-for-cluster; then
-      exit_status=1
-    fi
-  else
+  if ! ${CLUSTER_CMD} start -r -n "${plugin}"; then
     exit_status=1
   fi
 
@@ -161,12 +149,13 @@ function test-osdn-plugin() {
   local deployment_failed=
   local tests_failed=
 
-  if deploy-cluster "${name}" "${plugin}" "${isolation}" "${log_dir}"; then
+  if deploy-cluster "${name}" "${plugin}" "${log_dir}"; then
     os::log::info "Running networking e2e tests against the ${name} plugin"
     export TEST_REPORT_FILE_NAME="${name}-junit"
 
     local kubeconfig="$(get-kubeconfig-from-root "${OPENSHIFT_CONFIG_ROOT}")"
     if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
+         OPENSHIFT_NETWORK_ISOLATION="${isolation}" \
          run-extended-tests "${kubeconfig}" "${log_dir}/test.log"; then
       tests_failed=1
       os::log::error "e2e tests failed for plugin: ${plugin}"
@@ -187,7 +176,7 @@ function test-osdn-plugin() {
   os::log::info "Shutting down docker-in-docker cluster for the ${name} plugin"
   ${CLUSTER_CMD} stop
   DIND_CLEANUP_REQUIRED=0
-  rmdir "${OPENSHIFT_CONFIG_ROOT}"
+  rm -rf "${OPENSHIFT_CONFIG_ROOT}"
 }
 
 
@@ -279,12 +268,12 @@ else
 
   # Use a unique instance prefix to ensure the names of the test dind
   # containers will not clash with the names of non-test containers.
-  export OPENSHIFT_INSTANCE_PREFIX="nettest"
+  export OPENSHIFT_CLUSTER_ID="nettest"
   # TODO(marun) Discover these names instead of hard-coding
   CONTAINER_NAMES=(
-    "${OPENSHIFT_INSTANCE_PREFIX}-master"
-    "${OPENSHIFT_INSTANCE_PREFIX}-node-1"
-    "${OPENSHIFT_INSTANCE_PREFIX}-node-2"
+    "${OPENSHIFT_CLUSTER_ID}-master"
+    "${OPENSHIFT_CLUSTER_ID}-node-1"
+    "${OPENSHIFT_CLUSTER_ID}-node-2"
   )
 
   os::util::environment::setup_tmpdir_vars "test-extended/networking"
@@ -326,9 +315,6 @@ else
   # Ignore deployment errors for a given plugin to allow other plugins
   # to be tested.
   test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false" || true
-
-  # Avoid unnecessary go builds for subsequent deployments
-  export OPENSHIFT_SKIP_BUILD=true
 
   test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" "true" || true
 fi

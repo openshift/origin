@@ -1,13 +1,35 @@
 #
-# This image is used for running a host of an openshift dev cluster. This image is
-# a development support image and should not be used in production environments.
+# Image configured with systemd and docker-in-docker.  Useful for
+# simulating multinode deployments.
 #
 # The standard name for this image is openshift/dind
 #
+# Notes:
+#
+#  - disable SELinux on the docker host (not compatible with dind)
+#
+#  - to use the overlay graphdriver, ensure the overlay module is
+#    installed on the docker host
+#
+#      $ modprobe overlay
+#
+#  - run with --privileged
+#
+#      $ docker run -d --privileged openshift/dind
+#
+
 FROM fedora:24
 
+# Fix 'WARNING: terminal is not fully functional' when TERM=dumb
+ENV TERM=xterm
+
 ## Configure systemd to run in a container
+
 ENV container=docker
+
+VOLUME ["/run", "/tmp"]
+
+STOPSIGNAL SIGRTMIN+3
 
 RUN systemctl mask\
  auditd.service\
@@ -24,34 +46,33 @@ RUN systemctl mask\
  systemd-udev-trigger.service\
  systemd-udevd.service\
  systemd-vconsole-setup.service
+RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/;\
+ sed -i 's/OOMScoreAdjust=-900//' /etc/systemd/system/dbus.service
 
-RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/; \
-  sed -i 's/OOMScoreAdjust=-900//' /etc/systemd/system/dbus.service
+RUN dnf -y update && dnf -y install\
+ docker\
+ iptables\
+ openssh-server\
+ && dnf clean all
 
-VOLUME ["/run", "/tmp"]
+## Configure docker
 
-## Install packages
-RUN dnf -y update && dnf -y install git golang hg tar make findutils \
-  gcc hostname bind-utils iproute iputils which procps-ng openssh-server \
-  # Node-specific packages
-  docker openvswitch bridge-utils ethtool iptables-services \
-  && dnf clean all
-
-# sshd should be enabled as needed
-RUN systemctl disable sshd.service
+RUN systemctl enable docker.service
 
 # Default storage to vfs.  overlay will be enabled at runtime if available.
 RUN echo "DOCKER_STORAGE_OPTIONS=--storage-driver vfs" >\
  /etc/sysconfig/docker-storage
 
-RUN systemctl enable docker
+COPY dind-setup.sh /usr/local/bin
+COPY dind-setup.service /etc/systemd/system/
+RUN systemctl enable dind-setup.service
 
-VOLUME /var/lib/docker
+VOLUME ["/var/lib/docker"]
 
-## Hardlink init to another name to avoid having oci-systemd-hooks
-## detect containers using this image as requiring read-only cgroup
-## mounts.  dind containers should be run with --privileged to ensure
-## cgroups mounted with read-write permissions.
+# Hardlink init to another name to avoid having oci-systemd-hooks
+# detect containers using this image as requiring read-only cgroup
+# mounts.  containers running docker need to be run with --privileged
+# to ensure cgroups are mounted with read-write permissions.
 RUN ln /usr/sbin/init /usr/sbin/dind_init
 
 CMD ["/usr/sbin/dind_init"]

@@ -228,27 +228,29 @@ Follow these steps to ensure that virtual box interfaces are unmanaged:
 === Develop and test using a docker-in-docker cluster
 
 It's possible to run an OpenShift multinode cluster on a single host
-via docker-in-docker (dind).  Cluster creation is cheaper since each
-node is a container instead of a VM.  This was implemented primarily
-to support multinode network testing, but may prove useful for other
-use cases.
+thanks to docker-in-docker (dind).  Cluster creation is cheaper since
+each node is a container instead of a VM.  This was initially
+implemented to support multinode network testing, but has proven
+useful for development as well.
 
-To run a dind cluster in a VM, follow steps 1-3 of the Vagrant
-instructions and then execute the following:
+Prerequisites:
 
-        $ export OPENSHIFT_DIND_DEV_CLUSTER=true
-        $ vagrant up
+1. Host running docker and with SELinux disabled.
+2. An environment with the tools necessary to build origin.
+3. A clone of the origin repo.
 
-Bringing up the VM for the first time will take a while due to the
-overhead of package installation, building docker images, and building
-openshift.  Assuming the 'vagrant up' command completes without error,
-a dind OpenShift cluster should now be running on the VM.  To access
-the cluster, login to the VM:
+From the root of the origin repo, run the following command to launch
+a new cluster:
 
-        $ vagrant ssh
+        # -b to build origin, -i to build images
+        $ hack/dind-cluster.sh start -b -i
 
-Once on the VM, the 'oc' and 'openshift' commands can be used to
-interact with the cluster:
+Once the cluster is up, source the cluster's rc file to configure the
+environment to use it:
+
+        $ . dind-openshift.rc
+
+Now the 'oc' command can be used to interact with the cluster:
 
         $ oc get nodes
 
@@ -272,22 +274,12 @@ at the top of the dind-cluster.sh script.
 
 Attempting to start a cluster when one is already running will result
 in an error message from docker indicating that the named containers
-already exist.  To redeploy a cluster after making changes, use the
-'start' and 'stop' or 'restart' commands.  OpenShift is always built
-as part of the dind cluster deployment initiated by 'start' or
-'restart'.
+already exist.  To redeploy a cluster use the 'start' command with the
+'-r' flag to remove an existing cluster.
 
-By default the cluster will consist of a master and 2 nodes.  The
-OPENSHIFT_NUM_MINIONS environment variable can be used to override the
-default of 2 nodes.
-
-Containers are torn down on stop and restart, but the root of the
-origin repo is mounted to /data in each container to allow for a
-persistent installation target.
-
-While it is possible to run a dind cluster on any host (not just a
-vagrant VM), it is recommended to consider the warnings at the top of
-the dind-cluster.sh script.
+While it is possible to run a dind cluster directly on a linux host,
+it is recommended to consider the warnings at the top of the
+dind-cluster.sh script.
 
 ==== Testing networking with docker-in-docker
 
