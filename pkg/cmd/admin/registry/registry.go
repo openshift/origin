@@ -483,24 +483,17 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 }
 
 func generateLivenessProbeConfig(port int, https bool) *kapi.Probe {
-	var scheme kapi.URIScheme
-	if https {
-		scheme = kapi.URISchemeHTTPS
-	}
-	return &kapi.Probe{
-		InitialDelaySeconds: 10,
-		TimeoutSeconds:      healthzRouteTimeoutSeconds,
-		Handler: kapi.Handler{
-			HTTPGet: &kapi.HTTPGetAction{
-				Scheme: scheme,
-				Path:   healthzRoute,
-				Port:   intstr.FromInt(port),
-			},
-		},
-	}
+	probeConfig := generateProbeConfig(port, https)
+	probeConfig.InitialDelaySeconds = 10
+
+	return probeConfig
 }
 
 func generateReadinessProbeConfig(port int, https bool) *kapi.Probe {
+	return generateProbeConfig(port, https)
+}
+
+func generateProbeConfig(port int, https bool) *kapi.Probe {
 	var scheme kapi.URIScheme
 	if https {
 		scheme = kapi.URISchemeHTTPS
