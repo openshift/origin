@@ -405,7 +405,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 				return latestVersion == 2, nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected latestVersion: 2, got: %s", latestVersion)
+				err = fmt.Errorf("expected latestVersion: 2, got: %d", latestVersion)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -693,7 +693,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred())
 			g.By("waiting for the deployment to complete")
-			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).To(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred(),
 				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
 			deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
