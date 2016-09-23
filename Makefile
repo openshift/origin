@@ -70,6 +70,7 @@ verify: build
 	hack/verify-generated-clientsets.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
+	PROTO_OPTIONAL=1 hack/verify-generated-protobuf.sh
 	hack/verify-generated-swagger-descriptions.sh
 	hack/verify-generated-swagger-spec.sh
 .PHONY: verify
@@ -85,6 +86,7 @@ update: build
 	hack/update-generated-clientsets.sh
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
+	PROTO_OPTIONAL=1 hack/update-generated-protobuf.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
