@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e0d5c2411fabd012bbbe8fbe15c8dbd3fa3c26ea
+%global commit 5e4362ce9cf878235ba85a6d7ad32307cc1c2ba5
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.1
+Version:        3.4.0.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,53 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Sep 23 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.2
+- extended: fix latest deployment test flakes (mkargaki@redhat.com)
+- verify and update protobufs in make verify/update (bparees@redhat.com)
+- refactor cancelbuild cli cmd and add unit tests (guilhermebr@gmail.com)
+- extract git revision condition (li.guangxu@zte.com.cn)
+- The generated manpages were out of date. (bleanhar@redhat.com)
+- Simplify binary build output in new-build #11000 (jminter@redhat.com)
+- Fix NetNamespaces, which got accidentally broken in 58e8f93 (danw@redhat.com)
+- Remove word additionaly (gethemant@gmail.com)
+- UPSTREAM: 33141: don't mutate original client TLS config
+  (jliggitt@redhat.com)
+- Add bit about downloadable swagger-ui (gethemant@gmail.com)
+- Update ose scripts to use 3.4 (tdawson@redhat.com)
+- Error when test-cmd is given an invalid regex (mkhan@redhat.com)
+- add /spec access for node (deads@redhat.com)
+- Bump the timeout for deployment logs (mfojtik@redhat.com)
+- Improve BuildConfig error reporting (mmilata@redhat.com)
+- Changes the signature of CloneWithOptions function (rymurphy@redhat.com)
+- fix noinput error msg in newbuild cli cmd (guilhermebr@gmail.com)
+- Make links effective (zhao.sijun@zte.com.cn)
+- return back the name you GETed for ISI (deads@redhat.com)
+- Should hide the labels for route by oc get route (pcameron@redhat.com)
+- Fix clusterresourcequota annotations validation (ffranz@redhat.com)
+- extended test (mfojtik@redhat.com)
+- Preserve valueFrom when merging envs in deployment strategy params
+  (mfojtik@redhat.com)
+- use a unique volume name for each input image secret (bparees@redhat.com)
+- oc: generated code for 'set image' (mkargaki@redhat.com)
+- oc: wire set image from kubectl (mkargaki@redhat.com)
+- Remove terminating checks from origin namespace lifecycle admission
+  (jliggitt@redhat.com)
+- UPSTREAM: 32719: compensate for raft/cache delay in namespace admission
+  (jliggitt@redhat.com)
+- Made hello-openshift read the message from an environment variable
+  (bbennett@redhat.com)
+- modify the error info of test case (li.guangxu@zte.com.cn)
+- remove call to compinit in zsh completion output (jvallejo@redhat.com)
+- UPSTREAM: 32142: remove call to compinit in zsh completion output
+  (jvallejo@redhat.com)
+- SCC check API: refactor (salvatore-dario.minonne@amadeus.com)
+- the open dockerfile need to be closed (li.guangxu@zte.com.cn)
+- use const string for auth type if exist (li.guangxu@zte.com.cn)
+- Use errors.New() instead of fmt.Errorf() where possible.
+  (vsemushi@redhat.com)
+- Allow users to choose database images version in the DB templates
+  (vdinh@redhat.com)
+
 * Tue Sep 20 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.1
 - Update tito to build for 3.4 (tdawson@redhat.com)
 - Change spec file to the 3.4 branch (tdawson@redhat.com)

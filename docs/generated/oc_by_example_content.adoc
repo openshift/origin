@@ -1708,3 +1708,15 @@ toc::[]
 ====
 
 
+== <no value>
+<no value>
+
+====
+
+[options="nowrap"]
+----
+<no value>
+----
+====
+
+

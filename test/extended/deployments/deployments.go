@@ -39,6 +39,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "readiness-test.yaml")
+		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployment-with-ref-env.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -284,6 +285,22 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
+	g.Describe("with env in params referencing the configmap", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
+		})
+		g.It("should expand the config map key to a value", func() {
+			_, err := oc.Run("create").Args("configmap", "test", "--from-literal=foo=bar").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, name, err := createFixture(oc, envRefDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			out, err := oc.Run("deploy").Args("dc/"+name, "--latest", "--follow").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("hello bar"))
+		})
+	})
 	g.Describe("with multiple image change triggers", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
@@ -365,16 +382,34 @@ var _ = g.Describe("deploymentconfigs", func() {
 		g.It("should print the rollout history [Conformance]", func() {
 			resource, name, err := createFixture(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("waiting for the first rollout to complete")
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			_, err = oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+			dc, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			_, err = client.UpdateConfigWithRetries(oc.REST(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+			g.By("updating the deployment config in order to trigger a new rollout")
+			_, err = client.UpdateConfigWithRetries(oc.REST(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
 				one := int64(1)
-				dc.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
+				update.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
+			// Wait for latestVersion=2 to be surfaced in the API
+			latestVersion := dc.Status.LatestVersion
+			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+				dc, err = oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+				if err != nil {
+					return false, err
+				}
+				latestVersion = dc.Status.LatestVersion
+				return latestVersion == 2, nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("expected latestVersion: 2, got: %s", latestVersion)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the second rollout to complete")
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			out, err := oc.Run("rollout").Args("history", resource).Output()
@@ -656,6 +691,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring("updated"))
 			}
 
+			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred())
+			g.By("waiting for the deployment to complete")
+			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).To(o.HaveOccurred())
 			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred(),
 				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
 			deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")

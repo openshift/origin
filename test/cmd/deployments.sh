@@ -132,6 +132,14 @@ os::cmd::expect_success 'oc delete hpa/test-deployment-config'
 echo "autoscale: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/deployments/setimage"
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=myshinynewimage'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" "myshinynewimage"
+os::cmd::expect_success 'oc delete dc/test-deployment-config'
+echo "set image: ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
 # Validate the set deployment-hook command
 arg="-f test/integration/testdata/test-deployment-config.yaml"

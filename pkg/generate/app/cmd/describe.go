@@ -189,8 +189,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 
 		if noSource {
 			// if we have no source, the user must always provide the source from the local dir(binary build)
-			fmt.Fprintf(out, "      * Use 'start-build --from-dir=DIR|--from-repo=DIR|--from-file=FILE' to trigger a new build\n")
-			fmt.Fprintf(out, "      * WARNING: a binary build was created, you must specify one of --from-dir|--from-file|--from-repo when starting builds\n")
+			fmt.Fprintf(out, "      * A binary build was created, use 'start-build --from-dir' to trigger a new build\n")
 		} else {
 			if len(trackedImage) > 0 {
 				// if we have a trackedImage/ICT and we have source, the build will be triggered automatically.

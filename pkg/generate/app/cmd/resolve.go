@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/errors"
+	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/generate/app"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
@@ -97,7 +98,7 @@ func Resolve(r *Resolvers, c *ComponentInputs, g *GenerationInputs) (*ResolvedCo
 	}
 	components, repositories, errs := b.Result()
 	if len(errs) > 0 {
-		return nil, errors.NewAggregate(errs)
+		return nil, kutilerrors.NewAggregate(errs)
 	}
 
 	// TODO: the second half of this method is potentially splittable - each chunk below amends or qualifies
@@ -110,11 +111,11 @@ func Resolve(r *Resolvers, c *ComponentInputs, g *GenerationInputs) (*ResolvedCo
 	}
 
 	if len(g.Strategy) != 0 && len(repositories) == 0 && !g.BinaryBuild {
-		return nil, fmt.Errorf("when --strategy is specified you must provide at least one source code location")
+		return nil, errors.New("when --strategy is specified you must provide at least one source code location")
 	}
 
 	if g.BinaryBuild && (len(repositories) > 0 || components.HasSource()) {
-		return nil, fmt.Errorf("specifying binary builds and source repositories at the same time is not allowed")
+		return nil, errors.New("specifying binary builds and source repositories at the same time is not allowed")
 	}
 
 	// Add source components if source-image points to another location
@@ -186,21 +187,21 @@ func AddSourceRepositoriesToRefBuilder(b *app.ReferenceBuilder, repos []string, 
 	}
 	if len(g.Dockerfile) > 0 {
 		if len(g.Strategy) != 0 && g.Strategy != "docker" {
-			return nil, fmt.Errorf("when directly referencing a Dockerfile, the strategy must must be 'docker'")
+			return nil, errors.New("when directly referencing a Dockerfile, the strategy must must be 'docker'")
 		}
 		if err := AddDockerfileToSourceRepositories(b, g.Dockerfile); err != nil {
 			return nil, err
 		}
 	}
 	_, result, errs := b.Result()
-	return result, errors.NewAggregate(errs)
+	return result, kutilerrors.NewAggregate(errs)
 }
 
 // AddDockerfile adds a Dockerfile passed in the command line to the reference
 // builder.
 func AddDockerfileToSourceRepositories(b *app.ReferenceBuilder, dockerfile string) error {
 	_, repos, errs := b.Result()
-	if err := errors.NewAggregate(errs); err != nil {
+	if err := kutilerrors.NewAggregate(errs); err != nil {
 		return err
 	}
 	switch len(repos) {
@@ -220,7 +221,7 @@ func AddDockerfileToSourceRepositories(b *app.ReferenceBuilder, dockerfile strin
 		}
 	default:
 		// Invalid.
-		return fmt.Errorf("--dockerfile cannot be used with multiple source repositories")
+		return errors.New("--dockerfile cannot be used with multiple source repositories")
 	}
 	return nil
 }
@@ -239,7 +240,7 @@ func DetectSource(repositories []*app.SourceRepository, d app.Detector, g *Gener
 			continue
 		}
 	}
-	return errors.NewAggregate(errs)
+	return kutilerrors.NewAggregate(errs)
 }
 
 // AddComponentInputsToRefBuilder set up the components to be used by the reference builder.
@@ -353,7 +354,7 @@ func AddImageSourceRepository(sourceRepos app.SourceRepositories, r app.Resolver
 		sourceRepos[0].SetSourceImage(compRef)
 		sourceRepos[0].SetSourceImagePath(sourcePath, destPath)
 	default:
-		return nil, nil, fmt.Errorf("--image-source cannot be used with multiple source repositories")
+		return nil, nil, errors.New("--image-source cannot be used with multiple source repositories")
 	}
 
 	return compRef, sourceRepos, nil
@@ -367,7 +368,7 @@ func detectPartialMatches(components app.ComponentReferences) error {
 			errs = append(errs, fmt.Errorf("component %q had only a partial match of %q - if this is the value you want to use, specify it explicitly", input.From, input.ResolvedMatch.Name))
 		}
 	}
-	return errors.NewAggregate(errs)
+	return kutilerrors.NewAggregate(errs)
 }
 
 // InferBuildTypes infers build status and mismatches between source and docker builders
@@ -398,13 +399,13 @@ func InferBuildTypes(components app.ComponentReferences, g *GenerationInputs) (a
 		switch {
 		case input.ExpectToBuild && input.ResolvedMatch.IsTemplate():
 			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
-			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
+			errs = append(errs, errors.New("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
 			continue
 		}
 	}
 	if len(components) == 0 && g.BinaryBuild {
 		if len(g.Name) == 0 {
-			return nil, fmt.Errorf("you must provide a --name when you don't specify a source repository or base image")
+			return nil, errors.New("you must provide a --name when you don't specify a source repository or base image")
 		}
 		ref := &app.ComponentInput{
 			From:          "--binary",
@@ -416,7 +417,7 @@ func InferBuildTypes(components app.ComponentReferences, g *GenerationInputs) (a
 		components = append(components, ref)
 	}
 
-	return components, errors.NewAggregate(errs)
+	return components, kutilerrors.NewAggregate(errs)
 }
 
 // EnsureHasSource ensure every builder component has source code associated with it. It takes a list of component references
@@ -470,7 +471,7 @@ func EnsureHasSource(components app.ComponentReferences, repositories app.Source
 				input.ExpectToBuild = true
 			}
 		case g.ExpectToBuild:
-			return fmt.Errorf("you must specify at least one source repository URL, provide a Dockerfile, or indicate you wish to use binary builds")
+			return errors.New("you must specify at least one source repository URL, provide a Dockerfile, or indicate you wish to use binary builds")
 		default:
 			for _, component := range components {
 				component.Input().ExpectToBuild = false
@@ -529,5 +530,5 @@ func AddMissingComponentsToRefBuilder(
 			result = append(result, refs...)
 		}
 	}
-	return result, errors.NewAggregate(errs)
+	return result, kutilerrors.NewAggregate(errs)
 }

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -89,9 +91,59 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		t.Errorf("Expected output env 'foo' to have value 'test', got %+v", output[0])
 	}
 	if output[1].Name != "BUILD_LOGLEVEL" {
-		t.Errorf("Expected output to have env 'BUILD_LOGLEVEL', got %+v", output[0])
+		t.Errorf("Expected output to have env 'BUILD_LOGLEVEL', got %+v", output[1])
 	}
 	if output[1].Value != "loglevel" {
-		t.Errorf("Expected output env 'foo' to have value 'loglevel', got %+v", output[0])
+		t.Errorf("Expected output env 'BUILD_LOGLEVEL' to have value 'loglevel', got %+v", output[1])
+	}
+}
+
+func TestSetupDockerSecrets(t *testing.T) {
+	pod := kapi.Pod{
+		Spec: kapi.PodSpec{
+			Containers: []kapi.Container{
+				{},
+			},
+		},
+	}
+
+	pushSecret := &kapi.LocalObjectReference{
+		Name: "pushSecret",
+	}
+	pullSecret := &kapi.LocalObjectReference{
+		Name: "pullSecret",
+	}
+	imageSources := []buildapi.ImageSource{
+		{PullSecret: &kapi.LocalObjectReference{Name: "imageSourceSecret1"}},
+		// this is a duplicate value on purpose, don't change it.
+		{PullSecret: &kapi.LocalObjectReference{Name: "imageSourceSecret1"}},
+	}
+
+	setupDockerSecrets(&pod, pushSecret, pullSecret, imageSources)
+
+	if len(pod.Spec.Volumes) != 4 {
+		t.Fatalf("Expected 4 volumes, got: %#v", pod.Spec.Volumes)
+	}
+
+	seenName := map[string]bool{}
+	for _, v := range pod.Spec.Volumes {
+		if seenName[v.Name] {
+			t.Errorf("Duplicate volume name %s", v.Name)
+		}
+		seenName[v.Name] = true
+	}
+
+	seenMount := map[string]bool{}
+	seenMountPath := map[string]bool{}
+	for _, m := range pod.Spec.Containers[0].VolumeMounts {
+		if seenMount[m.Name] {
+			t.Errorf("Duplicate volume mount name %s", m.Name)
+		}
+		seenMount[m.Name] = true
+
+		if seenMountPath[m.MountPath] {
+			t.Errorf("Duplicate volume mount path %s", m.MountPath)
+		}
+		seenMountPath[m.Name] = true
 	}
 }

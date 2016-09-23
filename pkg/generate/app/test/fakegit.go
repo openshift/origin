@@ -33,7 +33,7 @@ func (g *FakeGit) Clone(dir string, url string) error {
 	return nil
 }
 
-func (g *FakeGit) CloneWithOptions(dir string, url string, opts git.CloneOptions) error {
+func (g *FakeGit) CloneWithOptions(dir string, url string, args ...string) error {
 	g.CloneCalled = true
 	return nil
 }

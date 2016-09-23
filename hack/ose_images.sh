@@ -20,7 +20,7 @@
 #source ose.conf
 
 ## LOCAL VARIABLES ##
-MAJOR_RELEASE="3.2"
+MAJOR_RELEASE="3.3"
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
@@ -29,7 +29,11 @@ BUILD_REPO="http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo"
 COMMIT_MESSAGE=""
 PULL_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
 #PULL_REGISTRY=rcm-img-docker01.build.eng.bos.redhat.com:5001
-PUSH_REGISTRY=registry.qe.openshift.com
+PUSH_REGISTRY=registry-push.ops.openshift.com
+#PUSH_REGISTRY=registry.qe.openshift.com
+ERRATA_ID="24510"
+ERRATA_PRODUCT_VERSION="RHEL-7-OSE-3.3"
+SCRIPT_HOME="$(pwd)"
 
 usage() {
   echo "Usage `basename $0` [action] <options>" >&2
@@ -42,6 +46,7 @@ usage() {
   echo "  update_compare  :: Clone dist-git and git, update dockerfile, compare all" >&2
   echo "  push_images     :: Push images to qe-registry" >&2
   echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
+  echo "  update_errata   :: Update image errata with Docker images" >&2
   echo "  list            :: Display full list of packages / images" >&2
   echo "  test            :: Display what packages would be worked on" >&2
   echo >&2
@@ -51,11 +56,10 @@ usage() {
   echo "  -f, --force         :: Force: always do dist-git commits " >&2
   echo "  -i, --ignore        :: Ignore: do not do dist-git commits " >&2
   echo "  -d, --deps          :: Dependents: Also do the dependents" >&2
-  echo "  -n --nochannel      :: Do not tag or push as latest, or channel latest" >&2
-  echo "  --notlatest         :: Do not tag or push as latest, still do channel latest" >&2
-  echo "  --scratch           :: Do a scratch build" >&2
+  echo "  --nochannel         :: Do not tag or push as channel latest (v3.3), or regular latest" >&2
+  echo "  --nolatest          :: Do not tag or push as latest, still do channel latest" >&2
   echo "  --message [message] :: Git commit message" >&2
-  echo "  --group [group]     :: Which group list to use (base sti database metrics logging misc rhscl all)" >&2
+  echo "  --group [group]     :: Which group list to use (base sti database metrics logging jenkins misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
@@ -63,6 +67,8 @@ usage() {
   echo "  --rhel [version]    :: Change Dockerfile RHEL version e.g. rhel7.2:7.2-35 or rhel7:latest" >&2
   echo "  --branch [version]  :: Use a certain dist-git branch  default[${DIST_GIT_BRANCH}]" >&2
   echo "  --repo [Repo URL]   :: Use a certain yum repo  default[${BUILD_REPO}]" >&2
+  echo "  --errata_id [id]      :: errata id to use  default[${ERRATA_ID}]" >&2
+  echo "  --errata_pv [version] :: errata product version to use  default[${ERRATA_PRODUCT_VERSION}]" >&2
   echo "  --pull_reg [registry] :: docker registry to pull from  default[${PULL_REGISTRY}]" >&2
   echo "  --push_reg [registry] :: docker registry to push to  default[${PUSH_REGISTRY}]" >&2
   echo >&2
@@ -85,22 +91,7 @@ add_group_to_list() {
   case ${1} in
     base)
       add_to_list openshift-enterprise-base-docker
-      if [ ${MAJOR_RELEASE} == "3.3" ] ; then
-        add_to_list openshift-enterprise-pod-docker
-        add_to_list aos3-installation-docker
-        add_to_list openshift-enterprise-docker
-        add_to_list openshift-enterprise-dockerregistry-docker
-        add_to_list openshift-enterprise-egress-router-docker
-        add_to_list openshift-enterprise-keepalived-ipfailover-docker
-        add_to_list openshift-enterprise-openvswitch-docker
-        add_to_list openshift-enterprise-recycler-docker
-        add_to_list aos-f5-router-docker
-        add_to_list openshift-enterprise-deployer-docker
-        add_to_list openshift-enterprise-haproxy-router-docker
-        add_to_list openshift-enterprise-node-docker
-        add_to_list openshift-enterprise-sti-builder-docker
-        add_to_list openshift-enterprise-docker-builder-docker
-      else
+      if [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
         add_to_list openshift-enterprise-openvswitch-docker
         add_to_list openshift-enterprise-pod-docker
         add_to_list aos3-installation-docker
@@ -115,6 +106,21 @@ add_group_to_list() {
         add_to_list openshift-enterprise-sti-builder-docker
         add_to_list openshift-enterprise-docker-builder-docker
         add_to_list openshift-enterprise-haproxy-router-docker
+      else
+        add_to_list openshift-enterprise-pod-docker
+        add_to_list aos3-installation-docker
+        add_to_list openshift-enterprise-docker
+        add_to_list openshift-enterprise-dockerregistry-docker
+        add_to_list openshift-enterprise-egress-router-docker
+        add_to_list openshift-enterprise-keepalived-ipfailover-docker
+        add_to_list openshift-enterprise-openvswitch-docker
+        add_to_list aos-f5-router-docker
+        add_to_list openshift-enterprise-deployer-docker
+        add_to_list openshift-enterprise-haproxy-router-docker
+        add_to_list openshift-enterprise-node-docker
+        add_to_list openshift-enterprise-recycler-docker
+        add_to_list openshift-enterprise-sti-builder-docker
+        add_to_list openshift-enterprise-docker-builder-docker
       fi
       ;;
     sti)
@@ -136,7 +142,7 @@ add_group_to_list() {
       ;;
     logging)
       add_to_list logging-auth-proxy-docker
-      if [ ${MAJOR_RELEASE} == "3.3" ] ; then
+      if ! [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
         add_to_list logging-curator-docker
       fi
       add_to_list logging-deployment-docker
@@ -144,24 +150,17 @@ add_group_to_list() {
       add_to_list logging-fluentd-docker
       add_to_list logging-kibana-docker
       ;;
+    jenkins)
+      add_to_list openshift-jenkins-docker
+      add_to_list jenkins-slave-base-rhel7-docker
+      add_to_list jenkins-slave-maven-rhel7-docker
+      add_to_list jenkins-slave-nodejs-rhel7-docker
+      ;;
     metrics)
       add_to_list metrics-cassandra-docker
       add_to_list metrics-deployer-docker
       add_to_list metrics-hawkular-metrics-docker
       add_to_list metrics-heapster-docker
-      ;;
-    rhscl)
-      add_to_list rh-mariadb100-docker
-      add_to_list rh-mongodb26-docker
-      add_to_list rh-mysql56-docker
-      add_to_list rh-passenger40-docker
-      add_to_list rh-perl520-docker
-      add_to_list rh-php56-docker
-      add_to_list rh-postgresql94-docker
-      add_to_list rh-python34-docker
-      add_to_list rh-ror41-docker
-      add_to_list rh-ruby22-docker
-      add_to_list s2i-base-docker
       ;;
   esac
 }
@@ -498,6 +497,15 @@ show_yaml() {
   popd >/dev/null
 }
 
+add_errata_build() {
+  pushd "${workingdir}/${container}" >/dev/null
+  package_version=`grep Version= Dockerfile | cut -d'"' -f2`
+  package_release=`grep Release= Dockerfile | cut -d'"' -f2`
+  echo "Adding ${container}-${package_version}-${package_release} to errata ${ERRATA_ID} ${ERRATA_PRODUCT_VERSION} ..."
+  ${SCRIPT_HOME}/et_add_image ${ERRATA_ID} ${ERRATA_PRODUCT_VERSION} ${container}-${package_version}-${package_release}
+  popd >/dev/null
+}
+
 function push_image {
    docker push $1
    if [ $? -ne 0 ]; then
@@ -505,8 +513,10 @@ function push_image {
 To login, visit https://api.qe.openshift.com/oauth/token/request then
   docker login -e USERID@redhat.com -u USERID@redhat.com -p TOKEN https://registry.qe.redhat.com
 "
+     echo "::${1}::" >> ${workingdir}/logs/buildfailed
      exit 1
    fi
+   echo "::${1}::" >> ${workingdir}/logs/finished
 }
 
 start_push_image() {
@@ -518,25 +528,35 @@ start_push_image() {
   if ! [ "${update_release}" == "TRUE" ] ; then
     release_version=`grep Release= Dockerfile | cut -d'"' -f2`
   fi
+  START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
   echo "====================================================" >>  ${workingdir}/logs/push.image.log
-  echo "  ${container} ${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
-  echo "    START: $(date +"%Y-%m-%d %H:%M:%S")" | tee -a ${workingdir}/logs/push.image.log
+  echo "  ${container} ${package_name}:${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
+  echo "    START: ${START_TIME}" | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
-  docker pull ${PULL_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
-  echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}"
-  docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  # Push ${package_name}:${version_version}-${release_version} ie: openshift3/metrics-cassandra:3.3.0-7
+  echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
+  docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   if ! [ "${NOTLATEST}" == "TRUE" ] ; then
+    # Push ${package_name}:latest ie: openshift3/metrics-cassandra:latest
     echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest"
-    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+    docker tag  ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
   fi
   if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
+    # Push ${package_name}:${version_version} ie: openshift3/metrics-cassandra:3.3.0
+    echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}"
+    docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
+    echo | tee -a ${workingdir}/logs/push.image.log
+    push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
+    echo | tee -a ${workingdir}/logs/push.image.log
+    # Push ${package_name}:${version_trim} ie: openshift3/metrics-cassandra:v3.3
     version_check=`echo ${version_version} | cut -c1-3`
     case ${version_check} in
       v3. )
@@ -548,7 +568,7 @@ start_push_image() {
     for version_trim in ${version_trim_list}
     do
       echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}"
-      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+      docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
@@ -557,24 +577,27 @@ start_push_image() {
   if ! [ "${alt_name}" == "" ] ; then
     if [ "${VERBOSE}" == "TRUE" ] ; then
       echo "----------"
-      echo "docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version}"
+      echo "docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version}"
       echo "push_image ${PUSH_REGISTRY}/${alt_name}:${version_version}"
       echo "----------"
     fi
     echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} "
-    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
       echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest "
-      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
     fi
   fi
-  echo "    END: $(date +"%Y-%m-%d %H:%M:%S")" | tee -a ${workingdir}/logs/push.image.log
+  STOP_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+  echo | tee -a ${workingdir}/logs/push.image.log
+  echo "FINISHED: ${container} START TIME: ${START_TIME}  STOP TIME: ${STOP_TIME}" | tee -a ${workingdir}/logs/push.image.log
+  echo | tee -a ${workingdir}/logs/push.image.log
   popd >/dev/null
 }
 
@@ -652,6 +675,13 @@ build_yaml() {
   popd >/dev/null
 }
 
+update_errata() {
+  pushd "${workingdir}" >/dev/null
+  setup_dist_git
+  add_errata_build
+  popd >/dev/null
+}
+
 push_images() {
   pushd "${workingdir}" >/dev/null
   setup_dist_git
@@ -675,7 +705,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    git_compare | docker_update | build_container | make_yaml | docker_backfill | push_images | update_compare | test)
+    git_compare | docker_update | build_container | make_yaml | docker_backfill | push_images | update_compare | update_errata | test)
       export action="${key}"
       ;;
     list)
@@ -724,6 +754,14 @@ case $key in
       BUILD_REPO="$2"
       shift
       ;;
+    --errata_id)
+      ERRATA_ID="$2"
+      shift
+      ;;
+    --errata_pv)
+      ERRATA_PRODUCT_VERSION="$2"
+      shift
+      ;;
     --pull_reg)
       PULL_REGISTRY="$2"
       shift
@@ -739,11 +777,11 @@ case $key in
     -d|--dep|--deps|--dependents)
       export DEPENDENTS="TRUE"
     ;;
-    -n|--nochannel)
+    --nochannel | --notchannel)
       export NOCHANNEL="TRUE"
       export NOTLATEST="TRUE"
     ;;
-    --notlatest)
+    --nolatest | --notlatest)
       export NOTLATEST="TRUE"
     ;;
     -v|--verbose)
@@ -909,6 +947,13 @@ do
         build_yaml
       fi
       ;;
+    update_errata )
+      if ! [ -f ${SCRIPT_HOME}/et_add_image ] ; then
+        echo "./et_add_image required"
+        exit 3
+      fi
+      update_errata
+      ;;
     push_images )
       echo "=== ${container} ==="
       export brew_name=$(echo "${dict_image_name[${container}]}" | awk '{print $1}')
@@ -938,6 +983,17 @@ case "$action" in
     echo "Good Builds: ${BUILD_SUCCESS}"
     echo "Fail Builds: ${BUILD_FAIL}"
     cat ${workingdir}/logs/buildfailed | cut -d':' -f3
+    ;;
+  push_images )
+    BUILD_TOTAL=`cat ${workingdir}/logs/finished | wc -l`
+    let BUILD_TOTAL=${BUILD_TOTAL}-1
+    BUILD_FAIL=`cat ${workingdir}/logs/buildfailed | wc -l`
+    let BUILD_SUCCESS=${BUILD_TOTAL}-${BUILD_FAIL}
+    echo "===== PUSH RESULTS ====="
+    echo "Total Pushes: ${BUILD_TOTAL}"
+    echo "Good Pushes: ${BUILD_SUCCESS}"
+    echo "Fail Pushes: ${BUILD_FAIL}"
+    cat ${workingdir}/logs/buildfailed | cut -d':' -f3-4
     ;;
   docker_backfill )
     pushd ${workingdir}/ose >/dev/null
