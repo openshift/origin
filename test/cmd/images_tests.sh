@@ -51,6 +51,31 @@ os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success_and_text 'oc get istag' 'wildfly'
 
+# https://github.com/openshift/origin/issues/10402
+# Make sure that switching from a reference tag to a non-reference tag properly
+# updates the generation.
+# We will move the 'latest' tag to point at the same reference as '8.1'.
+orig_spec_tag_generation="$(oc get imagestreams/wildfly --template='{{range .spec.tags}}{{ if eq .name "latest"}}{{ .generation }}{{end}}{{end}}')"
+reference_81="$(oc get imagestreams/wildfly --template='{{range .status.tags}}{{ if eq .tag "8.1"}}{{ $item:=index .items 0}}{{$item.dockerImageReference}}{{end}}{{end}}')"
+
+# https://github.com/openshift/origin/issues/10402
+# Make latest a --reference to 8.1
+os::cmd::expect_success "oc tag --source=docker '${reference_81}' --reference wildfly:latest"
+reference_spec_tag_generation="$(oc get imagestreams/wildfly --template='{{range .spec.tags}}{{ if eq .name "latest"}}{{ .generation }}{{end}}{{end}}')"
+os::cmd::expect_success 'test $reference_spec_tag_generation -gt $orig_spec_tag_generation'
+os::cmd::try_until_text "oc get imagestreams/wildfly --template='{{range .status.tags}}{{ if eq .tag \"latest\"}}{{ \$item:=index .items 0}}{{\$item.generation}}{{end}}{{end}}'" "${reference_spec_tag_generation}"
+
+# https://github.com/openshift/origin/issues/10402
+# Remove --reference
+os::cmd::expect_success 'oc tag --source=docker openshift/wildfly-81-centos7 wildfly:latest'
+# Removing --reference increments the generation for the spec by two, so wait until it settles
+os::cmd::try_until_text "oc get imagestreams/wildfly --template='{{range .spec.tags}}{{ if eq .name \"latest\"}}{{ .generation }}{{end}}{{end}}'" "$((reference_spec_tag_generation+2))"
+
+nonreference_spec_tag_generation="$(oc get imagestreams/wildfly --template='{{range .spec.tags}}{{ if eq .name "latest"}}{{ .generation }}{{end}}{{end}}')"
+os::cmd::expect_success 'test $nonreference_spec_tag_generation -gt $reference_spec_tag_generation'
+oc get imagestreams/wildfly --template='{{range .status.tags}}{{ if eq .tag "latest"}}{{ $item:=index .items 0}}{{$item.generation}}{{end}}{{end}}'
+os::cmd::try_until_text "oc get imagestreams/wildfly --template='{{range .status.tags}}{{ if eq .tag \"latest\"}}{{ \$item:=index .items 0}}{{\$item.generation}}{{end}}{{end}}')" "${nonreference_spec_tag_generation}"
+
 # create an image stream and post a mapping to it
 os::cmd::expect_success 'oc create imagestream test'
 os::cmd::expect_success 'oc create -f test/testdata/mysql-image-stream-mapping.yaml'
@@ -66,9 +91,9 @@ os::cmd::expect_success "oc annotate --context='${cluster_admin_context}' --over
 os::cmd::expect_failure_and_text "oc run vulnerable --image=${repository}:new --restart=Never" 'spec.containers\[0\].image: Forbidden: this image is prohibited by policy'
 
 # test image stream tag operations
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.generation}' '2'
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'ImageStreamTag'
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' '10.0'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.generation}' '5'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'DockerImage'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' 'openshift/wildfly-81-centos7'
 os::cmd::expect_success 'oc annotate istag/wildfly:latest foo=bar'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo}' 'bar'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.annotations.foo}' 'bar'
