@@ -115,7 +115,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdRollback(fullName, f, out),
 				cmd.NewCmdNewBuild(fullName, f, in, out),
 				cmd.NewCmdStartBuild(fullName, f, in, out),
-				cmd.NewCmdCancelBuild(fullName, f, in, out),
+				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, in, out),
 				cmd.NewCmdImportImage(fullName, f, out),
 				cmd.NewCmdTag(fullName, f, out),
 			},
