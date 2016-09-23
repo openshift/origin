@@ -173,11 +173,6 @@ type RollingDeploymentStrategyParams struct {
 	// pods running at any time during the update is atmost 130% of original
 	// pods.
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,5,opt,name=maxSurge"`
-	// UpdatePercent is the percentage of replicas to scale up or down each
-	// interval. If nil, one replica will be scaled up and down each interval.
-	// If negative, the scale order will be down/up instead of up/down.
-	// DEPRECATED: Use MaxUnavailable/MaxSurge instead.
-	UpdatePercent *int32 `json:"updatePercent,omitempty" protobuf:"varint,6,opt,name=updatePercent"`
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook `json:"pre,omitempty" protobuf:"bytes,7,opt,name=pre"`
