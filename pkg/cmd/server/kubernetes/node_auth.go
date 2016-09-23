@@ -125,6 +125,9 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 	// Override verb/resource for specific paths
 	// Updates to these rules require updating NodeAdminRole and NodeReaderRole in bootstrap policy
 	switch {
+	case isSubpath(r, "/spec"):
+		attrs.Verb = apiVerb
+		attrs.Resource = authorizationapi.NodeSpecResource
 	case isSubpath(r, "/stats"):
 		attrs.Verb = apiVerb
 		attrs.Resource = authorizationapi.NodeStatsResource

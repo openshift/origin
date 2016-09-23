@@ -61,7 +61,7 @@ func (c *FakeBuilds) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 }
 
 func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	action := ktestclient.NewCreateAction("buildconfigs", c.Namespace, request)
+	action := ktestclient.NewCreateAction("builds", c.Namespace, request)
 	action.Subresource = "clone"
 	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
 	if obj == nil {

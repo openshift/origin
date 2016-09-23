@@ -1,8 +1,6 @@
 package imagestreamimage
 
 import (
-	"github.com/docker/distribution/digest"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -55,7 +53,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	if repo.Status.Tags == nil {
-		return nil, errors.NewNotFound(api.Resource("imagestreamimage"), imageID)
+		return nil, errors.NewNotFound(api.Resource("imagestreamimage"), id)
 	}
 
 	event, err := api.ResolveImageID(repo, imageID)
@@ -73,17 +71,10 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 	image.DockerImageManifest = ""
 
-	if d, err := digest.ParseDigest(imageName); err == nil {
-		imageName = d.Hex()
-	}
-	if len(imageName) > 7 {
-		imageName = imageName[:7]
-	}
-
 	isi := api.ImageStreamImage{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: kapi.NamespaceValue(ctx),
-			Name:      api.MakeImageStreamImageName(name, imageName),
+			Name:      api.MakeImageStreamImageName(name, imageID),
 		},
 		Image: *image,
 	}

@@ -1,6 +1,7 @@
 package create
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 	"strings"
@@ -27,8 +28,8 @@ Create a cluster resource quota that controls certain resources.
 
 Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.`
 
-	clusterQuotaExample = `  # Create an cluster resource quota limited to 10 pods
-  %[1]s limit-bob --project-label-selector=openshift.io/requester=user-bob --hard=pods=10`
+	clusterQuotaExample = `  # Create a cluster resource quota limited to 10 pods
+  %[1]s limit-bob --project-annotation-selector=openshift.io/requester=user-bob --hard=pods=10`
 )
 
 type CreateClusterQuotaOptions struct {
@@ -80,12 +81,9 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 		}
 	}
 
-	annotationSelector, err := unversioned.ParseToLabelSelector(cmdutil.GetFlagString(cmd, "project-annotation-selector"))
+	annotationSelector, err := parseAnnotationSelector(cmdutil.GetFlagString(cmd, "project-annotation-selector"))
 	if err != nil {
 		return err
-	}
-	if len(annotationSelector.MatchExpressions) > 0 {
-		return fmt.Errorf("only simple equality selection predicates are allowed for annotation selectors")
 	}
 
 	o.ClusterQuota = &quotaapi.ClusterResourceQuota{
@@ -93,7 +91,7 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 		Spec: quotaapi.ClusterResourceQuotaSpec{
 			Selector: quotaapi.ClusterResourceQuotaSelector{
 				LabelSelector:      labelSelector,
-				AnnotationSelector: annotationSelector.MatchLabels,
+				AnnotationSelector: annotationSelector,
 			},
 			Quota: kapi.ResourceQuotaSpec{
 				Hard: kapi.ResourceList{},
@@ -160,4 +158,27 @@ func (o *CreateClusterQuotaOptions) Run() error {
 	}
 
 	return o.Printer(actualObj, o.Out)
+}
+
+// parseAnnotationSelector just parses key=value,key=value=...,
+// further validation is left to be done server-side.
+func parseAnnotationSelector(s string) (map[string]string, error) {
+	if len(s) == 0 {
+		return nil, nil
+	}
+	stringReader := strings.NewReader(s)
+	csvReader := csv.NewReader(stringReader)
+	annotations, err := csvReader.Read()
+	if err != nil {
+		return nil, err
+	}
+	parsed := map[string]string{}
+	for _, annotation := range annotations {
+		parts := strings.SplitN(annotation, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("Malformed annotation selector, expected %q: %s", "key=value", annotation)
+		}
+		parsed[parts[0]] = parts[1]
+	}
+	return parsed, nil
 }

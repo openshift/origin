@@ -65,7 +65,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:5.6",
+                "name": "mysql:${MYSQL_VERSION}",
                 "namespace": "${NAMESPACE}"
               }
             }
@@ -199,6 +199,13 @@
       "displayName": "Volume Capacity",
       "description": "Volume space available for data, e.g. 512Mi, 2Gi.",
       "value": "1Gi",
+      "required": true
+    },
+    {
+      "name": "MYSQL_VERSION",
+      "displayName": "Version of MySQL Image",
+      "description": "Version of MySQL image to be used (5.5, 5.6 or latest).",
+      "value": "5.6",
       "required": true
     }
   ],

@@ -7,6 +7,9 @@ if [[ -z "$(which protoc)" || "$(protoc --version)" != "libprotoc 3.0."* ]]; the
   echo
   echo "  https://github.com/google/protobuf/releases"
   echo
+  if [[ "${PROTO_OPTIONAL:-}" == "1" ]]; then
+    exit 0
+  fi
   exit 1
 fi
 
