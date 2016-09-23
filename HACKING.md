@@ -499,7 +499,7 @@ OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://s
 
     $ openshift start --cors-allowed-origins=.*
 
-and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1 to see the schemas (and to try the API directly).
+and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1 to see the schemas (and to try the API directly). Additionally, you can download swagger-ui from http://swagger.io/swagger-ui/ and use it to point to your local swagger API endpoint.
 
 Note: Hosted API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
 
