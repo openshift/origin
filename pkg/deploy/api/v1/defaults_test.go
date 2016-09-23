@@ -163,7 +163,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt32(50),
+							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -181,7 +181,6 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt32(50),
 							MaxSurge:            newIntOrString(intstr.FromString("50%")),
 							MaxUnavailable:      newIntOrString(intstr.FromInt(0)),
 						},
@@ -203,7 +202,7 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt32(-25),
+							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
 					},
 					Triggers: []deployv1.DeploymentTriggerPolicy{
@@ -221,7 +220,6 @@ func TestDefaults(t *testing.T) {
 							UpdatePeriodSeconds: newInt64(5),
 							IntervalSeconds:     newInt64(6),
 							TimeoutSeconds:      newInt64(7),
-							UpdatePercent:       newInt32(-25),
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
@@ -309,6 +307,10 @@ func TestDeepDefaults(t *testing.T) {
 					return false
 				}
 				if *obj.Spec.Strategy.RollingParams.TimeoutSeconds != deployapi.DefaultRollingTimeoutSeconds {
+					return false
+				}
+				if obj.Spec.Strategy.RollingParams.MaxSurge.String() != "25%" ||
+					obj.Spec.Strategy.RollingParams.MaxUnavailable.String() != "25%" {
 					return false
 				}
 				return true
