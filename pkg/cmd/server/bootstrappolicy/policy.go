@@ -217,7 +217,16 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("create").Groups(buildGroup).Resources(authorizationapi.JenkinsPipelineBuildResource).RuleOrDie(),
 			},
 		},
-
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: StorageAdminRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule(readWrite...).Groups(kapiGroup).Resources("persistentvolumes", "persistentvolumes/status").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
+			},
+		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: AdminRoleName,
@@ -388,6 +397,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("get").Groups(userGroup).Resources("users").Names("~").RuleOrDie(),
 				authorizationapi.NewRule("list").Groups(projectGroup).Resources("projectrequests").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(authzGroup).Resources("clusterroles").RuleOrDie(),
+				authorizationapi.NewRule("list").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 				authorizationapi.NewRule("list", "watch").Groups(projectGroup).Resources("projects").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("selfsubjectrulesreviews").RuleOrDie(),
 				{Verbs: sets.NewString("create"), APIGroups: []string{authzGroup}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
@@ -626,6 +636,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// TODO: change glusterfs to use DNS lookup so this isn't needed?
 				// Needed for glusterfs volumes
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
+				// Needed for Dynamic Provisioning
+				authorizationapi.NewRule("get").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 			},
 		},
 
