@@ -134,7 +134,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/deployments/setimage"
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=myshinynewimage'
+os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=myshinynewimage --source=docker'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" "myshinynewimage"
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "set image: ok"

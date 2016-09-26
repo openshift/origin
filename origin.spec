@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5e4362ce9cf878235ba85a6d7ad32307cc1c2ba5
+%global commit 901941d37465165eedc69dafddcf67701a27e37f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.2
+Version:        3.4.0.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,22 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Sep 26 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.3
+- The VS and dot is seprated (yu.peng36@zte.com.cn)
+- add wildfly 10.1 spec (ch.raaflaub@gmail.com)
+- fix deployment extended test condition (mfojtik@redhat.com)
+- extended: Added new image pruning test (miminar@redhat.com)
+- extended: Allow to re-deploy registry pod (miminar@redhat.com)
+- Prune image configs of manifests V2 schema 2 (miminar@redhat.com)
+- extended: Fix binary build helper (miminar@redhat.com)
+- Renamed LayerDeleter to LayerLinkDeleter (miminar@redhat.com)
+- fix panic when deployment is nil in describe (mfojtik@redhat.com)
+- make oc set image resolve image stream images and tags using --source flag
+  (mfojtik@redhat.com)
+- UPSTREAM: 33083: Add ResolveImage function to CLI factory
+  (mfojtik@redhat.com)
+- add test case for function pushImage (li.guangxu@zte.com.cn)
+
 * Fri Sep 23 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.2
 - extended: fix latest deployment test flakes (mkargaki@redhat.com)
 - verify and update protobufs in make verify/update (bparees@redhat.com)

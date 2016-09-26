@@ -145,21 +145,18 @@ func BuildAndPushImageOfSizeWithBuilder(
 	}
 
 	br, _ := exutil.StartBuildAndWait(oc, name, "--from-dir", tempDir)
-	br.AssertSuccess()
+	if shouldSucceed {
+		br.AssertSuccess()
+	} else {
+		br.AssertFailure()
+	}
 	buildLog, logsErr := br.Logs()
 
 	if match := reSuccessfulBuild.FindStringSubmatch(buildLog); len(match) > 1 {
 		defer dClient.RemoveImageExtended(match[1], dockerclient.RemoveImageOptions{Force: true})
 	}
 
-	if shouldSucceed && err != nil {
-		return fmt.Errorf("Got unexpected build error: %v", err)
-	}
-
 	if !shouldSucceed {
-		if err == nil {
-			return fmt.Errorf("Build unexpectedly succeeded")
-		}
 		if logsErr != nil {
 			return fmt.Errorf("Failed to show log of build config %s: %v", name, err)
 		}
@@ -224,18 +221,17 @@ func BuildAndPushImageOfSizeWithDocker(
 
 	image, err := dClient.InspectImage(taggedName)
 	if err != nil {
-		return "", err
+		return
 	}
 
 	defer dClient.RemoveImageExtended(image.ID, dockerclient.RemoveImageOptions{Force: true})
-	digest := ""
 	if len(image.RepoDigests) == 1 {
-		digest = image.RepoDigests[0]
+		imageDigest = image.RepoDigests[0]
 	}
 
 	out, err := oc.Run("whoami").Args("-t").Output()
 	if err != nil {
-		return "", err
+		return
 	}
 	token := strings.TrimSpace(out)
 
@@ -258,15 +254,15 @@ func BuildAndPushImageOfSizeWithDocker(
 		if err != nil {
 			return "", fmt.Errorf("Got unexpected push error: %v", err)
 		}
-		if len(digest) == 0 {
+		if len(imageDigest) == 0 {
 			outSink.Write([]byte("matching digest string\n"))
 			match := rePushedImageDigest.FindStringSubmatch(out)
 			if len(match) < 2 {
-				return "", fmt.Errorf("Failed to parse digest")
+				return imageDigest, fmt.Errorf("Failed to parse digest")
 			}
-			digest = match[1]
+			imageDigest = match[1]
 		}
-		return digest, nil
+		return
 	}
 
 	if err == nil {
