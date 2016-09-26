@@ -83,5 +83,9 @@ func NewCmdImage(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	cmd := set.NewCmdImage(f.Factory, out)
 	cmd.Long = setImageLong
 	cmd.Example = fmt.Sprintf(setImageExample, fullName)
+
+	flags := cmd.Flags()
+	f.ImageResolutionOptions.Bind(flags)
+
 	return cmd
 }

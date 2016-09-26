@@ -105,6 +105,9 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 				deployment = &item
 			}
 		}
+		if deployment == nil {
+			isNotDeployed = true
+		}
 
 		if isNotDeployed {
 			formatString(out, "Latest Deployment", "<none>")
