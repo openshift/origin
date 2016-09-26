@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -606,6 +607,42 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
 }
 
+// compareResourceControllerNames compares names of two resource controllers. It returns:
+//  -1 if rc a is older than b
+//   1 if rc a is newer than b
+//   0 if their names are the same
+func compareResourceControllerNames(a, b string) int {
+	var reDeploymentConfigName = regexp.MustCompile(`^(.*)-(\d+)$`)
+	am := reDeploymentConfigName.FindStringSubmatch(a)
+	bm := reDeploymentConfigName.FindStringSubmatch(b)
+
+	if len(am) == 0 || len(bm) == 0 {
+		switch {
+		case a < b:
+			return -1
+		case a > b:
+			return 1
+		default:
+			return 0
+		}
+	}
+
+	aname, averstr := am[0], am[1]
+	bname, bverstr := bm[0], bm[1]
+
+	aver, _ := strconv.Atoi(averstr)
+	bver, _ := strconv.Atoi(bverstr)
+
+	switch {
+	case aname < bname || (aname == bname && aver < bver):
+		return -1
+	case bname < aname || (bname == aname && bver < aver):
+		return 1
+	default:
+		return 0
+	}
+}
+
 // WaitForADeployment waits for a deployment to fulfill either isOK or isFailed.
 // When isOK returns true, WaitForADeployment returns nil, when isFailed returns
 // true, WaitForADeployment returns an error including the deployment status.
@@ -648,8 +685,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 				lastRC = &rc
 				continue
 			}
-			// assuming won't have to deal with more than 9 deployments
-			if lastRC.GetName() <= rc.GetName() {
+			if compareResourceControllerNames(lastRC.GetName(), rc.GetName()) <= 0 {
 				lastRC = &rc
 			}
 		}
@@ -673,17 +709,19 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 					// watcher error, re-get and re-watch
 					return nil, true
 				}
-				if rc, ok := val.Object.(*kapi.ReplicationController); ok {
-					if lastRC == nil {
-						lastRC = rc
-					}
-					// multiple deployments are conceivable; so we look to see how the latest depoy does
-					if lastRC.GetName() <= rc.GetName() {
-						lastRC = rc
-						err, matched := okOrFailed(rc)
-						if matched {
-							return err, false
-						}
+				rc, ok := val.Object.(*kapi.ReplicationController)
+				if !ok {
+					continue
+				}
+				if lastRC == nil {
+					lastRC = rc
+				}
+				// multiple deployments are conceivable; so we look to see how the latest deployment does
+				if compareResourceControllerNames(lastRC.GetName(), rc.GetName()) <= 0 {
+					lastRC = rc
+					err, matched := okOrFailed(rc)
+					if matched {
+						return err, false
 					}
 				}
 			case <-done:
@@ -723,6 +761,63 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface, name stri
 // WaitForADeploymentToComplete waits for a deployment to complete.
 func WaitForADeploymentToComplete(client kclient.ReplicationControllerInterface, name string, oc *CLI) error {
 	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn, oc)
+}
+
+// WaitForRegistry waits until a newly deployed registry becomes ready. If waitForDCVersion is given, the
+// function will wait until a corresponding replica controller completes. If not give, the latest version of
+// registry's deployment config will be fetched from etcd.
+func WaitForRegistry(
+	dcNamespacer client.DeploymentConfigsNamespacer,
+	kubeClient kclient.Interface,
+	waitForDCVersion *int64,
+	oc *CLI,
+) error {
+	var latestVersion int64
+	start := time.Now()
+
+	if waitForDCVersion != nil {
+		latestVersion = *waitForDCVersion
+	} else {
+		dc, err := dcNamespacer.DeploymentConfigs(kapi.NamespaceDefault).Get("docker-registry")
+		if err != nil {
+			return err
+		}
+		latestVersion = dc.Status.LatestVersion
+	}
+	fmt.Fprintf(g.GinkgoWriter, "waiting for deployment of version %d to complete\n", latestVersion)
+
+	err := WaitForADeployment(kubeClient.ReplicationControllers(kapi.NamespaceDefault), "docker-registry",
+		func(rc *kapi.ReplicationController) bool {
+			if !CheckDeploymentCompletedFn(rc) {
+				return false
+			}
+			v, err := strconv.ParseInt(rc.Annotations[deployapi.DeploymentVersionAnnotation], 10, 64)
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "failed to parse %q of replication controller %q: %v\n", deployapi.DeploymentVersionAnnotation, rc.Name, err)
+				return false
+			}
+			return v >= latestVersion
+		},
+		func(rc *kapi.ReplicationController) bool {
+			v, err := strconv.ParseInt(rc.Annotations[deployapi.DeploymentVersionAnnotation], 10, 64)
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "failed to parse %q of replication controller %q: %v\n", deployapi.DeploymentVersionAnnotation, rc.Name, err)
+				return false
+			}
+			if v < latestVersion {
+				return false
+			}
+			return CheckDeploymentFailedFn(rc)
+		}, oc)
+	if err != nil {
+		return err
+	}
+
+	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, sets.NewString(fmt.Sprintf("docker-registry-%d", latestVersion)))
+	pods, err := WaitForPods(kubeClient.Pods(kapi.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
+	now := time.Now()
+	fmt.Fprintf(g.GinkgoWriter, "deployed registry pod %s after %s\n", pods[0], now.Sub(start).String())
+	return err
 }
 
 func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {
@@ -867,6 +962,20 @@ var CheckPodIsRunningFn = func(pod kapi.Pod) bool {
 // CheckPodIsSucceededFn returns true if the pod status is "Succdeded"
 var CheckPodIsSucceededFn = func(pod kapi.Pod) bool {
 	return pod.Status.Phase == kapi.PodSucceeded
+}
+
+// CheckPodIsReadyFn returns true if the pod's ready probe determined that the pod is ready.
+var CheckPodIsReadyFn = func(pod kapi.Pod) bool {
+	if pod.Status.Phase != kapi.PodRunning {
+		return false
+	}
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type != kapi.PodReady {
+			continue
+		}
+		return cond.Status == kapi.ConditionTrue
+	}
+	return false
 }
 
 // WaitUntilPodIsGone waits until the named Pod will disappear
