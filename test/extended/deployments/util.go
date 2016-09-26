@@ -297,7 +297,11 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 	}
 	generation := dc.Generation
 	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
-		return deployutil.HasSynced(dc, generation), nil
+		config, err := oc.REST().DeploymentConfigs(oc.Namespace()).Get(name)
+		if err != nil {
+			return false, err
+		}
+		return deployutil.HasSynced(config, generation), nil
 	})
 }
 
