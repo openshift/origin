@@ -127,6 +127,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	cmd.Flags().StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
 	cmd.Flags().StringVar(&config.Image, "image", "openshift/origin", "Specify the images to use for OpenShift")
+	cmd.Flags().StringVar(&config.ServerIP, "server-ip", "", "Specify the ip address to use for OpenShift server. Otherwise it will be discovered.")
 	cmd.Flags().BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	cmd.Flags().StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	cmd.Flags().StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
@@ -741,6 +742,20 @@ func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, *doc
 }
 
 func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
+        if len(c.ServerIP) > 0 {
+		if ip := net.ParseIP(c.ServerIP); ip != nil && !ip.IsUnspecified() {
+			otherIPs, err := cmdutil.AllLocalIP4()
+			if err == nil {
+				for _, ip4 := range otherIPs {
+					if ip4.String() == ip.String() {
+						return ip.String(), nil
+					}
+				}
+			}
+		}
+		return "", errors.NewError("Could not use provided server IP address").WithSolution("Ensure that you provided an existing IP address of this host.")
+	}
+
 	if ip := net.ParseIP(c.PublicHostname); ip != nil && !ip.IsUnspecified() {
 		fmt.Fprintf(out, "Using public hostname IP %s as the host IP\n", ip)
 		return ip.String(), nil
