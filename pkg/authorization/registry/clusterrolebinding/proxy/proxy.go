@@ -35,6 +35,7 @@ func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Re
 			RuleResolver:   ruleResolver,
 			CreateStrategy: rolebindingregistry.ClusterStrategy,
 			UpdateStrategy: rolebindingregistry.ClusterStrategy,
+			Resource:       authorizationapi.Resource("clusterrolebinding"),
 		},
 	}
 }
