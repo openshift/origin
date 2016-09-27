@@ -47,11 +47,9 @@ items:
       name: apiserver
       ports:
       - containerPort: 443
-        hostPort: 443
         name: https
         protocol: TCP
       - containerPort: 8080
-        hostPort: 8080
         name: local
         protocol: TCP
       resources:
@@ -119,11 +117,9 @@ items:
       name: etcd
       ports:
       - containerPort: 2380
-        hostPort: 2380
         name: serverport
         protocol: TCP
       - containerPort: 2379
-        hostPort: 2379
         name: clientport
         protocol: TCP
       resources:

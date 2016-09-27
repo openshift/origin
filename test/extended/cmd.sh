@@ -176,3 +176,15 @@ os::cmd::expect_success_and_text 'oc logs pods/centos' "Welcome to nginx"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "extended/cmd/oc-on-kube"
+os::cmd::expect_success "oc login -u system:admin -n default"
+os::cmd::expect_success "oc new-project kube"
+os::cmd::expect_success "oc create -f test/testdata/kubernetes-server/apiserver.yaml"
+os::cmd::try_until_text "oc get pods/kube-apiserver -o 'jsonpath={.status.conditions[?(@.type == "Ready")].status}'" "True"
+os::cmd::try_until_text "oc get pods/kube-apiserver -o 'jsonpath={.status.podIP}'" "172"
+kube_ip="$(oc get pods/kube-apiserver -o 'jsonpath={.status.podIP}')"
+kube_kubectl="${tmp}/kube-kubeconfig"
+os::cmd::try_until_text "oc login --config ${kube_kubectl}../kube-kubeconfig https://${kube_ip}:443 --token=secret --insecure-skip-tls-verify=true --loglevel=8" ' as "secret" using the token provided.'
+os::test::junit::declare_suite_end
+
