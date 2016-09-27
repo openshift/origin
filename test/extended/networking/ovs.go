@@ -134,6 +134,7 @@ var _ = Describe("[networking] OVS", func() {
 			}
 			node, err = f1.Client.Nodes().Create(node)
 			Expect(err).NotTo(HaveOccurred())
+			defer f1.Client.Nodes().Delete(node.Name)
 
 			osClient, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
 			Expect(err).NotTo(HaveOccurred())
@@ -174,7 +175,7 @@ var _ = Describe("[networking] OVS", func() {
 				Expect(reflect.DeepEqual(origFlows[nodeName], otherFlows)).To(BeTrue(), "Flows should be unchanged except for the new node")
 			}
 
-			err = f1.Client.Nodes().Delete(nodeName)
+			err = f1.Client.Nodes().Delete(node.Name)
 			Expect(err).NotTo(HaveOccurred())
 			e2e.Logf("Waiting up to %v for HostSubnet to be deleted", hostSubnetTimeout)
 			for start := time.Now(); time.Since(start) < hostSubnetTimeout; time.Sleep(time.Second) {
