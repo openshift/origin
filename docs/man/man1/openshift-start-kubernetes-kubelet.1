@@ -74,6 +74,14 @@ starting from a configuration file.
     Domain for this cluster.  If set, kubelet will configure all containers to search this domain in addition to the host's search domains
 
 .PP
+\fB\-\-cni\-bin\-dir\fP=""
+    <Warning: Alpha feature> The full path of the directory in which to search for CNI plugin binaries. Default: /opt/cni/bin
+
+.PP
+\fB\-\-cni\-conf\-dir\fP=""
+    <Warning: Alpha feature> The full path of the directory in which to search for CNI config files. Default: /etc/cni/net.d
+
+.PP
 \fB\-\-config\fP=""
     Path to to the directory containing pod manifest files to run, or the path to a single pod manifest file.
 
@@ -316,8 +324,8 @@ DynamicVolumeProvisioning=true|false (ALPHA \- default=true)
     <Warning: Alpha feature> The name of the network plugin to be invoked for various events in kubelet/pod lifecycle
 
 .PP
-\fB\-\-network\-plugin\-dir\fP="/usr/libexec/kubernetes/kubelet\-plugins/net/exec/"
-    <Warning: Alpha feature> The full path of the directory in which to search for network plugins
+\fB\-\-network\-plugin\-dir\fP=""
+    <Warning: Alpha feature> The full path of the directory in which to search for network plugins or CNI config
 
 .PP
 \fB\-\-network\-plugin\-mtu\fP=0
