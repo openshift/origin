@@ -431,8 +431,8 @@ func newSigningCertificateTemplate(subject pkix.Name) (*x509.Certificate, error)
 
 		SignatureAlgorithm: x509.SHA256WithRSA,
 
-		NotBefore:    time.Now().Add(-1 * time.Second),
-		NotAfter:     time.Now().Add(caLifetime),
+		NotBefore:    time.Now().UTC().Add(-1 * time.Second),
+		NotAfter:     time.Now().UTC().Add(caLifetime),
 		SerialNumber: big.NewInt(1),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -448,8 +448,8 @@ func newServerCertificateTemplate(subject pkix.Name, hosts []string) (*x509.Cert
 
 		SignatureAlgorithm: x509.SHA256WithRSA,
 
-		NotBefore:    time.Now().Add(-1 * time.Second),
-		NotAfter:     time.Now().Add(lifetime),
+		NotBefore:    time.Now().UTC().Add(-1 * time.Second),
+		NotAfter:     time.Now().UTC().Add(caLifetime),
 		SerialNumber: big.NewInt(1),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
@@ -518,8 +518,8 @@ func newClientCertificateTemplate(subject pkix.Name) (*x509.Certificate, error) 
 
 		SignatureAlgorithm: x509.SHA256WithRSA,
 
-		NotBefore:    time.Now().Add(-1 * time.Second),
-		NotAfter:     time.Now().Add(lifetime),
+		NotBefore:    time.Now().UTC().Add(-1 * time.Second),
+		NotAfter:     time.Now().UTC().Add(caLifetime),
 		SerialNumber: big.NewInt(1),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
