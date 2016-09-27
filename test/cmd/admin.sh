@@ -73,6 +73,8 @@ status:
 
 os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=true' 'Ready'
 os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'Sched'
+os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=false' 'SchedulingDisabled'
+os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable=true' 'SchedulingDisabled'
 echo "manage-node: ok"
 os::test::junit::declare_suite_end
 

@@ -20,7 +20,7 @@ func (s *SchedulableOptions) Run() error {
 	errList := []error{}
 	var printer kubectl.ResourcePrinter
 	for _, node := range nodes {
-		if node.Spec.Unschedulable == !s.Schedulable {
+		if node.Spec.Unschedulable == s.Schedulable {
 			node.Spec.Unschedulable = !s.Schedulable
 			node, err = s.Options.Kclient.Nodes().Update(node)
 			if err != nil {
