@@ -8,7 +8,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
@@ -24,7 +23,6 @@ import (
 func TestLogin(t *testing.T) {
 	testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t)
-	clientcmd.DefaultCluster = clientcmdapi.Cluster{Server: ""}
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 
