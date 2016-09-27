@@ -272,7 +272,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Create an OpenShift configuration and start a container that uses it.
 	c.addTask("Starting OpenShift container", c.StartOpenShift)
 
-	// Add default redirect URI to config
+	// Add default redirect URIs to an OAuthClient to enable local web-console development.
 	c.addConditionalTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs, c.ShouldInitializeData)
 
 	// Install a registry
