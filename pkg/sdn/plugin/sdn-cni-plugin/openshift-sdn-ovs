@@ -4,11 +4,13 @@ set -ex
 lock_file=/var/lock/openshift-sdn.lock
 
 action=$1
-net_container=$2
-tenant_id=$3
-ingress_bw=$4
-egress_bw=$5
-macvlan=$6
+veth_host=$2
+macaddr=$3
+ipaddr=$4
+tenant_id=$5
+ingress_bw=$6
+egress_bw=$7
+macvlan=$8
 
 lockwrap() {
     (
@@ -17,43 +19,7 @@ lockwrap() {
     ) 200>${lock_file}
 }
 
-# Retrieve the name of the host-local member of the veth pair that
-# connects the container (identified by pid) to the docker bridge.
-get_veth_host() {
-    local pid=$1
-
-    local veth_ifindex=$(nsenter -n -t $pid -- ethtool -S eth0 | sed -n -e 's/.*peer_ifindex: //p')
-    # Strip a suffix starting with '@' from the interface name.
-    # The suffixed interface name won't be recognized by brctl or ovs-*
-    ip link show | sed -ne "s/^$veth_ifindex: \([^:@]*\).*/\1/p"
-}
-
-get_ipaddr_pid_veth() {
-    network_mode=$(docker inspect --format "{{.HostConfig.NetworkMode}}" ${net_container})
-    if [ "${network_mode}" == "host" ]; then
-      # quit, nothing for the SDN here
-      exit 0
-    elif [[ "${network_mode}" =~ container:.* ]]; then
-      # Get pod infra container
-      net_container=$(echo ${network_mode} | cut -d ":" -f 2)
-    fi
-    pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
-
-    ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
-    if [ -z "$ipaddr" ]; then
-	echo "Could not find IP address for container ${net_container}"
-	exit 1
-    fi
-
-    veth_host=$(get_veth_host $pid)
-    if [ -z "$veth_host" ]; then
-	echo "Could not find host veth interface for container ${net_container}"
-	exit 1
-    fi
-}
-
 add_ovs_port() {
-    brctl delif lbr0 $veth_host
     ovs-vsctl add-port br0 ${veth_host}
 }
 
@@ -69,11 +35,6 @@ add_ovs_flows() {
     ovs_port=$(ovs-vsctl get Interface ${veth_host} ofport)
     if [ -z "$ovs_port" ]; then
 	echo "Could not find OVS port for veth device ${veth_host} of container ${net_container}"
-	exit 1
-    fi
-    macaddr=$(nsenter -n -t $pid -- ip link show dev eth0 | sed -n -e 's/.*link.ether \([^ ]*\).*/\1/p')
-    if [ -z "$macaddr" ]; then
-	echo "Could not find MAC address for container ${net_container}"
 	exit 1
     fi
 
@@ -119,15 +80,6 @@ del_ovs_flows() {
     fi
 }
 
-add_subnet_route() {
-    nsenter -n -t $pid -- ip route add $OPENSHIFT_CLUSTER_SUBNET dev eth0 proto kernel scope link src $ipaddr
-}
-
-ensure_subnet_route() {
-    nsenter -n -t $pid -- ip route del $OPENSHIFT_CLUSTER_SUBNET dev eth0 || true
-    add_subnet_route
-}
-
 add_macvlan() {
     default_dev=$(ip route show | sed -ne 's/^default .* dev \([^ ]*\) .*/\1/p')
     if [ -z "$default_dev" ]; then
@@ -139,14 +91,10 @@ add_macvlan() {
 }
 
 run() {
-    get_ipaddr_pid_veth
-    source /run/openshift-sdn/config.env
-
     case "$action" in
 	setup)
 	    add_ovs_port
 	    add_ovs_flows
-	    add_subnet_route
 	    if [ "$macvlan" = true ]; then
 		add_macvlan
 	    fi
@@ -156,7 +104,6 @@ run() {
 	    ensure_ovs_port
 	    del_ovs_flows
 	    add_ovs_flows
-	    ensure_subnet_route
 	    ;;
 
 	teardown)

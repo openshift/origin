@@ -297,16 +297,22 @@ func (registry *Registry) RunEventQueue(resourceName ResourceName, process Proce
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
 
-	lw := cache.NewListWatchFromClient(client, strings.ToLower(string(resourceName)), kapi.NamespaceAll, fields.Everything())
-	eventQueue := NewEventQueue(cache.MetaNamespaceKeyFunc)
-	// Repopulate event queue every 30 mins
-	// Existing items in the event queue will have watch.Modified event type
-	cache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
-
-	// Run the queue
+	queue := NewEventQueueForResource(client, resourceName, expectedType, fields.Everything(), nil)
 	for {
-		eventQueue.Pop(process)
+		queue.Pop(process)
 	}
+}
+
+func NewEventQueueForResource(client cache.Getter, resourceName ResourceName, expectedType interface{}, selector fields.Selector, store cache.Store) (queue *EventQueue) {
+	if store != nil {
+		queue = NewEventQueueForStore(cache.MetaNamespaceKeyFunc, store)
+	} else {
+		queue = NewEventQueue(cache.MetaNamespaceKeyFunc)
+	}
+	// Repopulate event queue every 30 mins
+	lw := cache.NewListWatchFromClient(client, strings.ToLower(string(resourceName)), kapi.NamespaceAll, selector)
+	cache.NewReflector(lw, expectedType, queue, 30*time.Minute).Run()
+	return
 }
 
 func (registry *Registry) ValidateNodeIP(nodeIP string) error {

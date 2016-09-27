@@ -17,10 +17,15 @@ readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_IMAGE_COMPILE_PLATFORMS=(
   linux/amd64
 )
+readonly OS_SDN_COMPILE_TARGETS_LINUX_AMD64=(
+  pkg/sdn/plugin/sdn-cni-plugin
+  vendor/github.com/containernetworking/cni/plugins/ipam/host-local
+)
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   cmd/dockerregistry
   cmd/gitserver
+  "${OS_SDN_COMPILE_TARGETS_LINUX_AMD64[@]}"
 )
 readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
@@ -274,17 +279,7 @@ os::build::internal::build_binaries() {
       fi
     done
 
-    os::build::export_targets "$@"
-
-    local -a nonstatics=()
-    local -a tests=()
-    for binary in "${binaries[@]}"; do
-      if [[ "${binary}" =~ ".test"$ ]]; then
-        tests+=($binary)
-      else
-        nonstatics+=($binary)
-      fi
-    done
+    os::build::export_platforms
 
     # Temporarily enable swap for the duration of the build until we move
     # to Go 1.7
@@ -294,6 +289,18 @@ os::build::internal::build_binaries() {
     local host_platform=$(os::build::host_platform)
     local platform
     for platform in "${platforms[@]}"; do
+      os::build::export_targets_and_binaries "${platform}" "$@"
+
+      local -a nonstatics=()
+      local -a tests=()
+      for binary in "${binaries[@]}"; do
+        if [[ "${binary}" =~ ".test"$ ]]; then
+          tests+=($binary)
+        else
+          nonstatics+=($binary)
+        fi
+      done
+
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
       mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
 
@@ -336,10 +343,13 @@ os::build::internal::build_binaries() {
 }
 readonly -f os::build::build_binaries
 
-# Generates the set of target packages, binaries, and platforms to build for.
-# Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
-# the current platform.
-function os::build::export_targets() {
+# Generates the set of target packages and binaries (as full go package) to build
+# a for given platform.  First argument is platform, remaining arguments are
+# targets.  Targets can be given as full Go package path or as basenames.
+function os::build::export_targets_and_binaries() {
+  local platform=${1}
+  shift
+
   targets=()
   local arg
   for arg; do
@@ -349,17 +359,26 @@ function os::build::export_targets() {
   done
 
   if [[ ${#targets[@]} -eq 0 ]]; then
-    targets=("${OS_ALL_TARGETS[@]}")
+    if [[ "${platform}" == linux/amd64 ]]; then
+      targets=("${OS_ALL_TARGETS[@]}" "${OS_SDN_COMPILE_TARGETS_LINUX_AMD64[@]}")
+    else
+      targets=("${OS_ALL_TARGETS[@]}")
+    fi
   fi
 
   binaries=($(os::build::binaries_from_targets "${targets[@]}"))
+}
+readonly -f os::build::export_targets_and_binaries
 
+# Generates the set of target platforms to build for. Accepts platforms via
+# OS_BUILD_PLATFORMS, or defaults to the current platform.
+function os::build::export_platforms() {
   platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
   if [[ ${#platforms[@]} -eq 0 ]]; then
     platforms=("$(os::build::host_platform)")
   fi
 }
-readonly -f os::build::export_targets
+readonly -f os::build::export_platforms
 
 # This will take $@ from $GOPATH/bin and copy them to the appropriate
 # place in ${OS_OUTPUT_BINDIR}
@@ -384,8 +403,10 @@ function os::build::place_bins() {
       mkdir -p "${OS_LOCAL_RELEASEPATH}"
     fi
 
-    os::build::export_targets "$@"
+    os::build::export_platforms
     for platform in "${platforms[@]}"; do
+      os::build::export_targets_and_binaries "${platform}" "$@"
+
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
       local platform_src="/${platform//\//_}"
@@ -396,13 +417,13 @@ function os::build::place_bins() {
       fi
 
       # Create an array of binaries to release. Append .exe variants if the platform is windows.
-      local -a binaries=()
-      for binary in "${targets[@]}"; do
+      local -a binary_names=()
+      for binary in "${binaries[@]}"; do
         binary=$(basename $binary)
         if [[ $platform == "windows/amd64" ]]; then
-          binaries+=("${binary}.exe")
+          binary_names+=("${binary}.exe")
         else
-          binaries+=("${binary}")
+          binary_names+=("${binary}")
         fi
       done
 
@@ -413,7 +434,7 @@ function os::build::place_bins() {
 
       # Create a temporary bin directory containing only the binaries marked for release.
       local release_binpath=$(mktemp -d openshift.release.${OS_RELEASE_ARCHIVE}.XXX)
-      for binary in "${binaries[@]}"; do
+      for binary in "${binary_names[@]}"; do
         cp "${OS_OUTPUT_BINPATH}/${platform}/${binary}" "${release_binpath}/"
       done
 

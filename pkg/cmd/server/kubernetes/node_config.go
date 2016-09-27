@@ -22,6 +22,7 @@ import (
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
@@ -77,7 +78,7 @@ type NodeConfig struct {
 	DNSServer *dns.Server
 
 	// SDNPlugin is an optional SDN plugin
-	SDNPlugin sdnpluginapi.OsdnNodePlugin
+	SDNPlugin *sdnplugin.OsdnNode
 	// EndpointsFilterer is an optional endpoints filterer
 	FilteringEndpointsHandler sdnpluginapi.FilteringEndpointsConfigHandler
 }
@@ -165,12 +166,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	}
 	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
 
-	if sdnplugin.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
-		// set defaults for openshift-sdn
-		server.HairpinMode = componentconfig.HairpinNone
-		server.ConfigureCBR0 = false
-	}
-
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
@@ -188,6 +183,23 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	proxyconfig, err := buildKubeProxyConfig(options)
 	if err != nil {
 		return nil, err
+	}
+
+	// Initialize SDN before building kubelet config so it can modify options
+	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
+	}
+	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU, options.MasterKubeConfig)
+	if err != nil {
+		return nil, fmt.Errorf("SDN initialization failed: %v", err)
+	}
+	if sdnPlugin != nil {
+		// SDN plugin pod setup/teardown is implemented as a CNI plugin
+		server.NetworkPluginName = kubeletcni.CNIPluginName
+		server.NetworkPluginDir = kubeletcni.DefaultNetDir
+		server.HairpinMode = componentconfig.HairpinNone
+		server.ConfigureCBR0 = false
 	}
 
 	deps, err := kubeletapp.UnsecuredKubeletDeps(server)
@@ -248,18 +260,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		}
 	} else {
 		deps.TLSOptions = nil
-	}
-
-	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
-	}
-	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU)
-	if err != nil {
-		return nil, fmt.Errorf("SDN initialization failed: %v", err)
-	}
-	if sdnPlugin != nil {
-		deps.NetworkPlugins = append(deps.NetworkPlugins, sdnPlugin)
 	}
 
 	endpointFilter, err := sdnplugin.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)

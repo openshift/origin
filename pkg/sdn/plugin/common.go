@@ -22,3 +22,23 @@ func getPodContainerID(pod *kapi.Pod) string {
 func hostSubnetToString(subnet *osapi.HostSubnet) string {
 	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
 }
+
+const (
+	SingleTenantPluginName string = "redhat/openshift-ovs-subnet"
+	MultiTenantPluginName  string = "redhat/openshift-ovs-multitenant"
+)
+
+func IsOpenShiftNetworkPlugin(pluginName string) bool {
+	switch strings.ToLower(pluginName) {
+	case SingleTenantPluginName, MultiTenantPluginName:
+		return true
+	}
+	return false
+}
+
+func IsOpenShiftMultitenantNetworkPlugin(pluginName string) bool {
+	if strings.ToLower(pluginName) == MultiTenantPluginName {
+		return true
+	}
+	return false
+}

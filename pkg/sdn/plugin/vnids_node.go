@@ -161,7 +161,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 
 	// Update OF rules for the existing/old pods in the namespace
 	for _, pod := range pods {
-		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.DockerID(getPodContainerID(&pod)))
+		err = node.UpdatePod(pod.Namespace, pod.Name, kubetypes.ContainerID{ID: getPodContainerID(&pod)})
 		if err != nil {
 			errList = append(errList, err)
 		}
