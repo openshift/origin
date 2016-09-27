@@ -105,12 +105,23 @@ class OriginBuilder(Builder):
                             bdep[1]
                         )
                     )
-            update_provides_list = \
-                "sed -i 's|^### AUTO-BUNDLED-GEN-ENTRY-POINT|{0}|' {1}".format(
-                    '\\n'.join(provides_list),
-                    self.spec_file
-                )
-            print(run_command(update_provides_list))
+
+            # Handle this in python because we have hit the upper bounds of line
+            # count for what we can pass into sed via subprocess because there
+            # are so many bundled libraries.
+            with open(self.spec_file, 'r') as spec_file_f:
+                spec_file_lines = spec_file_f.readlines()
+            with open(self.spec_file, 'w') as spec_file_f:
+                for line in spec_file_lines:
+                    if '### AUTO-BUNDLED-GEN-ENTRY-POINT' in line:
+                            spec_file_f.write(
+                                '\n'.join(
+                                    [provides.replace('"', '').replace("'", '')
+                                     for provides in provides_list]
+                                )
+                            )
+                    else:
+                        spec_file_f.write(line)
 
             self.build_version += ".git." + \
                 str(self.commit_count) + \
