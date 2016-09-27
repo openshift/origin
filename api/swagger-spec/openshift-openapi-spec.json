@@ -50511,11 +50511,6 @@
       "type": "integer",
       "format": "int64"
      },
-     "updatePercent": {
-      "description": "UpdatePercent is the percentage of replicas to scale up or down each interval. If nil, one replica will be scaled up and down each interval. If negative, the scale order will be down/up instead of up/down. DEPRECATED: Use MaxUnavailable/MaxSurge instead.",
-      "type": "integer",
-      "format": "int32"
-     },
      "updatePeriodSeconds": {
       "description": "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
       "type": "integer",
