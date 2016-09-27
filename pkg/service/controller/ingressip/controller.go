@@ -34,6 +34,7 @@ const (
 
 	clientRetryCount    = 5
 	clientRetryInterval = 5 * time.Second
+	clientRetryFactor   = 1.1
 )
 
 // IngressIPController is responsible for allocating ingress ip
@@ -663,6 +664,7 @@ func persistService(client kclient.ServicesNamespacer, service *kapi.Service, ta
 	backoff := wait.Backoff{
 		Steps:    clientRetryCount,
 		Duration: clientRetryInterval,
+		Factor:   clientRetryFactor,
 	}
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
