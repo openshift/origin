@@ -34,12 +34,16 @@ var RepositoryNameComponentAnchoredRegexp = regexp.MustCompile(`^` + RepositoryN
 // Copied from github.com/docker/distribution/registry/api/v2/names.go v2.1.1
 var RepositoryNameRegexp = regexp.MustCompile(`(?:` + RepositoryNameComponentRegexp.String() + `/)*` + RepositoryNameComponentRegexp.String())
 
+// RepositoryNameAnchoredRegexp is the version of
+// RepositoryNameRegexp which must completely match the content
+var RepositoryNameAnchoredRegexp = regexp.MustCompile(`^` + RepositoryNameRegexp.String() + `$`)
+
 func ValidateImageStreamName(name string, prefix bool) []string {
 	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
 		return reasons
 	}
 
-	if !RepositoryNameComponentAnchoredRegexp.MatchString(name) {
+	if !RepositoryNameAnchoredRegexp.MatchString(name) {
 		return []string{fmt.Sprintf("must match %q", RepositoryNameComponentRegexp.String())}
 	}
 	return nil

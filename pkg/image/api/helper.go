@@ -138,8 +138,8 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	stream, tag, id := parseRepositoryTag(spec)
 
 	repoParts := strings.Split(stream, "/")
-	switch len(repoParts) {
-	case 2:
+	switch {
+	case len(repoParts) == 2:
 		if isRegistryName(repoParts[0]) {
 			// registry/name
 			ref.Registry = repoParts[0]
@@ -163,7 +163,7 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.Tag = tag
 		ref.ID = id
 		break
-	case 3:
+	case len(repoParts) == 3:
 		// registry/namespace/name
 		ref.Registry = repoParts[0]
 		ref.Namespace = repoParts[1]
@@ -174,7 +174,7 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.Tag = tag
 		ref.ID = id
 		break
-	case 1:
+	case len(repoParts) == 1:
 		// name
 		if len(repoParts[0]) == 0 {
 			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
@@ -183,9 +183,28 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.Tag = tag
 		ref.ID = id
 		break
+	case len(repoParts) > 3:
+		// registry/namespace/name/namecomponent/namecomponent/...
+		if strings.HasSuffix(repoParts[0], ":") || IsRegistryDockerHub(repoParts[0]) {
+			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
+		}
+		ref.Registry = repoParts[0]
+
+		if len(repoParts[1]) == 0 {
+			return ref, fmt.Errorf("the docker pull spec %q must contain non-empty namespace", spec)
+		}
+		ref.Namespace = repoParts[1]
+
+		ref.Name = strings.Join(repoParts[2:], "/")
+		if len(ref.Name) == 0 {
+			return ref, fmt.Errorf("the docker pull spec %q must be more than three segments separated by slashes", spec)
+		}
+
+		ref.Tag = tag
+		ref.ID = id
+		break
 	default:
-		// TODO: this is no longer true with V2
-		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
+		return ref, fmt.Errorf("the docker pull spec %q must be one or more segments separated by slashes", spec)
 	}
 
 	return ref, nil

@@ -34,11 +34,6 @@ func TestValidateImageMissingFields(t *testing.T) {
 			field.ErrorTypeRequired,
 			"metadata.name",
 		},
-		"no slash in Name": {
-			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo/bar"}},
-			field.ErrorTypeInvalid,
-			"metadata.name",
-		},
 		"no percent in Name": {
 			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo%%bar"}},
 			field.ErrorTypeInvalid,
@@ -315,24 +310,6 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 			field.ErrorTypeRequired,
 			"image.metadata.name",
 		},
-		"invalid repository pull spec": {
-			api.ImageStreamMapping{
-				ObjectMeta: kapi.ObjectMeta{
-					Namespace: "default",
-				},
-				DockerImageRepository: "registry/extra/openshift/ruby-19-centos",
-				Tag: api.DefaultImageTag,
-				Image: api.Image{
-					ObjectMeta: kapi.ObjectMeta{
-						Name:      "foo",
-						Namespace: "default",
-					},
-					DockerImageReference: "openshift/ruby-19-centos",
-				},
-			},
-			field.ErrorTypeInvalid,
-			"dockerImageRepository",
-		},
 	}
 
 	for k, v := range errorCases {
@@ -379,9 +356,7 @@ func TestValidateImageStream(t *testing.T) {
 		"no slash in Name": {
 			namespace: "foo",
 			name:      "foo/bar",
-			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), "foo/bar", `name may not contain "/"`),
-			},
+			expected:  field.ErrorList{},
 		},
 		"no percent in Name": {
 			namespace: "foo",
@@ -416,7 +391,7 @@ func TestValidateImageStream(t *testing.T) {
 			name:      "foo",
 			dockerImageRepository: "a-|///bbb",
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
+				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" must contain non-empty namespace"),
 			},
 		},
 		"invalid dockerImageRepository with tag": {
@@ -687,10 +662,8 @@ func TestValidateImageStreamImport(t *testing.T) {
 			expected: field.ErrorList{missingNameErr},
 		},
 		"no slash in Name": {
-			isi: &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "foo/bar"}, Spec: validSpec},
-			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), "foo/bar", `name may not contain "/"`),
-			},
+			isi:      &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "foo/bar"}, Spec: validSpec},
+			expected: field.ErrorList{},
 		},
 		"no percent in Name": {
 			isi: &api.ImageStreamImport{ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "foo%%bar"}, Spec: validSpec},
@@ -719,7 +692,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 		"invalid dockerImageRepository": {
 			isi: &api.ImageStreamImport{ObjectMeta: validMeta, Spec: repoFn("a-|///bbb")},
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "repository", "from", "name"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
+				field.Invalid(field.NewPath("spec", "repository", "from", "name"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" must contain non-empty namespace"),
 			},
 		},
 		"invalid dockerImageRepository with tag": {

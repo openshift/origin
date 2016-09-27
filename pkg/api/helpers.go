@@ -8,7 +8,7 @@ import (
 )
 
 var NameMayNotBe = []string{".", ".."}
-var NameMayNotContain = []string{"/", "%"}
+var NameMayNotContain = []string{"%"}
 
 func MinimalNameRequirements(name string, prefix bool) []string {
 	for _, illegalName := range NameMayNotBe {

@@ -92,7 +92,7 @@ func TestImport(t *testing.T) {
 					Images: []api.ImageImportSpec{
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test"}},
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}},
-						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test/un/parse/able/image"}},
+						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test/parse/able/image"}},
 						{From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"}},
 					},
 				},
@@ -104,7 +104,7 @@ func TestImport(t *testing.T) {
 				if !expectStatusError(isi.Status.Images[1].Status, "Internal error occurred: no such digest") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[1].Status)
 				}
-				if !expectStatusError(isi.Status.Images[2].Status, " \"\" is invalid: from.name: Invalid value: \"test/un/parse/able/image\": invalid name: the docker pull spec \"test/un/parse/able/image\" must be two or three segments separated by slashes") {
+				if expectStatusError(isi.Status.Images[2].Status, " \"\" is invalid: from.name: Invalid value: \"test/parse/able/image\": invalid name: the docker pull spec \"test/un/parse/able/image\" must be two or three segments separated by slashes") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[2].Status)
 				}
 				// non DockerImage refs are no-ops

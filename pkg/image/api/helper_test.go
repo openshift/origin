@@ -185,6 +185,13 @@ func TestParseDockerImageReference(t *testing.T) {
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
+			From:      "bar/foo/baz/biz/zoo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz/biz/zoo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
 			From:      "bar:5000/foo/baz",
 			Registry:  "bar:5000",
 			Namespace: "foo",
@@ -209,10 +216,24 @@ func TestParseDockerImageReference(t *testing.T) {
 			Tag:       "tag",
 		},
 		{
+			From:      "bar:5000/foo/baf/bof/baz:tag",
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baf/bof/baz",
+			Tag:       "tag",
+		},
+		{
 			From:      "bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Registry:  "bar:5000",
 			Namespace: "foo",
 			Name:      "baz",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			From:      "bar:5000/foo/baf/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Registry:  "bar:5000",
+			Namespace: "foo",
+			Name:      "baf/baz",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
@@ -221,9 +242,27 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:     "foo",
 		},
 		{
+			From:      "myregistry.io/foo/bar/baz",
+			Registry:  "myregistry.io",
+			Namespace: "foo",
+			Name:      "bar/baz",
+		},
+		{
 			From:     "localhost/bar",
 			Registry: "localhost",
 			Name:     "bar",
+		},
+		{
+			From:      "localhost/bar/baz",
+			Registry:  "localhost",
+			Namespace: "bar",
+			Name:      "baz",
+		},
+		{
+			From:      "localhost/bar/baz/foo",
+			Registry:  "localhost",
+			Namespace: "bar",
+			Name:      "baz/foo",
 		},
 		{
 			From:      "docker.io/library/myapp",
@@ -238,10 +277,8 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "myapp",
 		},
 		{
-			From:      "docker.io/user/myapp",
-			Registry:  "docker.io",
-			Namespace: "user",
-			Name:      "myapp",
+			From: "docker.io/user/myapp/foo/bar",
+			Err:  true,
 		},
 		{
 			From:      "index.docker.io/bar",
@@ -291,8 +328,10 @@ func TestParseDockerImageReference(t *testing.T) {
 			Err:  true,
 		},
 		{
-			From: "bar/foo/baz/biz",
-			Err:  true,
+			From:      "bar/foo/baz/biz",
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz/biz",
 		},
 		{
 			From: "ftp://baz/baz/biz",
