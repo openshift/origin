@@ -11,8 +11,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/fields"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	"k8s.io/kubernetes/pkg/labels"
 	utilsets "k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -153,13 +155,32 @@ func getScriptError(output []byte) string {
 	return string(output)
 }
 
+func (plugin *OsdnNode) getPod(nodeName, namespace, podName string) (*kapi.Pod, error) {
+	fieldSelector := fields.Set{"spec.nodeName": nodeName}.AsSelector()
+	opts := kapi.ListOptions{
+		LabelSelector: labels.Everything(),
+		FieldSelector: fieldSelector,
+	}
+	podList, err := plugin.kClient.Pods(namespace).List(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podList.Items {
+		if pod.ObjectMeta.Name == podName {
+			return &pod, nil
+		}
+	}
+	return nil, nil
+}
+
 func (plugin *OsdnNode) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID) error {
 	err := plugin.WaitForPodNetworkReady()
 	if err != nil {
 		return err
 	}
 
-	pod, err := plugin.registry.GetPod(plugin.hostName, namespace, name)
+	pod, err := plugin.getPod(plugin.hostName, namespace, name)
 	if err != nil {
 		return err
 	}

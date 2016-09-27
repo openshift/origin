@@ -15,14 +15,18 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
 )
 
 type OsdnNode struct {
 	multitenant        bool
-	registry           *Registry
+	kClient            *kclient.Client
+	osClient           *osclient.Client
+	networkInfo        *NetworkInfo
 	localIP            string
 	localSubnet        *osapi.HostSubnet
 	hostName           string
@@ -65,7 +69,8 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 
 	plugin := &OsdnNode{
 		multitenant:        IsOpenShiftMultitenantNetworkPlugin(pluginName),
-		registry:           newRegistry(osClient, kClient),
+		kClient:            kClient,
+		osClient:           osClient,
 		localIP:            selfIP,
 		hostName:           hostname,
 		vnids:              newNodeVNIDMap(),
@@ -78,12 +83,13 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 }
 
 func (node *OsdnNode) Start() error {
-	ni, err := node.registry.GetNetworkInfo()
+	var err error
+	node.networkInfo, err = getNetworkInfo(node.osClient)
 	if err != nil {
 		return fmt.Errorf("Failed to get network information: %v", err)
 	}
 
-	nodeIPTables := newNodeIPTables(ni.ClusterNetwork.String(), node.iptablesSyncPeriod)
+	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
@@ -124,7 +130,24 @@ func (node *OsdnNode) Start() error {
 }
 
 func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
-	return node.registry.GetRunningPods(node.hostName, namespace)
+	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
+	opts := kapi.ListOptions{
+		LabelSelector: labels.Everything(),
+		FieldSelector: fieldSelector,
+	}
+	podList, err := node.kClient.Pods(namespace).List(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter running pods
+	pods := make([]kapi.Pod, 0, len(podList.Items))
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == kapi.PodRunning {
+			pods = append(pods, pod)
+		}
+	}
+	return pods, nil
 }
 
 func (node *OsdnNode) markPodNetworkReady() {
