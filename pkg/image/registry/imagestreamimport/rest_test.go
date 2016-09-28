@@ -198,3 +198,127 @@ func TestImportSuccessful(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckImportFailure(t *testing.T) {
+	testNow := unversioned.Now()
+	nonzero := int64(100)
+	zero := int64(0)
+	tests := map[string]struct {
+		status         api.ImageImportStatus
+		stream         *api.ImageStream
+		tag            string
+		returnExpected bool
+		streamExpected *api.ImageStream
+	}{
+		"check success": {
+			status: api.ImageImportStatus{
+				Image: &api.Image{
+					DockerImageReference: "registry.com/namespace/image:mytag",
+				},
+				Status: unversioned.Status{
+					Status: unversioned.StatusSuccess,
+				},
+				Tag: "mytag",
+			},
+			stream:         &api.ImageStream{},
+			returnExpected: false,
+			streamExpected: &api.ImageStream{},
+		},
+		"check failure without setting tagConditions and tagRef": {
+			status: api.ImageImportStatus{
+				Image: &api.Image{
+					DockerImageReference: "registry.com/namespace/image",
+				},
+				Status: unversioned.Status{
+					Status: unversioned.StatusFailure,
+				},
+				Tag: "",
+			},
+			stream:         &api.ImageStream{},
+			tag:            "",
+			returnExpected: true,
+			streamExpected: &api.ImageStream{},
+		},
+		"check failure with setting tagConditions and tagRef": {
+			status: api.ImageImportStatus{
+				Image: &api.Image{
+					DockerImageReference: "registry.com/namespace/image:mytag",
+				},
+				Status: unversioned.Status{
+					Status: unversioned.StatusFailure,
+					Reason: "reason",
+				},
+				Tag: "",
+			},
+			stream: &api.ImageStream{
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"mytag": {
+							Name: "mytag",
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "registry.com/namespace/image:mytag",
+							},
+							Generation: &nonzero,
+						},
+					},
+				},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"mytag": {
+							Items: []api.TagEvent{{
+								DockerImageReference: "registry.com/namespace/image:othertag",
+								Image:                "image",
+							}},
+						},
+					},
+				},
+			},
+			tag:            "",
+			returnExpected: true,
+			streamExpected: &api.ImageStream{
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"mytag": {
+							Name: "mytag",
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "registry.com/namespace/image:mytag",
+							},
+							Generation: &zero,
+						},
+					},
+				},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"mytag": {
+							Items: []api.TagEvent{{
+								DockerImageReference: "registry.com/namespace/image:othertag",
+								Image:                "image",
+							}},
+							Conditions: []api.TagEventCondition{{
+								Type:               api.ImportSuccess,
+								Status:             kapi.ConditionFalse,
+								Message:            "unknown error prevented import",
+								Reason:             "reason",
+								Generation:         0,
+								LastTransitionTime: testNow,
+							}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		ref := checkImportFailure(test.status, test.stream, test.tag, int64(0), testNow)
+		if !kapi.Semantic.DeepEqual(ref, test.returnExpected) {
+			t.Errorf("%s: returnExpected %#v, got %#v", name, test.returnExpected, ref)
+		}
+
+		if !kapi.Semantic.DeepEqual(test.stream, test.streamExpected) {
+			t.Errorf("%s: streamExpected %#v, got %#v", name, test.streamExpected, test.stream)
+		}
+	}
+}

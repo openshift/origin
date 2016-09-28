@@ -312,11 +312,15 @@ func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, t
 	}
 
 	if !api.HasTagCondition(stream, tag, condition) {
-		api.SetTagConditions(stream, tag, condition)
-		if tagRef, ok := stream.Spec.Tags[tag]; ok {
-			zero := int64(0)
-			tagRef.Generation = &zero
-			stream.Spec.Tags[tag] = tagRef
+		if len(tag) > 0 {
+			api.SetTagConditions(stream, tag, condition)
+			if tagRef, ok := stream.Spec.Tags[tag]; ok {
+				zero := int64(0)
+				tagRef.Generation = &zero
+				stream.Spec.Tags[tag] = tagRef
+			}
+		} else {
+			glog.Errorf("tag unset - not setting failed import condition on stream=\"%s/%s\" reason=%q: %s", stream.Namespace, stream.Name, condition.Reason, condition.Message)
 		}
 	}
 	return true
