@@ -24,7 +24,7 @@ func TestNewBuildRun(t *testing.T) {
 		{
 			name:        "no input",
 			config:      &newcmd.AppConfig{},
-			expectedErr: usageError("oc new-build", newBuildNoInput, "oc").Error(),
+			expectedErr: usageError("oc new-build", newBuildNoInput, "oc", "new-build").Error(),
 		},
 		{
 			name: "no matches",
@@ -54,7 +54,8 @@ func TestNewBuildRun(t *testing.T) {
 	o := &NewBuildOptions{
 		Out:         ioutil.Discard,
 		CommandPath: "oc new-build",
-		CommandName: "oc",
+		BaseName:    "oc",
+		CommandName: "new-build",
 	}
 
 	for _, test := range tests {
@@ -73,7 +74,7 @@ func TestNewBuildRun(t *testing.T) {
 				return app.ComponentMatches{}, []error{}
 			},
 		}
-		if err := o.Run(); err != nil {
+		if err := o.RunNewBuild(); err != nil {
 			if !strings.Contains(err.Error(), test.expectedErr) {
 				t.Fatalf("[%s] error not expected: %v", test.name, err)
 			}

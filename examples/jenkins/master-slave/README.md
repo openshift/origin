@@ -28,47 +28,53 @@ Steps
 Before you begin, ensure you have created the [default imagestreams](https://docs.openshift.org/latest/install_config/imagestreams_templates.html#creating-image-streams-for-openshift-images) in the openshift namespace.
 
 1. Create new OpenShift project, where the Jenkins server will run:
-```
-$ oc new-project ci
-```
+  ```
+  $ oc new-project ci
+  ```
 
 2. Give the Jenkins Pod [service account](https://docs.openshift.com/enterprise/latest/admin_guide/service_accounts.html)
    rights to do API calls to OpenShift.  This allows us to do the Jenkins Slave
    image discovery automatically.
-```
-$ oc policy add-role-to-user edit system:serviceaccount:ci:default -n ci
-```
+  ```
+  $ oc policy add-role-to-user edit system:serviceaccount:ci:default -n ci
+  ```
 
-3. Install the provided OpenShift templates:
-```
-# Slave converter (optional):
-$ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-slave-template.json
+3. Create the sample application:
+  ```bash
+  # Ruby application template
+  $ oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/application-template.json
+  ```
+  
+4. Install the provided OpenShift templates:
+  ```
+  # Slave converter (optional):
+  $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-slave-template.json
+  
+  # Jenkins master template:
+  $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-master-template.json
+  ```
 
-# Jenkins master template:
-$ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/master-slave/jenkins-master-template.json
-```
+5. Now navigate to the OpenShift Web Console and switch to the `ci` project.
 
-4. Now navigate to the OpenShift Web Console and switch to the `ci` project.
-
-5. Click on *Add to project* a select the `jenkins-slave-builder` template. Here
+6. Click on *Add to project* a select the `jenkins-slave-builder` template. Here
    you can customize the image stream name for the builder image or use
    alternative repository with your own custom entry point script.
 
-6. Click *Create* and navigate to *Browse/Builds*. You should see the build
+7. Click *Create* and navigate to *Browse/Builds*. You should see the build
    running. Once this build finishes, you should have the Jenkins Slave image
    ready to be used.
 
-7. Now click on *Add to project* again and select the `jenkins-master` template.
+8. Now click on *Add to project* again and select the `jenkins-master` template.
    Here you can pick your Jenkins administrator password, alternative Docker
    image (by default the OpenShift Jenkins Image will be used) or the custom S2I
    repository with your configuration. For this sample, you don't need to change
    these values.
 
-8. Click *Create* and navigate to the *Overview* page. You should see the
+9. Click *Create* and navigate to the *Overview* page. You should see the
    Jenkins route and the link to a `jenkins-master #1 build`. Once the build
    finish, you can follow the link and navigate to your new Jenkins server.
 
-9. In the Jenkins, you should see the `ruby-hello-world-test` job. When you
+10. In the Jenkins, you should see the `ruby-hello-world-test` job. When you
    start this job, the [Kubernetes plugin](https://wiki.jenkins-ci.org/display/JENKINS/Kubernetes+Plugin)
    will provision a new Pod and attach it to Jenkins as a slave machine. The
    `ruby-hello-world-test` job has the field *Restrict where this project can be

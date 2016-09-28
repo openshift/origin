@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 901941d37465165eedc69dafddcf67701a27e37f
+%global commit 787a4fb044801e263ce40edbf3764ceca79a839f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.3
+Version:        3.4.0.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,65 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Sep 28 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.4
+- Merge remote-tracking branch upstream/master, bump origin-web-console 068713d
+  (tdawson@redhat.com)
+- Fix a bug in text/extended/networking/ovs.go if a test fails
+  (danw@redhat.com)
+- Add test/cmd/sdn.sh (danw@redhat.com)
+- Fix use of deprecated PodSpec field name (danw@redhat.com)
+- Kill off SDN "Registry" type (danw@redhat.com)
+- Make NetworkInfo just cache cluster/service CIDRs (danw@redhat.com)
+- Move remaining NetworkInfo-related code out of registry.go (danw@redhat.com)
+- Move NetworkInfo from Registry to OsdnNode/OsdnMaster/ovsProxyPlugin
+  (danw@redhat.com)
+- add test for mixed kinds output (jvallejo@redhat.com)
+- UPSTREAM: 32222: ensure resource prefix on single type (jvallejo@redhat.com)
+- oc: warn for rolling deployments with RWO volumes (mkargaki@redhat.com)
+- The function 'NewPrintNameOrErrorAfter' is defined, but it's not used
+  (miao.yanqiang@zte.com.cn)
+- add hostmanager option to Vagrantfile (jminter@redhat.com)
+- Fixed an error description of func, and deleted a redundant error check
+  (miao.yanqiang@zte.com.cn)
+- Update generated docs (ffranz@redhat.com)
+- Fixes docs generation (ffranz@redhat.com)
+- Update to released Go 1.7.1 (ffranz@redhat.com)
+- add localhost:9000 as a default redirect URL (jvallejo@redhat.com)
+- deployment: use event client to create events directly (mfojtik@redhat.com)
+- deployment: use rc namespacer instead of function (mfojtik@redhat.com)
+- deploy: forward warnings from deployer to deployment config
+  (mfojtik@redhat.com)
+- deploy: show replication controller warnings in deployer log
+  (mfojtik@redhat.com)
+- UPSTREAM: 33489: Log test error (jliggitt@redhat.com)
+- Bump origin-web-console (fc61bfe) (jforrest@redhat.com)
+- UPSTREAM: 33464: Fix cache expiration check (jliggitt@redhat.com)
+- UPSTREAM: 33464: Allow testing LRUExpireCache with fake clock
+  (jliggitt@redhat.com)
+- extended: fix polling the status of a config that needs to be synced
+  (mkargaki@redhat.com)
+- Revert "Avoid using bsdtar for extraction during build" (bparees@redhat.com)
+- Extract duplicate code (miao.yanqiang@zte.com.cn)
+- UPSTREAM: 31163: add resource filter handling (jvallejo@redhat.com)
+- refactor cli cmds: newapp, newbuild, logs, request_project and create unit
+  tests (guilhermebr@gmail.com)
+- Fix bug 1312278 Jenkins template has hardcoded SSL certificate.
+  (jminter@redhat.com)
+- Changed directory of slave image to /tmp (rymurphy@redhat.com)
+- Refactor support for GitLab Push Event test case (admin@example.com)
+- UPSTREAM: 32230: suggest-exposable resources in oc expose
+  (jvallejo@redhat.com)
+- suggest-exposable resources in oc expose (jvallejo@redhat.com)
+- add --timeout flag to oc rsh (jvallejo@redhat.com)
+- Add support for GitLab Push Event (admin@example.com)
+- refactor the function 'getPlugin' in the
+  'pkg/cmd/experimental/ipfailover/ipfailover.go' (miao.yanqiang@zte.com.cn)
+- Ensure CLI and web console clients are public OAuth clients, pass token url
+  to web console (jliggitt@redhat.com)
+- suggest specifying flags before resource name (jvallejo@redhat.com)
+- delete a unused function in the 'pkg/cmd/admin/policy/policy.go'
+  (miao.yanqiang@zte.com.cn)
+
 * Mon Sep 26 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.3
 - The VS and dot is seprated (yu.peng36@zte.com.cn)
 - add wildfly 10.1 spec (ch.raaflaub@gmail.com)

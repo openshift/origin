@@ -12,8 +12,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-// TestFlagParity makes sure that our copied flags don't slip during rebases
-func TestFlagParity(t *testing.T) {
+// TestLogsFlagParity makes sure that our copied flags don't slip during rebases
+func TestLogsFlagParity(t *testing.T) {
 	kubeCmd := kcmd.NewCmdLogs(nil, ioutil.Discard)
 	f := clientcmd.NewFactory(nil)
 	originCmd := NewCmdLogs("oc", "logs", f, ioutil.Discard)

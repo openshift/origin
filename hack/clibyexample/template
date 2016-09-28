@@ -4,14 +4,14 @@
 toc::[]
 
 {{range .items}}
-== {{.Object.fullName}}
-{{.Object.description}}
+== {{.fullName}}
+{{.description}}
 
 ====
 
 [options="nowrap"]
 ----
-{{.Object.examples}}
+{{.examples}}
 ----
 ====
 

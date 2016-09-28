@@ -47,3 +47,12 @@ func (c *FakeOAuthClient) Delete(name string) error {
 func (c *FakeOAuthClient) Watch(opts kapi.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("oauthclients", opts))
 }
+
+func (c *FakeOAuthClient) Update(client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("oauthclients", client), &oauthapi.OAuthClient{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*oauthapi.OAuthClient), err
+}

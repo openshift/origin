@@ -220,6 +220,7 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		KubernetesPrefix:      KubernetesAPIPrefix,
 		KubernetesResources:   k8sResources.List(),
 		OAuthAuthorizeURI:     OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthTokenURI:         OpenShiftOAuthTokenURL(masterURL.String()),
 		OAuthRedirectBase:     c.Options.PublicURL,
 		OAuthClientID:         OpenShiftWebConsoleClientID,
 		LogoutURI:             c.Options.LogoutURL,

@@ -85,10 +85,6 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 	return errs
 }
 
-func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) AfterFunc {
-	return NewPrintNameOrErrorAfterIndent(mapper, short, operation, out, errs, "")
-}
-
 func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, indent string) AfterFunc {
 	return func(info *resource.Info, err error) bool {
 		if err == nil {

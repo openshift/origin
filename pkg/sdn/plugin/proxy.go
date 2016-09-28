@@ -25,7 +25,9 @@ type proxyFirewallItem struct {
 }
 
 type ovsProxyPlugin struct {
-	registry             *Registry
+	kClient              *kclient.Client
+	osClient             *osclient.Client
+	networkInfo          *NetworkInfo
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 
 	lock         sync.Mutex
@@ -40,7 +42,8 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 	}
 
 	return &ovsProxyPlugin{
-		registry: newRegistry(osClient, kClient),
+		kClient:  kClient,
+		osClient: osClient,
 		firewall: make(map[string][]proxyFirewallItem),
 	}, nil
 }
@@ -48,9 +51,14 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclie
 func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
+	var err error
+	proxy.networkInfo, err = getNetworkInfo(proxy.osClient)
+	if err != nil {
+		return fmt.Errorf("could not get network info: %s", err)
+	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.registry.GetEgressNetworkPolicies()
+	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		if kapierrs.IsForbidden(err) {
 			// controller.go will log an error about this
@@ -58,7 +66,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 		}
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
-	for _, policy := range policies {
+	for _, policy := range policies.Items {
 		proxy.updateNetworkPolicy(policy)
 	}
 
@@ -67,7 +75,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 }
 
 func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
-	proxy.registry.RunEventQueue(EgressNetworkPolicies, func(delta cache.Delta) error {
+	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 		if delta.Type == cache.Deleted {
 			policy.Spec.Egress = nil
@@ -126,12 +134,6 @@ func (proxy *ovsProxyPlugin) updateEndpoints() {
 		return
 	}
 
-	ni, err := proxy.registry.GetNetworkInfo()
-	if err != nil {
-		glog.Warningf("Error fetching network information: %v", err)
-		return
-	}
-
 	filteredEndpoints := make([]kapi.Endpoints, 0, len(proxy.allEndpoints))
 
 EndpointLoop:
@@ -140,7 +142,7 @@ EndpointLoop:
 		for _, ss := range ep.Subsets {
 			for _, addr := range ss.Addresses {
 				IP := net.ParseIP(addr.IP)
-				if !ni.ClusterNetwork.Contains(IP) && !ni.ServiceNetwork.Contains(IP) {
+				if !proxy.networkInfo.ClusterNetwork.Contains(IP) && !proxy.networkInfo.ServiceNetwork.Contains(IP) {
 					if proxy.firewallBlocksIP(ns, IP) {
 						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to firewalled destination (%s)", ep.ObjectMeta.Name, ns, addr.IP)
 						continue EndpointLoop

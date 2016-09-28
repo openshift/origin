@@ -19,9 +19,9 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// LogsRecommendedName is the recommended command name
+// LogsRecommendedCommandName is the recommended command name
 // TODO: Probably move this pattern upstream?
-const LogsRecommendedName = "logs"
+const LogsRecommendedCommandName = "logs"
 
 const (
 	logsLong = `
@@ -36,21 +36,21 @@ If your pod is failing to start, you may need to use the --previous option to se
 logs of the last attempt.`
 
 	logsExample = `  # Start streaming the logs of the most recent build of the openldap build config.
-  %[1]s -f bc/openldap
+  %[1]s %[2]s -f bc/openldap
 
   # Start streaming the logs of the latest deployment of the mysql deployment config.
-  %[1]s -f dc/mysql
+  %[1]s %[2]s -f dc/mysql
 
   # Get the logs of the first deployment for the mysql deployment config. Note that logs
   # from older deployments may not exist either because the deployment was successful
   # or due to deployment pruning or manual deletion of the deployment.
-  %[1]s --version=1 dc/mysql
+  %[1]s %[2]s --version=1 dc/mysql
 
   # Return a snapshot of ruby-container logs from pod backend.
-  %[1]s backend -c ruby-container
+  %[1]s %[2]s backend -c ruby-container
 
   # Start streaming of ruby-container logs from pod backend.
-  %[1]s -f pod/backend -c ruby-container`
+  %[1]s %[2]s -f pod/backend -c ruby-container`
 )
 
 // OpenShiftLogsOptions holds all the necessary options for running oc logs.
@@ -63,22 +63,26 @@ type OpenShiftLogsOptions struct {
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
-func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
+
 	cmd := kcmd.NewCmdLogs(f.Factory, out)
 	cmd.Short = "Print the logs for a resource."
 	cmd.Long = logsLong
-	cmd.Example = fmt.Sprintf(logsExample, parent+" "+name)
+	cmd.Example = fmt.Sprintf(logsExample, baseName, name)
 	cmd.SuggestFor = []string{"builds", "deployments"}
 	cmd.Run = func(cmd *cobra.Command, args []string) {
-		kcmdutil.CheckErr(o.Complete(f, out, cmd, args))
+		kcmdutil.CheckErr(o.Complete(f, cmd, args, out))
+
 		if err := o.Validate(); err != nil {
 			kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 		}
+
 		kcmdutil.CheckErr(o.RunLog())
 	}
+
 	cmd.Flags().Int64("version", 0, "View the logs of a particular build or deployment by version if greater than zero")
 
 	return cmd
@@ -87,7 +91,7 @@ func NewCmdLogs(name, parent string, f *clientcmd.Factory, out io.Writer) *cobra
 // Complete calls the upstream Complete for the logs command and then resolves the
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
-func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if err := o.KubeLogOptions.Complete(f.Factory, out, cmd, args); err != nil {
 		return err
 	}

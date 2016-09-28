@@ -7,10 +7,12 @@ import (
 	log "github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	pnetid "github.com/openshift/origin/pkg/sdn/plugin/netid"
 )
@@ -69,13 +71,13 @@ func (vmap *masterVNIDMap) isAdminNamespace(nsName string) bool {
 	return false
 }
 
-func (vmap *masterVNIDMap) populateVNIDs(registry *Registry) error {
-	netnsList, err := registry.GetNetNamespaces()
+func (vmap *masterVNIDMap) populateVNIDs(osClient *osclient.Client) error {
+	netnsList, err := osClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	for _, netns := range netnsList {
+	for _, netns := range netnsList.Items {
 		vmap.setVNID(netns.NetName, netns.NetID)
 
 		// Skip GlobalVNID, not part of netID allocation range
@@ -194,7 +196,7 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action osapi.PodNetworkAct
 }
 
 // assignVNID, revokeVNID and updateVNID methods updates in-memory structs and persists etcd objects
-func (vmap *masterVNIDMap) assignVNID(registry *Registry, nsName string) error {
+func (vmap *masterVNIDMap) assignVNID(osClient *osclient.Client, nsName string) error {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -205,7 +207,13 @@ func (vmap *masterVNIDMap) assignVNID(registry *Registry, nsName string) error {
 
 	if !exists {
 		// Create NetNamespace Object and update vnid map
-		err = registry.CreateNetNamespace(nsName, netid)
+		netns := &osapi.NetNamespace{
+			TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
+			ObjectMeta: kapi.ObjectMeta{Name: nsName},
+			NetName:    nsName,
+			NetID:      netid,
+		}
+		_, err := osClient.NetNamespaces().Create(netns)
 		if err != nil {
 			vmap.releaseNetID(nsName)
 			return err
@@ -214,12 +222,12 @@ func (vmap *masterVNIDMap) assignVNID(registry *Registry, nsName string) error {
 	return nil
 }
 
-func (vmap *masterVNIDMap) revokeVNID(registry *Registry, nsName string) error {
+func (vmap *masterVNIDMap) revokeVNID(osClient *osclient.Client, nsName string) error {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
 	// Delete NetNamespace object
-	if err := registry.DeleteNetNamespace(nsName); err != nil {
+	if err := osClient.NetNamespaces().Delete(nsName); err != nil {
 		return err
 	}
 
@@ -229,7 +237,7 @@ func (vmap *masterVNIDMap) revokeVNID(registry *Registry, nsName string) error {
 	return nil
 }
 
-func (vmap *masterVNIDMap) updateVNID(registry *Registry, netns *osapi.NetNamespace) error {
+func (vmap *masterVNIDMap) updateVNID(osClient *osclient.Client, netns *osapi.NetNamespace) error {
 	action, args, err := osapi.GetChangePodNetworkAnnotation(netns)
 	if err == osapi.ErrorPodNetworkAnnotationNotFound {
 		// Nothing to update
@@ -246,7 +254,7 @@ func (vmap *masterVNIDMap) updateVNID(registry *Registry, netns *osapi.NetNamesp
 	netns.NetID = netid
 	osapi.DeleteChangePodNetworkAnnotation(netns)
 
-	if _, err := registry.UpdateNetNamespace(netns); err != nil {
+	if _, err := osClient.NetNamespaces().Update(netns); err != nil {
 		return err
 	}
 	return nil
@@ -255,7 +263,7 @@ func (vmap *masterVNIDMap) updateVNID(registry *Registry, netns *osapi.NetNamesp
 //--------------------- Master methods ----------------------
 
 func (master *OsdnMaster) VnidStartMaster() error {
-	err := master.vnids.populateVNIDs(master.registry)
+	err := master.vnids.populateVNIDs(master.osClient)
 	if err != nil {
 		return err
 	}
@@ -266,20 +274,18 @@ func (master *OsdnMaster) VnidStartMaster() error {
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	registry := master.registry
-
-	registry.RunEventQueue(Namespaces, func(delta cache.Delta) error {
+	RunEventQueue(master.kClient, Namespaces, func(delta cache.Delta) error {
 		ns := delta.Object.(*kapi.Namespace)
 		name := ns.ObjectMeta.Name
 
 		log.V(5).Infof("Watch %s event for Namespace %q", delta.Type, name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
-			if err := master.vnids.assignVNID(registry, name); err != nil {
+			if err := master.vnids.assignVNID(master.osClient, name); err != nil {
 				return fmt.Errorf("Error assigning netid: %v", err)
 			}
 		case cache.Deleted:
-			if err := master.vnids.revokeVNID(registry, name); err != nil {
+			if err := master.vnids.revokeVNID(master.osClient, name); err != nil {
 				return fmt.Errorf("Error revoking netid: %v", err)
 			}
 		}
@@ -288,16 +294,14 @@ func (master *OsdnMaster) watchNamespaces() {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	registry := master.registry
-
-	registry.RunEventQueue(NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(master.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
-			err := master.vnids.updateVNID(registry, netns)
+			err := master.vnids.updateVNID(master.osClient, netns)
 			if err != nil {
 				return fmt.Errorf("Error updating netid: %v", err)
 			}

@@ -147,8 +147,8 @@ func TestMissingEvent(t *testing.T) {
 	plugin := New()
 	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err == nil || !strings.Contains(err.Error(), "missing X-GitHub-Event or X-Gogs-Event") {
-		t.Errorf("Expected missing X-GitHub-Event or X-Gogs-Event, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "missing X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event") {
+		t.Errorf("Expected missing X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event, got %v", err)
 	}
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false'")
@@ -165,8 +165,8 @@ func TestWrongGitHubEvent(t *testing.T) {
 	plugin := New()
 	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err == nil || !strings.Contains(err.Error(), "Unknown X-GitHub-Event or X-Gogs-Event") {
-		t.Errorf("Expected missing Unknown X-GitHub-Event or X-Gogs-Event, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "Unknown X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event") {
+		t.Errorf("Expected missing Unknown X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event, got %v", err)
 	}
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false'")

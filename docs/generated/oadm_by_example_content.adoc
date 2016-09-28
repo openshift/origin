@@ -4,506 +4,823 @@
 toc::[]
 
 
-== <no value>
-<no value>
+== oadm build-chain
+Output the inputs and dependencies of your builds
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Build the dependency tree for the 'latest' tag in <image-stream>
+  oadm build-chain <image-stream>
+
+  # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  oadm build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
+
+  # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  oadm build-chain <image-stream> -n test --all
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm ca decrypt
+Decrypt data encrypted with "oadm ca encrypt"
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+	# Decrypt an encrypted file to a cleartext file:
+	oadm ca decrypt --key=secret.key --in=secret.encrypted --out=secret.decrypted
+	
+	# Decrypt from stdin to stdout:
+	oadm ca decrypt --key=secret.key < secret2.encrypted > secret2.decrypted
+
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm ca encrypt
+Encrypt data with AES-256-CBC encryption
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+	# Encrypt the content of secret.txt with a generated key:
+	oadm ca encrypt --genkey=secret.key --in=secret.txt --out=secret.encrypted
+	
+	# Encrypt the content of secret2.txt with an existing key:
+	oadm ca encrypt --key=secret.key < secret2.txt > secret2.encrypted
+
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm completion
+Output shell completion code for the given shell (bash or zsh)
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Generate the oadm completion code for bash
+  oadm completion bash > bash_completion.sh
+  source bash_completion.sh
+
+  # The above example depends on the bash-completion framework.
+  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
+
+  brew install bash-completion
+  source $(brew --prefix)/etc/bash_completion
+  oadm completion bash > bash_completion.sh
+  source bash_completion.sh
+
+  # In zsh*, the following will load openshift cli zsh completion:
+  source <(oadm completion zsh)
+
+  * zsh completions are only supported in versions of zsh >= 5.2
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config
+Change configuration files for the client
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Change the config context to use
+  oadm config use-context my-context
+  
+  # Set the value of a config preference
+  oadm config set preferences.some true
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config current-context
+Displays the current-context
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  
+  # Display the current-context
+  oadm config current-context
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config get-contexts
+Describe one or many contexts
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # List all the contexts in your kubeconfig file
+  oadm config get-contexts
+  
+  # Describe one context in your kubeconfig file.
+  oadm config get-contexts my-context
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config set-cluster
+Sets a cluster entry in kubeconfig
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  
+  # Set only the server field on the e2e cluster entry without touching other values.
+  oadm config set-cluster e2e --server=https://1.2.3.4
+  
+  # Embed certificate authority data for the e2e cluster entry
+  oadm config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
+  
+  # Disable cert checking for the dev cluster entry
+  oadm config set-cluster e2e --insecure-skip-tls-verify=true
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config set-context
+Sets a context entry in kubeconfig
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  
+  # Set the user field on the gce context entry without touching other values
+  oadm config set-context gce --user=cluster-admin
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config set-credentials
+Sets a user entry in kubeconfig
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  
+  # Set only the "client-key" field on the "cluster-admin"
+  # entry, without touching other values:
+  oadm config set-credentials cluster-admin --client-key=~/.kube/admin.key
+  
+  # Set basic auth for the "cluster-admin" entry
+  oadm config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
+  
+  # Embed client certificate data in the "cluster-admin" entry
+  oadm config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
+  
+  # Enable the Google Compute Platform auth provider for the "cluster-admin" entry
+  oadm config set-credentials cluster-admin --auth-provider=gcp
+  
+  # Enable the OpenID Connect auth provider for the "cluster-admin" entry with additional args
+  oadm config set-credentials cluster-admin --auth-provider=oidc --auth-provider-arg=client-id=foo --auth-provider-arg=client-secret=bar
+  
+  # Remove the "client-secret" config value for the OpenID Connect auth provider for the "cluster-admin" entry
+  oadm config set-credentials cluster-admin --auth-provider=oidc --auth-provider-arg=client-secret-
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm config view
+Display merged kubeconfig settings or a specified kubeconfig file
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  
+  # Show Merged kubeconfig settings.
+  oadm config view
+  
+  # Get the password for the e2e user
+  oadm config view -o jsonpath='{.users[?(@.name == "e2e")].user.password}'
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm cordon
+Mark node as unschedulable
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+
+# Mark node "foo" as unschedulable.
+oadm cordon foo
+
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm drain
+Drain node in preparation for maintenance
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+
+# Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+$ oadm drain foo --force
+
+# As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+$ oadm drain foo --grace-period=900
+
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm groups add-users
+Add users to a group
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Add user1 and user2 to my-group
+  oadm groups add-users my-group user1 user2
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm groups new
+Create a new group
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Add a group with no users
+  oadm groups new my-group
+
+  # Add a group with two users
+  oadm groups new my-group user1 user2
+
+  # Add a group with one user and shorter output
+  oadm groups new my-group user1 -o name
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm groups prune
+Prune OpenShift groups referencing missing records on an external provider.
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Prune all orphaned groups
+  oadm groups prune --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  oadm groups prune --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  oadm groups prune --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  oadm groups prune groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm groups remove-users
+Remove users from a group
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Remove user1 and user2 from my-group
+  oadm groups remove-users my-group user1 user2
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm groups sync
+Sync OpenShift groups with records from an external provider.
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Sync all groups from an LDAP server
+  oadm groups sync --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync all groups except the ones from the blacklist file from an LDAP server
+  oadm groups sync --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync specific groups specified in a whitelist file with an LDAP server
+  oadm groups sync --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
+
+  # Sync all OpenShift Groups that have been synced previously with an LDAP server
+  oadm groups sync --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
+  oadm groups sync groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
+
 ----
 ====
 
 
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
-
-====
-
-[options="nowrap"]
-----
-<no value>
-----
-====
-
-
-== <no value>
-<no value>
+== oadm ipfailover
+Install an IP failover group to a set of nodes
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+  # Check the default IP failover configuration ("ipfailover"):
+  oadm ipfailover
+
+  # See what the IP failover configuration would look like if it is created:
+  oadm ipfailover -o json
+
+  # Create an IP failover configuration if it does not already exist:
+  oadm ipfailover ipf --virtual-ips="10.1.1.1-4" --create
+
+  # Create an IP failover configuration on a selection of nodes labeled
+  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+  # listening on port 80, such as the router process).
+  oadm ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
+
+  # Use a different IP failover config image and see the configuration:
+  oadm ipfailover ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
 ----
 ====
 
 
-== <no value>
-<no value>
+== oadm manage-node
+Manage nodes - list pods, evacuate, or mark ready
 
 ====
 
 [options="nowrap"]
 ----
-<no value>
+	# Block accepting any pods on given nodes
+	oadm manage-node <mynode> --schedulable=false
+
+	# Mark selected nodes as schedulable
+	oadm manage-node --selector="<env=dev>" --schedulable=true
+
+	# Migrate selected pods
+	oadm manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
+
+	# Migrate selected pods, use a grace period of 60 seconds
+	oadm manage-node <mynode> --evacuate --grace-period=60 --pod-selector="<service=myapp>"
+
+	# Migrate selected pods not backed by replication controller
+	oadm manage-node <mynode> --evacuate --force --pod-selector="<service=myapp>"
+
+	# Show pods that will be migrated
+	oadm manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
+
+	# List all pods on given nodes
+	oadm manage-node <mynode1> <mynode2> --list-pods
+----
+====
+
+
+== oadm migrate image-references
+Update embedded Docker image references
+
+====
+
+[options="nowrap"]
+----
+  # Perform a dry-run of migrating all "docker.io" references to "myregistry.com"
+  oadm migrate image-references docker.io/*=myregistry.com/*
+
+  # To actually perform the migration, the confirm flag must be appended
+  oadm migrate image-references docker.io/*=myregistry.com/* --confirm
+
+  # To see more details of what will be migrated, use the loglevel and output flags
+  oadm migrate image-references docker.io/*=myregistry.com/* --loglevel=2 -o yaml
+
+  # Migrate from a service IP to an internal service DNS name
+  oadm migrate image-references 172.30.1.54/*=registry.openshift.svc.cluster.local/*
+
+  # Migrate from a service IP to an internal service DNS name for all deployment configs and builds
+  oadm migrate image-references 172.30.1.54/*=registry.openshift.svc.cluster.local/* --include=buildconfigs,deploymentconfigs
+----
+====
+
+
+== oadm migrate storage
+Update the stored version of API objects
+
+====
+
+[options="nowrap"]
+----
+  # Perform a dry-run of updating all objects
+  oadm migrate storage
+
+  # To actually perform the update, the confirm flag must be appended
+  oadm migrate storage --confirm
+
+  # Only migrate pods
+  oadm migrate storage --include=pods --confirm
+
+  # Only pods that are in namespaces starting with "bar"
+  oadm migrate storage --include=pods --confirm --from-key=bar/ --to-key=bar/\xFF
+
+----
+====
+
+
+== oadm pod-network isolate-projects
+Isolate project network
+
+====
+
+[options="nowrap"]
+----
+	# Provide isolation for project p1
+	oadm pod-network isolate-projects <p1>
+
+	# Allow all projects with label name=top-secret to have their own isolated project network
+	oadm pod-network isolate-projects --selector='name=top-secret'
+----
+====
+
+
+== oadm pod-network join-projects
+Join project network
+
+====
+
+[options="nowrap"]
+----
+	# Allow project p2 to use project p1 network
+	oadm pod-network join-projects --to=<p1> <p2>
+
+	# Allow all projects with label name=top-secret to use project p1 network
+	oadm pod-network join-projects --to=<p1> --selector='name=top-secret'
+----
+====
+
+
+== oadm pod-network make-projects-global
+Make project network global
+
+====
+
+[options="nowrap"]
+----
+	# Allow project p1 to access all pods in the cluster and vice versa
+	oadm pod-network make-projects-global <p1>
+
+	# Allow all projects with label name=share to access all pods in the cluster and vice versa
+	oadm pod-network make-projects-global --selector='name=share'
+----
+====
+
+
+== oadm policy add-role-to-user
+Add a role to users or serviceaccounts for the current project
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'view' role to user1 for the current project
+  oadm policy add-role-to-user view user1
+
+  # Add the 'edit' role to serviceaccount1 for the current project
+  oadm policy add-role-to-user edit -z serviceaccount1
+----
+====
+
+
+== oadm policy add-scc-to-user
+Add users or serviceaccount to a security context constraint
+
+====
+
+[options="nowrap"]
+----
+  # Add the 'restricted' security context contraint to user1 and user2
+  oadm policy add-scc-to-user restricted user1 user2
+
+  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
+  oadm policy add-scc-to-user privileged -z serviceaccount1
+----
+====
+
+
+== oadm policy reconcile-cluster-role-bindings
+Update cluster role bindings to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the names of cluster role bindings that would be modified
+  oadm policy reconcile-cluster-role-bindings -o name
+
+  # Display the cluster role bindings that would be modified, removing any extra subjects
+  oadm policy reconcile-cluster-role-bindings --additive-only=false
+
+  # Update cluster role bindings that don't match the current defaults
+  oadm policy reconcile-cluster-role-bindings --confirm
+
+  # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
+  oadm policy reconcile-cluster-role-bindings --confirm --exclude-groups=system:authenticated
+
+  # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
+  oadm policy reconcile-cluster-role-bindings --confirm --additive-only=false
+----
+====
+
+
+== oadm policy reconcile-cluster-roles
+Update cluster roles to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the names of cluster roles that would be modified
+  oadm policy reconcile-cluster-roles -o name
+
+  # Add missing permissions to cluster roles that don't match the current defaults
+  oadm policy reconcile-cluster-roles --confirm
+
+  # Add missing permissions and remove extra permissions from
+  # cluster roles that don't match the current defaults
+  oadm policy reconcile-cluster-roles --additive-only=false --confirm
+
+  # Display the union of the default and modified cluster roles
+  oadm policy reconcile-cluster-roles --additive-only
+----
+====
+
+
+== oadm policy reconcile-sccs
+Replace cluster SCCs to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster SCCs that would be modified
+  oadm policy reconcile-sccs
+
+  # Update cluster SCCs that don't match the current defaults preserving additional grants
+  # for users and group and keeping any priorities that are already set
+  oadm policy reconcile-sccs --confirm
+
+  # Replace existing users, groups, and priorities that do not match defaults
+  oadm policy reconcile-sccs --additive-only=false --confirm
+----
+====
+
+
+== oadm prune builds
+Remove old completed and failed builds
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting older completed and failed builds and also including
+  # all builds whose associated BuildConfig no longer exists
+  oadm prune builds --orphans
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oadm prune builds --orphans --confirm
+----
+====
+
+
+== oadm prune deployments
+Remove old completed and failed deployments
+
+====
+
+[options="nowrap"]
+----
+  # Dry run deleting all but the last complete deployment for every deployment config
+  oadm prune deployments --keep-complete=1
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oadm prune deployments --keep-complete=1 --confirm
+----
+====
+
+
+== oadm prune groups
+Prune OpenShift groups referencing missing records on an external provider.
+
+====
+
+[options="nowrap"]
+----
+  # Prune all orphaned groups
+  oadm prune groups --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups except the ones from the blacklist file
+  oadm prune groups --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist file
+  oadm prune groups --whitelist=/path/to/whitelist.txt --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+  # Prune all orphaned groups from a list of specific groups specified in a whitelist
+  oadm prune groups groups/group_name groups/other_name --sync-config=/path/to/ldap-sync-config.yaml --confirm
+
+----
+====
+
+
+== oadm prune images
+Remove unreferenced images
+
+====
+
+[options="nowrap"]
+----
+  # See, what the prune command would delete if only images more than an hour old and obsoleted
+  # by 3 newer revisions under the same tag were considered.
+  oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oadm prune images --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+
+  # See, what the prune command would delete if we're interested in removing images
+  # exceeding currently set LimitRanges ('openshift.io/Image')
+  oadm prune images --prune-over-size-limit
+
+  # To actually perform the prune operation, the confirm flag must be appended
+  oadm prune images --prune-over-size-limit --confirm
+----
+====
+
+
+== oadm registry
+Install the integrated Docker registry
+
+====
+
+[options="nowrap"]
+----
+  # Check if default Docker registry ("docker-registry") has been created
+  oadm registry --dry-run
+
+  # See what the registry will look like if created
+  oadm registry -o yaml
+
+  # Create a registry with two replicas if it does not exist
+  oadm registry --replicas=2
+
+  # Use a different registry image
+  oadm registry --images=myrepo/docker-registry:mytag
+
+  # Enforce quota and limits on images
+  oadm registry --enforce-quota
+----
+====
+
+
+== oadm router
+Install a router
+
+====
+
+[options="nowrap"]
+----
+  # Check the default router ("router")
+  oadm router --dry-run
+
+  # See what the router would look like if created
+  oadm router -o yaml
+
+  # Create a router with two replicas if it does not exist
+  oadm router router-west --replicas=2
+
+  # Use a different router image
+  oadm router region-west --images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+  oadm router router-west --stats-port=0
+  
+----
+====
+
+
+== oadm taint
+Update the taints on one or more nodes
+
+====
+
+[options="nowrap"]
+----
+
+# Update node 'foo' with a taint with key 'dedicated' and value 'special-user' and effect 'NoSchedule'.
+# If a taint with that key and effect already exists, its value is replaced as specified.
+oadm taint nodes foo dedicated=special-user:NoSchedule
+
+# Remove from node 'foo' the taint with key 'dedicated' and effect 'NoSchedule' if one exists.
+oadm taint nodes foo dedicated:NoSchedule-
+
+# Remove from node 'foo' all the taints with key 'dedicated'
+oadm taint nodes foo dedicated-
+----
+====
+
+
+== oadm top images
+Show usage statistics for Images
+
+====
+
+[options="nowrap"]
+----
+  # Show usage statistics for Images
+  oadm top images
+----
+====
+
+
+== oadm top imagestreams
+Show usage statistics for ImageStreams
+
+====
+
+[options="nowrap"]
+----
+  # Show usage statistics for ImageStreams
+  oadm top imagestreams
+----
+====
+
+
+== oadm top node
+Display Resource (CPU/Memory/Storage) usage of nodes
+
+====
+
+[options="nowrap"]
+----
+
+# Show metrics for all nodes
+kubectl top node
+
+# Show metrics for a given node
+kubectl top node NODE_NAME
+----
+====
+
+
+== oadm top pod
+Display Resource (CPU/Memory/Storage) usage of pods
+
+====
+
+[options="nowrap"]
+----
+
+# Show metrics for all pods in the default namespace
+kubectl top pod
+
+# Show metrics for all pods in the given namespace
+kubectl top pod --namespace=NAMESPACE
+
+# Show metrics for a given pod and its containers
+kubectl top pod POD_NAME --containers
+
+# Show metrics for the pods defined by label name=myLabel
+kubectl top pod -l name=myLabel
+----
+====
+
+
+== oadm uncordon
+Mark node as schedulable
+
+====
+
+[options="nowrap"]
+----
+
+# Mark node "foo" as schedulable.
+$ oadm uncordon foo
+
 ----
 ====
 
