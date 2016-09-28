@@ -32,7 +32,10 @@ import (
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	cmdadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -44,21 +47,18 @@ import (
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
+	quota "github.com/openshift/origin/pkg/quota"
+	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
+	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
+	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	securitycontroller "github.com/openshift/origin/pkg/security/controller"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
-	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
-
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	quota "github.com/openshift/origin/pkg/quota"
-	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
+	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 
 const (
@@ -291,8 +291,12 @@ func (c *MasterConfig) RunBuildPodController() {
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildImageChangeTriggerControllerClients()
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
-	factory.Create().Run()
+	bcIndex := &oscache.StoreToBuildConfigListerImpl{c.Informers.BuildConfigs().Indexer()}
+	bcIndexSynced := c.Informers.BuildConfigs().Informer().HasSynced
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigIndex: bcIndex, BuildConfigIndexSynced: bcIndexSynced}
+	go func() {
+		factory.Create().Run()
+	}()
 }
 
 // RunBuildConfigChangeController starts the build config change trigger controller process.

@@ -74,6 +74,7 @@ func (s *StoreToDeploymentConfigLister) DeploymentConfigs(namespace string) stor
 	return storeDeploymentConfigsNamespacer{s.Indexer, namespace}
 }
 
+// storeDeploymentConfigsNamespacer provides a way to get and list DeploymentConfigs from a specific namespace.
 type storeDeploymentConfigsNamespacer struct {
 	indexer   cache.Indexer
 	namespace string
