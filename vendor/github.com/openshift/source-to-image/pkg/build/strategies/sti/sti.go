@@ -26,9 +26,6 @@ import (
 )
 
 var (
-	// DefaultEntrypoint is the default entry point used when starting containers
-	DefaultEntrypoint = []string{"/usr/bin/env"}
-
 	glog = utilglog.StderrLog
 
 	// List of directories that needs to be present inside working dir
@@ -358,7 +355,7 @@ func createBuildEnvironment(config *api.Config) []string {
 		glog.V(3).Infof("No user environment provided (%v)", err)
 	}
 
-	return append(scripts.ConvertEnvironment(env), scripts.ConvertEnvironmentList(config.Environment)...)
+	return append(scripts.ConvertEnvironmentList(env), scripts.ConvertEnvironmentList(config.Environment)...)
 }
 
 // Exists determines if the current build supports incremental workflow.
@@ -420,7 +417,6 @@ func (builder *STI) Save(config *api.Config) (err error) {
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
 		User:            user,
-		Entrypoint:      DefaultEntrypoint,
 		ExternalScripts: builder.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
 		Destination:     config.Destination,
@@ -437,6 +433,9 @@ func (builder *STI) Save(config *api.Config) (err error) {
 	go dockerpkg.StreamContainerIO(errReader, nil, func(a ...interface{}) { glog.Info(a...) })
 	err = builder.docker.RunContainer(opts)
 	if e, ok := err.(errors.ContainerError); ok {
+		// even with deferred close above, close errReader now so we avoid data race condition on errOutput;
+		// closing will cause StreamContainerIO to exit, thus releasing the writer in the equation
+		errReader.Close()
 		return errors.NewSaveArtifactsError(image, e.Output, err)
 	}
 	return err
@@ -464,10 +463,9 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 	}
 
 	opts := dockerpkg.RunContainerOptions{
-		Image:      config.BuilderImage,
-		Entrypoint: DefaultEntrypoint,
-		Stdout:     outWriter,
-		Stderr:     errWriter,
+		Image:  config.BuilderImage,
+		Stdout: outWriter,
+		Stderr: errWriter,
 		// The PullImage is false because the PullImage function should be called
 		// before we run the container
 		PullImage:       false,
@@ -542,11 +540,12 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
 		r, w := io.Pipe()
 		go func() {
+			// reminder, multiple defers follow a stack, LIFO order of processing
+			defer wg.Done()
 			// Wait for the injections to complete and check the error. Do not start
 			// streaming the sources when the injection failed.
 			<-injectionComplete
 			if injectionError != nil {
-				wg.Done()
 				return
 			}
 			glog.V(2).Info("starting the source uploading ...")
@@ -556,13 +555,11 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 				if r := recover(); r != nil {
 					glog.Errorf("recovered panic: %#v", r)
 				}
-				wg.Done()
 			}()
 			err = builder.tar.CreateTarStream(uploadDir, false, w)
 		}()
 
 		opts.Stdin = r
-		defer wg.Wait()
 	}
 
 	go func(reader io.Reader) {
@@ -593,12 +590,16 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 	go dockerpkg.StreamContainerIO(errReader, &errOutput, func(a ...interface{}) { glog.Info(a...) })
 
 	err := builder.docker.RunContainer(opts)
-	if util.IsTimeoutError(err) {
-		// Cancel waiting for source input if the container timeouts
-		wg.Done()
-	}
 	if e, ok := err.(errors.ContainerError); ok {
+		// even with deferred close above, close errReader now so we avoid data race condition on errOutput;
+		// closing will cause StreamContainerIO to exit, thus releasing the writer in the equation
+		errReader.Close()
 		return errors.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
+	}
+	// Do not wait for source input if the container times out.
+	// FIXME: this potentially leaks a goroutine.
+	if !util.IsTimeoutError(err) {
+		wg.Wait()
 	}
 	return err
 }
