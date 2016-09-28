@@ -31,8 +31,6 @@ const (
 )
 
 var (
-	minLeaseTTL = int64(5)
-
 	leaseBucketName = []byte("lease")
 	// do not use maxInt64 since it can overflow time which will add
 	// the offset of unix time (1970yr to seconds).
@@ -143,6 +141,10 @@ type lessor struct {
 	// The leased items can be recovered by iterating all the keys in kv.
 	b backend.Backend
 
+	// minLeaseTTL is the minimum lease TTL that can be granted for a lease. Any
+	// requests for shorter TTLs are extended to the minimum TTL.
+	minLeaseTTL int64
+
 	expiredC chan []*Lease
 	// stopC is a channel whose closure indicates that the lessor should be stopped.
 	stopC chan struct{}
@@ -150,14 +152,15 @@ type lessor struct {
 	doneC chan struct{}
 }
 
-func NewLessor(b backend.Backend) Lessor {
-	return newLessor(b)
+func NewLessor(b backend.Backend, minLeaseTTL int64) Lessor {
+	return newLessor(b, minLeaseTTL)
 }
 
-func newLessor(b backend.Backend) *lessor {
+func newLessor(b backend.Backend, minLeaseTTL int64) *lessor {
 	l := &lessor{
-		leaseMap: make(map[LeaseID]*Lease),
-		b:        b,
+		leaseMap:    make(map[LeaseID]*Lease),
+		b:           b,
+		minLeaseTTL: minLeaseTTL,
 		// expiredC is a small buffered chan to avoid unnecessary blocking.
 		expiredC: make(chan []*Lease, 16),
 		stopC:    make(chan struct{}),
@@ -191,6 +194,10 @@ func (le *lessor) Grant(id LeaseID, ttl int64) (*Lease, error) {
 
 	if _, ok := le.leaseMap[id]; ok {
 		return nil, ErrLeaseExists
+	}
+
+	if l.TTL < le.minLeaseTTL {
+		l.TTL = le.minLeaseTTL
 	}
 
 	if le.primary {
@@ -425,6 +432,9 @@ func (le *lessor) initAndRecover() {
 			panic("failed to unmarshal lease proto item")
 		}
 		ID := LeaseID(lpb.ID)
+		if lpb.TTL < le.minLeaseTTL {
+			lpb.TTL = le.minLeaseTTL
+		}
 		le.leaseMap[ID] = &Lease{
 			ID:  ID,
 			TTL: lpb.TTL,
@@ -464,18 +474,24 @@ func (l Lease) persistTo(b backend.Backend) {
 
 // refresh refreshes the expiry of the lease.
 func (l *Lease) refresh(extend time.Duration) {
-	if l.TTL < minLeaseTTL {
-		l.TTL = minLeaseTTL
-	}
 	l.expiry = time.Now().Add(extend + time.Second*time.Duration(l.TTL))
 }
 
 // forever sets the expiry of lease to be forever.
-func (l *Lease) forever() {
-	if l.TTL < minLeaseTTL {
-		l.TTL = minLeaseTTL
+func (l *Lease) forever() { l.expiry = forever }
+
+// Keys returns all the keys attached to the lease.
+func (l *Lease) Keys() []string {
+	keys := make([]string, 0, len(l.itemSet))
+	for k := range l.itemSet {
+		keys = append(keys, k.Key)
 	}
-	l.expiry = forever
+	return keys
+}
+
+// Remaining returns the remaining time of the lease.
+func (l *Lease) Remaining() time.Duration {
+	return l.expiry.Sub(time.Now())
 }
 
 type LeaseItem struct {
