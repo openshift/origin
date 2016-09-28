@@ -87,6 +87,32 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
+	dockerfilePath := d.getDockerfilePath(buildDir)
+	imageNames := getDockerfileFrom(dockerfilePath)
+	if len(imageNames) == 0 {
+		return fmt.Errorf("no from image in dockerfile.")
+	}
+	for _, imageName := range imageNames {
+		var imageExists bool = true
+		_, err = d.dockerClient.InspectImage(imageName)
+		if err != nil {
+			if err != docker.ErrNoSuchImage {
+				return err
+			}
+			imageExists = false
+		}
+		// if forcePull or the image not exists on the node we should pull the image first
+		if d.build.Spec.Strategy.DockerStrategy.ForcePull || !imageExists {
+			pullAuthConfig, _ := dockercfg.NewHelper().GetDockerAuth(
+				imageName,
+				dockercfg.PullAuthType,
+			)
+			glog.V(0).Infof("\nPulling image %s ...", imageName)
+			if err := pullImage(d.dockerClient, imageName, pullAuthConfig); err != nil {
+				return fmt.Errorf("failed to pull image: %v", err)
+			}
+		}
+	}
 
 	if err := d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets); err != nil {
 		return err
@@ -151,27 +177,8 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 // If that's the case then change the Dockerfile to make the build with the given image.
 // Also append the environment variables and labels in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
-	var contextDirPath string
-	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
-		contextDirPath = filepath.Join(dir, d.build.Spec.Source.ContextDir)
-	} else {
-		contextDirPath = dir
-	}
-
-	var dockerfilePath string
-	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
-		dockerfilePath = filepath.Join(contextDirPath, d.build.Spec.Strategy.DockerStrategy.DockerfilePath)
-	} else {
-		dockerfilePath = filepath.Join(contextDirPath, defaultDockerfilePath)
-	}
-
-	f, err := os.Open(dockerfilePath)
-	if err != nil {
-		return err
-	}
-
-	// Parse the Dockerfile.
-	node, err := parser.Parse(f)
+	dockerfilePath := d.getDockerfilePath(dir)
+	node, err := parseDockerfile(dockerfilePath)
 	if err != nil {
 		return err
 	}
@@ -210,7 +217,7 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	instructions := dockerfile.ParseTreeToDockerfile(node)
 
 	// Overwrite the Dockerfile.
-	fi, err := f.Stat()
+	fi, err := os.Stat(dockerfilePath)
 	if err != nil {
 		return err
 	}
@@ -319,6 +326,37 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
+func (d *DockerBuilder) getDockerfilePath(dir string) string {
+	var contextDirPath string
+	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
+		contextDirPath = filepath.Join(dir, d.build.Spec.Source.ContextDir)
+	} else {
+		contextDirPath = dir
+	}
+
+	var dockerfilePath string
+	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
+		dockerfilePath = filepath.Join(contextDirPath, d.build.Spec.Strategy.DockerStrategy.DockerfilePath)
+	} else {
+		dockerfilePath = filepath.Join(contextDirPath, defaultDockerfilePath)
+	}
+	return dockerfilePath
+}
+func parseDockerfile(dockerfilePath string) (*parser.Node, error) {
+	f, err := os.Open(dockerfilePath)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the Dockerfile.
+	node, err := parser.Parse(f)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
 // replaceLastFrom changes the last FROM instruction of node to point to the
 // base image.
 func replaceLastFrom(node *parser.Node, image string) error {
@@ -402,4 +440,27 @@ func insertEnvAfterFrom(node *parser.Node, env []kapi.EnvVar) error {
 	}
 
 	return nil
+}
+
+// getDockerfilefrom returns all the images behind "FROM" instruction in the dockerfile
+func getDockerfileFrom(dockerfilePath string) []string {
+	var froms []string
+	if "" == dockerfilePath {
+		return froms
+	}
+	node, err := parseDockerfile(dockerfilePath)
+	if err != nil {
+		return froms
+	}
+	for i := 0; i < len(node.Children); i++ {
+		child := node.Children[i]
+		if child == nil || child.Value != dockercmd.From {
+			continue
+		}
+		from := child.Next.Value
+		if len(from) > 0 {
+			froms = append(froms, from)
+		}
+	}
+	return froms
 }

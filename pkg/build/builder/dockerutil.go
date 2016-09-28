@@ -48,6 +48,26 @@ type DockerClient interface {
 	TagImage(name string, opts docker.TagImageOptions) error
 }
 
+func pullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
+	logProgress := func(s string) {
+		glog.V(0).Infof("%s", s)
+	}
+	opts := docker.PullImageOptions{
+		Repository:    name,
+		OutputStream:  imageprogress.NewPullWriter(logProgress),
+		RawJSONStream: true,
+	}
+	if glog.Is(5) {
+		opts.OutputStream = os.Stderr
+		opts.RawJSONStream = false
+	}
+	err := client.PullImage(opts, authConfig)
+	if err == nil {
+		return nil
+	}
+	return err
+}
+
 // pushImage pushes a docker image to the registry specified in its tag.
 // The method will retry to push the image when following scenarios occur:
 // - Docker registry is down temporarily or permanently
