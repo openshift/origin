@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
 	"time"
 
 	units "github.com/docker/go-units"
@@ -15,6 +14,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -321,6 +321,11 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	return nil
 }
 
+// nowFn is extracted from the cancel method for unit testing.
+var nowFn = func() time.Time {
+	return unversioned.Now().Time
+}
+
 // cancel cancels any deployment process in progress for config.
 func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 	if config.Spec.Paused {
@@ -349,6 +354,8 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 			}
 
 			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+			adaptedToServerTimestamp := nowFn().In(deployment.CreationTimestamp.Location()).Format(time.RFC3339)
+			deployment.Annotations[deployapi.DeploymentCancelledAtAnnotation] = adaptedToServerTimestamp
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
 			_, err := o.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err == nil {

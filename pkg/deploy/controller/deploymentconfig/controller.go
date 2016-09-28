@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -125,7 +127,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 					if err != nil {
 						return err
 					}
-					copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+					copied.Annotations[deployapi.DeploymentCancelledAtAnnotation] = unversioned.Now().Format(time.RFC3339)
 					copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 					updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
 					return err

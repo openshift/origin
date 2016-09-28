@@ -7,6 +7,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/controller/framework"
@@ -37,6 +38,8 @@ func TestHandleScenarios(t *testing.T) {
 		cancelled bool
 	}
 
+	cancelledAt := unversioned.Now().Format(time.RFC3339)
+
 	mkdeployment := func(d deployment) kapi.ReplicationController {
 		config := deploytest.OkDeploymentConfig(d.version)
 		if d.test {
@@ -46,7 +49,7 @@ func TestHandleScenarios(t *testing.T) {
 		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
-			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+			deployment.Annotations[deployapi.DeploymentCancelledAtAnnotation] = cancelledAt
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 		}
 		if d.replicasA != nil {
