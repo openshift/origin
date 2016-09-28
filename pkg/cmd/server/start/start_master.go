@@ -471,21 +471,10 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	var standaloneAssetConfig *origin.AssetConfig
 	if oc.WebConsoleEnabled() {
-		var overrideConfig *overrideapi.ClusterResourceOverrideConfig = nil
-		if oc.Options.KubernetesMasterConfig != nil { // external kube gets you a nil pointer here
-			if overridePluginConfigFile, err := pluginconfig.GetPluginConfigFile(oc.Options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, overrideapi.PluginName, ""); err != nil {
-				return err
-			} else if overridePluginConfigFile != "" {
-				configFile, err := os.Open(overridePluginConfigFile)
-				if err != nil {
-					return err
-				}
-				if overrideConfig, err = override.ReadConfig(configFile); err != nil {
-					return err
-				}
-			}
+		overrideConfig, err := getResourceOverrideConfig(oc)
+		if err != nil {
+			return err
 		}
-
 		config, err := origin.NewAssetConfig(*oc.Options.AssetConfig, overrideConfig)
 		if err != nil {
 			return err
@@ -525,6 +514,45 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	oc.RunProjectAuthorizationCache()
 	return nil
+}
+
+// getResourceOverrideConfig looks in two potential places where ClusterResourceOverrideConfig can be specified
+func getResourceOverrideConfig(oc *origin.MasterConfig) (*overrideapi.ClusterResourceOverrideConfig, error) {
+	overrideConfig, err := checkForOverrideConfig(oc.Options.AdmissionConfig)
+	if err != nil {
+		return nil, err
+	}
+	if overrideConfig != nil {
+		return overrideConfig, nil
+	}
+	if oc.Options.KubernetesMasterConfig == nil { // external kube gets you a nil pointer here
+		return nil, nil
+	}
+	overrideConfig, err = checkForOverrideConfig(oc.Options.KubernetesMasterConfig.AdmissionConfig)
+	if err != nil {
+		return nil, err
+	}
+	return overrideConfig, nil
+}
+
+// checkForOverrideConfig looks for ClusterResourceOverrideConfig plugin cfg in the admission PluginConfig
+func checkForOverrideConfig(ac configapi.AdmissionConfig) (*overrideapi.ClusterResourceOverrideConfig, error) {
+	overridePluginConfigFile, err := pluginconfig.GetPluginConfigFile(ac.PluginConfig, overrideapi.PluginName, "")
+	if err != nil {
+		return nil, err
+	}
+	if overridePluginConfigFile == "" {
+		return nil, nil
+	}
+	configFile, err := os.Open(overridePluginConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	overrideConfig, err := override.ReadConfig(configFile)
+	if err != nil {
+		return nil, err
+	}
+	return overrideConfig, nil
 }
 
 // startControllers launches the controllers
