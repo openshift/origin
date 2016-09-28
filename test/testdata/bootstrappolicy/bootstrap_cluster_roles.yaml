@@ -2707,6 +2707,7 @@ items:
     - jobs
     - scheduledjobs
     verbs:
+    - get
     - list
     - watch
   - apiGroups:

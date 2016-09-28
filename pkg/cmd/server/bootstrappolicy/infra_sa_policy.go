@@ -331,9 +331,10 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				// JobController.jobController.ListWatch
 				// ScheduledJobController.SyncAll
+				// ScheduledJobController.SyncOne
 				{
 					APIGroups: []string{extensions.GroupName, batch.GroupName},
-					Verbs:     sets.NewString("list", "watch"),
+					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("jobs", "scheduledjobs"),
 				},
 				// JobController.syncJob
