@@ -382,12 +382,6 @@ message RollingDeploymentStrategyParams {
   // pods.
   optional k8s.io.kubernetes.pkg.util.intstr.IntOrString maxSurge = 5;
 
-  // UpdatePercent is the percentage of replicas to scale up or down each
-  // interval. If nil, one replica will be scaled up and down each interval.
-  // If negative, the scale order will be down/up instead of up/down.
-  // DEPRECATED: Use MaxUnavailable/MaxSurge instead.
-  optional int32 updatePercent = 6;
-
   // Pre is a lifecycle hook which is executed before the deployment process
   // begins. All LifecycleHookFailurePolicy values are supported.
   optional LifecycleHook pre = 7;
