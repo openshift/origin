@@ -357,7 +357,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 }
 
 func (plugin *OsdnNode) updateEgressNetworkPolicyFailureLabel(failure bool) error {
-	node, err := plugin.registry.kClient.Nodes().Get(plugin.hostName)
+	node, err := plugin.kClient.Nodes().Get(plugin.hostName)
 	if err != nil {
 		return err
 	}
@@ -374,12 +374,12 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyFailureLabel(failure bool) erro
 		delete(node.Labels, EgressNetworkPolicyFailureLabel)
 	}
 
-	_, err = plugin.registry.kClient.Nodes().UpdateStatus(node)
+	_, err = plugin.kClient.Nodes().UpdateStatus(node)
 	return err
 }
 
 func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
-	policies, err := plugin.registry.GetEgressNetworkPolicies()
+	policies, err := plugin.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		if kapierrs.IsForbidden(err) {
 			// 1.3 node running with 1.2-bootstrapped policies
@@ -398,7 +398,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 		}
 	}
 
-	for _, policy := range policies {
+	for _, policy := range policies.Items {
 		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
 		if err != nil {
 			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
@@ -419,7 +419,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 }
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	plugin.registry.RunEventQueue(EgressNetworkPolicies, func(delta cache.Delta) error {
+	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
 		vnid, err := plugin.vnids.GetVNID(policy.Namespace)

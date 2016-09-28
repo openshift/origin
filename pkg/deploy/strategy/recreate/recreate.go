@@ -17,6 +17,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
+	stratutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -31,8 +32,10 @@ type RecreateDeploymentStrategy struct {
 	out, errOut io.Writer
 	// until is a condition that, if reached, will cause the strategy to exit early
 	until string
-	// getReplicationController knows how to get a replication controller.
-	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
+	// rcClient is a client to access replication controllers
+	rcClient kclient.ReplicationControllersNamespacer
+	// eventClient is a client to access events
+	eventClient kclient.EventNamespacer
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
 	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
@@ -49,6 +52,8 @@ type RecreateDeploymentStrategy struct {
 	retryTimeout time.Duration
 	// retryPeriod is how often to try updating the replica count.
 	retryPeriod time.Duration
+	// events records the events
+	events record.EventSink
 }
 
 // AcceptorInterval is how often the UpdateAcceptor should check for
@@ -66,18 +71,18 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, tagClient client.Im
 	}
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &RecreateDeploymentStrategy{
-		out:    out,
-		errOut: errOut,
-		until:  until,
-		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.ReplicationControllers(namespace).Get(name)
-		},
+		out:         out,
+		errOut:      errOut,
+		events:      events,
+		until:       until,
+		rcClient:    client,
+		eventClient: client,
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(out, client, timeout, AcceptorInterval, minReadySeconds)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
-		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, events, os.Stdout, decoder),
+		hookExecutor: stratsupport.NewHookExecutor(client, tagClient, client, os.Stdout, decoder),
 		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}
@@ -119,6 +124,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	if s.until == "pre" {
 		return strat.NewConditionReachedErr("pre hook succeeded")
 	}
+
+	// Record all warnings
+	defer stratutil.RecordConfigWarnings(s.eventClient, from, s.decoder, s.out)
+	defer stratutil.RecordConfigWarnings(s.eventClient, to, s.decoder, s.out)
 
 	// Scale down the from deployment.
 	if from != nil {
@@ -173,6 +182,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 			if err != nil {
 				return fmt.Errorf("couldn't scale %s to %d: %v", to.Name, desiredReplicas, err)
 			}
+
 			to = updatedTo
 		}
 
@@ -204,11 +214,8 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 	if err := s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retry, wait); err != nil {
 		return nil, err
 	}
-	updatedDeployment, err := s.getReplicationController(deployment.Namespace, deployment.Name)
-	if err != nil {
-		return nil, err
-	}
-	return updatedDeployment, nil
+
+	return s.rcClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 }
 
 // hookExecutor knows how to execute a deployment lifecycle hook.

@@ -188,9 +188,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 
 	glog.V(0).Infof("Receiving source from STDIN as archive ...")
 
-	// use bsdtar to process the incoming archive and convert it to a tar stream (since bsdtar autodetects and handles various archive formats)
-	// use gnu tar to extract that tar stream to work around the bsdtar (libarchive) bug https://github.com/libarchive/libarchive/issues/746
-	cmd := exec.Command("sh", "-o", "pipefail", "-c", `bsdtar -cf - @- | tar xf - -m -C "$0"`, dir)
+	cmd := exec.Command("bsdtar", "-x", "-o", "-m", "-f", "-", "-C", dir)
 	cmd.Stdin = in
 	out, err := cmd.CombinedOutput()
 	if err != nil {

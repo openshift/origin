@@ -25,11 +25,12 @@ This command will attempt to start a shell session in a pod for the specified re
 It works with pods, deployment configs, jobs, daemon sets, and replication controllers.
 Any of the aforementioned resources (apart from pods) will be resolved to a ready pod.
 It will default to the first container if none is specified, and will attempt to use
-'/bin/sh' as the default shell. You may pass an optional command after the resource name,
-which will be executed instead of a login shell. A TTY will be automatically allocated
-if standard input is interactive - use -t and -T to override. A TERM variable is sent
-to the environment where the shell (or command) will be executed. By default its value
-is the same as the TERM variable from the local environment; if not set, 'xterm' is used.
+'/bin/sh' as the default shell. You may pass any flags supported by this command before
+the resource name, and an optional command after the resource name, which will be executed
+instead of a login shell. A TTY will be automatically allocated if standard input is 
+interactive - use -t and -T to override. A TERM variable is sent to the environment where 
+the shell (or command) will be executed. By default its value is the same as the TERM 
+variable from the local environment; if not set, 'xterm' is used.
 
 Note, some containers may not include a shell - use '%[1]s exec' if you need to run commands
 directly.`
@@ -53,6 +54,7 @@ type RshOptions struct {
 	ForceTTY   bool
 	DisableTTY bool
 	Executable string
+	Timeout    int
 	*kubecmd.ExecOptions
 }
 
@@ -61,6 +63,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	options := &RshOptions{
 		ForceTTY:   false,
 		DisableTTY: false,
+		Timeout:    10,
 		ExecOptions: &kubecmd.ExecOptions{
 			StreamOptions: kubecmd.StreamOptions{
 				In:  in,
@@ -89,6 +92,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().BoolVarP(&options.ForceTTY, "tty", "t", false, "Force a pseudo-terminal to be allocated")
 	cmd.Flags().BoolVarP(&options.DisableTTY, "no-tty", "T", false, "Disable pseudo-terminal allocation")
 	cmd.Flags().StringVar(&options.Executable, "shell", "/bin/sh", "Path to the shell command")
+	cmd.Flags().IntVar(&options.Timeout, "timeout", 10, "Request timeout for obtaining a pod from the server; defaults to 10 seconds")
 	cmd.Flags().StringVarP(&options.ContainerName, "container", "c", "", "Container name; defaults to first container")
 	cmd.Flags().SetInterspersed(false)
 	return cmd
@@ -136,8 +140,7 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	}
 	o.Client = client
 
-	// TODO: Consider making the timeout configurable
-	o.PodName, err = f.PodForResource(resource, 10*time.Second)
+	o.PodName, err = f.PodForResource(resource, time.Duration(o.Timeout)*time.Second)
 	return err
 }
 

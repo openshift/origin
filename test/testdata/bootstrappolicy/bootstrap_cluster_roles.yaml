@@ -1672,6 +1672,7 @@ items:
     - events
     verbs:
     - create
+    - list
   - apiGroups:
     - ""
     attributeRestrictions: null

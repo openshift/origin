@@ -60,6 +60,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "sync_folders_type" => nil,
     "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
     "minion_ip_base"    => ENV['OPENSHIFT_MINION_IP_BASE'] || "10.245.2.",
+    "hostmanager_enabled" => false,
+    "hostmanager_aliases" => [],
     "virtualbox"        => {
       "box_name" => "fedora_inst",
       "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
@@ -222,6 +224,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.network "forwarded_port", guest: 8080, host: 8080
         config.vm.network "forwarded_port", guest: 8443, host: 8443
       end
+
+      if Vagrant.has_plugin?('vagrant-hostmanager')
+        config.hostmanager.aliases = vagrant_openshift_config['hostmanager_aliases']
+      end
+    end
+
+    if Vagrant.has_plugin?('vagrant-hostmanager')
+      config.hostmanager.enabled = vagrant_openshift_config['hostmanager_enabled']
+      config.hostmanager.manage_host = true
     end
 
   end # vm definition(s)
