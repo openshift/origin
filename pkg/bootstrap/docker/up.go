@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/client"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -149,10 +150,14 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 // taskFunc is a function that executes a start task
 type taskFunc func(io.Writer) error
 
+// conditionFunc determines whether a task should be run on start
+type conditionFunc func() bool
+
 // task is a named task for the start process
 type task struct {
-	name string
-	fn   taskFunc
+	name      string
+	fn        taskFunc
+	condition conditionFunc
 }
 
 // ClientStartConfig is the configuration for the client start command
@@ -197,10 +202,17 @@ type ClientStartConfig struct {
 
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
+
+	shouldInitializeData *bool
+	shouldCreateUser     *bool
 }
 
 func (c *ClientStartConfig) addTask(name string, fn taskFunc) {
-	c.Tasks = append(c.Tasks, task{name: name, fn: fn})
+	c.addConditionalTask(name, fn, nil)
+}
+
+func (c *ClientStartConfig) addConditionalTask(name string, fn taskFunc, condition conditionFunc) {
+	c.Tasks = append(c.Tasks, task{name: name, fn: fn, condition: condition})
 }
 
 // Complete initializes fields in StartConfig based on command parameters
@@ -216,10 +228,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	c.addTask("Checking OpenShift client", c.CheckOpenShiftClient)
 
-	if c.ShouldCreateDockerMachine {
-		// Create a Docker machine first if flag specified
-		c.addTask("Create Docker machine", c.CreateDockerMachine)
-	}
+	c.addConditionalTask("Create Docker machine", c.CreateDockerMachine, func() bool { return c.ShouldCreateDockerMachine })
 	// Get a Docker client.
 	// If a Docker machine was specified, make sure that the machine is
 	// running. Otherwise, use environment variables.
@@ -265,30 +274,30 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.addTask("Starting OpenShift container", c.StartOpenShift)
 
 	// Add default redirect URI to config
-	c.addTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs)
+	c.addConditionalTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs, c.ShouldInitializeData)
 
 	// Install a registry
-	c.addTask("Installing registry", c.InstallRegistry)
+	c.addConditionalTask("Installing registry", c.InstallRegistry, c.ShouldInitializeData)
 
 	// Install a router
-	c.addTask("Installing router", c.InstallRouter)
+	c.addConditionalTask("Installing router", c.InstallRouter, c.ShouldInitializeData)
 
 	// Install metrics
-	if c.ShouldInstallMetrics {
-		c.addTask("Install Metrics", c.InstallMetrics)
-	}
+	c.addConditionalTask("Install Metrics", c.InstallMetrics, func() bool {
+		return c.ShouldInstallMetrics && c.ShouldInitializeData()
+	})
 
 	// Import default image streams
-	c.addTask("Importing image streams", c.ImportImageStreams)
+	c.addConditionalTask("Importing image streams", c.ImportImageStreams, c.ShouldInitializeData)
 
 	// Import templates
-	c.addTask("Importing templates", c.ImportTemplates)
+	c.addConditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData)
 
 	// Login with an initial default user
-	c.addTask("Login to server", c.Login)
+	c.addConditionalTask("Login to server", c.Login, c.ShouldCreateUser)
 
 	// Create an initial project
-	c.addTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject)
+	c.addConditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser)
 
 	// Display server information
 	c.addTask("Server Information", c.ServerInfo)
@@ -307,6 +316,9 @@ func (c *ClientStartConfig) Validate(out io.Writer) error {
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClientStartConfig) Start(out io.Writer) error {
 	for _, task := range c.Tasks {
+		if task.condition != nil && !task.condition() {
+			continue
+		}
 		c.TaskPrinter.StartTask(task.name)
 		w := c.TaskPrinter.TaskWriter()
 		err := task.fn(w)
@@ -697,22 +709,24 @@ func (c *ClientStartConfig) CreateProject(out io.Writer) error {
 // ServerInfo displays server information after a successful start
 func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 	metricsInfo := ""
-	if c.ShouldInstallMetrics {
+	if c.ShouldInstallMetrics && c.ShouldInitializeData() {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
 			"    https://%s\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
 	}
-	fmt.Fprintf(out, "OpenShift server started.\n"+
+	msg := fmt.Sprintf("OpenShift server started.\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n%s"+
-		"You are logged in as:\n"+
-		"    User:     %s\n"+
-		"    Password: %s\n\n"+
-		"To login as administrator:\n"+
-		"    oc login -u system:admin\n\n",
-		c.OpenShiftHelper().Master(c.ServerIP),
-		metricsInfo,
-		initialUser,
-		initialPassword)
+		"    %s\n\n%s", c.OpenShiftHelper().Master(c.ServerIP), metricsInfo)
+
+	if c.ShouldCreateUser() {
+		msg += fmt.Sprintf("You are logged in as:\n"+
+			"    User:     %s\n"+
+			"    Password: %s\n\n", initialUser, initialPassword)
+	}
+
+	msg += "To login as administrator:\n" +
+		"    oc login -u system:admin\n\n"
+
+	fmt.Fprintf(out, msg)
 	return nil
 }
 
@@ -860,4 +874,68 @@ func (c *ClientStartConfig) determineIP(out io.Writer) (string, error) {
 		glog.V(2).Infof("OpenShift additional ip test failed: %v", err)
 	}
 	return "", errors.NewError("cannot determine an IP to use for your server.")
+}
+
+// ShouldInitializeData tries to determine whether we're dealing with
+// an existing OpenShift data and config. It determines that data exists by checking
+// for the existence of a docker-registry service.
+func (c *ClientStartConfig) ShouldInitializeData() bool {
+	if c.shouldInitializeData != nil {
+		return *c.shouldInitializeData
+	}
+
+	result := func() bool {
+		if !c.UseExistingConfig {
+			return true
+		}
+		// For now, we determine if using existing etcd data by looking
+		// for the registry service
+		_, kclient, err := c.Clients()
+		if err != nil {
+			glog.V(2).Infof("Cannot access OpenShift master: %v", err)
+			return true
+		}
+
+		if _, err = kclient.Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry); err != nil {
+			return true
+		}
+
+		// If a registry exists, then don't initialize data
+		return false
+	}()
+	c.shouldInitializeData = &result
+	return result
+}
+
+// ShouldCreateUser determines whether a user and project should
+// be created. If the user provider has been modified in the config, then it should
+// not attempt to create a user. Also, even if the user provider has not been
+// modified, but data has been initialized, then we should also not create user.
+func (c *ClientStartConfig) ShouldCreateUser() bool {
+	if c.shouldCreateUser != nil {
+		return *c.shouldCreateUser
+	}
+
+	result := func() bool {
+		if !c.UseExistingConfig {
+			return true
+		}
+
+		cfg, _, err := c.OpenShiftHelper().GetConfig(c.LocalConfigDir)
+		if err != nil {
+			glog.V(2).Infof("error reading config: %v", err)
+			return true
+		}
+		if cfg.OAuthConfig == nil || len(cfg.OAuthConfig.IdentityProviders) != 1 {
+			return false
+		}
+		if _, ok := cfg.OAuthConfig.IdentityProviders[0].Provider.(*configapi.AllowAllPasswordIdentityProvider); !ok {
+			return false
+		}
+
+		return c.ShouldInitializeData()
+	}()
+
+	c.shouldCreateUser = &result
+	return result
 }
