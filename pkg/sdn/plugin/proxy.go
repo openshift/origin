@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/sdn/plugin/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
@@ -60,11 +59,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 
 	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
-		if kapierrs.IsForbidden(err) {
-			// controller.go will log an error about this
-			return nil
-		}
-		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
+		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
 	}
 	for _, policy := range policies.Items {
 		proxy.updateNetworkPolicy(policy)
