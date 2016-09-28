@@ -47,6 +47,7 @@ os::cmd::expect_success 'oc new-app php mysql'
 os::cmd::expect_success 'oc delete all -l app=php'
 os::cmd::expect_failure 'oc get dc/mysql'
 os::cmd::expect_failure 'oc get dc/php'
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-without-app-label.json -o yaml' 'app: ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
 os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream "nginx" is invalid'
@@ -63,10 +64,10 @@ os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -o yaml' 'AD
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample --param MYSQL_PASSWORD=hello -o yaml' 'hello'
 
 # verify we can create from a template when some objects in the template declare an app label
-# the app label should still be applied to the other objects in the template.
-os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
-# verify the existing app label on an object is overridden by new-app
-os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
+# the app label will not be applied to any objects in the template.
+os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: ruby-helloworld-sample'
+# verify the existing app label on an object is not overridden by new-app
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json -o yaml' 'app: myapp'
 
 # verify that a template can be passed in stdin
 os::cmd::expect_success 'cat examples/sample-app/application-template-stibuild.json | oc new-app -o yaml -f -'
