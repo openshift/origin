@@ -90,6 +90,12 @@ message OAuthAuthorizeToken {
   // UserUID is the unique UID associated with this token. UserUID and UserName must both match
   // for this token to be valid.
   optional string userUID = 8;
+
+  // CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636
+  optional string codeChallenge = 9;
+
+  // CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
+  optional string codeChallengeMethod = 10;
 }
 
 // OAuthAuthorizeTokenList is a collection of OAuth authorization tokens

@@ -94,7 +94,7 @@ func (r *Response) SetErrorUri(id string, description string, uri string, state 
 	}
 }
 
-// SetErrorUri changes the response to redirect to the given url
+// SetRedirect changes the response to redirect to the given url
 func (r *Response) SetRedirect(url string) {
 	// set redirect parameters
 	r.Type = REDIRECT

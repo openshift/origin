@@ -25842,6 +25842,14 @@
      "userUID": {
       "type": "string",
       "description": "UserUID is the unique UID associated with this token. UserUID and UserName must both match for this token to be valid."
+     },
+     "codeChallenge": {
+      "type": "string",
+      "description": "CodeChallenge is the optional code_challenge associated with this authorization code, as described in rfc7636"
+     },
+     "codeChallengeMethod": {
+      "type": "string",
+      "description": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636"
      }
     }
    },

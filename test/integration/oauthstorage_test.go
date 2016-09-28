@@ -121,18 +121,22 @@ func TestOAuthStorage(t *testing.T) {
 	}))
 
 	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
-		ObjectMeta:   kapi.ObjectMeta{Name: "test"},
-		Secret:       "secret",
-		RedirectURIs: []string{assertServer.URL + "/assert"},
+		ObjectMeta:        kapi.ObjectMeta{Name: "test"},
+		Secret:            "secret",
+		AdditionalSecrets: []string{"secret1"},
+		RedirectURIs:      []string{assertServer.URL + "/assert"},
 	})
 	storedClient, err := storage.GetClient("test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !storedClient.ValidateSecret("secret") {
+	if !osin.CheckClientSecret(storedClient, "secret") {
 		t.Fatalf("unexpected stored client: %#v", storedClient)
 	}
-	if storedClient.ValidateSecret("secret2") {
+	if !osin.CheckClientSecret(storedClient, "secret1") {
+		t.Fatalf("unexpected stored client: %#v", storedClient)
+	}
+	if osin.CheckClientSecret(storedClient, "secret2") {
 		t.Fatalf("unexpected stored client: %#v", storedClient)
 	}
 
