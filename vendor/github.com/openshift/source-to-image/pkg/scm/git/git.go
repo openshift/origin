@@ -416,7 +416,7 @@ func isValidGitRepository(dir string) (bool, error) {
 // doesExist checks if the path exists, removing file:// if needed for OS FS check
 func doesExist(dir string) bool {
 	_, err := os.Stat(strings.TrimPrefix(dir, "file://"))
-	return !(err != nil && os.IsNotExist(err))
+	return err == nil
 }
 
 // hasGitBinary checks if the 'git' binary is available on the system

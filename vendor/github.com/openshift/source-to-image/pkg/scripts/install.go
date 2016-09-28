@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	dockerClient "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -169,7 +168,7 @@ type DefaultScriptSourceManager struct {
 	ScriptsURL string
 	download   Downloader
 	docker     docker.Docker
-	dockerAuth dockerClient.AuthConfiguration
+	dockerAuth api.AuthConfig
 	sources    []ScriptHandler
 	fs         util.FileSystem
 }
@@ -183,7 +182,7 @@ func (m *DefaultScriptSourceManager) Add(s ScriptHandler) {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth dockerClient.AuthConfiguration) Installer {
+func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth api.AuthConfig) Installer {
 	m := DefaultScriptSourceManager{
 		Image:      image,
 		ScriptsURL: scriptsURL,
