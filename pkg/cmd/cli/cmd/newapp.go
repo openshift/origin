@@ -40,8 +40,11 @@ import (
 	"github.com/openshift/origin/pkg/util"
 )
 
+// NewAppRecommendedCommandName is the recommended command name.
+const NewAppRecommendedCommandName = "new-app"
+
 type usage interface {
-	UsageError(commandName string) string
+	UsageError(baseName string) string
 }
 
 const (
@@ -56,7 +59,7 @@ If you specify a source code URL, it will set up a build that takes your source 
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
 remote repository that the server can see. The images will be deployed via a deployment
 configuration, and a service will be connected to the first public port of the app. You may either specify
-components using the various existing flags or let new-app autodetect what kind of components
+components using the various existing flags or let %[2]s autodetect what kind of components
 you have provided.
 
 If you provide source code, a new build will be automatically triggered.
@@ -64,55 +67,55 @@ You can use '%[1]s status' to check the progress.`
 
 	newAppExample = `
   # List all local templates and image streams that can be used to create an app
-  %[1]s new-app --list
+  %[1]s %[2]s --list
 
   # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
-  %[1]s new-app . --docker-image=repo/langimage
+  %[1]s %[2]s . --docker-image=repo/langimage
 
   # Create a Ruby application based on the provided [image]~[source code] combination
-  %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+  %[1]s %[2]s centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+  %[1]s %[2]s mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
-  %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
+  %[1]s %[2]s --docker-image=myregistry.com/mycompany/mysql --name=private
 
   # Create an application from a remote repository using its beta4 branch
-  %[1]s new-app https://github.com/openshift/ruby-hello-world#beta4
+  %[1]s %[2]s https://github.com/openshift/ruby-hello-world#beta4
 
   # Create an application based on a stored template, explicitly setting a parameter value
-  %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
+  %[1]s %[2]s --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
   # Create an application from a remote repository and specify a context directory
-  %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
+  %[1]s %[2]s https://github.com/youruser/yourgitrepo --context-dir=src/build
 
   # Create an application based on a template file, explicitly setting a parameter value
-  %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
+  %[1]s %[2]s --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
   # Search all templates, image streams, and Docker images for the ones that match "ruby"
-  %[1]s new-app --search ruby
+  %[1]s %[2]s --search ruby
 
   # Search for "ruby", but only in stored templates (--template, --image-stream and --docker-image
   # can be used to filter search results)
-  %[1]s new-app --search --template=ruby
+  %[1]s %[2]s --search --template=ruby
 
   # Search for "ruby" in stored templates and print the output as an YAML
-  %[1]s new-app --search --template=ruby --output=yaml`
+  %[1]s %[2]s --search --template=ruby --output=yaml`
 
 	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
 
 To list all local templates and image streams, use:
 
-  %[1]s new-app -L
+  %[1]s %[2]s -L
 
 To search templates, image streams, and Docker images that match the arguments provided, use:
 
-  %[1]s new-app -S php
-  %[1]s new-app -S --template=ruby
-  %[1]s new-app -S --image-stream=mysql
-  %[1]s new-app -S --docker-image=python
+  %[1]s %[2]s -S php
+  %[1]s %[2]s -S --template=ruby
+  %[1]s %[2]s -S --image-stream=mysql
+  %[1]s %[2]s -S --docker-image=python
 `
 )
 
@@ -120,6 +123,7 @@ type NewAppOptions struct {
 	Action configcmd.BulkAction
 	Config *newcmd.AppConfig
 
+	BaseName    string
 	CommandPath string
 	CommandName string
 
@@ -129,21 +133,22 @@ type NewAppOptions struct {
 	LogsForObject LogsForObjectFunc
 }
 
-// NewCmdNewApplication implements the OpenShift cli new-app command
-func NewCmdNewApplication(commandName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+// NewCmdNewApplication implements the OpenShift cli new-app command.
+func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
-	options := &NewAppOptions{Config: config}
+	o := &NewAppOptions{Config: config}
 
 	cmd := &cobra.Command{
-		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
+		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)", name),
 		Short:      "Create a new application",
-		Long:       fmt.Sprintf(newAppLong, commandName),
-		Example:    fmt.Sprintf(newAppExample, commandName),
+		Long:       fmt.Sprintf(newAppLong, baseName, name),
+		Example:    fmt.Sprintf(newAppExample, baseName, name),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(commandName, f, c, args, out))
-			err := options.Run()
+			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, out))
+
+			err := o.RunNewApp()
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -175,14 +180,14 @@ func NewCmdNewApplication(commandName string, f *clientcmd.Factory, out io.Write
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
 
-	options.Action.BindForOutput(cmd.Flags())
+	o.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
 }
 
 // Complete sets any default behavior for the command
-func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
+func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
 	o.Out = out
 	o.ErrOut = c.OutOrStderr()
 	o.Output = kcmdutil.GetFlagString(c, "output")
@@ -205,7 +210,8 @@ func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *co
 	o.Config.DryRun = o.Action.DryRun
 
 	o.CommandPath = c.CommandPath()
-	o.CommandName = commandName
+	o.BaseName = baseName
+	o.CommandName = name
 	mapper, _ := f.Object(false)
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
 	o.LogsForObject = f.LogsForObject
@@ -218,28 +224,28 @@ func (o *NewAppOptions) Complete(commandName string, f *clientcmd.Factory, c *co
 	return nil
 }
 
-// Run contains all the necessary functionality for the OpenShift cli new-app command
-func (o *NewAppOptions) Run() error {
+// RunNewApp contains all the necessary functionality for the OpenShift cli new-app command
+func (o *NewAppOptions) RunNewApp() error {
 	config := o.Config
 	out := o.Out
 
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
-			return handleRunError(err, o.CommandName, o.CommandPath)
+			return handleRunError(err, o.BaseName, o.CommandName, o.CommandPath)
 		}
 
 		if o.Action.ShouldPrint() {
 			return o.PrintObject(result.List)
 		}
 
-		return printHumanReadableQueryResult(result, out, o.CommandName)
+		return printHumanReadableQueryResult(result, out, o.BaseName, o.CommandName)
 	}
 
 	checkGitInstalled(out)
 
 	result, err := config.Run()
-	if err := handleRunError(err, o.CommandName, o.CommandPath); err != nil {
+	if err := handleRunError(err, o.BaseName, o.CommandName, o.CommandPath); err != nil {
 		return err
 	}
 
@@ -294,9 +300,9 @@ func (o *NewAppOptions) Run() error {
 				}
 			}
 			if triggered {
-				fmt.Fprintf(out, "%[1]sBuild scheduled, use '%[3]s logs -f bc/%[2]s' to track its progress.\n", indent, t.Name, o.CommandName)
+				fmt.Fprintf(out, "%[1]sBuild scheduled, use '%[3]s logs -f bc/%[2]s' to track its progress.\n", indent, t.Name, o.BaseName)
 			} else {
-				fmt.Fprintf(out, "%[1]sUse '%[3]s start-build %[2]s' to start a build.\n", indent, t.Name, o.CommandName)
+				fmt.Fprintf(out, "%[1]sUse '%[3]s start-build %[2]s' to start a build.\n", indent, t.Name, o.BaseName)
 			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
@@ -315,10 +321,10 @@ func (o *NewAppOptions) Run() error {
 		return followInstallation(config, jobInput, installing[0], o.LogsForObject)
 	case len(installing) > 1:
 		for i := range installing {
-			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, o.CommandName, installing[i].Name)
+			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, o.BaseName, installing[i].Name)
 		}
 	case len(result.List.Items) > 0:
-		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, o.CommandName, StatusRecommendedName)
+		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, o.BaseName, StatusRecommendedName)
 	}
 	return nil
 }
@@ -552,7 +558,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func handleRunError(err error, commandName, commandPath string) error {
+func handleRunError(err error, baseName, commandName, commandPath string) error {
 	if err == nil {
 		return nil
 	}
@@ -562,7 +568,7 @@ func handleRunError(err error, commandName, commandPath string) error {
 	}
 	groups := errorGroups{}
 	for _, err := range errs {
-		transformError(err, commandName, commandPath, groups)
+		transformError(err, baseName, commandName, commandPath, groups)
 	}
 	buf := &bytes.Buffer{}
 	for _, group := range groups {
@@ -589,7 +595,7 @@ func (g errorGroups) Add(group string, suggestion string, err error, errs ...err
 	g[group] = all
 }
 
-func transformError(err error, commandName, commandPath string, groups errorGroups) {
+func transformError(err error, baseName, commandName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
 		if t.Input.Token != nil && t.Input.Token.ServiceAccount {
@@ -650,7 +656,7 @@ func transformError(err error, commandName, commandPath string, groups errorGrou
 					heredoc.Docf(`
 						The argument %[1]q could apply to the following Docker images, OpenShift image streams, or templates:
 
-						%[2]sTo view a full list of matches, use '%[3]s new-app -S %[1]s'`, t.Value, buf.String(), commandName,
+						%[2]sTo view a full list of matches, use '%[3]s %[4]s -S %[1]s'`, t.Value, buf.String(), baseName, commandName,
 					),
 					t,
 					t.Errs...,
@@ -711,7 +717,7 @@ func transformError(err error, commandName, commandPath string, groups errorGrou
 		groups.Add("", "", fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)"))
 	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
-		groups.Add("", "", usageError(commandPath, newAppNoInput, commandName))
+		groups.Add("", "", usageError(commandPath, newAppNoInput, baseName, commandName))
 	default:
 		groups.Add("", "", err)
 	}
@@ -719,10 +725,10 @@ func transformError(err error, commandName, commandPath string, groups errorGrou
 
 func usageError(commandPath, format string, args ...interface{}) error {
 	msg := fmt.Sprintf(format, args...)
-	return fmt.Errorf("%s\nSee '%s -h' for help and examples.", msg, commandPath)
+	return fmt.Errorf("%s\nSee '%s -h' for help and examples", msg, commandPath)
 }
 
-func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, commandName string) error {
+func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, baseName, commandName string) error {
 	if len(r.Matches) == 0 {
 		return fmt.Errorf("no matches found")
 	}
@@ -747,7 +753,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, command
 	sort.Sort(newapp.ScoredComponentMatches(dockerImages))
 
 	if len(templates) > 0 {
-		fmt.Fprintf(out, "Templates (%s new-app --template=<template>)\n", commandName)
+		fmt.Fprintf(out, "Templates (%s %s --template=<template>)\n", baseName, commandName)
 		fmt.Fprintln(out, "-----")
 		for _, match := range templates {
 			template := match.Template
@@ -763,7 +769,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, command
 	}
 
 	if len(imageStreams) > 0 {
-		fmt.Fprintf(out, "Image streams (%s new-app --image-stream=<image-stream> [--code=<source>])\n", commandName)
+		fmt.Fprintf(out, "Image streams (%s %s --image-stream=<image-stream> [--code=<source>])\n", baseName, commandName)
 		fmt.Fprintln(out, "-----")
 		for _, match := range imageStreams {
 			imageStream := match.ImageStream
@@ -791,7 +797,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, command
 	}
 
 	if len(dockerImages) > 0 {
-		fmt.Fprintf(out, "Docker images (%s new-app --docker-image=<docker-image> [--code=<source>])\n", commandName)
+		fmt.Fprintf(out, "Docker images (%s %s --docker-image=<docker-image> [--code=<source>])\n", baseName, commandName)
 		fmt.Fprintln(out, "-----")
 		for _, match := range dockerImages {
 			image := match.Image

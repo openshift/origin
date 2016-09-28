@@ -16,6 +16,10 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
+// RequestProjectRecommendedCommandName is the recommended command name.
+const RequestProjectRecommendedCommandName = "new-project"
+
+// NewProjectOptions contains all the options for running the RequestProject cli command.
 type NewProjectOptions struct {
 	ProjectName string
 	DisplayName string
@@ -32,6 +36,7 @@ type NewProjectOptions struct {
 	Out            io.Writer
 }
 
+// RequestProject command description.
 const (
 	requestProjectLong = `
 Create a new project for yourself
@@ -42,47 +47,60 @@ as the project admin.
 After your project is created it will become the default project in your config.`
 
 	requestProjectExample = `  # Create a new project with minimal information
-  %[1]s web-team-dev
+  %[1]s %[2]s web-team-dev
 
   # Create a new project with a display name and description
-  %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
+  %[1]s %[2]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
 )
 
-func NewCmdRequestProject(baseName, name, ocLoginName, ocProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &NewProjectOptions{}
-	options.Out = out
-	options.Name = baseName
-	fullName := fmt.Sprintf("%s %s", baseName, name)
+// RequestProject next steps.
+const (
+	requestProjectNewAppOutput = `
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+
+to build a new example application in Ruby.
+`
+	requestProjectSwitchProjectOutput = `Project %[2]q created on server %[3]q.
+
+To switch to this project and start adding applications, use:
+
+    %[1]s project %[2]s
+`
+)
+
+// NewCmdRequestProject implement the OpenShift cli RequestProject command.
+func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	o := &NewProjectOptions{}
+	o.Out = out
+	o.Name = baseName
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
 		Short:   "Request a new project",
 		Long:    requestProjectLong,
-		Example: fmt.Sprintf(requestProjectExample, fullName),
+		Example: fmt.Sprintf(requestProjectExample, baseName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.complete(cmd, f); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 
 			var err error
-			if options.Client, _, err = f.Clients(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			if err := options.Run(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			o.Client, _, err = f.Clients()
+			kcmdutil.CheckErr(err)
+
+			kcmdutil.CheckErr(o.Run())
 		},
 	}
 
-	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "Project display name")
-	cmd.Flags().StringVar(&options.Description, "description", "", "Project description")
-	cmd.Flags().BoolVar(&options.SkipConfigWrite, "skip-config-write", false, "If true, the project will not be set as a cluster entry in kubeconfig after being created")
+	cmd.Flags().StringVar(&o.DisplayName, "display-name", "", "Project display name")
+	cmd.Flags().StringVar(&o.Description, "description", "", "Project description")
+	cmd.Flags().BoolVar(&o.SkipConfigWrite, "skip-config-write", false, "If true, the project will not be set as a cluster entry in kubeconfig after being created")
 
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(cmd *cobra.Command, f *clientcmd.Factory) error {
-	args := cmd.Flags().Args()
+// Complete completes all the required options.
+func (o *NewProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		cmd.Help()
 		return errors.New("must have exactly one argument")
@@ -107,6 +125,7 @@ func (o *NewProjectOptions) complete(cmd *cobra.Command, f *clientcmd.Factory) e
 	return nil
 }
 
+// Run implements all the necessary functionality for RequestProject.
 func (o *NewProjectOptions) Run() error {
 	// TODO eliminate this when we get better forbidden messages
 	_, err := o.Client.ProjectRequests().List(kapi.ListOptions{})
@@ -134,20 +153,9 @@ func (o *NewProjectOptions) Run() error {
 			return err
 		}
 
-		fmt.Fprintf(o.Out, `
-You can add applications to this project with the 'new-app' command. For example, try:
-
-    %[1]s new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
-
-to build a new example application in Ruby.
-`, o.Name)
+		fmt.Fprintf(o.Out, requestProjectNewAppOutput, o.Name)
 	} else {
-		fmt.Fprintf(o.Out, `Project %[2]q created on server %[3]q.
-
-To switch to this project and start adding applications, use:
-
-    %[1]s project %[2]s
-`, o.Name, o.ProjectName, o.Server)
+		fmt.Fprintf(o.Out, requestProjectSwitchProjectOutput, o.Name, o.ProjectName, o.Server)
 	}
 
 	return nil
