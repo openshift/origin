@@ -25,7 +25,6 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 		}
 		v.Value = value
 		v.Generate = ""
-		template.AddParameter(tpl, *v)
 	}
 
 	name := localOrRemoteName(tpl.ObjectMeta, namespace)
