@@ -6258,6 +6258,67 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/instantiate",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.DeploymentRequest",
+      "method": "POST",
+      "summary": "create instantiate of a DeploymentRequest",
+      "nickname": "createNamespacedDeploymentRequestInstantiate",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeploymentRequest",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the DeploymentRequest",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.DeploymentRequest"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/log",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -24319,6 +24380,37 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage."
+     }
+    }
+   },
+   "v1.DeploymentRequest": {
+    "id": "v1.DeploymentRequest",
+    "description": "DeploymentRequest is a request to a deployment config for a new deployment.",
+    "required": [
+     "name",
+     "latest",
+     "force"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the deployment config for requesting a new deployment."
+     },
+     "latest": {
+      "type": "boolean",
+      "description": "Latest will update the deployment config with the latest state from all triggers."
+     },
+     "force": {
+      "type": "boolean",
+      "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error."
      }
     }
    },

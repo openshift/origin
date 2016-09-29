@@ -33,6 +33,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentDetails, InType: reflect.TypeOf(&DeploymentDetails{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentLog, InType: reflect.TypeOf(&DeploymentLog{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentLogOptions, InType: reflect.TypeOf(&DeploymentLogOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentRequest, InType: reflect.TypeOf(&DeploymentRequest{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentStrategy, InType: reflect.TypeOf(&DeploymentStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentTriggerImageChangeParams, InType: reflect.TypeOf(&DeploymentTriggerImageChangeParams{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeploymentTriggerPolicy, InType: reflect.TypeOf(&DeploymentTriggerPolicy{})},
@@ -317,6 +318,18 @@ func DeepCopy_v1_DeploymentLogOptions(in interface{}, out interface{}, c *conver
 		} else {
 			out.Version = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_DeploymentRequest(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DeploymentRequest)
+		out := out.(*DeploymentRequest)
+		out.TypeMeta = in.TypeMeta
+		out.Name = in.Name
+		out.Latest = in.Latest
+		out.Force = in.Force
 		return nil
 	}
 }
