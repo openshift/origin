@@ -26,7 +26,7 @@ func (GroupList) SwaggerDoc() map[string]string {
 }
 
 var map_Identity = map[string]string{
-	"":                 "Identity records a successful authentication of a user with an identity provider",
+	"":                 "Identity records a successful authentication of a user with an identity provider. The information about the source of authentication is stored on the identity, and the identity is then associated with a single user object. Multiple identities can reference a single user. Information retrieved from the authentication provider is stored in the extra field using a schema determined by the provider.",
 	"metadata":         "Standard object's metadata.",
 	"providerName":     "ProviderName is the source of identity information",
 	"providerUserName": "ProviderUserName uniquely represents this identity in the scope of the provider",
@@ -49,7 +49,7 @@ func (IdentityList) SwaggerDoc() map[string]string {
 }
 
 var map_User = map[string]string{
-	"":           "User describes someone that makes requests to the API",
+	"":           "Upon log in, every user of the system receives a User and Identity resource. Administrators may directly manipulate the attributes of the users for their own tracking, or set groups via the API. The user name is unique and is chosen based on the value provided by the identity provider - if a user already exists with the incoming name, the user name may have a number appended to it depending on the configuration of the system.",
 	"metadata":   "Standard object's metadata.",
 	"fullName":   "FullName is the full name of user",
 	"identities": "Identities are the identities associated with this user",
