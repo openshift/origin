@@ -14,8 +14,10 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/sysctl"
+	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (
@@ -47,21 +49,24 @@ func getPluginVersion(multitenant bool) []string {
 }
 
 func (plugin *OsdnNode) getLocalSubnet() (string, error) {
-	// timeout: 30 secs
-	retries := 60
-	retryInterval := 500 * time.Millisecond
-
-	var err error
 	var subnet *osapi.HostSubnet
-	// Try every retryInterval and bail-out if it exceeds max retries
-	for i := 0; i < retries; i++ {
+	backoff := utilwait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   2,
+		Steps:    8,
+	}
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+		var err error
 		subnet, err = plugin.osClient.HostSubnets().Get(plugin.hostName)
 		if err == nil {
-			break
+			return true, nil
+		} else if kapierrors.IsNotFound(err) {
+			glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", plugin.hostName)
+			return false, nil
+		} else {
+			return false, err
 		}
-		glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", plugin.hostName)
-		time.Sleep(retryInterval)
-	}
+	})
 	if err != nil {
 		return "", fmt.Errorf("Failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
 	}
@@ -142,33 +147,33 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 }
 
 func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
-	const (
-		timeInterval = 100 * time.Millisecond
-		maxIntervals = 20
-	)
-
-	for i := 0; i < maxIntervals; i++ {
+	backoff := utilwait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.25,
+		Steps:    6,
+	}
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		itx := ipcmd.NewTransaction(kexec.New(), device)
 		routes, err := itx.GetRoutes()
 		if err != nil {
-			glog.Errorf("Could not get routes for dev %s: %v", device, err)
-			return
+			return false, fmt.Errorf("could not get routes: %v", err)
 		}
 		for _, route := range routes {
 			if strings.Contains(route, localSubnetCIDR) {
 				itx.DeleteRoute(localSubnetCIDR)
 				err = itx.EndTransaction()
 				if err != nil {
-					glog.Errorf("Could not delete subnet route %s from dev %s: %v", localSubnetCIDR, device, err)
+					return false, fmt.Errorf("could not delete route: %v", err)
 				}
-				return
+				return true, nil
 			}
 		}
+		return false, nil
+	})
 
-		time.Sleep(timeInterval)
+	if err != nil {
+		glog.Errorf("Error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
 	}
-
-	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
 func (plugin *OsdnNode) SetupSDN() (bool, error) {
