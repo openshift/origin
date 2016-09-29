@@ -222,13 +222,16 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
 		runtimeImageName := s.build.Spec.Strategy.SourceStrategy.RuntimeImage.Name
 		config.RuntimeImage = runtimeImageName
-		config.RuntimeAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(runtimeImageName, dockercfg.PullAuthType)
+		t, _ := dockercfg.NewHelper().GetDockerAuth(runtimeImageName, dockercfg.PullAuthType)
+		config.RuntimeAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
 		config.RuntimeArtifacts = copyToVolumeList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
 	}
 	// If DockerCfgPath is provided in api.Config, then attempt to read the
 	// dockercfg file and get the authentication for pulling the builder image.
-	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
-	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
+	t, _ := dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
+	config.PullAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
+	t, _ = dockercfg.NewHelper().GetDockerAuth(pushTag, dockercfg.PushAuthType)
+	config.IncrementalAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
 
 	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer

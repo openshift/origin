@@ -273,7 +273,6 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 
 	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
-		Entrypoint:      DefaultEntrypoint,
 		PullImage:       false, // The PullImage is false because we've already pulled the image
 		CommandExplicit: []string{"/bin/sh", "-c", cmd},
 		Stdout:          outWriter,
@@ -331,7 +330,12 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	step.builder.postExecutorStage++
 
 	err = step.docker.RunContainer(opts)
+	// close so we avoid data race condition on errOutput
+	errReader.Close()
 	if e, ok := err.(errors.ContainerError); ok {
+		// even with deferred close above, close errReader now so we avoid data race condition on errOutput;
+		// closing will cause StreamContainerIO to exit, thus releasing the writer in the equation
+		errReader.Close()
 		return errors.NewContainerError(image, e.ErrorCode, errOutput)
 	}
 
