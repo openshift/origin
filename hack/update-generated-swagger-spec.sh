@@ -67,7 +67,7 @@ for proto_file in $( find "${OS_ROOT}/pkg" "${OS_ROOT}/vendor/k8s.io/kubernetes/
     # package name without lookarounds we can simply
     # strip characters
     package_declaration="$( grep -E '^package .+;$' "${proto_file}" )"
-    package="${package_declaration:8:-1}"
+    package="$( echo "${package_declaration}" | cut -c 9- | cut -f 1-1 -d ';' )"
 
     # we want our OpenAPI documents to use underscores
     # as separators for package specifiers, not periods
