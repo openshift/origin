@@ -425,12 +425,12 @@ type DeploymentConfigRollbackSpec struct {
 type DeploymentRequest struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Name of the deployment config for requesting a new deployment.
-	Name string `json:"name"`
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
 	// Latest will update the deployment config with the latest state from all triggers.
-	Latest bool `json:"latest"`
+	Latest bool `json:"latest" protobuf:"varint,2,opt,name=latest"`
 	// Force will try to force a new deployment to run. If the deployment config is paused,
 	// then setting this to true will return an Invalid error.
-	Force bool `json:"force"`
+	Force bool `json:"force" protobuf:"varint,3,opt,name=force"`
 }
 
 // DeploymentLog represents the logs for a deployment
