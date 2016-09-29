@@ -545,13 +545,6 @@ func DeepCopy_api_RollingDeploymentStrategyParams(in interface{}, out interface{
 		}
 		out.MaxUnavailable = in.MaxUnavailable
 		out.MaxSurge = in.MaxSurge
-		if in.UpdatePercent != nil {
-			in, out := &in.UpdatePercent, &out.UpdatePercent
-			*out = new(int32)
-			**out = **in
-		} else {
-			out.UpdatePercent = nil
-		}
 		if in.Pre != nil {
 			in, out := &in.Pre, &out.Pre
 			*out = new(LifecycleHook)
