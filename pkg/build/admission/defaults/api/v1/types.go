@@ -9,29 +9,32 @@ import (
 type BuildDefaultsConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 
-	// GitHTTPProxy is the location of the HTTPProxy for Git source
+	// gitHTTPProxy is the location of the HTTPProxy for Git source
 	GitHTTPProxy string `json:"gitHTTPProxy,omitempty"`
 
-	// GitHTTPSProxy is the location of the HTTPSProxy for Git source
+	// gitHTTPSProxy is the location of the HTTPSProxy for Git source
 	GitHTTPSProxy string `json:"gitHTTPSProxy,omitempty"`
 
-	// GitNoProxy is the list of domains for which the proxy should not be used
+	// gitNoProxy is the list of domains for which the proxy should not be used
 	GitNoProxy string `json:"gitNoProxy,omitempty"`
 
-	// Env is a set of default environment variables that will be applied to the
+	// env is a set of default environment variables that will be applied to the
 	// build if the specified variables do not exist on the build
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
-	// SourceStrategyDefaults are default values that apply to builds using the
+	// sourceStrategyDefaults are default values that apply to builds using the
 	// source strategy.
 	SourceStrategyDefaults *SourceStrategyDefaultsConfig `json:"sourceStrategyDefaults,omitempty"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the
 // source strategy.
 type SourceStrategyDefaultsConfig struct {
 
-	// Incremental indicates if s2i build strategies should perform an incremental
+	// incremental indicates if s2i build strategies should perform an incremental
 	// build or not
 	Incremental *bool `json:"incremental,omitempty"`
 }

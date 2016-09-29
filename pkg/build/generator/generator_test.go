@@ -752,9 +752,10 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 						Commit: "1234",
 					},
 				},
-				Strategy:  strategy,
-				Output:    output,
-				Resources: resources,
+				Strategy:     strategy,
+				Output:       output,
+				Resources:    resources,
+				NodeSelector: map[string]string{"node": "mynode"},
 			},
 		},
 		Status: buildapi.BuildConfigStatus{
@@ -793,6 +794,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
 		t.Errorf("Build does not contain labels from BuildConfig")
+	}
+	if !reflect.DeepEqual(map[string]string{"node": "mynode"}, build.Spec.NodeSelector) {
+		t.Errorf("Build nodeselector does not match passed in nodeselector")
 	}
 	if build.Annotations[buildapi.BuildConfigAnnotation] != bc.Name {
 		t.Errorf("Build does not contain annotation from BuildConfig")

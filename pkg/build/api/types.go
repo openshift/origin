@@ -112,6 +112,9 @@ type CommonSpec struct {
 	// be active on a node before the system actively tries to terminate the
 	// build; value must be positive integer.
 	CompletionDeadlineSeconds *int64
+
+	// NodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string
 }
 
 // BuildTriggerCause holds information about a triggered build. It is used for

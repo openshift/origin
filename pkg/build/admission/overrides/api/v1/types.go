@@ -10,4 +10,7 @@ type BuildOverridesConfig struct {
 
 	// ForcePull indicates whether the build strategy should always be set to ForcePull=true
 	ForcePull bool `json:"forcePull"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }

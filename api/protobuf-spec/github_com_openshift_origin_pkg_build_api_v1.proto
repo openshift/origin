@@ -489,6 +489,9 @@ message CommonSpec {
   // be active on a node before the system actively tries to terminate the
   // build; value must be positive integer
   optional int64 completionDeadlineSeconds = 8;
+
+  // nodeSelector is a selector which must be true for the build pod to fit on a node
+  map<string, string> nodeSelector = 9;
 }
 
 // CustomBuildStrategy defines input parameters specific to Custom build.

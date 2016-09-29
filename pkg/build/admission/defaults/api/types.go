@@ -25,6 +25,9 @@ type BuildDefaultsConfig struct {
 	// SourceStrategyDefaults are default values that apply to builds using the
 	// source strategy.
 	SourceStrategyDefaults *SourceStrategyDefaultsConfig
+
+	// NodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the

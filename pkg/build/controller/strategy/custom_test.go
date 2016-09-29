@@ -30,18 +30,22 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected error when Image is empty, got nothing")
 	}
 
-	expected := mockCustomBuild(false, false)
-	actual, err := strategy.CreateBuildPod(expected)
+	build := mockCustomBuild(false, false)
+	actual, err := strategy.CreateBuildPod(build)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapi.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapi.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(expected.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
+	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
+		t.Errorf("Pod NodeSelector does not match Build NodeSelector.  Expected: %v, got: %v", nodeSelector, actual.Spec.NodeSelector)
+	}
+
 	container := actual.Spec.Containers[0]
 	if container.Name != "custom-build" {
 		t.Errorf("Expected custom-build, but got %s!", container.Name)
@@ -63,13 +67,13 @@ func TestCustomCreateBuildPod(t *testing.T) {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if !kapi.Semantic.DeepEqual(container.Resources, expected.Spec.Resources) {
-		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Spec.Resources)
+	if !kapi.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	if len(actual.Spec.Volumes) != 3 {
 		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), expected)
+	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -218,6 +222,7 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 					},
 				},
 				CompletionDeadlineSeconds: &timeout,
+				NodeSelector:              nodeSelector,
 			},
 		},
 		Status: buildapi.BuildStatus{

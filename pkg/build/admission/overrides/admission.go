@@ -59,7 +59,7 @@ func (a *buildOverrides) Admit(attributes admission.Attributes) error {
 }
 
 func (a *buildOverrides) applyOverrides(attributes admission.Attributes) error {
-	if !a.overridesConfig.ForcePull {
+	if !a.overridesConfig.ForcePull && len(a.overridesConfig.NodeSelector) == 0 {
 		return nil
 	}
 	build, version, err := buildadmission.GetBuild(attributes)
@@ -83,6 +83,19 @@ func (a *buildOverrides) applyOverrides(attributes admission.Attributes) error {
 		glog.V(5).Infof("Setting custom strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 		build.Spec.Strategy.CustomStrategy.ForcePull = true
 	}
+
+	pod, err := buildadmission.GetPod(attributes)
+	if err != nil {
+		return err
+	}
+	if len(a.overridesConfig.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+		pod.Spec.NodeSelector = map[string]string{}
+	}
+	for k, v := range a.overridesConfig.NodeSelector {
+		glog.V(5).Infof("Adding override nodeselector %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
+		pod.Spec.NodeSelector[k] = v
+	}
+
 	return buildadmission.SetBuild(attributes, build, version)
 }
 

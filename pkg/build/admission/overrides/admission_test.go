@@ -66,3 +66,45 @@ func TestBuildOverrideForcePull(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildOverrideNodeSelector(t *testing.T) {
+	tests := []struct {
+		name      string
+		build     *buildapi.Build
+		overrides map[string]string
+		expected  map[string]string
+	}{
+		{
+			name:      "build - full override",
+			build:     u.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
+			overrides: map[string]string{"key1": "override1", "key2": "override2"},
+			expected:  map[string]string{"key1": "override1", "key2": "override2"},
+		},
+		{
+			name:      "build - partial override",
+			build:     u.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
+			overrides: map[string]string{"key2": "override2"},
+			expected:  map[string]string{"key1": "value1", "key2": "override2"},
+		},
+	}
+
+	for _, test := range tests {
+		overrides := NewBuildOverrides(&overridesapi.BuildOverridesConfig{NodeSelector: test.overrides})
+		pod := u.Pod().WithBuild(t, test.build, "v1")
+		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
+		// in the build controller flow. fake it out here.
+		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
+		err := overrides.Admit(pod.ToAttributes())
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+		}
+		if len(pod.Spec.NodeSelector) != len(test.expected) {
+			t.Errorf("%s: incorrect number of selectors, expected %v, got %v", test.name, test.expected, pod.Spec.NodeSelector)
+		}
+		for k, v := range pod.Spec.NodeSelector {
+			if ev, ok := test.expected[k]; !ok || ev != v {
+				t.Errorf("%s: incorrect selector value for key %s, expected %s, got %s", test.name, k, ev, v)
+			}
+		}
+	}
+}

@@ -336,6 +336,10 @@ var (
 	KubeAdmissionPlugins = []string{
 		"RunOnceDuration",
 		lifecycle.PluginName,
+		// BuildDefaults and BuildOverrides must come before
+		// PodNodeConstraints and OriginPodNodeEnvironment
+		"BuildDefaults",
+		"BuildOverrides",
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
 		overrideapi.PluginName,
@@ -346,8 +350,6 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"BuildDefaults",
-		"BuildOverrides",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
@@ -372,6 +374,8 @@ var (
 		imageadmission.PluginName,
 		"RunOnceDuration",
 		lifecycle.PluginName,
+		"BuildDefaults",
+		"BuildOverrides",
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
 		overrideapi.PluginName,
@@ -382,8 +386,6 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		"SecurityContextConstraint",
-		"BuildDefaults",
-		"BuildOverrides",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",

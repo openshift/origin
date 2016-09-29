@@ -44617,7 +44617,7 @@
     }
    },
    "v1.BuildConfig": {
-    "description": "Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
+    "description": "BuildConfig is a template which can be used to create new builds.",
     "required": [
      "spec",
      "status"
@@ -44679,6 +44679,10 @@
       "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer",
       "type": "integer",
       "format": "int64"
+     },
+     "nodeSelector": {
+      "description": "nodeSelector is a selector which must be true for the build pod to fit on a node",
+      "type": "object"
      },
      "output": {
       "$ref": "#/definitions/v1.BuildOutput"
@@ -44905,6 +44909,10 @@
       "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer",
       "type": "integer",
       "format": "int64"
+     },
+     "nodeSelector": {
+      "description": "nodeSelector is a selector which must be true for the build pod to fit on a node",
+      "type": "object"
      },
      "output": {
       "$ref": "#/definitions/v1.BuildOutput"
@@ -47845,7 +47853,7 @@
     }
    },
    "v1.ImageSource": {
-    "description": "ImageSource is used to describe build source that will be extracted from an image. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. A list of paths to copy from the image and their respective destination within the build directory must be specified in the paths array.",
+    "description": "ImageSource describes an image that is used as source for the build",
     "required": [
      "from",
      "paths"

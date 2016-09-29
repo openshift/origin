@@ -72,6 +72,22 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 
 	a.applyBuildDefaults(build)
 
+	pod, err := buildadmission.GetPod(attributes)
+	if err != nil {
+		return err
+	}
+
+	if len(a.defaultsConfig.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+		pod.Spec.NodeSelector = map[string]string{}
+	}
+	for k, v := range a.defaultsConfig.NodeSelector {
+		if addDefaultNodeSelector(k, v, pod.Spec.NodeSelector) {
+			glog.V(5).Infof("Added default nodeselector %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
+		} else {
+			glog.V(5).Infof("Not defaulting pre-existing nodeselector %s on build pod %s/%s", k, pod.Namespace, pod.Name)
+		}
+	}
+
 	err = buildadmission.SetBuildLogLevel(attributes, build)
 	if err != nil {
 		return err
@@ -152,4 +168,12 @@ func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
 	if !found {
 		*envVars = append(*envVars, v)
 	}
+}
+
+func addDefaultNodeSelector(k, v string, selectors map[string]string) bool {
+	if _, ok := selectors[k]; !ok {
+		selectors[k] = v
+		return true
+	}
+	return false
 }
