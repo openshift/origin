@@ -165,6 +165,7 @@ func (h *HostHelper) CopyMasterConfigToHost(sourceFile, destDir string) error {
 	if err != nil {
 		return err
 	}
+	defer os.RemoveAll(localDir)
 	tarHelper := tarhelper.New()
 	tarHelper.SetExclusionPattern(nil)
 	var tarLog io.Writer
@@ -176,6 +177,7 @@ func (h *HostHelper) CopyMasterConfigToHost(sourceFile, destDir string) error {
 		return err
 	}
 	localTarClosed := false
+	defer os.Remove(localTarFile.Name())
 	defer func() {
 		if !localTarClosed {
 			errors.LogError(localTarFile.Close())
