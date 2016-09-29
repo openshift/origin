@@ -42,7 +42,7 @@ func ValidateEtcdConnectionInfo(config api.EtcdConnectionInfo, server *api.EtcdC
 		// Require a client cert to connect to an etcd that requires client certs
 		if len(server.ServingInfo.ClientCA) > 0 {
 			if len(config.ClientCert.CertFile) == 0 {
-				allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), ""))
+				allErrs = append(allErrs, field.Required(fldPath.Child("certFile"), "A client certificate must be provided for this etcd server"))
 			}
 		}
 

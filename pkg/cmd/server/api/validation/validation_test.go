@@ -45,7 +45,10 @@ func TestValidateServingInfo(t *testing.T) {
 					CertFile: certFileName,
 				},
 			},
-			ExpectedErrors: []string{"keyFile: Required value"},
+			ExpectedErrors: []string{
+				"certFile: Required value: Both the certificate file and the certificate key must be provided together or not at all",
+				"keyFile: Required value: Both the certificate file and the certificate key must be provided together or not at all",
+			},
 		},
 
 		"namedCertificates valid": {
@@ -111,7 +114,10 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{"example.com"}, CertInfo: api.CertInfo{CertFile: certFileName /*, KeyFile: keyFileName*/}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates[0].keyFile: Required value"},
+			ExpectedErrors: []string{
+				"namedCertificates[0].certFile: Required value: Both the certificate file and the certificate key must be provided together or not at all",
+				"namedCertificates[0].keyFile: Required value: Both the certificate file and the certificate key must be provided together or not at all",
+			},
 		},
 		"namedCertificates with duplicate names": {
 			ServingInfo: api.ServingInfo{
