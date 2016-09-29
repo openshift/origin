@@ -116,6 +116,14 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 			build.Spec.Source.Git.HTTPSProxy = &t
 		}
 	}
+
+	if len(a.defaultsConfig.GitNoProxy) != 0 {
+		if build.Spec.Source.Git.NoProxy == nil {
+			t := a.defaultsConfig.GitNoProxy
+			glog.V(5).Infof("Setting default Git no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
+			build.Spec.Source.Git.NoProxy = &t
+		}
+	}
 }
 
 func getBuildEnv(build *buildapi.Build) *[]kapi.EnvVar {

@@ -405,9 +405,11 @@ func TestBuildConfigGitSourceWithProxyFailure(t *testing.T) {
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
 					Git: &buildapi.GitBuildSource{
-						URI:        "git://github.com/my/repository",
-						HTTPProxy:  &proxyAddress,
-						HTTPSProxy: &proxyAddress,
+						URI: "git://github.com/my/repository",
+						ProxyConfig: buildapi.ProxyConfig{
+							HTTPProxy:  &proxyAddress,
+							HTTPSProxy: &proxyAddress,
+						},
 					},
 				},
 				Strategy: buildapi.BuildStrategy{
@@ -988,8 +990,10 @@ func TestValidateSource(t *testing.T) {
 			path: "git.httpproxy",
 			source: &buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
-					URI:       "https://example.com/repo.git",
-					HTTPProxy: &invalidProxyAddress,
+					URI: "https://example.com/repo.git",
+					ProxyConfig: buildapi.ProxyConfig{
+						HTTPProxy: &invalidProxyAddress,
+					},
 				},
 				ContextDir: "contextDir",
 			},
@@ -1000,8 +1004,10 @@ func TestValidateSource(t *testing.T) {
 			path: "git.httpsproxy",
 			source: &buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
-					URI:        "https://example.com/repo.git",
-					HTTPSProxy: &invalidProxyAddress,
+					URI: "https://example.com/repo.git",
+					ProxyConfig: buildapi.ProxyConfig{
+						HTTPSProxy: &invalidProxyAddress,
+					},
 				},
 				ContextDir: "contextDir",
 			},
