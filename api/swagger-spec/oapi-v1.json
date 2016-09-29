@@ -24269,6 +24269,13 @@
      "details": {
       "$ref": "v1.DeploymentDetails",
       "description": "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger"
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.DeploymentCondition"
+      },
+      "description": "Conditions represents the latest available observations of a deployment config's current state."
      }
     }
    },
@@ -24319,6 +24326,36 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage."
+     }
+    }
+   },
+   "v1.DeploymentCondition": {
+    "id": "v1.DeploymentCondition",
+    "description": "DeploymentCondition describes the state of a deployment config at a certain point.",
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of deployment condition."
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the condition, one of True, False, Unknown."
+     },
+     "lastTransitionTime": {
+      "type": "string",
+      "description": "The last time the condition transitioned from one status to another."
+     },
+     "reason": {
+      "type": "string",
+      "description": "The reason for the condition's last transition."
+     },
+     "message": {
+      "type": "string",
+      "description": "A human readable message indicating details about the transition."
      }
     }
    },
