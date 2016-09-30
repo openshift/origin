@@ -18,6 +18,16 @@ func ValidateSelfSubjectRulesReview(review *authorizationapi.SelfSubjectRulesRev
 	return field.ErrorList{}
 }
 
+func ValidateSubjectRulesReview(rules *authorizationapi.SubjectRulesReview) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(rules.Spec.Groups) == 0 && len(rules.Spec.User) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("user"), "at least one of user and groups must be specified"))
+	}
+
+	return allErrs
+}
+
 func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) field.ErrorList {
 	allErrs := field.ErrorList{}
 
