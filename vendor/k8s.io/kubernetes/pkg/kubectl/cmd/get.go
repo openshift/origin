@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io"
 
+	"strings"
+
 	"github.com/golang/glog"
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
@@ -288,6 +290,12 @@ func RunGet(f *cmdutil.Factory, out io.Writer, errOut io.Writer, cmd *cobra.Comm
 		Do()
 	err = r.Err()
 	if err != nil {
+		if strings.Contains(err.Error(), "across multiple namespaces") {
+			parentCmd := cmd.Parent()
+			if parentCmd != nil {
+				return fmt.Errorf("%v (e.g. %s get pod mypod --all-namespaces)", err, parentCmd.CommandPath())
+			}
+		}
 		return err
 	}
 
