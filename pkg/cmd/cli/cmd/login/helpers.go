@@ -2,6 +2,7 @@ package login
 
 import (
 	"bytes"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
@@ -82,10 +83,23 @@ func dialToServer(clientConfig restclient.Config) error {
 	return nil
 }
 
-func promptForInsecureTLS(reader io.Reader, out io.Writer) bool {
+func promptForInsecureTLS(reader io.Reader, out io.Writer, reason error) bool {
+	var insecureTLSRequestReason string
+	if reason != nil {
+		switch reason.(type) {
+		case x509.UnknownAuthorityError:
+			insecureTLSRequestReason = "The server uses a certificate signed by an unknown authority."
+		case x509.HostnameError:
+			insecureTLSRequestReason = fmt.Sprintf("The server is using a certificate that does not match its hostname: %s", reason.Error())
+		case x509.CertificateInvalidError:
+			insecureTLSRequestReason = fmt.Sprintf("The server is using an invalid certificate: %s", reason.Error())
+		}
+	}
 	var input bool
 	if term.IsTerminal(reader) {
-		fmt.Fprintln(out, "The server uses a certificate signed by an unknown authority.")
+		if len(insecureTLSRequestReason) > 0 {
+			fmt.Fprintln(out, insecureTLSRequestReason)
+		}
 		fmt.Fprintln(out, "You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
 		input = cmdutil.PromptForBool(os.Stdin, out, "Use insecure connections? (y/n): ")
 		fmt.Fprintln(out)
