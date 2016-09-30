@@ -171,7 +171,7 @@ type SubjectRulesReviewSpec struct {
 	// Groups is optional.  Groups is the list of groups to which the User belongs.  At least one of User and Groups must be specified.
 	Groups []string `json:"groups" protobuf:"bytes,2,rep,name=groups"`
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
-	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,3,rep,name=scopes"`
+	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,3,opt,name=scopes"`
 }
 
 // SubjectRulesReviewStatus is contains the result of a rules check
