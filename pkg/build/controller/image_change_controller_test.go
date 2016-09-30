@@ -26,9 +26,9 @@ func TestNewImageID(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Fatalf("Unexpected error %v from HandleImageRepo", err)
+		t.Fatalf("Unexpected error %v from HandleImageStream", err)
 	}
 
 	if len(bcInstantiator.name) == 0 {
@@ -54,9 +54,9 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Fatalf("Unexpected error %v from HandleImageRepo", err)
+		t.Fatalf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) == 0 {
 		t.Error("Expected build generation when new image was created!")
@@ -82,9 +82,9 @@ func TestNonExistentImageStream(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Fatalf("Unexpected error %v from HandleImageRepo", err)
+		t.Fatalf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -103,9 +103,9 @@ func TestNewImageDifferentTagUpdate(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -126,9 +126,9 @@ func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -147,9 +147,9 @@ func TestNewDifferentImageUpdate(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -170,9 +170,9 @@ func TestSameStreamNameDifferentNamespaces(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -192,9 +192,9 @@ func TestBuildConfigWithDifferentTriggerType(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -215,9 +215,9 @@ func TestNoImageIDChange(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when no change happened!")
@@ -237,9 +237,9 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 	bcInstantiator.err = fmt.Errorf("instantiating error")
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err == nil || !strings.Contains(err.Error(), "will be retried") {
-		t.Fatalf("Expected 'will be retried' from HandleImageRepo, got %s", err.Error())
+		t.Fatalf("Expected 'will be retried' from HandleImageStream, got %s", err.Error())
 	}
 	if actual, expected := bcInstantiator.newBuild.Spec.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
@@ -259,12 +259,12 @@ func TestBuildConfigUpdateError(t *testing.T) {
 	bcUpdater := bcInstantiator.buildConfigUpdater
 	bcUpdater.err = kerrors.NewConflict(buildapi.Resource("BuildConfig"), buildcfg.Name, errors.New("foo"))
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if len(bcInstantiator.name) == 0 {
 		t.Error("Expected build generation when new image was created!")
 	}
 	if err == nil || !strings.Contains(err.Error(), "will be retried") {
-		t.Fatalf("Expected 'will be retried' from HandleImageRepo, got %s", err.Error())
+		t.Fatalf("Expected 'will be retried' from HandleImageStream, got %s", err.Error())
 	}
 }
 
@@ -277,9 +277,9 @@ func TestNewImageIDNoDockerRepo(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
-	err := controller.HandleImageRepo(imageStream)
+	err := controller.HandleImageStream(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Errorf("Unexpected error %v from HandleImageStream", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when no change happened!")
@@ -417,7 +417,7 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 
 func mockImageChangeController(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream, image *imageapi.Image) *ImageChangeController {
 	return &ImageChangeController{
-		BuildConfigStore:        buildtest.NewFakeBuildConfigStore(buildcfg),
+		BuildConfigIndex:        buildtest.NewFakeBuildConfigIndex(buildcfg),
 		BuildConfigInstantiator: mockBuildConfigInstantiator(buildcfg, imageStream, image),
 	}
 }

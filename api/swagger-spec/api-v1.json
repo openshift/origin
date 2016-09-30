@@ -69,7 +69,7 @@
       "type": "v1.Binding",
       "method": "POST",
       "summary": "create a Binding",
-      "nickname": "createNamespacedBinding",
+      "nickname": "createBindingForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -444,7 +444,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ConfigMap",
       "nickname": "watchNamespacedConfigMapList",
@@ -510,7 +510,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -766,7 +766,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ConfigMap",
       "nickname": "watchNamespacedConfigMap",
@@ -840,7 +840,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -863,7 +863,7 @@
       "type": "v1.ConfigMapList",
       "method": "GET",
       "summary": "list or watch objects of kind ConfigMap",
-      "nickname": "listNamespacedConfigMap",
+      "nickname": "listConfigMapForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -934,7 +934,7 @@
       "type": "v1.ConfigMap",
       "method": "POST",
       "summary": "create a ConfigMap",
-      "nickname": "createNamespacedConfigMap",
+      "nickname": "createConfigMapForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -976,10 +976,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ConfigMap",
-      "nickname": "watchNamespacedConfigMapList",
+      "nickname": "watchConfigMapListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -1034,7 +1034,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -1265,7 +1265,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Endpoints",
       "nickname": "watchNamespacedEndpointsList",
@@ -1331,7 +1331,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -1587,7 +1587,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Endpoints",
       "nickname": "watchNamespacedEndpoints",
@@ -1661,7 +1661,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -1684,7 +1684,7 @@
       "type": "v1.EndpointsList",
       "method": "GET",
       "summary": "list or watch objects of kind Endpoints",
-      "nickname": "listNamespacedEndpoints",
+      "nickname": "listEndpointsForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -1755,7 +1755,7 @@
       "type": "v1.Endpoints",
       "method": "POST",
       "summary": "create a Endpoints",
-      "nickname": "createNamespacedEndpoints",
+      "nickname": "createEndpointsForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -1797,10 +1797,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Endpoints",
-      "nickname": "watchNamespacedEndpointsList",
+      "nickname": "watchEndpointsListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -1855,7 +1855,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -2086,7 +2086,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Event",
       "nickname": "watchNamespacedEventList",
@@ -2152,7 +2152,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -2408,7 +2408,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Event",
       "nickname": "watchNamespacedEvent",
@@ -2482,7 +2482,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -2505,7 +2505,7 @@
       "type": "v1.EventList",
       "method": "GET",
       "summary": "list or watch objects of kind Event",
-      "nickname": "listNamespacedEvent",
+      "nickname": "listEventForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -2576,7 +2576,7 @@
       "type": "v1.Event",
       "method": "POST",
       "summary": "create a Event",
-      "nickname": "createNamespacedEvent",
+      "nickname": "createEventForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -2618,10 +2618,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Event",
-      "nickname": "watchNamespacedEventList",
+      "nickname": "watchEventListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -2676,7 +2676,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -2907,7 +2907,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of LimitRange",
       "nickname": "watchNamespacedLimitRangeList",
@@ -2973,7 +2973,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3229,7 +3229,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind LimitRange",
       "nickname": "watchNamespacedLimitRange",
@@ -3303,7 +3303,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3326,7 +3326,7 @@
       "type": "v1.LimitRangeList",
       "method": "GET",
       "summary": "list or watch objects of kind LimitRange",
-      "nickname": "listNamespacedLimitRange",
+      "nickname": "listLimitRangeForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -3397,7 +3397,7 @@
       "type": "v1.LimitRange",
       "method": "POST",
       "summary": "create a LimitRange",
-      "nickname": "createNamespacedLimitRange",
+      "nickname": "createLimitRangeForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -3439,10 +3439,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of LimitRange",
-      "nickname": "watchNamespacedLimitRangeList",
+      "nickname": "watchLimitRangeListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -3497,7 +3497,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3704,7 +3704,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Namespace",
       "nickname": "watchNamespaceList",
@@ -3762,7 +3762,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -3986,7 +3986,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Namespace",
       "nickname": "watchNamespace",
@@ -4052,7 +4052,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -4453,7 +4453,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Node",
       "nickname": "watchNodeList",
@@ -4511,7 +4511,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -4735,7 +4735,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Node",
       "nickname": "watchNode",
@@ -4801,7 +4801,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -4824,7 +4824,7 @@
       "type": "string",
       "method": "GET",
       "summary": "proxy GET requests to Node",
-      "nickname": "proxyGETNode",
+      "nickname": "proxyGETNodeWithPath",
       "parameters": [
        {
         "type": "string",
@@ -4854,7 +4854,7 @@
       "type": "string",
       "method": "PUT",
       "summary": "proxy PUT requests to Node",
-      "nickname": "proxyPUTNode",
+      "nickname": "proxyPUTNodeWithPath",
       "parameters": [
        {
         "type": "string",
@@ -4884,7 +4884,7 @@
       "type": "string",
       "method": "POST",
       "summary": "proxy POST requests to Node",
-      "nickname": "proxyPOSTNode",
+      "nickname": "proxyPOSTNodeWithPath",
       "parameters": [
        {
         "type": "string",
@@ -4914,7 +4914,7 @@
       "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Node",
-      "nickname": "proxyDELETENode",
+      "nickname": "proxyDELETENodeWithPath",
       "parameters": [
        {
         "type": "string",
@@ -4944,7 +4944,7 @@
       "type": "string",
       "method": "HEAD",
       "summary": "proxy HEAD requests to Node",
-      "nickname": "proxyHEADNode",
+      "nickname": "proxyHEADNodeWithPath",
       "parameters": [
        {
         "type": "string",
@@ -4974,7 +4974,7 @@
       "type": "string",
       "method": "OPTIONS",
       "summary": "proxy OPTIONS requests to Node",
-      "nickname": "proxyOPTIONSNode",
+      "nickname": "proxyOPTIONSNodeWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5334,7 +5334,7 @@
       "type": "string",
       "method": "GET",
       "summary": "connect GET requests to proxy of Node",
-      "nickname": "connectGetNodeProxy",
+      "nickname": "connectGetNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5372,7 +5372,7 @@
       "type": "string",
       "method": "POST",
       "summary": "connect POST requests to proxy of Node",
-      "nickname": "connectPostNodeProxy",
+      "nickname": "connectPostNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5410,7 +5410,7 @@
       "type": "string",
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Node",
-      "nickname": "connectPutNodeProxy",
+      "nickname": "connectPutNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5448,7 +5448,7 @@
       "type": "string",
       "method": "DELETE",
       "summary": "connect DELETE requests to proxy of Node",
-      "nickname": "connectDeleteNodeProxy",
+      "nickname": "connectDeleteNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5486,7 +5486,7 @@
       "type": "string",
       "method": "HEAD",
       "summary": "connect HEAD requests to proxy of Node",
-      "nickname": "connectHeadNodeProxy",
+      "nickname": "connectHeadNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5524,7 +5524,7 @@
       "type": "string",
       "method": "OPTIONS",
       "summary": "connect OPTIONS requests to proxy of Node",
-      "nickname": "connectOptionsNodeProxy",
+      "nickname": "connectOptionsNodeProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -5917,7 +5917,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PersistentVolumeClaim",
       "nickname": "watchNamespacedPersistentVolumeClaimList",
@@ -5983,7 +5983,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -6239,7 +6239,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PersistentVolumeClaim",
       "nickname": "watchNamespacedPersistentVolumeClaim",
@@ -6313,7 +6313,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -6336,7 +6336,7 @@
       "type": "v1.PersistentVolumeClaimList",
       "method": "GET",
       "summary": "list or watch objects of kind PersistentVolumeClaim",
-      "nickname": "listNamespacedPersistentVolumeClaim",
+      "nickname": "listPersistentVolumeClaimForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -6407,7 +6407,7 @@
       "type": "v1.PersistentVolumeClaim",
       "method": "POST",
       "summary": "create a PersistentVolumeClaim",
-      "nickname": "createNamespacedPersistentVolumeClaim",
+      "nickname": "createPersistentVolumeClaimForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -6449,10 +6449,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PersistentVolumeClaim",
-      "nickname": "watchNamespacedPersistentVolumeClaimList",
+      "nickname": "watchPersistentVolumeClaimListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -6507,7 +6507,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -6879,7 +6879,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PersistentVolume",
       "nickname": "watchPersistentVolumeList",
@@ -6937,7 +6937,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -7161,7 +7161,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PersistentVolume",
       "nickname": "watchPersistentVolume",
@@ -7227,7 +7227,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -7599,7 +7599,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Pod",
       "nickname": "watchNamespacedPodList",
@@ -7665,7 +7665,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -7921,7 +7921,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Pod",
       "nickname": "watchNamespacedPod",
@@ -7995,7 +7995,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -8018,7 +8018,7 @@
       "type": "string",
       "method": "GET",
       "summary": "proxy GET requests to Pod",
-      "nickname": "proxyGETNamespacedPod",
+      "nickname": "proxyGETNamespacedPodWithPath",
       "parameters": [
        {
         "type": "string",
@@ -8056,7 +8056,7 @@
       "type": "string",
       "method": "PUT",
       "summary": "proxy PUT requests to Pod",
-      "nickname": "proxyPUTNamespacedPod",
+      "nickname": "proxyPUTNamespacedPodWithPath",
       "parameters": [
        {
         "type": "string",
@@ -8094,7 +8094,7 @@
       "type": "string",
       "method": "POST",
       "summary": "proxy POST requests to Pod",
-      "nickname": "proxyPOSTNamespacedPod",
+      "nickname": "proxyPOSTNamespacedPodWithPath",
       "parameters": [
        {
         "type": "string",
@@ -8132,7 +8132,7 @@
       "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Pod",
-      "nickname": "proxyDELETENamespacedPod",
+      "nickname": "proxyDELETENamespacedPodWithPath",
       "parameters": [
        {
         "type": "string",
@@ -8170,7 +8170,7 @@
       "type": "string",
       "method": "HEAD",
       "summary": "proxy HEAD requests to Pod",
-      "nickname": "proxyHEADNamespacedPod",
+      "nickname": "proxyHEADNamespacedPodWithPath",
       "parameters": [
        {
         "type": "string",
@@ -8208,7 +8208,7 @@
       "type": "string",
       "method": "OPTIONS",
       "summary": "proxy OPTIONS requests to Pod",
-      "nickname": "proxyOPTIONSNamespacedPod",
+      "nickname": "proxyOPTIONSNamespacedPodWithPath",
       "parameters": [
        {
         "type": "string",
@@ -8438,7 +8438,7 @@
       "type": "v1.PodList",
       "method": "GET",
       "summary": "list or watch objects of kind Pod",
-      "nickname": "listNamespacedPod",
+      "nickname": "listPodForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -8509,7 +8509,7 @@
       "type": "v1.Pod",
       "method": "POST",
       "summary": "create a Pod",
-      "nickname": "createNamespacedPod",
+      "nickname": "createPodForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -8551,10 +8551,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Pod",
-      "nickname": "watchNamespacedPodList",
+      "nickname": "watchPodListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -8609,7 +8609,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -9480,7 +9480,7 @@
       "type": "string",
       "method": "GET",
       "summary": "connect GET requests to proxy of Pod",
-      "nickname": "connectGetNamespacedPodProxy",
+      "nickname": "connectGetNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -9526,7 +9526,7 @@
       "type": "string",
       "method": "POST",
       "summary": "connect POST requests to proxy of Pod",
-      "nickname": "connectPostNamespacedPodProxy",
+      "nickname": "connectPostNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -9572,7 +9572,7 @@
       "type": "string",
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Pod",
-      "nickname": "connectPutNamespacedPodProxy",
+      "nickname": "connectPutNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -9618,7 +9618,7 @@
       "type": "string",
       "method": "DELETE",
       "summary": "connect DELETE requests to proxy of Pod",
-      "nickname": "connectDeleteNamespacedPodProxy",
+      "nickname": "connectDeleteNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -9664,7 +9664,7 @@
       "type": "string",
       "method": "HEAD",
       "summary": "connect HEAD requests to proxy of Pod",
-      "nickname": "connectHeadNamespacedPodProxy",
+      "nickname": "connectHeadNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -9710,7 +9710,7 @@
       "type": "string",
       "method": "OPTIONS",
       "summary": "connect OPTIONS requests to proxy of Pod",
-      "nickname": "connectOptionsNamespacedPodProxy",
+      "nickname": "connectOptionsNamespacedPodProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -10135,7 +10135,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PodTemplate",
       "nickname": "watchNamespacedPodTemplateList",
@@ -10201,7 +10201,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -10457,7 +10457,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind PodTemplate",
       "nickname": "watchNamespacedPodTemplate",
@@ -10531,7 +10531,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -10554,7 +10554,7 @@
       "type": "v1.PodTemplateList",
       "method": "GET",
       "summary": "list or watch objects of kind PodTemplate",
-      "nickname": "listNamespacedPodTemplate",
+      "nickname": "listPodTemplateForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10625,7 +10625,7 @@
       "type": "v1.PodTemplate",
       "method": "POST",
       "summary": "create a PodTemplate",
-      "nickname": "createNamespacedPodTemplate",
+      "nickname": "createPodTemplateForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10667,10 +10667,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of PodTemplate",
-      "nickname": "watchNamespacedPodTemplateList",
+      "nickname": "watchPodTemplateListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -10725,7 +10725,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -10956,7 +10956,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ReplicationController",
       "nickname": "watchNamespacedReplicationControllerList",
@@ -11022,7 +11022,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -11278,7 +11278,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ReplicationController",
       "nickname": "watchNamespacedReplicationController",
@@ -11352,7 +11352,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -11375,7 +11375,7 @@
       "type": "v1.ReplicationControllerList",
       "method": "GET",
       "summary": "list or watch objects of kind ReplicationController",
-      "nickname": "listNamespacedReplicationController",
+      "nickname": "listReplicationControllerForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11446,7 +11446,7 @@
       "type": "v1.ReplicationController",
       "method": "POST",
       "summary": "create a ReplicationController",
-      "nickname": "createNamespacedReplicationController",
+      "nickname": "createReplicationControllerForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11488,10 +11488,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ReplicationController",
-      "nickname": "watchNamespacedReplicationControllerList",
+      "nickname": "watchReplicationControllerListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -11546,7 +11546,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -12107,7 +12107,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ResourceQuota",
       "nickname": "watchNamespacedResourceQuotaList",
@@ -12173,7 +12173,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -12429,7 +12429,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ResourceQuota",
       "nickname": "watchNamespacedResourceQuota",
@@ -12503,7 +12503,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -12526,7 +12526,7 @@
       "type": "v1.ResourceQuotaList",
       "method": "GET",
       "summary": "list or watch objects of kind ResourceQuota",
-      "nickname": "listNamespacedResourceQuota",
+      "nickname": "listResourceQuotaForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -12597,7 +12597,7 @@
       "type": "v1.ResourceQuota",
       "method": "POST",
       "summary": "create a ResourceQuota",
-      "nickname": "createNamespacedResourceQuota",
+      "nickname": "createResourceQuotaForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -12639,10 +12639,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ResourceQuota",
-      "nickname": "watchNamespacedResourceQuotaList",
+      "nickname": "watchResourceQuotaListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -12697,7 +12697,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13093,7 +13093,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Secret",
       "nickname": "watchNamespacedSecretList",
@@ -13159,7 +13159,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13415,7 +13415,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Secret",
       "nickname": "watchNamespacedSecret",
@@ -13489,7 +13489,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13512,7 +13512,7 @@
       "type": "v1.SecretList",
       "method": "GET",
       "summary": "list or watch objects of kind Secret",
-      "nickname": "listNamespacedSecret",
+      "nickname": "listSecretForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -13583,7 +13583,7 @@
       "type": "v1.Secret",
       "method": "POST",
       "summary": "create a Secret",
-      "nickname": "createNamespacedSecret",
+      "nickname": "createSecretForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -13625,10 +13625,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Secret",
-      "nickname": "watchNamespacedSecretList",
+      "nickname": "watchSecretListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -13683,7 +13683,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -13890,7 +13890,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of SecurityContextConstraints",
       "nickname": "watchSecurityContextConstraintsList",
@@ -13948,7 +13948,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14172,7 +14172,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind SecurityContextConstraints",
       "nickname": "watchSecurityContextConstraints",
@@ -14238,7 +14238,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14469,7 +14469,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ServiceAccount",
       "nickname": "watchNamespacedServiceAccountList",
@@ -14535,7 +14535,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14791,7 +14791,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind ServiceAccount",
       "nickname": "watchNamespacedServiceAccount",
@@ -14865,7 +14865,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -14888,7 +14888,7 @@
       "type": "v1.ServiceAccountList",
       "method": "GET",
       "summary": "list or watch objects of kind ServiceAccount",
-      "nickname": "listNamespacedServiceAccount",
+      "nickname": "listServiceAccountForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -14959,7 +14959,7 @@
       "type": "v1.ServiceAccount",
       "method": "POST",
       "summary": "create a ServiceAccount",
-      "nickname": "createNamespacedServiceAccount",
+      "nickname": "createServiceAccountForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -15001,10 +15001,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of ServiceAccount",
-      "nickname": "watchNamespacedServiceAccountList",
+      "nickname": "watchServiceAccountListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -15059,7 +15059,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15211,7 +15211,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Service",
       "nickname": "watchNamespacedServiceList",
@@ -15277,7 +15277,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15525,7 +15525,7 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch changes to an object of kind Service",
       "nickname": "watchNamespacedService",
@@ -15599,7 +15599,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -15622,7 +15622,7 @@
       "type": "string",
       "method": "GET",
       "summary": "proxy GET requests to Service",
-      "nickname": "proxyGETNamespacedService",
+      "nickname": "proxyGETNamespacedServiceWithPath",
       "parameters": [
        {
         "type": "string",
@@ -15660,7 +15660,7 @@
       "type": "string",
       "method": "PUT",
       "summary": "proxy PUT requests to Service",
-      "nickname": "proxyPUTNamespacedService",
+      "nickname": "proxyPUTNamespacedServiceWithPath",
       "parameters": [
        {
         "type": "string",
@@ -15698,7 +15698,7 @@
       "type": "string",
       "method": "POST",
       "summary": "proxy POST requests to Service",
-      "nickname": "proxyPOSTNamespacedService",
+      "nickname": "proxyPOSTNamespacedServiceWithPath",
       "parameters": [
        {
         "type": "string",
@@ -15736,7 +15736,7 @@
       "type": "string",
       "method": "DELETE",
       "summary": "proxy DELETE requests to Service",
-      "nickname": "proxyDELETENamespacedService",
+      "nickname": "proxyDELETENamespacedServiceWithPath",
       "parameters": [
        {
         "type": "string",
@@ -15774,7 +15774,7 @@
       "type": "string",
       "method": "HEAD",
       "summary": "proxy HEAD requests to Service",
-      "nickname": "proxyHEADNamespacedService",
+      "nickname": "proxyHEADNamespacedServiceWithPath",
       "parameters": [
        {
         "type": "string",
@@ -15812,7 +15812,7 @@
       "type": "string",
       "method": "OPTIONS",
       "summary": "proxy OPTIONS requests to Service",
-      "nickname": "proxyOPTIONSNamespacedService",
+      "nickname": "proxyOPTIONSNamespacedServiceWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16042,7 +16042,7 @@
       "type": "v1.ServiceList",
       "method": "GET",
       "summary": "list or watch objects of kind Service",
-      "nickname": "listNamespacedService",
+      "nickname": "listServiceForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16113,7 +16113,7 @@
       "type": "v1.Service",
       "method": "POST",
       "summary": "create a Service",
-      "nickname": "createNamespacedService",
+      "nickname": "createServiceForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16155,10 +16155,10 @@
     "description": "API at /api/v1",
     "operations": [
      {
-      "type": "*versioned.Event",
+      "type": "versioned.Event",
       "method": "GET",
       "summary": "watch individual changes to a list of Service",
-      "nickname": "watchNamespacedServiceList",
+      "nickname": "watchServiceListForAllNamespaces",
       "parameters": [
        {
         "type": "string",
@@ -16213,7 +16213,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "*versioned.Event"
+        "responseModel": "versioned.Event"
        }
       ],
       "produces": [
@@ -16470,7 +16470,7 @@
       "type": "string",
       "method": "GET",
       "summary": "connect GET requests to proxy of Service",
-      "nickname": "connectGetNamespacedServiceProxy",
+      "nickname": "connectGetNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16516,7 +16516,7 @@
       "type": "string",
       "method": "POST",
       "summary": "connect POST requests to proxy of Service",
-      "nickname": "connectPostNamespacedServiceProxy",
+      "nickname": "connectPostNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16562,7 +16562,7 @@
       "type": "string",
       "method": "PUT",
       "summary": "connect PUT requests to proxy of Service",
-      "nickname": "connectPutNamespacedServiceProxy",
+      "nickname": "connectPutNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16608,7 +16608,7 @@
       "type": "string",
       "method": "DELETE",
       "summary": "connect DELETE requests to proxy of Service",
-      "nickname": "connectDeleteNamespacedServiceProxy",
+      "nickname": "connectDeleteNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16654,7 +16654,7 @@
       "type": "string",
       "method": "HEAD",
       "summary": "connect HEAD requests to proxy of Service",
-      "nickname": "connectHeadNamespacedServiceProxy",
+      "nickname": "connectHeadNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -16700,7 +16700,7 @@
       "type": "string",
       "method": "OPTIONS",
       "summary": "connect OPTIONS requests to proxy of Service",
-      "nickname": "connectOptionsNamespacedServiceProxy",
+      "nickname": "connectOptionsNamespacedServiceProxyWithPath",
       "parameters": [
        {
         "type": "string",
@@ -17329,9 +17329,20 @@
      }
     }
    },
-   "*versioned.Event": {
-    "id": "*versioned.Event",
-    "properties": {}
+   "versioned.Event": {
+    "id": "versioned.Event",
+    "required": [
+     "type",
+     "object"
+    ],
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "object": {
+      "type": "string"
+     }
+    }
    },
    "unversioned.Patch": {
     "id": "unversioned.Patch",

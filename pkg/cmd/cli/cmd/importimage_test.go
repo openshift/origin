@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -369,6 +370,44 @@ func TestCreateImageImport(t *testing.T) {
 		}
 		if !kapi.Semantic.DeepEqual(isi.Spec.Repository, test.expectedRepository) {
 			t.Errorf("%s: unexpected import repository, expected %#v, got %#v", name, test.expectedRepository, isi.Spec.Repository)
+		}
+	}
+}
+
+func TestWasError(t *testing.T) {
+	testCases := map[string]struct {
+		isi      *imageapi.ImageStreamImport
+		expected bool
+	}{
+		"no error": {
+			isi:      &imageapi.ImageStreamImport{},
+			expected: false,
+		},
+		"error importing images": {
+			isi: &imageapi.ImageStreamImport{
+				Status: imageapi.ImageStreamImportStatus{
+					Images: []imageapi.ImageImportStatus{
+						{Status: unversioned.Status{Status: unversioned.StatusFailure}},
+					},
+				},
+			},
+			expected: true,
+		},
+		"error importing repository": {
+			isi: &imageapi.ImageStreamImport{
+				Status: imageapi.ImageStreamImportStatus{
+					Repository: &imageapi.RepositoryImportStatus{
+						Status: unversioned.Status{Status: unversioned.StatusFailure},
+					},
+				},
+			},
+			expected: true,
+		},
+	}
+
+	for name, test := range testCases {
+		if a, e := wasError(test.isi), test.expected; a != e {
+			t.Errorf("%s: expected %v, got %v", name, e, a)
 		}
 	}
 }

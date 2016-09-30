@@ -297,7 +297,7 @@ func validateRoleBindingSubject(subject kapi.ObjectReference, isNamespaced bool,
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), subject.Name, strings.Join(reasons, ", ")))
 		}
 		if !isNamespaced && len(subject.Namespace) == 0 {
-			allErrs = append(allErrs, field.Required(fldPath.Child("namespace"), ""))
+			allErrs = append(allErrs, field.Required(fldPath.Child("namespace"), "Service account subjects for ClusterRoleBindings must have a namespace"))
 		}
 
 	case authorizationapi.UserKind:

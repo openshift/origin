@@ -173,11 +173,6 @@ type RollingDeploymentStrategyParams struct {
 	// pods running at any time during the update is atmost 130% of original
 	// pods.
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,5,opt,name=maxSurge"`
-	// UpdatePercent is the percentage of replicas to scale up or down each
-	// interval. If nil, one replica will be scaled up and down each interval.
-	// If negative, the scale order will be down/up instead of up/down.
-	// DEPRECATED: Use MaxUnavailable/MaxSurge instead.
-	UpdatePercent *int32 `json:"updatePercent,omitempty" protobuf:"varint,6,opt,name=updatePercent"`
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook `json:"pre,omitempty" protobuf:"bytes,7,opt,name=pre"`
@@ -238,10 +233,15 @@ const (
 
 // +genclient=true
 
-// DeploymentConfig represents a configuration for a single deployment (represented as a
-// ReplicationController). It also contains details about changes which resulted in the current
-// state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
-// a new deployment results in an increment of LatestVersion.
+// Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
+// A single deployment configuration is usually analogous to a single micro-service. Can support many different
+// deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as
+// well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.
+//
+// A deployment is "triggered" when its configuration is changed or a tag in an Image Stream is changed.
+// Triggers can be disabled to allow manual control over a deployment. The "strategy" determines how the deployment
+// is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment
+// is triggered by any means.
 type DeploymentConfig struct {
 	unversioned.TypeMeta `json:",inline"`
 	// Standard object's metadata.

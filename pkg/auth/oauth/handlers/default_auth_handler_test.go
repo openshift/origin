@@ -19,7 +19,11 @@ func (w *testClient) GetId() string {
 	return w.client.Name
 }
 
-func (w *testClient) ValidateSecret(in string) bool {
+func (w *testClient) GetSecret() string {
+	panic("unsupported")
+}
+
+func (w *testClient) ClientSecretMatches(in string) bool {
 	return w.client.Secret == in
 }
 
@@ -229,7 +233,11 @@ func (w *badTestClient) GetId() string {
 	return w.client.Name
 }
 
-func (w *badTestClient) ValidateSecret(in string) bool {
+func (w *badTestClient) GetSecret() string {
+	panic("unsupported")
+}
+
+func (w *badTestClient) ClientSecretMatches(in string) bool {
 	return in == w.client.Secret
 }
 

@@ -2,10 +2,9 @@ package docker
 
 import (
 	"errors"
+	"github.com/openshift/source-to-image/pkg/api"
 	"io"
 	"path/filepath"
-
-	dockerclient "github.com/fsouza/go-dockerclient"
 )
 
 // FakeDocker provides a fake docker interface
@@ -157,22 +156,22 @@ func (f *FakeDocker) RemoveImage(name string) error {
 }
 
 // CheckImage checks image in local registry
-func (f *FakeDocker) CheckImage(name string) (*dockerclient.Image, error) {
+func (f *FakeDocker) CheckImage(name string) (*api.Image, error) {
 	return nil, nil
 }
 
 // PullImage pulls a fake docker image
-func (f *FakeDocker) PullImage(imageName string) (*dockerclient.Image, error) {
+func (f *FakeDocker) PullImage(imageName string) (*api.Image, error) {
 	if f.PullResult {
-		return &dockerclient.Image{}, nil
+		return &api.Image{}, nil
 	}
 	return nil, f.PullError
 }
 
 // CheckAndPullImage pulls a fake docker image
-func (f *FakeDocker) CheckAndPullImage(name string) (*dockerclient.Image, error) {
+func (f *FakeDocker) CheckAndPullImage(name string) (*api.Image, error) {
 	if f.PullResult {
-		return &dockerclient.Image{}, nil
+		return &api.Image{}, nil
 	}
 	return nil, f.PullError
 }

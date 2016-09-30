@@ -724,7 +724,6 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			},
 		)
 	}
-	updatePercent := int32(-25)
 	objects = append(objects, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
@@ -733,7 +732,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		Spec: deployapi.DeploymentConfigSpec{
 			Strategy: deployapi.DeploymentStrategy{
 				Type:          deployapi.DeploymentStrategyTypeRolling,
-				RollingParams: &deployapi.RollingDeploymentStrategyParams{UpdatePercent: &updatePercent},
+				RollingParams: &deployapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
 			},
 			Replicas: cfg.Replicas,
 			Selector: label,

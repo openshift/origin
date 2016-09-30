@@ -22,14 +22,15 @@ import (
 )
 
 const (
-	svcDockerRegistry = "docker-registry"
-	svcRouter         = "router"
+	DefaultNamespace  = "default"
+	SvcDockerRegistry = "docker-registry"
+	SvcRouter         = "router"
 	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
 func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images string, out io.Writer) error {
-	_, err := kubeClient.Services("default").Get(svcDockerRegistry)
+	_, err := kubeClient.Services(DefaultNamespace).Get(SvcDockerRegistry)
 	if err == nil {
 		// If there's no error, the registry already exists
 		return nil
@@ -67,7 +68,7 @@ func (h *Helper) InstallRegistry(kubeClient kclient.Interface, f *clientcmd.Fact
 
 // InstallRouter installs a default router on the OpenShift server
 func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out io.Writer) error {
-	_, err := kubeClient.Services("default").Get(svcRouter)
+	_, err := kubeClient.Services(DefaultNamespace).Get(SvcRouter)
 	if err == nil {
 		// Router service already exists, nothing to do
 		return nil

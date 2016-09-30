@@ -23,10 +23,6 @@ fi
 
 # setup a private GOPATH so the build can succeed
 export GOPATH="${PWD}/gopath"
-rm -f "${GOPATH}/src/github.com/coreos/etcd"
-mkdir -p "${GOPATH}/src/github.com/coreos"
-ln -s "${PWD}" "${GOPATH}/src/github.com/coreos/etcd"
-
 ./build
 
 echo

@@ -1,1 +1,0 @@
-Local Resource Access Reviews are objects that allow you to determine which users and groups can perform a given action in a given namespace.

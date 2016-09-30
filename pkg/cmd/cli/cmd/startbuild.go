@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -26,6 +25,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -315,58 +315,36 @@ func (o *StartBuildOptions) Run() error {
 
 	kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, "started")
 
-	var (
-		wg      sync.WaitGroup
-		exitErr error
-	)
-
-	// Wait for the build to complete
-	if o.WaitForComplete {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			exitErr = WaitForBuildComplete(o.Client.Builds(o.Namespace), newBuild.Name)
-		}()
-	}
-
 	// Stream the logs from the build
 	if o.Follow {
-		wg.Add(1)
-		go func() {
-			// if --wait option is set, then don't wait for logs to finish streaming
-			// but wait for the build to reach its final state
-			if o.WaitForComplete {
-				wg.Done()
-			} else {
-				defer wg.Done()
-			}
-			opts := buildapi.BuildLogOptions{
-				Follow: true,
-				NoWait: false,
-			}
-			for {
-				rd, err := o.Client.BuildLogs(o.Namespace).Get(newBuild.Name, opts).Stream()
-				if err != nil {
-					// if --wait options is set, then retry the connection to build logs
-					// when we hit the timeout.
-					if o.WaitForComplete && oerrors.IsTimeoutErr(err) {
-						continue
-					}
-					fmt.Fprintf(o.ErrOut, "error getting logs: %v\n", err)
-					return
+		opts := buildapi.BuildLogOptions{
+			Follow: true,
+			NoWait: false,
+		}
+		for {
+			rd, err := o.Client.BuildLogs(o.Namespace).Get(newBuild.Name, opts).Stream()
+			if err != nil {
+				// retry the connection to build logs when we hit the timeout.
+				if oerrors.IsTimeoutErr(err) {
+					fmt.Fprintf(o.ErrOut, "timed out getting logs, retrying\n")
+					continue
 				}
-				defer rd.Close()
-				if _, err = io.Copy(o.Out, rd); err != nil {
-					fmt.Fprintf(o.ErrOut, "error streaming logs: %v\n", err)
-				}
+				fmt.Fprintf(o.ErrOut, "error getting logs (%v), waiting for build to complete\n", err)
 				break
 			}
-		}()
+			defer rd.Close()
+			if _, err = io.Copy(o.Out, rd); err != nil {
+				fmt.Fprintf(o.ErrOut, "error streaming logs (%v), waiting for build to complete\n", err)
+			}
+			break
+		}
 	}
 
-	wg.Wait()
+	if o.Follow || o.WaitForComplete {
+		return WaitForBuildComplete(o.Client.Builds(o.Namespace), newBuild.Name)
+	}
 
-	return exitErr
+	return nil
 }
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
@@ -598,7 +576,7 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 		config, err := o.ClientConfig.ClientConfig()
 		if err == nil {
 			if url, _, err := restclient.DefaultServerURL(config.Host, "", unversioned.GroupVersion{}, true); err == nil {
-				if url.Host == hook.Host && url.Scheme == hook.Scheme {
+				if netutil.CanonicalAddr(url) == netutil.CanonicalAddr(hook) && url.Scheme == hook.Scheme {
 					if rt, err := restclient.TransportFor(config); err == nil {
 						httpClient = &http.Client{Transport: rt}
 					}

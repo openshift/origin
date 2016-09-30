@@ -3,6 +3,7 @@ package osin
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 )
 
@@ -12,6 +13,13 @@ type AuthorizeRequestType string
 const (
 	CODE  AuthorizeRequestType = "code"
 	TOKEN AuthorizeRequestType = "token"
+
+	PKCE_PLAIN = "plain"
+	PKCE_S256  = "S256"
+)
+
+var (
+	pkceMatcher = regexp.MustCompile("^[a-zA-Z0-9~._-]{43,128}$")
 )
 
 // Authorize request information
@@ -34,6 +42,11 @@ type AuthorizeRequest struct {
 
 	// HttpRequest *http.Request for special use
 	HttpRequest *http.Request
+
+	// Optional code_challenge as described in rfc7636
+	CodeChallenge string
+	// Optional code_challenge_method as described in rfc7636
+	CodeChallengeMethod string
 }
 
 // Authorization data
@@ -61,6 +74,11 @@ type AuthorizeData struct {
 
 	// Data to be passed to storage. Not used by the library.
 	UserData interface{}
+
+	// Optional code_challenge as described in rfc7636
+	CodeChallenge string
+	// Optional code_challenge_method as described in rfc7636
+	CodeChallengeMethod string
 }
 
 // IsExpired is true if authorization expired
@@ -140,6 +158,36 @@ func (s *Server) HandleAuthorizeRequest(w *Response, r *http.Request) *Authorize
 		case CODE:
 			ret.Type = CODE
 			ret.Expiration = s.Config.AuthorizationExpiration
+
+			// Optional PKCE support (https://tools.ietf.org/html/rfc7636)
+			if codeChallenge := r.Form.Get("code_challenge"); len(codeChallenge) == 0 {
+				if s.Config.RequirePKCEForPublicClients && CheckClientSecret(ret.Client, "") {
+					// https://tools.ietf.org/html/rfc7636#section-4.4.1
+					w.SetErrorState(E_INVALID_REQUEST, "code_challenge (rfc7636) required for public clients", ret.State)
+					return nil
+				}
+			} else {
+				codeChallengeMethod := r.Form.Get("code_challenge_method")
+				// allowed values are "plain" (default) and "S256", per https://tools.ietf.org/html/rfc7636#section-4.3
+				if len(codeChallengeMethod) == 0 {
+					codeChallengeMethod = PKCE_PLAIN
+				}
+				if codeChallengeMethod != PKCE_PLAIN && codeChallengeMethod != PKCE_S256 {
+					// https://tools.ietf.org/html/rfc7636#section-4.4.1
+					w.SetErrorState(E_INVALID_REQUEST, "code_challenge_method transform algorithm not supported (rfc7636)", ret.State)
+					return nil
+				}
+
+				// https://tools.ietf.org/html/rfc7636#section-4.2
+				if matched := pkceMatcher.MatchString(codeChallenge); !matched {
+					w.SetErrorState(E_INVALID_REQUEST, "code_challenge invalid (rfc7636)", ret.State)
+					return nil
+				}
+
+				ret.CodeChallenge = codeChallenge
+				ret.CodeChallengeMethod = codeChallengeMethod
+			}
+
 		case TOKEN:
 			ret.Type = TOKEN
 			ret.Expiration = s.Config.AccessExpiration
@@ -191,6 +239,9 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 				State:       ar.State,
 				Scope:       ar.Scope,
 				UserData:    ar.UserData,
+				// Optional PKCE challenge
+				CodeChallenge:       ar.CodeChallenge,
+				CodeChallengeMethod: ar.CodeChallengeMethod,
 			}
 
 			// generate token code

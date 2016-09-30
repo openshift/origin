@@ -369,12 +369,6 @@ func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, po
 		errs = append(errs, field.Invalid(fldPath.Child("timeoutSeconds"), *params.TimeoutSeconds, "must be >0"))
 	}
 
-	if params.UpdatePercent != nil {
-		p := *params.UpdatePercent
-		if p == 0 || p < -100 || p > 100 {
-			errs = append(errs, field.Invalid(fldPath.Child("updatePercent"), *params.UpdatePercent, "must be between 1 and 100 or between -1 and -100 (inclusive)"))
-		}
-	}
 	// Most of this is lifted from the upstream experimental deployments API. We
 	// can't reuse it directly yet, but no use reinventing the logic, so copy-
 	// pasted and adapted here.

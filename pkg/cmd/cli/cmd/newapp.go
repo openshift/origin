@@ -249,16 +249,24 @@ func (o *NewAppOptions) RunNewApp() error {
 		return err
 	}
 
-	// if the user has set the "app" label explicitly on their objects in the template,
-	// we should not return a failure when we can't set it ourselves.
-	ignoreLabelFailure := false
-	if len(config.Labels) == 0 && len(result.Name) > 0 {
-		config.Labels = map[string]string{"app": result.Name}
-		ignoreLabelFailure = true
+	// set labels explicitly supplied by the user on the command line
+	if err := setLabels(config.Labels, result); err != nil {
+		return err
 	}
 
-	if err := setLabels(config.Labels, result, ignoreLabelFailure); err != nil {
-		return err
+	if len(result.Name) > 0 {
+		// only set the computed implicit "app" label on objects if no object we've produced
+		// already has the "app" label.
+		appLabel := map[string]string{"app": result.Name}
+		hasAppLabel, err := hasLabel(appLabel, result)
+		if err != nil {
+			return err
+		}
+		if !hasAppLabel {
+			if err := setLabels(appLabel, result); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewApp}, result); err != nil {
@@ -507,14 +515,28 @@ func setAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 	return nil
 }
 
-func setLabels(labels map[string]string, result *newcmd.AppResult, ignoreFailure bool) error {
+func setLabels(labels map[string]string, result *newcmd.AppResult) error {
 	for _, object := range result.List.Items {
 		err := util.AddObjectLabels(object, labels)
-		if err != nil && !ignoreFailure {
+		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func hasLabel(labels map[string]string, result *newcmd.AppResult) (bool, error) {
+	for _, obj := range result.List.Items {
+		objCopy, err := kapi.Scheme.DeepCopy(obj)
+		if err != nil {
+			return false, err
+		}
+		err = util.AddObjectLabelsWithFlags(objCopy.(runtime.Object), labels, util.ErrorOnExistingDstKey)
+		if err != nil {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // isInvalidTriggerError returns true if the given error is
