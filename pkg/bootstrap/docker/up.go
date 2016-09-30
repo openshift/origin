@@ -290,6 +290,9 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Create an initial project
 	c.addTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject)
 
+	// Remove temporary directory
+	c.addTask("Removing temporary directory", c.RemoveTemporaryDirectory)
+
 	// Display server information
 	c.addTask("Server Information", c.ServerInfo)
 
@@ -691,7 +694,11 @@ func (c *ClientStartConfig) Login(out io.Writer) error {
 // CreateProject creates a new project for the current user
 func (c *ClientStartConfig) CreateProject(out io.Writer) error {
 	return openshift.CreateProject(initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
+}
 
+// RemoveTemporaryDirectory removes the local configuration directory
+func (c *ClientStartConfig) RemoveTemporaryDirectory(out io.Writer) error {
+	return os.RemoveAll(c.LocalConfigDir)
 }
 
 // ServerInfo displays server information after a successful start
