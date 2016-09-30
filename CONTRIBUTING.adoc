@@ -235,9 +235,17 @@ useful for development as well.
 
 Prerequisites:
 
-1. Host running docker and with SELinux disabled.
-2. An environment with the tools necessary to build origin.
-3. A clone of the origin repo.
+1. A host running docker and with SELinux disabled.
+
+2. It is acceptable to load some kernel modules (overlay, openvswitch
+and br_netfilter) on the docker host.
+
+3. It is acceptable to have net.bridge.bridge-nf-call-iptables set to
+0 on the docker host.
+
+4. An environment with the tools necessary to build origin.
+
+5. A clone of the origin repo.
 
 From the root of the origin repo, run the following command to launch
 a new cluster:
@@ -276,10 +284,6 @@ Attempting to start a cluster when one is already running will result
 in an error message from docker indicating that the named containers
 already exist.  To redeploy a cluster use the 'start' command with the
 '-r' flag to remove an existing cluster.
-
-While it is possible to run a dind cluster directly on a linux host,
-it is recommended to consider the warnings at the top of the
-dind-cluster.sh script.
 
 ==== Testing networking with docker-in-docker
 
