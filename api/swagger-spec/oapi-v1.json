@@ -21472,6 +21472,10 @@
      "httpsProxy": {
       "type": "string",
       "description": "httpsProxy is a proxy used to reach the git repository over https"
+     },
+     "noProxy": {
+      "type": "string",
+      "description": "noProxy is the list of domains for which the proxy should not be used"
      }
     }
    },

@@ -387,6 +387,18 @@ type GitSourceRevision struct {
 	Message string
 }
 
+// ProxyConfig defines what proxies to use for an operation
+type ProxyConfig struct {
+	// HTTPProxy is a proxy used to reach the git repository over http
+	HTTPProxy *string
+
+	// HTTPSProxy is a proxy used to reach the git repository over https
+	HTTPSProxy *string
+
+	// NoProxy is the list of domains for which the proxy should not be used
+	NoProxy *string
+}
+
 // GitBuildSource defines the parameters of a Git SCM
 type GitBuildSource struct {
 	// URI points to the source that will be built. The structure of the source
@@ -396,11 +408,8 @@ type GitBuildSource struct {
 	// Ref is the branch/tag/ref to build.
 	Ref string
 
-	// HTTPProxy is a proxy used to reach the git repository over http
-	HTTPProxy *string
-
-	// HTTPSProxy is a proxy used to reach the git repository over https
-	HTTPSProxy *string
+	// ProxyConfig defines the proxies to use for the git clone operation
+	ProxyConfig
 }
 
 // SourceControlUser defines the identity of a user of source control

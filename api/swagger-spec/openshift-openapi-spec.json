@@ -46908,6 +46908,10 @@
       "description": "httpsProxy is a proxy used to reach the git repository over https",
       "type": "string"
      },
+     "noProxy": {
+      "description": "noProxy is the list of domains for which the proxy should not be used",
+      "type": "string"
+     },
      "ref": {
       "description": "ref is the branch/tag/ref to build.",
       "type": "string"
