@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -478,12 +479,21 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 	return tempDir, nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) error {
-	masterConfig := filepath.Join(configDir, "master", "master-config.yaml")
-	glog.V(1).Infof("Reading master config from %s", masterConfig)
-	cfg, err := configapilatest.ReadMasterConfig(masterConfig)
+func (h *Helper) GetConfig(configDir string) (*configapi.MasterConfig, string, error) {
+	configPath := filepath.Join(configDir, "master", "master-config.yaml")
+	glog.V(1).Infof("Reading master config from %s", configPath)
+	cfg, err := configapilatest.ReadMasterConfig(configPath)
 	if err != nil {
 		glog.V(1).Infof("Could not read master config: %v", err)
+		return nil, "", err
+	}
+	return cfg, configPath, nil
+}
+
+func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) error {
+
+	cfg, configPath, err := h.GetConfig(configDir)
+	if err != nil {
 		return err
 	}
 
@@ -501,11 +511,11 @@ func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) 
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(masterConfig, cfgBytes, 0644)
+	err = ioutil.WriteFile(configPath, cfgBytes, 0644)
 	if err != nil {
 		return err
 	}
-	return h.hostHelper.CopyMasterConfigToHost(masterConfig, hostDir)
+	return h.hostHelper.CopyMasterConfigToHost(configPath, hostDir)
 }
 
 func (h *Helper) getOpenShiftConfigFiles(hostname string) (string, string, error) {
