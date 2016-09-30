@@ -117,7 +117,7 @@ func (o LogoutOptions) RunLogout() error {
 		return err
 	}
 
-	userInfo, err := whoAmI(client)
+	userInfo, err := whoAmI(o.Config)
 	if err != nil {
 		return err
 	}

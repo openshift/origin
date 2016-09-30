@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      component: kube-apiserver
+      tier: control-plane
+    name: kube-apiserver
+  spec:
+    containers:
+    - command:
+      - /bin/sh
+      - -c
+      - /usr/local/bin/kube-apiserver
+        --address=$(POD_IP)
+        --service-cluster-ip-range=172.30.0.0/16
+        --etcd-servers=http://127.0.0.1:2379
+        --secure-port=443
+        --token-auth-file=/srv/kubernetes/knowntokens.csv
+        --allow-privileged=True
+        --v=2
+        #--etcd-servers-overrides=/events
+        #http://127.0.0.1:4002   --runtime-config=  --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota  --service-cluster-ip-range=10.247.0.0/16
+        #--authorization-mode=ABAC --authorization-policy-file=/srv/kubernetes/abac-authz-policy.jsonl
+        #--client-ca-file=/srv/kubernetes/ca.crt --basic-auth-file=/srv/kubernetes/basic_auth.csv   --tls-cert-file=/srv/kubernetes/server.cert
+        #--tls-private-key-file=/srv/kubernetes/server.key
+      image: gcr.io/google_containers/kube-apiserver:v1.3.0
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: POD_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.podIP
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: 8080
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 15
+      name: apiserver
+      ports:
+      - containerPort: 443
+        name: https
+        protocol: TCP
+      - containerPort: 8080
+        name: local
+        protocol: TCP
+      resources:
+        requests:
+          cpu: 250m
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /usr/share/ssl
+        name: usrsharessl
+        readOnly: true
+      - mountPath: /usr/ssl
+        name: usrssl
+        readOnly: true
+      - mountPath: /usr/lib/ssl
+        name: usrlibssl
+        readOnly: true
+      - mountPath: /usr/local/openssl
+        name: usrlocalopenssl
+        readOnly: true
+      - mountPath: /srv/kubernetes
+        name: srvkube
+        readOnly: true
+      - mountPath: /var/log
+        name: logfile
+      - mountPath: /etc/ssl
+        name: etcssl
+        readOnly: true
+      - mountPath: /var/ssl
+        name: varssl
+        readOnly: true
+      - mountPath: /etc/openssl
+        name: etcopenssl
+        readOnly: true
+      - mountPath: /etc/pki
+        name: etcpki
+        readOnly: true
+      - mountPath: /srv/sshproxy
+        name: srvsshproxy
+    - command:
+      - /bin/sh
+      - -c
+      - if [ -e /usr/local/bin/migrate-if-needed.sh ]; then /usr/local/bin/migrate-if-needed.sh;
+        fi; /usr/local/bin/etcd --name etcd- --listen-peer-urls http://:2380 --initial-advertise-peer-urls
+        http://:2380 --advertise-client-urls http://127.0.0.1:2379 --listen-client-urls
+        http://127.0.0.1:2379 --data-dir /var/etcd/data --initial-cluster-state new
+        --initial-cluster etcd-=http://:2380
+      env:
+      - name: TARGET_STORAGE
+        value: etcd2
+      - name: DATA_DIRECTORY
+        value: /var/etcd/data
+      image: gcr.io/google_containers/etcd:3.0.4
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          host: 127.0.0.1
+          path: /health
+          port: 2379
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 60
+        successThreshold: 1
+        timeoutSeconds: 15
+      name: etcd
+      ports:
+      - containerPort: 2380
+        name: serverport
+        protocol: TCP
+      - containerPort: 2379
+        name: clientport
+        protocol: TCP
+      resources:
+        requests:
+          cpu: 200m
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+      - mountPath: /var/etcd
+        name: varetcd
+      - mountPath: /var/log
+        name: varlogetcd
+    restartPolicy: Always
+    volumes:
+    - emptyDir:
+      name: usrsharessl
+    - emptyDir:
+      name: usrssl
+    - emptyDir:
+      name: usrlibssl
+    - emptyDir:
+      name: usrlocalopenssl
+    - emptyDir:
+      name: logfile
+    - emptyDir:
+      name: etcssl
+    - emptyDir:
+      name: varssl
+    - emptyDir:
+      name: etcopenssl
+    - emptyDir:
+      name: etcpki
+    - emptyDir:
+      name: srvsshproxy
+    - emptyDir:
+      name: varetcd
+    - emptyDir:
+      name: varlogetcd
+    - configMap:
+        name: kube-apiserver
+      name: srvkube
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: kube-apiserver
+  data:
+    knowntokens.csv: secret,admin,1,"group1,group2,group3"
+
