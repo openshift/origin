@@ -41,8 +41,18 @@ func NewCmdWhoAmI(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.Flags().BoolP("token", "t", false, "Print the token the current session is using. This will return an error if you are using a different form of authentication.")
-	cmd.Flags().BoolP("context", "c", false, "Print the current user context name")
+
+	// Deprecated in 1.4
+	// Remove in 1.5 so we can use --token and --context for building the client again
+	cmd.Flags().Bool("token", false, "Deprecated, use --show-token instead")
+	cmd.Flags().Bool("context", false, "Deprecated, use --show-context instead")
+	cmd.Flags().MarkDeprecated("token", "use -t or --show-token instead")
+	cmd.Flags().MarkDeprecated("context", "use -c or --show-context instead")
+	cmd.Flags().MarkHidden("token")
+	cmd.Flags().MarkHidden("context")
+
+	cmd.Flags().BoolP("show-token", "t", false, "Print the token the current session is using. This will return an error if you are using a different form of authentication.")
+	cmd.Flags().BoolP("show-context", "c", false, "Print the current user context name")
 
 	return cmd
 }
@@ -57,7 +67,7 @@ func (o WhoAmIOptions) WhoAmI() (*userapi.User, error) {
 }
 
 func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, o *WhoAmIOptions) error {
-	if kcmdutil.GetFlagBool(cmd, "token") {
+	if kcmdutil.GetFlagBool(cmd, "token") || kcmdutil.GetFlagBool(cmd, "show-token") {
 		cfg, err := f.OpenShiftClientConfig.ClientConfig()
 		if err != nil {
 			return err
@@ -68,7 +78,7 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		fmt.Fprintf(out, "%s\n", cfg.BearerToken)
 		return nil
 	}
-	if kcmdutil.GetFlagBool(cmd, "context") {
+	if kcmdutil.GetFlagBool(cmd, "context") || kcmdutil.GetFlagBool(cmd, "show-context") {
 		cfg, err := f.OpenShiftClientConfig.RawConfig()
 		if err != nil {
 			return err
