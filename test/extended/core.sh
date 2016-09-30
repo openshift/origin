@@ -22,19 +22,20 @@ ss=$(join '|' "${serial_exclude[@]}")
 
 
 # print the tests we are skipping
-echo "[INFO] The following tests are excluded:"
-TEST_REPORT_DIR= TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} "--ginkgo.skip=${ss}" --ginkgo.dryRun --ginkgo.noColor | grep skip | cut -c 20- | sort
-echo
+os::log::info "The following tests are excluded:"
+SKIP_ONLY=1 PRINT_TESTS=1 os::test::extended::test_list "--ginkgo.skip=${ss}" 
+os::log::info ""
 
 exitstatus=0
 
 # run parallel tests
 nodes="${PARALLEL_NODES:-5}"
-echo "[INFO] Running parallel tests N=${nodes}"
-TEST_REPORT_FILE_NAME=core_parallel ${GINKGO} -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 6h || exitstatus=$?
+os::log::info "Running parallel tests N=${nodes}"
+FOCUS="${pf}" SKIP="${ps}" TEST_REPORT_FILE_NAME=core_parallel os::test::extended::run -p -nodes "${nodes}" -- ginkgo.v -test.timeout 6h || exitstatus=$?
 
 # run tests in serial
-echo "[INFO] Running serial tests"
-TEST_REPORT_FILE_NAME=core_serial ${GINKGO} -v "-focus=${sf}" "-skip=${ss}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 2h || exitstatus=$?
+os::log::info ""
+os::log::info "Running serial tests"
+FOCUS="${sf}" SKIP="${ss}" TEST_REPORT_FILE_NAME=core_serial os::test::extended::run -- -ginkgo.v -test.timeout 2h || exitstatus=$?
 
 exit $exitstatus

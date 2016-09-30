@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -63,6 +64,7 @@ type Helper struct {
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
 	ServerIP           string
+	RouterIP           string
 	DNSPort            int
 	UseSharedVolume    bool
 	SetPropagationMode bool
@@ -289,7 +291,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.HostConfigDir, opt.ServerIP, opt.MetricsHost)
+		err = h.updateConfig(configDir, opt.HostConfigDir, opt.RouterIP, opt.MetricsHost)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -440,22 +442,65 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 		}
 		return "", err
 	}
-	return filepath.Join(tempDir, filepath.Base(hostDir)), nil
+
+	// The configuration dir comes in as something like /tmp/openshift-config%d/openshift.local.config/... .
+	// Remove the intermediate openshift.local.config directory and reparent its files.
+	// Thus the return value of this function represents both the configuration
+	// directory as well as the temporary directory which should be removed at exit.
+
+	subDirPath := filepath.Join(tempDir, filepath.Base(hostDir))
+	subDir, err := os.Open(subDirPath)
+	if err != nil {
+		glog.V(2).Infof("Error opening temporary config dir %s: %v", subDir, err)
+		return "", err
+	}
+
+	names, err := subDir.Readdirnames(0)
+	if err != nil {
+		glog.V(2).Infof("Error listing temporary config dir %s: %v", subDir, err)
+		return "", err
+	}
+
+	for _, name := range names {
+		err = os.Rename(filepath.Join(subDirPath, name), filepath.Join(tempDir, name))
+		if err != nil {
+			glog.V(2).Infof("Error moving file/dir %s: %v", filepath.Join(subDirPath, name), err)
+			return "", err
+		}
+	}
+
+	subDir.Close()
+
+	err = os.Remove(subDirPath)
+	if err != nil {
+		glog.V(2).Infof("Error removing temporary config dir %s: %v", subDirPath, err)
+	}
+
+	return tempDir, nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) error {
-	masterConfig := filepath.Join(configDir, "master", "master-config.yaml")
-	glog.V(1).Infof("Reading master config from %s", masterConfig)
-	cfg, err := configapilatest.ReadMasterConfig(masterConfig)
+func (h *Helper) GetConfig(configDir string) (*configapi.MasterConfig, string, error) {
+	configPath := filepath.Join(configDir, "master", "master-config.yaml")
+	glog.V(1).Infof("Reading master config from %s", configPath)
+	cfg, err := configapilatest.ReadMasterConfig(configPath)
 	if err != nil {
 		glog.V(1).Infof("Could not read master config: %v", err)
+		return nil, "", err
+	}
+	return cfg, configPath, nil
+}
+
+func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) error {
+
+	cfg, configPath, err := h.GetConfig(configDir)
+	if err != nil {
 		return err
 	}
 
 	if len(h.routingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = h.routingSuffix
 	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", serverIP)
+		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", routerIP)
 	}
 
 	if len(metricsHost) > 0 && cfg.AssetConfig != nil {
@@ -466,11 +511,11 @@ func (h *Helper) updateConfig(configDir, hostDir, serverIP, metricsHost string) 
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(masterConfig, cfgBytes, 0644)
+	err = ioutil.WriteFile(configPath, cfgBytes, 0644)
 	if err != nil {
 		return err
 	}
-	return h.hostHelper.CopyMasterConfigToHost(masterConfig, hostDir)
+	return h.hostHelper.CopyMasterConfigToHost(configPath, hostDir)
 }
 
 func (h *Helper) getOpenShiftConfigFiles(hostname string) (string, string, error) {

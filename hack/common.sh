@@ -706,8 +706,8 @@ function os::build::os_version_vars() {
 readonly -f os::build::os_version_vars
 
 function os::build::etcd_version_vars() {
-  ETCD_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/coreos/etcd/client" "comment")
-  ETCD_GIT_VERSION=$(echo "${ETCD_GIT_COMMIT}" | sed -E "s/\-.*/\+git/g" | sed -E "s/v//")
+  ETCD_GIT_VERSION=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/coreos/etcd/etcdserver" "comment")
+  ETCD_GIT_COMMIT=$(go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/coreos/etcd/etcdserver")
 }
 readonly -f os::build::etcd_version_vars
 

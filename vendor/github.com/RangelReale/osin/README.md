@@ -1,11 +1,17 @@
 OSIN
 ====
 
+[![GoDoc](https://godoc.org/github.com/RangelReale/osin?status.svg)](https://godoc.org/github.com/RangelReale/osin)
+
+
 Golang OAuth2 server library
 ----------------------------
 
 OSIN is an OAuth2 server library for the Go language, as specified at
 http://tools.ietf.org/html/rfc6749 and http://tools.ietf.org/html/draft-ietf-oauth-v2-10.
+
+It also includes support for PKCE, as specified at https://tools.ietf.org/html/rfc7636,
+which increases security for code-exchange flows for public OAuth clients.
 
 Using it, you can build your own OAuth2 authentication service.
 
@@ -54,8 +60,21 @@ http.ListenAndServe(":14000", nil)
 Open in your web browser:
 
 ````
-http://localhost:14000/authorize?response_type=code&client_id=1234&redirect_url=http%3A%2F%2Flocalhost%3A14000%2Fappauth%2Fcode
+http://localhost:14000/authorize?response_type=code&client_id=1234&redirect_uri=http%3A%2F%2Flocalhost%3A14000%2Fappauth%2Fcode
 ````
+
+### Storage backends
+
+There is a mock available at [example/teststorage.go](/example/teststorage.go) which you can use as a guide for writing your own.  
+
+You might want to check out other implementations for common database management systems as well:
+
+* [PostgreSQL](https://github.com/ory-am/osin-storage)
+* [MongoDB](https://github.com/martint17r/osin-mongo-storage)
+* [RethinkDB](https://github.com/ahmet/osin-rethinkdb)
+* [DynamoDB](https://github.com/uniplaces/osin-dynamodb)
+* [Couchbase](https://github.com/elgris/osin-couchbase-storage)
+* [MySQL](https://github.com/felipeweb/osin-mysql)
 
 ### License
 

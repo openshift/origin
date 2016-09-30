@@ -160,6 +160,7 @@ func Convert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *api.OAuthAc
 }
 
 func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuthorizeToken, out *api.OAuthAuthorizeToken, s conversion.Scope) error {
+	SetDefaults_OAuthAuthorizeToken(in)
 	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
 	}
@@ -173,6 +174,8 @@ func autoConvert_v1_OAuthAuthorizeToken_To_api_OAuthAuthorizeToken(in *OAuthAuth
 	out.State = in.State
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
+	out.CodeChallenge = in.CodeChallenge
+	out.CodeChallengeMethod = in.CodeChallengeMethod
 	return nil
 }
 
@@ -194,6 +197,8 @@ func autoConvert_api_OAuthAuthorizeToken_To_v1_OAuthAuthorizeToken(in *api.OAuth
 	out.State = in.State
 	out.UserName = in.UserName
 	out.UserUID = in.UserUID
+	out.CodeChallenge = in.CodeChallenge
+	out.CodeChallengeMethod = in.CodeChallengeMethod
 	return nil
 }
 

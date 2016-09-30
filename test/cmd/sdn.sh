@@ -10,7 +10,7 @@ os::cmd::expect_failure_and_text 'oc patch clusternetwork default -p "{\"network
 os::cmd::expect_failure_and_text 'oc patch clusternetwork default -p "{\"hostsubnetlength\": 22}"' 'Invalid value'
 os::cmd::expect_failure_and_text 'oc patch clusternetwork default -p "{\"serviceNetwork\": \"1.0.0.0/8\"}"' 'Invalid value'
 
-orig_project=$(oc project -q)
+orig_project="$(oc project -q)"
 
 os::cmd::expect_success 'oc get netnamespaces'
 os::cmd::expect_success_and_text 'oc get netnamespace default -o jsonpath="{.netid}"' '^0$'
@@ -22,15 +22,14 @@ os::cmd::expect_success_and_not_text 'oc get netnamespace sdn-test -o jsonpath="
 os::cmd::expect_success 'oc delete namespace sdn-test'
 os::cmd::try_until_failure 'oc get netnamespace sdn-test'
 
-os::cmd::expect_success 'oc project ${orig_project}'
+os::cmd::expect_success "oc project '${orig_project}'"
 
 # test-cmd environment has no nodes, hence no hostsubnets
 os::cmd::expect_success_and_not_text 'oc get hostsubnets' '.'
 
-policy='{"kind": "EgressNetworkPolicy", "metadata": {"name": "default"}, "spec": {"egress": [{"type": "Allow", "to": {"cidrSelector": "192.168.0.0/16"}}, {"type": "Deny", "to": {"cidrSelector": "0.0.0.0/0"}}]}}'
 os::cmd::expect_success 'oc get egressnetworkpolicies'
 os::cmd::expect_failure 'oc get egressnetworkpolicy default'
-os::cmd::expect_success 'echo "${policy}" | oc create -f -'
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-egress-network-policy.json'
 os::cmd::expect_success 'oc get egressnetworkpolicy default'
 os::cmd::expect_success 'oc delete egressnetworkpolicy default'
 

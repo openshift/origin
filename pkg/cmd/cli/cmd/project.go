@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -17,6 +18,7 @@ import (
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/api"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 
 	"github.com/spf13/cobra"
 )
@@ -24,7 +26,7 @@ import (
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
-	ClientFn     func() (*client.Client, error)
+	ClientFn     func() (*client.Client, kclient.Interface, error)
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -103,9 +105,8 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 		return err
 	}
 
-	o.ClientFn = func() (*client.Client, error) {
-		client, _, err := f.Clients()
-		return client, err
+	o.ClientFn = func() (*client.Client, kclient.Interface, error) {
+		return f.Clients()
 	}
 
 	o.Out = out
@@ -136,18 +137,17 @@ func (o ProjectOptions) RunProject() error {
 				return nil
 			}
 
-			client, err := o.ClientFn()
+			client, kubeclient, err := o.ClientFn()
 			if err != nil {
 				return err
 			}
 
-			if _, err := client.Projects().Get(currentProject); err != nil {
-				if kapierrors.IsNotFound(err) {
-					return fmt.Errorf("the project %q specified in your config does not exist.", currentProject)
-				}
-				if clientcmd.IsForbidden(err) {
-					return fmt.Errorf("you do not have rights to view project %q.", currentProject)
-				}
+			switch err := confirmProjectAccess(currentProject, client, kubeclient); {
+			case clientcmd.IsForbidden(err):
+				return fmt.Errorf("you do not have rights to view project %q.", currentProject)
+			case kapierrors.IsNotFound(err):
+				return fmt.Errorf("the project %q specified in your config does not exist.", currentProject)
+			case err != nil:
 				return err
 			}
 
@@ -187,12 +187,12 @@ func (o ProjectOptions) RunProject() error {
 
 	} else {
 		if !o.SkipAccessValidation {
-			client, err := o.ClientFn()
+			client, kubeclient, err := o.ClientFn()
 			if err != nil {
 				return err
 			}
 
-			if _, err := client.Projects().Get(argument); err != nil {
+			if err := confirmProjectAccess(argument, client, kubeclient); err != nil {
 				if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
 					var msg string
 					if isForbidden {
@@ -201,7 +201,7 @@ func (o ProjectOptions) RunProject() error {
 						msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
 					}
 
-					projects, err := getProjects(client)
+					projects, err := getProjects(client, kubeclient)
 					if err == nil {
 						switch len(projects) {
 						case 0:
@@ -277,11 +277,35 @@ func (o ProjectOptions) RunProject() error {
 	return nil
 }
 
-func getProjects(oClient *client.Client) ([]api.Project, error) {
+func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclient.Interface) error {
+	_, projectErr := oClient.Projects().Get(currentProject)
+	if !kapierrors.IsNotFound(projectErr) {
+		return projectErr
+	}
+
+	// at this point we know the error is a not found, but we'll test namespaces just in case we're running on kube
+	if _, err := kClient.Namespaces().Get(currentProject); err == nil {
+		return nil
+	}
+
+	// otherwise return the openshift error default
+	return projectErr
+}
+
+func getProjects(oClient *client.Client, kClient kclient.Interface) ([]api.Project, error) {
 	projects, err := oClient.Projects().List(kapi.ListOptions{})
+	if err == nil {
+		return projects.Items, nil
+	}
+	if err != nil && !kapierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	namespaces, err := kClient.Namespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	projects = projectutil.ConvertNamespaceList(namespaces)
 	return projects.Items, nil
 }
 

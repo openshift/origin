@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"k8s.io/kubernetes/pkg/client/restclient"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -22,6 +23,7 @@ type ProjectsOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
 	Client       *client.Client
+	KubeClient   kclient.Interface
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -95,7 +97,7 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	o.Client, o.KubeClient, err = f.Clients()
 	if err != nil {
 		return err
 	}
@@ -123,7 +125,7 @@ func (o ProjectsOptions) RunProjects() error {
 	client := o.Client
 
 	if len(currentProject) > 0 {
-		if _, currentProjectErr := client.Projects().Get(currentProject); currentProjectErr == nil {
+		if currentProjectErr := confirmProjectAccess(currentProject, o.Client, o.KubeClient); currentProjectErr == nil {
 			currentProjectExists = true
 		}
 	}
@@ -134,7 +136,7 @@ func (o ProjectsOptions) RunProjects() error {
 	}
 
 	var msg string
-	projects, err := getProjects(client)
+	projects, err := getProjects(client, o.KubeClient)
 	if err == nil {
 		switch len(projects) {
 		case 0:

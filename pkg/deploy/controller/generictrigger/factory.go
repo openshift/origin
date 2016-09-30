@@ -22,7 +22,7 @@ const (
 	// We must avoid creating processing deployment configs until the deployment config and image
 	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
-	StoreSyncedPollPeriod = 100 * time.Millisecond
+	storeSyncedPollPeriod = 100 * time.Millisecond
 	// MaxRetries is the number of times a deployment config will be retried before it is dropped
 	// out of the queue.
 	MaxRetries = 5
@@ -82,7 +82,7 @@ func (c *DeploymentTriggerController) waitForSyncedStore(ready chan<- struct{}, 
 	for !c.dcStoreSynced() {
 		glog.V(4).Infof("Waiting for the deployment config cache to sync before starting the trigger controller workers")
 		select {
-		case <-time.After(StoreSyncedPollPeriod):
+		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
 			return
 		}

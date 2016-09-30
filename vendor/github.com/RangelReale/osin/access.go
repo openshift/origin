@@ -1,6 +1,8 @@
 package osin
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -50,6 +52,9 @@ type AccessRequest struct {
 
 	// HttpRequest *http.Request for special use
 	HttpRequest *http.Request
+
+	// Optional code_verifier as described in rfc7636
+	CodeVerifier string
 }
 
 // AccessData represents an access grant (tokens, expiration, client, etc)
@@ -158,6 +163,7 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 	ret := &AccessRequest{
 		Type:            AUTHORIZATION_CODE,
 		Code:            r.Form.Get("code"),
+		CodeVerifier:    r.Form.Get("code_verifier"),
 		RedirectUri:     r.Form.Get("redirect_uri"),
 		GenerateRefresh: true,
 		Expiration:      s.Config.AccessExpiration,
@@ -219,6 +225,34 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 		w.SetError(E_INVALID_REQUEST, "")
 		w.InternalError = errors.New("Redirect uri is different")
 		return nil
+	}
+
+	// Verify PKCE, if present in the authorization data
+	if len(ret.AuthorizeData.CodeChallenge) > 0 {
+		// https://tools.ietf.org/html/rfc7636#section-4.1
+		if matched := pkceMatcher.MatchString(ret.CodeVerifier); !matched {
+			w.SetError(E_INVALID_REQUEST, "code_verifier invalid (rfc7636)")
+			w.InternalError = errors.New("code_verifier has invalid format")
+			return nil
+		}
+
+		// https: //tools.ietf.org/html/rfc7636#section-4.6
+		codeVerifier := ""
+		switch ret.AuthorizeData.CodeChallengeMethod {
+		case "", PKCE_PLAIN:
+			codeVerifier = ret.CodeVerifier
+		case PKCE_S256:
+			hash := sha256.Sum256([]byte(ret.CodeVerifier))
+			codeVerifier = base64.RawURLEncoding.EncodeToString(hash[:])
+		default:
+			w.SetError(E_INVALID_REQUEST, "code_challenge_method transform algorithm not supported (rfc7636)")
+			return nil
+		}
+		if codeVerifier != ret.AuthorizeData.CodeChallenge {
+			w.SetError(E_INVALID_GRANT, "code_verifier invalid (rfc7636)")
+			w.InternalError = errors.New("code_verifier failed comparison with code_challenge")
+			return nil
+		}
 	}
 
 	// set rest of data
@@ -510,10 +544,12 @@ func getClient(auth *BasicAuth, storage Storage, w *Response) Client {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
-	if !client.ValidateSecret(auth.Password) {
+
+	if !CheckClientSecret(client, auth.Password) {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil
 	}
+
 	if client.GetRedirectUri() == "" {
 		w.SetError(E_UNAUTHORIZED_CLIENT, "")
 		return nil

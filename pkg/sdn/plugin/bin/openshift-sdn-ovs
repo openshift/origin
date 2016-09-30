@@ -95,6 +95,7 @@ add_ovs_flows() {
     # Pod ingress == OVS bridge egress
     # linux-htb used here since that's the Kubernetes default traffic shaper too
     if [ -n "${ingress_bw}" ]; then
+        ip link set dev ${veth_host} qlen 1000
         qos=$(ovs-vsctl create qos type=linux-htb other-config:max-rate=${ingress_bw})
         ovs-vsctl set port ${veth_host} qos=${qos}
     fi

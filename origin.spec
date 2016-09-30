@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 787a4fb044801e263ce40edbf3764ceca79a839f
+%global commit 179ad6a7ef3da9fa25448ca7686451f0e2c2f9d7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.4
+Version:        3.4.0.5
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,74 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Sep 30 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.5
+- Merge remote-tracking branch upstream/master, bump origin-web-console 42e31a5
+  (tdawson@redhat.com)
+- Login must ignore some SSL cert errors when --insecure (ffranz@redhat.com)
+- make oc project work with kube (deads@redhat.com)
+- Fix proto generation and swagger generation (ccoleman@redhat.com)
+- Master broken due to simultaneous merges around OpenAPI (ccoleman@redhat.com)
+- make oc login tolerate kube with --token (deads@redhat.com)
+- Add a simple test pod for running a kube-apiserver and etcd
+  (ccoleman@redhat.com)
+- cluster up: do not re-initialize a cluster that already has been initialized
+  (cewong@redhat.com)
+- cluster up remove temporary files, fixes #9385 (jminter@redhat.com)
+- Bug 1312230 - fix image import command to reflect the actual status
+  (maszulik@redhat.com)
+- Generate and write an OpenAPI spec and copy protos (ccoleman@redhat.com)
+- UPSTREAM: 33337: Order swagger docs properly (ccoleman@redhat.com)
+- UPSTREAM: 33007: Register versioned.Event instead of *versioned.Event
+  (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Stably sort openapi request parameters
+  (ccoleman@redhat.com)
+- Update descriptions on all resources and remove definitions
+  (ccoleman@redhat.com)
+- Favor --show-token over --token for whoami (jliggitt@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  785cfb47dab175271d96de9b6e7007ce5a3b811c (bparees@redhat.com)
+- convert between s2i authconfig and fsouza authconfig types
+  (bparees@redhat.com)
+- deploy: generated code for updatePercent removal (mkargaki@redhat.com)
+- Remove deprecated updatePercent field from deployment configs
+  (mkargaki@redhat.com)
+- A few test/cmd/sdn.sh fixups (danw@redhat.com)
+- use field.Required for required username (pweil@redhat.com)
+- Add details for field.Required (sgallagh@redhat.com)
+- fix tito builder now that provides exceeds argument restriction on subprocess
+  (maxamillion@fedoraproject.org)
+- Revert "Allow startup to continue even if nodes don't have
+  EgressNetworkPolicy list permission" (danw@redhat.com)
+- add option to set host for profile endpoint (pweil@redhat.com)
+- Bind socat to 127.0.0.1 when using it on OS X (cewong@redhat.com)
+- lookup buildconfigs in shared indexed cache instead of listing
+  (bparees@redhat.com)
+- Add PKCE support (jliggitt@redhat.com)
+- Adapt to ClientSecretMatches interface (jliggitt@redhat.com)
+- bump(github.com/RangelReale/osin): 839b9f181ce80c6118c981a3f636927b3bb4f3a7
+  (jliggitt@redhat.com)
+- only set app label if it is not present on any object (bparees@redhat.com)
+- master: check both places to fix bug 1372618 (lmeyer@redhat.com)
+- sdn: set veth TX queue length to unblock QoS (dcbw@redhat.com)
+- Allow job controller to get jobs (jliggitt@redhat.com)
+- etcd install and version test is broken (ccoleman@redhat.com)
+- Switch to using the new 'embed' package to launch etcd (ccoleman@redhat.com)
+- UPSTREAM: coreos/etcd: 6463: Must explicitly enable http2 for Go 1.7 TLS
+  (ccoleman@redhat.com)
+- bump(github.com/coreos/etcd):v3.1.0-alpha.1 (ccoleman@redhat.com)
+- Update to start-build --follow, somewhat contradicting #6268
+  (jminter@redhat.com)
+- Fix the documentation to show how to set a custom message
+  (bbennett@redhat.com)
+- Fix osadm manage-node --schedulable (marun@redhat.com)
+- Extended previous version compatibility tests (cewong@redhat.com)
+- function addDefaultEnvVar may have risk of nil pointer
+  (li.guangxu@zte.com.cn)
+- start-build from-webhook: use canonical hostport to compare with config
+  (cewong@redhat.com)
+- Explicit pull the docker base image for docker build (Haowang@redhat.com)
+- Update preferred ciphers (jliggitt@redhat.com)
+
 * Wed Sep 28 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.4
 - Merge remote-tracking branch upstream/master, bump origin-web-console 068713d
   (tdawson@redhat.com)

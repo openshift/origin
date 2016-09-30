@@ -25,12 +25,18 @@ import (
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	controller "github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	errors "github.com/openshift/origin/pkg/util/errors"
 )
 
-const maxRetries = 60
+const (
+	// We must avoid creating processing imagestream changes until the build config store has synced.
+	// If it hasn't synced, to avoid a hot loop, we'll wait this long between checks.
+	storeSyncedPollPeriod = 100 * time.Millisecond
+	maxRetries            = 60
+)
 
 // limitedLogAndRetry stops retrying after maxTimeout, failing the build.
 func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.Duration) controller.RetryFunc {
@@ -274,6 +280,8 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 type ImageChangeControllerFactory struct {
 	Client                  osclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	BuildConfigIndex        oscache.StoreToBuildConfigLister
+	BuildConfigIndexSynced  func() bool
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -284,13 +292,13 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&imageStreamLW{factory.Client}, &imageapi.ImageStream{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store, 2*time.Minute).RunUntil(factory.Stop)
-
 	imageChangeController := &buildcontroller.ImageChangeController{
-		BuildConfigStore:        store,
+		BuildConfigIndex:        factory.BuildConfigIndex,
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
 	}
+
+	// Wait for the bc store to sync before starting any work in this controller.
+	factory.waitForSyncedStores()
 
 	return &controller.RetryController{
 		Queue: queue,
@@ -305,8 +313,20 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		),
 		Handle: func(obj interface{}) error {
 			imageRepo := obj.(*imageapi.ImageStream)
-			return imageChangeController.HandleImageRepo(imageRepo)
+			return imageChangeController.HandleImageStream(imageRepo)
 		},
+	}
+}
+
+func (factory *ImageChangeControllerFactory) waitForSyncedStores() {
+	for !factory.BuildConfigIndexSynced() {
+		glog.V(4).Infof("Waiting for the bc caches to sync before starting the imagechange buildconfig controller worker")
+		select {
+		case <-time.After(storeSyncedPollPeriod):
+		case <-factory.Stop:
+			return
+		}
+
 	}
 }
 

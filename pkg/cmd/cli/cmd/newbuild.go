@@ -208,7 +208,7 @@ func (o *NewBuildOptions) RunNewBuild() error {
 		config.Labels = map[string]string{"build": result.Name}
 	}
 
-	if err := setLabels(config.Labels, result, false); err != nil {
+	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
 	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewBuild}, result); err != nil {

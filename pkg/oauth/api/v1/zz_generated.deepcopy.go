@@ -123,6 +123,8 @@ func DeepCopy_v1_OAuthAuthorizeToken(in interface{}, out interface{}, c *convers
 		out.State = in.State
 		out.UserName = in.UserName
 		out.UserUID = in.UserUID
+		out.CodeChallenge = in.CodeChallenge
+		out.CodeChallengeMethod = in.CodeChallengeMethod
 		return nil
 	}
 }
