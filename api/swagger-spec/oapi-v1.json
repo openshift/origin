@@ -19299,7 +19299,7 @@
       "type": "v1.SubjectRulesReview",
       "method": "POST",
       "summary": "create a SubjectRulesReview",
-      "nickname": "createNamespacedSubjectRulesReview",
+      "nickname": "createSubjectRulesReviewForAllNamespaces",
       "parameters": [
        {
         "type": "string",
