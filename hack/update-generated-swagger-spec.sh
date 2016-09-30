@@ -56,7 +56,7 @@ done
 # Swagger 2.0 / OpenAPI docs
 curl -w "\n" "${MASTER_ADDR}/swagger.json" > "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
 os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
-os::util::sed -r 's|"version": "[^\"]+"|"version: "latest"|g' "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
+os::util::sed -r 's|"version": "[^\"]+"|"version": "latest"|g' "${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
 
 # Copy all protobuf generated specs into the api/protobuf-spec directory
 proto_spec_out_dir="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/protobuf-spec"

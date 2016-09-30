@@ -7,7 +7,7 @@
     "name": "Apache 2.0 (ASL2.0)",
     "url": "http://www.apache.org/licenses/LICENSE-2.0"
    },
-   "version: "latest"
+   "version": "latest"
   },
   "paths": {
    "/api/": {
