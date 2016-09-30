@@ -314,6 +314,7 @@ items:
     - resourceaccessreviews
     - selfsubjectrulesreviews
     - subjectaccessreviews
+    - subjectrulesreviews
     verbs:
     - create
   - apiGroups:
@@ -580,6 +581,7 @@ items:
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
+    - subjectrulesreviews
     verbs:
     - create
   - apiGroups:
@@ -2168,6 +2170,7 @@ items:
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
+    - subjectrulesreviews
     verbs:
     - create
   - apiGroups:
