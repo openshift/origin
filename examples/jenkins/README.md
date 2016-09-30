@@ -9,83 +9,67 @@ the deployment works, and then tag the test version into production.
 Steps
 -----
 
-1. Follow steps 1-7 from the [sample-app](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md)
+1. Unless you have built OpenShift locally, be sure  to grab the [latest oc command](https://github.com/openshift/origin/releases/latest)
 
-    At this point you should be logged in to openshift as a normal user and working with a project named `test`.
+1. Stand up an openshift cluster from origin master, installing the standard imagestreams to the openshift namespace:
 
-2. Optional:  If you are going to run Jenkins somewhere other than as a deployment within your same project you will need to provide an access token to Jenkins to access your project.
+        $ oc cluster up
 
-    1. Identify the service account token secret:
+1. Login as a normal user (any non-empty user name and password is fine)
 
-            $ oc describe serviceaccount default
+        $ oc login
 
-        Example output:
+1. Create a project  named "test"
 
-            Name:       default
-            Labels:     <none>
-            Secrets:    {  default-token-uyswp    }
-                        {  default-dockercfg-xcr3d    }
-            Tokens:     default-token-izv1u
-                        default-token-uyswp
+        $ oc new-project test
 
-        In this case the secret name is `default-token-uyswp`
+1. Run this command to instantiate a Jenkins server and service account in your project:
 
-    2. Retrieve the token from the secret:
+    If your have persistent volumes available in your cluster:
 
-            $ oc describe secret <secret name from above> # e.g. default-token-izv1u
+        $ oc new-app jenkins-persistent
 
-        Example output:
+    Otherwise:
 
-            Name:       default-token-izv1u
-            Labels:     <none>
-            Annotations:    kubernetes.io/service-account.name=default,kubernetes.io/service-account.uid=32f5b661-2a8f-11e5-9528-3c970e3bf0b7
-            Type:   kubernetes.io/service-account-token
-            Data
-            ====
-            ca.crt: 1066 bytes
-            token:  eyJhbGc..<content cut>....wRA
-
-        Copy the value from the `token` field, it will be used later.
-
-3. Create and deploy the Jenkins service
-
-        $ oc new-app jenkins-ephemeral-template.json
+        $ oc new-app jenkins-ephemeral
 
     **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
     
-4. Retrieve the ip and port of the jenkins service that was just created:
-   
-        $ oc get svc jenkins
+1. Create the sample application configuration
 
-    Note the ip and port of the Jenkins service reported by the second command, you will need it later.
+        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/application-template.json
 
-5. Create the sample application configuration
+1. View/Manage Jenkins
 
-        $ oc new-app application-template.json
+    If you have a router running (`oc cluster up` provides one), run:
 
-    Note the generated password (JENKINS_PASSWORD) reported in the new-app output, you will need it to login to Jenkins.  If you lose this value
-    you can retrieve it by looking at the environment variable values defined on the jenkins deployment configuration in the web console or by
-    running:
+        $ oc get route
 
-        $ oc env dc/jenkins --list | grep JENKINS_PASSWORD
+    and access the host for the Jenkins route.
+
+    If you do not have a router or your host system does not support xip.io name resolution, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
+
+    **Note**: The OpenShift Login plugin by default manages authentication into any Jenkins instance running in OpenShift.  When this is the case, and you do intend to access Jenkins via the Service IP and not the Route, then you will need to annotate the Jenkins service account with a redirect URL so that the OAuth server's whitelist is updated and allow the login to Jenkins to complete. 
+
+        $ oc annotate sa/jenkins serviceaccounts.openshift.io/oauth-redirecturi.1=http://<jenkins_service_ip:jenkins_service_port>/securityRealm/finishLogin --overwrite
  
-6. Open the Jenkins service ip:port from step 4 in your browser.  Once it is available, login using username `admin` and the password from the previous step.
-   
-7. Select the the `OpenShift Sample` job and click `Configure`.  You'll see a series of Jenkins build steps defined.  These build steps are from the Jenkins plugin for V3 Openshift.  Read about the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) for details on the various functionality provided.  The default values for each of the various build steps listed for the sample job should work as is.  You can save your changes to the job, click `Build` and skip to step 11.
+    Login with the user name you supplied to `oc login` and any non-empty password.
 
-8. Optional (if the default values are no longer applicable based on how your OpenShift environment was constructed): change the settings for each build step as needed.  For example, update the "URL of the OpenShift api endpoint" field with `https://hostname:port` where hostname/ip and port are for your OpenShift api endpoint, or update the "The authorization token for interacting with OpenShift" field with the token value retrieved in step 2.  You can save your changes to the job, click `Build` and skip to step 11.
+1. In the Jenkins console, select the the `OpenShift Sample` job and click `Configure`.  You'll see a series of Jenkins build steps defined.  These build steps are from the Jenkins plugin for V3 Openshift.  Read about the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) for details on the various functionality provided.  The default values for each of the various build steps listed for the sample job should work as is.  You can save your changes to the job, click `Build` and skip to the "Watch the job output" step.
 
-9. Optional (if you would like to set the build step fields via Jenkins build parameters): Set any given build step field with the name of the build parameter you will specify.  Then check `This build is parameterized` and add  String parameters, defining those build parameters.  The README for the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) has an example for doing this with screenshots.
+1. Optional (if the default values are no longer applicable based on how your OpenShift environment was constructed): change the settings for each build step as needed.  For example, update the "URL of the OpenShift api endpoint" field with `https://hostname:port` where hostname/ip and port are for your OpenShift api endpoint, or update the "The authorization token for interacting with OpenShift" field with the token value retrieved in step 2.  You can save your changes to the job, click `Build` and skip to the "Watch the job output" step.
 
-10. Save your changes to the job and click `Build with Parameters` and then `Build`.
+1. Optional (if you would like to set the build step fields via Jenkins build parameters): Set any given build step field with the name of the build parameter you will specify.  Then check `This build is parameterized` and add  String parameters, defining those build parameters.  The README for the [OpenShift Jenkins plugin](https://github.com/openshift/jenkins-plugin) has an example for doing this with screenshots.
 
-11. Watch the job output
+1. Save your changes to the job and click `Build with Parameters` and then `Build`.
+
+1. Watch the job output
 
    It will trigger an OpenShift build of the application, wait for the build to result in a deployment,
    confirm the new deployment works, and then tag the image for production.  This tagging will trigger
    another deployment, this time creating/updating the production service.
 
-12. Confirm both the test and production services are available by browsing to both services:
+1. Confirm both the test and production services are available by browsing to both services:
 
         $ oc get services -n test | grep frontend
 
