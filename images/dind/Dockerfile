@@ -52,6 +52,7 @@ RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/;\
 RUN dnf -y update && dnf -y install\
  docker\
  iptables\
+ openssh-clients\
  openssh-server\
  && dnf clean all
 

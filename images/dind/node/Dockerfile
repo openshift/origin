@@ -44,6 +44,10 @@ RUN systemctl enable openshift-node.service
 # Ensure the working directory for the unit file exists
 RUN mkdir -p /var/lib/origin
 
+COPY openshift-enable-ssh-access.sh /usr/local/bin/
+COPY openshift-enable-ssh-access.service /etc/systemd/system/
+RUN systemctl enable openshift-enable-ssh-access.service
+
 # Symlink from the data path intended to be mounted as a volume to
 # make reloading easy.  Revisit if/when dind becomes useful for more
 # than dev/test.

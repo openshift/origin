@@ -51,3 +51,16 @@ function os::util::wait-for-condition() {
   fi
 }
 readonly -f os::util::wait-for-condition
+
+# os::util::is-master indicates whether the host is configured to be an OpenShift master
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  1 if host is a master, 0 otherwise
+function os::util::is-master() {
+   test -f "/etc/systemd/system/openshift-master.service"
+}
+readonly -f os::util::is-master

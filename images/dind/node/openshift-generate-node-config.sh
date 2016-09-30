@@ -20,7 +20,7 @@ function ensure-node-config() {
   local config_path="/data/openshift.local.config"
   local host
   host="$(hostname)"
-  if [[ -f "/etc/systemd/system/openshift-master.service" ]]; then
+  if os::util::is-master; then
     host="${host}-node"
   fi
   local node_config_path="${config_path}/node-${host}"
