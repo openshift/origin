@@ -33923,6 +33923,156 @@
      }
     ]
    },
+   "/oapi/v1/namespaces/{namespace}/podsecuritypolicyreviews": {
+    "post": {
+     "description": "create a PodSecurityPolicyReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createNamespacedPodSecurityPolicyReview",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.PodSecurityPolicyReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.PodSecurityPolicyReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/namespaces/{namespace}/podsecuritypolicyselfsubjectreviews": {
+    "post": {
+     "description": "create a PodSecurityPolicySelfSubjectReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createNamespacedPodSecurityPolicySelfSubjectReview",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.PodSecurityPolicySelfSubjectReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.PodSecurityPolicySelfSubjectReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/namespaces/{namespace}/podsecuritypolicysubjectreviews": {
+    "post": {
+     "description": "create a PodSecurityPolicySubjectReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createNamespacedPodSecurityPolicySubjectReview",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.PodSecurityPolicySubjectReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.PodSecurityPolicySubjectReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
    "/oapi/v1/namespaces/{namespace}/policies": {
     "get": {
      "description": "list or watch objects of kind Policy",
@@ -37666,6 +37816,132 @@
       "name": "name",
       "in": "path",
       "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/podsecuritypolicyreviews": {
+    "post": {
+     "description": "create a PodSecurityPolicyReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createPodSecurityPolicyReviewForAllNamespaces",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.PodSecurityPolicyReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.PodSecurityPolicyReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/podsecuritypolicyselfsubjectreviews": {
+    "post": {
+     "description": "create a PodSecurityPolicySelfSubjectReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createPodSecurityPolicySelfSubjectReviewForAllNamespaces",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.PodSecurityPolicySelfSubjectReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.PodSecurityPolicySelfSubjectReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/podsecuritypolicysubjectreviews": {
+    "post": {
+     "description": "create a PodSecurityPolicySubjectReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createPodSecurityPolicySubjectReviewForAllNamespaces",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.PodSecurityPolicySubjectReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.PodSecurityPolicySubjectReview"
+      }
      },
      {
       "uniqueItems": true,
@@ -49467,6 +49743,153 @@
      }
     }
    },
+   "v1.PodSecurityPolicyReview": {
+    "description": "PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "spec": {
+      "$ref": "#/definitions/v1.PodSecurityPolicyReviewSpec"
+     },
+     "status": {
+      "$ref": "#/definitions/v1.PodSecurityPolicyReviewStatus"
+     }
+    }
+   },
+   "v1.PodSecurityPolicyReviewSpec": {
+    "description": "PodSecurityPolicyReviewSpec defines specification for PodSecurityPolicyReview",
+    "required": [
+     "template"
+    ],
+    "properties": {
+     "serviceAccountNames": {
+      "description": "serviceAccountNames is an optional set of ServiceAccounts to run the check with. If serviceAccountNames is empty, the template.spec.serviceAccountName is used, unless it's empty, in which case \"default\" is used instead. If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "template": {
+      "$ref": "#/definitions/v1.PodTemplateSpec"
+     }
+    }
+   },
+   "v1.PodSecurityPolicyReviewStatus": {
+    "description": "PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.",
+    "required": [
+     "allowedServiceAccounts"
+    ],
+    "properties": {
+     "allowedServiceAccounts": {
+      "description": "allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodTemplateSpec.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.ServiceAccountPodSecurityPolicyReviewStatus"
+      }
+     }
+    }
+   },
+   "v1.PodSecurityPolicySelfSubjectReview": {
+    "description": "PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "spec": {
+      "$ref": "#/definitions/v1.PodSecurityPolicySelfSubjectReviewSpec"
+     },
+     "status": {
+      "$ref": "#/definitions/v1.PodSecurityPolicySubjectReviewStatus"
+     }
+    }
+   },
+   "v1.PodSecurityPolicySelfSubjectReviewSpec": {
+    "description": "PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.",
+    "required": [
+     "template"
+    ],
+    "properties": {
+     "template": {
+      "$ref": "#/definitions/v1.PodTemplateSpec"
+     }
+    }
+   },
+   "v1.PodSecurityPolicySubjectReview": {
+    "description": "PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "spec": {
+      "$ref": "#/definitions/v1.PodSecurityPolicySubjectReviewSpec"
+     },
+     "status": {
+      "$ref": "#/definitions/v1.PodSecurityPolicySubjectReviewStatus"
+     }
+    }
+   },
+   "v1.PodSecurityPolicySubjectReviewSpec": {
+    "description": "PodSecurityPolicySubjectReviewSpec defines specification for PodSecurityPolicySubjectReview",
+    "required": [
+     "template"
+    ],
+    "properties": {
+     "groups": {
+      "description": "groups is the groups you're testing for.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "template": {
+      "$ref": "#/definitions/v1.PodTemplateSpec"
+     },
+     "user": {
+      "description": "user is the user you're testing for. If you specify \"user\" but not \"group\", then is it interpreted as \"What if user were not a member of any groups. If user and groups are empty, then the check is performed using *only* the serviceAccountName in the template.",
+      "type": "string"
+     }
+    }
+   },
+   "v1.PodSecurityPolicySubjectReviewStatus": {
+    "description": "PodSecurityPolicySubjectReviewStatus contains information/status for PodSecurityPolicySubjectReview.",
+    "properties": {
+     "allowedBy": {
+      "$ref": "#/definitions/v1.ObjectReference"
+     },
+     "reason": {
+      "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available.",
+      "type": "string"
+     },
+     "template": {
+      "$ref": "#/definitions/v1.PodTemplateSpec"
+     }
+    }
+   },
    "v1.PodSpec": {
     "description": "PodSpec is a description of a pod.",
     "required": [
@@ -51235,6 +51658,28 @@
      },
      "metadata": {
       "$ref": "#/definitions/unversioned.ListMeta"
+     }
+    }
+   },
+   "v1.ServiceAccountPodSecurityPolicyReviewStatus": {
+    "description": "ServiceAccountPodSecurityPolicyReviewStatus represents ServiceAccount name and related review status",
+    "required": [
+     "name"
+    ],
+    "properties": {
+     "allowedBy": {
+      "$ref": "#/definitions/v1.ObjectReference"
+     },
+     "name": {
+      "description": "name contains the allowed and the denied ServiceAccount name",
+      "type": "string"
+     },
+     "reason": {
+      "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available.",
+      "type": "string"
+     },
+     "template": {
+      "$ref": "#/definitions/v1.PodTemplateSpec"
      }
     }
    },
