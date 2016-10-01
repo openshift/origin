@@ -745,6 +745,15 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 		// builds without a buildconfig don't have build numbers.
 		delete(newBuild.Annotations, buildapi.BuildNumberAnnotation)
 	}
+
+	// if they exist, Jenkins reporting annotations must be removed when cloning.
+	delete(newBuild.Annotations, buildapi.BuildJenkinsStatusJSONAnnotation)
+	delete(newBuild.Annotations, buildapi.BuildJenkinsLogURLAnnotation)
+	delete(newBuild.Annotations, buildapi.BuildJenkinsBuildURIAnnotation)
+
+	// remove the BuildPodNameAnnotation for good measure.
+	delete(newBuild.Annotations, buildapi.BuildPodNameAnnotation)
+
 	return newBuild
 }
 
