@@ -38,6 +38,7 @@ const (
 
 var (
 	openShiftContainerBinds = []string{
+		"/var/log:/var/log:rw",
 		"/var/run:/var/run:rw",
 		"/sys:/sys:ro",
 		"/var/lib/docker:/var/lib/docker",
@@ -76,6 +77,7 @@ type StartOptions struct {
 	Environment        []string
 	LogLevel           int
 	MetricsHost        string
+	LoggingHost        string
 	PortForwarding     bool
 }
 
@@ -291,7 +293,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
-		err = h.updateConfig(configDir, opt.HostConfigDir, opt.RouterIP, opt.MetricsHost)
+		err = h.updateConfig(configDir, opt.HostConfigDir, opt.RouterIP, opt.MetricsHost, opt.LoggingHost)
 		if err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -490,7 +492,7 @@ func (h *Helper) GetConfig(configDir string) (*configapi.MasterConfig, string, e
 	return cfg, configPath, nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) error {
+func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost, loggingHost string) error {
 
 	cfg, configPath, err := h.GetConfig(configDir)
 	if err != nil {
@@ -505,6 +507,10 @@ func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost string) 
 
 	if len(metricsHost) > 0 && cfg.AssetConfig != nil {
 		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", metricsHost)
+	}
+
+	if len(loggingHost) > 0 && cfg.AssetConfig != nil {
+		cfg.AssetConfig.LoggingPublicURL = fmt.Sprintf("https://%s", loggingHost)
 	}
 
 	cfgBytes, err := configapilatest.WriteYAML(cfg)

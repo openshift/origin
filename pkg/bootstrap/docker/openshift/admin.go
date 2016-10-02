@@ -15,6 +15,8 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/registry"
 	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -151,6 +153,47 @@ func (h *Helper) InstallRouter(kubeClient kclient.Interface, f *clientcmd.Factor
 		return errors.NewError("cannot install router").WithCause(err).WithDetails(h.OriginLog())
 	}
 	return nil
+}
+
+func AddClusterRole(osClient client.Interface, role, user string) error {
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(osClient)
+	addClusterReaderRole := policy.RoleModificationOptions{
+		RoleName:            role,
+		RoleBindingAccessor: clusterRoleBindingAccessor,
+		Users:               []string{user},
+	}
+	return addClusterReaderRole.AddRole()
+}
+
+func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace string) error {
+	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(namespace, osClient)
+	addRole := policy.RoleModificationOptions{
+		RoleName:            role,
+		RoleBindingAccessor: roleBindingAccessor,
+		Subjects: []kapi.ObjectReference{
+			{
+				Namespace: namespace,
+				Name:      sa,
+				Kind:      "ServiceAccount",
+			},
+		},
+	}
+	return addRole.AddRole()
+}
+
+func AddSCCToServiceAccount(kubeClient kclient.Interface, scc, sa, namespace string) error {
+	modifySCC := policy.SCCModificationOptions{
+		SCCName:      scc,
+		SCCInterface: kubeClient,
+		Subjects: []kapi.ObjectReference{
+			{
+				Namespace: namespace,
+				Name:      sa,
+				Kind:      "ServiceAccount",
+			},
+		},
+	}
+	return modifySCC.AddSCC()
 }
 
 // catFiles concatenates multiple source files into a single destination file

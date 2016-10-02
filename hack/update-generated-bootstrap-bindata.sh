@@ -26,6 +26,7 @@ pushd "${OS_ROOT}" > /dev/null
     ${EXAMPLES}/jenkins \
     ${EXAMPLES}/jenkins/pipeline \
     ${EXAMPLES}/quickstarts/... \
+	${EXAMPLES}/logging/... \
     pkg/image/admission/imagepolicy/api/v1/...
 popd > /dev/null
 
