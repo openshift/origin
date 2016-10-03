@@ -121,10 +121,10 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 		// certificate authority unknown, check or prompt if we want an insecure
 		// connection or if we already have a cluster stanza that tells us to
 		// connect to this particular server insecurely
-		case x509.UnknownAuthorityError:
+		case x509.UnknownAuthorityError, x509.HostnameError, x509.CertificateInvalidError:
 			if o.InsecureTLS ||
 				hasExistingInsecureCluster(*clientConfig, *o.StartingKubeConfig) ||
-				promptForInsecureTLS(o.Reader, o.Out) {
+				promptForInsecureTLS(o.Reader, o.Out, err) {
 				clientConfig.Insecure = true
 				clientConfig.CAFile = ""
 				clientConfig.CAData = nil
