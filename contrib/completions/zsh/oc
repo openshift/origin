@@ -5185,6 +5185,8 @@ _oc_apply()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
     flags+=("--filename=")
     flags_with_completion+=("--filename")
     flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
