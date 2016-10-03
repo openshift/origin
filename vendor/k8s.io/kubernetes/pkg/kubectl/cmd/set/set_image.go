@@ -76,7 +76,7 @@ var (
 		# Update image of all containers of daemonset abc to 'nginx:1.9.1'
 		kubectl set image daemonset abc *=nginx:1.9.1
 
-		# Print result (in yaml format) of updating nginx container image from local file, without hitting the server 
+		# Print result (in yaml format) of updating nginx container image from local file, without hitting the server
 		kubectl set image -f path/to/file.yaml nginx=nginx:1.9.1 --local -o yaml`)
 )
 

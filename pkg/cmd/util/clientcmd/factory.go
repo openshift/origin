@@ -62,12 +62,6 @@ import (
 // New creates a default Factory for commands that should share identical server
 // connection behavior. Most commands should use this method to get a factory.
 func New(flags *pflag.FlagSet) *Factory {
-	// TODO refactor this upstream:
-	// DefaultCluster should not be a global
-	// A call to ClientConfig() should always return the best clientCfg possible
-	// even if an error was returned, and let the caller decide what to do
-	kclientcmd.DefaultCluster.Server = ""
-
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
 	clientConfig := DefaultClientConfig(flags)
 	clientConfig = defaultingClientConfig{clientConfig}

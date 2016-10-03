@@ -67,7 +67,7 @@ func TestKubeletDefaults(t *testing.T) {
 			MaxOpenFiles:                1000000,
 			MaxPods:                     110, // overridden
 			MinimumGCAge:                unversioned.Duration{},
-			NetworkPluginDir:            "/usr/libexec/kubernetes/kubelet-plugins/net/exec/",
+			NetworkPluginDir:            "",
 			NetworkPluginName:           "", // overridden
 			NonMasqueradeCIDR:           "10.0.0.0/8",
 			VolumePluginDir:             "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
