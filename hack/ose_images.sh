@@ -318,7 +318,7 @@ show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
   if ! [ "${git_style}" == "dockerfile_only" ] ; then
     echo "  ---- Checking files changed, added or removed ----"
-    extra_check=$(diff --brief -r ${workingdir}/${container} ${workingdir}/${git_path} | grep -v -e Dockerfile -e git -e osbs )
+    extra_check=$(diff --brief -r ${workingdir}/${container} ${workingdir}/${git_path} | grep -v -e Dockerfile -e additional-tags -e git -e osbs )
     if ! [ "${extra_check}" == "" ] ; then
       echo "${extra_check}"
     fi
@@ -536,15 +536,16 @@ start_push_image() {
   docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   # Push ${package_name}:${version_version}-${release_version} ie: openshift3/metrics-cassandra:3.3.0-7
-  echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
-  docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
+  #echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
+  echo "  TAG/PUSH: ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
+  docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
-  push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   if ! [ "${NOTLATEST}" == "TRUE" ] ; then
     # Push ${package_name}:latest ie: openshift3/metrics-cassandra:latest
     echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest"
-    docker tag  ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+    docker tag  -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
@@ -552,9 +553,9 @@ start_push_image() {
   if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
     # Push ${package_name}:${version_version} ie: openshift3/metrics-cassandra:3.3.0
     echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}"
-    docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
+    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
-    push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
+    push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     # Push ${package_name}:${version_trim} ie: openshift3/metrics-cassandra:v3.3
     version_check=`echo ${version_version} | cut -c1-3`
@@ -563,12 +564,12 @@ start_push_image() {
         version_trim_list=`echo ${version_version} | cut -d'.' -f-2`
       ;;
       3.1 | 3.2 | 3.3 | 3.4 ) version_trim_list="v${version_check}" ;;
-      * ) version_trim_list="v3.1 v3.2 v3.3" ;;
+      * ) version_trim_list="v3.1 v3.2 v3.3 v3.4" ;;
     esac
     for version_trim in ${version_trim_list}
     do
       echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}"
-      docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
@@ -582,13 +583,13 @@ start_push_image() {
       echo "----------"
     fi
     echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} "
-    docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+    docker tag -f ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
     echo | tee -a ${workingdir}/logs/push.image.log
     if ! [ "${NOTLATEST}" == "TRUE" ] ; then
       echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest "
-      docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
       push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
@@ -952,13 +953,22 @@ do
         echo "./et_add_image required"
         exit 3
       fi
-      update_errata
+      docker_name_list="${dict_image_name[${container}]}"
+      if ! [ "${docker_name_list}" == "" ] ; then
+        update_errata
+      else
+        echo "Skipping ${container} - Image for building only"
+      fi
       ;;
     push_images )
       echo "=== ${container} ==="
       export brew_name=$(echo "${dict_image_name[${container}]}" | awk '{print $1}')
       export alt_name=$(echo "${dict_image_name[${container}]}" | awk '{print $2}')
-      push_images
+      if ! [ "${brew_name}" == "" ] ; then
+        push_images
+      else
+        echo "  Skipping ${container} - Image for building only"
+      fi
       ;;
     test | list )
       test_function
