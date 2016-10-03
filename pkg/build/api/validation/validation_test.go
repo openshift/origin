@@ -1269,7 +1269,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "some/long/value/with/no/meaning",
+						Name: "///some/long/value/with/no/meaning",
 					},
 				},
 			},
@@ -1290,7 +1290,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "ImageStream",
-						Name: "some/long/value/with/no/meaning",
+						Name: "///some/long/value/with/no/meaning",
 					},
 				},
 			},
@@ -1311,7 +1311,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "ImageStreamTag",
-						Name: "some/long/value/with/no/meaning",
+						Name: "///some/long/value/with/no/meaning",
 					},
 				},
 			},
@@ -1332,7 +1332,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "ImageStreamTag",
-						Name: "some/long/value/with/no/meaning:latest",
+						Name: "///some/long/value/with/no/meaning:latest",
 					},
 				},
 			},
@@ -2041,6 +2041,54 @@ func TestValidateCommonSpecSuccess(t *testing.T) {
 							Name: "imagestreamimage",
 						},
 						DockerfilePath: "dockerfiles/firstDockerfile",
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 6
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "reponame",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry/project/repository/data",
+					},
+				},
+			},
+		},
+		// 7
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "registry/project/repository/data",
+						},
 					},
 				},
 				Output: buildapi.BuildOutput{
