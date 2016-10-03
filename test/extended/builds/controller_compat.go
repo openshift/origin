@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow][Compatibility] builds controller", func() {
+var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("compat-build-controllers", exutil.KubeConfigPath())

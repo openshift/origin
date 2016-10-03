@@ -1062,6 +1062,12 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
+			Annotations: map[string]string{
+				buildapi.BuildJenkinsStatusJSONAnnotation: "foo",
+				buildapi.BuildJenkinsLogURLAnnotation:     "bar",
+				buildapi.BuildJenkinsBuildURIAnnotation:   "baz",
+				buildapi.BuildPodNameAnnotation:           "ruby-sample-build-1-build",
+			},
 		},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1083,6 +1089,18 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	}
 	if !reflect.DeepEqual(build.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
 		t.Errorf("Build labels does not match the original Build labels")
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsStatusJSONAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsStatusJSONAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsLogURLAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsBuildURIAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsBuildURIAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildPodNameAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildPodNameAnnotation)
 	}
 }
 

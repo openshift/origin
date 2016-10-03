@@ -16,6 +16,7 @@ func TestProxyDefaults(t *testing.T) {
 	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
 		GitHTTPProxy:  "http",
 		GitHTTPSProxy: "https",
+		GitNoProxy:    "no",
 	}
 
 	admitter := NewBuildDefaults(defaultsConfig)
@@ -34,6 +35,9 @@ func TestProxyDefaults(t *testing.T) {
 	}
 	if build.Spec.Source.Git.HTTPSProxy == nil || len(*build.Spec.Source.Git.HTTPSProxy) == 0 || *build.Spec.Source.Git.HTTPSProxy != "https" {
 		t.Errorf("failed to find http proxy in git source")
+	}
+	if build.Spec.Source.Git.NoProxy == nil || len(*build.Spec.Source.Git.NoProxy) == 0 || *build.Spec.Source.Git.NoProxy != "no" {
+		t.Errorf("failed to find no proxy setting in git source")
 	}
 }
 

@@ -327,6 +327,15 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - podsecuritypolicyreviews
+    - podsecuritypolicyselfsubjectreviews
+    - podsecuritypolicysubjectreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - nodes/metrics
     - nodes/spec
     verbs:
@@ -580,6 +589,15 @@ items:
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - podsecuritypolicyreviews
+    - podsecuritypolicyselfsubjectreviews
+    - podsecuritypolicysubjectreviews
     verbs:
     - create
   - apiGroups:

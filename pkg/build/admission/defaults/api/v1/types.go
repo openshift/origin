@@ -15,6 +15,9 @@ type BuildDefaultsConfig struct {
 	// GitHTTPSProxy is the location of the HTTPSProxy for Git source
 	GitHTTPSProxy string `json:"gitHTTPSProxy,omitempty"`
 
+	// GitNoProxy is the list of domains for which the proxy should not be used
+	GitNoProxy string `json:"gitNoProxy,omitempty"`
+
 	// Env is a set of default environment variables that will be applied to the
 	// build if the specified variables do not exist on the build
 	Env []kapi.EnvVar `json:"env,omitempty"`

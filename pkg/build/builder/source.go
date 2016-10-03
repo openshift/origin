@@ -205,7 +205,7 @@ func extractGitSource(gitClient GitClient, gitSource *api.GitBuildSource, revisi
 
 	glog.V(0).Infof("Cloning %q ...", gitSource.URI)
 
-	// Check source URI, trying to connect to the server only if not using a proxy.
+	// Check source URI by trying to connect to the server
 	if err := checkSourceURI(gitClient, gitSource.URI, timeout); err != nil {
 		return true, err
 	}
