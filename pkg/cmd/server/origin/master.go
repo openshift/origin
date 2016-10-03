@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/apiserver/audit"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
@@ -180,7 +182,17 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	handler = c.authorizationFilter(handler)
 	handler = c.impersonationFilter(handler)
 	// audit handler must comes before the impersonationFilter to read the original user
-	handler = c.auditHandler(handler)
+	if c.Options.AuditConfig.Enabled {
+		attributeGetter := apiserver.NewRequestAttributeGetter(c.getRequestContextMapper(), c.getRequestInfoResolver())
+		writer := &lumberjack.Logger{
+			Filename:   c.Options.AuditConfig.AuditFilePath,
+			MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
+			MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
+			MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
+		}
+		handler = audit.WithAudit(handler, attributeGetter, writer)
+		defer writer.Close()
+	}
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
 	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
@@ -874,6 +886,23 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
+}
+
+// getRequestInfoResolver returns a request resolver.
+func (c *MasterConfig) getRequestInfoResolver() *apiserver.RequestInfoResolver {
+	if c.RequestInfoResolver == nil {
+		c.RequestInfoResolver = &apiserver.RequestInfoResolver{
+			APIPrefixes: sets.NewString(strings.Trim(LegacyOpenShiftAPIPrefix, "/"),
+				strings.Trim(OpenShiftAPIPrefix, "/"),
+				strings.Trim(KubernetesAPIPrefix, "/"),
+				strings.Trim(KubernetesAPIGroupPrefix, "/")), // all possible API prefixes
+			GrouplessAPIPrefixes: sets.NewString(strings.Trim(LegacyOpenShiftAPIPrefix, "/"),
+				strings.Trim(OpenShiftAPIPrefix, "/"),
+				strings.Trim(KubernetesAPIPrefix, "/"),
+			), // APIPrefixes that won't have groups (legacy)
+		}
+	}
+	return c.RequestInfoResolver
 }
 
 // RouteAllocator returns a route allocation controller.

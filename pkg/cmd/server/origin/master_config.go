@@ -111,6 +111,8 @@ type MasterConfig struct {
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
+	// RequestInfoResolver is responsible for reading request attributes
+	RequestInfoResolver *apiserver.RequestInfoResolver
 
 	AdmissionControl admission.Interface
 
