@@ -156,7 +156,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.FileCheckFrequency = unversioned.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
-	server.MaxPods = 110
+	server.MaxPods = 250
+	server.PodsPerCore = 10
 	server.SerializeImagePulls = false          // disable serialized image pulls by default
 	server.EnableControllerAttachDetach = false // stay consistent with existing config, but admins should enable it
 	if enableDNS {

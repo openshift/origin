@@ -581,11 +581,8 @@ message GitBuildSource {
   // ref is the branch/tag/ref to build.
   optional string ref = 2;
 
-  // httpProxy is a proxy used to reach the git repository over http
-  optional string httpProxy = 3;
-
-  // httpsProxy is a proxy used to reach the git repository over https
-  optional string httpsProxy = 4;
+  // proxyConfig defines the proxies to use for the git clone operation
+  optional ProxyConfig proxyConfig = 3;
 }
 
 // GitHubWebHookCause has information about a GitHub webhook that triggered a
@@ -683,6 +680,18 @@ message JenkinsPipelineBuildStrategy {
 
   // Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
   optional string jenkinsfile = 2;
+}
+
+// ProxyConfig defines what proxies to use for an operation
+message ProxyConfig {
+  // httpProxy is a proxy used to reach the git repository over http
+  optional string httpProxy = 3;
+
+  // httpsProxy is a proxy used to reach the git repository over https
+  optional string httpsProxy = 4;
+
+  // noProxy is the list of domains for which the proxy should not be used
+  optional string noProxy = 5;
 }
 
 // SecretBuildSource describes a secret and its destination directory that will be

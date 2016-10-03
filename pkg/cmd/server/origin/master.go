@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver/openapi"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -116,6 +117,10 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
+	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
 const (
@@ -549,6 +554,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient))
+
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
@@ -691,6 +700,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
 		"localResourceAccessReviews": localResourceAccessReviewStorage,
 		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
+
+		"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
+		"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
+		"podSecurityPolicySelfSubjectReviews": podSecurityPolicySelfSubjectReviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,

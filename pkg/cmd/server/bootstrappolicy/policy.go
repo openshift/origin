@@ -23,6 +23,7 @@ import (
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -38,6 +39,7 @@ var (
 	certificatesGroup = certificates.GroupName
 	extensionsGroup   = extensions.GroupName
 	policyGroup       = policy.GroupName
+	securityGroup     = securityapi.GroupName
 	storageGroup      = storage.GroupName
 	authzGroup        = authorizationapi.GroupName
 	buildGroup        = buildapi.GroupName
@@ -165,6 +167,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "resourceaccessreviews",
 					"selfsubjectrulesreviews", "subjectaccessreviews").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups("authentication.k8s.io").Resources("tokenreviews").RuleOrDie(),
+				// permissions to check PSP, these creates are non-mutating
+				authorizationapi.NewRule("create").Groups(securityGroup).Resources("podsecuritypolicysubjectreviews", "podsecuritypolicyselfsubjectreviews", "podsecuritypolicyreviews").RuleOrDie(),
 				// Allow read access to node metrics
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources(authorizationapi.NodeMetricsResource, authorizationapi.NodeSpecResource).RuleOrDie(),
 				// Allow read access to stats
@@ -238,6 +242,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(authzGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(authzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(securityGroup).Resources("podsecuritypolicysubjectreviews", "podsecuritypolicyselfsubjectreviews", "podsecuritypolicyreviews").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(authzGroup).Resources("policies", "policybindings").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),

@@ -4,11 +4,6 @@
 # documentation.
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
-echo "+"
-echo "+ FIXME: Networking tests are disabled due to a broken configuration"
-echo "+"
-exit 0
-
 if [[ -n "${OPENSHIFT_VERBOSE_OUTPUT:-}" ]]; then
   set -o xtrace
   export PS4='+ \D{%b %d %H:%M:%S} $(basename ${BASH_SOURCE}):${LINENO} ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
@@ -29,8 +24,14 @@ DEFAULT_SKIP_LIST=(
   "openshift router"
   "\[Feature:Federation\]"
 
+  # Skipped until https://github.com/openshift/origin/issues/11042 is resolved
+  "should preserve source pod IP for traffic thru service cluster IP"
+
   # Panicing, needs investigation
   "Networking IPerf"
+
+  # Skipped due to origin returning 403 for some of the urls
+  "should provide unchanging, static URL paths for kubernetes api services"
 
   # DNS inside container fails in CI but works locally
   "should provide Internet connection for containers"

@@ -300,11 +300,9 @@ func (GenericWebHookEvent) SwaggerDoc() map[string]string {
 }
 
 var map_GitBuildSource = map[string]string{
-	"":           "GitBuildSource defines the parameters of a Git SCM",
-	"uri":        "uri points to the source that will be built. The structure of the source will depend on the type of build to run",
-	"ref":        "ref is the branch/tag/ref to build.",
-	"httpProxy":  "httpProxy is a proxy used to reach the git repository over http",
-	"httpsProxy": "httpsProxy is a proxy used to reach the git repository over https",
+	"":    "GitBuildSource defines the parameters of a Git SCM",
+	"uri": "uri points to the source that will be built. The structure of the source will depend on the type of build to run",
+	"ref": "ref is the branch/tag/ref to build.",
 }
 
 func (GitBuildSource) SwaggerDoc() map[string]string {
@@ -390,6 +388,17 @@ var map_JenkinsPipelineBuildStrategy = map[string]string{
 
 func (JenkinsPipelineBuildStrategy) SwaggerDoc() map[string]string {
 	return map_JenkinsPipelineBuildStrategy
+}
+
+var map_ProxyConfig = map[string]string{
+	"":           "ProxyConfig defines what proxies to use for an operation",
+	"httpProxy":  "httpProxy is a proxy used to reach the git repository over http",
+	"httpsProxy": "httpsProxy is a proxy used to reach the git repository over https",
+	"noProxy":    "noProxy is the list of domains for which the proxy should not be used",
+}
+
+func (ProxyConfig) SwaggerDoc() map[string]string {
+	return map_ProxyConfig
 }
 
 var map_SecretBuildSource = map[string]string{

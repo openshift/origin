@@ -340,6 +340,18 @@ type GitSourceRevision struct {
 	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`
 }
 
+// ProxyConfig defines what proxies to use for an operation
+type ProxyConfig struct {
+	// httpProxy is a proxy used to reach the git repository over http
+	HTTPProxy *string `json:"httpProxy,omitempty" protobuf:"bytes,3,opt,name=httpProxy"`
+
+	// httpsProxy is a proxy used to reach the git repository over https
+	HTTPSProxy *string `json:"httpsProxy,omitempty" protobuf:"bytes,4,opt,name=httpsProxy"`
+
+	// noProxy is the list of domains for which the proxy should not be used
+	NoProxy *string `json:"noProxy,omitempty" protobuf:"bytes,5,opt,name=noProxy"`
+}
+
 // GitBuildSource defines the parameters of a Git SCM
 type GitBuildSource struct {
 	// uri points to the source that will be built. The structure of the source
@@ -349,11 +361,8 @@ type GitBuildSource struct {
 	// ref is the branch/tag/ref to build.
 	Ref string `json:"ref,omitempty" protobuf:"bytes,2,opt,name=ref"`
 
-	// httpProxy is a proxy used to reach the git repository over http
-	HTTPProxy *string `json:"httpProxy,omitempty" protobuf:"bytes,3,opt,name=httpProxy"`
-
-	// httpsProxy is a proxy used to reach the git repository over https
-	HTTPSProxy *string `json:"httpsProxy,omitempty" protobuf:"bytes,4,opt,name=httpsProxy"`
+	// proxyConfig defines the proxies to use for the git clone operation
+	ProxyConfig `json:",inline" protobuf:"bytes,3,opt,name=proxyConfig"`
 }
 
 // SourceControlUser defines the identity of a user of source control

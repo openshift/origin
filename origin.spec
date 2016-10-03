@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 179ad6a7ef3da9fa25448ca7686451f0e2c2f9d7
+%global commit 44e9f773b9678be681058ff3431684b7cb81d0a4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.5
+Version:        3.4.0.6
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,22 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Oct 03 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.6
+- suggest use of `oc explain` in oc get output (jvallejo@redhat.com)
+- UPSTREAM: 31818: suggest use of `oc explain` in oc get output
+  (jvallejo@redhat.com)
+- Fix unclosed tag in OpenAPI spec (ccoleman@redhat.com)
+- Enable pods-per-core by default, and increase max pods (decarr@redhat.com)
+- fix bug 1371047 When JenkinsPipeline build in New status, should not display
+  its stages info (jminter@redhat.com)
+- introduce no proxy setting for git cloning, with defaulter
+  (bparees@redhat.com)
+- relabel build compatibility test (cewong@redhat.com)
+- fix fake_buildconfigs methods (guilhermebr@gmail.com)
+- Re-enable the networking tests. (marun@redhat.com)
+- generated swagger spec (salvatore-dario.minonne@amadeus.com)
+- SCC check API: REST (salvatore-dario.minonne@amadeus.com)
+
 * Fri Sep 30 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.5
 - Merge remote-tracking branch upstream/master, bump origin-web-console 42e31a5
   (tdawson@redhat.com)
