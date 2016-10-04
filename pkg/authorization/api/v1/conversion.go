@@ -443,6 +443,26 @@ func (c *SelfSubjectRulesReview) EncodeNestedObjects(e runtime.Encoder) error {
 	return nil
 }
 
+var _ runtime.NestedObjectDecoder = &SubjectRulesReview{}
+var _ runtime.NestedObjectEncoder = &SubjectRulesReview{}
+
+func (c *SubjectRulesReview) DecodeNestedObjects(d runtime.Decoder) error {
+	// decoding failures result in a runtime.Unknown object being created in Object and passed
+	// to conversion
+	for i := range c.Status.Rules {
+		c.Status.Rules[i].DecodeNestedObjects(d)
+	}
+	return nil
+}
+func (c *SubjectRulesReview) EncodeNestedObjects(e runtime.Encoder) error {
+	for i := range c.Status.Rules {
+		if err := c.Status.Rules[i].EncodeNestedObjects(e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 var _ runtime.NestedObjectDecoder = &ClusterRole{}
 var _ runtime.NestedObjectEncoder = &ClusterRole{}
 

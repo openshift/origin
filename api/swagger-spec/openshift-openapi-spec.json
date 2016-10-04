@@ -35931,6 +35931,56 @@
      }
     ]
    },
+   "/oapi/v1/namespaces/{namespace}/subjectrulesreviews": {
+    "post": {
+     "description": "create a SubjectRulesReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createNamespacedSubjectRulesReview",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.SubjectRulesReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.SubjectRulesReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
    "/oapi/v1/namespaces/{namespace}/templates": {
     "get": {
      "description": "list or watch objects of kind Template",
@@ -39027,6 +39077,48 @@
       "required": true,
       "schema": {
        "$ref": "#/definitions/v1.SubjectAccessReview"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/oapi/v1/subjectrulesreviews": {
+    "post": {
+     "description": "create a SubjectRulesReview",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createSubjectRulesReviewForAllNamespaces",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.SubjectRulesReview"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.SubjectRulesReview"
       }
      },
      {
@@ -52102,6 +52194,56 @@
      },
      "verb": {
       "description": "Verb is one of: get, list, watch, create, update, delete",
+      "type": "string"
+     }
+    }
+   },
+   "v1.SubjectRulesReview": {
+    "description": "SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "spec": {
+      "$ref": "#/definitions/v1.SubjectRulesReviewSpec"
+     },
+     "status": {
+      "$ref": "#/definitions/v1.SubjectRulesReviewStatus"
+     }
+    }
+   },
+   "v1.SubjectRulesReviewSpec": {
+    "description": "SubjectRulesReviewSpec adds information about how to conduct the check",
+    "required": [
+     "user",
+     "groups",
+     "scopes"
+    ],
+    "properties": {
+     "groups": {
+      "description": "Groups is optional.  Groups is the list of groups to which the User belongs.  At least one of User and Groups must be specified.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "scopes": {
+      "description": "Scopes to use for the evaluation.  Empty means \"use the unscoped (full) permissions of the user/groups\".",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "user": {
+      "description": "User is optional.  At least one of User and Groups must be specified.",
       "type": "string"
      }
     }

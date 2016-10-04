@@ -70,6 +70,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&authorizationapi.SubjectRulesReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),

@@ -43,6 +43,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&authorizationapi.SubjectRulesReview{}),
 	reflect.TypeOf(&buildapi.BuildLog{}),
 	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),
 	reflect.TypeOf(&buildapi.BuildRequest{}),

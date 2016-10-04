@@ -14,6 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -24,14 +25,17 @@ import (
 const CanIRecommendedName = "can-i"
 
 type canIOptions struct {
-	AllNamespaces     bool
-	ListAll           bool
-	Quiet             bool
-	IgnoreScopes      bool
-	Scopes            []string
-	Namespace         string
-	RulesReviewClient client.SelfSubjectRulesReviewsNamespacer
-	SARClient         client.SubjectAccessReviews
+	AllNamespaces         bool
+	ListAll               bool
+	Quiet                 bool
+	IgnoreScopes          bool
+	User                  string
+	Groups                []string
+	Scopes                []string
+	Namespace             string
+	SelfRulesReviewClient client.SelfSubjectRulesReviewsNamespacer
+	RulesReviewClient     client.SubjectRulesReviewsNamespacer
+	SARClient             client.SubjectAccessReviews
 
 	Verb         string
 	Resource     unversioned.GroupVersionResource
@@ -72,6 +76,8 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "Suppress output and just return the exit code.")
 	cmd.Flags().BoolVar(&o.IgnoreScopes, "ignore-scopes", o.IgnoreScopes, "Disregard any scopes present on this request and evaluate considering full permissions.")
 	cmd.Flags().StringSliceVar(&o.Scopes, "scopes", o.Scopes, "Check the specified action using these scopes.  By default, the scopes on the current token will be used.")
+	cmd.Flags().StringVar(&o.User, "user", o.User, "Check the specified action using this user instead of your user.")
+	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "Check the specified action using these groups instead of your groups.")
 
 	return cmd
 }
@@ -115,6 +121,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	if err != nil {
 		return err
 	}
+	o.SelfRulesReviewClient = oclient
 	o.RulesReviewClient = oclient
 	o.SARClient = oclient
 
@@ -146,6 +153,8 @@ func (o *canIOptions) Run() (bool, error) {
 			Resource:     o.Resource.Resource,
 			ResourceName: o.ResourceName,
 		},
+		User:   o.User,
+		Groups: sets.NewString(o.Groups...),
 	}
 	if o.IgnoreScopes {
 		sar.Scopes = []string{}
@@ -173,19 +182,40 @@ func (o *canIOptions) Run() (bool, error) {
 }
 
 func (o *canIOptions) listAllPermissions() error {
-	rulesReview := &authorizationapi.SelfSubjectRulesReview{}
-	if len(o.Scopes) > 0 {
-		rulesReview.Spec.Scopes = o.Scopes
-	}
+	var rulesReviewStatus authorizationapi.SubjectRulesReviewStatus
 
-	whatCanIDo, err := o.RulesReviewClient.SelfSubjectRulesReviews(o.Namespace).Create(rulesReview)
-	if err != nil {
-		return err
+	if len(o.User) == 0 && len(o.Groups) == 0 {
+		rulesReview := &authorizationapi.SelfSubjectRulesReview{}
+		if len(o.Scopes) > 0 {
+			rulesReview.Spec.Scopes = o.Scopes
+		}
+
+		whatCanIDo, err := o.SelfRulesReviewClient.SelfSubjectRulesReviews(o.Namespace).Create(rulesReview)
+		if err != nil {
+			return err
+		}
+		rulesReviewStatus = whatCanIDo.Status
+
+	} else {
+		rulesReview := &authorizationapi.SubjectRulesReview{
+			Spec: authorizationapi.SubjectRulesReviewSpec{
+				User:   o.User,
+				Groups: o.Groups,
+				Scopes: o.Scopes,
+			},
+		}
+
+		whatCanYouDo, err := o.RulesReviewClient.SubjectRulesReviews(o.Namespace).Create(rulesReview)
+		if err != nil {
+			return err
+		}
+		rulesReviewStatus = whatCanYouDo.Status
+
 	}
 
 	writer := tabwriter.NewWriter(o.Out, tabwriterMinWidth, tabwriterWidth, tabwriterPadding, tabwriterPadChar, tabwriterFlags)
 	fmt.Fprint(writer, describe.PolicyRuleHeadings+"\n")
-	for _, rule := range whatCanIDo.Status.Rules {
+	for _, rule := range rulesReviewStatus.Rules {
 		describe.DescribePolicyRule(writer, rule, "")
 
 	}

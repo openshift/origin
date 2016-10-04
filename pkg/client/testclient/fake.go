@@ -270,6 +270,10 @@ func (c *Fake) SelfSubjectRulesReviews(namespace string) client.SelfSubjectRules
 	return &FakeSelfSubjectRulesReviews{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) SubjectRulesReviews(namespace string) client.SubjectRulesReviewInterface {
+	return &FakeSubjectRulesReviews{Fake: c, Namespace: namespace}
+}
+
 // LocalResourceAccessReviews provides a fake REST client for ResourceAccessReviews
 func (c *Fake) LocalResourceAccessReviews(namespace string) client.LocalResourceAccessReviewInterface {
 	return &FakeLocalResourceAccessReviews{Fake: c}
