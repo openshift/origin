@@ -53,6 +53,7 @@ func NewCmdWhoAmI(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 	cmd.Flags().BoolP("show-token", "t", false, "Print the token the current session is using. This will return an error if you are using a different form of authentication.")
 	cmd.Flags().BoolP("show-context", "c", false, "Print the current user context name")
+	cmd.Flags().Bool("show-server", false, "Print the current server's REST API URL")
 
 	return cmd
 }
@@ -88,6 +89,17 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		}
 		fmt.Fprintf(out, "%s\n", cfg.CurrentContext)
 		return nil
+	}
+	if kcmdutil.GetFlagBool(cmd, "show-server") {
+		cfg, err := f.OpenShiftClientConfig.RawConfig()
+		if err != nil {
+			return err
+		}
+		for _, c := range cfg.Clusters {
+			fmt.Fprintf(out, "%s\n", c.Server)
+			return nil
+		}
+		return fmt.Errorf("unable to get clusters. Cannot retrieve server URL.")
 	}
 
 	client, _, err := f.Clients()
