@@ -622,6 +622,19 @@ type BuildOutput struct {
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
 	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty" protobuf:"bytes,2,opt,name=pushSecret"`
+
+	// imageLabels define a list of labels that are applied to the resulting image. If there
+	// are multiple labels with the same name then the last one in the list is used.
+	ImageLabels []ImageLabel `json:"imageLabels,omitempty" protobuf:"bytes,3,rep,name=imageLabels"`
+}
+
+// ImageLabel represents a label applied to the resulting image.
+type ImageLabel struct {
+	// name defines the name of the label. It must have non-zero length.
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+
+	// value defines the literal value of the label.
+	Value string `json:"value,omitempty" protobuf:"bytes,2,opt,name=value"`
 }
 
 // Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
