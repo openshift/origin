@@ -53,8 +53,19 @@ diagnostics to run which regular users cannot.
 are skipped.
 .PP
 Diagnostics may be individually run by passing diagnostic name as arguments.
+
+.PP
+.RS
+
+.nf
+openshift ex diagnostics <DiagnosticName>
+
+.fi
+.RE
+
+.PP
 The available diagnostic names are:
-AnalyzeLogs ClusterRegistry ClusterRoleBindings ClusterRoles ClusterRouter ConfigContexts DiagnosticPod MasterConfigCheck MasterNode MetricsApiProxy NodeConfigCheck NodeDefinitions ServiceExternalIPs UnitStatus
+AggregatedLogging AnalyzeLogs ClusterRegistry ClusterRoleBindings ClusterRoles ClusterRouter ConfigContexts DiagnosticPod MasterConfigCheck MasterNode MetricsApiProxy NodeConfigCheck NodeDefinitions ServiceExternalIPs UnitStatus
 
 
 .SH OPTIONS
