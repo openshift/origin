@@ -263,7 +263,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("verifying the post deployment action happened: tag is set")
 			var out string
-			pollErr := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
 				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
 				if errors.IsNotFound(err) {
 					return false, nil
