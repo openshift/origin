@@ -32199,6 +32199,64 @@
      }
     ]
    },
+   "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/instantiate": {
+    "post": {
+     "description": "create instantiate of a DeploymentRequest",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "createNamespacedDeploymentRequestInstantiate",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.DeploymentRequest"
+       }
+      }
+     }
+    },
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/v1.DeploymentRequest"
+      }
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "name of the DeploymentRequest",
+      "name": "name",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
    "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/log": {
     "get": {
      "description": "read log of the specified DeploymentLog",
@@ -46196,6 +46254,36 @@
      },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     }
+    }
+   },
+   "v1.DeploymentRequest": {
+    "description": "DeploymentRequest is a request to a deployment config for a new deployment.",
+    "required": [
+     "name",
+     "latest",
+     "force"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "force": {
+      "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
+      "type": "boolean"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/release-1.4/docs/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "latest": {
+      "description": "Latest will update the deployment config with the latest state from all triggers.",
+      "type": "boolean"
+     },
+     "name": {
+      "description": "Name of the deployment config for requesting a new deployment.",
       "type": "string"
      }
     }

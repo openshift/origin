@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -29,10 +28,9 @@ const (
 )
 
 // NewDeploymentTriggerController returns a new DeploymentTriggerController.
-func NewDeploymentTriggerController(dcInformer, streamInformer framework.SharedIndexInformer, oc osclient.Interface, kc kclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
+func NewDeploymentTriggerController(dcInformer, streamInformer framework.SharedIndexInformer, oc osclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
 	c := &DeploymentTriggerController{
 		dn: oc,
-		rn: kc,
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
@@ -46,11 +44,10 @@ func NewDeploymentTriggerController(dcInformer, streamInformer framework.SharedI
 	})
 	c.dcStoreSynced = dcInformer.HasSynced
 
-	// TODO: Re-enable in https://github.com/openshift/origin/pull/9349
-	// streamInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
-	// AddFunc:    c.addImageStream,
-	// UpdateFunc: c.updateImageStream,
-	// })
+	streamInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
+		AddFunc:    c.addImageStream,
+		UpdateFunc: c.updateImageStream,
+	})
 
 	return c
 }
@@ -92,6 +89,9 @@ func (c *DeploymentTriggerController) waitForSyncedStore(ready chan<- struct{}, 
 
 func (c *DeploymentTriggerController) addDeploymentConfig(obj interface{}) {
 	dc := obj.(*deployapi.DeploymentConfig)
+	if len(dc.Spec.Triggers) == 0 || dc.Spec.Paused {
+		return
+	}
 	c.enqueueDeploymentConfig(dc)
 }
 
@@ -100,6 +100,10 @@ func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{
 	newDc := cur.(*deployapi.DeploymentConfig)
 	oldDc := old.(*deployapi.DeploymentConfig)
 	if newDc.ResourceVersion == oldDc.ResourceVersion {
+		return
+	}
+
+	if len(newDc.Spec.Triggers) == 0 || newDc.Spec.Paused {
 		return
 	}
 

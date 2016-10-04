@@ -657,9 +657,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - deploymentconfigrollbacks
     - deploymentconfigs
-    - deploymentconfigs/rollback
     - deploymentconfigs/scale
     - generatedeploymentconfigs
     verbs:
@@ -671,6 +669,15 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs/instantiate
+    - deploymentconfigs/rollback
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -1008,9 +1015,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - deploymentconfigrollbacks
     - deploymentconfigs
-    - deploymentconfigs/rollback
     - deploymentconfigs/scale
     - generatedeploymentconfigs
     verbs:
@@ -1022,6 +1027,15 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs/instantiate
+    - deploymentconfigs/rollback
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null

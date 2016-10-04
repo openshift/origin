@@ -64,6 +64,7 @@ func registerAll() {
 	Validator.MustRegister(&deployapi.DeploymentConfig{}, deployvalidation.ValidateDeploymentConfig, deployvalidation.ValidateDeploymentConfigUpdate)
 	Validator.MustRegister(&deployapi.DeploymentConfigRollback{}, deployvalidation.ValidateDeploymentConfigRollback, nil)
 	Validator.MustRegister(&deployapi.DeploymentLogOptions{}, deployvalidation.ValidateDeploymentLogOptions, nil)
+	Validator.MustRegister(&deployapi.DeploymentRequest{}, deployvalidation.ValidateDeploymentRequest, nil)
 	Validator.MustRegister(&extensions.Scale{}, extvalidation.ValidateScale, nil)
 
 	Validator.MustRegister(&imageapi.Image{}, imagevalidation.ValidateImage, imagevalidation.ValidateImageUpdate)

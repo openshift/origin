@@ -44,6 +44,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_DeploymentLog_To_v1_DeploymentLog,
 		Convert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions,
 		Convert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions,
+		Convert_v1_DeploymentRequest_To_api_DeploymentRequest,
+		Convert_api_DeploymentRequest_To_v1_DeploymentRequest,
 		Convert_v1_DeploymentStrategy_To_api_DeploymentStrategy,
 		Convert_api_DeploymentStrategy_To_v1_DeploymentStrategy,
 		Convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImageChangeParams,
@@ -541,6 +543,34 @@ func autoConvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *api.Dep
 
 func Convert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *api.DeploymentLogOptions, out *DeploymentLogOptions, s conversion.Scope) error {
 	return autoConvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in, out, s)
+}
+
+func autoConvert_v1_DeploymentRequest_To_api_DeploymentRequest(in *DeploymentRequest, out *api.DeploymentRequest, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	out.Name = in.Name
+	out.Latest = in.Latest
+	out.Force = in.Force
+	return nil
+}
+
+func Convert_v1_DeploymentRequest_To_api_DeploymentRequest(in *DeploymentRequest, out *api.DeploymentRequest, s conversion.Scope) error {
+	return autoConvert_v1_DeploymentRequest_To_api_DeploymentRequest(in, out, s)
+}
+
+func autoConvert_api_DeploymentRequest_To_v1_DeploymentRequest(in *api.DeploymentRequest, out *DeploymentRequest, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	out.Name = in.Name
+	out.Latest = in.Latest
+	out.Force = in.Force
+	return nil
+}
+
+func Convert_api_DeploymentRequest_To_v1_DeploymentRequest(in *api.DeploymentRequest, out *DeploymentRequest, s conversion.Scope) error {
+	return autoConvert_api_DeploymentRequest_To_v1_DeploymentRequest(in, out, s)
 }
 
 func autoConvert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentStrategy, out *api.DeploymentStrategy, s conversion.Scope) error {

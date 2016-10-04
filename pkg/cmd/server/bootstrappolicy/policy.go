@@ -251,7 +251,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("admin", "edit", "view").Groups(buildapi.FutureGroupName).Resources("jenkins").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(deployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/scale").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(deployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(deployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs/log", "deploymentconfigs/status").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages", "imagestreams/secrets").RuleOrDie(),
@@ -305,7 +306,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("edit", "view").Groups(buildapi.FutureGroupName).Resources("jenkins").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(deployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/scale").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(deployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(deployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(deployGroup).Resources("deploymentconfigs/log", "deploymentconfigs/status").RuleOrDie(),
 
 				authorizationapi.NewRule(readWrite...).Groups(imageGroup).Resources("imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages", "imagestreams/secrets").RuleOrDie(),
