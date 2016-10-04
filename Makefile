@@ -178,12 +178,14 @@ clean:
 	rm -rf $(OUT_DIR)
 .PHONY: clean
 
-# Build a release of OpenShift for linux/amd64 and the images that depend on it.
+PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
+
+# Build a release of OpenShift for host platform and the images that depend on it.
 #
 # Example:
 #   make release
 release: clean
-	OS_ONLY_BUILD_PLATFORMS="linux/amd64" hack/build-release.sh
+	OS_ONLY_BUILD_PLATFORMS=$(PLATFORM) hack/build-release.sh
 	hack/build-images.sh
 	hack/extract-release.sh
 .PHONY: release
