@@ -13,6 +13,7 @@ RUN dnf -y update && dnf -y install\
  hostname\
  iproute\
  iputils\
+ less\
  procps-ng\
  tar\
  which\
