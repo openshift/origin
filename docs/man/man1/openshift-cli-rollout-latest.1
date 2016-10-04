@@ -1,40 +1,33 @@
-.TH "OPENSHIFT CLI" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OPENSHIFT CLI ROLLOUT" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-openshift cli rollout \- rollout manages a deployment
+openshift cli rollout latest \- Start a new rollout for a deployment config with the latest state from its triggers
 
 
 .SH SYNOPSIS
 .PP
-\fBopenshift cli rollout\fP [OPTIONS]
+\fBopenshift cli rollout latest\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Start a new rollout, view its status or history, rollback to a previous revision of your app
+Start a new rollout for a deployment config with the latest state from its triggers
 
 .PP
-This command allows you to control a deployment config. Each individual rollout is exposed
-as a replication controller, and the deployment process manages scaling down old replication
-controllers and scaling up new ones.
+This command is appropriate for running manual rollouts. If you want full control over
+running new rollouts, use "oc set triggers \-\-manual" to disable all triggers in your
+deployment config and then whenever you want to run a new deployment process, use this
+command in order to pick up the latest images found in the cluster that are pointed by
+your image change triggers.
 
+
+.SH OPTIONS
 .PP
-There are several deployment strategies defined:
-.IP 
+\fB\-o\fP, \fB\-\-output\fP=""
+    Output mode. Use "\-o name" for shorter output (resource/name).
 
-.IP
-\(bu Rolling (default) \- scales up the new replication controller in stages, gradually reducing the
-number of old pods. If one of the new deployed pods never becomes "ready", the new rollout
-will be rolled back (scaled down to zero). Use when your application can tolerate two versions
-of code running at the same time (many web applications, scalable databases)
-.IP
-\(bu Recreate \- scales the old replication controller down to zero, then scales the new replication
-controller up to full. Use when your application cannot tolerate two versions of code running
-at the same time
-.IP
-\(bu Custom \- run your own deployment process inside a Docker container using your own scripts.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -102,9 +95,22 @@ at the same time
     The name of the kubeconfig user to use
 
 
+.SH EXAMPLE
+.PP
+.RS
+
+.nf
+  # Start a new rollout based on the latest images defined in the image change triggers.
+  openshift cli rollout latest dc/nginx
+
+
+.fi
+.RE
+
+
 .SH SEE ALSO
 .PP
-\fBopenshift\-cli(1)\fP, \fBopenshift\-cli\-rollout\-history(1)\fP, \fBopenshift\-cli\-rollout\-latest(1)\fP, \fBopenshift\-cli\-rollout\-pause(1)\fP, \fBopenshift\-cli\-rollout\-resume(1)\fP, \fBopenshift\-cli\-rollout\-undo(1)\fP,
+\fBopenshift\-cli\-rollout(1)\fP,
 
 
 .SH HISTORY
