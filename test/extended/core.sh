@@ -5,6 +5,9 @@
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 source "${OS_ROOT}/test/extended/setup.sh"
 
+# cgo must be disabled to have the symbol table available
+export CGO_ENABLED=0
+
 os::test::extended::setup
 os::test::extended::focus "$@"
 
