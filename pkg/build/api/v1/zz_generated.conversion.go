@@ -81,6 +81,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_ImageChangeCause_To_v1_ImageChangeCause,
 		Convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger,
 		Convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger,
+		Convert_v1_ImageLabel_To_api_ImageLabel,
+		Convert_api_ImageLabel_To_v1_ImageLabel,
 		Convert_v1_ImageSource_To_api_ImageSource,
 		Convert_api_ImageSource_To_v1_ImageSource,
 		Convert_v1_ImageSourcePath_To_api_ImageSourcePath,
@@ -488,6 +490,17 @@ func autoConvert_v1_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *api.Bui
 	} else {
 		out.PushSecret = nil
 	}
+	if in.ImageLabels != nil {
+		in, out := &in.ImageLabels, &out.ImageLabels
+		*out = make([]api.ImageLabel, len(*in))
+		for i := range *in {
+			if err := Convert_v1_ImageLabel_To_api_ImageLabel(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImageLabels = nil
+	}
 	return nil
 }
 
@@ -509,6 +522,17 @@ func autoConvert_api_BuildOutput_To_v1_BuildOutput(in *api.BuildOutput, out *Bui
 		}
 	} else {
 		out.PushSecret = nil
+	}
+	if in.ImageLabels != nil {
+		in, out := &in.ImageLabels, &out.ImageLabels
+		*out = make([]ImageLabel, len(*in))
+		for i := range *in {
+			if err := Convert_api_ImageLabel_To_v1_ImageLabel(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImageLabels = nil
 	}
 	return nil
 }
@@ -1636,6 +1660,26 @@ func autoConvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *api.ImageCh
 
 func Convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *api.ImageChangeTrigger, out *ImageChangeTrigger, s conversion.Scope) error {
 	return autoConvert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in, out, s)
+}
+
+func autoConvert_v1_ImageLabel_To_api_ImageLabel(in *ImageLabel, out *api.ImageLabel, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Value = in.Value
+	return nil
+}
+
+func Convert_v1_ImageLabel_To_api_ImageLabel(in *ImageLabel, out *api.ImageLabel, s conversion.Scope) error {
+	return autoConvert_v1_ImageLabel_To_api_ImageLabel(in, out, s)
+}
+
+func autoConvert_api_ImageLabel_To_v1_ImageLabel(in *api.ImageLabel, out *ImageLabel, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Value = in.Value
+	return nil
+}
+
+func Convert_api_ImageLabel_To_v1_ImageLabel(in *api.ImageLabel, out *ImageLabel, s conversion.Scope) error {
+	return autoConvert_api_ImageLabel_To_v1_ImageLabel(in, out, s)
 }
 
 func autoConvert_v1_ImageSource_To_api_ImageSource(in *ImageSource, out *api.ImageSource, s conversion.Scope) error {

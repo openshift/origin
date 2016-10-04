@@ -3,6 +3,8 @@ package api
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // BuildDefaultsConfig controls the default information for Builds
@@ -25,6 +27,11 @@ type BuildDefaultsConfig struct {
 	// SourceStrategyDefaults are default values that apply to builds using the
 	// source strategy.
 	SourceStrategyDefaults *SourceStrategyDefaultsConfig
+
+	// ImageLabels is a list of docker labels that are applied to the resulting image.
+	// User can override a default label by providing a label with the same name in their
+	// Build/BuildConfig.
+	ImageLabels []buildapi.ImageLabel
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the

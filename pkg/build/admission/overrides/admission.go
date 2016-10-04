@@ -10,6 +10,8 @@ import (
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
+	"github.com/openshift/origin/pkg/build/admission/overrides/api/validation"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func init() {
@@ -29,6 +31,10 @@ func getConfig(in io.Reader) (*overridesapi.BuildOverridesConfig, error) {
 	err := buildadmission.ReadPluginConfig(in, overridesConfig)
 	if err != nil {
 		return nil, err
+	}
+	errs := validation.ValidateBuildOverridesConfig(overridesConfig)
+	if len(errs) > 0 {
+		return nil, errs.ToAggregate()
 	}
 	return overridesConfig, nil
 }
@@ -59,14 +65,28 @@ func (a *buildOverrides) Admit(attributes admission.Attributes) error {
 }
 
 func (a *buildOverrides) applyOverrides(attributes admission.Attributes) error {
-	if !a.overridesConfig.ForcePull {
-		return nil
-	}
 	build, version, err := buildadmission.GetBuild(attributes)
 	if err != nil {
 		return err
 	}
 	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)
+
+	if a.overridesConfig.ForcePull {
+		if err := applyForcePullToBuild(build, attributes); err != nil {
+			return err
+		}
+	}
+
+	// Apply label overrides
+	for _, lbl := range a.overridesConfig.ImageLabels {
+		glog.V(5).Infof("Overriding image label %s=%s in build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
+		overrideLabel(lbl, &build.Spec.Output.ImageLabels)
+	}
+
+	return buildadmission.SetBuild(attributes, build, version)
+}
+
+func applyForcePullToBuild(build *buildapi.Build, attributes admission.Attributes) error {
 	if build.Spec.Strategy.DockerStrategy != nil {
 		glog.V(5).Infof("Setting docker strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 		build.Spec.Strategy.DockerStrategy.ForcePull = true
@@ -83,7 +103,7 @@ func (a *buildOverrides) applyOverrides(attributes admission.Attributes) error {
 		glog.V(5).Infof("Setting custom strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 		build.Spec.Strategy.CustomStrategy.ForcePull = true
 	}
-	return buildadmission.SetBuild(attributes, build, version)
+	return nil
 }
 
 func applyForcePullToPod(attributes admission.Attributes) error {
@@ -100,4 +120,18 @@ func applyForcePullToPod(attributes admission.Attributes) error {
 		pod.Spec.Containers[i].ImagePullPolicy = kapi.PullAlways
 	}
 	return nil
+}
+
+func overrideLabel(overridingLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {
+	found := false
+	for i, lbl := range *buildLabels {
+		if lbl.Name == overridingLabel.Name {
+			glog.V(5).Infof("Replacing label %s (original value %q) with new value %q", lbl.Name, lbl.Value, overridingLabel.Value)
+			(*buildLabels)[i] = overridingLabel
+			found = true
+		}
+	}
+	if !found {
+		*buildLabels = append(*buildLabels, overridingLabel)
+	}
 }
