@@ -322,7 +322,7 @@ type DeploymentConfigStatus struct {
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty" protobuf:"bytes,7,opt,name=details"`
 	// Conditions represents the latest available observations of a deployment config's current state.
-	Conditions []DeploymentCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []DeploymentCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,8,rep,name=conditions"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
@@ -406,15 +406,15 @@ const (
 // DeploymentCondition describes the state of a deployment config at a certain point.
 type DeploymentCondition struct {
 	// Type of deployment condition.
-	Type DeploymentConditionType `json:"type"`
+	Type DeploymentConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=DeploymentConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus `json:"status"`
+	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// The last time the condition transitioned from one status to another.
-	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime unversioned.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.
-	Reason string `json:"reason,omitempty"`
+	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 	// A human readable message indicating details about the transition.
-	Message string `json:"message,omitempty"`
+	Message string `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
 }
 
 // DeploymentConfigList is a collection of deployment configs.
