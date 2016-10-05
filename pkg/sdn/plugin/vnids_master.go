@@ -71,7 +71,7 @@ func (vmap *masterVNIDMap) isAdminNamespace(nsName string) bool {
 	return false
 }
 
-func (vmap *masterVNIDMap) populateVNIDs(osClient *osclient.Client) error {
+func (vmap *masterVNIDMap) populateVNIDs(osClient osclient.Interface) error {
 	netnsList, err := osClient.NetNamespaces().List(kapi.ListOptions{})
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action osapi.PodNetworkAct
 }
 
 // assignVNID, revokeVNID and updateVNID methods updates in-memory structs and persists etcd objects
-func (vmap *masterVNIDMap) assignVNID(osClient *osclient.Client, nsName string) error {
+func (vmap *masterVNIDMap) assignVNID(osClient osclient.Interface, nsName string) error {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -222,7 +222,7 @@ func (vmap *masterVNIDMap) assignVNID(osClient *osclient.Client, nsName string) 
 	return nil
 }
 
-func (vmap *masterVNIDMap) revokeVNID(osClient *osclient.Client, nsName string) error {
+func (vmap *masterVNIDMap) revokeVNID(osClient osclient.Interface, nsName string) error {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
 
@@ -237,7 +237,7 @@ func (vmap *masterVNIDMap) revokeVNID(osClient *osclient.Client, nsName string) 
 	return nil
 }
 
-func (vmap *masterVNIDMap) updateVNID(osClient *osclient.Client, netns *osapi.NetNamespace) error {
+func (vmap *masterVNIDMap) updateVNID(osClient osclient.Interface, netns *osapi.NetNamespace) error {
 	action, args, err := osapi.GetChangePodNetworkAnnotation(netns)
 	if err == osapi.ErrorPodNetworkAnnotationNotFound {
 		// Nothing to update
@@ -294,7 +294,7 @@ func (master *OsdnMaster) watchNamespaces() {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	RunEventQueue(master.osClient, NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(master.osClient.GetRESTClient(), NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 

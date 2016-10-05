@@ -19,13 +19,13 @@ import (
 
 type OsdnMaster struct {
 	kClient         *kclient.Client
-	osClient        *osclient.Client
+	osClient        osclient.Interface
 	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
 }
 
-func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient *kclient.Client) error {
+func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient osclient.Interface, kClient *kclient.Client) error {
 	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}

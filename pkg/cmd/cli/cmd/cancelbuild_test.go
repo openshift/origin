@@ -124,7 +124,7 @@ func TestCancelBuildRun(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		client := testclient.NewSimpleFake(genBuild(test.phase))
+		client := testclient.NewSimpleFake(genBuild("ruby-ex", "test", test.phase))
 		buildClient := NewFakeTestBuilds(client, test.opts.Namespace)
 
 		test.opts.Client = client
@@ -187,11 +187,11 @@ func (c *FakeTestBuilds) Update(inObj *buildapi.Build) (*buildapi.Build, error) 
 	return c.Obj, err
 }
 
-func genBuild(phase buildapi.BuildPhase) *buildapi.Build {
+func genBuild(name, ns string, phase buildapi.BuildPhase) *buildapi.Build {
 	build := buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "ruby-ex",
-			Namespace: "test",
+			Name:      name,
+			Namespace: ns,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: phase,

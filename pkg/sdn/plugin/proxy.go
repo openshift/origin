@@ -24,7 +24,7 @@ type proxyFirewallItem struct {
 
 type OsdnProxy struct {
 	kClient              *kclient.Client
-	osClient             *osclient.Client
+	osClient             osclient.Interface
 	networkInfo          *NetworkInfo
 	baseEndpointsHandler pconfig.EndpointsConfigHandler
 
@@ -34,7 +34,7 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (*OsdnProxy, error) {
+func NewProxyPlugin(pluginName string, osClient osclient.Interface, kClient *kclient.Client) (*OsdnProxy, error) {
 	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
@@ -69,7 +69,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 }
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
-	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
+	RunEventQueue(proxy.osClient.GetRESTClient(), EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 		if delta.Type == cache.Deleted {
 			policy.Spec.Egress = nil

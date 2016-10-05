@@ -222,7 +222,7 @@ func addE2EServiceAccountsToSCC(c *kclient.Client, namespaces []kapi.Namespace, 
 	}
 }
 
-func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapi.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(c client.Interface, namespaces []kapi.Namespace, roleName string) {
 	err := kclient.RetryOnConflict(kclient.DefaultRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapi.NamespaceTerminating {

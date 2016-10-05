@@ -6,6 +6,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/typed/discovery"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -346,4 +348,12 @@ func (c *Fake) ClusterResourceQuotas() client.ClusterResourceQuotaInterface {
 
 func (c *Fake) AppliedClusterResourceQuotas(namespace string) client.AppliedClusterResourceQuotaInterface {
 	return &FakeAppliedClusterResourceQuotas{Fake: c, Namespace: namespace}
+}
+
+func (c *Fake) Discovery() discovery.DiscoveryInterface {
+	return nil
+}
+
+func (c *Fake) GetRESTClient() *restclient.RESTClient {
+	return nil
 }

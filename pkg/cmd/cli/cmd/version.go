@@ -33,7 +33,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (*client.Client, *kclient.Client, error)
+	Clients      func() (client.Interface, *kclient.Client, error)
 
 	Timeout time.Duration
 
@@ -158,7 +158,7 @@ func (o VersionOptions) RunVersion() error {
 			return
 		}
 
-		ocVersionBody, err := oClient.Get().AbsPath("/version/openshift").Do().Raw()
+		ocVersionBody, err := oClient.GetRESTClient().Get().AbsPath("/version/openshift").Do().Raw()
 		switch {
 		case err == nil:
 			var ocServerInfo version.Info

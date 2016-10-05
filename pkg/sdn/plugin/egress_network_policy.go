@@ -39,7 +39,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 }
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
+	RunEventQueue(plugin.osClient.GetRESTClient(), EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
 		vnid, err := plugin.vnids.GetVNID(policy.Namespace)

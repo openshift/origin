@@ -23,7 +23,7 @@ const WhoCanRecommendedName = "who-can"
 type whoCanOptions struct {
 	allNamespaces    bool
 	bindingNamespace string
-	client           *client.Client
+	client           client.Interface
 
 	verb         string
 	resource     unversioned.GroupVersionResource

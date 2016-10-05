@@ -32,7 +32,7 @@ type REST struct {
 	templateNamespace string
 	templateName      string
 
-	openshiftClient *client.Client
+	openshiftClient client.Interface
 	kubeClient      *kclient.Client
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
@@ -40,7 +40,7 @@ type REST struct {
 	policyBindings client.PolicyBindingsListerNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient client.Interface, kubeClient *kclient.Client, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -152,7 +152,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 			ObjectTyper: kapi.Scheme,
 			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 				if latest.OriginKind(mapping.GroupVersionKind) {
-					return r.openshiftClient, nil
+					return r.openshiftClient.GetRESTClient(), nil
 				}
 				return r.kubeClient, nil
 			}),

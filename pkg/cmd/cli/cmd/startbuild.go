@@ -37,6 +37,9 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 )
 
+// StartBuildRecommendedCommandName is the recommended command name.
+const StartBuildRecommendedCommandName = "start-build"
+
 var (
 	startBuildLong = templates.LongDesc(`
 		Start a build
@@ -54,63 +57,27 @@ var (
 
 	startBuildExample = templates.Examples(`
 		# Starts build from build config "hello-world"
-	  %[1]s start-build hello-world
+	  %[1]s %[2]s hello-world
 
 	  # Starts build from a previous build "hello-world-1"
-	  %[1]s start-build --from-build=hello-world-1
+	  %[1]s %[2]s --from-build=hello-world-1
 
 	  # Use the contents of a directory as build input
-	  %[1]s start-build hello-world --from-dir=src/
+	  %[1]s %[2]s hello-world --from-dir=src/
 
 	  # Send the contents of a Git repository to the server from tag 'v2'
-	  %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
+	  %[1]s %[2]s hello-world --from-repo=../hello-world --commit=v2
 
 	  # Start a new build for build config "hello-world" and watch the logs until the build
 	  # completes or fails.
-	  %[1]s start-build hello-world --follow
+	  %[1]s %[2]s hello-world --follow
 
 	  # Start a new build for build config "hello-world" and wait until the build completes. It
 	  # exits with a non-zero return code if the build fails.
-	  %[1]s start-build hello-world --wait`)
+	  %[1]s %[2]s hello-world --wait`)
 )
 
-// NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	o := &StartBuildOptions{}
-
-	cmd := &cobra.Command{
-		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short:      "Start a new build",
-		Long:       startBuildLong,
-		Example:    fmt.Sprintf(startBuildExample, fullName),
-		SuggestFor: []string{"build", "builds"},
-		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, in, out, errout, cmd, fullName, args))
-			kcmdutil.CheckErr(o.Run())
-		},
-	}
-	cmd.Flags().StringVar(&o.LogLevel, "build-loglevel", o.LogLevel, "Specify the log level for the build log output")
-	cmd.Flags().StringArrayVarP(&o.Env, "env", "e", o.Env, "Specify a key-value pair for an environment variable to set for the build container.")
-	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
-
-	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
-	cmd.Flags().BoolVarP(&o.WaitForComplete, "wait", "w", o.WaitForComplete, "Wait for a build to complete and exit with a non-zero return code if the build fails")
-
-	cmd.Flags().StringVar(&o.FromFile, "from-file", o.FromFile, "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
-	cmd.Flags().StringVar(&o.FromDir, "from-dir", o.FromDir, "A directory to archive and use as the binary input for a build.")
-	cmd.Flags().StringVar(&o.FromRepo, "from-repo", o.FromRepo, "The path to a local source code repository to use as the binary input for a build.")
-	cmd.Flags().StringVar(&o.Commit, "commit", o.Commit, "Specify the source code commit identifier the build should use; requires a build based on a Git repository")
-
-	cmd.Flags().StringVar(&o.ListWebhooks, "list-webhooks", o.ListWebhooks, "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
-	cmd.Flags().StringVar(&o.FromWebhook, "from-webhook", o.FromWebhook, "Specify a generic webhook URL for an existing build config to trigger")
-
-	cmd.Flags().StringVar(&o.GitPostReceive, "git-post-receive", o.GitPostReceive, "The contents of the post-receive hook to trigger a build")
-	cmd.Flags().StringVar(&o.GitRepository, "git-repository", o.GitRepository, "The path to the git repository for post-receive; defaults to the current directory")
-
-	kcmdutil.AddOutputFlagsForMutation(cmd)
-	return cmd
-}
-
+// StartBuildOptions contains all the options for running the StartBuild cli command.
 type StartBuildOptions struct {
 	In          io.Reader
 	Out, ErrOut io.Writer
@@ -145,20 +112,50 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+// NewCmdStartBuild implements the OpenShift cli start-build command
+func NewCmdStartBuild(name, baseName string, f clientcmd.InterfaceFactory, in io.Reader, out, errout io.Writer) *cobra.Command {
+	o := &StartBuildOptions{}
+
+	cmd := &cobra.Command{
+		Use:        fmt.Sprintf("%s  (BUILDCONFIG | --from-build=BUILD)", name),
+		Short:      "Start a new build",
+		Long:       startBuildLong,
+		Example:    fmt.Sprintf(startBuildExample, baseName, name),
+		SuggestFor: []string{"build", "builds"},
+		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(baseName, f, cmd, args, in, out, errout))
+			kcmdutil.CheckErr(o.Run())
+		},
+	}
+	cmd.Flags().StringVar(&o.LogLevel, "build-loglevel", o.LogLevel, "Specify the log level for the build log output")
+	cmd.Flags().StringArrayVarP(&o.Env, "env", "e", o.Env, "Specify a key-value pair for an environment variable to set for the build container.")
+	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
+
+	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
+	cmd.Flags().BoolVarP(&o.WaitForComplete, "wait", "w", o.WaitForComplete, "Wait for a build to complete and exit with a non-zero return code if the build fails")
+
+	cmd.Flags().StringVar(&o.FromFile, "from-file", o.FromFile, "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
+	cmd.Flags().StringVar(&o.FromDir, "from-dir", o.FromDir, "A directory to archive and use as the binary input for a build.")
+	cmd.Flags().StringVar(&o.FromRepo, "from-repo", o.FromRepo, "The path to a local source code repository to use as the binary input for a build.")
+	cmd.Flags().StringVar(&o.Commit, "commit", o.Commit, "Specify the source code commit identifier the build should use; requires a build based on a Git repository")
+
+	cmd.Flags().StringVar(&o.ListWebhooks, "list-webhooks", o.ListWebhooks, "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
+	cmd.Flags().StringVar(&o.FromWebhook, "from-webhook", o.FromWebhook, "Specify a generic webhook URL for an existing build config to trigger")
+
+	cmd.Flags().StringVar(&o.GitPostReceive, "git-post-receive", o.GitPostReceive, "The contents of the post-receive hook to trigger a build")
+	cmd.Flags().StringVar(&o.GitRepository, "git-repository", o.GitRepository, "The path to the git repository for post-receive; defaults to the current directory")
+
+	kcmdutil.AddOutputFlagsForMutation(cmd)
+	return cmd
+}
+
+func (o *StartBuildOptions) Complete(baseName string, f clientcmd.InterfaceFactory, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout
 	o.Git = git.NewRepository()
-	o.ClientConfig = f.OpenShiftClientConfig
+	o.ClientConfig = f.OSClientConfig()
 	o.Mapper, _ = f.Object(false)
-
-	webhook := o.FromWebhook
-	buildName := o.FromBuild
-	fromFile := o.FromFile
-	fromDir := o.FromDir
-	fromRepo := o.FromRepo
-	buildLogLevel := o.LogLevel
 
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 	if outputFormat != "name" && outputFormat != "" {
@@ -166,26 +163,27 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	}
 	o.ShortOutput = outputFormat == "name"
 
-	switch {
-	case len(webhook) > 0:
-		if len(args) > 0 || len(buildName) > 0 || len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0 {
+	if len(o.FromWebhook) > 0 {
+		if len(args) > 0 || len(o.FromBuild) > 0 || len(o.FromFile) > 0 || len(o.FromDir) > 0 || len(o.FromRepo) > 0 {
 			return kcmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
 		}
 		if !strings.HasSuffix(webhook, "/generic") {
 			fmt.Fprintf(errout, "warning: the '--from-webhook' flag should be called with a generic webhook URL.\n")
 		}
 		return nil
-
-	case len(args) != 1 && len(buildName) == 0:
-		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
 	}
 
-	if len(buildName) != 0 && (len(fromFile) != 0 || len(fromDir) != 0 || len(fromRepo) != 0) {
+	if len(args) != 1 && len(o.FromBuild) == 0 {
+		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", baseName)
+	}
+
+	if len(o.FromBuild) != 0 && (len(o.FromFile) != 0 || len(o.FromDir) != 0 || len(o.FromRepo) != 0) {
 		// TODO: we should support this, it should be possible to clone a build to run again with new uploaded artifacts.
 		// Doing so requires introducing a new clonebinary endpoint.
 		return kcmdutil.UsageError(cmd, "Cannot use '--from-build' flag with binary builds")
 	}
-	o.AsBinary = len(fromFile) > 0 || len(fromDir) > 0 || len(fromRepo) > 0
+
+	o.AsBinary = len(o.FromFile) > 0 || len(o.FromDir) > 0 || len(o.FromRepo) > 0
 
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
@@ -199,7 +197,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	o.Client = client
 
 	var (
-		name     = buildName
+		name     = o.FromBuild
 		resource = buildapi.Resource("builds")
 	)
 
@@ -220,6 +218,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 			return fmt.Errorf("invalid resource provided: %v", resource)
 		}
 	}
+
 	// when listing webhooks, allow --from-build to lookup a build config
 	if resource == buildapi.Resource("builds") && len(o.ListWebhooks) > 0 {
 		build, err := client.Builds(namespace).Get(name)
@@ -248,8 +247,8 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	if err != nil {
 		return err
 	}
-	if len(buildLogLevel) > 0 {
-		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
+	if len(o.LogLevel) > 0 {
+		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: o.LogLevel})
 	}
 	o.EnvVar = env
 

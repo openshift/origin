@@ -157,7 +157,7 @@ type MasterConfig struct {
 	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *Client() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
-	PrivilegedLoopbackOpenShiftClient *osclient.Client
+	PrivilegedLoopbackOpenShiftClient osclient.Interface
 
 	// Informers is a shared factory for getting SharedInformers. It is important to get your informers, indexers, and listers
 	// from here so that we only end up with a single cache of objects
@@ -828,21 +828,21 @@ func (c *MasterConfig) OAuthServerClients() (*osclient.Client, *kclient.Client) 
 //  list, watch all policyBindings in all namespaces
 //  list, watch all policies in all namespaces
 //  create resourceAccessReviews in all namespaces
-func (c *MasterConfig) PolicyClient() *osclient.Client {
+func (c *MasterConfig) PolicyClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
 // It must have the following capabilities:
 //  get, list, update, create policyBindings and clusterPolicyBindings in all namespaces
-func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
+func (c *MasterConfig) ServiceAccountRoleBindingClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // SdnClient returns the sdn client object
 // It must have the capability to get/list/watch/create/delete
 // HostSubnets. And have the capability to get ClusterNetwork.
-func (c *MasterConfig) SdnClient() *osclient.Client {
+func (c *MasterConfig) SdnClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
@@ -864,12 +864,12 @@ func (c *MasterConfig) BuildLogClient() *kclient.Client {
 }
 
 // BuildConfigWebHookClient returns the webhook client object
-func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
+func (c *MasterConfig) BuildConfigWebHookClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // BuildControllerClients returns the build controller client objects
-func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) BuildControllerClients() (osclient.Interface, *kclient.Client) {
 	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
@@ -878,37 +878,37 @@ func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Clie
 }
 
 // BuildPodControllerClients returns the build pod controller client objects
-func (c *MasterConfig) BuildPodControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) BuildPodControllerClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // BuildImageChangeTriggerControllerClients returns the build image change trigger controller client objects
-func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // BuildConfigChangeControllerClients returns the build config change controller client objects
-func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) BuildConfigChangeControllerClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // ImageChangeControllerClient returns the openshift client object
-func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
+func (c *MasterConfig) ImageChangeControllerClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // ImageImportControllerClient returns the deployment client object
-func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
+func (c *MasterConfig) ImageImportControllerClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // DeploymentConfigInstantiateClients returns the clients used by the instantiate endpoint.
-func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) DeploymentConfigInstantiateClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeploymentControllerClients returns the deployment controller client objects
-func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) DeploymentControllerClients() (osclient.Interface, *kclient.Client) {
 	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
@@ -917,17 +917,17 @@ func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient
 }
 
 // DeploymentConfigClients returns deploymentConfig and deployment client objects
-func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) DeploymentConfigClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeploymentConfigControllerClients returns the deploymentConfig controller client objects
-func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) DeploymentConfigControllerClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeploymentTriggerControllerClient returns the deploymentConfig trigger controller client object
-func (c *MasterConfig) DeploymentTriggerControllerClient() *osclient.Client {
+func (c *MasterConfig) DeploymentTriggerControllerClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
@@ -942,12 +942,12 @@ func (c *MasterConfig) SecurityAllocationControllerClient() *kclient.Client {
 }
 
 // SDNControllerClients returns the SDN controller client objects
-func (c *MasterConfig) SDNControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) SDNControllerClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // RouteAllocatorClients returns the route allocator client objects
-func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) RouteAllocatorClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
@@ -957,13 +957,13 @@ func (c *MasterConfig) ImageStreamSecretClient() *kclient.Client {
 }
 
 // ImageStreamImportSecretClient returns the client capable of retrieving image secrets for a namespace
-func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
+func (c *MasterConfig) ImageStreamImportSecretClient() osclient.Interface {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
 // evaluation
-func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *internalclientset.Clientset) {
+func (c *MasterConfig) ResourceQuotaManagerClients() (osclient.Interface, *internalclientset.Clientset) {
 	return c.PrivilegedLoopbackOpenShiftClient, clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient)
 }
 
@@ -975,12 +975,12 @@ func (c *MasterConfig) WebConsoleEnabled() bool {
 // OriginNamespaceControllerClients returns a client for openshift and kubernetes.
 // The openshift client object must have authority to delete openshift content in any namespace
 // The kubernetes client object must have authority to execute a finalize request on a namespace
-func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) OriginNamespaceControllerClients() (osclient.Interface, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // UnidlingControllerClients returns the unidling controller clients
-func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.Client) {
+func (c *MasterConfig) UnidlingControllerClients() (osclient.Interface, *kclient.Client) {
 	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
@@ -990,7 +990,7 @@ func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, *kclient.C
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
 // named service account in the infra namespace
-func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, *kclient.Client, error) {
+func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, osclient.Interface, *kclient.Client, error) {
 	if len(name) == 0 {
 		return nil, nil, nil, errors.New("No service account name specified")
 	}

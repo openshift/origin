@@ -32,7 +32,7 @@ import (
 type OsdnNode struct {
 	multitenant        bool
 	kClient            *kclient.Client
-	osClient           *osclient.Client
+	osClient           osclient.Interface
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
 	podManager         *podManager
@@ -53,7 +53,7 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient osclient.Interface, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
 	if !osapi.IsOpenShiftNetworkPlugin(pluginName) {
 		return nil, nil
 	}
