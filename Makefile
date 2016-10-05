@@ -70,6 +70,7 @@ verify: build
 	hack/verify-generated-clientsets.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
+	hack/verify-cli-conventions.sh
 	PROTO_OPTIONAL=1 hack/verify-generated-protobuf.sh
 	hack/verify-generated-swagger-descriptions.sh
 	hack/verify-generated-swagger-spec.sh
