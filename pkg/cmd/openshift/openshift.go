@@ -3,8 +3,10 @@ package openshift
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -13,8 +15,9 @@ import (
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/cmd/admin/validate"
-	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/completion"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/options"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	configcmd "github.com/openshift/origin/pkg/cmd/experimental/config"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
@@ -45,7 +48,7 @@ Docker containers. To start an all-in-one server with the default configuration,
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out, errout := os.Stdout, os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -66,12 +69,21 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandS2IBuilder(basename)
 	case "openshift-docker-build":
 		cmd = builder.NewCommandDockerBuilder(basename)
-	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
-	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
+	case "oc":
+		cmd = &cobra.Command{Run: func(_ *cobra.Command, _ []string) {
+			fmt.Fprintf(errout, "error: The 'oc' symlink is no longer supported when pointing to the 'openshift' binary - you must download the oc client directly")
+			os.Exit(1)
+		}}
+	case "oadm":
+		cmd = &cobra.Command{Run: func(_ *cobra.Command, _ []string) {
+			fmt.Fprintf(errout, "error: The 'oadm' symlink is no longer supported when pointing to the 'openshift' binary - you must download the OpenShift clients directly")
+			os.Exit(1)
+		}}
 	case "kubectl":
-		cmd = cli.NewCmdKubectl(basename, out)
+		cmd = &cobra.Command{Run: func(_ *cobra.Command, _ []string) {
+			fmt.Fprintf(errout, "error: The 'kubectl' symlink is no longer supported when pointing to the 'openshift' binary - you must download the Kubernetes or OpenShift client directly")
+			os.Exit(1)
+		}}
 	case "kube-apiserver":
 		cmd = kubernetes.NewAPIServerCommand(basename, basename, out)
 	case "kube-controller-manager":
@@ -84,8 +96,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
 	case "kubernetes":
 		cmd = kubernetes.NewCommand(basename, basename, out)
-	case "origin", "atomic-enterprise":
-		cmd = NewCommandOpenShift(basename)
 	default:
 		cmd = NewCommandOpenShift("openshift")
 	}
@@ -100,7 +110,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out := os.Stdout
 
 	root := &cobra.Command{
 		Use:   name,
@@ -113,12 +123,12 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
-	root.AddCommand(cli.NewCmdKubectl("kube", out))
+	root.AddCommand(newAdminCommand("admin"))
+	root.AddCommand(newCLICommand("cli"))
+	root.AddCommand(newKubectlCommand("kube"))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
-	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
+	root.AddCommand(version.NewCmdVersion(name, f, out, version.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly
@@ -137,7 +147,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	)
 	root.AddCommand(infra)
 
-	root.AddCommand(cmd.NewCmdOptions(out))
+	root.AddCommand(options.NewCmdOptions(out))
 
 	// TODO: add groups
 	templates.ActsAsRootCommand(root, []string{"options"})
@@ -169,7 +179,7 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
 	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oadm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
 	experimental.AddCommand(deprecatedDiag)
-	experimental.AddCommand(cmd.NewCmdOptions(out))
+	experimental.AddCommand(options.NewCmdOptions(out))
 
 	// these groups also live under `oadm groups {sync,prune}` and are here only for backwards compatibility
 	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
@@ -202,7 +212,7 @@ $ source <(kubectl completion zsh)
 func newCompletionCommand(name, fullName string) *cobra.Command {
 	out := os.Stdout
 
-	completion := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s SHELL", name),
 		Short:   "Output shell completion code for the given shell (bash or zsh)",
 		Long:    completion_long,
@@ -212,8 +222,47 @@ func newCompletionCommand(name, fullName string) *cobra.Command {
 		},
 	}
 
-	f := clientcmd.New(completion.PersistentFlags())
+	f := clientcmd.New(cmd.PersistentFlags())
 
-	return cmd.NewCmdCompletion(fullName, f, out)
+	return completion.NewCmdCompletion(fullName, f, out)
+}
 
+func newCLICommand(name string) *cobra.Command {
+	return execCommand("oc", &cobra.Command{
+		Use:   name,
+		Short: "Use the OpenShift CLI",
+		Long:  "",
+	})
+}
+
+func newKubectlCommand(name string) *cobra.Command {
+	return execCommand("kubectl", &cobra.Command{
+		Use:   name,
+		Short: "Use the Kubernetes CLI",
+		Long:  "",
+	})
+}
+
+func newAdminCommand(name string) *cobra.Command {
+	return execCommand("oadm", &cobra.Command{
+		Use:   name,
+		Short: "Use the OpenShift Admin CLI",
+		Long:  "",
+	})
+}
+
+func execCommand(command string, cmd *cobra.Command) *cobra.Command {
+	cmd.DisableFlagParsing = true
+	cmd.Run = func(cmd *cobra.Command, args []string) {
+		path, err := exec.LookPath(command)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: Unable to run nested command from %q: %v", command, err)
+			os.Exit(1)
+		}
+		if err := syscall.Exec(path, args, os.Environ()); err != nil {
+			fmt.Fprintf(os.Stderr, "error: Failed to run nested command %q: %v", command, err)
+			os.Exit(1)
+		}
+	}
+	return cmd
 }

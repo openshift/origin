@@ -16,13 +16,17 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/cluster"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/completion"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/config"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/dockerbuild"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/observe"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/options"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rollout"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/sa"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
@@ -172,9 +176,9 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Settings Commands:",
 			Commands: []*cobra.Command{
 				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
-				cmd.NewCmdConfig(fullName, "config"),
+				config.NewCmdConfig(fullName, "config"),
 				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
-				cmd.NewCmdCompletion(fullName, f, out),
+				completion.NewCmdCompletion(fullName, f, out),
 			},
 		},
 	}
@@ -204,9 +208,9 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.AddCommand(experimental)
 
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{PrintClientFeatures: true}))
+		cmds.AddCommand(version.NewCmdVersion(fullName, f, out, version.VersionOptions{PrintClientFeatures: true}))
 	}
-	cmds.AddCommand(cmd.NewCmdOptions(out))
+	cmds.AddCommand(options.NewCmdOptions(out))
 
 	return cmds
 }
@@ -263,7 +267,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	})
 	cmds.PersistentFlags().Var(flags.Lookup("config").Value, "kubeconfig", "Specify a kubeconfig file to define the configuration")
 	templates.ActsAsRootCommand(cmds, []string{"options"})
-	cmds.AddCommand(cmd.NewCmdOptions(out))
+	cmds.AddCommand(options.NewCmdOptions(out))
 	return cmds
 }
 
@@ -283,6 +287,8 @@ func CommandFor(basename string) *cobra.Command {
 	switch basename {
 	case "kubectl":
 		cmd = NewCmdKubectl(basename, out)
+	case "oadm":
+		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
 	default:
 		cmd = NewCommandCLI(basename, basename, in, out, errout)
 	}
