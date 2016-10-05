@@ -204,10 +204,11 @@ check_builds() {
       if grep -q -e "buildContainer (noarch) completed successfully" ${line} ; then
         package=`echo ${line} | cut -d'.' -f1`
         echo "==== ${package} IMAGE COMPLETED ===="
-        if grep "No package" ${package}.watchlog ; then
-          echo "===== ${package}: ERRORS IN COMPLETED IMAGE see above ====="
-          echo "::${package}::" >> ${workingdir}/logs/buildfailed
-        fi
+        # Only doing false positives, but leave code incase we need something similar
+        #if grep "No package" ${package}.watchlog ; then
+        #  echo "===== ${package}: ERRORS IN COMPLETED IMAGE see above ====="
+        #  echo "::${package}::" >> ${workingdir}/logs/buildfailed
+        #fi
         echo "::${package}::" >> ${workingdir}/logs/finished
         mv ${line} ${package}.watchlog done/
       fi
