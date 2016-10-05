@@ -35,6 +35,11 @@ OS_GOFLAGS="${OS_GOFLAGS:-} ${OS_IMAGE_COMPILE_GOFLAGS}" os::build::build_static
 OS_RELEASE_ARCHIVE="openshift-origin"
 OS_BUILD_PLATFORMS=("${platforms[@]}")
 os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
+if [[ "${OS_GIT_TREE_STATE:-dirty}" == "clean"  ]]; then
+	# only when we are building from a clean state can we claim to
+	# have created a valid set of binaries that can resemble a release
+	echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
+fi
 
 # Make the image binaries release.
 OS_RELEASE_ARCHIVE="openshift-origin-image"
