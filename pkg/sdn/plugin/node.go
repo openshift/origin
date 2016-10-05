@@ -12,6 +12,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/plugin/api"
 	"github.com/openshift/origin/pkg/util/netutils"
+	"github.com/openshift/origin/pkg/util/ovs"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -26,6 +27,7 @@ type OsdnNode struct {
 	multitenant        bool
 	kClient            *kclient.Client
 	osClient           *osclient.Client
+	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
 	localIP            string
 	localSubnet        *osapi.HostSubnet
@@ -67,10 +69,16 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		}
 	}
 
+	ovsif, err := ovs.New(kexec.New(), BR)
+	if err != nil {
+		return nil, err
+	}
+
 	plugin := &OsdnNode{
 		multitenant:        IsOpenShiftMultitenantNetworkPlugin(pluginName),
 		kClient:            kClient,
 		osClient:           osClient,
+		ovs:                ovsif,
 		localIP:            selfIP,
 		hostName:           hostname,
 		vnids:              newNodeVNIDMap(),
