@@ -415,7 +415,7 @@ function create_gitconfig() {
 function create_valid_file() {
 	BASETMPDIR="${BASETMPDIR:-"/tmp"}"
 	FILE_DIR=$(mktemp -d ${BASETMPDIR}/test-file.XXXX)
-	touch ${FILE_DIR}/${1}
+	echo test_data >${FILE_DIR}/${1}
 	echo ${FILE_DIR}/${1}
 }
 
