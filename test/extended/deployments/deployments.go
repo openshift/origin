@@ -37,6 +37,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployments", "deployment-history-limit.yaml")
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployments", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployments", "deployment-example.yaml")
+		anotherMultiICTFixture          = exutil.FixturePath("testdata", "deployments", "multi-ict-deployment.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "deployments", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
@@ -306,8 +307,16 @@ var _ = g.Describe("deploymentconfigs", func() {
 			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should run a successful deployment [Conformance]", func() {
+		g.It("should run a successful deployment with multiple triggers [Conformance]", func() {
 			_, name, err := createFixture(oc, multipleICTFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should run a successful deployment with a trigger used by different containers [Conformance]", func() {
+			_, name, err := createFixture(oc, anotherMultiICTFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployment is marked complete")

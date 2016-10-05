@@ -23,12 +23,12 @@ items:
           - containerPort: 8080
             protocol: TCP
         - imagePullPolicy: Always
-          name: mongodb
+          name: ruby2
           command:
           - /bin/sleep
           - "100"
           ports:
-          - containerPort: 5000
+          - containerPort: 8081
             protocol: TCP
     test: false
     triggers:
@@ -37,18 +37,10 @@ items:
         automatic: true
         containerNames:
         - ruby
+        - ruby2
         from:
           kind: ImageStreamTag
           name: ruby:latest
-          namespace: openshift
-      type: ImageChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - mongodb
-        from:
-          kind: ImageStreamTag
-          name: mongodb:latest
           namespace: openshift
       type: ImageChange
 kind: List
