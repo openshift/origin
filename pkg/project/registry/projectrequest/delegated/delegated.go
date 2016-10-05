@@ -134,6 +134,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	// we split out project creation separately so that in a case of racers for the same project, only one will win and create the rest of their template objects
 	createdProject, err := r.openshiftClient.Projects().Create(projectFromTemplate)
 	if err != nil {
+		// log errors other than AlreadyExists and Forbidden
+		if !kapierror.IsAlreadyExists(err) && !kapierror.IsForbidden(err) {
+			utilruntime.HandleError(fmt.Errorf("error creating requested project %#v: %v", projectFromTemplate, err))
+		}
 		return nil, err
 	}
 
