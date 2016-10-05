@@ -39,6 +39,8 @@ type CreateIdentityOptions struct {
 
 	IdentityClient client.IdentityInterface
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -60,6 +62,8 @@ func NewCmdCreateIdentity(name, fullName string, f *clientcmd.Factory, out io.Wr
 			cmdutil.CheckErr(o.Run())
 		},
 	}
+
+	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
@@ -123,13 +127,22 @@ func (o *CreateIdentityOptions) Run() error {
 	identity.ProviderName = o.ProviderName
 	identity.ProviderUserName = o.ProviderUserName
 
-	actualIdentity, err := o.IdentityClient.Create(identity)
-	if err != nil {
-		return err
+	actualIdentity := identity
+
+	var err error
+	if !o.DryRun {
+		actualIdentity, err = o.IdentityClient.Create(identity)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "identity", actualIdentity.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "identity", actualIdentity.Name, created)
 		return nil
 	}
 

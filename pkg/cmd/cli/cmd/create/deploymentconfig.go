@@ -32,6 +32,8 @@ type CreateDeploymentConfigOptions struct {
 	DC     *deployapi.DeploymentConfig
 	Client client.DeploymentConfigsNamespacer
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -55,9 +57,10 @@ func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, o
 		Aliases: []string{"dc"},
 	}
 
+	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
 	cmd.Flags().String("image", "", "The image for the container to run.")
 	cmd.MarkFlagRequired("image")
-	cmdutil.AddOutputFlagsForMutation(cmd)
+	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -135,13 +138,24 @@ func (o *CreateDeploymentConfigOptions) Validate() error {
 }
 
 func (o *CreateDeploymentConfigOptions) Run() error {
-	actualObj, err := o.Client.DeploymentConfigs(o.DC.Namespace).Create(o.DC)
-	if err != nil {
-		return err
+	actualObj := o.DC
+
+	var err error
+	if !o.DryRun {
+
+		actualObj, err = o.Client.DeploymentConfigs(o.DC.Namespace).Create(o.DC)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "deploymentconfig", actualObj.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "deploymentconfig", actualObj.Name, created)
 		return nil
 	}
 

@@ -70,7 +70,8 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 	}
 
 	kcmdutil.AddValidateFlags(cmd)
-	kcmdutil.AddOutputFlagsForMutation(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().Bool("dry-run", false, "If true, only print the route that would be created, without creating it.")
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
 	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
@@ -136,22 +137,34 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
 	}
 
-	route, err = oc.Routes(ns).Create(route)
-	if err != nil {
-		return err
+	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
+	actualRoute := route
+
+	if !dryRun {
+		actualRoute, err = oc.Routes(ns).Create(route)
+		if err != nil {
+			return err
+		}
 	}
+
 	mapper, typer := f.Object(false)
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
 		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
-	info, err := resourceMapper.InfoForObject(route, nil)
+	info, err := resourceMapper.InfoForObject(actualRoute, nil)
 	if err != nil {
 		return err
 	}
+
+	created := "created"
+	if dryRun {
+		created = "created (DRY RUN)"
+	}
+
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "created")
+	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, created)
 	return nil
 }
 
@@ -184,7 +197,8 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 	}
 
 	kcmdutil.AddValidateFlags(cmd)
-	kcmdutil.AddOutputFlagsForMutation(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().Bool("dry-run", false, "If true, only print the route that would be created, without creating it.")
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
@@ -221,22 +235,34 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	route.Spec.TLS = new(api.TLSConfig)
 	route.Spec.TLS.Termination = api.TLSTerminationPassthrough
 
-	route, err = oc.Routes(ns).Create(route)
-	if err != nil {
-		return err
+	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
+	actualRoute := route
+
+	if !dryRun {
+		actualRoute, err = oc.Routes(ns).Create(route)
+		if err != nil {
+			return err
+		}
 	}
+
 	mapper, typer := f.Object(false)
 	resourceMapper := &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
 		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
-	info, err := resourceMapper.InfoForObject(route, nil)
+	info, err := resourceMapper.InfoForObject(actualRoute, nil)
 	if err != nil {
 		return err
 	}
+
+	created := "created"
+	if dryRun {
+		created = "created (DRY RUN)"
+	}
+
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "created")
+	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, created)
 	return nil
 }
 
@@ -270,7 +296,8 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	}
 
 	kcmdutil.AddValidateFlags(cmd)
-	kcmdutil.AddOutputFlagsForMutation(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().Bool("dry-run", false, "If true, only print the route that would be created, without creating it.")
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
@@ -339,9 +366,14 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	}
 	route.Spec.TLS.DestinationCACertificate = string(destCACert)
 
-	route, err = oc.Routes(ns).Create(route)
-	if err != nil {
-		return err
+	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
+	actualRoute := route
+
+	if !dryRun {
+		actualRoute, err = oc.Routes(ns).Create(route)
+		if err != nil {
+			return err
+		}
 	}
 	mapper, typer := f.Object(false)
 	resourceMapper := &resource.Mapper{
@@ -349,12 +381,18 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 		RESTMapper:   mapper,
 		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
-	info, err := resourceMapper.InfoForObject(route, nil)
+	info, err := resourceMapper.InfoForObject(actualRoute, nil)
 	if err != nil {
 		return err
 	}
+
+	created := "created"
+	if dryRun {
+		created = "created (DRY RUN)"
+	}
+
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "created")
+	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, created)
 	return nil
 }
 

@@ -35,6 +35,8 @@ type CreateUserIdentityMappingOptions struct {
 
 	UserIdentityMappingClient client.UserIdentityMappingInterface
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -57,6 +59,7 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 		},
 	}
 	cmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
 	return cmd
 }
 
@@ -117,13 +120,22 @@ func (o *CreateUserIdentityMappingOptions) Run() error {
 	mapping.Identity = kapi.ObjectReference{Name: o.Identity}
 	mapping.User = kapi.ObjectReference{Name: o.User}
 
-	actualMapping, err := o.UserIdentityMappingClient.Create(mapping)
-	if err != nil {
-		return err
+	actualMapping := mapping
+
+	var err error
+	if !o.DryRun {
+		actualMapping, err = o.UserIdentityMappingClient.Create(mapping)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, created)
 		return nil
 	}
 
