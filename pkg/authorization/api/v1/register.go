@@ -28,6 +28,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RoleList{},
 
 		&SelfSubjectRulesReview{},
+		&SubjectRulesReview{},
 		&ResourceAccessReview{},
 		&SubjectAccessReview{},
 		&LocalResourceAccessReview{},

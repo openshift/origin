@@ -118,11 +118,19 @@ var (
 	// TODO(ihmccreery): remove once we don't care about v1.1 anymore, (tentatively in v1.4).
 	deploymentsVersion = version.MustParse("v1.2.0-alpha.7.726")
 
-	// Pod probe parameters were introduced in #15967 (v1.2) so we dont expect tests that use
+	// Pod probe parameters were introduced in #15967 (v1.2) so we don't expect tests that use
 	// these probe parameters to work on clusters before that.
 	//
 	// TODO(ihmccreery): remove once we don't care about v1.1 anymore, (tentatively in v1.4).
 	podProbeParametersVersion = version.MustParse("v1.2.0-alpha.4")
+
+	// 'kubectl create quota' was introduced in #28351 (v1.4) so we don't expect tests that use
+	// 'kubectl create quota' to work on kubectl clients before that.
+	kubectlCreateQuotaVersion = version.MustParse("v1.4.0-alpha.2")
+
+	// Returning container command exit codes in kubectl run/exec was introduced in #26541 (v1.4)
+	// so we don't expect tests that verifies return code to work on kubectl clients before that.
+	kubectlContainerExitCodeVersion = version.MustParse("v1.4.0-alpha.3")
 )
 
 // Stops everything from filePath from namespace ns and checks if everything matching selectors from the given namespace is correctly stopped.
@@ -350,6 +358,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 		})
 
 		It("should return command exit codes", func() {
+			framework.SkipUnlessKubectlVersionGTE(kubectlContainerExitCodeVersion)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 
 			By("execing into a container with a successful command")
@@ -1252,82 +1261,90 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 
 	framework.KubeDescribe("Kubectl taint", func() {
 		It("should update the taint on a node", func() {
-			taintName := fmt.Sprintf("kubernetes.io/e2e-taint-key-%s", string(uuid.NewUUID()))
-			taintValue := "testing-taint-value"
-			taintEffect := fmt.Sprintf("%s", api.TaintEffectNoSchedule)
+			testTaint := api.Taint{
+				Key:    fmt.Sprintf("kubernetes.io/e2e-taint-key-%s", string(uuid.NewUUID())),
+				Value:  "testing-taint-value",
+				Effect: api.TaintEffectNoSchedule,
+			}
 
 			nodes, err := c.Nodes().List(api.ListOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			node := nodes.Items[0]
 			nodeName := node.Name
 
-			By("adding the taint " + taintName + " with value " + taintValue + " and taint effect " + taintEffect + " to a node")
-			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+"="+taintValue+":"+taintEffect)
-			By("verifying the node has the taint " + taintName + " with the value " + taintValue)
+			By("adding the taint " + testTaint.ToString() + " to a node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, testTaint.ToString())
+			By("verifying the node has the taint " + testTaint.ToString())
 			output := framework.RunKubectlOrDie("describe", "node", nodeName)
 			requiredStrings := [][]string{
 				{"Name:", nodeName},
 				{"Taints:"},
-				{taintName + "=" + taintValue + ":" + taintEffect},
+				{testTaint.ToString()},
 			}
 			checkOutput(output, requiredStrings)
 
-			By("removing the taint " + taintName + " of a node")
-			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+":"+taintEffect+"-")
-			By("verifying the node doesn't have the taint " + taintName)
+			By("removing the taint " + testTaint.ToString() + " of a node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, testTaint.Key+":"+string(testTaint.Effect)+"-")
+			By("verifying the node doesn't have the taint " + testTaint.Key)
 			output = framework.RunKubectlOrDie("describe", "node", nodeName)
-			if strings.Contains(output, taintName) {
-				framework.Failf("Failed removing taint " + taintName + " of the node " + nodeName)
+			if strings.Contains(output, testTaint.Key) {
+				framework.Failf("Failed removing taint " + testTaint.Key + " of the node " + nodeName)
 			}
 
 		})
 
 		It("should remove all the taints with the same key off a node", func() {
-			taintName := fmt.Sprintf("kubernetes.io/e2e-taint-key-%s", string(uuid.NewUUID()))
-			taintValue := "testing-taint-value"
-			taintEffect := fmt.Sprintf("%s", api.TaintEffectNoSchedule)
+			testTaint := api.Taint{
+				Key:    fmt.Sprintf("kubernetes.io/e2e-taint-key-%s", string(uuid.NewUUID())),
+				Value:  "testing-taint-value",
+				Effect: api.TaintEffectNoSchedule,
+			}
 
 			nodes, err := c.Nodes().List(api.ListOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			node := nodes.Items[0]
 			nodeName := node.Name
 
-			By("adding the taint " + taintName + " with value " + taintValue + " and taint effect " + taintEffect + " to a node")
-			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+"="+taintValue+":"+taintEffect)
-			By("verifying the node has the taint " + taintName + " with the value " + taintValue)
+			By("adding the taint " + testTaint.ToString() + " to a node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, testTaint.ToString())
+			By("verifying the node has the taint " + testTaint.ToString())
 			output := framework.RunKubectlOrDie("describe", "node", nodeName)
 			requiredStrings := [][]string{
 				{"Name:", nodeName},
 				{"Taints:"},
-				{taintName + "=" + taintValue + ":" + taintEffect},
+				{testTaint.ToString()},
 			}
 			checkOutput(output, requiredStrings)
 
-			newTaintValue := "another-testing-taint-value"
-			newTaintEffect := fmt.Sprintf("%s", api.TaintEffectPreferNoSchedule)
-			By("adding another taint " + taintName + " with value " + newTaintValue + " and taint effect " + newTaintEffect + " to the node")
-			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+"="+newTaintValue+":"+newTaintEffect)
-			By("verifying the node has the taint " + taintName + " with the value " + newTaintValue)
+			newTestTaint := api.Taint{
+				Key:    testTaint.Key,
+				Value:  "another-testing-taint-value",
+				Effect: api.TaintEffectPreferNoSchedule,
+			}
+			By("adding another taint " + newTestTaint.ToString() + " to the node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, newTestTaint.ToString())
+			By("verifying the node has the taint " + newTestTaint.ToString())
 			output = framework.RunKubectlOrDie("describe", "node", nodeName)
 			requiredStrings = [][]string{
 				{"Name:", nodeName},
 				{"Taints:"},
-				{taintName + "=" + newTaintValue + ":" + newTaintEffect},
+				{newTestTaint.ToString()},
 			}
 			checkOutput(output, requiredStrings)
 
-			By("removing the taint " + taintName + " of a node")
-			framework.RunKubectlOrDie("taint", "nodes", nodeName, taintName+"-")
-			By("verifying the node doesn't have the taints " + taintName)
+			By("removing all taints that have the same key " + testTaint.Key + " of the node")
+			framework.RunKubectlOrDie("taint", "nodes", nodeName, testTaint.Key+"-")
+			By("verifying the node doesn't have the taints that have the same key " + testTaint.Key)
 			output = framework.RunKubectlOrDie("describe", "node", nodeName)
-			if strings.Contains(output, taintName) {
-				framework.Failf("Failed removing taint " + taintName + " of the node " + nodeName)
+			if strings.Contains(output, testTaint.Key) {
+				framework.Failf("Failed removing taints " + testTaint.Key + " of the node " + nodeName)
 			}
 		})
 	})
 
 	framework.KubeDescribe("Kubectl create quota", func() {
 		It("should create a quota without scopes", func() {
+			framework.SkipUnlessKubectlVersionGTE(kubectlCreateQuotaVersion)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			quotaName := "million"
 
@@ -1357,6 +1374,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 		})
 
 		It("should create a quota with scopes", func() {
+			framework.SkipUnlessKubectlVersionGTE(kubectlCreateQuotaVersion)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			quotaName := "scopes"
 
@@ -1385,6 +1403,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 		})
 
 		It("should reject quota with invalid scopes", func() {
+			framework.SkipUnlessKubectlVersionGTE(kubectlCreateQuotaVersion)
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 			quotaName := "scopes"
 

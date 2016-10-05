@@ -33,7 +33,6 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful/swagger"
-	"github.com/imdario/mergo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -138,7 +137,7 @@ type Factory struct {
 	// ResolveImage resolves the image names. For kubernetes this function is just
 	// passthrough but it allows to perform more sophisticated image name resolving for
 	// third-party vendors.
-	ResolveImage func(in string) (string, error)
+	ResolveImage func(imageName string) (string, error)
 	// Returns a schema that can validate objects stored on disk.
 	Validator func(validate bool, cacheDir string) (validation.Schema, error)
 	// SwaggerSchema returns the schema declaration for the provided group version kind.
@@ -676,8 +675,8 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				return false, fmt.Errorf("cannot resume %v", gvks[0])
 			}
 		},
-		ResolveImage: func(in string) (string, error) {
-			return in, nil
+		ResolveImage: func(imageName string) (string, error) {
+			return imageName, nil
 		},
 		Scaler: func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 			mappingVersion := mapping.GroupVersionKind.GroupVersion()
@@ -1230,11 +1229,13 @@ func (c *clientSwaggerSchema) ValidateBytes(data []byte) error {
 //     exists and is not a directory.
 func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	// use the standard defaults for this client command
+	// DEPRECATED: remove and replace with something more accurate
+	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
+
 	flags.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests.")
 
-	overrides := &clientcmd.ConfigOverrides{}
-	// use the standard defaults for this client config
-	mergo.Merge(&overrides.ClusterDefaults, clientcmd.DefaultCluster)
+	overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
 
 	flagNames := clientcmd.RecommendedConfigOverrideFlags("")
 	// short flagnames are disabled by default.  These are here for compatibility with existing scripts

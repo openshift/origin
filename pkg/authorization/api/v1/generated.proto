@@ -420,6 +420,27 @@ message SubjectAccessReviewResponse {
   optional string evaluationError = 4;
 }
 
+// SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace
+message SubjectRulesReview {
+  // Spec adds information about how to conduct the check
+  optional SubjectRulesReviewSpec spec = 1;
+
+  // Status is completed by the server to tell which permissions you have
+  optional SubjectRulesReviewStatus status = 2;
+}
+
+// SubjectRulesReviewSpec adds information about how to conduct the check
+message SubjectRulesReviewSpec {
+  // User is optional.  At least one of User and Groups must be specified.
+  optional string user = 1;
+
+  // Groups is optional.  Groups is the list of groups to which the User belongs.  At least one of User and Groups must be specified.
+  repeated string groups = 2;
+
+  // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
+  optional OptionalScopes scopes = 3;
+}
+
 // SubjectRulesReviewStatus is contains the result of a rules check
 message SubjectRulesReviewStatus {
   // Rules is the list of rules (no particular sort) that are allowed for the subject

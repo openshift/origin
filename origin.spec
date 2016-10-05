@@ -21,7 +21,7 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 44e9f773b9678be681058ff3431684b7cb81d0a4
+%global commit 0af561296b651c7dd050f62b042b68c73103d492
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.6
+Version:        3.4.0.7
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -476,6 +476,42 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Oct 05 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.7
+- Merge remote-tracking branch upstream/master, bump origin-web-console 02b3c89
+  (tdawson@redhat.com)
+- extended: move deployment fixtures in separate directory
+  (mkargaki@redhat.com)
+- UPSTREAM: 33677: add linebreak between resource groups (jvallejo@redhat.com)
+- [origin-aggregated-logging 207] Add diagnostics for aggregated logging
+  (jcantril@redhat.com)
+- extended: bump image tagging timeout (mkargaki@redhat.com)
+- encode/decode nested objects in SubjectRulesReviewStatus (mfojtik@redhat.com)
+- generate protobuf (mfojtik@redhat.com)
+- add validation (mfojtik@redhat.com)
+- add user options to can-i (deads@redhat.com)
+- add other user rules review (deads@redhat.com)
+- add option to `oc whoami` that prints server url (jvallejo@redhat.com)
+- Update ose_images.sh - 2016-10-03 (tdawson@redhat.com)
+- Network plugin dir default removed (ccoleman@redhat.com)
+- generated: docs (ccoleman@redhat.com)
+- Client defaulting changed in Kube v1.4.0 (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Continue to carry the cAdvisor patch (ccoleman@redhat.com)
+- bump(k8s.io/kubernetes):v1.4.0 (ccoleman@redhat.com)
+- Disable cgo when building extended.test (marun@redhat.com)
+- Fix dlv invocation in networking.sh (marun@redhat.com)
+- More generated code (mkargaki@redhat.com)
+- deploy: generated protobuf for instantiate (mkargaki@redhat.com)
+- deploy: update generated code for instantiate (mkargaki@redhat.com)
+- Make automatic=false work again as it should (mkargaki@redhat.com)
+- Run admission for /instantiate (mkargaki@redhat.com)
+- oc: switch deploy --latest to use new instantiate endpoint
+  (mkargaki@redhat.com)
+- deploy: remove imagechange controller (mkargaki@redhat.com)
+- deploy: instantiate deploymentconfigs (mkargaki@redhat.com)
+- e2e: schema2 config test amendments (miminar@redhat.com)
+- line continue should be instead by break (li.guangxu@zte.com.cn)
+- ppc64le platform support for build-cross.sh script (mkumatag@in.ibm.com)
+
 * Mon Oct 03 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.6
 - suggest use of `oc explain` in oc get output (jvallejo@redhat.com)
 - UPSTREAM: 31818: suggest use of `oc explain` in oc get output

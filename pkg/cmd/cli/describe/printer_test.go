@@ -30,6 +30,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.ImageStreamImport{}),     // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLog{}),              // just a marker type
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),       // just a marker type
+	reflect.TypeOf(&deployapi.DeploymentRequest{}),    // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentLog{}),        // just a marker type
 	reflect.TypeOf(&deployapi.DeploymentLogOptions{}), // just a marker type
 
@@ -42,6 +43,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&authorizationapi.SubjectRulesReview{}),
 	reflect.TypeOf(&buildapi.BuildLog{}),
 	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),
 	reflect.TypeOf(&buildapi.BuildRequest{}),

@@ -187,9 +187,8 @@ func matchImageTagOrSHA(inspected dockertypes.ImageInspect, image string) bool {
 				continue
 			}
 			if d, isDigested := named.(dockerref.Digested); isDigested {
-				// Allow prefix matches for shorter SHA values
 				if digest.Digest().Algorithm().String() == d.Digest().Algorithm().String() &&
-					digest.Digest().Hex() == digest.Digest().Hex() {
+					digest.Digest().Hex() == d.Digest().Hex() {
 					return true
 				}
 			}

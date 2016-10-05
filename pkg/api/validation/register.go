@@ -42,6 +42,7 @@ func init() {
 func registerAll() {
 	Validator.MustRegister(&authorizationapi.SelfSubjectRulesReview{}, authorizationvalidation.ValidateSelfSubjectRulesReview, nil)
 	Validator.MustRegister(&authorizationapi.SubjectAccessReview{}, authorizationvalidation.ValidateSubjectAccessReview, nil)
+	Validator.MustRegister(&authorizationapi.SubjectRulesReview{}, authorizationvalidation.ValidateSubjectRulesReview, nil)
 	Validator.MustRegister(&authorizationapi.ResourceAccessReview{}, authorizationvalidation.ValidateResourceAccessReview, nil)
 	Validator.MustRegister(&authorizationapi.LocalSubjectAccessReview{}, authorizationvalidation.ValidateLocalSubjectAccessReview, nil)
 	Validator.MustRegister(&authorizationapi.LocalResourceAccessReview{}, authorizationvalidation.ValidateLocalResourceAccessReview, nil)
@@ -64,6 +65,7 @@ func registerAll() {
 	Validator.MustRegister(&deployapi.DeploymentConfig{}, deployvalidation.ValidateDeploymentConfig, deployvalidation.ValidateDeploymentConfigUpdate)
 	Validator.MustRegister(&deployapi.DeploymentConfigRollback{}, deployvalidation.ValidateDeploymentConfigRollback, nil)
 	Validator.MustRegister(&deployapi.DeploymentLogOptions{}, deployvalidation.ValidateDeploymentLogOptions, nil)
+	Validator.MustRegister(&deployapi.DeploymentRequest{}, deployvalidation.ValidateDeploymentRequest, nil)
 	Validator.MustRegister(&extensions.Scale{}, extvalidation.ValidateScale, nil)
 
 	Validator.MustRegister(&imageapi.Image{}, imagevalidation.ValidateImage, imagevalidation.ValidateImageUpdate)

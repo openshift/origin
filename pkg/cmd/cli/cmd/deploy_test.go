@@ -40,14 +40,14 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 	}
 	for _, status := range validStatusList {
 		config := deploytest.OkDeploymentConfig(1)
-		var updatedConfig *deployapi.DeploymentConfig
+		updatedConfig := config
 
 		osClient := &tc.Fake{}
 		osClient.AddReactor("get", "deploymentconfigs", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
 			return true, config, nil
 		})
-		osClient.AddReactor("update", "deploymentconfigs", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
-			updatedConfig = action.(ktc.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+		osClient.AddReactor("update", "deploymentconfigs/instantiate", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+			updatedConfig.Status.LatestVersion++
 			return true, updatedConfig, nil
 		})
 
@@ -62,10 +62,7 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if updatedConfig == nil {
-			t.Fatalf("expected updated config")
-		}
-		if exp, got := updatedConfig.Status.LatestVersion, int64(2); exp != got {
+		if exp, got := int64(2), updatedConfig.Status.LatestVersion; exp != got {
 			t.Fatalf("expected deployment config version: %d, got: %d", exp, got)
 		}
 	}

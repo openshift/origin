@@ -51,7 +51,7 @@ func TestAddBuildSecrets(t *testing.T) {
 			for _, s := range got {
 				if s.Secret.Name == expect.name && s.DestinationDir == expect.dest {
 					found = true
-					continue
+					break
 				}
 			}
 			if !found {

@@ -53,6 +53,7 @@ import (
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/registry/generator"
+	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/importer"
@@ -115,6 +116,7 @@ import (
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
@@ -498,7 +500,17 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	checkStorageErr(err)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
-	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter, c.DeploymentConfigScaleClient())
+	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.RESTOptionsGetter)
+
+	dcInstantiateOriginClient, dcInstantiateKubeClient := c.DeploymentConfigInstantiateClients()
+	dcInstantiateStorage := deployconfiginstantiate.NewREST(
+		*deployConfigStorage.Store,
+		dcInstantiateOriginClient,
+		dcInstantiateKubeClient,
+		c.ExternalVersionCodec,
+		c.AdmissionControl,
+	)
+
 	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
@@ -541,6 +553,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.Informers.ClusterPolicies().Lister().ClusterPolicies())
+	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, c.Informers.ClusterPolicies().Lister().ClusterPolicies())
 
 	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver)
 	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver)
@@ -661,11 +674,12 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamMappings":  imageStreamMappingStorage,
 		"imageStreamTags":      imageStreamTagStorage,
 
-		"deploymentConfigs":          deployConfigStorage,
-		"deploymentConfigs/scale":    deployConfigScaleStorage,
-		"deploymentConfigs/status":   deployConfigStatusStorage,
-		"deploymentConfigs/rollback": deployConfigRollbackStorage,
-		"deploymentConfigs/log":      deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs":             deployConfigStorage,
+		"deploymentConfigs/scale":       deployConfigScaleStorage,
+		"deploymentConfigs/status":      deployConfigStatusStorage,
+		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
+		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
+		"deploymentConfigs/instantiate": dcInstantiateStorage,
 
 		// TODO: Deprecate these
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.ExternalVersionCodec),
@@ -700,6 +714,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
 		"localResourceAccessReviews": localResourceAccessReviewStorage,
 		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
+		"subjectRulesReviews":        subjectRulesReviewStorage,
 
 		"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
 		"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
@@ -787,8 +802,7 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		Produces(restful.MIME_JSON))
 }
 
-// initHealthCheckRoute initializes an HTTP endpoint for health checking.
-// OpenShift is deemed healthy if the API server can respond with an OK messages
+// initMetricsRoute initializes an HTTP endpoint for metrics.
 func initMetricsRoute(root *restful.WebService, path string) {
 	h := prometheus.Handler()
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {

@@ -149,6 +149,17 @@ func (DeploymentLogOptions) SwaggerDoc() map[string]string {
 	return map_DeploymentLogOptions
 }
 
+var map_DeploymentRequest = map[string]string{
+	"":       "DeploymentRequest is a request to a deployment config for a new deployment.",
+	"name":   "Name of the deployment config for requesting a new deployment.",
+	"latest": "Latest will update the deployment config with the latest state from all triggers.",
+	"force":  "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
+}
+
+func (DeploymentRequest) SwaggerDoc() map[string]string {
+	return map_DeploymentRequest
+}
+
 var map_DeploymentStrategy = map[string]string{
 	"":               "DeploymentStrategy describes how to perform a deployment.",
 	"type":           "Type is the name of a deployment strategy.",

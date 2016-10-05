@@ -220,7 +220,11 @@ function run-extended-tests() {
   fi
 
   if [[ -n "${log_path}" ]]; then
-    test_cmd="${test_cmd} | tee ${log_path}"
+    if [[ -n "${dlv_debug}" ]]; then
+      os::log::warn "Not logging to file since DLV_DEBUG is enabled"
+    else
+      test_cmd="${test_cmd} | tee ${log_path}"
+    fi
   fi
 
   pushd "${EXTENDED_TEST_PATH}/networking" > /dev/null
@@ -261,7 +265,8 @@ if [[ "${OPENSHIFT_SKIP_BUILD:-false}" = "true" ]] &&
      [[ -n $(os::build::find-binary extended.test) ]]; then
   os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=true"
 else
-  hack/build-go.sh test/extended/extended.test
+  # cgo must be disabled to have the symbol table available
+  CGO_ENABLED=0 hack/build-go.sh test/extended/extended.test
 fi
 TEST_BINARY="${OS_ROOT}/$(os::build::find-binary extended.test)"
 

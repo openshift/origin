@@ -68,6 +68,8 @@ func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 		newDc.Status.LatestVersion = newVersion
 	}
 
+	// TODO: Disallow lastTriggeredImage updates from this update path.
+
 	// Any changes to the spec or labels, increment the generation number, any changes
 	// to the status should reflect the generation number of the corresponding object
 	// (should be handled by the controller).

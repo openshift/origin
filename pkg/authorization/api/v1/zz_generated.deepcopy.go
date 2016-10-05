@@ -50,6 +50,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SelfSubjectRulesReviewSpec, InType: reflect.TypeOf(&SelfSubjectRulesReviewSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectAccessReview, InType: reflect.TypeOf(&SubjectAccessReview{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectAccessReviewResponse, InType: reflect.TypeOf(&SubjectAccessReviewResponse{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectRulesReview, InType: reflect.TypeOf(&SubjectRulesReview{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectRulesReviewSpec, InType: reflect.TypeOf(&SubjectRulesReviewSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SubjectRulesReviewStatus, InType: reflect.TypeOf(&SubjectRulesReviewStatus{})},
 	)
 }
@@ -700,6 +702,44 @@ func DeepCopy_v1_SubjectAccessReviewResponse(in interface{}, out interface{}, c 
 		out.Allowed = in.Allowed
 		out.Reason = in.Reason
 		out.EvaluationError = in.EvaluationError
+		return nil
+	}
+}
+
+func DeepCopy_v1_SubjectRulesReview(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SubjectRulesReview)
+		out := out.(*SubjectRulesReview)
+		out.TypeMeta = in.TypeMeta
+		if err := DeepCopy_v1_SubjectRulesReviewSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_SubjectRulesReviewStatus(&in.Status, &out.Status, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_SubjectRulesReviewSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SubjectRulesReviewSpec)
+		out := out.(*SubjectRulesReviewSpec)
+		out.User = in.User
+		if in.Groups != nil {
+			in, out := &in.Groups, &out.Groups
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Groups = nil
+		}
+		if in.Scopes != nil {
+			in, out := &in.Scopes, &out.Scopes
+			*out = make(OptionalScopes, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Scopes = nil
+		}
 		return nil
 	}
 }
