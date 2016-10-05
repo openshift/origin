@@ -103,3 +103,4 @@ references:
 1. The `deploymentConfig.spec.strategy.rollingParams.updatePercent` field is removed in
   favor of `deploymentConfig.spec.strategy.rollingParams.maxUnavailable` and
   `deploymentConfig.spec.strategy.rollingParams.maxSurge`.
+1. In Origin 1.3.x / OSE 3.3.x new DeploymentConfigs (latestVersion=0) with ImageChangeTriggers that use automatic=false will have their images resolved either on creation of the DeploymentConfig (assuming the image already exists in the cluster) or as soon as the image is imported. The behavior of automatic=false is restored back in Origin 1.4.x / OSE 3.4.x to not resolve images at all (as it is working in all releases prior to Origin 1.3.x / OSE 3.3.x)
