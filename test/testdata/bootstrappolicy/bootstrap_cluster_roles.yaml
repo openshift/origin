@@ -314,6 +314,7 @@ items:
     - resourceaccessreviews
     - selfsubjectrulesreviews
     - subjectaccessreviews
+    - subjectrulesreviews
     verbs:
     - create
   - apiGroups:
@@ -589,6 +590,7 @@ items:
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
+    - subjectrulesreviews
     verbs:
     - create
   - apiGroups:
@@ -657,9 +659,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - deploymentconfigrollbacks
     - deploymentconfigs
-    - deploymentconfigs/rollback
     - deploymentconfigs/scale
     - generatedeploymentconfigs
     verbs:
@@ -671,6 +671,15 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs/instantiate
+    - deploymentconfigs/rollback
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -1008,9 +1017,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - deploymentconfigrollbacks
     - deploymentconfigs
-    - deploymentconfigs/rollback
     - deploymentconfigs/scale
     - generatedeploymentconfigs
     verbs:
@@ -1022,6 +1029,15 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigrollbacks
+    - deploymentconfigs/instantiate
+    - deploymentconfigs/rollback
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -2186,6 +2202,7 @@ items:
     resources:
     - localresourceaccessreviews
     - localsubjectaccessreviews
+    - subjectrulesreviews
     verbs:
     - create
   - apiGroups:

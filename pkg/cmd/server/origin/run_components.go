@@ -43,7 +43,6 @@ import (
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
-	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
@@ -356,19 +355,9 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 func (c *MasterConfig) RunDeploymentTriggerController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
 	streamInformer := c.Informers.ImageStreams().Informer()
-	osclient, kclient := c.DeploymentTriggerControllerClients()
+	osclient := c.DeploymentTriggerControllerClient()
 
-	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, kclient, c.ExternalVersionCodec)
-	go controller.Run(5, utilwait.NeverStop)
-}
-
-// RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
-func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	streamInformer := c.Informers.ImageStreams().Informer()
-	osclient, _ := c.DeploymentTriggerControllerClients()
-
-	controller := imagechangecontroller.NewImageChangeController(dcInfomer, streamInformer, osclient)
+	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, c.ExternalVersionCodec)
 	go controller.Run(5, utilwait.NeverStop)
 }
 

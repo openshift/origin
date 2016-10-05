@@ -502,6 +502,31 @@ func IsValidPercent(percent string) bool {
 
 const isNegativeErrorMsg string = `must be non-negative`
 
+func ValidateDeploymentRequest(req *deployapi.DeploymentRequest) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if len(req.Name) == 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), req.Name, "name of the deployment config is missing"))
+	} else if len(kvalidation.IsDNS1123Subdomain(req.Name)) != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("name"), req.Name, "name of the deployment config is invalid"))
+	}
+
+	return allErrs
+}
+
+func ValidateRequestForDeploymentConfig(req *deployapi.DeploymentRequest, config *deployapi.DeploymentConfig) field.ErrorList {
+	allErrs := ValidateDeploymentRequest(req)
+
+	if config.Spec.Paused {
+		// TODO: Enable deployment requests for paused deployment configs
+		// See https://github.com/openshift/origin/issues/9903
+		details := fmt.Sprintf("deployment config %q is paused - unpause to request a new deployment", config.Name)
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("paused"), config.Spec.Paused, details))
+	}
+
+	return allErrs
+}
+
 func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 

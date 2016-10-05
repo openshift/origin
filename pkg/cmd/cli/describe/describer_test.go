@@ -51,6 +51,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentLog{}),                        // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentLogOptions{}),                 // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentRequest{}),                    // normal users don't ever look at these
 	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
 	reflect.TypeOf(&imageapi.ImageStreamImport{}),                     // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
@@ -69,6 +70,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.SelfSubjectRulesReview{}),
+	reflect.TypeOf(&authorizationapi.SubjectRulesReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),

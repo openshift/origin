@@ -27,19 +27,19 @@ var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                              = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
-		deploymentFixture               = exutil.FixturePath("testdata", "test-deployment-test.yaml")
-		simpleDeploymentFixture         = exutil.FixturePath("testdata", "deployment-simple.yaml")
-		customDeploymentFixture         = exutil.FixturePath("testdata", "custom-deployment.yaml")
-		generationFixture               = exutil.FixturePath("testdata", "generation-test.yaml")
-		pausedDeploymentFixture         = exutil.FixturePath("testdata", "paused-deployment.yaml")
-		failedHookFixture               = exutil.FixturePath("testdata", "failing-pre-hook.yaml")
-		brokenDeploymentFixture         = exutil.FixturePath("testdata", "test-deployment-broken.yaml")
-		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployment-history-limit.yaml")
-		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployment-min-ready-seconds.yaml")
-		multipleICTFixture              = exutil.FixturePath("testdata", "deployment-example.yaml")
-		tagImagesFixture                = exutil.FixturePath("testdata", "tag-images-deployment.yaml")
-		readinessFixture                = exutil.FixturePath("testdata", "readiness-test.yaml")
-		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployment-with-ref-env.yaml")
+		deploymentFixture               = exutil.FixturePath("testdata", "deployments", "test-deployment-test.yaml")
+		simpleDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-simple.yaml")
+		customDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "custom-deployment.yaml")
+		generationFixture               = exutil.FixturePath("testdata", "deployments", "generation-test.yaml")
+		pausedDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "paused-deployment.yaml")
+		failedHookFixture               = exutil.FixturePath("testdata", "deployments", "failing-pre-hook.yaml")
+		brokenDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "test-deployment-broken.yaml")
+		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployments", "deployment-history-limit.yaml")
+		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployments", "deployment-min-ready-seconds.yaml")
+		multipleICTFixture              = exutil.FixturePath("testdata", "deployments", "deployment-example.yaml")
+		tagImagesFixture                = exutil.FixturePath("testdata", "deployments", "tag-images-deployment.yaml")
+		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
+		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 	)
 
 	g.Describe("when run iteratively", func() {
@@ -263,7 +263,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("verifying the post deployment action happened: tag is set")
 			var out string
-			pollErr := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
 				out, err = oc.Run("get").Args("istag/sample-stream:deployed").Output()
 				if errors.IsNotFound(err) {
 					return false, nil
@@ -417,8 +417,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			g.By(fmt.Sprintf("checking the history for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deploymentconfigs \"deployment-simple\""))
 			o.Expect(out).To(o.ContainSubstring("REVISION	STATUS		CAUSE"))
-			o.Expect(out).To(o.ContainSubstring("1		Complete	caused by a config change"))
-			o.Expect(out).To(o.ContainSubstring("2		Complete	caused by a config change"))
+			o.Expect(out).To(o.ContainSubstring("1		Complete	config change"))
+			o.Expect(out).To(o.ContainSubstring("2		Complete	config change"))
 		})
 	})
 
@@ -448,10 +448,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				generation = strings.Trim(generation, "\"")
 				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
 
-				return strings.Contains(generation, "1") && strings.Contains(version, "1"), nil
+				return strings.Contains(generation, "2") && strings.Contains(version, "1"), nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected generation: 1, got: %s, expected latestVersion: 1, got: %s", generation, version)
+				err = fmt.Errorf("expected generation: 2, got: %s, expected latestVersion: 1, got: %s", generation, version)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -470,10 +470,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				generation = strings.Trim(generation, "\"")
 				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
 
-				return strings.Contains(generation, "2"), nil
+				return strings.Contains(generation, "3"), nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected generation: 2, got: %s", generation)
+				err = fmt.Errorf("expected generation: 3, got: %s", generation)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -497,10 +497,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				generation = strings.Trim(generation, "\"")
 				g.By(fmt.Sprintf("checking the generation for %s: %s", resource, generation))
 
-				return strings.Contains(generation, "3") && strings.Contains(version, "2"), nil
+				return strings.Contains(generation, "4") && strings.Contains(version, "2"), nil
 			})
 			if err == wait.ErrWaitTimeout {
-				err = fmt.Errorf("expected generation: 3, got: %s, expected latestVersion: 2, got: %s", generation, version)
+				err = fmt.Errorf("expected generation: 4, got: %s, expected latestVersion: 2, got: %s", generation, version)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 

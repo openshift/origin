@@ -230,6 +230,19 @@ message DeploymentLogOptions {
   optional int64 version = 10;
 }
 
+// DeploymentRequest is a request to a deployment config for a new deployment.
+message DeploymentRequest {
+  // Name of the deployment config for requesting a new deployment.
+  optional string name = 1;
+
+  // Latest will update the deployment config with the latest state from all triggers.
+  optional bool latest = 2;
+
+  // Force will try to force a new deployment to run. If the deployment config is paused,
+  // then setting this to true will return an Invalid error.
+  optional bool force = 3;
+}
+
 // DeploymentStrategy describes how to perform a deployment.
 message DeploymentStrategy {
   // Type is the name of a deployment strategy.

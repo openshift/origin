@@ -22,6 +22,10 @@ Check whether an action is allowed
     Check the specified action in all namespaces.
 
 .PP
+\fB\-\-groups\fP=[]
+    Check the specified action using these groups instead of your groups.
+
+.PP
 \fB\-\-ignore\-scopes\fP=false
     Disregard any scopes present on this request and evaluate considering full permissions.
 
@@ -36,6 +40,10 @@ Check whether an action is allowed
 .PP
 \fB\-\-scopes\fP=[]
     Check the specified action using these scopes.  By default, the scopes on the current token will be used.
+
+.PP
+\fB\-\-user\fP=""
+    Check the specified action using this user instead of your user.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -98,10 +106,6 @@ Check whether an action is allowed
 .PP
 \fB\-\-token\fP=""
     Bearer token for authentication to the API server
-
-.PP
-\fB\-\-user\fP=""
-    The name of the kubeconfig user to use
 
 
 .SH SEE ALSO

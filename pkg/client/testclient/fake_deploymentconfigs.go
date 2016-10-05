@@ -114,3 +114,13 @@ func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) 
 
 	return obj.(*deployapi.DeploymentConfig), err
 }
+
+func (c *FakeDeploymentConfigs) Instantiate(inObj *deployapi.DeploymentRequest) (*deployapi.DeploymentConfig, error) {
+	deployment := &deployapi.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: inObj.Name}}
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("deploymentconfigs/instantiate", c.Namespace, deployment), deployment)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*deployapi.DeploymentConfig), err
+}

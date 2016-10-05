@@ -74,6 +74,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
 		Convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
 		Convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse,
+		Convert_v1_SubjectRulesReview_To_api_SubjectRulesReview,
+		Convert_api_SubjectRulesReview_To_v1_SubjectRulesReview,
+		Convert_v1_SubjectRulesReviewSpec_To_api_SubjectRulesReviewSpec,
+		Convert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec,
 		Convert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus,
 		Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus,
 	)
@@ -1125,6 +1129,74 @@ func autoConvert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewRespon
 
 func Convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(in *api.SubjectAccessReviewResponse, out *SubjectAccessReviewResponse, s conversion.Scope) error {
 	return autoConvert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(in, out, s)
+}
+
+func autoConvert_v1_SubjectRulesReview_To_api_SubjectRulesReview(in *SubjectRulesReview, out *api.SubjectRulesReview, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_SubjectRulesReviewSpec_To_api_SubjectRulesReviewSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_SubjectRulesReview_To_api_SubjectRulesReview(in *SubjectRulesReview, out *api.SubjectRulesReview, s conversion.Scope) error {
+	return autoConvert_v1_SubjectRulesReview_To_api_SubjectRulesReview(in, out, s)
+}
+
+func autoConvert_api_SubjectRulesReview_To_v1_SubjectRulesReview(in *api.SubjectRulesReview, out *SubjectRulesReview, s conversion.Scope) error {
+	if err := pkg_api.Convert_unversioned_TypeMeta_To_unversioned_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_SubjectRulesReview_To_v1_SubjectRulesReview(in *api.SubjectRulesReview, out *SubjectRulesReview, s conversion.Scope) error {
+	return autoConvert_api_SubjectRulesReview_To_v1_SubjectRulesReview(in, out, s)
+}
+
+func autoConvert_v1_SubjectRulesReviewSpec_To_api_SubjectRulesReviewSpec(in *SubjectRulesReviewSpec, out *api.SubjectRulesReviewSpec, s conversion.Scope) error {
+	out.User = in.User
+	out.Groups = in.Groups
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Scopes = nil
+	}
+	return nil
+}
+
+func Convert_v1_SubjectRulesReviewSpec_To_api_SubjectRulesReviewSpec(in *SubjectRulesReviewSpec, out *api.SubjectRulesReviewSpec, s conversion.Scope) error {
+	return autoConvert_v1_SubjectRulesReviewSpec_To_api_SubjectRulesReviewSpec(in, out, s)
+}
+
+func autoConvert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec(in *api.SubjectRulesReviewSpec, out *SubjectRulesReviewSpec, s conversion.Scope) error {
+	out.User = in.User
+	out.Groups = in.Groups
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make(OptionalScopes, len(*in))
+		copy(*out, *in)
+	} else {
+		out.Scopes = nil
+	}
+	return nil
+}
+
+func Convert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec(in *api.SubjectRulesReviewSpec, out *SubjectRulesReviewSpec, s conversion.Scope) error {
+	return autoConvert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec(in, out, s)
 }
 
 func autoConvert_v1_SubjectRulesReviewStatus_To_api_SubjectRulesReviewStatus(in *SubjectRulesReviewStatus, out *api.SubjectRulesReviewStatus, s conversion.Scope) error {

@@ -95,7 +95,7 @@ save may be your own.
 
 A diagnostic is an object that conforms to the Diagnostic interface
 (see pkg/diagnostics/types/diagnostic.go). The diagnostic object should
-be built in one of the builders in the pkg/cmd/experimental/diagnostics
+be built in one of the builders in the pkg/cmd/admin/diagnostics
 package (based on whether it depends on client, cluster-admin, or host
 configuration). When executed, the diagnostic logs its findings into
 a result object. It should be assumed that they may run in parallel.

@@ -445,6 +445,18 @@ type DeploymentConfigRollbackSpec struct {
 	IncludeStrategy bool
 }
 
+// DeploymentRequest is a request to a deployment config for a new deployment.
+type DeploymentRequest struct {
+	unversioned.TypeMeta
+	// Name of the deployment config for requesting a new deployment.
+	Name string
+	// Latest will update the deployment config with the latest state from all triggers.
+	Latest bool
+	// Force will try to force a new deployment to run. If the deployment config is paused,
+	// then setting this to true will return an Invalid error.
+	Force bool
+}
+
 // DeploymentLog represents the logs for a deployment
 type DeploymentLog struct {
 	unversioned.TypeMeta
