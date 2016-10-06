@@ -85,6 +85,14 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
+	namespace := kapi.NamespaceAll
+	if cmd.Flags().Lookup("namespace").Changed {
+		var err error
+		namespace, _, err = f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
+	}
 	o.Out = out
 
 	osClient, kClient, err := f.Clients()
@@ -93,7 +101,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 	}
 	o.Client = kClient
 
-	deploymentConfigList, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
+	deploymentConfigList, err := osClient.DeploymentConfigs(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -102,7 +110,7 @@ func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}
 
-	deploymentList, err := kClient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
+	deploymentList, err := kClient.ReplicationControllers(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

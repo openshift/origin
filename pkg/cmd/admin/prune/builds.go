@@ -84,6 +84,14 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
+	namespace := kapi.NamespaceAll
+	if cmd.Flags().Lookup("namespace").Changed {
+		var err error
+		namespace, _, err = f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
+	}
 	o.Out = out
 
 	osClient, _, err := f.Clients()
@@ -92,7 +100,7 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Client = osClient
 
-	buildConfigList, err := osClient.BuildConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
+	buildConfigList, err := osClient.BuildConfigs(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -101,7 +109,7 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
 	}
 
-	buildList, err := osClient.Builds(kapi.NamespaceAll).List(kapi.ListOptions{})
+	buildList, err := osClient.Builds(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}

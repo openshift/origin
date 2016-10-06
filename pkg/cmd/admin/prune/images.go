@@ -124,7 +124,14 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if !cmd.Flags().Lookup("prune-over-size-limit").Changed {
 		o.PruneOverSizeLimit = nil
 	}
-
+	namespace := kapi.NamespaceAll
+	if cmd.Flags().Lookup("namespace").Changed {
+		var err error
+		namespace, _, err = f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
+	}
 	o.Out = out
 
 	osClient, kClient, registryClient, err := getClients(f, o.CABundle)
@@ -138,41 +145,41 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return err
 	}
 
-	allStreams, err := osClient.ImageStreams(kapi.NamespaceAll).List(kapi.ListOptions{})
+	allStreams, err := osClient.ImageStreams(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allPods, err := kClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{})
+	allPods, err := kClient.Pods(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := kClient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
+	allRCs, err := kClient.ReplicationControllers(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allBCs, err := osClient.BuildConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
+	allBCs, err := osClient.BuildConfigs(namespace).List(kapi.ListOptions{})
 	// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allBuilds, err := osClient.Builds(kapi.NamespaceAll).List(kapi.ListOptions{})
+	allBuilds, err := osClient.Builds(namespace).List(kapi.ListOptions{})
 	// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allDCs, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
+	allDCs, err := osClient.DeploymentConfigs(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	limitRangesList, err := kClient.LimitRanges(kapi.NamespaceAll).List(kapi.ListOptions{})
+	limitRangesList, err := kClient.LimitRanges(namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -202,6 +209,9 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		DryRun:             o.Confirm == false,
 		RegistryClient:     registryClient,
 		RegistryURL:        o.RegistryUrlOverride,
+	}
+	if namespace != kapi.NamespaceAll {
+		options.Namespace = namespace
 	}
 
 	o.Pruner = prune.NewPruner(options)
