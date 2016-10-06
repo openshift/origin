@@ -239,7 +239,7 @@ install-travis:
 # Example:
 #   make build-rpms
 build-rpms:
-	OS_ONLY_BUILD_PLATFORMS='linux/amd64' tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 0"'
+	OS_ONLY_BUILD_PLATFORMS='linux/amd64' tito build --test --rpm --no-cleanup --rpmbuild-options='--noclean --define "make_redistributable 0"'
 .PHONY: build-rpms
 
 # Build RPMs for all architectures
@@ -247,5 +247,5 @@ build-rpms:
 # Example:
 #   make build-rpms-redistributable
 build-rpms-redistributable:
-	tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 1"'
+	tito build --test --rpm --no-cleanup --rpmbuild-options='--noclean --define "make_redistributable 1"'
 .PHONY: build-rpms-redistributable

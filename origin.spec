@@ -289,6 +289,8 @@ done
 install -d -m 755 %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
 install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfdir}/systemd/system.conf.d/
 
+%clean
+
 %files
 %doc README.md
 %license LICENSE
