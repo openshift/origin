@@ -272,6 +272,8 @@ pushd pkg/sdn/plugin/bin
 popd
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
+install -d -m 0755 %{buildroot}%{_unitdir}/openvswitch-nonetwork.service.d
+install -p -m 0644 contrib/systemd/openshift-sdn-ovs-01-avoid-oom.conf %{buildroot}%{_unitdir}/openvswitch-nonetwork.service.d/01-avoid-oom.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -418,6 +420,7 @@ fi
 %{_bindir}/openshift-sdn-docker-setup.sh
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
+%{_unitdir}/openvswitch-nonetwork.service.d/01-avoid-oom.conf
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by
