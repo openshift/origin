@@ -249,3 +249,11 @@ build-rpms:
 build-rpms-redistributable:
 	tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 1"'
 .PHONY: build-rpms-redistributable
+
+# Build OpenShift Origin Docker images
+#
+# Example:
+#   make build-images
+build-images:
+	hack/build-images.sh
+.PHONY: build-images
