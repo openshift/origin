@@ -3296,6 +3296,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                 "livenessProbe": {
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 120,
+                    "failureThreshold" : 30,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
@@ -3597,6 +3598,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                 "livenessProbe": {
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 120,
+                    "failureThreshold" : 30,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
