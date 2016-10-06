@@ -244,6 +244,12 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "myapp",
 		},
 		{
+			From:      "docker.io/user/project/myapp",
+			Registry:  "docker.io",
+			Namespace: "user",
+			Name:      "project/myapp",
+		},
+		{
 			From:      "index.docker.io/bar",
 			Registry:  "index.docker.io",
 			Namespace: DockerDefaultNamespace,
@@ -291,7 +297,17 @@ func TestParseDockerImageReference(t *testing.T) {
 			Err:  true,
 		},
 		{
-			From: "bar/foo/baz/biz",
+			From:      "bar/foo/baz/biz",
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz/biz",
+		},
+		{
+			From: "bar/foo/baz////biz",
+			Err:  true,
+		},
+		{
+			From: "//foo/baz/biz",
 			Err:  true,
 		},
 		{
@@ -312,6 +328,8 @@ func TestParseDockerImageReference(t *testing.T) {
 			continue
 		case err == nil && testCase.Err:
 			t.Errorf("%s: unexpected non-error", testCase.From)
+			continue
+		case err != nil && testCase.Err:
 			continue
 		}
 		if e, a := testCase.Registry, ref.Registry; e != a {
