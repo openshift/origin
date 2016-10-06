@@ -15,8 +15,8 @@ import (
 
 const (
 	ImageStreamName      = "test-image-stream"
-	ImageID              = "00000000000000000000000000000001"
-	DockerImageReference = "registry:5000/openshift/test-image-stream@sha256:00000000000000000000000000000001"
+	ImageID              = "0000000000000000000000000000000000000000000000000000000000000001"
+	DockerImageReference = "registry:5000/openshift/test-image-stream@sha256:0000000000000000000000000000000000000000000000000000000000000001"
 )
 
 func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
