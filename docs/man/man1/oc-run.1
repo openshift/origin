@@ -250,6 +250,13 @@ foreground for an interactive container execution.  You may pass 'run/v1' to
   # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
   oc run \-i \-\-tty nginx \-\-image=nginx \-\-restart=Never
 
+  # Start the nginx container using the default command, but use custom
+  # arguments (arg1 .. argN) for that command.
+  oc run nginx \-\-image=nginx \-\- <arg1> <arg2> ... <argN>
+
+  # Start the nginx container using a different command and custom arguments
+  oc run nginx \-\-image=nginx \-\-command \-\- <cmd> <arg1> ... <argN>
+
 .fi
 .RE
 
