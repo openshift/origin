@@ -162,8 +162,8 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
 	)
 
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, ruleResolver)
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver, authorizationapi.Resource("role"))
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, ruleResolver, authorizationapi.Resource("rolebinding"))
 	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
