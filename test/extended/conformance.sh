@@ -10,9 +10,15 @@ os::test::extended::focus "$@"
 function join { local IFS="$1"; shift; echo "$*"; }
 
 parallel_only=( "${CONFORMANCE_TESTS[@]}" )
-parallel_exclude=( "${EXCLUDED_TESTS[@]}" "${SERIAL_TESTS[@]}" )
 serial_only=( "${SERIAL_TESTS[@]}" )
-serial_exclude=( "${EXCLUDED_TESTS[@]}" )
+if [[ "${OPENSHIFT_SKIP_ALLOWALL_AUTH_TESTS:-false}" = "true" ]]; then
+  os::log::warn "Skipping tests requiring the AllowAllPasswordIdentityProvider to OPENSHIFT_ALLOWALL_AUTH_ENABLED"
+  parallel_exclude=( "${EXCLUDED_TESTS[@]}" "${SERIAL_TESTS[@]}" "${ALLOWALL_AUTH_REQUIRED_TESTS[@]}" )
+  serial_exclude=( "${EXCLUDED_TESTS[@]}" "${ALLOWALL_AUTH_REQUIRED_TESTS[@]}" )
+else
+  parallel_exclude=( "${EXCLUDED_TESTS[@]}" "${SERIAL_TESTS[@]}" )
+  serial_exclude=( "${EXCLUDED_TESTS[@]}" )
+fi
 
 pf=$(join '|' "${parallel_only[@]}")
 ps=$(join '|' "${parallel_exclude[@]}")
@@ -30,10 +36,10 @@ exitstatus=0
 # run parallel tests
 nodes="${PARALLEL_NODES:-5}"
 echo "[INFO] Running parallel tests N=${nodes}"
-TEST_REPORT_FILE_NAME=conformance_parallel ${GINKGO} -v "-focus=${pf}" "-skip=${ps}" -p -nodes "${nodes}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 6h || exitstatus=$?
+TEST_REPORT_FILE_NAME=conformance_parallel ${EXTENDEDTEST} "--ginkgo.focus=${pf}" "--ginkgo.skip=${ps}" "--ginkgo.progress=true" "--ginkgo.parallel.total=${nodes}" --ginkgo.v --test.timeout 6h || exitstatus=$?
 
 # run tests in serial
 echo "[INFO] Running serial tests"
-TEST_REPORT_FILE_NAME=conformance_serial ${GINKGO} -v "-focus=${sf}" "-skip=${ss}" ${EXTENDEDTEST} -- -ginkgo.v -test.timeout 2h || exitstatus=$?
+TEST_REPORT_FILE_NAME=conformance_serial ${EXTENDEDTEST} "--ginkgo.focus=${sf}" "--ginkgo.skip=${ss}" --ginkgo.v --test.timeout 2h || exitstatus=$?
 
 exit $exitstatus

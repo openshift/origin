@@ -21,29 +21,32 @@ function os::test::extended::focus {
 #		and then tests are executed.	Tests that depend on fine grained setup should
 #		be done in other contexts.
 function os::test::extended::setup () {
-	# build binaries
-	if [[ -z "$(os::build::find-binary ginkgo)" ]]; then
-		hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-	fi
-	if [[ -z "$(os::build::find-binary extended.test)" ]]; then
-		hack/build-go.sh test/extended/extended.test
-	fi
-	if [[ -z "$(os::build::find-binary openshift)" ]]; then
-		hack/build-go.sh
-	fi
-
 	os::util::environment::setup_time_vars
 
 	# ensure proper relative directories are set
-	GINKGO="$(os::build::find-binary ginkgo)"
-	EXTENDEDTEST="$(os::build::find-binary extended.test)"
-	export GINKGO
-	export EXTENDEDTEST
-	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
+	export TMPDIR=${BASETMPDIR:-/tmp}
+	export EXTENDED_TEST_PATH="$(pwd)/test/extended"
+	export KUBE_REPO_ROOT="$(pwd)/vendor/k8s.io/kubernetes"
 
 	# allow setup to be skipped
-	if [[ -z "${TEST_ONLY+x}" ]]; then
+	if [[ -n "${TEST_ONLY:-}" ]]; then
+		TEST_OUTPUT_QUIET=true ${EXTENDEDTEST} --ginkgo.dryRun --ginkgo.noColor | grep ok | grep -v skip | cut -c 20- | sort
+		# be sure to set these variables if using TEST_ONLY
+		os::log::info "Running Tests Only (not starting server), VOLUME_DIR=${VOLUME_DIR:-}, EXTENDED_TEST=${EXTENDEDTEST:-}"
+	else
+		# build binaries
+		if [[ -z $(os::build::find-binary ginkgo) ]]; then
+			hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
+			export GINKGO="$(os::build::find-binary ginkgo)"
+		fi
+		if [[ -z $(os::build::find-binary extended.test) ]]; then
+			hack/build-go.sh test/extended/extended.test
+			export EXTENDEDTEST="$(os::build::find-binary extended.test)"
+		fi
+		if [[ -z $(os::build::find-binary openshift) ]]; then
+			hack/build-go.sh
+		fi
+
 		ensure_iptables_or_die
 
 		function cleanup() {
@@ -128,9 +131,6 @@ function os::test::extended::setup () {
 
 		os::log::info "Creating image streams"
 		oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"
-	else
-		# be sure to set VOLUME_DIR if you are running with TEST_ONLY
-		os::log::info "Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
 	fi
 }
 
@@ -276,6 +276,54 @@ readonly EXCLUDED_TESTS=(
 	# Inordinately slow tests
 	"should create and stop a working application"
 	"should always delete fast" # will be uncommented in etcd3
+)
+
+readonly ALLOWALL_AUTH_REQUIRED_TESTS=(
+	"docker template without an output image reference defined"
+	"remove all builds when build configuration is removed"
+	"S2i template without an output image reference defined"
+	"SchedulerPredicates \[Serial\]"
+	"should add annotations for pods in rc"
+        "should appropriately serve a route that points to two services"
+	"should be able to retrieve and filter logs"
+	"should be sent by kubelets and the scheduler about pods scheduling and running [Conformance]"
+	"should check if kubectl describe prints relevant information for rc and pods"
+	"should create a docker build that pulls using a secret run it"
+	"should create and run a job in user project"
+	"should create and stop a replication controller"
+	"should create an rc or deployment from an image"
+	"should create an s2i build with a quota and run it"
+	"should create services for rc"
+        "should delete all failed deployer pods and hook pods"
+        "should deploy based on a status version bump"
+        "should disable actions on deployments"
+        "should get all logs from retried hooks"
+        "should idle the service and DeploymentConfig properly"
+        "should immediately start a new deployment"
+        "should include various info in status"
+        "should never persist more old deployments than acceptable after being observed by the controller"
+        "should not deploy if pods never transition to ready"
+        "should not transition the deployment to Complete before satisfied"
+	"should only deploy the last deployment"
+	"should override the route host with a custom value"
+        "should print the rollout history"
+	"should propagate requested groups to the docker host config"
+	"should provide DNS for services"
+	"should provide DNS for the cluster"
+        "should rollback to an older deployment"
+	"should run a deployment to completion and then scale to zero"
+        "should run a successful deployment"
+        "should run the custom deployment steps"
+	"should scale a replication controller"
+	"should serve a basic image on each replica with a public image"
+	"should serve the correct routes when scoped to a single namespace and label set"
+        "should successfully tag the deployed image"
+	"should support exec"
+	"should support inline execution and attach"
+	"should support port-forward"
+	"should update the label on a resource"
+        "should work with TCP"
+	"Test local storage quota"
 )
 
 readonly SERIAL_TESTS=(
