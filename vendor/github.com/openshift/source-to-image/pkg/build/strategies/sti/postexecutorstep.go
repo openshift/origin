@@ -419,18 +419,20 @@ func createLabelsForResultingImage(builder *STI, docker dockerpkg.Docker, baseIm
 		glog.V(0).Infof("error: Unable to read existing labels from the base image %s", baseImage)
 	}
 
-	return mergeLabels(generatedLabels, existingLabels)
+	configLabels := builder.config.Labels
+
+	return mergeLabels(configLabels, generatedLabels, existingLabels)
 }
 
-func mergeLabels(newLabels, existingLabels map[string]string) map[string]string {
-	if existingLabels == nil {
-		return newLabels
-	}
+func mergeLabels(configLabels, generatedLabels, existingLabels map[string]string) map[string]string {
 	result := map[string]string{}
 	for k, v := range existingLabels {
 		result[k] = v
 	}
-	for k, v := range newLabels {
+	for k, v := range generatedLabels {
+		result[k] = v
+	}
+	for k, v := range configLabels {
 		result[k] = v
 	}
 	return result
