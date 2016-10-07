@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 0af561296b651c7dd050f62b042b68c73103d492
+%global commit a230173daf5707a80c6b4dc82ccbe4efe08342ea
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR='' OS_GIT_TREE_STATE=''
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.7+a230173 OS_GIT_COMMIT=a230173 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.7
+Version:        3.4.0.8
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,22 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Oct 07 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.8
+- Merge remote-tracking branch upstream/master, bump origin-web-console 2f78dcc
+  (tdawson@redhat.com)
+- Update ose_images.sh - 2016-10-05 (tdawson@redhat.com)
+- Updated link to host subnet routing documentation. (pep@redhat.com)
+- Allow multiple segments in DockerImageReference (agladkov@redhat.com)
+- Updates `oc run` examples (jtslear@gmail.com)
+- Introduce targets for building RPMs to the Makefile (skuznets@redhat.com)
+- fix error messages for clusterrolebinding (jtanenba@redhat.com)
+- Fixup tito tagger and builder libs (tdawson@redhat.com)
+- Remove manpage generation from Tito build (skuznets@redhat.com)
+- Update ovs.AddPort()/DeletePort() semantics (danw@redhat.com)
+- Add a "global" type to pkg/util/ovs (danw@redhat.com)
+- Make pkg/util/ovs and pkg/util/ipcmd tests check the passed-in command line
+  (danw@redhat.com)
+
 * Wed Oct 05 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.7
 - Merge remote-tracking branch upstream/master, bump origin-web-console 02b3c89
   (tdawson@redhat.com)
