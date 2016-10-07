@@ -191,6 +191,28 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	validationResults.Append(ValidateControllerConfig(config.ControllerConfig, fldPath.Child("controllerConfig")))
 
+	validationResults.Append(ValidateAuditConfig(config.AuditConfig, fldPath.Child("auditConfig")))
+
+	return validationResults
+}
+
+func ValidateAuditConfig(config api.AuditConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if len(config.AuditFilePath) == 0 {
+		// for backwards compatibility reasons we can't error this out
+		validationResults.AddWarnings(field.Required(fldPath.Child("auditFilePath"), "audit can now be logged to a separate file"))
+	}
+	if config.MaximumFileRetentionDays < 0 {
+		validationResults.AddErrors(field.Invalid(fldPath.Child("maximumFileRetentionDays"), config.MaximumFileRetentionDays, "must be greater than or equal to 0"))
+	}
+	if config.MaximumRetainedFiles < 0 {
+		validationResults.AddErrors(field.Invalid(fldPath.Child("maximumRetainedFiles"), config.MaximumRetainedFiles, "must be greater than or equal to 0"))
+	}
+	if config.MaximumFileSizeMegabytes < 0 {
+		validationResults.AddErrors(field.Invalid(fldPath.Child("maximumFileSizeMegabytes"), config.MaximumFileSizeMegabytes, "must be greater than or equal to 0"))
+	}
+
 	return validationResults
 }
 

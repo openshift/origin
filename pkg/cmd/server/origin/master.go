@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -184,14 +185,19 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// audit handler must comes before the impersonationFilter to read the original user
 	if c.Options.AuditConfig.Enabled {
 		attributeGetter := apiserver.NewRequestAttributeGetter(c.getRequestContextMapper(), c.getRequestInfoResolver())
-		writer := &lumberjack.Logger{
-			Filename:   c.Options.AuditConfig.AuditFilePath,
-			MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
-			MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
-			MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
+		var writer io.Writer
+		if len(c.Options.AuditConfig.AuditFilePath) > 0 {
+			writer = &lumberjack.Logger{
+				Filename:   c.Options.AuditConfig.AuditFilePath,
+				MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
+				MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
+				MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
+			}
+		} else {
+			// backwards compatible writer to regular log
+			writer = cmdutil.NewGLogWriterV(0)
 		}
 		handler = audit.WithAudit(handler, attributeGetter, writer)
-		defer writer.Close()
 	}
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
