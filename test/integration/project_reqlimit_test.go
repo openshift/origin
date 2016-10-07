@@ -131,7 +131,7 @@ func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
 		"silver":  2,
 		"gold":    2,
 	})
-	testProjectRequestLimitAdmission(t, "multi-level config", clientConfig, map[string]bool{
+	testProjectRequestLimitAdmission(t, "multi-level config", oclient, clientConfig, map[string]bool{
 		"regular": true,
 		"silver":  false,
 		"gold":    true,
@@ -147,7 +147,7 @@ func TestProjectRequestLimitEmptyConfig(t *testing.T) {
 		"silver":  2,
 		"gold":    2,
 	})
-	testProjectRequestLimitAdmission(t, "empty config", clientConfig, map[string]bool{
+	testProjectRequestLimitAdmission(t, "empty config", oclient, clientConfig, map[string]bool{
 		"regular": true,
 		"silver":  true,
 		"gold":    true,
@@ -163,7 +163,7 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 		"silver":  1,
 		"gold":    0,
 	})
-	testProjectRequestLimitAdmission(t, "single default config", clientConfig, map[string]bool{
+	testProjectRequestLimitAdmission(t, "single default config", oclient, clientConfig, map[string]bool{
 		"regular": true,
 		"silver":  false,
 		"gold":    true,
@@ -188,9 +188,9 @@ func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 	}
 }
 
-func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientConfig *restclient.Config, tests map[string]bool) {
+func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clusterAdminClient client.Interface, clientConfig *restclient.Config, tests map[string]bool) {
 	for user, expectSuccess := range tests {
-		oclient, _, _, err := testutil.GetClientForUser(*clientConfig, user)
+		oclient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clientConfig, user)
 		if err != nil {
 			t.Fatalf("Error getting client for user %s: %v", user, err)
 		}

@@ -15,7 +15,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func createProject(osClient *osclient.Client, clientConfig *restclient.Config, name string) (*sdnapi.NetNamespace, error) {
+func createProject(osClient osclient.Interface, clientConfig *restclient.Config, name string) (*sdnapi.NetNamespace, error) {
 	_, err := testserver.CreateNewProject(osClient, *clientConfig, name, name)
 	if err != nil {
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
@@ -42,7 +42,7 @@ func createProject(osClient *osclient.Client, clientConfig *restclient.Config, n
 	return netns, nil
 }
 
-func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, action sdnapi.PodNetworkAction, args string) (*sdnapi.NetNamespace, error) {
+func updateNetNamespace(osClient osclient.Interface, netns *sdnapi.NetNamespace, action sdnapi.PodNetworkAction, args string) (*sdnapi.NetNamespace, error) {
 	sdnapi.SetChangePodNetworkAnnotation(netns, action, args)
 	_, err := osClient.NetNamespaces().Update(netns)
 	if err != nil {

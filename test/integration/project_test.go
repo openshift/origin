@@ -176,7 +176,7 @@ func TestProjectWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	bobClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "bob")
+	bobClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "bob")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -318,7 +318,7 @@ func TestScopedProjectAccess(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	fullBobClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "bob")
+	fullBobClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "bob")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -447,11 +447,11 @@ func TestInvalidRoleRefs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bobClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "bob")
+	bobClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "bob")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	aliceClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "alice")
+	aliceClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "alice")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

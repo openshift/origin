@@ -58,8 +58,8 @@ func TestNodeAuth(t *testing.T) {
 	badTokenConfig := clientcmd.AnonymousClientConfig(adminConfig)
 	badTokenConfig.BearerToken = "bad-token"
 
-	bobClient, _, bobConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
-	_, _, aliceConfig, err := testutil.GetClientForUser(*adminConfig, "alice")
+	bobClient, _, bobConfig, err := testutil.GetClientForUser(originAdminClient, *adminConfig, "bob")
+	_, _, aliceConfig, err := testutil.GetClientForUser(originAdminClient, *adminConfig, "alice")
 	sa1Client, _, sa1Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa1")
 	_, _, sa2Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa2")
 
@@ -89,7 +89,7 @@ func TestNodeAuth(t *testing.T) {
 	if _, err := originAdminClient.OAuthAccessTokens().Create(whoamiOnlyBobToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, _, bobWhoamiOnlyConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
+	_, _, bobWhoamiOnlyConfig, err := testutil.GetClientForUser(originAdminClient, *adminConfig, "bob")
 	bobWhoamiOnlyConfig.BearerToken = whoamiOnlyBobToken.Name
 
 	// Grant sa1 system:cluster-reader, which should let them read metrics and stats

@@ -34,7 +34,7 @@ func TestDeployScale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	osClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
+	osClient, _, _, err := testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}

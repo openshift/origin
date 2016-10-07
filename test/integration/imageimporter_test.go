@@ -183,7 +183,7 @@ func mockRegistryHandler(t *testing.T, requireAuth bool, count *int) http.Handle
 	})
 }
 
-func testImageStreamImport(t *testing.T, c *client.Client, imageSize int64, imagestreamimport *api.ImageStreamImport) {
+func testImageStreamImport(t *testing.T, c client.Interface, imageSize int64, imagestreamimport *api.ImageStreamImport) {
 	imageStreams := c.ImageStreams(testutil.Namespace())
 
 	isi, err := imageStreams.Import(imagestreamimport)

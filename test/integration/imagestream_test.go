@@ -410,7 +410,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can tag to a stream that exists
-	exec := stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset, os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec := stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -448,7 +448,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can execute a second time the same tag and it should work
-	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset, os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -480,7 +480,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can lifecycle tag a new image stream
-	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset, os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{

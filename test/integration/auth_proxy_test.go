@@ -61,9 +61,8 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	result := clusterAdminClient.RESTClient.Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
-	if result.Error() != nil {
-		t.Fatal(result.Error())
+	if _, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}); err != nil {
+		t.Fatal(err)
 	}
 
 	// our simple URL to get back a code.  We want to go through the front proxy

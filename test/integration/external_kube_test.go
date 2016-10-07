@@ -84,12 +84,12 @@ func TestExternalKube(t *testing.T) {
 
 func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 	// Ping the healthz endpoint on the second OpenShift cluster
-	url, err := url.Parse(masterConfig.MasterPublicURL)
+	u, err := url.Parse(masterConfig.MasterPublicURL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	url.Path = "/healthz"
-	response, body, err := httpprobe.New().Probe(url, nil, 1*time.Second)
+	u.Path = "/healthz"
+	response, body, err := httpprobe.New().Probe(u, nil, 1*time.Second)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -98,12 +98,12 @@ func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 	}
 }
 
-func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclientset.Clientset, t *testing.T) {
+func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient kclientset.Interface, t *testing.T) {
 	// list namespaces in order to determine correct resourceVersion
-	namespaces, err := cluster1AdminKubeClient.Namespaces().List(kapi.ListOptions{})
+	namespaces, err := cluster1AdminKubeClient.Core().Namespaces().List(kapi.ListOptions{})
 
 	// open a watch on Cluster 2 for namespaces starting with latest resourceVersion
-	namespaceWatch, err := cluster2AdminKubeClient.Namespaces().Watch(kapi.ListOptions{ResourceVersion: namespaces.ResourceVersion})
+	namespaceWatch, err := cluster2AdminKubeClient.Core().Namespaces().Watch(kapi.ListOptions{ResourceVersion: namespaces.ResourceVersion})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,7 +113,7 @@ func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclientset
 	namespace := &kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-namespace"},
 	}
-	createdNamespace, err := cluster2AdminKubeClient.Namespaces().Create(namespace)
+	createdNamespace, err := cluster2AdminKubeClient.Core().Namespaces().Create(namespace)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -127,7 +127,7 @@ func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclientset
 		}
 		addedNamespace, ok := e.Object.(*kapi.Namespace)
 		if !ok {
-			t.Fatalf("unexpected cast error from event Object to Namespace")
+			t.Fatal("unexpected cast error from event Object to Namespace")
 		}
 		if addedNamespace.ObjectMeta.Name != createdNamespace.Name {
 			t.Fatalf("namespace returned from Watch is not the same ast that created: got %v, wanted %v", createdNamespace, addedNamespace)

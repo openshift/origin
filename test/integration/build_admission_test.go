@@ -9,7 +9,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
-	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -29,7 +29,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, false)
 
-	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
+	clients := map[string]client.Interface{"admin": projectAdminClient, "editor": projectEditorClient}
 	builds := map[string]*buildapi.Build{}
 
 	restrictedStrategies := make(map[string]int)
@@ -51,13 +51,13 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 		}
 	}
 
-	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectEditorClient)
 
 	// Create builds to setup test
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
+		for clientType, c := range clients {
 			var err error
-			if builds[string(strategy)+clientType], err = createBuild(t, client.Builds(testutil.Namespace()), strategy); err != nil {
+			if builds[string(strategy)+clientType], err = createBuild(t, c.Builds(testutil.Namespace()), strategy); err != nil {
 				t.Errorf("unexpected error for strategy %s and client %s: %v", strategy, clientType, err)
 			}
 		}
@@ -65,8 +65,8 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 
 	// by default admins and editors can clone builds
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := cloneBuild(t, client.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); err != nil {
+		for clientType, c := range clients {
+			if _, err := cloneBuild(t, c.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); err != nil {
 				t.Errorf("unexpected clone error for strategy %s and client %s: %v", strategy, clientType, err)
 			}
 		}
@@ -75,8 +75,8 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 
 	// make sure builds are rejected
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := createBuild(t, client.Builds(testutil.Namespace()), strategy); !kapierror.IsForbidden(err) {
+		for clientType, c := range clients {
+			if _, err := createBuild(t, c.Builds(testutil.Namespace()), strategy); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
@@ -84,8 +84,8 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 
 	// make sure build updates are rejected
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := updateBuild(t, client.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
+		for clientType, c := range clients {
+			if _, err := updateBuild(t, c.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
@@ -93,8 +93,8 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 
 	// make sure clone is rejected
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := cloneBuild(t, client.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
+		for clientType, c := range clients {
+			if _, err := cloneBuild(t, c.Builds(testutil.Namespace()), builds[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
@@ -105,7 +105,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	defer testutil.DumpEtcdOnFailure(t)
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, true)
 
-	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
+	clients := map[string]client.Interface{"admin": projectAdminClient, "editor": projectEditorClient}
 	buildConfigs := map[string]*buildapi.BuildConfig{}
 	restrictedStrategies := make(map[string]int)
 	for key, val := range buildStrategyTypesRestricted() {
@@ -126,13 +126,13 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 		}
 	}
 
-	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectEditorClient)
 
 	// by default admins and editors can create source, docker, and jenkinspipline buildconfigs
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
+		for clientType, c := range clients {
 			var err error
-			if buildConfigs[string(strategy)+clientType], err = createBuildConfig(t, client.BuildConfigs(testutil.Namespace()), strategy); err != nil {
+			if buildConfigs[string(strategy)+clientType], err = createBuildConfig(t, c.BuildConfigs(testutil.Namespace()), strategy); err != nil {
 				t.Errorf("unexpected error for strategy %s and client %s: %v", strategy, clientType, err)
 			}
 		}
@@ -140,8 +140,8 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 
 	// by default admins and editors can instantiate build configs
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := instantiateBuildConfig(t, client.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); err != nil {
+		for clientType, c := range clients {
+			if _, err := instantiateBuildConfig(t, c.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); err != nil {
 				t.Errorf("unexpected instantiate error for strategy %s and client %s: %v", strategy, clientType, err)
 			}
 		}
@@ -151,8 +151,8 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 
 	// make sure buildconfigs are rejected
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := createBuildConfig(t, client.BuildConfigs(testutil.Namespace()), strategy); !kapierror.IsForbidden(err) {
+		for clientType, c := range clients {
+			if _, err := createBuildConfig(t, c.BuildConfigs(testutil.Namespace()), strategy); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
@@ -160,8 +160,8 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 
 	// make sure buildconfig updates are rejected
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := updateBuildConfig(t, client.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
+		for clientType, c := range clients {
+			if _, err := updateBuildConfig(t, c.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
@@ -169,15 +169,15 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 
 	// make sure instantiate is rejected
 	for _, strategy := range buildStrategyTypes() {
-		for clientType, client := range clients {
-			if _, err := instantiateBuildConfig(t, client.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
+		for clientType, c := range clients {
+			if _, err := instantiateBuildConfig(t, c.BuildConfigs(testutil.Namespace()), buildConfigs[string(strategy)+clientType]); !kapierror.IsForbidden(err) {
 				t.Errorf("expected forbidden for strategy %s and client %s: got %v", strategy, clientType, err)
 			}
 		}
 	}
 }
 
-func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient client.Interface) {
 	testutil.RequireEtcd(t)
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
@@ -206,7 +206,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	projectEditorClient, _, _, err = testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
+	projectEditorClient, _, _, err = testutil.GetClientForUser(clusterAdminClient, *clusterAdminClientConfig, "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -242,10 +242,10 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		t.Fatalf("Couldn't create jenkins template: %v", err)
 	}
 
-	return
+	return clusterAdminClient, projectAdminClient, projectEditorClient
 }
 
-func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient client.Interface) {
 	// remove resources from role so that certain build strategies are forbidden
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName, bootstrappolicy.BuildStrategyJenkinsPipelineRoleName} {
 		options := &policy.RoleModificationOptions{
@@ -273,7 +273,7 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectA
 	}
 }
 
-func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectEditorClient client.Interface) {
 	// grant resources to role so that restricted build strategies are available
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName} {
 		options := &policy.RoleModificationOptions{

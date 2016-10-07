@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"testing"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -11,7 +13,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 	kapi "k8s.io/kubernetes/pkg/api"
 	watchapi "k8s.io/kubernetes/pkg/watch"
-	"testing"
 )
 
 const (
@@ -226,7 +227,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 	}
 }
 
-func setup(t *testing.T) (*client.Client, *client.Client) {
+func setup(t *testing.T) (client.Interface, client.Interface) {
 	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
@@ -251,7 +252,7 @@ func setup(t *testing.T) (*client.Client, *client.Client) {
 	return projectAdminClient, clusterAdminClient
 }
 
-func runTest(t *testing.T, testname string, projectAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
+func runTest(t *testing.T, testname string, projectAdminClient client.Interface, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
 	created, err := projectAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
