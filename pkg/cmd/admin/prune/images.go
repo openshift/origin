@@ -69,10 +69,12 @@ type PruneImagesOptions struct {
 	PruneOverSizeLimit  *bool
 	CABundle            string
 	RegistryUrlOverride string
+	Namespace           string
 
-	Pruner prune.Pruner
-	Client client.Interface
-	Out    io.Writer
+	OSClient       client.Interface
+	KClient        kclient.Interface
+	RegistryClient *http.Client
+	Out            io.Writer
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
@@ -124,10 +126,10 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if !cmd.Flags().Lookup("prune-over-size-limit").Changed {
 		o.PruneOverSizeLimit = nil
 	}
-	namespace := kapi.NamespaceAll
+	o.Namespace = kapi.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
-		namespace, _, err = f.DefaultNamespace()
+		o.Namespace, _, err = f.DefaultNamespace()
 		if err != nil {
 			return err
 		}
@@ -138,48 +140,72 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if err != nil {
 		return err
 	}
-	o.Client = osClient
+	o.OSClient = osClient
+	o.KClient = kClient
+	o.RegistryClient = registryClient
 
-	allImages, err := osClient.Images().List(kapi.ListOptions{})
+	return nil
+}
+
+// Validate ensures that a PruneImagesOptions is valid and can be used to execute pruning.
+func (o PruneImagesOptions) Validate() error {
+	if o.PruneOverSizeLimit != nil && (o.KeepYoungerThan != nil || o.KeepTagRevisions != nil) {
+		return fmt.Errorf("--prune-over-size-limit cannot be specified with --keep-tag-revisions nor --keep-younger-than")
+	}
+	if o.KeepYoungerThan != nil && *o.KeepYoungerThan < 0 {
+		return fmt.Errorf("--keep-younger-than must be greater than or equal to 0")
+	}
+	if o.KeepTagRevisions != nil && *o.KeepTagRevisions < 0 {
+		return fmt.Errorf("--keep-tag-revisions must be greater than or equal to 0")
+	}
+	if _, err := url.Parse(o.RegistryUrlOverride); err != nil {
+		return fmt.Errorf("invalid --registry-url flag: %v", err)
+	}
+	return nil
+}
+
+// Run contains all the necessary functionality for the OpenShift cli prune images command.
+func (o PruneImagesOptions) Run() error {
+	allImages, err := o.OSClient.Images().List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allStreams, err := osClient.ImageStreams(namespace).List(kapi.ListOptions{})
+	allStreams, err := o.OSClient.ImageStreams(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allPods, err := kClient.Pods(namespace).List(kapi.ListOptions{})
+	allPods, err := o.KClient.Pods(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := kClient.ReplicationControllers(namespace).List(kapi.ListOptions{})
+	allRCs, err := o.KClient.ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allBCs, err := osClient.BuildConfigs(namespace).List(kapi.ListOptions{})
+	allBCs, err := o.OSClient.BuildConfigs(o.Namespace).List(kapi.ListOptions{})
 	// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allBuilds, err := osClient.Builds(namespace).List(kapi.ListOptions{})
+	allBuilds, err := o.OSClient.Builds(o.Namespace).List(kapi.ListOptions{})
 	// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allDCs, err := osClient.DeploymentConfigs(namespace).List(kapi.ListOptions{})
+	allDCs, err := o.OSClient.DeploymentConfigs(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	limitRangesList, err := kClient.LimitRanges(namespace).List(kapi.ListOptions{})
+	limitRangesList, err := o.KClient.LimitRanges(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -207,37 +233,14 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		DCs:                allDCs,
 		LimitRanges:        limitRangesMap,
 		DryRun:             o.Confirm == false,
-		RegistryClient:     registryClient,
+		RegistryClient:     o.RegistryClient,
 		RegistryURL:        o.RegistryUrlOverride,
 	}
-	if namespace != kapi.NamespaceAll {
-		options.Namespace = namespace
+	if o.Namespace != kapi.NamespaceAll {
+		options.Namespace = o.Namespace
 	}
+	pruner := prune.NewPruner(options)
 
-	o.Pruner = prune.NewPruner(options)
-
-	return nil
-}
-
-// Validate ensures that a PruneImagesOptions is valid and can be used to execute pruning.
-func (o PruneImagesOptions) Validate() error {
-	if o.PruneOverSizeLimit != nil && (o.KeepYoungerThan != nil || o.KeepTagRevisions != nil) {
-		return fmt.Errorf("--prune-over-size-limit cannot be specified with --keep-tag-revisions nor --keep-younger-than")
-	}
-	if o.KeepYoungerThan != nil && *o.KeepYoungerThan < 0 {
-		return fmt.Errorf("--keep-younger-than must be greater than or equal to 0")
-	}
-	if o.KeepTagRevisions != nil && *o.KeepTagRevisions < 0 {
-		return fmt.Errorf("--keep-tag-revisions must be greater than or equal to 0")
-	}
-	if _, err := url.Parse(o.RegistryUrlOverride); err != nil {
-		return fmt.Errorf("invalid --registry-url flag: %v", err)
-	}
-	return nil
-}
-
-// Run contains all the necessary functionality for the OpenShift cli prune images command.
-func (o PruneImagesOptions) Run() error {
 	w := tabwriter.NewWriter(o.Out, 10, 4, 3, ' ', 0)
 	defer w.Flush()
 
@@ -248,8 +251,8 @@ func (o PruneImagesOptions) Run() error {
 	manifestDeleter := &describingManifestDeleter{w: w}
 
 	if o.Confirm {
-		imageDeleter.delegate = prune.NewImageDeleter(o.Client.Images())
-		imageStreamDeleter.delegate = prune.NewImageStreamDeleter(o.Client)
+		imageDeleter.delegate = prune.NewImageDeleter(o.OSClient.Images())
+		imageStreamDeleter.delegate = prune.NewImageStreamDeleter(o.OSClient)
 		layerLinkDeleter.delegate = prune.NewLayerLinkDeleter()
 		blobDeleter.delegate = prune.NewBlobDeleter()
 		manifestDeleter.delegate = prune.NewManifestDeleter()
@@ -257,7 +260,7 @@ func (o PruneImagesOptions) Run() error {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
 	}
 
-	return o.Pruner.Prune(imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
+	return pruner.Prune(imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
 }
 
 // describingImageStreamDeleter prints information about each image stream update.
