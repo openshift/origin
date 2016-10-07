@@ -36,16 +36,21 @@ const (
 	VXLAN_PORT = "4789"
 )
 
-func getPluginVersion(multitenant bool) []string {
+func (plugin *OsdnNode) getPluginVersion() []string {
 	if VERSION > 254 {
 		panic("Version too large!")
 	}
 	version := fmt.Sprintf("%02X", VERSION)
-	if multitenant {
-		return []string{"01", version}
+	pluginId := ""
+	switch plugin.policy.(type) {
+	case *singleTenantPlugin:
+		pluginId = "00"
+	case *multiTenantPlugin:
+		pluginId = "01"
+	default:
+		panic("Not an OpenShift-SDN plugin")
 	}
-	// single-tenant
-	return []string{"00", version}
+	return []string{pluginId, version}
 }
 
 func (plugin *OsdnNode) getLocalSubnet() (string, error) {
@@ -133,7 +138,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 		// OVS note action format hex bytes separated by '.'; first
 		// byte is plugin type (multi-tenant/single-tenant) and second
 		// byte is flow rule version
-		expected := getPluginVersion(plugin.multitenant)
+		expected := plugin.getPluginVersion()
 		existing := strings.Split(flow[idx+len(VERSION_ACTION):], ".")
 		if len(existing) >= 2 && existing[0] == expected[0] && existing[1] == expected[1] {
 			found = true
@@ -322,7 +327,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 
 	// Table 253: rule version; note action is hex bytes separated by '.'
 	otx = plugin.ovs.NewTransaction()
-	pluginVersion := getPluginVersion(plugin.multitenant)
+	pluginVersion := plugin.getPluginVersion()
 	otx.AddFlow("%s, %s%s.%s", VERSION_TABLE, VERSION_ACTION, pluginVersion[0], pluginVersion[1])
 	err = otx.EndTransaction()
 	if err != nil {
@@ -344,7 +349,7 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	otx := plugin.ovs.NewTransaction()
 
 	policies := plugin.egressPolicies[vnid]
-	namespaces := plugin.vnids.GetNamespaces(vnid)
+	namespaces := plugin.policy.GetNamespaces(vnid)
 	if len(policies) == 0 {
 		otx.DeleteFlows("table=100, reg0=%d", vnid)
 	} else if vnid == 0 {
@@ -420,10 +425,6 @@ func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
 }
 
 func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
-	if !plugin.multitenant {
-		return
-	}
-
 	glog.V(5).Infof("AddServiceRules for %v", service)
 
 	otx := plugin.ovs.NewTransaction()
@@ -436,10 +437,6 @@ func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
 }
 
 func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) {
-	if !plugin.multitenant {
-		return
-	}
-
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 
 	otx := plugin.ovs.NewTransaction()

@@ -91,11 +91,9 @@ func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.
 	var err error
 
 	config := &PodConfig{}
-	if m.multitenant {
-		config.vnid, err = m.vnids.GetVNID(req.PodNamespace)
-		if err != nil {
-			return nil, nil, err
-		}
+	config.vnid, err = m.policy.GetVNID(req.PodNamespace)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)

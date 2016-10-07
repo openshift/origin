@@ -19,7 +19,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 	}
 
 	for _, policy := range policies.Items {
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
+		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
 			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
 			continue
@@ -39,7 +39,7 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
+		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
 			return fmt.Errorf("Could not find netid for namespace %q: %v", policy.Namespace, err)
 		}
