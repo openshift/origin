@@ -249,3 +249,17 @@ build-rpms:
 build-rpms-redistributable:
 	tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 1"'
 .PHONY: build-rpms-redistributable
+
+# Vendor the Origin Web Console
+#
+# Args:
+#   GIT_REF:           specifies which branch / tag of the web console to vendor. If set, then any untracked/uncommitted changes
+#                      will cause the script to exit with an error. If not set then the current working state of the web console
+#                      directory will be used.
+#   CONSOLE_REPO_PATH: specifies a directory path to look for the web console repo.  If not set it is assumed to be
+#                      a sibling to this repository.
+# Example:
+#   make vendor-console
+vendor-console:
+	GIT_REF=$(GIT_REF) CONSOLE_REPO_PATH=$(CONSOLE_REPO_PATH) hack/vendor-console.sh
+.PHONY: vendor-console
