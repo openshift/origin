@@ -294,7 +294,7 @@ else
   os::util::environment::setup_tmpdir_vars "test-extended/networking"
   reset_tmp_dir
 
-  os::log::start_system_logger
+  os::log::system::start
 
   os::log::info "Building docker-in-docker images"
   ${CLUSTER_CMD} build-images

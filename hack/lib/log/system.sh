@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# This library holds all of the logging functions for OpenShift bash scripts.
+# This library holds all of the system logging functions for OpenShift bash scripts.
 
-# os::log::install_system_logger_cleanup installs os::log::clean_up_logger as a trap on interrupts, termination, and exit.
-# If any traps are currently set for these signals, os::log::clean_up_logger is prefixed.
+# os::log::system::install_cleanup installs os::log::system::clean_up as a trap on exit.
+# If any traps are currently set for these signals, os::log::system::clean_up is prefixed.
 #
 # Globals:
 #  None
@@ -11,12 +11,12 @@
 #  None
 # Returns:
 #  None
-function os::log::install_system_logger_cleanup() {
-    trap "os::log::clean_up_logger; $(trap -p EXIT | awk -F"'" '{print $2}')" EXIT
+function os::log::system::install_cleanup() {
+    trap "os::log::system::clean_up; $(trap -p EXIT | awk -F"'" '{print $2}')" EXIT
 }
-readonly -f os::log::install_system_logger_cleanup
+readonly -f os::log::system::install_cleanup
 
-# os::log::clean_up_logger should be trapped so that it can stop the logging utility once the script that
+# os::log::system::clean_up should be trapped so that it can stop the logging utility once the script that
 # installed it is finished.
 # This function stops logging and generates plots of data for easy consumption.
 #
@@ -28,7 +28,7 @@ readonly -f os::log::install_system_logger_cleanup
 #  None
 # Returns:
 #  None
-function os::log::clean_up_logger() {
+function os::log::system::clean_up() {
     local return_code=$?
 
     # we don't want failures in this logger to
@@ -73,8 +73,8 @@ function os::log::clean_up_logger() {
             ignored_columns="${ignored_columns}CPU,"
         fi
 
-        os::log::internal::prune_datafile "${log_subset_file}" "${ignored_columns}"
-        os::log::internal::plot "${log_subset_file}"
+        os::log::system::internal::prune_datafile "${log_subset_file}" "${ignored_columns}"
+        os::log::system::internal::plot "${log_subset_file}"
     done
 
     # remove the `sar` log file for space constraints
@@ -82,9 +82,9 @@ function os::log::clean_up_logger() {
 
     return "${return_code}"
 }
-readonly -f os::log::clean_up_logger
+readonly -f os::log::system::clean_up
 
-# os::log::internal::prune_datafile removes the given columns from a datafile created by 'sadf -d'
+# os::log::system::internal::prune_datafile removes the given columns from a datafile created by 'sadf -d'
 #
 # Globals:
 #  None
@@ -93,7 +93,7 @@ readonly -f os::log::clean_up_logger
 #  - 2: comma-delimited columns to remove, with trailing comma
 # Returns:
 #  None
-function os::log::internal::prune_datafile() {
+function os::log::system::internal::prune_datafile() {
     local datafile=$1
     local column_names=$2
 
@@ -109,7 +109,7 @@ function os::log::internal::prune_datafile() {
     for (( i = 0; i < "${#columns_in_order[@]}"; i++ )); do
         if ! echo "${column_names}" | grep -q "${columns_in_order[$i]},"; then
             # this is a column we need to keep, adding one as 'cut' is 1-indexed
-            columns_to_keep+=( "$(( $i + 1 ))" )
+            columns_to_keep+=( "$(( i + 1 ))" )
         fi
     done
 
@@ -120,9 +120,9 @@ function os::log::internal::prune_datafile() {
     sed -i '1s/^/# /' "${datafile}.tmp"
     mv "${datafile}.tmp" "${datafile}"
 }
-readonly -f os::log::internal::prune_datafile
+readonly -f os::log::system::internal::prune_datafile
 
-# os::log::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used
+# os::log::system::internal::plot uses gnuplot to make a plot of some data across time points. This function is intended to be used
 # on the output of a 'sar -f' read of a sar binary file. Plots will be made of all columns and stacked on each other with one x axis.
 # This function needs the non-data columns of the file to be prefixed with comments.
 #
@@ -132,7 +132,7 @@ readonly -f os::log::internal::prune_datafile
 #  - 1: data file
 # Returns:
 #  None
-function os::log::internal::plot() {
+function os::log::system::internal::plot() {
     local datafile=$1
     local plotname
     plotname="$(basename "${datafile}" .txt)"
@@ -143,10 +143,10 @@ function os::log::internal::plot() {
 
     local records
     local width
-    records="$(( $( cat "${datafile}" | wc -l ) - 1 ))" # one of these lines will be the header comment
+    records="$(( $( wc -l < "${datafile}" ) - 1 ))" # one of these lines will be the header comment
     if [[ "${records}" -gt 90 ]]; then
         width="$(echo "8.5 + ${records}*0.025" | bc )"
-    else 
+    else
         width="8.5"
     fi
 
@@ -167,28 +167,30 @@ function os::log::internal::plot() {
         local header
         header="${headers[$i]}"
 
-        if (( $i == ${#headers[@]} - 1 )); then
+        if (( i == ${#headers[@]} - 1 )); then
             # we need x-tick labels on the bottom plot
             gnuplot_directive+=( "set xtics format '%H:%M:%S' rotate by -90" )
-        else 
+        else
             gnuplot_directive+=( "set format x ''" )
-        fi 
+        fi
 
-        gnuplot_directive+=( "plot \"${datafile}\" using 1:$(( $i + 1 )) title \"${header}\" with lines" )
+        gnuplot_directive+=( "plot \"${datafile}\" using 1:$(( i + 1 )) title \"${header}\" with lines" )
     done
 
     # concatenate the array with newlines to get the final directive to send to gnuplot
     gnuplot_directive="$( IFS=$'\n'; echo "${gnuplot_directive[*]}" )"
 
-    echo -e "\$ gnuplot <<< ${gnuplot_directive}\n" >> "${LOG_DIR}/gnuplot.log"
-    gnuplot <<< "${gnuplot_directive}" >> "${LOG_DIR}/gnuplot.log" 2>&1
-    echo -e "\n\n" >> "${LOG_DIR}/gnuplot.log"
+    {
+        printf '$ gnuplot <<< %s\n' "${gnuplot_directive}"
+        gnuplot <<< "${gnuplot_directive}" 2>&1
+        printf '\n\n'
+    } >> "${LOG_DIR}/gnuplot.log"
 
     echo "[INFO] Stacked plot for log subset \"${plotname}\" written to ${LOG_DIR}/${plotname}.pdf"
 }
-readonly -f os::log::internal::plot
+readonly -f os::log::system::internal::plot
 
-# os::log::start_system_logger installs the system logger and begins logging
+# os::log::system::start installs the system logger and begins logging
 #
 # Globals:
 #  - LOG_DIR
@@ -197,7 +199,7 @@ readonly -f os::log::internal::plot
 # Returns:
 #  - export LOGGER_PID
 #  - export SAR_LOGFILE
-function os::log::start_system_logger() {
+function os::log::system::start() {
     if ! which sar >/dev/null 2>&1; then
         echo "[WARNING] System logger could not be started, 'sar' binary not found in this environment."
         return 0
@@ -206,13 +208,13 @@ function os::log::start_system_logger() {
     readonly SAR_LOGFILE="${LOG_DIR}/sar.log"
     export SAR_LOGFILE
 
-    os::log::internal::run_system_logger "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log"
+    os::log::system::internal::run "${SAR_LOGFILE}" "${LOG_DIR}/sar_stderr.log"
 
-    os::log::install_system_logger_cleanup
+    os::log::system::install_cleanup
 }
-readonly -f os::log::start_system_logger
+readonly -f os::log::system::start
 
-# os::log::internal::run_system_logger runs the system logger in the background.
+# os::log::system::internal::run runs the system logger in the background.
 # 'sar' is configured to run once a second for 24 hours, so the cleanup trap should be installed to ensure that
 # the process is killed once the parent script is finished.
 #
@@ -223,7 +225,7 @@ readonly -f os::log::start_system_logger
 #  - 2: file to log stderr of the logger to
 # Returns:
 #  None
-function os::log::internal::run_system_logger() {
+function os::log::system::internal::run() {
     local binary_logfile=$1
     local stderr_logfile=$2
 
@@ -233,4 +235,4 @@ function os::log::internal::run_system_logger() {
     readonly LOGGER_PID
     export LOGGER_PID
 }
-readonly -f os::log::internal::run_system_logger
+readonly -f os::log::system::internal::run

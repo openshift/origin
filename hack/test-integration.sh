@@ -35,7 +35,7 @@ else
 fi
 testexec="$(pwd)/$(os::build::find-binary "${name}.test")"
 
-os::log::start_system_logger
+os::log::system::start
 
 function exectest() {
 	echo "Running $1..."
