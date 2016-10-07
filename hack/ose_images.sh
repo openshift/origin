@@ -59,7 +59,7 @@ usage() {
   echo "  --nochannel         :: Do not tag or push as channel latest (v3.3), or regular latest" >&2
   echo "  --nolatest          :: Do not tag or push as latest, still do channel latest" >&2
   echo "  --message [message] :: Git commit message" >&2
-  echo "  --group [group]     :: Which group list to use (base sti database metrics logging jenkins misc all)" >&2
+  echo "  --group [group]     :: Which group list to use (base sti database deployer metrics logging jenkins misc all)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
@@ -145,7 +145,6 @@ add_group_to_list() {
       if ! [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
         add_to_list logging-curator-docker
       fi
-      add_to_list logging-deployment-docker
       add_to_list logging-elasticsearch-docker
       add_to_list logging-fluentd-docker
       add_to_list logging-kibana-docker
@@ -158,9 +157,12 @@ add_group_to_list() {
       ;;
     metrics)
       add_to_list metrics-cassandra-docker
-      add_to_list metrics-deployer-docker
       add_to_list metrics-hawkular-metrics-docker
       add_to_list metrics-heapster-docker
+      ;;
+    deployer)
+      add_to_list logging-deployment-docker
+      add_to_list metrics-deployer-docker
       ;;
   esac
 }
