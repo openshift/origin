@@ -34,7 +34,8 @@ func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry,
 
 			RuleResolver:   ruleResolver,
 			CreateStrategy: roleregistry.ClusterStrategy,
-			UpdateStrategy: roleregistry.ClusterStrategy},
+			UpdateStrategy: roleregistry.ClusterStrategy,
+			Resource:       authorizationapi.Resource("clusterrole")},
 	}
 }
 
