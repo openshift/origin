@@ -385,16 +385,14 @@ foreground for an interactive container execution.  You may pass 'run/v1' to
   %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
   # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
-  %[1]s run -i --tty nginx --image=nginx --restart=Never`
+  %[1]s run -i --tty nginx --image=nginx --restart=Never
 
-	// TODO: uncomment these when arguments are delivered upstream
+  # Start the nginx container using the default command, but use custom
+  # arguments (arg1 .. argN) for that command.
+  %[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
 
-	// Start the nginx container using the default command, but use custom
-	// arguments (arg1 .. argN) for that command.
-	//%[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
-
-	// Start the nginx container using a different command and custom arguments
-	//%[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>`
+  # Start the nginx container using a different command and custom arguments
+  %[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>`
 )
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command

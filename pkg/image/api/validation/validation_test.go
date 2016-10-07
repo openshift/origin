@@ -320,7 +320,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
-				DockerImageRepository: "registry/extra/openshift/ruby-19-centos",
+				DockerImageRepository: "registry/extra/openshift//ruby-19-centos",
 				Tag: api.DefaultImageTag,
 				Image: api.Image{
 					ObjectMeta: kapi.ObjectMeta{
@@ -416,7 +416,7 @@ func TestValidateImageStream(t *testing.T) {
 			name:      "foo",
 			dockerImageRepository: "a-|///bbb",
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
+				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" cannot have empty segments"),
 			},
 		},
 		"invalid dockerImageRepository with tag": {
@@ -719,7 +719,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 		"invalid dockerImageRepository": {
 			isi: &api.ImageStreamImport{ObjectMeta: validMeta, Spec: repoFn("a-|///bbb")},
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "repository", "from", "name"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
+				field.Invalid(field.NewPath("spec", "repository", "from", "name"), "a-|///bbb", "the docker pull spec \"a-|///bbb\" cannot have empty segments"),
 			},
 		},
 		"invalid dockerImageRepository with tag": {

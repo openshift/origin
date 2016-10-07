@@ -183,9 +183,6 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 # Create extended.test
 %{os_git_vars} hack/build-go.sh test/extended/extended.test
 
-# Create/Update man pages
-%{os_git_vars} hack/update-generated-docs.sh
-
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"

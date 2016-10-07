@@ -184,7 +184,34 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.ID = id
 		break
 	default:
-		// TODO: this is no longer true with V2
+		// Handle multiple segments in form: registry/namespace/namesegment1/namesegment2/.../name
+		// but not this form: http://registry/namespace/name. We don't support using the schema in
+		// the DockerImageReference.
+		if len(repoParts) > 3 && !strings.HasSuffix(repoParts[0], ":") {
+			if len(repoParts[0]) == 0 {
+				return ref, fmt.Errorf("the docker pull spec %q cannot have empty segments", spec)
+			}
+			ref.Registry = repoParts[0]
+
+			if len(repoParts[1]) == 0 {
+				return ref, fmt.Errorf("the docker pull spec %q cannot have empty segments", spec)
+			}
+			ref.Namespace = repoParts[1]
+
+			for i, part := range repoParts[2:] {
+				if len(part) == 0 {
+					return ref, fmt.Errorf("the docker pull spec %q cannot have empty segments", spec)
+				}
+				if i > 0 {
+					ref.Name += "/"
+				}
+				ref.Name += part
+			}
+
+			ref.Tag = tag
+			ref.ID = id
+			break
+		}
 		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
 

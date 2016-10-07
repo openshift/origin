@@ -234,3 +234,18 @@ install-travis:
 	hack/install-tools.sh
 .PHONY: install-travis
 
+# Build RPMs only for the Linux AMD64 target
+#
+# Example:
+#   make build-rpms
+build-rpms:
+	OS_ONLY_BUILD_PLATFORMS='linux/amd64' tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 0"'
+.PHONY: build-rpms
+
+# Build RPMs for all architectures
+#
+# Example:
+#   make build-rpms-redistributable
+build-rpms-redistributable:
+	tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 1"'
+.PHONY: build-rpms-redistributable

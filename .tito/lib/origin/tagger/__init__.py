@@ -76,19 +76,29 @@ class OriginTagger(VersionTagger):
             )
         output = run_command(update_commit)
 
-        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; echo $(os::build::ldflags)'
-        ldflags = run_command('bash -c \'{0}\''.format(cmd))
-        # hack/common.sh will tell us that the tree is dirty because tito has
-        # already mucked with things, but lets not consider the tree to be
-        # dirty
-        ldflags = ldflags.replace('-dirty', '')
-        update_ldflags = \
-            "sed -i 's|^%global ldflags .*$|%global ldflags {0}|' {1}".format(
-                ldflags,
+        ## Fixup os_git_vars
+        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_COMMIT}'
+        os_git_commit = run_command("bash -c '{0}'".format(cmd))
+        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_VERSION}'
+        os_git_version = run_command("bash -c '{0}'".format(cmd))
+        os_git_version = os_git_version.replace('-dirty', '')
+        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_MAJOR}'
+        os_git_major = run_command("bash -c '{0}'".format(cmd))
+        cmd = '. ./hack/common.sh ; OS_ROOT=$(pwd) ; os::build::os_version_vars ; echo ${OS_GIT_MINOR}'
+        os_git_minor = run_command("bash -c '{0}'".format(cmd))
+        print("OS_GIT_COMMIT::{0}".format(os_git_commit))
+        print("OS_GIT_VERSION::{0}".format(os_git_version))
+        print("OS_GIT_MAJOR::{0}".format(os_git_major))
+        print("OS_GIT_MINOR::{0}".format(os_git_minor))
+        update_os_git_vars = \
+            "sed -i 's|^%global os_git_vars .*$|%global os_git_vars OS_GIT_TREE_STATE='clean' OS_GIT_VERSION={0} OS_GIT_COMMIT={1} OS_GIT_MAJOR={2} OS_GIT_MINOR={3}|' {4}".format(
+                os_git_version,
+                os_git_commit,
+                os_git_major,
+                os_git_minor,
                 self.spec_file
             )
-        # FIXME - this output is never used
-        output = run_command(update_ldflags)
+        output = run_command(update_os_git_vars)
 
         self._check_tag_does_not_exist(self._get_new_tag(new_version))
         self._update_changelog(new_version)
