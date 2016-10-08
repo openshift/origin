@@ -10,7 +10,7 @@ var map_BuildDefaultsConfig = map[string]string{
 	"gitHTTPProxy":  "GitHTTPProxy is the location of the HTTPProxy for Git source",
 	"gitHTTPSProxy": "GitHTTPSProxy is the location of the HTTPSProxy for Git source",
 	"gitNoProxy":    "GitNoProxy is the list of domains for which the proxy should not be used",
-	"sourceSecret":  "SourceSecret sets default build source secret if none is set. For corporate env where everything is secure",
+	"sourceSecret":  "SourceSecret is default sourceSecret to be used if no sourceSecret is provided. Used in the environment, where all source controls are secured.",
 	"env":           "Env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
 	"sourceStrategyDefaults": "SourceStrategyDefaults are default values that apply to builds using the source strategy.",
 }
