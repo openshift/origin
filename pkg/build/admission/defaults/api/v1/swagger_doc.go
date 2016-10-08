@@ -12,6 +12,7 @@ var map_BuildDefaultsConfig = map[string]string{
 	"gitNoProxy":    "GitNoProxy is the list of domains for which the proxy should not be used",
 	"env":           "Env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
 	"sourceStrategyDefaults": "SourceStrategyDefaults are default values that apply to builds using the source strategy.",
+	"sourceSecret":           "Default Git source secret. If this set all builds without sourceSecret will get defualt secret. Secret have to be available for them. ",
 }
 
 func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
