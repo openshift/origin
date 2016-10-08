@@ -18,6 +18,9 @@ type BuildDefaultsConfig struct {
 	// GitNoProxy is the list of domains for which the proxy should not be used
 	GitNoProxy string `json:"gitNoProxy,omitempty"`
 
+	//SourceSecret sets default build source secret if none is set. For corporate env where everything is secure
+	SourceSecret string `json:"sourceSecret,omitempty"`
+
 	// Env is a set of default environment variables that will be applied to the
 	// build if the specified variables do not exist on the build
 	Env []kapi.EnvVar `json:"env,omitempty"`

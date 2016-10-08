@@ -124,6 +124,18 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 			build.Spec.Source.Git.NoProxy = &t
 		}
 	}
+
+	glog.V(5).Infof("[MJ] Setting SourceSecret %s/%s %s", build.Namespace, build.Name, a.defaultsConfig.SourceSecret)
+	//apply default source secret if one set
+	//todo: add check if secret name exist in namespace where build is happening
+	if len(a.defaultsConfig.SourceSecret) != 0 {
+		if len(build.Spec.Source.SourceSecret.Name) == 0 {
+			glog.V(5).Infof("[MJ] secret name = 0")
+			t := a.defaultsConfig.SourceSecret
+			glog.V(5).Infof("Setting default Git SourceSecret  %s/%s to %s", build.Namespace, build.Name, t)
+			build.Spec.Source.SourceSecret.Name = t
+		}
+	}
 }
 
 func getBuildEnv(build *buildapi.Build) *[]kapi.EnvVar {
