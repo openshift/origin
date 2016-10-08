@@ -216,7 +216,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		// can't hurt.
 		return c.updateStatus(config, existingDeployments)
 	}
-	activeDeployment := deployutil.ActiveDeployment(config, existingDeployments)
+	activeDeployment := deployutil.ActiveDeployment(existingDeployments)
 	// Compute the replica count for the active deployment (even if the active
 	// deployment doesn't exist). The active replica count is the value that
 	// should be assigned to the config, to allow the replica propagation to
