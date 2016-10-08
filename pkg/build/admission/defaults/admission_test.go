@@ -130,3 +130,25 @@ func TestIncrementalDefaults(t *testing.T) {
 	}
 
 }
+
+func TestSourceSecretDefaults(t *testing.T) {
+	defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+		SourceSecret: "scmsecret",
+	}
+
+	admitter := NewBuildDefaults(defaultsConfig)
+	pod := u.Pod().WithBuild(t, u.Build().WithDockerStrategy().AsBuild(), "v1")
+	err := admitter.Admit(pod.ToAttributes())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	build, _, err := buildadmission.GetBuild(pod.ToAttributes())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if build.Spec.Source.SourceSecret == nil || len(build.Spec.Source.SourceSecret.Name) == 0 || build.Spec.Source.SourceSecret.Name != "scmsecret" {
+		t.Errorf("failed to find sourceSecret config")
+	}
+
+}
