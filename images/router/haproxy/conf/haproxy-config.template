@@ -68,6 +68,15 @@ defaults
   timeout tunnel 1h
 {{ end }}
 
+  # enable compression.
+  # http://cbonte.github.io/haproxy-dconv/1.5/configuration.html#4-compression
+  compression algo gzip
+  # TODO: {{env "ROUTER_SERVICE_COMP_MIME" "application/json text/css application/javascript"}}
+  # How handle the env routine blanks in env vars?
+  # https://github.com/openshift/origin/blob/master/pkg/router/template/plugin.go#L93
+  compression type text/html text/plain text/css application/javascript 
+
+
 {{ if (gt .StatsPort 0) }}
 listen stats :{{.StatsPort}}
 {{ else }}
