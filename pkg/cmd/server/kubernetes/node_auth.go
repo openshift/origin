@@ -96,16 +96,6 @@ func isSubpath(r *http.Request, path string) bool {
 //    /logs/*    => verb=<api verb from request>, resource=nodes/log
 func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *http.Request) kauthorizer.Attributes {
 
-	// Default verb/resource is proxy nodes, which allows full access to the kubelet API
-	attrs := oauthorizer.DefaultAuthorizationAttributes{
-		APIVersion:   "v1",
-		APIGroup:     "",
-		Verb:         "proxy",
-		Resource:     "nodes",
-		ResourceName: n.nodeName,
-		URL:          r.URL.Path,
-	}
-
 	namespace := ""
 
 	apiVerb := ""
@@ -120,6 +110,16 @@ func (n NodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *htt
 		apiVerb = "patch"
 	case "DELETE":
 		apiVerb = "delete"
+	}
+
+	// Default verb/resource is <apiVerb> nodes/proxy, which allows full access to the kubelet API
+	attrs := oauthorizer.DefaultAuthorizationAttributes{
+		APIVersion:   "v1",
+		APIGroup:     "",
+		Verb:         apiVerb,
+		Resource:     "nodes/proxy",
+		ResourceName: n.nodeName,
+		URL:          r.URL.Path,
 	}
 
 	// Override verb/resource for specific paths
