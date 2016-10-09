@@ -183,8 +183,8 @@ function wait_for_url() {
 		fi
 		sleep $wait
 	done
-	echo "ERROR: gave up waiting for ${url}"
-	echo $(${cmd})
+	echo "ERROR: gave up waiting for ${url}" 1>&2
+	${cmd} 1>&2
 	set -e
 	return 1
 }
