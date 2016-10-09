@@ -1,34 +1,34 @@
 Red Hat Atomic Enterprise Quick Start
 =====================================
 
-0: Read the disclaimer
+1 Read the disclaimer
 ----------------------
 This is still a work in progress. It can be done with 1 or more systems in a configuration of:
 
 - One master that also serves as a node
 - Zero or more dedicated nodes
 
-1 Download RHEL
+2 Download RHEL
 ---------------
 Download the most recent version of RHEL x86_64:
 https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.1/x86_64/product-downloads
 
-2 Install RHEL
+3 Install RHEL
 --------------
 Install the version of RHEL that you just downloaded.
 
-3 Register The system
+4 Register the system
 ---------------------
 [source,bash]
 subscription-manager register --auto-attach
 
-4 Disable all repos
+5 Disable all repos
 -------------------
 [source,bash]
 subscription-manager repos --disable="*"
 
 
-5 Enable the ones we’ll be using
+6 Enable the ones we’ll be using
 --------------------------------
 [source,bash]
 -----------------------------------------
@@ -39,14 +39,14 @@ subscription-manager repos \
 --enable="rhel-server-7-ose-3.0-rpms"
 -----------------------------------------
 
-6 Install Packages
+7 Install packages
 ------------------
 [source,bash]
 ----------------------------------------------------------------------------
 $ sudo yum -y install wget vim-enhanced net-tools bind-utils tmux git docker
 ----------------------------------------------------------------------------
 
-7 Setup repos
+8 Setup repos
 -------------
 [source,bash]
 -------------------------------------------------------------------------------------------------------------------------------
@@ -58,14 +58,13 @@ $ sudo yum -y install http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-relea
 $ sudo sed -i -e "s/^enabled=1/enabled=0/" /etc/yum.repos.d/epel.repo
 -------------------------------------------------------------------------------------------------------------------------------
 
-8 Install ansible Package
+9 Install ansible package
 -------------------------
 [source,bash]
 -----------------------------------------------
 $ sudo yum -y --enablerepo=epel install ansible
 -----------------------------------------------
-
-9 Setup hosts
+10 Setup hosts
 -------------
 [source,bash]
 ----------------------------------------------------------------------------------
@@ -73,7 +72,7 @@ $ sudo hostnamectl set-hostname ae-master.example.com
 $ sudo bash -c “echo ‘${YOUR IP ADDRESS}    ae-master.example.com’ >> /etc/hosts”
 ----------------------------------------------------------------------------------
 
-10 Clone Repos
+11 Clone repos
 --------------
 [source,bash]
 ----------------------------------------------------------------------------------
@@ -82,7 +81,7 @@ git clone https://github.com/projectatomic/atomic-enterprise-training.git traini
 git clone https://github.com/projectatomic/atomic-enterprise-ansible.git
 ----------------------------------------------------------------------------------
 
-11 Setup SSH environment (for ansible)
+12 Setup SSH environment (for ansible)
 --------------------------------------
 [source,bash]
 ----------------------------------
@@ -109,7 +108,7 @@ Number of key(s) added: 1
 Now try logging into the machine, with:   "ssh 'ae-master.example.com'"
 and check to make sure that only the key(s) you wanted were added.
 
-12 setup ansible installer
+13 Setup ansible installer
 --------------------------
 [source,bash]
 ------------------------------------------------------------------------------------------------------
@@ -119,7 +118,7 @@ vi /etc/ansible/hosts
 # Edit the bottom lines to only include the one ae-master.example.com or add other nodes if they exist
 ------------------------------------------------------------------------------------------------------
 
-13 Run ansible
+14 Run ansible
 --------------
 [source,bash]
 ansible-playbook ~/atomic-enterprise-ansible/playbooks/byo/config.yml
@@ -137,7 +136,7 @@ localhost                  : ok=5    changed=0    unreachable=0    failed=0
 -------------------------------------------------------------------------------
 
 
-14 run oc get nodes (things should be up now)
+15 run oc get nodes (things should be up now)
 ---------------------------------------------
 
 [source,bash]
@@ -150,7 +149,7 @@ NAME                    LABELS                                         STATUS
 ae-master.example.com   kubernetes.io/hostname=ae-master.example.com   Ready
 -----------------------------------------------------------------------------
 
-15 Create sample app (from the training example earlier)
+16 Create sample app (from the training example earlier)
 --------------------------------------------------------
 
 [source,bash]
@@ -164,7 +163,7 @@ Here’s an in-the-field, live-fire example:
 pods/hello-atomic
 -------------------------------------------------------------------------
 
-16 Verify pod exists
+17 Verify pod exists
 --------------------
 Check to see that the pod exists:
 
@@ -210,13 +209,13 @@ Replication Controllers: <none>
 ...
 ----------------------------------------------------------------
 
-17 Access new pod
+18 Access new pod
 -----------------
 
 [source,bash]
 curl http://$IP_FROM_ABOVE:8080/
 
-18 Try new things
+19 Try new things
 -----------------
 That’s it, your system should be up and running.  You can now add new nodes.  Try adding the internal registry with the “oadm registry” command.  Or try adding the enterprise router with the “oadm router” command.  You can also take a look at other kubernetes examples: https://github.com/kubernetes/kubernetes/tree/master/examples
 
