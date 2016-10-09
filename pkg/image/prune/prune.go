@@ -54,6 +54,7 @@ type pruneAlgorithm struct {
 	keepYoungerThan    time.Duration
 	keepTagRevisions   int
 	pruneOverSizeLimit bool
+	namespace          string
 }
 
 // ImageDeleter knows how to remove images from OpenShift.
@@ -102,6 +103,8 @@ type PrunerOptions struct {
 	// PruneOverSizeLimit indicates that images exceeding defined limits (openshift.io/Image)
 	// will be considered as candidates for pruning.
 	PruneOverSizeLimit *bool
+	// Namespace to be pruned, if specified it should never remove Images.
+	Namespace string
 	// Images is the entire list of images in OpenShift. An image must be in this
 	// list to be a candidate for pruning.
 	Images *imageapi.ImageList
@@ -256,6 +259,7 @@ func NewPruner(options PrunerOptions) Pruner {
 	if options.PruneOverSizeLimit != nil {
 		algorithm.pruneOverSizeLimit = *options.PruneOverSizeLimit
 	}
+	algorithm.namespace = options.Namespace
 
 	addImagesToGraph(g, options.Images, algorithm)
 	addImageStreamsToGraph(g, options.Streams, options.LimitRanges, algorithm)
@@ -819,12 +823,16 @@ func (p *pruner) Prune(
 	}
 
 	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes)
-	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
-	prunableComponents := calculatePrunableImageComponents(graphWithoutPrunableImages)
 
 	errs := []error{}
-
 	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
+	// if namespace is specified prune only ImageStreams and nothing more
+	if len(p.algorithm.namespace) > 0 {
+		return kerrors.NewAggregate(errs)
+	}
+
+	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
+	prunableComponents := calculatePrunableImageComponents(graphWithoutPrunableImages)
 	errs = append(errs, pruneImageComponents(p.g, p.registryClient, registryURL, prunableComponents, layerLinkPruner)...)
 	errs = append(errs, pruneBlobs(p.g, p.registryClient, registryURL, prunableComponents, blobPruner)...)
 	errs = append(errs, pruneManifests(p.g, p.registryClient, registryURL, prunableImageNodes, manifestPruner)...)
