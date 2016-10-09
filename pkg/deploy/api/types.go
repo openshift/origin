@@ -374,9 +374,7 @@ const (
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParams struct {
 	// Automatic means that the detection of a new tag value should result in an image update
-	// inside the pod template. Deployment configs that haven't been deployed yet will always
-	// have their images updated. Deployment configs that have been deployed at least once, will
-	// have their images updated only if this is set to true.
+	// inside the pod template.
 	Automatic bool
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
 	ContainerNames []string
