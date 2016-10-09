@@ -14,9 +14,18 @@ func SetDefaults_PolicyRule(obj *PolicyRule) {
 		return
 	}
 
-	// this seems really strange, but semantic equality checks most of what we want, but nil == {}
-	// this is ok for the restof the fields, but not APIGroups
-	if kapi.Semantic.Equalities.DeepEqual(oldAllowAllPolicyRule, *obj) && obj.APIGroups == nil {
+	// match the old allow all rule, but only if API groups is nil (not specified in the incoming JSON)
+	oldAllowAllRule := obj.APIGroups == nil &&
+		// avoid calling the very expensive DeepEqual by inlining specific checks
+		len(obj.Verbs) == 1 && obj.Verbs[0] == internal.VerbAll &&
+		len(obj.Resources) == 1 && obj.Resources[0] == internal.ResourceAll &&
+		len(obj.AttributeRestrictions.Raw) == 0 && len(obj.ResourceNames) == 0 &&
+		len(obj.NonResourceURLsSlice) == 0 &&
+		// semantic equalities will ignore nil vs empty for other fields as a safety
+		// DO NOT REMOVE THIS CHECK unless you replace it with full equality comparisons
+		kapi.Semantic.Equalities.DeepEqual(oldAllowAllPolicyRule, *obj)
+
+	if oldAllowAllRule {
 		obj.APIGroups = []string{internal.APIGroupAll}
 	}
 

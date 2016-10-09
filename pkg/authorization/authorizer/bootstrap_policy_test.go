@@ -23,7 +23,7 @@ func TestClusterAdminUseGroup(t *testing.T) {
 			Resource: "jobs",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by cluster rule",
+		expectedReason:  "allowed by rule in mallet",
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.clusterBindings = newDefaultClusterPolicyBindings()
@@ -40,7 +40,7 @@ func TestClusterReaderUseGroup(t *testing.T) {
 			Resource: "jobs",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by cluster rule",
+		expectedReason:  "allowed by rule in mallet",
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.clusterBindings = newDefaultClusterPolicyBindings()

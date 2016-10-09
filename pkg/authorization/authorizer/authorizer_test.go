@@ -414,7 +414,7 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 			Resource: "roles",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by cluster rule",
+		expectedReason:  "allowed by rule in adze",
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
