@@ -12,7 +12,22 @@ import (
 
 const (
 	rolloutLong = `
-Manage deployments.
+Start a new rollout, view its status or history, rollback to a previous revision of your app
+
+This command allows you to control a deployment config. Each individual rollout is exposed
+as a replication controller, and the deployment process manages scaling down old replication
+controllers and scaling up new ones.
+
+There are several deployment strategies defined:
+
+* Rolling (default) - scales up the new replication controller in stages, gradually reducing the
+  number of old pods. If one of the new deployed pods never becomes "ready", the new rollout
+  will be rolled back (scaled down to zero). Use when your application can tolerate two versions
+  of code running at the same time (many web applications, scalable databases)
+* Recreate - scales the old replication controller down to zero, then scales the new replication
+  controller up to full. Use when your application cannot tolerate two versions of code running
+  at the same time
+* Custom - run your own deployment process inside a Docker container using your own scripts.
 `
 )
 
@@ -32,6 +47,7 @@ func NewCmdRollout(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd.AddCommand(NewCmdRolloutPause(fullName, f, out))
 	cmd.AddCommand(NewCmdRolloutResume(fullName, f, out))
 	cmd.AddCommand(NewCmdRolloutUndo(fullName, f, out))
+	cmd.AddCommand(NewCmdRolloutLatest(fullName, f, out))
 
 	return cmd
 }

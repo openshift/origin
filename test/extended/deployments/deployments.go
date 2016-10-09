@@ -487,7 +487,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("deploying a second time [new client]")
-			_, err = oc.Run("deploy").Args("--latest", name).Output()
+			_, err = oc.Run("rollout").Args("latest", name).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying that both latestVersion and generation are updated")
@@ -600,16 +600,25 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			_, err = oc.Run("deploy").Args(name, "--latest").Output()
+			_, err = oc.Run("rollout").Args("latest", name).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we are on the second version")
+			version := "1"
+			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+				latestVersion, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+				if err != nil {
+					return false, err
+				}
+				version = strings.Trim(latestVersion, "\"")
+				return strings.Contains(version, "2"), nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("expected latestVersion: 2, got: %s", version)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
-
-			g.By("verifying that we are on the second version")
-			version, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			version = strings.Trim(version, "\"")
-			o.Expect(version).To(o.ContainSubstring("2"))
 
 			g.By("verifying that we can rollback")
 			_, err = oc.Run("rollout").Args("undo", resource).Output()
