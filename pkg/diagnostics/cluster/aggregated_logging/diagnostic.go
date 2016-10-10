@@ -125,7 +125,10 @@ func (d *AggregatedLogging) CanRun() (bool, error) {
 	var err error
 	d.masterConfig, err = hostdiag.GetMasterConfig(d.result, d.MasterConfigFile)
 	if err != nil {
-		return false, errors.New("Unreadable master config; skipping this diagnostic.")
+		return false, errors.New("Master configuration is unreadable")
+	}
+	if d.masterConfig.AssetConfig.LoggingPublicURL == "" {
+		return false, errors.New("No LoggingPublicURL is defined in the master configuration")
 	}
 	return true, nil
 }
