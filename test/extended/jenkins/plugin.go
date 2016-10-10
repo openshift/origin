@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -17,7 +18,21 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func immediateInteractionWithJenkins(uri, method string, body io.Reader, status int) {
+func getAdminPassword(oc *exutil.CLI) string {
+	envs, err := oc.Run("set").Args("env", "dc/jenkins", "--list").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	kvs := strings.Split(envs, "\n")
+	for _, kv := range kvs {
+		if strings.HasPrefix(kv, "JENKINS_PASSWORD=") {
+			s := strings.Split(kv, "=")
+			fmt.Fprintf(g.GinkgoWriter, "\nJenkins admin password %s\n", s[1])
+			return s[1]
+		}
+	}
+	return ""
+}
+
+func immediateInteractionWithJenkins(uri, method, password string, body io.Reader, status int) {
 	req, err := http.NewRequest(method, uri, body)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -26,28 +41,35 @@ func immediateInteractionWithJenkins(uri, method string, body io.Reader, status 
 		// jenkins will return 417 if we have an expect hdr
 		req.Header.Del("Expect")
 	}
-	req.SetBasicAuth("admin", "password")
+	req.SetBasicAuth("admin", password)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	defer resp.Body.Close()
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err == nil && resp.StatusCode != status {
+		consoleLogs := string(contents)
+		fmt.Fprintf(g.GinkgoWriter, "logs from immediate interaction %s\n", consoleLogs)
+	}
 	o.Expect(resp.StatusCode).To(o.BeEquivalentTo(status))
 
 }
 
-func waitForJenkinsActivity(uri, verificationString string, status int) error {
+func waitForJenkinsActivity(uri, password, verificationString string, status int) error {
 	consoleLogs := ""
+	lastStatus := -1
 
 	err := wait.Poll(1*time.Second, 3*time.Minute, func() (bool, error) {
 		req, err := http.NewRequest("GET", uri, nil)
 		if err != nil {
 			return false, err
 		}
-		req.SetBasicAuth("admin", "password")
+		req.SetBasicAuth("admin", password)
 		client := &http.Client{}
 		resp, _ := client.Do(req)
+
 		// the http req failing here (which we see occasionally in the ci.jenkins runs) could stem
 		// from simply hitting our test jenkins server too soon ... so rather than returning false,err
 		// and aborting the poll, we return false, nil to try again
@@ -55,6 +77,7 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 			return false, nil
 		}
 		defer resp.Body.Close()
+		lastStatus = resp.StatusCode
 		if resp.StatusCode == status {
 			if len(verificationString) > 0 {
 				contents, err := ioutil.ReadAll(resp.Body)
@@ -74,6 +97,10 @@ func waitForJenkinsActivity(uri, verificationString string, status int) error {
 		}
 		return false, nil
 	})
+
+	if lastStatus != status {
+		fmt.Fprintf(g.GinkgoWriter, "waitForJenkinsActivity last status on http operation was %d instead of %d", lastStatus, status)
+	}
 
 	if err != nil {
 		return fmt.Errorf("got error %v waiting on uri %s with verificationString %s and last set of console logs %s", err, uri, verificationString, consoleLogs)
@@ -96,6 +123,7 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
 	var hostPort string
+	var password string
 
 	g.BeforeEach(func() {
 
@@ -133,14 +161,21 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		hostPort = fmt.Sprintf("%s:%s", serviceIP, port)
 
+		g.By("get admin password")
+		password = getAdminPassword(oc)
+		o.Expect(password).ShouldNot(o.BeEmpty())
+
 		g.By("wait for jenkins to come up")
-		err = waitForJenkinsActivity(fmt.Sprintf("http://%s", hostPort), "", 200)
+		err = waitForJenkinsActivity(fmt.Sprintf("http://%s", hostPort), password, "", 200)
+		if err != nil {
+			exutil.DumpDeploymentLogs("jenkins", oc)
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if testingSnapshot {
 			g.By("verifying the test image is being used")
 			// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
-			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses", hostPort), `About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200)
+			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses", hostPort), password, `About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200)
 		}
 
 	})
@@ -153,10 +188,10 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 			data := jenkinsJobBytes("testjob-plugin.xml", oc.Namespace())
 
 			g.By("make http request to create job")
-			immediateInteractionWithJenkins(fmt.Sprintf("http://%s/createItem?name=test-plugin-job", hostPort), "POST", bytes.NewBuffer(data), 200)
+			immediateInteractionWithJenkins(fmt.Sprintf("http://%s/createItem?name=test-plugin-job", hostPort), "POST", password, bytes.NewBuffer(data), 200)
 
 			g.By("make http request to kick off build")
-			immediateInteractionWithJenkins(fmt.Sprintf("http://%s/job/test-plugin-job/build?delay=0sec", hostPort), "POST", nil, 201)
+			immediateInteractionWithJenkins(fmt.Sprintf("http://%s/job/test-plugin-job/build?delay=0sec", hostPort), "POST", password, nil, 201)
 
 			// the build and deployment is by far the most time consuming portion of the test jenkins job;
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
@@ -168,7 +203,7 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
-			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/job/test-plugin-job/1/console", hostPort), "Finished: SUCCESS", 200)
+			err = waitForJenkinsActivity(fmt.Sprintf("http://%s/job/test-plugin-job/1/console", hostPort), password, "Finished: SUCCESS", 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 		})
