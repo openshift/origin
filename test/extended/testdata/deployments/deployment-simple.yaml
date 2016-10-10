@@ -23,13 +23,15 @@ spec:
         name: deployment-simple
     spec:
       containers:
-      - image: "docker.io/openshift/deployment-example:v1"
+      - image: "docker.io/centos:centos7"
         imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
         name: myapp
         readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
-            scheme: HTTP
+          exec:
+            command:
+            - uptime
   triggers:
   - type: ConfigChange
