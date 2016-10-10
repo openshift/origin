@@ -367,6 +367,20 @@ func TestProjectStatus(t *testing.T) {
 				`View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.`,
 			},
 		},
+		"deployment with unavailable pods": {
+			File: "available-deployment.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"deployment #2 running for 30 seconds - 0/1 pods\n",
+				"deployment #1 deployed about a minute ago - 1/2 pods",
+			},
+			Time: mustParseTime("2016-04-07T04:12:25Z"),
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()
