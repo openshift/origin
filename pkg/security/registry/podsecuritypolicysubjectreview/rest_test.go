@@ -170,7 +170,7 @@ func TestRequests(t *testing.T) {
 					Groups: []string{"bar", "baz"},
 				},
 			},
-			errorMessage: `PodSecurityPolicySubjectReview "" is invalid: spec.podSpec.serviceAccountName: Invalid value: "A.B.C.D": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`,
+			errorMessage: `PodSecurityPolicySubjectReview "" is invalid: spec.template.spec.serviceAccountName: Invalid value: "A.B.C.D": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`,
 		},
 		"no provider": {
 			request: &securityapi.PodSecurityPolicySubjectReview{
