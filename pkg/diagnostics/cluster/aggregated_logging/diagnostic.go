@@ -146,9 +146,9 @@ func (d *AggregatedLogging) Check() types.DiagnosticResult {
 }
 
 const projectNodeSelectorWarning = `
-The project '%[1]s' was found with a non-empty node selector annotation.  This will keep
-Fluentd from running on certain nodes and collecting logs from the entire cluster.  You
-can correct it by editing the project:
+The project '%[1]s' was found with either a missing or non-empty node selector annotation.  
+This could keep Fluentd from running on certain nodes and collecting logs from the entire cluster.  
+You can correct it by editing the project:
 
   oc edit namespace %[1]s
 
@@ -200,7 +200,7 @@ func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.Maste
 		return ""
 	}
 	nodeSelector, ok := project.ObjectMeta.Annotations["openshift.io/node-selector"]
-	if ok && len(nodeSelector) != 0 {
+	if !ok || len(nodeSelector) != 0 {
 		r.Warn("AGL0030", nil, fmt.Sprintf(projectNodeSelectorWarning, projectName))
 	}
 	return projectName

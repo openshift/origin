@@ -271,6 +271,7 @@ openshift-cli-proxy.1
 openshift-cli-replace.1
 openshift-cli-rollback.1
 openshift-cli-rollout-history.1
+openshift-cli-rollout-latest.1
 openshift-cli-rollout-pause.1
 openshift-cli-rollout-resume.1
 openshift-cli-rollout-undo.1

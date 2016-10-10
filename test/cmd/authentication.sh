@@ -3,6 +3,17 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 project="$( oc project -q )"
+if [[ "${project}" == "default" ]]; then
+  echo "Test must be run from a non-default namespace"
+  exit 1
+fi
+
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete oauthaccesstokens --all
+  exit 0
+) &>/dev/null
 
 os::test::junit::declare_suite_start "cmd/authentication"
 
@@ -15,7 +26,7 @@ os::cmd::expect_success_and_text 'oc login -u user1'       'Logged into ".*" as 
 # Completing a login as the same user using existing credentials informs you
 os::cmd::expect_success_and_text 'oc login -u user1'       'Logged into ".*" as "user1" using existing credentials'
 # Return to the system:admin user
-os::cmd::expect_success 'oc login -u system:admin -n cmd-authentication'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/authentication/scopedtokens"
@@ -51,6 +62,7 @@ allescalatingpowerstoken="$(oc process -f "${OS_ROOT}/test/testdata/authenticati
 os::cmd::expect_success_and_text "oc get user/~ --token='${allescalatingpowerstoken}'" "${username}"
 os::cmd::expect_success "oc get secrets --token='${allescalatingpowerstoken}' -n '${project}'"
 # scopes allow it, but authorization doesn't
+os::cmd::try_until_failure "oc get secrets --token='${allescalatingpowerstoken}' -n default"
 os::cmd::expect_failure_and_text "oc get secrets --token='${allescalatingpowerstoken}' -n default" 'cannot list secrets in project'
 os::cmd::expect_success_and_text "oc get projects --token='${allescalatingpowerstoken}'" "${project}"
 os::cmd::expect_success_and_text "oc policy can-i --list --token='${allescalatingpowerstoken}' -n '${project}'" 'get.*pods'

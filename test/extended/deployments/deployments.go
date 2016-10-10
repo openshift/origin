@@ -37,17 +37,18 @@ var _ = g.Describe("deploymentconfigs", func() {
 		historyLimitedDeploymentFixture = exutil.FixturePath("testdata", "deployments", "deployment-history-limit.yaml")
 		minReadySecondsFixture          = exutil.FixturePath("testdata", "deployments", "deployment-min-ready-seconds.yaml")
 		multipleICTFixture              = exutil.FixturePath("testdata", "deployments", "deployment-example.yaml")
+		anotherMultiICTFixture          = exutil.FixturePath("testdata", "deployments", "multi-ict-deployment.yaml")
 		tagImagesFixture                = exutil.FixturePath("testdata", "deployments", "tag-images-deployment.yaml")
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 	)
 
-	g.Describe("when run iteratively", func() {
+	g.Describe("when run iteratively [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should only deploy the last deployment [Conformance]", func() {
+		g.It("should only deploy the last deployment", func() {
 			_, err := oc.Run("create").Args("-f", simpleDeploymentFixture).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -132,7 +133,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, "deployment-simple", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should immediately start a new deployment [Conformance]", func() {
+		g.It("should immediately start a new deployment", func() {
 			resource, name, err := createFixture(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -192,12 +193,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with test deployments", func() {
+	g.Describe("with test deployments [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "deployment-test", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should run a deployment to completion and then scale to zero [Conformance]", func() {
+		g.It("should run a deployment to completion and then scale to zero", func() {
 			out, err := oc.Run("create").Args("-f", deploymentFixture).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -249,12 +250,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("when tagging images", func() {
+	g.Describe("when tagging images [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "tag-images", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should successfully tag the deployed image [Conformance]", func() {
+		g.It("should successfully tag the deployed image", func() {
 			_, name, err := createFixture(oc, tagImagesFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -285,7 +286,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with env in params referencing the configmap", func() {
+	g.Describe("with env in params referencing the configmap [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
 		})
@@ -301,13 +302,21 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("hello bar"))
 		})
 	})
-	g.Describe("with multiple image change triggers", func() {
+	g.Describe("with multiple image change triggers [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should run a successful deployment [Conformance]", func() {
+		g.It("should run a successful deployment with multiple triggers", func() {
 			_, name, err := createFixture(oc, multipleICTFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is marked complete")
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should run a successful deployment with a trigger used by different containers", func() {
+			_, name, err := createFixture(oc, anotherMultiICTFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployment is marked complete")
@@ -315,12 +324,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with enhanced status", func() {
+	g.Describe("with enhanced status [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should include various info in status [Conformance]", func() {
+		g.It("should include various info in status", func() {
 			resource, name, err := createFixture(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -346,12 +355,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with custom deployments", func() {
+	g.Describe("with custom deployments [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "custom-deployment", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should run the custom deployment steps [Conformance]", func() {
+		g.It("should run the custom deployment steps", func() {
 			out, err := oc.Run("create").Args("-f", customDeploymentFixture).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -374,12 +383,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("viewing rollout history", func() {
+	g.Describe("viewing rollout history [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should print the rollout history [Conformance]", func() {
+		g.It("should print the rollout history", func() {
 			resource, name, err := createFixture(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("waiting for the first rollout to complete")
@@ -422,12 +431,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("generation", func() {
+	g.Describe("generation [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "generation-test", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should deploy based on a status version bump [Conformance]", func() {
+		g.It("should deploy based on a status version bump", func() {
 			resource, name, err := createFixture(oc, generationFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -478,7 +487,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("deploying a second time [new client]")
-			_, err = oc.Run("deploy").Args("--latest", name).Output()
+			_, err = oc.Run("rollout").Args("latest", name).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying that both latestVersion and generation are updated")
@@ -509,12 +518,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("paused", func() {
+	g.Describe("paused [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "paused", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should disable actions on deployments [Conformance]", func() {
+		g.It("should disable actions on deployments", func() {
 			resource, name, err := createFixture(oc, pausedDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -559,12 +568,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with failing hook", func() {
+	g.Describe("with failing hook [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "hook", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should get all logs from retried hooks [Conformance]", func() {
+		g.It("should get all logs from retried hooks", func() {
 			resource, name, err := createFixture(oc, failedHookFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -580,27 +589,36 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("rolled back", func() {
+	g.Describe("rolled back [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "deployment-simple", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should rollback to an older deployment [Conformance]", func() {
+		g.It("should rollback to an older deployment", func() {
 			resource, name, err := createFixture(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			_, err = oc.Run("deploy").Args(name, "--latest").Output()
+			_, err = oc.Run("rollout").Args("latest", name).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we are on the second version")
+			version := "1"
+			err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+				latestVersion, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
+				if err != nil {
+					return false, err
+				}
+				version = strings.Trim(latestVersion, "\"")
+				return strings.Contains(version, "2"), nil
+			})
+			if err == wait.ErrWaitTimeout {
+				err = fmt.Errorf("expected latestVersion: 2, got: %s", version)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
-
-			g.By("verifying that we are on the second version")
-			version, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.latestVersion}\"").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			version = strings.Trim(version, "\"")
-			o.Expect(version).To(o.ContainSubstring("2"))
 
 			g.By("verifying that we can rollback")
 			_, err = oc.Run("rollout").Args("undo", resource).Output()
@@ -616,12 +634,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("reaper", func() {
+	g.Describe("reaper [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "brokendeployment", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should delete all failed deployer pods and hook pods [Conformance]", func() {
+		g.It("should delete all failed deployer pods and hook pods", func() {
 			resource, name, err := createFixture(oc, brokenDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -655,12 +673,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("initially", func() {
+	g.Describe("initially [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "readiness", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should not deploy if pods never transition to ready [Conformance]", func() {
+		g.It("should not deploy if pods never transition to ready", func() {
 			_, name, err := createFixture(oc, readinessFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -670,12 +688,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with revision history limits", func() {
+	g.Describe("with revision history limits [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "history-limit", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should never persist more old deployments than acceptable after being observed by the controller [Conformance]", func() {
+		g.It("should never persist more old deployments than acceptable after being observed by the controller", func() {
 			revisionHistoryLimit := 3 // as specified in the fixture
 
 			_, err := oc.Run("create").Args("-f", historyLimitedDeploymentFixture).Output()
@@ -715,12 +733,12 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("with minimum ready seconds set", func() {
+	g.Describe("with minimum ready seconds set [Conformance]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "minreadytest", g.CurrentGinkgoTestDescription().Failed)
 		})
 
-		g.It("should not transition the deployment to Complete before satisfied [Conformance]", func() {
+		g.It("should not transition the deployment to Complete before satisfied", func() {
 			_, name, err := createFixture(oc, minReadySecondsFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

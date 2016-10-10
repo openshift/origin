@@ -41,10 +41,10 @@ type PruneBuildsOptions struct {
 	KeepYoungerThan time.Duration
 	KeepComplete    int
 	KeepFailed      int
+	Namespace       string
 
-	Pruner prune.Pruner
-	Client client.Interface
-	Out    io.Writer
+	OSClient client.Interface
+	Out      io.Writer
 }
 
 // NewCmdPruneBuilds implements the OpenShift cli prune builds command.
@@ -84,42 +84,21 @@ func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
 
+	o.Namespace = kapi.NamespaceAll
+	if cmd.Flags().Lookup("namespace").Changed {
+		var err error
+		o.Namespace, _, err = f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
+	}
 	o.Out = out
 
 	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.Client = osClient
-
-	buildConfigList, err := osClient.BuildConfigs(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return err
-	}
-	buildConfigs := []*buildapi.BuildConfig{}
-	for i := range buildConfigList.Items {
-		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
-	}
-
-	buildList, err := osClient.Builds(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return err
-	}
-	builds := []*buildapi.Build{}
-	for i := range buildList.Items {
-		builds = append(builds, &buildList.Items[i])
-	}
-
-	options := prune.PrunerOptions{
-		KeepYoungerThan: o.KeepYoungerThan,
-		Orphans:         o.Orphans,
-		KeepComplete:    o.KeepComplete,
-		KeepFailed:      o.KeepFailed,
-		BuildConfigs:    buildConfigs,
-		Builds:          builds,
-	}
-
-	o.Pruner = prune.NewPruner(options)
+	o.OSClient = osClient
 
 	return nil
 }
@@ -140,18 +119,46 @@ func (o PruneBuildsOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune builds command.
 func (o PruneBuildsOptions) Run() error {
+	buildConfigList, err := o.OSClient.BuildConfigs(o.Namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+	buildConfigs := []*buildapi.BuildConfig{}
+	for i := range buildConfigList.Items {
+		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
+	}
+
+	buildList, err := o.OSClient.Builds(o.Namespace).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+	builds := []*buildapi.Build{}
+	for i := range buildList.Items {
+		builds = append(builds, &buildList.Items[i])
+	}
+
+	options := prune.PrunerOptions{
+		KeepYoungerThan: o.KeepYoungerThan,
+		Orphans:         o.Orphans,
+		KeepComplete:    o.KeepComplete,
+		KeepFailed:      o.KeepFailed,
+		BuildConfigs:    buildConfigs,
+		Builds:          builds,
+	}
+	pruner := prune.NewPruner(options)
+
 	w := tabwriter.NewWriter(o.Out, 10, 4, 3, ' ', 0)
 	defer w.Flush()
 
 	buildDeleter := &describingBuildDeleter{w: w}
 
 	if o.Confirm {
-		buildDeleter.delegate = prune.NewBuildDeleter(o.Client)
+		buildDeleter.delegate = prune.NewBuildDeleter(o.OSClient)
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove builds")
 	}
 
-	return o.Pruner.Prune(buildDeleter)
+	return pruner.Prune(buildDeleter)
 }
 
 // describingBuildDeleter prints information about each build it removes.

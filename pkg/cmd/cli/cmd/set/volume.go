@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -97,6 +98,7 @@ type VolumeOptions struct {
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 	Client                 kclient.PersistentVolumeClaimsNamespacer
+	Encoder                runtime.Encoder
 
 	// Resource selection
 	Selector  string
@@ -345,6 +347,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Typer = typer
 	v.RESTClientFactory = f.Factory.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
+	v.Encoder = f.JSONEncoder()
 
 	// In case of volume source ignore the default volume type
 	if len(v.AddOpts.Source) > 0 {
@@ -391,6 +394,14 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		return err
 	}
 
+	if v.List {
+		listingErrors := v.printVolumes(infos)
+		if len(listingErrors) > 0 {
+			return cmdutil.ErrExit
+		}
+		return nil
+	}
+
 	updateInfos := []*resource.Info{}
 	// if a claim should be created, generate the info we'll add to the flow
 	if v.Add && v.AddOpts.CreateClaim {
@@ -413,43 +424,12 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		updateInfos = append(updateInfos, info)
 	}
 
-	skipped := 0
-	for _, info := range infos {
-		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
-			var e error
-			switch {
-			case v.Add:
-				e = v.addVolumeToSpec(spec, info, singular)
-			case v.Remove:
-				e = v.removeVolumeFromSpec(spec, info)
-			case v.List:
-				e = v.listVolumeForSpec(spec, info)
-			}
-			return e
-		})
-		if !ok {
-			skipped++
-			continue
-		}
-		if err != nil {
-			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
-			continue
-		}
-		updateInfos = append(updateInfos, info)
-	}
-	if singular && skipped == len(infos) {
-		return fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
-	}
-	updatePodSpecFailed := len(updateInfos) != len(infos)
+	patches, patchError := v.getVolumeUpdatePatches(infos, singular)
 
-	if v.List {
-		if updatePodSpecFailed {
-			return cmdutil.ErrExit
-		}
-		return nil
+	if patchError != nil {
+		return patchError
 	}
 
-	// TODO: replace with a strategic merge patch
 	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion, kapi.Codecs.LegacyCodec(v.OutputVersion))
 	if err != nil {
 		return err
@@ -479,10 +459,63 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		info.Refresh(obj, true)
 		fmt.Fprintf(v.Out, "%s/%s\n", info.Mapping.Resource, info.Name)
 	}
-	if failed || updatePodSpecFailed {
+	for _, patch := range patches {
+		info := patch.Info
+		if patch.Err != nil {
+			failed = true
+			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, patch.Err)
+			continue
+		}
+
+		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
+			fmt.Fprintf(v.Err, "info: %s %q was not changed\n", info.Mapping.Resource, info.Name)
+			continue
+		}
+
+		glog.V(4).Infof("Calculated patch %s", patch.Patch)
+
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patch.Patch)
+		if err != nil {
+			handlePodUpdateError(v.Err, err, "volume")
+			failed = true
+			continue
+		}
+
+		info.Refresh(obj, true)
+		kcmdutil.PrintSuccess(v.Mapper, false, v.Out, info.Mapping.Resource, info.Name, "updated")
+	}
+	if failed {
 		return cmdutil.ErrExit
 	}
 	return nil
+}
+
+func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singular bool) ([]*Patch, error) {
+	skipped := 0
+	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
+		transformed := false
+		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+			var e error
+			switch {
+			case v.Add:
+				e = v.addVolumeToSpec(spec, info, singular)
+				transformed = true
+			case v.Remove:
+				e = v.removeVolumeFromSpec(spec, info)
+				transformed = true
+			}
+			return e
+		})
+		if !ok {
+			skipped++
+		}
+		return transformed, err
+	})
+	if singular && skipped == len(infos) {
+		patchError := fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
+		return patches, patchError
+	}
+	return patches, nil
 }
 
 func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
@@ -511,6 +544,20 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 		return fmt.Errorf("invalid volume type: %s", opts.Type)
 	}
 	return nil
+}
+
+func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
+	listingErrors := []error{}
+	for _, info := range infos {
+		_, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+			return v.listVolumeForSpec(spec, info)
+		})
+		if err != nil {
+			listingErrors = append(listingErrors, err)
+			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+		}
+	}
+	return listingErrors
 }
 
 func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {

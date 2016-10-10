@@ -25,7 +25,7 @@ const (
 func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient *kclient.Client, project string) {
 	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName)
 	if err != nil {
-		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s'. Unable to check Kibana", kibanaProxyOauthClientName))
+		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
 		return
 	}
 	checkKibanaSecret(r, osClient, kClient, project, oauthclient)
@@ -37,12 +37,12 @@ func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClien
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
 	secret, err := kClient.Secrets(project).Get(kibanaProxySecretName)
 	if err != nil {
-		r.Error("AGL0105", err, fmt.Sprintf("Error retrieving the secret '%s'", kibanaProxySecretName))
+		r.Error("AGL0105", err, fmt.Sprintf("Error retrieving the secret '%s': %s", kibanaProxySecretName, err))
 		return
 	}
 	decoded, err := decodeSecret(secret, oauthSecretKeyName)
 	if err != nil {
-		r.Error("AGL0110", err, fmt.Sprintf("Unable to decode Kibana Secret"))
+		r.Error("AGL0110", err, fmt.Sprintf("Unable to decode Kibana Secret: %s", err))
 		return
 	}
 	if decoded != oauthclient.Secret {
@@ -58,7 +58,7 @@ func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient *client.C
 	r.Debug("AGL0141", "Checking oauthclient redirectURIs for the logging routes...")
 	routeList, err := osClient.Routes(project).List(kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {
-		r.Error("AGL0143", err, "Error retrieving the logging routes.")
+		r.Error("AGL0143", err, fmt.Sprintf("Error retrieving the logging routes: %s", err))
 		return
 	}
 	redirectUris, err := parseRedirectUris(oauthclient.RedirectURIs)

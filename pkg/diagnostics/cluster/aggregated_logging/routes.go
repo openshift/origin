@@ -33,7 +33,7 @@ func checkRoutes(r diagnosticReporter, adapter routesAdapter, project string) {
 	r.Debug("AGL0300", "Checking routes...")
 	routeList, err := adapter.routes(project, kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
 	if err != nil {
-		r.Error("AGL0305", err, fmt.Sprintf("There was an error retrieving routes in the project '%s' with selector '%s'", project, loggingSelector.AsSelector()))
+		r.Error("AGL0305", err, fmt.Sprintf("There was an error retrieving routes in the project '%s' with selector '%s': %s", project, loggingSelector.AsSelector(), err))
 		return
 	}
 	if len(routeList.Items) == 0 {
@@ -59,7 +59,7 @@ func checkRouteCertificate(r diagnosticReporter, route routes.Route) {
 	if block != nil {
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			r.Error("AGL0335", err, fmt.Sprintf("Unable to parse the certificate for route '%s'", route.ObjectMeta.Name))
+			r.Error("AGL0335", err, fmt.Sprintf("Unable to parse the certificate for route '%s': %s", route.ObjectMeta.Name, err))
 			return
 		}
 		r.Debug("AGL0340", fmt.Sprintf("Cert CommonName: '%s' Cert DNSNames: '%s'", cert.Subject.CommonName, cert.DNSNames))
@@ -74,7 +74,7 @@ func checkRouteCertificate(r diagnosticReporter, route routes.Route) {
 	r.Debug("AGL0355", fmt.Sprintf("Checking certificate matches key for route '%s'", route.ObjectMeta.Name))
 	_, err := tls.X509KeyPair([]byte(route.Spec.TLS.Certificate), []byte(route.Spec.TLS.Key))
 	if err != nil {
-		r.Error("AGL0365", err, fmt.Sprintf("Route '%s' key and certficate do not match: %s.  The router will be unable to pass traffic using this route.", route.ObjectMeta.Name, err))
+		r.Error("AGL0365", err, fmt.Sprintf("Route '%s' key and certificate do not match: %s.  The router will be unable to pass traffic using this route.", route.ObjectMeta.Name, err))
 	}
 }
 
