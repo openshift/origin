@@ -40,17 +40,23 @@ function ensure-node-config() {
     local ip_addr
     ip_addr="$(ip addr | grep inet | grep eth0 | awk '{print $2}' | sed -e 's+/.*++')"
 
-    /usr/local/bin/openshift admin create-node-config \
-      --node-dir="${config_path}" \
-      --node="${host}" \
-      --master="${master_host}" \
-      --hostnames="${host},${ip_addr}" \
-      --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
-      --node-client-certificate-authority="${master_config_path}/ca.crt" \
-      --certificate-authority="${master_config_path}/ca.crt" \
-      --signer-cert="${master_config_path}/ca.crt" \
-      --signer-key="${master_config_path}/ca.key" \
-      --signer-serial="${master_config_path}/ca.serial.txt"
+    # Hold a lock on the shared volume to ensure cert generation is
+    # performed serially.  Cert generation is not compatible with
+    # concurrent execution since the file passed to --signer-serial
+    # needs to be incremented by each invocation.
+    (flock 200;
+     /usr/local/bin/openshift admin create-node-config \
+       --node-dir="${node_config_path}" \
+       --node="${host}" \
+       --master="${master_host}" \
+       --hostnames="${host},${ip_addr}" \
+       --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
+       --node-client-certificate-authority="${master_config_path}/ca.crt" \
+       --certificate-authority="${master_config_path}/ca.crt" \
+       --signer-cert="${master_config_path}/ca.crt" \
+       --signer-key="${master_config_path}/ca.key" \
+       --signer-serial="${master_config_path}/ca.serial.txt"
+    ) 200>"${config_path}"/.openshift-generate-node-config.lock
   fi
 
   # Deploy the node config
