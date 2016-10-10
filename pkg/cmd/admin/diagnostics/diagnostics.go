@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -21,6 +22,7 @@ import (
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/diagnostics/log"
+	netutil "github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -40,6 +42,8 @@ type DiagnosticsOptions struct {
 	ImageTemplate variable.ImageTemplate
 	// When true, prevent diagnostics from changing API state (e.g. creating something)
 	PreventModification bool
+	// Path to store network diagnostic results
+	NetworkDiagLogDir string
 	// We need a factory for creating clients. Creating a factory
 	// creates flags as a byproduct, most of which we don't want.
 	// The command creates these and binds only the flags we want.
@@ -128,6 +132,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	cmd.Flags().StringVar(&o.ImageTemplate.Format, options.FlagImageTemplateName, o.ImageTemplate.Format, "Image template for DiagnosticPod to use in creating a pod")
 	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, options.FlagLatestImageName, false, "When expanding the image template, use latest version, not release version")
 	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "May be set to prevent diagnostics making any changes via the API")
+	cmd.Flags().StringVar(&o.NetworkDiagLogDir, options.FlagNetworkDiagLogDir, netutil.NetworkDiagDefaultLogDir, "Path to store network diagnostic results")
 	flagtypes.GLog(cmd.Flags())
 	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
 
@@ -153,6 +158,17 @@ func (o *DiagnosticsOptions) Complete(args []string) error {
 		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
 			o.NodeConfigLocation = StandardNodeConfigPath
 		}
+	}
+
+	if len(o.NetworkDiagLogDir) != 0 {
+		logdir, err := filepath.Abs(o.NetworkDiagLogDir)
+		if err != nil {
+			return err
+		}
+		if path, err := os.Stat(o.NetworkDiagLogDir); err == nil && !path.Mode().IsDir() {
+			return fmt.Errorf("Network log path %q exists but is not a directory", o.NetworkDiagLogDir)
+		}
+		o.NetworkDiagLogDir = logdir
 	}
 
 	o.RequestedDiagnostics = append(o.RequestedDiagnostics, args...)
