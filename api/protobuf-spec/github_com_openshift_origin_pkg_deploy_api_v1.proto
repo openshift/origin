@@ -43,6 +43,24 @@ message DeploymentCauseImageTrigger {
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
 }
 
+// DeploymentCondition describes the state of a deployment config at a certain point.
+message DeploymentCondition {
+  // Type of deployment condition.
+  optional string type = 1;
+
+  // Status of the condition, one of True, False, Unknown.
+  optional string status = 2;
+
+  // The last time the condition transitioned from one status to another.
+  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 3;
+
+  // The reason for the condition's last transition.
+  optional string reason = 4;
+
+  // A human readable message indicating details about the transition.
+  optional string message = 5;
+}
+
 // Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
 // A single deployment configuration is usually analogous to a single micro-service. Can support many different
 // deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as
@@ -169,6 +187,9 @@ message DeploymentConfigStatus {
   // Details are the reasons for the update to this deployment config.
   // This could be based on a change made by the user or caused by an automatic trigger
   optional DeploymentDetails details = 7;
+
+  // Conditions represents the latest available observations of a deployment config's current state.
+  repeated DeploymentCondition conditions = 8;
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
@@ -270,9 +291,7 @@ message DeploymentStrategy {
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 message DeploymentTriggerImageChangeParams {
   // Automatic means that the detection of a new tag value should result in an image update
-  // inside the pod template. Deployment configs that haven't been deployed yet will always
-  // have their images updated. Deployment configs that have been deployed at least once, will
-  // have their images updated only if this is set to true.
+  // inside the pod template.
   optional bool automatic = 1;
 
   // ContainerNames is used to restrict tag updates to the specified set of container names in a pod.

@@ -78,17 +78,22 @@ func (vmap *nodeVNIDMap) GetVNID(name string) (uint32, error) {
 // So, use this method to alleviate this problem. This method will
 // retry vnid lookup before giving up.
 func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
-	// Try few times up to 2 seconds
-	retries := 20
-	retryInterval := 100 * time.Millisecond
-	for i := 0; i < retries; i++ {
-		if id, err := vmap.GetVNID(name); err == nil {
-			return id, nil
-		}
-		time.Sleep(retryInterval)
+	var id uint32
+	backoff := utilwait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    5,
 	}
-
-	return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+		var err error
+		id, err = vmap.GetVNID(name)
+		return err == nil, nil
+	})
+	if err == nil {
+		return id, nil
+	} else {
+		return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+	}
 }
 
 func (vmap *nodeVNIDMap) setVNID(name string, id uint32) {

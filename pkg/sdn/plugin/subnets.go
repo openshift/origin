@@ -3,7 +3,6 @@ package plugin
 import (
 	"fmt"
 	"net"
-	"time"
 
 	log "github.com/golang/glog"
 
@@ -197,48 +196,8 @@ func (master *OsdnMaster) watchNodes() {
 	})
 }
 
-func (node *OsdnNode) SubnetStartNode(mtu uint32) (bool, error) {
-	err := node.initSelfSubnet()
-	if err != nil {
-		return false, err
-	}
-
-	networkChanged, err := node.SetupSDN(node.localSubnet.Subnet, node.networkInfo.ClusterNetwork.String(), node.networkInfo.ServiceNetwork.String(), mtu)
-	if err != nil {
-		return false, err
-	}
-
+func (node *OsdnNode) SubnetStartNode() error {
 	go utilwait.Forever(node.watchSubnets, 0)
-	return networkChanged, nil
-}
-
-func (node *OsdnNode) initSelfSubnet() error {
-	// timeout: 30 secs
-	retries := 60
-	retryInterval := 500 * time.Millisecond
-
-	var err error
-	var subnet *osapi.HostSubnet
-	// Try every retryInterval and bail-out if it exceeds max retries
-	for i := 0; i < retries; i++ {
-		// Get subnet for current node
-		subnet, err = node.osClient.HostSubnets().Get(node.hostName)
-		if err == nil {
-			break
-		}
-		log.Warningf("Could not find an allocated subnet for node: %s, Waiting...", node.hostName)
-		time.Sleep(retryInterval)
-	}
-	if err != nil {
-		return fmt.Errorf("Failed to get subnet for this host: %s, error: %v", node.hostName, err)
-	}
-
-	if err = node.networkInfo.validateNodeIP(subnet.HostIP); err != nil {
-		return fmt.Errorf("Failed to validate own HostSubnet: %v", err)
-	}
-
-	log.Infof("Found local HostSubnet %s", hostSubnetToString(subnet))
-	node.localSubnet = subnet
 	return nil
 }
 

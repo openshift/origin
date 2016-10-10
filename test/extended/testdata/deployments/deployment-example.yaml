@@ -22,8 +22,6 @@ items:
           ports:
           - containerPort: 8080
             protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
         - imagePullPolicy: Always
           name: mongodb
           command:
@@ -32,12 +30,6 @@ items:
           ports:
           - containerPort: 5000
             protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
     test: false
     triggers:
     - type: ConfigChange
@@ -59,7 +51,4 @@ items:
           name: mongodb:latest
           namespace: openshift
       type: ImageChange
-  status:
-    observedGeneration: 1
 kind: List
-metadata: {}

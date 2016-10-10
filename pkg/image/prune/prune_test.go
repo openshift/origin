@@ -418,6 +418,7 @@ func TestImagePruning(t *testing.T) {
 	tests := map[string]struct {
 		pruneOverSizeLimit         *bool
 		registryURLs               []string
+		namespace                  string
 		images                     imageapi.ImageList
 		pods                       kapi.PodList
 		streams                    imageapi.ImageStreamList
@@ -870,6 +871,28 @@ func TestImagePruning(t *testing.T) {
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
 		},
+		"image exceeding limits with namespace specified": {
+			pruneOverSizeLimit: newBool(true),
+			namespace:          "foo",
+			images: imageList(
+				unmanagedImage("id", "otherregistry/foo/bar@id", false, "", ""),
+				sizedImage("id2", registryURL+"/foo/bar@id2", 100, nil),
+				sizedImage("id3", registryURL+"/foo/bar@id3", 200, nil),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "otherregistry/foo/bar@id"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+					),
+				)),
+			),
+			limits: map[string][]*kapi.LimitRange{
+				"foo": limitList(100, 200),
+			},
+			expectedStreamUpdates: []string{"foo/bar|id3"},
+		},
 	}
 
 	for name, test := range tests {
@@ -879,6 +902,7 @@ func TestImagePruning(t *testing.T) {
 		}
 
 		options := PrunerOptions{
+			Namespace:   test.namespace,
 			Images:      &test.images,
 			Streams:     &test.streams,
 			Pods:        &test.pods,

@@ -30,7 +30,6 @@ type OsdnNode struct {
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
 	localIP            string
-	localSubnet        *osapi.HostSubnet
 	hostName           string
 	podNetworkReady    chan struct{}
 	vnids              *nodeVNIDMap
@@ -102,8 +101,12 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
 	}
 
-	var networkChanged bool
-	networkChanged, err = node.SubnetStartNode(node.mtu)
+	networkChanged, err := node.SetupSDN()
+	if err != nil {
+		return err
+	}
+
+	err = node.SubnetStartNode()
 	if err != nil {
 		return err
 	}

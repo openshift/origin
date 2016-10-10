@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -46,6 +46,36 @@ func getPluginVersion(multitenant bool) []string {
 	}
 	// single-tenant
 	return []string{"00", version}
+}
+
+func (plugin *OsdnNode) getLocalSubnet() (string, error) {
+	var subnet *osapi.HostSubnet
+	backoff := utilwait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   2,
+		Steps:    8,
+	}
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+		var err error
+		subnet, err = plugin.osClient.HostSubnets().Get(plugin.hostName)
+		if err == nil {
+			return true, nil
+		} else if kapierrors.IsNotFound(err) {
+			glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", plugin.hostName)
+			return false, nil
+		} else {
+			return false, err
+		}
+	})
+	if err != nil {
+		return "", fmt.Errorf("Failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
+	}
+
+	if err = plugin.networkInfo.validateNodeIP(subnet.HostIP); err != nil {
+		return "", fmt.Errorf("Failed to validate own HostSubnet: %v", err)
+	}
+
+	return subnet.Subnet, nil
 }
 
 func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR string) bool {
@@ -117,36 +147,43 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 }
 
 func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
-	const (
-		timeInterval = 100 * time.Millisecond
-		maxIntervals = 20
-	)
-
-	for i := 0; i < maxIntervals; i++ {
+	backoff := utilwait.Backoff{
+		Duration: 100 * time.Millisecond,
+		Factor:   1.25,
+		Steps:    6,
+	}
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		itx := ipcmd.NewTransaction(kexec.New(), device)
 		routes, err := itx.GetRoutes()
 		if err != nil {
-			glog.Errorf("Could not get routes for dev %s: %v", device, err)
-			return
+			return false, fmt.Errorf("could not get routes: %v", err)
 		}
 		for _, route := range routes {
 			if strings.Contains(route, localSubnetCIDR) {
 				itx.DeleteRoute(localSubnetCIDR)
 				err = itx.EndTransaction()
 				if err != nil {
-					glog.Errorf("Could not delete subnet route %s from dev %s: %v", localSubnetCIDR, device, err)
+					return false, fmt.Errorf("could not delete route: %v", err)
 				}
-				return
+				return true, nil
 			}
 		}
+		return false, nil
+	})
 
-		time.Sleep(timeInterval)
+	if err != nil {
+		glog.Errorf("Error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
 	}
-
-	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
 }
 
-func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint32) (bool, error) {
+func (plugin *OsdnNode) SetupSDN() (bool, error) {
+	localSubnetCIDR, err := plugin.getLocalSubnet()
+	if err != nil {
+		return false, err
+	}
+	clusterNetworkCIDR := plugin.networkInfo.ClusterNetwork.String()
+	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
+
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -160,7 +197,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
-	mtuStr := fmt.Sprint(mtu)
+	mtuStr := fmt.Sprint(plugin.mtu)
 
 	exec := kexec.New()
 	itx := ipcmd.NewTransaction(exec, LBR)
@@ -268,7 +305,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	otx.AddFlow("table=2, priority=0, actions=drop")
 
 	// Table 3: from OpenShift container; service vs non-service
-	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", servicesNetworkCIDR)
+	otx.AddFlow("table=3, priority=100, ip, nw_dst=%s, actions=goto_table:4", serviceNetworkCIDR)
 	otx.AddFlow("table=3, priority=0, actions=goto_table:5")
 
 	// Table 4: from OpenShift container; service dispatch; filled in by AddServiceRules()
@@ -300,7 +337,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	// eg, "table=8, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	otx.AddFlow("table=8, priority=0, actions=drop")
 
-	// Table 9: egress network policy dispatch; edited by updateEgressNetworkPolicy()
+	// Table 9: egress network policy dispatch; edited by updateEgressNetworkPolicyRules()
 	// eg, "table=9, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
 	otx.AddFlow("table=9, priority=0, actions=output:2")
 
@@ -315,7 +352,7 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	itx.SetLink("mtu", mtuStr)
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
-	itx.AddRoute(servicesNetworkCIDR)
+	itx.AddRoute(serviceNetworkCIDR)
 	err = itx.EndTransaction()
 	if err != nil {
 		return false, err
@@ -364,88 +401,6 @@ func (plugin *OsdnNode) SetupSDN(localSubnetCIDR, clusterNetworkCIDR, servicesNe
 	return true, nil
 }
 
-func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
-	policies, err := plugin.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("Could not get EgressNetworkPolicies: %s", err)
-	}
-
-	for _, policy := range policies.Items {
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
-		if err != nil {
-			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
-			continue
-		}
-		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], &policy)
-	}
-
-	for vnid := range plugin.egressPolicies {
-		err := plugin.updateEgressNetworkPolicy(vnid)
-		if err != nil {
-			return err
-		}
-	}
-
-	go utilwait.Forever(plugin.watchEgressNetworkPolicies, 0)
-	return nil
-}
-
-func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
-		policy := delta.Object.(*osapi.EgressNetworkPolicy)
-
-		vnid, err := plugin.vnids.GetVNID(policy.Namespace)
-		if err != nil {
-			return fmt.Errorf("could not find netid for namespace %q: %v", policy.Namespace, err)
-		}
-
-		policies := plugin.egressPolicies[vnid]
-		for i, oldPolicy := range policies {
-			if oldPolicy.UID == policy.UID {
-				policies = append(policies[:i], policies[i+1:]...)
-				break
-			}
-		}
-		if delta.Type != cache.Deleted && len(policy.Spec.Egress) > 0 {
-			policies = append(policies, policy)
-		}
-		plugin.egressPolicies[vnid] = policies
-
-		err = plugin.updateEgressNetworkPolicy(vnid)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) error {
-	var policy *osapi.EgressNetworkPolicy
-
-	policies := plugin.egressPolicies[oldVnid]
-	for i, oldPolicy := range policies {
-		if oldPolicy.Namespace == namespace {
-			policy = oldPolicy
-			plugin.egressPolicies[oldVnid] = append(policies[:i], policies[i+1:]...)
-			err := plugin.updateEgressNetworkPolicy(oldVnid)
-			if err != nil {
-				return err
-			}
-			break
-		}
-	}
-
-	if policy != nil {
-		plugin.egressPolicies[newVnid] = append(plugin.egressPolicies[newVnid], policy)
-		err := plugin.updateEgressNetworkPolicy(newVnid)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func policyNames(policies []*osapi.EgressNetworkPolicy) string {
 	names := make([]string, len(policies))
 	for i, policy := range policies {
@@ -454,7 +409,7 @@ func policyNames(policies []*osapi.EgressNetworkPolicy) string {
 	return strings.Join(names, ", ")
 }
 
-func (plugin *OsdnNode) updateEgressNetworkPolicy(vnid uint32) error {
+func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
 	otx := plugin.ovs.NewTransaction()
 
 	policies := plugin.egressPolicies[vnid]

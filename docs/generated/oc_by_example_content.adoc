@@ -2203,6 +2203,20 @@ View rollout history
 ====
 
 
+== oc rollout latest
+Start a new rollout for a deployment config with the latest state from its triggers
+
+====
+
+[options="nowrap"]
+----
+  # Start a new rollout based on the latest images defined in the image change triggers.
+  oc rollout latest dc/nginx
+
+----
+====
+
+
 == oc rollout pause
 Mark the provided resource as paused
 

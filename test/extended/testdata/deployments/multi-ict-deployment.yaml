@@ -1,0 +1,46 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: example
+    name: example
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: example
+      spec:
+        containers:
+        - imagePullPolicy: Always
+          name: ruby
+          command:
+          - /bin/sleep
+          - "100"
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+        - imagePullPolicy: Always
+          name: ruby2
+          command:
+          - /bin/sleep
+          - "100"
+          ports:
+          - containerPort: 8081
+            protocol: TCP
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ruby
+        - ruby2
+        from:
+          kind: ImageStreamTag
+          name: ruby:latest
+          namespace: openshift
+      type: ImageChange
+kind: List

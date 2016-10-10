@@ -24,18 +24,22 @@ import (
 type VirtualStorage struct {
 	BindingRegistry policybindingregistry.Registry
 
-	RuleResolver   rulevalidation.AuthorizationRuleResolver
+	RuleResolver       rulevalidation.AuthorizationRuleResolver
+	CachedRuleResolver rulevalidation.AuthorizationRuleResolver
+
 	CreateStrategy rest.RESTCreateStrategy
 	UpdateStrategy rest.RESTUpdateStrategy
 	Resource       unversioned.GroupResource
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver rulevalidation.AuthorizationRuleResolver, resource unversioned.GroupResource) rolebindingregistry.Storage {
+func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource unversioned.GroupResource) rolebindingregistry.Storage {
 	return &VirtualStorage{
 		BindingRegistry: bindingRegistry,
 
-		RuleResolver:   ruleResolver,
+		RuleResolver:       ruleResolver,
+		CachedRuleResolver: cachedRuleResolver,
+
 		CreateStrategy: rolebindingregistry.LocalStrategy,
 		UpdateStrategy: rolebindingregistry.LocalStrategy,
 		Resource:       resource,
@@ -250,13 +254,23 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, name string, objInf
 	return updatedRoleBinding, false, nil
 }
 
+// roleForEscalationCheck tries to use the CachedRuleResolver if available to avoid expensive checks
+func (m *VirtualStorage) roleForEscalationCheck(binding authorizationinterfaces.RoleBinding) (authorizationinterfaces.Role, error) {
+	if m.CachedRuleResolver != nil {
+		if role, err := m.CachedRuleResolver.GetRole(binding); err == nil {
+			return role, nil
+		}
+	}
+	return m.RuleResolver.GetRole(binding)
+}
+
 func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
-	modifyingRole, err := m.RuleResolver.GetRole(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding))
+	modifyingRole, err := m.roleForEscalationCheck(authorizationinterfaces.NewLocalRoleBindingAdapter(roleBinding))
 	if err != nil {
 		return err
 	}
 
-	return rulevalidation.ConfirmNoEscalation(ctx, m.Resource, roleBinding.Name, m.RuleResolver, modifyingRole)
+	return rulevalidation.ConfirmNoEscalation(ctx, m.Resource, roleBinding.Name, m.RuleResolver, m.CachedRuleResolver, modifyingRole)
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.

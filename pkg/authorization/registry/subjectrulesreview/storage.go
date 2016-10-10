@@ -74,25 +74,14 @@ func GetEffectivePolicyRules(ctx kapi.Context, ruleResolver rulevalidation.Autho
 		return nil, []error{kapierrors.NewBadRequest(fmt.Sprintf("user missing from context"))}
 	}
 
-	errors := []error{}
-	rules := []authorizationapi.PolicyRule{}
-
-	namespaceRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
+	var errors []error
+	var rules []authorizationapi.PolicyRule
+	namespaceRules, err := ruleResolver.RulesFor(user, namespace)
 	if err != nil {
 		errors = append(errors, err)
 	}
 	for _, rule := range namespaceRules {
 		rules = append(rules, rulevalidation.BreakdownRule(rule)...)
-	}
-	if len(namespace) != 0 {
-		masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
-		clusterRules, err := ruleResolver.GetEffectivePolicyRules(masterContext)
-		if err != nil {
-			errors = append(errors, err)
-		}
-		for _, rule := range clusterRules {
-			rules = append(rules, rulevalidation.BreakdownRule(rule)...)
-		}
 	}
 
 	if scopes := user.GetExtra()[authorizationapi.ScopesKey]; len(scopes) > 0 {

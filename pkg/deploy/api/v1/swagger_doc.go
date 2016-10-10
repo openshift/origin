@@ -35,6 +35,19 @@ func (DeploymentCauseImageTrigger) SwaggerDoc() map[string]string {
 	return map_DeploymentCauseImageTrigger
 }
 
+var map_DeploymentCondition = map[string]string{
+	"":                   "DeploymentCondition describes the state of a deployment config at a certain point.",
+	"type":               "Type of deployment condition.",
+	"status":             "Status of the condition, one of True, False, Unknown.",
+	"lastTransitionTime": "The last time the condition transitioned from one status to another.",
+	"reason":             "The reason for the condition's last transition.",
+	"message":            "A human readable message indicating details about the transition.",
+}
+
+func (DeploymentCondition) SwaggerDoc() map[string]string {
+	return map_DeploymentCondition
+}
+
 var map_DeploymentConfig = map[string]string{
 	"":         "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
 	"metadata": "Standard object's metadata.",
@@ -107,6 +120,7 @@ var map_DeploymentConfigStatus = map[string]string{
 	"availableReplicas":   "AvailableReplicas is the total number of available pods targeted by this deployment config.",
 	"unavailableReplicas": "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
 	"details":             "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
+	"conditions":          "Conditions represents the latest available observations of a deployment config's current state.",
 }
 
 func (DeploymentConfigStatus) SwaggerDoc() map[string]string {
@@ -177,7 +191,7 @@ func (DeploymentStrategy) SwaggerDoc() map[string]string {
 
 var map_DeploymentTriggerImageChangeParams = map[string]string{
 	"":                   "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
-	"automatic":          "Automatic means that the detection of a new tag value should result in an image update inside the pod template. Deployment configs that haven't been deployed yet will always have their images updated. Deployment configs that have been deployed at least once, will have their images updated only if this is set to true.",
+	"automatic":          "Automatic means that the detection of a new tag value should result in an image update inside the pod template.",
 	"containerNames":     "ContainerNames is used to restrict tag updates to the specified set of container names in a pod.",
 	"from":               "From is a reference to an image stream tag to watch for changes. From.Name is the only required subfield - if From.Namespace is blank, the namespace of the current deployment trigger will be used.",
 	"lastTriggeredImage": "LastTriggeredImage is the last image to be triggered.",
