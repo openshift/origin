@@ -85,7 +85,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
 	// Filter all pods that satisfies pod label selector and belongs to the given node
-	pods, err := e.Options.Kclient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
+	pods, err := e.Options.KubeClient.Pods(kapi.NamespaceAll).List(kapi.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,22 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		fmt.Fprint(e.Options.ErrWriter, "\nNo pods found on node: ", node.ObjectMeta.Name, "\n\n")
 		return nil
 	}
-	rcs, err := e.Options.Kclient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
+	rcs, err := e.Options.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	rss, err := e.Options.KubeClient.ReplicaSets(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	dss, err := e.Options.KubeClient.DaemonSets(kapi.NamespaceAll).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	jobs, err := e.Options.KubeClient.Batch().Jobs(kapi.NamespaceAll).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -105,7 +120,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 
 	errList := []error{}
 	firstPod := true
-	numPodsWithNoRC := 0
+	numUnmanagedPods := 0
 
 	var deleteOptions *kapi.DeleteOptions
 	if e.GracePeriod >= 0 {
@@ -113,11 +128,35 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	}
 
 	for _, pod := range pods.Items {
-		foundrc := false
+		isManaged := false
 		for _, rc := range rcs.Items {
 			selector := labels.SelectorFromSet(rc.Spec.Selector)
 			if selector.Matches(labels.Set(pod.Labels)) {
-				foundrc = true
+				isManaged = true
+				break
+			}
+		}
+
+		for _, rs := range rss.Items {
+			selector := labels.SelectorFromSet(rs.Spec.Selector.MatchLabels)
+			if selector.Matches(labels.Set(pod.Labels)) {
+				isManaged = true
+				break
+			}
+		}
+
+		for _, ds := range dss.Items {
+			selector := labels.SelectorFromSet(ds.Spec.Selector.MatchLabels)
+			if selector.Matches(labels.Set(pod.Labels)) {
+				isManaged = true
+				break
+			}
+		}
+
+		for _, job := range jobs.Items {
+			selector := labels.SelectorFromSet(job.Spec.Selector.MatchLabels)
+			if selector.Matches(labels.Set(pod.Labels)) {
+				isManaged = true
 				break
 			}
 		}
@@ -129,18 +168,18 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 
 		printer.PrintObj(&pod, e.Options.Writer)
 
-		if foundrc || e.Force {
-			if err := e.Options.Kclient.Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {
+		if isManaged || e.Force {
+			if err := e.Options.KubeClient.Pods(pod.Namespace).Delete(pod.Name, deleteOptions); err != nil {
 				glog.Errorf("Unable to delete a pod: %+v, error: %v", pod, err)
 				errList = append(errList, err)
 				continue
 			}
 		} else { // Pods without replication controller and no --force option
-			numPodsWithNoRC++
+			numUnmanagedPods++
 		}
 	}
-	if numPodsWithNoRC > 0 {
-		err := fmt.Errorf(`Unable to evacuate some pods because they are not backed by replication controller.
+	if numUnmanagedPods > 0 {
+		err := fmt.Errorf(`Unable to evacuate some pods because they are not managed by replication controller or replica set or deaemon set.
 Suggested options:
 - You can list bare pods in json/yaml format using '--list-pods -o json|yaml'
 - Force deletion of bare pods with --force option to --evacuate
