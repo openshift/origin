@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a230173daf5707a80c6b4dc82ccbe4efe08342ea
+%global commit bfbc77802fe66ec35db8cd6887ca6f50edf9dadf
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.7+a230173 OS_GIT_COMMIT=a230173 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.8+bfbc778 OS_GIT_COMMIT=bfbc778 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.8
+Version:        3.4.0.9
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,46 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Oct 10 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.9
+- Merge remote-tracking branch upstream/master, bump origin-web-console 6a78401
+  (tdawson@redhat.com)
+- Test case must handle caches now (ccoleman@redhat.com)
+- Avoid doing a naive DeepEquals on all PolicyRules (ccoleman@redhat.com)
+- Try a cached RuleResolver prior to the underlying in a few cases
+  (ccoleman@redhat.com)
+- Collapse local and cluster PolicyRule retrieval (ccoleman@redhat.com)
+- Upgrade note and swagger for restoring automatic=false behavior in 1.4
+  (mkargaki@redhat.com)
+- Update ose_images.sh - 2016-10-07 (tdawson@redhat.com)
+- Use utilwait.ExponentialBackoff instead of looping (danw@redhat.com)
+- Split out SDN setup code from HostSubnet-monitoring code (danw@redhat.com)
+- Split out EgressNetworkPolicy-monitoring code into its own file
+  (danw@redhat.com)
+- Tests for namespaced pruning and necessary refactor (maszulik@redhat.com)
+- Suppress node configuration details during tests (mkhan@redhat.com)
+- Bug 1371511 - add namespace awareness to oadm prune commands
+  (maszulik@redhat.com)
+- add tests, updated docs (jvallejo@redhat.com)
+- UPSTREAM: 33319: Add option to set a nodeport (jvallejo@redhat.com)
+- oc: generated code for 'rollout latest' (mkargaki@redhat.com)
+- oc: add rollout latest (mkargaki@redhat.com)
+- Correctly parse git versions with longer short hashes (danw@redhat.com)
+- Change default node permission check to <apiVerb> nodes/proxy
+  (jliggitt@redhat.com)
+- Add support for using PATCH when add/remove vol (gethemant@gmail.com)
+- fix to unaddressed nits in #10964 for AGL diagnostics (jcantril@redhat.com)
+- extended: move conformance tag in top level test describers
+  (mkargaki@redhat.com)
+- extended: deployment with multiple containers using a single ICT
+  (mkargaki@redhat.com)
+- deploy: generated code for deployment conditions (mkargaki@redhat.com)
+- deploy: api for deploymentconfig Conditions (mkargaki@redhat.com)
+- dind: install 'less' to ease debugging (marun@redhat.com)
+- dind: slim down base image size (marun@redhat.com)
+- dind: update warning of system modification (marun@redhat.com)
+- dind: enable ssh access to cluster (marun@redhat.com)
+- Refactor dind (marun@redhat.com)
+
 * Fri Oct 07 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.8
 - Merge remote-tracking branch upstream/master, bump origin-web-console 2f78dcc
   (tdawson@redhat.com)
