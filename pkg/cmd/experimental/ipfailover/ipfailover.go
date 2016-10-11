@@ -95,6 +95,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 	cmd.Flags().BoolVar(&options.Create, "create", options.Create, "Create the configuration if it does not exist.")
 
 	cmd.Flags().StringVar(&options.VirtualIPs, "virtual-ips", "", "A set of virtual IP ranges and/or addresses that the routers bind and serve on and provide IP failover capability for.")
+	cmd.Flags().StringVar(&options.IptablesChain, "iptables-chain", ipfailover.DefaultIptablesChain, "Add a rule to this iptables chain to accept 224.0.0.28 multicast packets if no rule exists. When iptables-chain is empty do not change iptables.")
 	cmd.Flags().StringVarP(&options.NetworkInterface, "interface", "i", "", "Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.")
 
 	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipfailover.DefaultWatchPort, "Port to monitor or watch for resource availability.")

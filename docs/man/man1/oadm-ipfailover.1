@@ -51,6 +51,10 @@ value that matches the number of nodes for the given labeled selector.
     Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.
 
 .PP
+\fB\-\-iptables\-chain\fP="INPUT"
+    Add a rule to this iptables chain to accept 224.0.0.28 multicast packets if no rule exists. When iptables\-chain is empty do not change iptables.
+
+.PP
 \fB\-\-latest\-images\fP=false
     If true, attempt to use the latest images instead of the current release
 
