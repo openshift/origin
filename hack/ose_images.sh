@@ -33,7 +33,7 @@ PUSH_REGISTRY=registry-push.ops.openshift.com
 #PUSH_REGISTRY=registry.qe.openshift.com
 ERRATA_ID="24510"
 ERRATA_PRODUCT_VERSION="RHEL-7-OSE-3.3"
-SCRIPT_HOME="$(pwd)"
+SCRIPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 usage() {
   echo "Usage `basename $0` [action] <options>" >&2
@@ -163,6 +163,10 @@ add_group_to_list() {
     deployer)
       add_to_list logging-deployment-docker
       add_to_list metrics-deployer-docker
+      ;;
+    base_push)
+      add_group_to_list base
+      add_group_to_list deployer
       ;;
   esac
 }
@@ -540,7 +544,7 @@ start_push_image() {
   echo | tee -a ${workingdir}/logs/push.image.log
   # Push ${package_name}:${version_version}-${release_version} ie: openshift3/metrics-cassandra:3.3.0-7
   #echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
-  echo "  TAG/PUSH: ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
+  echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}"
   docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
@@ -814,8 +818,14 @@ shift # past argument or value
 done
 
 # Setup variables
-source ose.conf
-
+if [ -f ${SCRIPT_HOME}/ose.conf ] ; then
+  source ${SCRIPT_HOME}/ose.conf
+else
+  echo "Unable to find ose.conf"
+  echo "Expecting it to be ${SCRIPT_HOME}/ose.conf"
+  echo "Exiting ..."
+  exit 42
+fi
 # Setup groups
 for group_input in ${group_list}
 do
