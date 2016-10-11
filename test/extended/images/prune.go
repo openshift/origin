@@ -41,7 +41,7 @@ var _ = g.Describe("[images] prune images", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("give a user %s a right to prune images with %s role", oc.Username(), "system:image-pruner"))
-		err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:image-pruner", oc.Username()).Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("adm").Args("policy", "add-cluster-role-to-user", "system:image-pruner", oc.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -126,7 +126,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(imgKeep.DockerImageManifestMediaType).To(o.Equal(mediaType))
 
 	g.By("prune the first image uploaded (dry-run)")
-	output, err := oc.Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0").Output()
+	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0").Output()
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(output).To(o.ContainSubstring(imgPruneName))
@@ -154,7 +154,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(noConfirmSize).To(o.Equal(keepSize))
 
 	g.By("prune the first image uploaded (confirm)")
-	output, err = oc.Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm").Output()
+	output, err = oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm").Output()
 
 	g.By("verify images, layers and configs about to be pruned")
 	o.Expect(output).To(o.ContainSubstring(imgPruneName))

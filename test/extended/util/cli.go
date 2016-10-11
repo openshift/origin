@@ -32,21 +32,22 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // REST clients.
 type CLI struct {
-	execPath        string
-	verb            string
-	configPath      string
-	adminConfigPath string
-	username        string
-	outputDir       string
-	globalArgs      []string
-	commandArgs     []string
-	finalArgs       []string
-	stdin           *bytes.Buffer
-	stdout          io.Writer
-	stderr          io.Writer
-	verbose         bool
-	cmd             *cobra.Command
-	kubeFramework   *e2e.Framework
+	execPath         string
+	verb             string
+	configPath       string
+	adminConfigPath  string
+	username         string
+	outputDir        string
+	globalArgs       []string
+	commandArgs      []string
+	finalArgs        []string
+	stdin            *bytes.Buffer
+	stdout           io.Writer
+	stderr           io.Writer
+	verbose          bool
+	withoutNamespace bool
+	cmd              *cobra.Command
+	kubeFramework    *e2e.Framework
 }
 
 // NewCLI initialize the upstream E2E framework and set the namespace to match
@@ -126,6 +127,12 @@ func (c *CLI) SetNamespace(ns string) *CLI {
 			Name: ns,
 		},
 	}
+	return c
+}
+
+// WithoutNamespace instructs the command should be invoked without adding --namespace parameter
+func (c *CLI) WithoutNamespace() *CLI {
+	c.withoutNamespace = true
 	return c
 }
 
@@ -239,9 +246,11 @@ func (c *CLI) Run(commands ...string) *CLI {
 		username:        c.username,
 		outputDir:       c.outputDir,
 		globalArgs: append(commands, []string{
-			fmt.Sprintf("--namespace=%s", c.Namespace()),
 			fmt.Sprintf("--config=%s", c.configPath),
 		}...),
+	}
+	if !c.withoutNamespace {
+		nc.globalArgs = append(nc.globalArgs, fmt.Sprintf("--namespace=%s", c.Namespace()))
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
