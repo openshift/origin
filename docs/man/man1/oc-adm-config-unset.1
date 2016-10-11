@@ -71,6 +71,10 @@ PROPERTY\_NAME is a dot delimited name where each token represents either an att
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
