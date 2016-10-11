@@ -624,7 +624,7 @@ func (b *Builder) visitorResult() *Result {
 				selectorNamespace = ""
 			} else {
 				if len(b.namespace) == 0 {
-					return &Result{singular: isSingular, err: fmt.Errorf("namespace may not be empty when retrieving a resource by name")}
+					return &Result{singular: isSingular, err: fmt.Errorf("resources cannot be retrieved by name across multiple namespaces")}
 				}
 			}
 
@@ -671,7 +671,7 @@ func (b *Builder) visitorResult() *Result {
 			selectorNamespace = ""
 		} else {
 			if len(b.namespace) == 0 {
-				return &Result{singular: isSingular, err: fmt.Errorf("namespace may not be empty when retrieving a resource by name")}
+				return &Result{singular: isSingular, err: fmt.Errorf("resources cannot be retrieved by name across multiple namespaces")}
 			}
 		}
 
