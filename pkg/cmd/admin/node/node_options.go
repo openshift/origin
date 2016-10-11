@@ -26,7 +26,7 @@ import (
 
 type NodeOptions struct {
 	DefaultNamespace string
-	Kclient          *client.Client
+	KubeClient       *client.Client
 	Writer           io.Writer
 	ErrWriter        io.Writer
 
@@ -61,7 +61,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	mapper, typer := f.Object(false)
 
 	n.DefaultNamespace = defaultNamespace
-	n.Kclient = kc
+	n.KubeClient = kc
 	n.Writer = out
 	n.ErrWriter = errout
 	n.Mapper = mapper
