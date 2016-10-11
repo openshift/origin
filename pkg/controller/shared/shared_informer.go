@@ -38,6 +38,7 @@ type InformerFactory interface {
 	ImageStreams() ImageStreamInformer
 	SecurityContextConstraints() SecurityContextConstraintsInformer
 	ClusterResourceQuotas() ClusterResourceQuotaInformer
+	ServiceAccounts() ServiceAccountInformer
 
 	KubernetesInformers() informers.SharedInformerFactory
 }
@@ -173,6 +174,11 @@ func (f *sharedInformerFactory) ClusterResourceQuotas() ClusterResourceQuotaInfo
 
 func (f *sharedInformerFactory) KubernetesInformers() informers.SharedInformerFactory {
 	return kubernetesSharedInformer{f}
+}
+
+// TODO: it should use upstream informer as soon #34960 get merged
+func (f *sharedInformerFactory) ServiceAccounts() ServiceAccountInformer {
+	return &serviceAccountInformer{sharedInformerFactory: f}
 }
 
 // kubernetesSharedInformer adapts this informer factory to the identical interface as kubernetes
