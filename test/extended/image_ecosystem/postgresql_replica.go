@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ var (
 	}
 )
 
-var _ = g.Describe("[LocalNode][images][postgresql][Slow] openshift postgresql replication", func() {
+var _ = g.Describe("[LocalNode][image_ecosystem][postgresql][Slow] openshift postgresql replication", func() {
 	defer g.GinkgoRecover()
 
 	for i, image := range postgreSQLImages {

@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 )
 
-var _ = g.Describe("[images][mongodb] openshift mongodb image", func() {
+var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() {
 	defer g.GinkgoRecover()
 
 	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.json")
