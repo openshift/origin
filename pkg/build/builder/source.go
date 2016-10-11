@@ -335,7 +335,7 @@ func extractSourceFromImage(dockerClient DockerClient, image, buildDir string, i
 	exists := true
 	if !forcePull {
 		_, err := dockerClient.InspectImage(image)
-		if err != nil && err == docker.ErrNoSuchImage {
+		if err == docker.ErrNoSuchImage {
 			exists = false
 		} else if err != nil {
 			return err
