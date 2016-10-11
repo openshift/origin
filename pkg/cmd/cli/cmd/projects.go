@@ -11,11 +11,13 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/api"
+	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
 
 	"github.com/spf13/cobra"
 )
@@ -148,7 +150,7 @@ func (o ProjectsOptions) RunProjects() error {
 			if o.DisplayShort {
 				msg += fmt.Sprintf("%s", projects[0].Name)
 			} else {
-				msg += fmt.Sprintf("You have one project on this server: %q.", api.DisplayNameAndNameForProject(&projects[0]))
+				msg += fmt.Sprintf("You have one project on this server: %q.", projectapihelpers.DisplayNameAndNameForProject(&projects[0]))
 			}
 		default:
 			asterisk := ""
@@ -160,7 +162,7 @@ func (o ProjectsOptions) RunProjects() error {
 			sort.Sort(SortByProjectName(projects))
 			for _, project := range projects {
 				count = count + 1
-				displayName := project.Annotations["openshift.io/display-name"]
+				displayName := project.Annotations[oapi.OpenShiftDisplayName]
 				linebreak := "\n"
 				if len(displayName) == 0 {
 					displayName = project.Annotations["displayName"]

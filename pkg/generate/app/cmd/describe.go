@@ -9,21 +9,16 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// These constants represent common annotations keys
-const (
-	// OpenShiftDisplayName is a common, optional annotation that stores the name displayed by a UI when referencing a resource.
-	OpenShiftDisplayName = "openshift.io/display-name"
-)
-
 func displayName(meta kapi.ObjectMeta) string {
 	// If an object has a display name, prefer it over the meta name.
-	displayName := meta.Annotations[OpenShiftDisplayName]
+	displayName := meta.Annotations[oapi.OpenShiftDisplayName]
 	if len(displayName) > 0 {
 		return displayName
 	}

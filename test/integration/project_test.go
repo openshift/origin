@@ -10,10 +10,11 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -61,8 +62,8 @@ func TestProjectIsNamespace(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "new-project",
 			Annotations: map[string]string{
-				projectapi.ProjectDisplayName: "Hello World",
-				"openshift.io/node-selector":  "env=test",
+				oapi.OpenShiftDisplayName:    "Hello World",
+				"openshift.io/node-selector": "env=test",
 			},
 		},
 	}
@@ -79,8 +80,8 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Name != namespace.Name {
 		t.Fatalf("Project name did not match namespace name, project %v, namespace %v", project.Name, namespace.Name)
 	}
-	if project.Annotations[projectapi.ProjectDisplayName] != namespace.Annotations[projectapi.ProjectDisplayName] {
-		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[projectapi.ProjectDisplayName], namespace.Annotations[projectapi.ProjectDisplayName])
+	if project.Annotations[oapi.OpenShiftDisplayName] != namespace.Annotations[oapi.OpenShiftDisplayName] {
+		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[oapi.OpenShiftDisplayName], namespace.Annotations[oapi.OpenShiftDisplayName])
 	}
 	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
 		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])

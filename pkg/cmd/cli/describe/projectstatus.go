@@ -42,6 +42,7 @@ import (
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routeanalysis "github.com/openshift/origin/pkg/route/graph/analysis"
@@ -521,9 +522,9 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 
 func describeProjectAndServer(f formatter, project *projectapi.Project, server string) string {
 	if len(server) == 0 {
-		return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
+		return fmt.Sprintf("In project %s on server %s\n", projectapihelpers.DisplayNameAndNameForProject(project), server)
 	}
-	return fmt.Sprintf("In project %s on server %s\n", projectapi.DisplayNameAndNameForProject(project), server)
+	return fmt.Sprintf("In project %s on server %s\n", projectapihelpers.DisplayNameAndNameForProject(project), server)
 
 }
 

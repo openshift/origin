@@ -99,6 +99,10 @@ func (r *InfraServiceAccounts) addServiceAccount(saName string, role authorizati
 		}
 	}
 
+	if role.Annotations == nil {
+		role.Annotations = map[string]string{}
+	}
+	role.Annotations[roleSystemOnly] = roleIsSystemOnly
 	r.saToRole[saName] = role
 	r.serviceAccounts.Insert(saName)
 	return nil

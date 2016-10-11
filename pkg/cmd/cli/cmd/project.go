@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/api"
+	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 
 	"github.com/spf13/cobra"
@@ -210,11 +211,11 @@ func (o ProjectOptions) RunProject() error {
 						case 0:
 							msg += "\nYou are not a member of any projects. You can request a project to be created with the 'new-project' command."
 						case 1:
-							msg += fmt.Sprintf("\nYou have one project on this server: %s", api.DisplayNameAndNameForProject(&projects[0]))
+							msg += fmt.Sprintf("\nYou have one project on this server: %s", projectapihelpers.DisplayNameAndNameForProject(&projects[0]))
 						default:
 							msg += "\nYour projects are:"
 							for _, project := range projects {
-								msg += fmt.Sprintf("\n* %s", api.DisplayNameAndNameForProject(&project))
+								msg += fmt.Sprintf("\n* %s", projectapihelpers.DisplayNameAndNameForProject(&project))
 							}
 						}
 					}
