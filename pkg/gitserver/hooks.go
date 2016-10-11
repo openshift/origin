@@ -64,7 +64,7 @@ func hooksHandler(config *Config) http.Handler {
 				body := io.LimitReader(r.Body, max)
 				buf := make([]byte, max)
 				n, err := io.ReadFull(body, buf)
-				if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+				if err != io.EOF || err != io.ErrUnexpectedEOF {
 					http.Error(w, fmt.Errorf("unable to read hook: %v", err).Error(), http.StatusInternalServerError)
 					return
 				}

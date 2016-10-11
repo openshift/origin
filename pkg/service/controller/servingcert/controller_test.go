@@ -232,7 +232,7 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 		defer func() { received <- true }()
 
 		err := controller.syncService(serviceKey)
-		if err != nil && err.Error() != expectedError {
+		if err.Error() != expectedError {
 			t.Errorf("unexpected error: %v", err)
 		}
 
@@ -302,7 +302,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 		defer func() { received <- true }()
 
 		err := controller.syncService(serviceKey)
-		if err != nil && err.Error() != expectedError {
+		if err.Error() != expectedError {
 			t.Errorf("unexpected error: %v", err)
 		}
 

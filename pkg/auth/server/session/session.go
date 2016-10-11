@@ -26,7 +26,7 @@ func NewStore(secure bool, maxAgeSeconds int, secrets ...string) Store {
 
 func (s store) Get(req *http.Request, name string) (Session, error) {
 	session, err := s.store.Get(req, name)
-	if err != nil && err.Error() == securecookie.ErrMacInvalid.Error() {
+	if err.Error() == securecookie.ErrMacInvalid.Error() {
 		err = nil
 	}
 	return sessionWrapper{session}, err

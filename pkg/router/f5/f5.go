@@ -470,7 +470,7 @@ func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
 		f5.host, policyName)
 
 	err := f5.get(policyUrl, nil)
-	if err != nil && err.(F5Error).httpStatusCode != 404 {
+	if err.(F5Error).httpStatusCode != 404 {
 		// 404 is expected, but anything else really is an error.
 		return err
 	}
@@ -573,7 +573,7 @@ func (f5 *f5LTM) ensureDatagroupExists(datagroupName string) error {
 		f5.host, datagroupName)
 
 	err := f5.get(datagroupUrl, nil)
-	if err != nil && err.(F5Error).httpStatusCode != 404 {
+	if err.(F5Error).httpStatusCode != 404 {
 		// 404 is expected, but anything else really is an error.
 		return err
 	}
@@ -612,7 +612,7 @@ func (f5 *f5LTM) ensureIRuleExists(iRuleName, iRule string) error {
 	iRuleUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/rule/%s", f5.host, iRuleName)
 
 	err := f5.get(iRuleUrl, nil)
-	if err != nil && err.(F5Error).httpStatusCode != 404 {
+	if err.(F5Error).httpStatusCode != 404 {
 		// 404 is expected, but anything else really is an error.
 		return err
 	}
@@ -1109,7 +1109,7 @@ func (f5 *f5LTM) addRoute(policyname, routename, poolname, hostname,
 	defer func() {
 		if success != true {
 			err := f5.deleteRoute(policyname, routename)
-			if err != nil && err.(F5Error).httpStatusCode != 404 {
+			if err.(F5Error).httpStatusCode != 404 {
 				glog.V(4).Infof("Warning: Creating rule %s failed,"+
 					" and then cleanup got an error: %v", routename, err)
 			}

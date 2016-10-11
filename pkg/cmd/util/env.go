@@ -152,7 +152,7 @@ func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
 			})
 		}
 	}
-	if err := scanner.Err(); err != nil && err != io.EOF {
+	if err := scanner.Err(); err != io.EOF {
 		return nil, err
 	}
 	return env, nil

@@ -211,7 +211,7 @@ Password: `,
 				if handled != challenge.ExpectedHandled {
 					t.Errorf("%s: %d: Expected handled=%v, got %v", k, i, challenge.ExpectedHandled, handled)
 				}
-				if ((err == nil) != (challenge.ExpectedErr == nil)) || (err != nil && err.Error() != challenge.ExpectedErr.Error()) {
+				if ((err == nil) != (challenge.ExpectedErr == nil)) || (err.Error() != challenge.ExpectedErr.Error()) {
 					t.Errorf("%s: %d: Expected err=%v, got %v", k, i, challenge.ExpectedErr, err)
 				}
 				if out.String() != challenge.ExpectedPrompt {

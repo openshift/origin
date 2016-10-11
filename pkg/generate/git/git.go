@@ -71,7 +71,7 @@ func ParsePostReceive(r io.Reader) ([]ChangedRef, error) {
 			New: segments[1],
 		})
 	}
-	if err := scan.Err(); err != nil && err != io.EOF {
+	if err := scan.Err(); err != io.EOF {
 		return nil, err
 	}
 	return refs, nil

@@ -141,7 +141,7 @@ func readInt64(filePath string) (int64, error) {
 	val, err := strconv.ParseInt(s, 10, 64)
 	// overflow errors are ok, we'll get return a math.MaxInt64 value which is more
 	// than enough anyway.  For underflow we'll return MinInt64 and the error.
-	if err != nil && err.(*strconv.NumError).Err == strconv.ErrRange {
+	if err.(*strconv.NumError).Err == strconv.ErrRange {
 		if s[0] == '-' {
 			return math.MinInt64, err
 		}
