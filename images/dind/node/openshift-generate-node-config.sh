@@ -24,18 +24,19 @@ function ensure-node-config() {
     host="${host}-node"
   fi
   local node_config_path="${config_path}/node-${host}"
-  local config_file="${node_config_path}/node-config.yaml"
+  local node_config_file="${node_config_path}/node-config.yaml"
 
   # If the node config has not been generated
-  if [[ ! -f "${config_file}" ]]; then
+  if [[ ! -f "${node_config_file}" ]]; then
     local master_config_path="${config_path}/master"
+    local master_config_file="${master_config_path}/admin.kubeconfig"
 
     # Wait for the master to generate its config
-    local condition="test -f ${master_config_path}/admin.kubeconfig"
+    local condition="test -f ${master_config_file}"
     os::util::wait-for-condition "admin config" "${condition}" "${OS_WAIT_FOREVER}"
 
     local master_host
-    master_host="$(grep server "${master_config_path}/admin.kubeconfig" | grep -v localhost | awk '{print $2}')"
+    master_host="$(grep server "${master_config_file}" | grep -v localhost | awk '{print $2}')"
 
     local ip_addr
     ip_addr="$(ip addr | grep inet | grep eth0 | awk '{print $2}' | sed -e 's+/.*++')"
@@ -59,9 +60,12 @@ function ensure-node-config() {
     ) 200>"${config_path}"/.openshift-generate-node-config.lock
   fi
 
+  # ensure the configuration is readable outside of the container
+  chmod -R ga+rX "${node_config_path}"
+
   # Deploy the node config
   mkdir -p "${deployed_config_path}"
-  cp -r "${config_path}"/* "${deployed_config_path}"
+  cp -r "${node_config_path}"/* "${deployed_config_path}/"
 }
 
 ensure-node-config
