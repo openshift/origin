@@ -5,10 +5,8 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	cache "k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
@@ -121,20 +119,25 @@ func TestNoErrors(t *testing.T) {
 	}
 
 	for testName, testcase := range testcases {
-		cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		for _, scc := range testcase.sccs {
-			if err := cache.Add(scc); err != nil {
+			if err := sccCache.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
+		}
+		saCache := oscache.StoreToServiceAccountLister{
+			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		serviceAccount.Namespace = namespace.Name
-		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
+		saCache.Add(serviceAccount)
+		csf := clientsetfake.NewSimpleClientset(namespace)
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
 		obj, err := storage.Create(ctx, testcase.request)
 		if err != nil {
@@ -194,28 +197,32 @@ func TestErrors(t *testing.T) {
 					},
 				},
 			},
-			errorMessage: `unable to retrieve ServiceAccount default: ServiceAccount "default" not found`,
+			errorMessage: `unable to retrieve ServiceAccount default: serviceaccount "default" not found`,
 		},
 	}
 	for testName, testcase := range testcases {
-		cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		for _, scc := range testcase.sccs {
-			if err := cache.Add(scc); err != nil {
+			if err := sccCache.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		namespace := admissionttesting.CreateNamespaceForTest()
-		var csf clientset.Interface
-		if testcase.serviceAccount != nil {
-			testcase.serviceAccount.Namespace = namespace.Name
-			csf = clientsetfake.NewSimpleClientset(namespace, testcase.serviceAccount)
-		} else {
-			csf = clientsetfake.NewSimpleClientset(namespace)
+		saCache := oscache.StoreToServiceAccountLister{
+			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
+		namespace := admissionttesting.CreateNamespaceForTest()
+		serviceAccount := admissionttesting.CreateSAForTest()
+		if testcase.serviceAccount != nil {
+			serviceAccount.Namespace = namespace.Name
+			saCache.Add(serviceAccount)
+		}
+		csf := clientsetfake.NewSimpleClientset(namespace)
+
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request)
 		if err == nil {
@@ -349,28 +356,30 @@ func TestSpecificSAs(t *testing.T) {
 					},
 				},
 			},
-			errorMessage: `unable to retrieve ServiceAccount bad-sa: ServiceAccount "bad-sa" not found`,
+			errorMessage: `unable to retrieve ServiceAccount bad-sa: serviceaccount "bad-sa" not found`,
 		},
 	}
 
 	for testName, testcase := range testcases {
-		cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		for _, scc := range testcase.sccs {
-			if err := cache.Add(scc); err != nil {
+			if err := sccCache.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		objects := []runtime.Object{}
 		namespace := admissionttesting.CreateNamespaceForTest()
-		objects = append(objects, namespace)
-		for i := range testcase.serviceAccounts {
-			objects = append(objects, testcase.serviceAccounts[i])
+		saCache := oscache.StoreToServiceAccountLister{
+			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
+				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
-		csf := clientsetfake.NewSimpleClientset(objects...)
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
+		for i := range testcase.serviceAccounts {
+			saCache.Add(testcase.serviceAccounts[i])
+		}
+		csf := clientsetfake.NewSimpleClientset(namespace)
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := kapi.WithNamespace(kapi.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request)
 		switch {
