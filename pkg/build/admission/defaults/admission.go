@@ -175,6 +175,7 @@ func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
 	}
 }
 
+//setDefaultSourceSecret method check if sourcesecret is set via defaults options and return result or err in non found
 func (a *buildDefaults) setDefaultSourceSecret(build *buildapi.Build) (string, error) {
 
 	//check if project annotion is set for default SourceSecret
