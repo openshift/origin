@@ -74,12 +74,12 @@ func (ClusterRole) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterRoleBinding = map[string]string{
-	"":           "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
+	"":           "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
 	"metadata":   "Standard object's metadata.",
-	"userNames":  "UserNames holds all the usernames directly bound to the role",
-	"groupNames": "GroupNames holds all the groups directly bound to the role",
-	"subjects":   "Subjects hold object references to authorize with this rule",
-	"roleRef":    "RoleRef can only reference the current namespace and the global namespace If the ClusterRoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role",
+	"userNames":  "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
+	"groupNames": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
+	"subjects":   "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.",
+	"roleRef":    "RoleRef can only reference the current namespace and the global namespace. If the ClusterRoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role.",
 }
 
 func (ClusterRoleBinding) SwaggerDoc() map[string]string {
@@ -261,12 +261,12 @@ func (Role) SwaggerDoc() map[string]string {
 }
 
 var map_RoleBinding = map[string]string{
-	"":           "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
+	"":           "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
 	"metadata":   "Standard object's metadata.",
-	"userNames":  "UserNames holds all the usernames directly bound to the role",
-	"groupNames": "GroupNames holds all the groups directly bound to the role",
-	"subjects":   "Subjects hold object references to authorize with this rule",
-	"roleRef":    "RoleRef can only reference the current namespace and the global namespace If the RoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role",
+	"userNames":  "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
+	"groupNames": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
+	"subjects":   "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.",
+	"roleRef":    "RoleRef can only reference the current namespace and the global namespace. If the RoleRef cannot be resolved, the Authorizer must return an error. Since Policy is a singleton, this is sufficient knowledge to locate a role.",
 }
 
 func (RoleBinding) SwaggerDoc() map[string]string {
