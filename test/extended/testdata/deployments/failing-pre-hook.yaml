@@ -21,7 +21,10 @@ spec:
         name: hook
     spec:
       containers:
-      - image: "docker.io/openshift/deployment-example:v1"
+      - image: "docker.io/centos:centos7"
+        command:
+          - /bin/sleep
+          - infinity
         name: myapp
   triggers:
   - type: ConfigChange
