@@ -237,7 +237,7 @@ readonly -f os::build::setup_env
 #   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
 #     then just the host architecture is built.
 function os::build::build_static_binaries() {
-  CGO_ENABLED=0 os::build::build_binaries -a -installsuffix=cgo $@
+  CGO_ENABLED=0 os::build::build_binaries -installsuffix=cgo "$@"
 }
 readonly -f os::build::build_static_binaries
 
