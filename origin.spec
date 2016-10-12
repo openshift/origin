@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bfbc77802fe66ec35db8cd6887ca6f50edf9dadf
+%global commit 9986ac165509a536ddc2f91edba852e305321f2f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.8+bfbc778 OS_GIT_COMMIT=bfbc778 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.9+9986ac1 OS_GIT_COMMIT=9986ac1 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.9
+Version:        3.4.0.10
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,15 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Oct 12 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.10
+- Merge remote-tracking branch upstream/master, bump origin-web-console b60172f
+  (tdawson@redhat.com)
+- Update ose_images.sh - 2016-10-10 (tdawson@redhat.com)
+- deployments: use centos:centos7 instead of deployment-example image
+  (mfojtik@redhat.com)
+- Warn if no login idps are present (jliggitt@redhat.com)
+- Updated sysctl usage for cpu (johannes.scheuermann@inovex.de)
+
 * Mon Oct 10 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.9
 - Merge remote-tracking branch upstream/master, bump origin-web-console 6a78401
   (tdawson@redhat.com)
