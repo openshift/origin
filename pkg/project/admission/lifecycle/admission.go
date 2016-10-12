@@ -10,11 +10,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
@@ -33,10 +33,17 @@ type lifecycle struct {
 	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
-	creatableResources sets.String
+	creatableResources map[unversioned.GroupResource]bool
 }
 
-var recommendedCreatableResources = sets.NewString("resourceaccessreviews", "localresourceaccessreviews")
+var recommendedCreatableResources = map[unversioned.GroupResource]bool{
+	authorizationapi.Resource("resourceaccessreviews"):      true,
+	authorizationapi.Resource("localresourceaccessreviews"): true,
+	authorizationapi.Resource("subjectaccessreviews"):       true,
+	authorizationapi.Resource("localsubjectaccessreviews"):  true,
+	authorizationapi.Resource("selfsubjectrulesreviews"):    true,
+	authorizationapi.Resource("subjectrulesreviews"):        true,
+}
 var _ = oadmission.WantsProjectCache(&lifecycle{})
 var _ = oadmission.Validator(&lifecycle{})
 
@@ -46,9 +53,8 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if len(a.GetNamespace()) == 0 {
 		return nil
 	}
-	// always allow a SAR request through, the SAR will return information about
-	// the ability to take action on the object, no need to verify it here.
-	if isSubjectAccessReview(a) {
+	// always allow creatable resources through.  These requests should always be allowed.
+	if e.creatableResources[a.GetResource().GroupResource()] {
 		return nil
 	}
 
@@ -117,18 +123,9 @@ func (e *lifecycle) Validate() error {
 	return nil
 }
 
-func NewLifecycle(client clientset.Interface, creatableResources sets.String) (admission.Interface, error) {
+func NewLifecycle(client clientset.Interface, creatableResources map[unversioned.GroupResource]bool) (admission.Interface, error) {
 	return &lifecycle{
 		client:             client,
 		creatableResources: creatableResources,
 	}, nil
-}
-
-var (
-	sar  = api.Kind("SubjectAccessReview")
-	lsar = api.Kind("LocalSubjectAccessReview")
-)
-
-func isSubjectAccessReview(a admission.Attributes) bool {
-	return a.GetKind().GroupKind() == sar || a.GetKind().GroupKind() == lsar
 }
