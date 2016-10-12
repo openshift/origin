@@ -919,11 +919,27 @@ Stop OpenShift on Docker
 
 [options="nowrap"]
 ----
-  # Stop local Docker cluster
+  # Stop local OpenShift cluster
   oc cluster down
   
   # Stop cluster running on Docker machine 'mymachine'
   oc cluster down --docker-machine=mymachine
+----
+====
+
+
+== oc cluster status
+Show OpenShift on Docker status
+
+====
+
+[options="nowrap"]
+----
+  # See status of local OpenShift cluster
+  oc cluster status
+  
+  # See status of OpenShift cluster running on Docker machine 'mymachine'
+  oc cluster status --docker-machine=mymachine
 ----
 ====
 
