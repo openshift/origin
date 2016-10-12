@@ -76,6 +76,7 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 	if err != nil {
 		return err
 	}
+	var test string
 
 	return buildadmission.SetBuild(attributes, build, version)
 }
