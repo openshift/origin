@@ -2,7 +2,7 @@
 # Image configured with systemd and docker-in-docker.  Useful for
 # simulating multinode deployments.
 #
-# The standard name for this image is openshift/dind
+# The standard name for this image is openshift/dind:centos7
 #
 # Notes:
 #
@@ -15,10 +15,10 @@
 #
 #  - run with --privileged
 #
-#      $ docker run -d --privileged openshift/dind
+#      $ docker run -d --privileged openshift/dind:centos7
 #
 
-FROM centos:systemd
+FROM centos:centos7
 
 # Fix 'WARNING: terminal is not fully functional' when TERM=dumb
 ENV TERM=xterm
