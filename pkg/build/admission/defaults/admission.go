@@ -12,6 +12,9 @@ import (
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
 func init() {
@@ -43,7 +46,10 @@ func getConfig(in io.Reader) (*defaultsapi.BuildDefaultsConfig, error) {
 type buildDefaults struct {
 	*admission.Handler
 	defaultsConfig *defaultsapi.BuildDefaultsConfig
+	cache          *projectcache.ProjectCache
 }
+
+var _ = oadmission.WantsProjectCache(&buildDefaults{})
 
 // NewBuildDefaults returns an admission control for builds that sets build defaults
 // based on the plugin configuration
@@ -52,6 +58,10 @@ func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig) admission
 		Handler:        admission.NewHandler(admission.Create),
 		defaultsConfig: defaultsConfig,
 	}
+}
+
+func (a *buildDefaults) SetProjectCache(cache *projectcache.ProjectCache) {
+	a.cache = cache
 }
 
 // Admit applies configured build defaults to a pod that is identified
@@ -76,7 +86,6 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 	if err != nil {
 		return err
 	}
-	var test string
 
 	return buildadmission.SetBuild(attributes, build, version)
 }
@@ -126,13 +135,13 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 		}
 	}
 
-	//apply default source secret if one set
-	if len(a.defaultsConfig.SourceSecret) != 0 {
+	//apply default source secret if one set after all validation
+	secret, err := a.setDefaultSourceSecret(build)
+	if err == nil {
 		if build.Spec.Source.SourceSecret == nil {
-			t := a.defaultsConfig.SourceSecret
-			glog.V(5).Infof("Setting default Git SourceSecret  %s/%s to %s", build.Namespace, build.Name, t)
+			glog.V(5).Infof("Setting default Git SourceSecret  %s/%s to %s", build.Namespace, build.Name, secret)
 			var ss kapi.LocalObjectReference
-			ss.Name = t
+			ss.Name = secret
 			build.Spec.Source.SourceSecret = &ss
 		}
 	}
@@ -164,4 +173,26 @@ func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
 	if !found {
 		*envVars = append(*envVars, v)
 	}
+}
+
+func (a *buildDefaults) setDefaultSourceSecret(build *buildapi.Build) (string, error) {
+
+	//check if project annotion is set for default SourceSecret
+	//second option is global config.
+	ns, err := a.cache.GetNamespace(build.Namespace)
+	if err == nil {
+		annotation := ns.Annotations["openshift.io/sourceSecret"]
+		if len(annotation) > 0 {
+			glog.V(5).Infof("Setting SourceSecret from project annotation on %s/%s . Secret name:  %s", build.Namespace, build.Name, annotation)
+			//add check if secret exist
+			return annotation, nil
+		} else {
+			if len(a.defaultsConfig.SourceSecret) != 0 {
+				glog.V(5).Infof("MJ Setting sourceSecret from defaultConfig on %s/%s . Secret name: %s", build.Namespace, build.Name, a.defaultsConfig.SourceSecret)
+				//add check if secret exist
+				return a.defaultsConfig.SourceSecret, nil
+			}
+		}
+	}
+	return "", err
 }
