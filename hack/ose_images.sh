@@ -39,14 +39,14 @@ usage() {
   echo "Usage `basename $0` [action] <options>" >&2
   echo >&2
   echo "Actions:" >&2
-  echo "  build_container :: Clone dist-git, build containers" >&2
-  echo "  docker_update   :: Clone dist-git, update version, release, or rhel" >&2
-  echo "  docker_backfill :: Copy dist-git Dockerfile to git Dockerfile.product" >&2
-  echo "  git_compare     :: Clone dist-git and git, compare files and Dockerfile" >&2
-  echo "  update_compare  :: Clone dist-git and git, update dockerfile, compare all" >&2
+  echo "  build_container :: Build containers in OSBS" >&2
   echo "  push_images     :: Push images to qe-registry" >&2
-  echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
+  echo "  compare_git     :: Compare dist-git Dockerfile and other files with those in git" >&2
+  echo "  update_docker   :: Update dist-git Dockerfile version, release, or rhel" >&2
+  echo "  update_compare  :: Run update_docker, compare_update, then update_docker again" >&2
+  echo "  backfill_docker :: Copy dist-git Dockerfile to git Dockerfile.product" >&2
   echo "  update_errata   :: Update image errata with Docker images" >&2
+  echo "  make_yaml       :: Print out yaml from Dockerfile for release" >&2
   echo "  list            :: Display full list of packages / images" >&2
   echo "  test            :: Display what packages would be worked on" >&2
   echo >&2
@@ -713,7 +713,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    git_compare | docker_update | build_container | make_yaml | docker_backfill | push_images | update_compare | update_errata | test)
+    compare_git | git_compare | update_docker | docker_update | build_container | make_yaml | backfill_docker | docker_backfill | push_images | update_compare | update_errata | test)
       export action="${key}"
       ;;
     list)
@@ -885,7 +885,7 @@ do
       echo "=== ${container} ==="
       build_container
       ;;
-    git_compare )
+    compare_git | git_compare )
       export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
       export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
       export git_dockerfile=$(echo "${dict_git_compare[${container}]}" | awk '{print $3}')
@@ -901,14 +901,14 @@ do
         echo " Skipping"
       fi
       ;;
-    docker_update )
+    update_docker | docker_update )
       if [ "${COMMIT_MESSAGE}" == "" ] ; then
         COMMIT_MESSAGE="Updating Dockerfile version and release"
       fi
       echo "=== ${container} ==="
       docker_update
       ;;
-    docker_backfill )
+    backfill_docker | docker_backfill )
       if [ "${COMMIT_MESSAGE}" == "" ] ; then
         COMMIT_MESSAGE="Backporting dis-git Dockerfile changes to ose Dockerfile.product"
       fi
@@ -1018,7 +1018,7 @@ case "$action" in
     echo "Fail Pushes: ${BUILD_FAIL}"
     cat ${workingdir}/logs/buildfailed | cut -d':' -f3-4
     ;;
-  docker_backfill )
+  backfill_docker | docker_backfill )
     pushd ${workingdir}/ose >/dev/null
     if [ "${FORCE}" == "TRUE" ] ; then
       echo "  Force Option Selected - Assuming Continue"
