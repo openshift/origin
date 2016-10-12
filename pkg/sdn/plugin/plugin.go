@@ -25,6 +25,7 @@ const (
 	IngressBandwidthAnnotation string = "kubernetes.io/ingress-bandwidth"
 	EgressBandwidthAnnotation  string = "kubernetes.io/egress-bandwidth"
 	AssignMacVlanAnnotation    string = "pod.network.openshift.io/assign-macvlan"
+	AssignHostSubnetAnnotation string = "pod.network.openshift.io/assign-subnet"
 )
 
 func IsOpenShiftNetworkPlugin(pluginName string) bool {
