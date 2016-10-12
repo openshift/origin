@@ -12,8 +12,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/labels"
 	ktypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -43,7 +45,8 @@ type npNamespace struct {
 
 // npPolicy is a parsed version of a single NetworkPolicy object
 type npPolicy struct {
-	policy extensions.NetworkPolicy
+	policy            extensions.NetworkPolicy
+	watchesNamespaces bool
 
 	flows []string
 }
@@ -227,6 +230,24 @@ func (np *networkPolicyPlugin) UnrefVNID(vnid uint32) {
 	np.syncNamespace(npns)
 }
 
+func (np *networkPolicyPlugin) selectNamespaces(lsel *unversioned.LabelSelector) []uint32 {
+	vnids := []uint32{}
+	sel, err := unversioned.LabelSelectorAsSelector(lsel)
+	if err != nil {
+		// Shouldn't happen
+		glog.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err)
+		return vnids
+	}
+	for vnid, ns := range np.namespaces {
+		if kns, exists := np.kNamespaces[ns.name]; exists {
+			if sel.Matches(labels.Set(kns.Labels)) {
+				vnids = append(vnids, vnid)
+			}
+		}
+	}
+	return vnids
+}
+
 func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *extensions.NetworkPolicy) (*npPolicy, error) {
 	npp := &npPolicy{policy: *policy}
 	allowAll := false
@@ -237,7 +258,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *ext
 			break
 		}
 
-		var portFlows []string
+		var portFlows, peerFlows []string
 		if len(rule.Ports) == 0 {
 			portFlows = []string{""}
 		}
@@ -265,8 +286,32 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *ext
 			portFlows = append(portFlows, fmt.Sprintf("%s, tp_dst=%d, ", protocol, portNum))
 		}
 
-		for _, portFlow := range portFlows {
-			npp.flows = append(npp.flows, fmt.Sprintf("%s", portFlow))
+		if len(rule.From) == 0 {
+			peerFlows = []string{""}
+		}
+		for _, peer := range rule.From {
+			if peer.PodSelector != nil {
+				if len(peer.PodSelector.MatchLabels) == 0 && len(peer.PodSelector.MatchExpressions) == 0 {
+					// The PodSelector is empty, meaning it selects all pods in this namespace
+					peerFlows = append(peerFlows, fmt.Sprintf("reg0=%d, ", npns.vnid))
+				}
+			} else {
+				if len(peer.NamespaceSelector.MatchLabels) == 0 && len(peer.NamespaceSelector.MatchExpressions) == 0 {
+					// The NamespaceSelector is empty, meaning it selects all namespaces
+					peerFlows = append(peerFlows, "")
+				} else {
+					npp.watchesNamespaces = true
+					for _, otherVNID := range np.selectNamespaces(peer.NamespaceSelector) {
+						peerFlows = append(peerFlows, fmt.Sprintf("reg0=%d, ", otherVNID))
+					}
+				}
+			}
+		}
+
+		for _, peerFlow := range peerFlows {
+			for _, portFlow := range portFlows {
+				npp.flows = append(npp.flows, fmt.Sprintf("%s%s", peerFlow, portFlow))
+			}
 		}
 	}
 
@@ -392,6 +437,20 @@ func (np *networkPolicyPlugin) watchNamespaces() {
 
 			// We don't need to np.syncNamespace() because if the NetNamespace
 			// still existed, it will be deleted as part of deleting the Namespace.
+		}
+
+		for _, npns := range np.namespaces {
+			changed := false
+			for _, npp := range npns.policies {
+				if npp.watchesNamespaces {
+					if np.updateNetworkPolicy(npns, &npp.policy) {
+						changed = true
+					}
+				}
+			}
+			if changed {
+				np.syncNamespace(npns)
+			}
 		}
 		return nil
 	})
