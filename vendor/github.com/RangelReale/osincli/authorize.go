@@ -54,6 +54,12 @@ func (c *AuthorizeRequest) GetAuthorizeUrlWithParams(state string) *url.URL {
 	if c.client.config.Scope != "" {
 		uq.Add("scope", c.client.config.Scope)
 	}
+	if c.client.config.CodeChallenge != "" {
+		uq.Add("code_challenge", c.client.config.CodeChallenge)
+	}
+	if c.client.config.CodeChallengeMethod != "" {
+		uq.Add("code_challenge_method", c.client.config.CodeChallengeMethod)
+	}
 	if state != "" {
 		uq.Add("state", state)
 	}
