@@ -41,9 +41,9 @@ type RolloutLatestOptions struct {
 	typer  runtime.ObjectTyper
 	infos  []*resource.Info
 
-	out         io.Writer
-	shortOutput bool
-	again       bool
+	out    io.Writer
+	output string
+	again  bool
 
 	oc              client.Interface
 	kc              kclient.Interface
@@ -108,7 +108,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	}
 
 	o.out = out
-	o.shortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
+	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
 	return nil
@@ -166,6 +166,11 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 
 	info.Refresh(dc, true)
 
-	kcmdutil.PrintSuccess(o.mapper, o.shortOutput, o.out, info.Mapping.Resource, info.Name, "rolled out")
+	if o.output == "revision" {
+		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
+		return nil
+	}
+
+	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, "rolled out")
 	return nil
 }
