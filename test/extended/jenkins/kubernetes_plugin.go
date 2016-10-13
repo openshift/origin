@@ -85,7 +85,9 @@ var _ = g.Describe("[jenkins] schedule jobs on pod slaves", func() {
 
 			jenkinsUri := fmt.Sprintf("http://%s:%s", serviceIP, port)
 			g.By(fmt.Sprintf("wait for jenkins to come up at %q", jenkinsUri))
-			err = waitForJenkinsActivity(jenkinsUri, "", 200)
+			password := getAdminPassword(oc)
+			o.Expect(password).ShouldNot(o.BeEmpty())
+			err = waitForJenkinsActivity(jenkinsUri, password, "", 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("inspecting the Jenkins master logs the slave image should be registered")
@@ -94,7 +96,7 @@ var _ = g.Describe("[jenkins] schedule jobs on pod slaves", func() {
 			o.Expect(out).To(o.ContainSubstring("Adding image ruby-22-centos7-jenkins-slave:latest as Kubernetes slave"))
 
 			g.By("kick the ruby-hello-world-test job")
-			immediateInteractionWithJenkins(fmt.Sprintf("%s/job/ruby-hello-world-test/build?delay=0sec", jenkinsUri), "POST", nil, 201)
+			immediateInteractionWithJenkins(fmt.Sprintf("%s/job/ruby-hello-world-test/build?delay=0sec", jenkinsUri), "POST", password, nil, 201)
 			verifyPodProvisioned := func() (bool, error) {
 				out, err := oc.Run("logs").Args("dc/jenkins").Output()
 				if err != nil {
