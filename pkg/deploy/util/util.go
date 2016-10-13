@@ -113,7 +113,7 @@ func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments []api.
 // ActiveDeployment returns the latest complete deployment, or nil if there is
 // no such deployment. The active deployment is not always the same as the
 // latest deployment.
-func ActiveDeployment(config *deployapi.DeploymentConfig, input []api.ReplicationController) *api.ReplicationController {
+func ActiveDeployment(input []api.ReplicationController) *api.ReplicationController {
 	var activeDeployment *api.ReplicationController
 	var lastCompleteDeploymentVersion int64 = 0
 	for i := range input {
@@ -523,7 +523,7 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 	sort.Sort(ByLatestVersionAsc(deployments))
 
 	relevantDeployments := []api.ReplicationController{}
-	activeDeployment := ActiveDeployment(configuration, deployments)
+	activeDeployment := ActiveDeployment(deployments)
 	if activeDeployment == nil {
 		// if cleanup policy is set but no successful deployments have happened, there will be
 		// no active deployment. We can consider all of the deployments in this case except for
