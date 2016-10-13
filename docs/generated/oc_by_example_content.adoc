@@ -2245,6 +2245,20 @@ Resume a paused resource
 ====
 
 
+== oc rollout status
+Watch rollout status until it's done
+
+====
+
+[options="nowrap"]
+----
+  # Watch the status of the latest rollout
+  oc rollout status dc/nginx
+
+----
+====
+
+
 == oc rollout undo
 Undo a previous rollout
 

@@ -359,6 +359,12 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 		return err
 	}
 
+	latestExists, latestRC := deployutil.LatestDeploymentInfo(config, deployments)
+	if !latestExists {
+		latestRC = nil
+	}
+	updateConditions(config, &newStatus, latestRC)
+
 	// NOTE: We should update the status of the deployment config only if we need to, otherwise
 	// we hotloop between updates.
 	if reflect.DeepEqual(newStatus, config.Status) {
@@ -409,6 +415,58 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 		AvailableReplicas:   available,
 		UnavailableReplicas: total - available,
 	}, nil
+}
+
+func updateConditions(config *deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus, latestRC *kapi.ReplicationController) {
+	// Availability condition.
+	if newStatus.AvailableReplicas >= config.Spec.Replicas-deployutil.MaxUnavailable(*config) {
+		minAvailability := deployutil.NewDeploymentCondition(deployapi.DeploymentAvailable, kapi.ConditionTrue, "", "Deployment config has minimum availability.")
+		deployutil.SetDeploymentCondition(newStatus, *minAvailability)
+	} else {
+		noMinAvailability := deployutil.NewDeploymentCondition(deployapi.DeploymentAvailable, kapi.ConditionFalse, "", "Deployment config does not have minimum availability.")
+		deployutil.SetDeploymentCondition(newStatus, *noMinAvailability)
+	}
+	// Condition about progress.
+	cond := deployutil.GetDeploymentCondition(*newStatus, deployapi.DeploymentProgressing)
+	if latestRC != nil {
+		switch deployutil.DeploymentStatusFor(latestRC) {
+		case deployapi.DeploymentStatusNew, deployapi.DeploymentStatusPending:
+			msg := fmt.Sprintf("Waiting on deployer pod for %q to be scheduled", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		case deployapi.DeploymentStatusRunning:
+			msg := fmt.Sprintf("Replication controller %q is progressing", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.ReplicationControllerUpdatedReason, msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		case deployapi.DeploymentStatusFailed:
+			if cond != nil && cond.Reason == deployutil.TimedOutReason {
+				break
+			}
+			msg := fmt.Sprintf("Replication controller %q has failed progressing", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		case deployapi.DeploymentStatusComplete:
+			if cond != nil && cond.Reason == deployutil.NewRcAvailableReason {
+				break
+			}
+			msg := fmt.Sprintf("Replication controller %q has completed progressing", latestRC.Name)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		}
+	}
+	// Pause / resume condition. Since we don't pause running deployments, let's use paused conditions only when a deployment
+	// actually terminates. For now it may be ok to override lack of progress in the conditions, later we may want to separate
+	// paused from the rest of the progressing conditions.
+	if latestRC == nil || deployutil.IsTerminatedDeployment(latestRC) {
+		pausedCondExists := cond != nil && cond.Reason == deployutil.PausedDeployReason
+		if config.Spec.Paused && !pausedCondExists {
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, deployutil.PausedDeployReason, "Deployment config is paused")
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		} else if !config.Spec.Paused && pausedCondExists {
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, deployutil.ResumedDeployReason, "Deployment config is resumed")
+			deployutil.SetDeploymentCondition(newStatus, *condition)
+		}
+	}
 }
 
 func (c *DeploymentConfigController) handleErr(err error, key interface{}) {

@@ -185,6 +185,7 @@ oc-rollout-history.1
 oc-rollout-latest.1
 oc-rollout-pause.1
 oc-rollout-resume.1
+oc-rollout-status.1
 oc-rollout-undo.1
 oc-rollout.1
 oc-rsh.1
