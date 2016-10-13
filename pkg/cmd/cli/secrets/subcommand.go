@@ -4,10 +4,10 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -35,14 +35,14 @@ var (
     Docker registries.`)
 )
 
-func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader, out io.Writer, ocEditFullName string) *cobra.Command {
+func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader, out, errOut io.Writer, ocEditFullName string) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:     name,
 		Short:   "Manage secrets",
 		Long:    secretsLong,
 		Aliases: []string{"secret"},
-		Run:     cmdutil.DefaultSubCommandRun(out),
+		Run:     cmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	newSecretFullName := fullName + " " + NewSecretRecommendedCommandName

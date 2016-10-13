@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -25,7 +25,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 		Use:   "set COMMAND",
 		Short: "Commands that help set specific features on objects",
 		Long:  setLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(errout),
 	}
 
 	name := fmt.Sprintf("%s set", fullName)

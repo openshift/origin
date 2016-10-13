@@ -6,10 +6,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -21,13 +20,13 @@ var topLong = templates.LongDesc(`
 	This command analyzes resources managed by the platform and presents current
 	usage statistics.`)
 
-func NewCommandTop(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCommandTop(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Show usage statistics of resources on the server",
 		Long:  topLong,
-		Run:   cmdutil.DefaultSubCommandRun(out),
+		Run:   cmdutil.DefaultSubCommandRun(errOut),
 	}
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
