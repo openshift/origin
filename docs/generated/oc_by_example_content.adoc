@@ -890,7 +890,7 @@ Attach to a running container
 
 
 == oc autoscale
-Autoscale a deployment config or replication controller
+Autoscale a deployment config, deployment, replication controller, or replica set
 
 ====
 

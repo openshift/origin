@@ -337,7 +337,7 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = scaleLong
 	cmd.Example = fmt.Sprintf(scaleExample, fullName)
-	cmd.ValidArgs = []string{"deploymentconfig", "job", "replicationcontroller"}
+	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
 	return cmd
 }
 
@@ -358,9 +358,10 @@ increase or decrease number of pods deployed within the system as needed.`
 // NewCmdAutoscale is a wrapper for the Kubernetes cli autoscale command
 func NewCmdAutoscale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdAutoscale(f.Factory, out)
-	cmd.Short = "Autoscale a deployment config or replication controller"
+	cmd.Short = "Autoscale a deployment config, deployment, replication controller, or replica set"
 	cmd.Long = autoScaleLong
 	cmd.Example = fmt.Sprintf(autoScaleExample, fullName)
+	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
 	return cmd
 }
 
