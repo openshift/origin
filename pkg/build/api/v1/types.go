@@ -66,6 +66,9 @@ type CommonSpec struct {
 	// be active on a node before the system actively tries to terminate the
 	// build; value must be positive integer
 	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty" protobuf:"varint,8,opt,name=completionDeadlineSeconds"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string `json:"nodeSelector,omitempty" protobuf:"bytes,9,opt,name=nodeSelector"`
 }
 
 // BuildTriggerCause holds information about a triggered build. It is used for

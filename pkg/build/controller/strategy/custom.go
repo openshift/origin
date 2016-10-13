@@ -89,6 +89,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
+			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
 	if build.Spec.CompletionDeadlineSeconds != nil {

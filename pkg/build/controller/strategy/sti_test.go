@@ -39,6 +39,8 @@ func TestSTICreateBuildPodRootAllowed(t *testing.T) {
 	testSTICreateBuildPod(t, true)
 }
 
+var nodeSelector = map[string]string{"node": "mynode"}
+
 func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	strategy := &SourceBuildStrategy{
 		Image:            "sti-test-image",
@@ -46,18 +48,22 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		AdmissionControl: &FakeAdmissionControl{admit: rootAllowed},
 	}
 
-	expected := mockSTIBuild()
-	actual, err := strategy.CreateBuildPod(expected)
+	build := mockSTIBuild()
+	actual, err := strategy.CreateBuildPod(build)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapi.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapi.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(expected.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
+	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
+		t.Errorf("Pod NodeSelector does not match Build NodeSelector.  Expected: %v, got: %v", nodeSelector, actual.Spec.NodeSelector)
+	}
+
 	container := actual.Spec.Containers[0]
 	if container.Name != "sti-build" {
 		t.Errorf("Expected sti-build, but got %s!", container.Name)
@@ -71,6 +77,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
+
 	// strategy ENV is whitelisted into the container environment, and not all
 	// the values are allowed, so only expect 10 not 11 values.
 	expectedEnvCount := 10
@@ -98,8 +105,8 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	if !kapi.Semantic.DeepEqual(container.Resources, expected.Spec.Resources) {
-		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Spec.Resources)
+	if !kapi.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	found := false
 	foundIllegal := false
@@ -137,7 +144,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if !foundDropCaps && !rootAllowed {
 		t.Fatalf("Expected %s when root is not allowed", buildapi.DropCapabilities)
 	}
-	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), expected)
+	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -215,6 +222,7 @@ func mockSTIBuild() *buildapi.Build {
 					},
 				},
 				CompletionDeadlineSeconds: &timeout,
+				NodeSelector:              nodeSelector,
 			},
 		},
 		Status: buildapi.BuildStatus{

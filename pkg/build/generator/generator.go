@@ -405,6 +405,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 				Resources:                 bcCopy.Spec.Resources,
 				PostCommit:                bcCopy.Spec.PostCommit,
 				CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
+				NodeSelector:              bcCopy.Spec.NodeSelector,
 			},
 		},
 		ObjectMeta: kapi.ObjectMeta{

@@ -1147,6 +1147,7 @@ func autoConvert_v1_CommonSpec_To_api_CommonSpec(in *CommonSpec, out *api.Common
 		return err
 	}
 	out.CompletionDeadlineSeconds = in.CompletionDeadlineSeconds
+	out.NodeSelector = in.NodeSelector
 	return nil
 }
 
@@ -1181,6 +1182,7 @@ func autoConvert_api_CommonSpec_To_v1_CommonSpec(in *api.CommonSpec, out *Common
 		return err
 	}
 	out.CompletionDeadlineSeconds = in.CompletionDeadlineSeconds
+	out.NodeSelector = in.NodeSelector
 	return nil
 }
 
