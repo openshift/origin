@@ -88,6 +88,12 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 		addDefaultEnvVar(envVar, buildEnv)
 	}
 
+	// Apply default labels
+	for _, lbl := range a.defaultsConfig.ImageLabels {
+		glog.V(5).Infof("Adding default image label %s=%s to build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
+		addDefaultLabel(lbl, &build.Spec.Output.ImageLabels)
+	}
+
 	sourceDefaults := a.defaultsConfig.SourceStrategyDefaults
 	sourceStrategy := build.Spec.Strategy.SourceStrategy
 	if sourceDefaults != nil && sourceDefaults.Incremental != nil && *sourceDefaults.Incremental &&
@@ -151,5 +157,17 @@ func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
 	}
 	if !found {
 		*envVars = append(*envVars, v)
+	}
+}
+
+func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {
+	found := false
+	for _, lbl := range *buildLabels {
+		if lbl.Name == defaultLabel.Name {
+			found = true
+		}
+	}
+	if !found {
+		*buildLabels = append(*buildLabels, defaultLabel)
 	}
 }

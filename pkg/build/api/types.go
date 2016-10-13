@@ -661,6 +661,19 @@ type BuildOutput struct {
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
 	PushSecret *kapi.LocalObjectReference
+
+	// ImageLabels define a list of labels that are applied to the resulting image. If there
+	// are multiple labels with the same name then the last one in the list is used.
+	ImageLabels []ImageLabel
+}
+
+// ImageLabel represents a label applied to the resulting image.
+type ImageLabel struct {
+	// Name defines the name of the label. It must have non-zero length.
+	Name string
+
+	// Value defines the literal value of the label.
+	Value string
 }
 
 // BuildConfig is a template which can be used to create new builds.

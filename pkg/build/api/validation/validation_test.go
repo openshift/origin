@@ -1895,6 +1895,116 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
+		// 32
+		{
+			string(field.ErrorTypeRequired) + "output.imageLabels[0].name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{
+						{
+							Name:  "",
+							Value: "",
+						},
+					},
+				},
+			},
+		},
+		// 33
+		{
+			string(field.ErrorTypeInvalid) + "output.imageLabels[0].name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{
+						{
+							Name:  "%$#@!",
+							Value: "",
+						},
+					},
+				},
+			},
+		},
+		// 34
+		// duplicate labels
+		{
+			string(field.ErrorTypeInvalid) + "output.imageLabels[1].name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{
+						{
+							Name:  "really",
+							Value: "yes",
+						},
+						{
+							Name:  "really",
+							Value: "no",
+						},
+					},
+				},
+			},
+		},
+		// 35
+		// nonconsecutive duplicate labels
+		{
+			string(field.ErrorTypeInvalid) + "output.imageLabels[3].name",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{
+						{
+							Name:  "a",
+							Value: "1",
+						},
+						{
+							Name:  "really",
+							Value: "yes",
+						},
+						{
+							Name:  "b",
+							Value: "2",
+						},
+						{
+							Name:  "really",
+							Value: "no",
+						},
+						{
+							Name:  "c",
+							Value: "3",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for count, config := range errorCases {
@@ -2101,6 +2211,79 @@ func TestValidateCommonSpecSuccess(t *testing.T) {
 					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 6
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: nil,
+				},
+			},
+		},
+		// 7
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{},
+				},
+			},
+		},
+		// 8
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{
+						{
+							Name: "key",
+						},
+					},
+				},
+			},
+		},
+		// 9
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					ImageLabels: []buildapi.ImageLabel{
+						{
+							Name:  "key",
+							Value: "value )(*&",
+						},
 					},
 				},
 			},

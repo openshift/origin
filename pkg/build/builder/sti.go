@@ -183,6 +183,7 @@ func (s *S2IBuilder) Build() error {
 		IncrementalFromTag: pushTag,
 
 		Environment:       buildEnvVars(s.build),
+		Labels:            buildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:                    sourceURI.String(),
@@ -350,6 +351,14 @@ func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
 		envVars.Set(fmt.Sprintf("%s=%s", item.Key, item.Value))
 	}
 	return *envVars
+}
+
+func buildLabels(build *api.Build) map[string]string {
+	labels := make(map[string]string)
+	for _, lbl := range build.Spec.Output.ImageLabels {
+		labels[lbl.Name] = lbl.Value
+	}
+	return labels
 }
 
 // scriptProxyConfig determines a proxy configuration for downloading
