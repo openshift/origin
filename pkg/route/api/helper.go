@@ -1,7 +1,13 @@
 package api
 
 import (
+	"strings"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+)
+
+const (
+	RouteWildcardPrefix = "*."
 )
 
 // IngressConditionStatus returns the first status and condition matching the provided ingress condition type. Conditions
@@ -32,4 +38,17 @@ func RouteLessThan(route1, route2 *Route) bool {
 	}
 
 	return false
+}
+
+// NormalizeWildcardHost tests if a host is wildcarded and returns
+// the "normalized" (domain name currently) form of the host.
+func NormalizeWildcardHost(host string) (string, bool) {
+	if len(host) > 0 {
+		if strings.HasPrefix(host, RouteWildcardPrefix) {
+			// For wildcard hosts, strip the prefix.
+			return host[len(RouteWildcardPrefix):], true
+		}
+	}
+
+	return host, false
 }

@@ -35,6 +35,14 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 
 .SH OPTIONS
 .PP
+\fB\-\-allow\-wildcard\-routes\fP=false
+    Allow wildcard host names for routes
+
+.PP
+\fB\-\-allowed\-domains\fP=[]
+    List of comma separated domains to allow in routes. If specified, only the domains in this list will be allowed routes. Note that domains in the denied list take precedence over the ones in the allowed list
+
+.PP
 \fB\-\-api\-version\fP=""
     DEPRECATED: The API version to use when talking to the server
 
@@ -77,6 +85,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 .PP
 \fB\-\-default\-certificate\-path\fP=""
     A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format
+
+.PP
+\fB\-\-denied\-domains\fP=[]
+    List of comma separated domains to deny in routes
 
 .PP
 \fB\-\-extended\-validation\fP=true
