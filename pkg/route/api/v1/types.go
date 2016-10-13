@@ -82,6 +82,10 @@ type RouteSpec struct {
 
 	// The tls field provides the ability to configure certificates and termination for the route.
 	TLS *TLSConfig `json:"tls,omitempty" protobuf:"bytes,6,opt,name=tls"`
+
+	// Wildcard policy if any for the route.
+	// Currently only 'Subdomain' or 'None' is allowed.
+	WildcardPolicy WildcardPolicyType `json:"wildcardPolicy,omitempty" protobuf:"bytes,7,opt,name=wildcardPolicy"`
 }
 
 // RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
@@ -209,4 +213,18 @@ const (
 	TLSTerminationPassthrough TLSTerminationType = "passthrough"
 	// TLSTerminationReencrypt terminate encryption at the edge router and re-encrypt it with a new certificate supplied by the destination
 	TLSTerminationReencrypt TLSTerminationType = "reencrypt"
+)
+
+// WildcardPolicyType indicates the type of wildcard support needed by routes.
+type WildcardPolicyType string
+
+const (
+	// WildcardPolicyNone indicates no wildcard support is needed.
+	WildcardPolicyNone WildcardPolicyType = "None"
+
+	// WildcardPolicySubdomain indicates the host needs wildcard support for the subdomain.
+	// Example: For host = "www.acme.test", indicates that the router
+	//          should support requests for *.acme.test
+	//          Note that this will not match acme.test only *.acme.test
+	WildcardPolicySubdomain WildcardPolicyType = "Subdomain"
 )

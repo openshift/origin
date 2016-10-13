@@ -305,6 +305,50 @@ func TestValidateRoute(t *testing.T) {
 			},
 			expectedErrors: 1,
 		},
+		{
+			name: "No wildcard policy",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "nowildcard",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host: "no.wildcard.test",
+					To:   createRouteSpecTo("serviceName", "Service"),
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "wildcard policy none",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "nowildcard2",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host:           "none.wildcard.test",
+					To:             createRouteSpecTo("serviceName", "Service"),
+					WildcardPolicy: api.WildcardPolicyNone,
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Invalid wildcard policy",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "badwildcard",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host:           "bad.wildcard.test",
+					To:             createRouteSpecTo("serviceName", "Service"),
+					WildcardPolicy: "bad-wolf",
+				},
+			},
+			expectedErrors: 1,
+		},
 	}
 
 	for _, tc := range tests {

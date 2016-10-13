@@ -67,6 +67,7 @@ var map_RouteSpec = map[string]string{
 	"alternateBackends": "alternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference. If the weight field is zero, the backend is ignored.",
 	"port":              "If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.",
 	"tls":               "The tls field provides the ability to configure certificates and termination for the route.",
+	"wildcardPolicy":    "Wildcard policy if any for the route. Currently only 'Subdomain' or 'None' is allowed.",
 }
 
 func (RouteSpec) SwaggerDoc() map[string]string {

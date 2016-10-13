@@ -129,6 +129,10 @@ message RouteSpec {
 
   // The tls field provides the ability to configure certificates and termination for the route.
   optional TLSConfig tls = 6;
+
+  // Wildcard policy if any for the route.
+  // Currently only 'Subdomain' or 'None' is allowed.
+  optional string wildcardPolicy = 7;
 }
 
 // RouteStatus provides relevant info about the status of a route, including which routers

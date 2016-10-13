@@ -1,6 +1,8 @@
 package api
 
 import (
+	"strings"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -32,4 +34,21 @@ func RouteLessThan(route1, route2 *Route) bool {
 	}
 
 	return false
+}
+
+// GetSubdomainForHost returns the subdomain for the specified host.
+// This handles top-level domain names as well.
+// Example: acme.test and www.acme.test both return acme.test
+//          and www1.edge.acme.test returns edge.acme.test
+func GetSubdomainForHost(host string) string {
+	if len(host) == 0 {
+		return host
+	}
+
+	parts := strings.SplitAfterN(host, ".", 3)
+	if len(parts) > 2 {
+		return parts[1] + parts[2]
+	}
+
+	return host
 }

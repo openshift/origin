@@ -27429,6 +27429,10 @@
      "tls": {
       "$ref": "v1.TLSConfig",
       "description": "The tls field provides the ability to configure certificates and termination for the route."
+     },
+     "wildcardPolicy": {
+      "type": "string",
+      "description": "Wildcard policy if any for the route."
      }
     }
    },

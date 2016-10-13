@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
 )
@@ -173,6 +174,23 @@ func (o *F5RouterOptions) Validate() error {
 	return o.F5Router.Validate()
 }
 
+// F5RouteAdmitterFunc returns a func that checks if a route is a
+// wildcard route and currently denies it.
+func (o *F5RouterOptions) F5RouteAdmitterFunc() controller.RouteAdmissionFunc {
+	return func(route *routeapi.Route) (error, bool) {
+		if err := o.AdmissionCheck(route); err != nil {
+			return err, false
+		}
+
+		if len(route.Spec.WildcardPolicy) > 0 && route.Spec.WildcardPolicy != routeapi.WildcardPolicyNone {
+			// TODO: F5 wildcard route support.
+			return fmt.Errorf("Wildcard routes are currently not supported by the F5 router"), true
+		}
+
+		return nil, false
+	}
+}
+
 // Run launches an F5 route sync process using the provided options. It never exits.
 func (o *F5RouterOptions) Run() error {
 	cfg := f5plugin.F5PluginConfig{
@@ -198,7 +216,8 @@ func (o *F5RouterOptions) Run() error {
 	}
 
 	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName)
-	plugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), statusPlugin)
+	uniqueHostPlugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), statusPlugin)
+	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.F5RouteAdmitterFunc(), false, statusPlugin)
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)

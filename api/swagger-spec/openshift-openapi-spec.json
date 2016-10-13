@@ -51351,6 +51351,10 @@
      },
      "to": {
       "$ref": "#/definitions/v1.RouteTargetReference"
+     },
+     "wildcardPolicy": {
+      "description": "Wildcard policy if any for the route.",
+      "type": "string"
      }
     }
    },

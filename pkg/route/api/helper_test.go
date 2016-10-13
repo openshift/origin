@@ -88,3 +88,85 @@ func TestRouteLessThan(t *testing.T) {
 		}
 	}
 }
+
+func TestGetSubdomainForHost(t *testing.T) {
+	tests := []struct {
+		name        string
+		host        string
+		expectation string
+	}{
+		{
+			name:        "plain",
+			host:        "www.host.test",
+			expectation: "host.test",
+		},
+		{
+			name:        "plain2 aceswild",
+			host:        "www777.aceswild.test",
+			expectation: "aceswild.test",
+		},
+		{
+			name:        "subdomain1",
+			host:        "one.test",
+			expectation: "one.test",
+		},
+		{
+			name:        "subdomain2",
+			host:        "two.test",
+			expectation: "two.test",
+		},
+		{
+			name:        "subdomain3",
+			host:        "three.org",
+			expectation: "three.org",
+		},
+		{
+			name:        "nested subdomain",
+			host:        "www.acme.test",
+			expectation: "acme.test",
+		},
+		{
+			name:        "nested subdomain2",
+			host:        "www.edge.acme.test",
+			expectation: "edge.acme.test",
+		},
+		{
+			name:        "nested subdomain3",
+			host:        "www.mail.edge.acme.test",
+			expectation: "mail.edge.acme.test",
+		},
+		{
+			name:        "No host",
+			host:        "",
+			expectation: "",
+		},
+		{
+			name:        "tld1",
+			host:        "test",
+			expectation: "test",
+		},
+		{
+			name:        "tld2",
+			host:        "org",
+			expectation: "org",
+		},
+		{
+			name:        "tld3",
+			host:        "com",
+			expectation: "com",
+		},
+		{
+			name:        "semi-longish host",
+			host:        "www1.dept2.group3.div4.co5.akamai.test",
+			expectation: "dept2.group3.div4.co5.akamai.test",
+		},
+	}
+
+	for _, tc := range tests {
+		subdomain := GetSubdomainForHost(tc.host)
+
+		if subdomain != tc.expectation {
+			t.Errorf("Test case %s expected %v got %v", tc.name, tc.expectation, subdomain)
+		}
+	}
+}

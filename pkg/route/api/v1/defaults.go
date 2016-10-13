@@ -2,6 +2,18 @@ package v1
 
 import "k8s.io/kubernetes/pkg/runtime"
 
+func SetDefaults_RouteSpec(obj *RouteSpec) {
+	if len(obj.WildcardPolicy) == 0 {
+		obj.WildcardPolicy = "None"
+	}
+	switch obj.WildcardPolicy {
+	case WildcardPolicyType("None"):
+		obj.WildcardPolicy = WildcardPolicyNone
+	case WildcardPolicyType("Subdomain"):
+		obj.WildcardPolicy = WildcardPolicySubdomain
+	}
+}
+
 func SetDefaults_RouteTargetReference(obj *RouteTargetReference) {
 	if len(obj.Kind) == 0 {
 		obj.Kind = "Service"
@@ -28,6 +40,7 @@ func SetDefaults_TLSConfig(obj *TLSConfig) {
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddDefaultingFuncs(
+		SetDefaults_RouteSpec,
 		SetDefaults_RouteTargetReference,
 		SetDefaults_TLSConfig,
 	)
