@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -12,56 +11,22 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-// IsBuildPod returns true if a pod is a pod generated for a Build
-func IsBuildPod(a admission.Attributes) bool {
-	if a.GetResource().GroupResource() != kapi.Resource("pods") {
-		return false
-	}
-	if len(a.GetSubresource()) != 0 {
-		return false
-	}
-	pod, err := GetPod(a)
-	if err != nil {
-		return false
-	}
-	return hasBuildAnnotation(pod) && hasBuildEnvVar(pod)
-}
-
 // GetBuild returns a build object encoded in a pod's BUILD environment variable along with
 // its encoding version
-func GetBuild(a admission.Attributes) (*buildapi.Build, unversioned.GroupVersion, error) {
-	pod, err := GetPod(a)
-	if err != nil {
-		return nil, unversioned.GroupVersion{}, err
-	}
+func GetBuildFromPod(pod *kapi.Pod) (*buildapi.Build, unversioned.GroupVersion, error) {
 	build, version, err := getBuildFromPod(pod)
 	if err != nil {
-		return nil, unversioned.GroupVersion{}, admission.NewForbidden(a, fmt.Errorf("unable to get build from pod: %v", err))
+		return nil, unversioned.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", err)
 	}
 	return build, version, nil
 }
 
-// GetPod returns a pod from an admission attributes object
-func GetPod(a admission.Attributes) (*kapi.Pod, error) {
-	pod, isPod := a.GetObject().(*kapi.Pod)
-	if !isPod {
-		return nil, admission.NewForbidden(a, fmt.Errorf("unrecognized request object: %#v", a.GetObject()))
-	}
-	return pod, nil
-}
-
 // SetBuild encodes a build object and sets it in a pod's BUILD environment variable
-func SetBuild(a admission.Attributes, build *buildapi.Build, groupVersion unversioned.GroupVersion) error {
-	pod, err := GetPod(a)
+func SetBuildInPod(pod *kapi.Pod, build *buildapi.Build, groupVersion unversioned.GroupVersion) error {
+	err := setBuildInPod(build, pod, groupVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to set build in pod: %v", err)
 	}
-
-	err = setBuildInPod(build, pod, groupVersion)
-	if err != nil {
-		return admission.NewForbidden(a, fmt.Errorf("unable to set build in pod: %v", err))
-	}
-
 	return nil
 }
 
@@ -70,12 +35,7 @@ func SetBuild(a admission.Attributes, build *buildapi.Build, groupVersion unvers
 // environment variable may have been set in multiple ways: a default value,
 // by a BuildConfig, or by the BuildDefaults admission plugin. In this method
 // we finally act on the value by injecting it into the Pod.
-func SetBuildLogLevel(attributes admission.Attributes, build *buildapi.Build) error {
-	pod, err := GetPod(attributes)
-	if err != nil {
-		return err
-	}
-
+func SetPodLogLevelFromBuild(pod *kapi.Pod, build *buildapi.Build) error {
 	var envs []kapi.EnvVar
 
 	// Check whether the build strategy supports --loglevel parameter.
@@ -97,7 +57,7 @@ func SetBuildLogLevel(attributes admission.Attributes, build *buildapi.Build) er
 			break
 		}
 	}
-	c := &pod.Spec.Containers[0]
+	c := pod.Spec.Containers[0]
 	c.Args = append(c.Args, "--loglevel="+buildLogLevel)
 	return nil
 }

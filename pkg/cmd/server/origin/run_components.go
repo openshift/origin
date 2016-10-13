@@ -28,6 +28,8 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
+	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -229,7 +231,7 @@ func (c *MasterConfig) RunProjectCache() {
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
-func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
+func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) error {
 	// initialize build controller
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
@@ -242,6 +244,18 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 	if wantsInformers, ok := admissionControl.(cmdadmission.WantsInformers); ok {
 		wantsInformers.SetInformers(informers)
 	}
+
+	buildDefaults, err := builddefaults.NewBuildDefaults(c.Options.AdmissionConfig.PluginConfig)
+	if err != nil {
+		return err
+	}
+	glog.V(5).Infof("Build defaults config: %v", buildDefaults)
+
+	buildOverrides, err := buildoverrides.NewBuildOverrides(c.Options.AdmissionConfig.PluginConfig)
+	if err != nil {
+		return err
+	}
+	glog.V(5).Infof("Build overrides config: %v", buildOverrides)
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
@@ -264,12 +278,15 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: codec,
 		},
+		BuildDefaults:  buildDefaults,
+		BuildOverrides: buildOverrides,
 	}
 
 	controller := factory.Create()
 	controller.Run()
 	deleteController := factory.CreateDeleteController()
 	deleteController.Run()
+	return nil
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status

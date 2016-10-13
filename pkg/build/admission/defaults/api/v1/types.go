@@ -28,6 +28,9 @@ type BuildDefaultsConfig struct {
 
 	// nodeSelector is a selector which must be true for the build pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the

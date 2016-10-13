@@ -29,28 +29,3 @@ func TestQuotaAdmissionPluginsAreLast(t *testing.T) {
 		t.Errorf("CombinedAdmissionControlPlugins must have ClusterResourceQuota as the last plugin")
 	}
 }
-
-func TestBuildAdmissionBeforeNodeConstraints(t *testing.T) {
-	foundOverrides := false
-	foundDefaults := false
-	for _, plugin := range KubeAdmissionPlugins {
-		if plugin == "PodNodeContraints" && !(foundOverrides && foundDefaults) {
-			t.Errorf("PodNodeConstraints appears before the build admission controllers")
-		}
-		if plugin == "OriginPodNodeEnvironment" && !(foundOverrides && foundDefaults) {
-			t.Errorf("PodNodeConstraints appears before the build admission controllers")
-		}
-		if plugin == "BuildDefaults" {
-			foundDefaults = true
-		}
-		if plugin == "BuildOverrides" {
-			foundOverrides = true
-		}
-	}
-	if !foundOverrides {
-		t.Errorf("BuildOverrides admission controller not registered")
-	}
-	if !foundDefaults {
-		t.Errorf("BuildDefaults admission controller not registered")
-	}
-}
