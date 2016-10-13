@@ -44,5 +44,6 @@ func NewCmdCluster(name, fullName string, f *clientcmd.Factory, out io.Writer) *
 
 	cmds.AddCommand(docker.NewCmdUp(docker.CmdUpRecommendedName, fullName+" "+docker.CmdUpRecommendedName, f, out))
 	cmds.AddCommand(docker.NewCmdDown(docker.CmdDownRecommendedName, fullName+" "+docker.CmdDownRecommendedName, f, out))
+	cmds.AddCommand(NewCmdConsole(ConsoleRecommendedName, fullName+" "+ConsoleRecommendedName, f, out))
 	return cmds
 }
