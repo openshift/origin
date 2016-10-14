@@ -29,11 +29,11 @@ func TestImageReferenceMappingsMapReference(t *testing.T) {
 
 				"mysql@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237": "index.docker.io/mysql@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237",
 
-				"docker.io/mysql":                "index.docker.io/library/mysql",
-				"docker.io/mysql:latest":         "index.docker.io/library/mysql:latest",
+				"docker.io/mysql":                "index.docker.io/mysql",
+				"docker.io/mysql:latest":         "index.docker.io/mysql:latest",
 				"docker.io/default/mysql:latest": "index.docker.io/default/mysql:latest",
 
-				"docker.io/mysql@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237": "index.docker.io/library/mysql@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237",
+				"docker.io/mysql@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237": "index.docker.io/mysql@sha256:b2f400f4a5e003b0543decf61a0a010939f3fba07bafa226f11ed7b5f1e81237",
 			},
 		},
 		{
@@ -54,9 +54,6 @@ func TestImageReferenceMappingsMapReference(t *testing.T) {
 				"myregistry.com/test/other:latest": "myregistry.com/other/test:latest",
 
 				"test/other/b:latest": "test/other/b:latest",
-
-				// TODO: this is possibly wrong with V2 and latest daemon
-				"b/test/other:latest": "b/other/test:latest",
 			},
 		},
 	}

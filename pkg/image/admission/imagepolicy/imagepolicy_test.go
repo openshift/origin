@@ -27,6 +27,11 @@ import (
 	"github.com/openshift/origin/pkg/project/cache"
 )
 
+const (
+	goodSHA = "sha256:08151bf2fc92355f236918bb16905921e6f66e1d03100fb9b18d60125db3df3a"
+	badSHA  = "sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1"
+)
+
 type resolveFunc func(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error)
 
 func (fn resolveFunc) ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error) {
@@ -66,12 +71,12 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 
 	goodImage := &imageapi.Image{
-		ObjectMeta:           kapi.ObjectMeta{Name: "sha256:good"},
+		ObjectMeta:           kapi.ObjectMeta{Name: goodSHA},
 		DockerImageReference: "integrated.registry/goodns/goodimage:good",
 	}
 	badImage := &imageapi.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "sha256:bad",
+			Name: badSHA,
 			Annotations: map[string]string{
 				"images.openshift.io/deny-execution": "true",
 			},
@@ -127,7 +132,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 	// should resolve the non-integrated image and allow it
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@sha256:good"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -138,7 +143,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 	// should resolve the integrated image by digest and allow it
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "integrated.registry/repo/mysql@sha256:good"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "integrated.registry/repo/mysql@" + goodSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -183,7 +188,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 	// should reject the non-integrated image due to the annotation
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@sha256:bad"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + badSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -194,7 +199,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 	// should reject the non-integrated image due to the annotation on an init container
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{InitContainers: []kapi.Container{{Image: "index.docker.io/mysql@sha256:bad"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{InitContainers: []kapi.Container{{Image: "index.docker.io/mysql@" + badSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -206,7 +211,7 @@ func TestDefaultPolicy(t *testing.T) {
 	// should reject the non-integrated image due to the annotation for a build
 	attrs = admission.NewAttributesRecord(
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Source: buildapi.BuildSource{Images: []buildapi.ImageSource{
-			{From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@sha256:bad"}},
+			{From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA}},
 		}}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
@@ -217,7 +222,7 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 	attrs = admission.NewAttributesRecord(
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{
-			From: &kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@sha256:bad"},
+			From: &kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
 		}}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
@@ -228,7 +233,7 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 	attrs = admission.NewAttributesRecord(
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@sha256:bad"},
+			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
 		}}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
@@ -239,7 +244,7 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 	attrs = admission.NewAttributesRecord(
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{
-			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@sha256:bad"},
+			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
 		}}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "builds"},
@@ -253,7 +258,7 @@ func TestDefaultPolicy(t *testing.T) {
 	// a valid spec
 	attrs = admission.NewAttributesRecord(
 		&buildapi.BuildConfig{Spec: buildapi.BuildConfigSpec{CommonSpec: buildapi.CommonSpec{Source: buildapi.BuildSource{Images: []buildapi.ImageSource{
-			{From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@sha256:bad"}},
+			{From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA}},
 		}}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "BuildConfig"},
 		"default", "build1", unversioned.GroupVersionResource{Version: "v1", Resource: "buildconfigs"},
@@ -266,7 +271,7 @@ func TestDefaultPolicy(t *testing.T) {
 	// should hit the cache on the previously good image and continue to allow it (the copy in cache was previously safe)
 	goodImage.Annotations = map[string]string{"images.openshift.io/deny-execution": "true"}
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@sha256:good"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -278,7 +283,7 @@ func TestDefaultPolicy(t *testing.T) {
 	// moving 2 minutes in the future should bypass the cache and deny the image
 	now = func() time.Time { return time.Unix(1, 0).Add(2 * time.Minute) }
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@sha256:good"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -298,7 +303,7 @@ func TestDefaultPolicy(t *testing.T) {
 		},
 	})
 	attrs = admission.NewAttributesRecord(
-		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@sha256:good"}}}},
+		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, unversioned.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", unversioned.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, nil,
@@ -427,7 +432,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 				&kapi.Pod{
 					Spec: kapi.PodSpec{
 						Containers: []kapi.Container{
-							{Image: "integrated.registry/test/mysql@sha256:good"},
+							{Image: "integrated.registry/test/mysql@" + goodSHA},
 						},
 						InitContainers: []kapi.Container{
 							{Image: "myregistry.com/mysql/mysql:latest"},

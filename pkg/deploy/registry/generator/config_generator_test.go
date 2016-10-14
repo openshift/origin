@@ -48,7 +48,7 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 					"test-image-stream",
 					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
-					"00000000000000000000000000000001",
+					"sha256:0000000000000000000000000000000000000000000000000000000000000001",
 				)
 
 				return stream, nil
@@ -82,7 +82,7 @@ func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 					"test-image-stream",
 					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
-					"00000000000000000000000000000001",
+					"sha256:0000000000000000000000000000000000000000000000000000000000000001",
 				)
 
 				return stream, nil
@@ -106,9 +106,9 @@ func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 }
 
 func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
-	newRepoName := "registry:8080/openshift/test-image@sha256:00000000000000000000000000000002"
+	newRepoName := "registry:8080/openshift/test-image@sha256:0000000000000000000000000000000000000000000000000000000000000002"
 	streamName := "test-image-stream"
-	newImageID := "00000000000000000000000000000002"
+	newImageID := "sha256:0000000000000000000000000000000000000000000000000000000000000002"
 
 	generator := &DeploymentConfigGenerator{
 		Client: Client{

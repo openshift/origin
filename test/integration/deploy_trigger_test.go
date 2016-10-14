@@ -330,7 +330,7 @@ out:
 	t.Log("Waiting for the second imagestream update - no deployment should run")
 
 	// Subsequent updates to the image shouldn't update the pod template image
-	mapping.Image.Name = "sha256:thisupdatedimageshouldneverlandinthepodtemplate"
+	mapping.Image.Name = "sha256:0000000000000000000000000000000000000000000000000000000000000321"
 	mapping.Image.DockerImageReference = fmt.Sprintf("registry:8080/%s/%s@%s", testutil.Namespace(), deploytest.ImageStreamName, mapping.Image.Name)
 	createTagEvent(mapping)
 
@@ -508,8 +508,8 @@ out:
 	}
 
 	t.Log("Should trigger a new deployment in response to the second imagestream update")
-	secondImage := "sampleImage"
-	secondPullSpec := "samplePullSpec"
+	secondImage := "sampleimage"
+	secondPullSpec := "samplepullspec"
 	createTagEvent(secondImageStream.Name, imageapi.DefaultImageTag, secondImage, secondPullSpec)
 	for {
 	inner:
