@@ -84,7 +84,7 @@ var _ = g.Describe("[builds][Slow] result image should have proper labels set", 
 	})
 })
 
-// ExpectOpenShiftLabels tests if builded Docker image contains appropriate
+// ExpectOpenShiftLabels tests if built Docker image contains appropriate
 // labels.
 func ExpectOpenShiftLabels(labels map[string]string) error {
 	ExpectedLabels := []string{
@@ -95,11 +95,12 @@ func ExpectOpenShiftLabels(labels map[string]string) error {
 		"io.openshift.build.commit.message",
 		"io.openshift.build.source-location",
 		"io.openshift.build.source-context-dir",
+		"user-specified-label",
 	}
 
 	for _, label := range ExpectedLabels {
 		if labels[label] == "" {
-			return fmt.Errorf("Builded image doesn't contain proper Docker image labels. Missing %q label", label)
+			return fmt.Errorf("Built image doesn't contain proper Docker image labels. Missing %q label", label)
 		}
 	}
 

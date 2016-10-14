@@ -1,6 +1,7 @@
 package defaults
 
 import (
+	"reflect"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -8,6 +9,7 @@ import (
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -129,4 +131,138 @@ func TestIncrementalDefaults(t *testing.T) {
 		t.Errorf("should not have overridden incremental to true")
 	}
 
+}
+
+func TestLabelDefaults(t *testing.T) {
+	tests := []struct {
+		buildLabels   []buildapi.ImageLabel
+		defaultLabels []buildapi.ImageLabel
+		expected      []buildapi.ImageLabel
+	}{
+		{
+			buildLabels:   nil,
+			defaultLabels: nil,
+			expected:      nil,
+		},
+		{
+			buildLabels: nil,
+			defaultLabels: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+			expected: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+		},
+		{
+			buildLabels: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+			defaultLabels: nil,
+			expected: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+		},
+		{
+			buildLabels: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+			},
+			defaultLabels: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "public",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+			expected: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+		},
+		{
+			buildLabels: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+			},
+			defaultLabels: []buildapi.ImageLabel{
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+			expected: []buildapi.ImageLabel{
+				{
+					Name:  "distribution-scope",
+					Value: "private",
+				},
+				{
+					Name:  "changelog-url",
+					Value: "file:///dev/null",
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		defaultsConfig := &defaultsapi.BuildDefaultsConfig{
+			ImageLabels: test.defaultLabels,
+		}
+
+		admitter := NewBuildDefaults(defaultsConfig)
+		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild(), "v1")
+		err := admitter.Admit(pod.ToAttributes())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		build := pod.GetBuild(t)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		result := build.Spec.Output.ImageLabels
+		if !reflect.DeepEqual(result, test.expected) {
+			t.Errorf("expected[%d]: %v, got: %v", i, test.expected, result)
+		}
+	}
 }

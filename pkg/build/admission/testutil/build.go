@@ -49,6 +49,11 @@ func (b *TestBuild) WithCustomStrategy() *TestBuild {
 	return b
 }
 
+func (b *TestBuild) WithImageLabels(labels []buildapi.ImageLabel) *TestBuild {
+	b.Spec.Output.ImageLabels = labels
+	return b
+}
+
 func (b *TestBuild) AsBuild() *buildapi.Build {
 	return (*buildapi.Build)(b)
 }

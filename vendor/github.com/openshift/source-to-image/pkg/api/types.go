@@ -232,6 +232,11 @@ type Config struct {
 	// BuildVolumes specifies a list of volumes to mount to container running the
 	// build.
 	BuildVolumes VolumeList
+
+	// Labels specify labels and their values to be applied to the resulting image. Label keys
+	// must have non-zero length. The labels defined here override generated labels in case
+	// they have the same name.
+	Labels map[string]string
 }
 
 // EnvironmentSpec specifies a single environment variable.

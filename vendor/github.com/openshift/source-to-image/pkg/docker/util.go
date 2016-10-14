@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/docker/distribution/reference"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
@@ -26,15 +27,6 @@ var (
 	// DefaultEntrypoint is the default entry point used when starting containers
 	DefaultEntrypoint = []string{"/usr/bin/env"}
 )
-
-// ImageReference points to a Docker image.
-type ImageReference struct {
-	Registry  string
-	Namespace string
-	Name      string
-	Tag       string
-	ID        string
-}
 
 type AuthConfigurations struct {
 	Configs map[string]api.AuthConfig
@@ -55,15 +47,18 @@ const (
 // image name and a given set of client authentication objects.
 func GetImageRegistryAuth(auths *AuthConfigurations, imageName string) api.AuthConfig {
 	glog.V(5).Infof("Getting docker credentials for %s", imageName)
-	spec, err := ParseImageReference(imageName)
+	namedReference, err := reference.ParseNamed(imageName)
 	if err != nil {
 		glog.V(0).Infof("error: Failed to parse docker reference %s", imageName)
 		return api.AuthConfig{}
 	}
 
-	if auth, ok := auths.Configs[spec.Registry]; ok {
-		glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, spec.Registry, imageName)
-		return auth
+	hostname, _ := reference.SplitHostname(namedReference)
+	if strings.ContainsAny(hostname, ":.") || hostname == "localhost" {
+		if auth, ok := auths.Configs[hostname]; ok {
+			glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, hostname, imageName)
+			return auth
+		}
 	}
 	if auth, ok := auths.Configs[defaultRegistry]; ok {
 		glog.V(5).Infof("Using %s credentials for pulling %s", auth.Email, imageName)
@@ -178,54 +173,6 @@ func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...inter
 		if errOutput != nil && len(*errOutput) < maxErrorOutput {
 			*errOutput += text + "\n"
 		}
-	}
-}
-
-// ParseImageReference parses a Docker pull spec string into a ImageReference.
-// FIXME: This code was copied from OpenShift repository.
-func ParseImageReference(spec string) (ImageReference, error) {
-	var ref ImageReference
-
-	// TODO replace with docker version once docker/docker PR11109 is merged upstream
-	stream, tag, id := parseRepositoryTag(spec)
-
-	repoParts := strings.Split(stream, "/")
-	switch len(repoParts) {
-	case 2:
-		if strings.Contains(repoParts[0], ":") {
-			// registry/name
-			ref.Registry = repoParts[0]
-			ref.Namespace = "library"
-			ref.Name = repoParts[1]
-			ref.Tag = tag
-			ref.ID = id
-			return ref, nil
-		}
-		// namespace/name
-		ref.Namespace = repoParts[0]
-		ref.Name = repoParts[1]
-		ref.Tag = tag
-		ref.ID = id
-		return ref, nil
-	case 3:
-		// registry/namespace/name
-		ref.Registry = repoParts[0]
-		ref.Namespace = repoParts[1]
-		ref.Name = repoParts[2]
-		ref.Tag = tag
-		ref.ID = id
-		return ref, nil
-	case 1:
-		// name
-		if len(repoParts[0]) == 0 {
-			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
-		}
-		ref.Name = repoParts[0]
-		ref.Tag = tag
-		ref.ID = id
-		return ref, nil
-	default:
-		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
 }
 

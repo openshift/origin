@@ -302,7 +302,6 @@ func injectUserVars(values []string, t *templateapi.Template) []error {
 			if v := template.GetParameterByName(t, p[0]); v != nil {
 				v.Value = p[1]
 				v.Generate = ""
-				template.AddParameter(t, *v)
 			} else {
 				errors = append(errors, fmt.Errorf("unknown parameter name %q\n", p[0]))
 			}

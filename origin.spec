@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9986ac165509a536ddc2f91edba852e305321f2f
+%global commit 18eb7ba3d2bff27238d47fe18e000546e223a6a7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.9+9986ac1 OS_GIT_COMMIT=9986ac1 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.10+18eb7ba OS_GIT_COMMIT=18eb7ba OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.10
+Version:        3.4.0.11
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,43 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Oct 14 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.11
+- Merge remote-tracking branch upstream/master, bump origin-web-console b7fa730
+  (tdawson@redhat.com)
+- increase default vagrant volume size to 25gigs (bparees@redhat.com)
+- Update ose_images.sh - 2016-10-12 (tdawson@redhat.com)
+- the parameter no need set again (li.guangxu@zte.com.cn)
+- Add a `make` target to vendor the web console (skuznets@redhat.com)
+- Make evacuate aware of replica set and daemon set (mfojtik@redhat.com)
+- Rename Kclient to KubeClient (mfojtik@redhat.com)
+- add some optimizations to build code (li.guangxu@zte.com.cn)
+- get password from dc; add more diag (gmontero@redhat.com)
+- oc: update valid arguments for upstream commands (mkargaki@redhat.com)
+- UPSTREAM: <drop>: rollout status should return appropriate exit codes
+  (mkargaki@redhat.com)
+- Tests for deployment conditions and oc rollout status (mkargaki@redhat.com)
+- Extend Builds with list of labels applied to image (mmilata@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  2a7f4c43b68c0f7a69de1d59040544619b03a21a (mmilata@redhat.com)
+- Move "oadm pod-network" tests from extended to integration and cmd
+  (danw@redhat.com)
+- test/cmd/sdn.sh improvements (danw@redhat.com)
+- oc: generated code for rollout status (mkargaki@redhat.com)
+- oc: add rollout status (mkargaki@redhat.com)
+- deploy: use Conditions in the deploymentconfig controller
+  (mkargaki@redhat.com)
+- Remove the unuse parameter in function ActiveDeployment
+  (wang.yuexiao@zte.com.cn)
+- neaten portforward code now that readyChan is accepted in New()
+  (jminter@redhat.com)
+- Enable extended validation check on all routes admitted in by the router.
+  Update generated docs/manpage (smitram@gmail.com)
+- One can now allocate hostsubnets for hosts that are not part of the cluster.
+  This is useful when a host wants to be part of the SDN, but not part of the
+  cluster (e.g. F5) (rchopra@redhat.com)
+- bump(github.com/RangelReale/osincli):
+  fababb0555f21315d1a34af6615a16eaab44396b (mkhan@redhat.com)
+
 * Wed Oct 12 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.10
 - Merge remote-tracking branch upstream/master, bump origin-web-console b60172f
   (tdawson@redhat.com)

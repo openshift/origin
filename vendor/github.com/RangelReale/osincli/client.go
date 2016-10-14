@@ -33,7 +33,7 @@ func NewClient(config *ClientConfig) (*Client, error) {
 }
 
 func (c *Client) initialize() error {
-	if c.config.ClientId == "" || c.config.ClientSecret == "" || c.config.AuthorizeUrl == "" ||
+	if c.config.ClientId == "" || c.config.AuthorizeUrl == "" ||
 		c.config.TokenUrl == "" || c.config.RedirectUrl == "" {
 		return errors.New("Missing configuration")
 	}

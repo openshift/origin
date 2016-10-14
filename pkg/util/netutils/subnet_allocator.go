@@ -3,6 +3,7 @@ package netutils
 import (
 	"fmt"
 	"net"
+	"sync"
 )
 
 type SubnetAllocator struct {
@@ -14,6 +15,7 @@ type SubnetAllocator struct {
 	rightMask  uint32
 	next       uint32
 	allocMap   map[string]bool
+	mutex      sync.Mutex
 }
 
 func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*SubnetAllocator, error) {
@@ -85,6 +87,9 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 		numSubnets    uint32
 		numSubnetBits uint32
 	)
+	sna.mutex.Lock()
+	defer sna.mutex.Unlock()
+
 	baseipu := IPToUint32(sna.network.IP)
 	netMaskSize, _ := sna.network.Mask.Size()
 	numSubnetBits = 32 - uint32(netMaskSize) - sna.hostBits
@@ -109,6 +114,8 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 }
 
 func (sna *SubnetAllocator) ReleaseNetwork(ipnet *net.IPNet) error {
+	sna.mutex.Lock()
+	defer sna.mutex.Unlock()
 	if !sna.network.Contains(ipnet.IP) {
 		return fmt.Errorf("Provided subnet %v doesn't belong to the network %v.", ipnet, sna.network)
 	}
