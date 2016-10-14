@@ -146,22 +146,14 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 			if IsRegistryDockerHub(ref.Registry) {
 				ref.Namespace = DockerDefaultNamespace
 			}
-			if len(repoParts[1]) == 0 {
-				return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
-			}
-			ref.Name = repoParts[1]
-			ref.Tag = tag
-			ref.ID = id
-			break
+		} else {
+			// namespace/name
+			ref.Namespace = repoParts[0]
 		}
-		// namespace/name
-		ref.Namespace = repoParts[0]
 		if len(repoParts[1]) == 0 {
 			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 		}
 		ref.Name = repoParts[1]
-		ref.Tag = tag
-		ref.ID = id
 		break
 	case 3:
 		// registry/namespace/name
@@ -171,8 +163,6 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 		}
 		ref.Name = repoParts[2]
-		ref.Tag = tag
-		ref.ID = id
 		break
 	case 1:
 		// name
@@ -180,8 +170,6 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 		}
 		ref.Name = repoParts[0]
-		ref.Tag = tag
-		ref.ID = id
 		break
 	default:
 		// Handle multiple segments in form: registry/namespace/namesegment1/namesegment2/.../name
@@ -208,12 +196,13 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 				ref.Name += part
 			}
 
-			ref.Tag = tag
-			ref.ID = id
 			break
 		}
 		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
+
+	ref.Tag = tag
+	ref.ID = id
 
 	return ref, nil
 }
