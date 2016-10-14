@@ -32,9 +32,9 @@ function ensure-master-config() {
     --master="https://${ip_addr}:8443" \
     --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}"
 
-  # ensure the configuration is readable outside of the container
-  find "${config_path}" -exec chmod ga+rw {} \;
-  find "${config_path}" -type d -exec chmod ga+x {} \;
+  # ensure the configuration can be used outside of the container
+  chmod -R ga+rX "${master_path}"
+  chmod ga+w "${master_path}/admin.kubeconfig"
 }
 
 ensure-master-config
