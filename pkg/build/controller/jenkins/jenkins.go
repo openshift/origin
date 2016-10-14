@@ -101,7 +101,6 @@ func substituteTemplateParameters(params map[string]string, t *templateapi.Templ
 		if v := template.GetParameterByName(t, name); v != nil {
 			v.Value = value
 			v.Generate = ""
-			template.AddParameter(t, *v)
 		} else {
 			errors = append(errors, fmt.Errorf("unknown parameter %q specified for template", name))
 		}
