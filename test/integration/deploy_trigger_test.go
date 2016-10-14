@@ -41,7 +41,7 @@ func TestTriggers_manual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	osClient, kubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
+	oc, kc, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,12 +50,12 @@ func TestTriggers_manual(t *testing.T) {
 	config.Namespace = namespace
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{{Type: deployapi.DeploymentTriggerManual}}
 
-	dc, err := osClient.DeploymentConfigs(namespace).Create(config)
+	dc, err := oc.DeploymentConfigs(namespace).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(kapi.ListOptions{ResourceVersion: dc.ResourceVersion})
+	rcWatch, err := kc.ReplicationControllers(namespace).Watch(kapi.ListOptions{ResourceVersion: dc.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -66,9 +66,14 @@ func TestTriggers_manual(t *testing.T) {
 		Latest: false,
 		Force:  true,
 	}
-	config, err = osClient.DeploymentConfigs(namespace).Instantiate(request)
-	if err != nil {
-		t.Fatalf("Couldn't instantiate deployment config %q: %v", config.Name, err)
+
+	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		var err error
+		config, err = oc.DeploymentConfigs(namespace).Instantiate(request)
+		return err
+	})
+	if retryErr != nil {
+		t.Fatalf("Couldn't instantiate deployment config %q: %v", request.Name, err)
 	}
 	if config.Status.LatestVersion != 1 {
 		t.Fatal("Instantiated deployment config should have version 1")
@@ -356,8 +361,13 @@ loop:
 		Latest: true,
 		Force:  true,
 	}
-	if _, err = oc.DeploymentConfigs(config.Namespace).Instantiate(request); err != nil {
-		t.Fatalf("Couldn't instantiate deployment config %q: %v", config.Name, err)
+	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
+		var err error
+		config, err = oc.DeploymentConfigs(testutil.Namespace()).Instantiate(request)
+		return err
+	})
+	if retryErr != nil {
+		t.Fatalf("Couldn't instantiate deployment config %q: %v", request.Name, err)
 	}
 	config, err = oc.DeploymentConfigs(config.Namespace).Get(config.Name)
 	if err != nil {
@@ -561,7 +571,7 @@ func TestTriggers_configChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	osClient, kubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
+	oc, kc, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,14 +580,14 @@ func TestTriggers_configChange(t *testing.T) {
 	config.Namespace = namespace
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkConfigChangeTrigger()}
 
-	rcWatch, err := kubeClient.ReplicationControllers(namespace).Watch(kapi.ListOptions{})
+	rcWatch, err := kc.ReplicationControllers(namespace).Watch(kapi.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
 	defer rcWatch.Stop()
 
 	// submit the initial deployment config
-	config, err = osClient.DeploymentConfigs(namespace).Create(config)
+	config, err = oc.DeploymentConfigs(namespace).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
@@ -598,7 +608,7 @@ func TestTriggers_configChange(t *testing.T) {
 	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
 	// get this live or conflicts will never end up resolved
 	retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		liveDeployment, err := kubeClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+		liveDeployment, err := kc.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 		if err != nil {
 			return err
 		}
@@ -606,7 +616,7 @@ func TestTriggers_configChange(t *testing.T) {
 		liveDeployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 
 		// update the deployment
-		_, err = kubeClient.ReplicationControllers(namespace).Update(liveDeployment)
+		_, err = kc.ReplicationControllers(namespace).Update(liveDeployment)
 		return err
 	})
 	if retryErr != nil {
@@ -623,7 +633,7 @@ func TestTriggers_configChange(t *testing.T) {
 	// Update the config with a new environment variable and observe a new deployment
 	// coming up.
 	retryErr = kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		latest, err := osClient.DeploymentConfigs(namespace).Get(config.Name)
+		latest, err := oc.DeploymentConfigs(namespace).Get(config.Name)
 		if err != nil {
 			return err
 		}
@@ -636,7 +646,7 @@ func TestTriggers_configChange(t *testing.T) {
 		}
 
 		// update the config
-		_, err = osClient.DeploymentConfigs(namespace).Update(latest)
+		_, err = oc.DeploymentConfigs(namespace).Update(latest)
 		return err
 	})
 	if retryErr != nil {
@@ -645,12 +655,12 @@ func TestTriggers_configChange(t *testing.T) {
 
 	if retryErr := kclient.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 		// submit a new config with an updated environment variable
-		newConfig, err := osClient.DeploymentConfigs(namespace).Get(config.Name)
+		newConfig, err := oc.DeploymentConfigs(namespace).Get(config.Name)
 		if err != nil {
 			return err
 		}
 		newConfig.Spec.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
-		_, err = osClient.DeploymentConfigs(namespace).Update(newConfig)
+		_, err = oc.DeploymentConfigs(namespace).Update(newConfig)
 		return err
 	}); retryErr != nil {
 		t.Fatal(retryErr)
