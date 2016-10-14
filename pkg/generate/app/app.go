@@ -118,6 +118,8 @@ type SourceRef struct {
 	DockerfileContents string
 
 	Binary bool
+
+	RequiresAuth bool
 }
 
 func urlWithoutRef(url url.URL) string {
