@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 )
 
-var _ = g.Describe("[images][mongodb] openshift mongodb replication", func() {
+var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb replication", func() {
 	defer g.GinkgoRecover()
 
 	const (
