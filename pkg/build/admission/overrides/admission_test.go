@@ -36,9 +36,9 @@ func TestBuildOverrideForcePull(t *testing.T) {
 	ops := []admission.Operation{admission.Create, admission.Update}
 	for _, test := range tests {
 		for _, op := range ops {
-			overrides := NewBuildOverrides(&overridesapi.BuildOverridesConfig{ForcePull: true})
+			overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{ForcePull: true}}
 			pod := u.Pod().WithBuild(t, test.build, "v1")
-			err := overrides.Admit(pod.ToAttributes())
+			err := overrides.ApplyOverrides((*kapi.Pod)(pod))
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", test.name, err)
 			}
@@ -184,9 +184,9 @@ func TestLabelOverrides(t *testing.T) {
 			ImageLabels: test.overrideLabels,
 		}
 
-		admitter := NewBuildOverrides(overridesConfig)
+		admitter := BuildOverrides{overridesConfig}
 		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild(), "v1")
-		err := admitter.Admit(pod.ToAttributes())
+		err := admitter.ApplyOverrides((*kapi.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -195,6 +195,98 @@ func TestLabelOverrides(t *testing.T) {
 		result := build.Spec.Output.ImageLabels
 		if !reflect.DeepEqual(result, test.expected) {
 			t.Errorf("expected[%d]: %v, got: %v", i, test.expected, result)
+		}
+	}
+}
+
+func TestBuildOverrideNodeSelector(t *testing.T) {
+	tests := []struct {
+		name      string
+		build     *buildapi.Build
+		overrides map[string]string
+		expected  map[string]string
+	}{
+		{
+			name:      "build - full override",
+			build:     u.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
+			overrides: map[string]string{"key1": "override1", "key2": "override2"},
+			expected:  map[string]string{"key1": "override1", "key2": "override2"},
+		},
+		{
+			name:      "build - partial override",
+			build:     u.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
+			overrides: map[string]string{"key2": "override2"},
+			expected:  map[string]string{"key1": "value1", "key2": "override2"},
+		},
+	}
+
+	for _, test := range tests {
+		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{NodeSelector: test.overrides}}
+		pod := u.Pod().WithBuild(t, test.build, "v1")
+		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
+		// in the build controller flow. fake it out here.
+		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
+		err := overrides.ApplyOverrides((*kapi.Pod)(pod))
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+		}
+		if len(pod.Spec.NodeSelector) != len(test.expected) {
+			t.Errorf("%s: incorrect number of selectors, expected %v, got %v", test.name, test.expected, pod.Spec.NodeSelector)
+		}
+		for k, v := range pod.Spec.NodeSelector {
+			if ev, ok := test.expected[k]; !ok || ev != v {
+				t.Errorf("%s: incorrect selector value for key %s, expected %s, got %s", test.name, k, ev, v)
+			}
+		}
+	}
+}
+
+func TestBuildOverrideAnnotations(t *testing.T) {
+	tests := []struct {
+		name        string
+		build       *buildapi.Build
+		annotations map[string]string
+		overrides   map[string]string
+		expected    map[string]string
+	}{
+		{
+			name:        "build - nil annotations",
+			build:       u.Build().AsBuild(),
+			annotations: nil,
+			overrides:   map[string]string{"key1": "override1", "key2": "override2"},
+			expected:    map[string]string{"key1": "override1", "key2": "override2"},
+		},
+		{
+			name:        "build - full override",
+			build:       u.Build().AsBuild(),
+			annotations: map[string]string{"key1": "value1"},
+			overrides:   map[string]string{"key1": "override1", "key2": "override2"},
+			expected:    map[string]string{"key1": "override1", "key2": "override2"},
+		},
+		{
+			name:        "build - partial override",
+			build:       u.Build().AsBuild(),
+			annotations: map[string]string{"key1": "value1"},
+			overrides:   map[string]string{"key2": "override2"},
+			expected:    map[string]string{"key1": "value1", "key2": "override2"},
+		},
+	}
+
+	for _, test := range tests {
+		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{Annotations: test.overrides}}
+		pod := u.Pod().WithBuild(t, test.build, "v1")
+		pod.Annotations = test.annotations
+		err := overrides.ApplyOverrides((*kapi.Pod)(pod))
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+		}
+		if len(pod.Annotations) != len(test.expected) {
+			t.Errorf("%s: incorrect number of annotations, expected %v, got %v", test.name, test.expected, pod.Annotations)
+		}
+		for k, v := range pod.Annotations {
+			if ev, ok := test.expected[k]; !ok || ev != v {
+				t.Errorf("%s: incorrect annotation value for key %s, expected %s, got %s", test.name, k, ev, v)
+			}
 		}
 	}
 }

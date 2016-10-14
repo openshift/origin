@@ -646,6 +646,15 @@ func DeepCopy_api_CommonSpec(in interface{}, out interface{}, c *conversion.Clon
 		} else {
 			out.CompletionDeadlineSeconds = nil
 		}
+		if in.NodeSelector != nil {
+			in, out := &in.NodeSelector, &out.NodeSelector
+			*out = make(map[string]string)
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		} else {
+			out.NodeSelector = nil
+		}
 		return nil
 	}
 }

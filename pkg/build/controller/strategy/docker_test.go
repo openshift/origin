@@ -20,18 +20,22 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		Codec: kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion),
 	}
 
-	expected := mockDockerBuild()
-	actual, err := strategy.CreateBuildPod(expected)
+	build := mockDockerBuild()
+	actual, err := strategy.CreateBuildPod(build)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if expected, actual := buildapi.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {
+	if expected, actual := buildapi.GetBuildPodName(build), actual.ObjectMeta.Name; expected != actual {
 		t.Errorf("Expected %s, but got %s!", expected, actual)
 	}
-	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(expected.Name)}, actual.Labels) {
+	if !reflect.DeepEqual(map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}, actual.Labels) {
 		t.Errorf("Pod Labels does not match Build Labels!")
 	}
+	if !reflect.DeepEqual(nodeSelector, actual.Spec.NodeSelector) {
+		t.Errorf("Pod NodeSelector does not match Build NodeSelector.  Expected: %v, got: %v", nodeSelector, actual.Spec.NodeSelector)
+	}
+
 	container := actual.Spec.Containers[0]
 	if container.Name != "docker-build" {
 		t.Errorf("Expected docker-build, but got %s!", container.Name)
@@ -66,8 +70,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 4 {
 		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	if !kapi.Semantic.DeepEqual(container.Resources, expected.Spec.Resources) {
-		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Spec.Resources)
+	if !kapi.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	found := false
 	foundIllegal := false
@@ -86,7 +90,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
 	}
 
-	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), expected)
+	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.SchemeGroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -158,6 +162,7 @@ func mockDockerBuild() *buildapi.Build {
 					},
 				},
 				CompletionDeadlineSeconds: &timeout,
+				NodeSelector:              nodeSelector,
 			},
 		},
 		Status: buildapi.BuildStatus{

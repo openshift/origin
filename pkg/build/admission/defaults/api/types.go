@@ -7,31 +7,39 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
+const BuildDefaultsPlugin = "BuildDefaults"
+
 // BuildDefaultsConfig controls the default information for Builds
 type BuildDefaultsConfig struct {
 	unversioned.TypeMeta
 
-	// GitHTTPProxy is the location of the HTTPProxy for Git source
+	// gitHTTPProxy is the location of the HTTPProxy for Git source
 	GitHTTPProxy string
 
-	// GitHTTPSProxy is the location of the HTTPSProxy for Git source
+	// gitHTTPSProxy is the location of the HTTPSProxy for Git source
 	GitHTTPSProxy string
 
-	// GitNoProxy is the list of domains for which the proxy should not be used
+	// gitNoProxy is the list of domains for which the proxy should not be used
 	GitNoProxy string
 
-	// Env is a set of default environment variables that will be applied to the
+	// env is a set of default environment variables that will be applied to the
 	// build if the specified variables do not exist on the build
 	Env []kapi.EnvVar
 
-	// SourceStrategyDefaults are default values that apply to builds using the
+	// sourceStrategyDefaults are default values that apply to builds using the
 	// source strategy.
 	SourceStrategyDefaults *SourceStrategyDefaultsConfig
 
-	// ImageLabels is a list of docker labels that are applied to the resulting image.
+	// imageLabels is a list of docker labels that are applied to the resulting image.
 	// User can override a default label by providing a label with the same name in their
 	// Build/BuildConfig.
 	ImageLabels []buildapi.ImageLabel
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	NodeSelector map[string]string
+
+	// annotations are annotations that will be added to the build pod
+	Annotations map[string]string
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the
