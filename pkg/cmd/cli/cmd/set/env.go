@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -489,11 +490,20 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		if err != nil {
 			return err
 		}
-		for _, object := range objects {
-			if err := p.PrintObj(object, out); err != nil {
-				return err
-			}
+
+		resourceList := &kapi.List{
+			TypeMeta: unversioned.TypeMeta{
+				Kind:       "List",
+				APIVersion: outputVersion.Version,
+			},
+			ListMeta: unversioned.ListMeta{},
+			Items:    objects,
 		}
+
+		if err := p.PrintObj(resourceList, out); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
