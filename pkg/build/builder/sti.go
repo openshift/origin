@@ -93,8 +93,6 @@ func (s *S2IBuilder) Build() error {
 		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
-	var push bool
-
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
 	if contextDir == "." || contextDir == "/" {
 		contextDir = ""
@@ -121,6 +119,8 @@ func (s *S2IBuilder) Build() error {
 		contextDir: contextDir,
 		tmpDir:     tmpDir,
 	}
+
+	var push bool
 	// if there is no output target, set one up so the docker build logic
 	// (which requires a tag) will still work, but we won't push it at the end.
 	if s.build.Spec.Output.To == nil || len(s.build.Spec.Output.To.Name) == 0 {
