@@ -148,7 +148,7 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
   mode http
 
   # Remove port from Host header
@@ -548,4 +548,24 @@ backend be_secure_{{$cfgIdx}}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
-{{ end }}{{/* end reencrypt passthrough map template */}}
+{{ end }}{{/* end reencrypt map template */}}
+
+{{/*
+    cert_config.map: contains a mapping of <cert-file> -> example.org
+                     This map is used to present the appropriate cert
+                     based on the sni header.
+    Note: It is sort of a reverse map for our case but the order
+          "<cert>: <domain-set>" is important as this allows us to use
+         wildcards and/or use a deny set with !<domain> in the future.
+*/}}
+{{ define "/var/lib/haproxy/conf/cert_config.map" }}
+{{     $workingDir := .WorkingDir }}
+{{     range $idx, $cfg := .State }}
+{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) }}
+{{         $cert := index $cfg.Certificates $cfg.Host }}
+{{         if ne $cert.Contents "" }}
+{{$workingDir}}/certs/{{$idx}}.pem {{$cfg.Host}}
+{{         end }}
+{{      end }}
+{{     end }}
+{{ end }}{{/* end cert_config map template */}}
