@@ -9,9 +9,12 @@ import (
 )
 
 func TestRouteLessThan(t *testing.T) {
+	current := unversioned.Now()
+	older := unversioned.Time{Time: current.Add(-1 * time.Minute)}
+
 	r := Route{
 		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: unversioned.Now().Rfc3339Copy(),
+			CreationTimestamp: current.Rfc3339Copy(),
 			UID:               "alpha",
 			Namespace:         "alpha",
 			Name:              "alpha",
@@ -49,6 +52,27 @@ func TestRouteLessThan(t *testing.T) {
 				Name:              "beta",
 			},
 		}, true},
+		{Route{
+			ObjectMeta: kapi.ObjectMeta{
+				CreationTimestamp: older,
+				UID:               r.UID,
+				Namespace:         r.Namespace,
+				Name:              "beta",
+			},
+		}, false},
+		{Route{
+			ObjectMeta: kapi.ObjectMeta{
+				CreationTimestamp: older,
+				UID:               r.UID,
+				Name:              "gamma",
+			},
+		}, false},
+		{Route{
+			ObjectMeta: kapi.ObjectMeta{
+				CreationTimestamp: older,
+				Name:              "delta",
+			},
+		}, false},
 		{r, false},
 	}
 
