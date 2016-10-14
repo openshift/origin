@@ -74,7 +74,8 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 				Stdin: true,
 			},
 
-			Executor: &kubecmd.DefaultRemoteExecutor{},
+			FullCmdName: parent,
+			Executor:    &kubecmd.DefaultRemoteExecutor{},
 		},
 	}
 
