@@ -300,13 +300,8 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		if err := restclient.LoadTLSFiles(config); err != nil {
 			return fmt.Errorf("registry does not exist; the provided credentials %q could not load certificate info: %v", opts.Config.Credentials, err)
 		}
-		insecure := "false"
-		if config.Insecure {
-			insecure = "true"
-		} else {
-			if len(config.KeyData) == 0 || len(config.CertData) == 0 {
-				return fmt.Errorf("registry does not exist; the provided credentials %q are missing the client certificate and/or key", opts.Config.Credentials)
-			}
+		if !config.Insecure && (len(config.KeyData) == 0 || len(config.CertData) == 0) {
+			return fmt.Errorf("registry does not exist; the provided credentials %q are missing the client certificate and/or key", opts.Config.Credentials)
 		}
 
 		secretEnv = app.Environment{
@@ -314,7 +309,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 			"OPENSHIFT_CA_DATA":   string(config.CAData),
 			"OPENSHIFT_KEY_DATA":  string(config.KeyData),
 			"OPENSHIFT_CERT_DATA": string(config.CertData),
-			"OPENSHIFT_INSECURE":  insecure,
+			"OPENSHIFT_INSECURE":  fmt.Sprintf("%t", config.Insecure),
 		}
 	}
 
@@ -346,7 +341,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
 		env["REGISTRY_HTTP_NET"] = "tcp"
 	}
-	secrets, volumes, mounts, extraEnv, tls, err := generateSecretsConfig(opts.Config, opts.namespace, servingCert, servingKey)
+	secrets, volumes, mounts, extraEnv, tls, err := generateSecretsConfig(opts.Config, servingCert, servingKey)
 	if err != nil {
 		return err
 	}
@@ -514,7 +509,7 @@ func generateProbeConfig(port int, https bool) *kapi.Probe {
 // as the TLS serving cert that are necessary for the registry container.
 // Runs true if the registry should be served over TLS.
 func generateSecretsConfig(
-	cfg *RegistryConfig, namespace string, defaultCrt, defaultKey []byte,
+	cfg *RegistryConfig, defaultCrt, defaultKey []byte,
 ) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount, app.Environment, bool, error) {
 	var secrets []*kapi.Secret
 	var volumes []kapi.Volume
