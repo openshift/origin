@@ -118,9 +118,10 @@ func (BuildLogOptions) SwaggerDoc() map[string]string {
 }
 
 var map_BuildOutput = map[string]string{
-	"":           "BuildOutput is input to a build strategy and describes the Docker image that the strategy should produce.",
-	"to":         "to defines an optional location to push the output of this build to. Kind must be one of 'ImageStreamTag' or 'DockerImage'. This value will be used to look up a Docker image repository to push to. In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of the build unless Namespace is specified.",
-	"pushSecret": "PushSecret is the name of a Secret that would be used for setting up the authentication for executing the Docker push to authentication enabled Docker Registry (or Docker Hub).",
+	"":            "BuildOutput is input to a build strategy and describes the Docker image that the strategy should produce.",
+	"to":          "to defines an optional location to push the output of this build to. Kind must be one of 'ImageStreamTag' or 'DockerImage'. This value will be used to look up a Docker image repository to push to. In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of the build unless Namespace is specified.",
+	"pushSecret":  "PushSecret is the name of a Secret that would be used for setting up the authentication for executing the Docker push to authentication enabled Docker Registry (or Docker Hub).",
+	"imageLabels": "imageLabels define a list of labels that are applied to the resulting image. If there are multiple labels with the same name then the last one in the list is used.",
 }
 
 func (BuildOutput) SwaggerDoc() map[string]string {
@@ -357,6 +358,16 @@ var map_ImageChangeTrigger = map[string]string{
 
 func (ImageChangeTrigger) SwaggerDoc() map[string]string {
 	return map_ImageChangeTrigger
+}
+
+var map_ImageLabel = map[string]string{
+	"":      "ImageLabel represents a label applied to the resulting image.",
+	"name":  "name defines the name of the label. It must have non-zero length.",
+	"value": "value defines the literal value of the label.",
+}
+
+func (ImageLabel) SwaggerDoc() map[string]string {
+	return map_ImageLabel
 }
 
 var map_ImageSource = map[string]string{

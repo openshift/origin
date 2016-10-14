@@ -24,6 +24,13 @@ func ValidateConfig(config *api.Config) []ValidationError {
 	if config.DockerNetworkMode != "" && !validateDockerNetworkMode(config.DockerNetworkMode) {
 		allErrs = append(allErrs, NewFieldInvalidValue("dockerNetworkMode"))
 	}
+	if config.Labels != nil {
+		for k := range config.Labels {
+			if len(k) == 0 {
+				allErrs = append(allErrs, NewFieldInvalidValue("labels"))
+			}
+		}
+	}
 	return allErrs
 }
 

@@ -93,8 +93,6 @@ func (s *S2IBuilder) Build() error {
 		return errors.New("the source to image builder must be used with the source strategy")
 	}
 
-	var push bool
-
 	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
 	if contextDir == "." || contextDir == "/" {
 		contextDir = ""
@@ -121,6 +119,8 @@ func (s *S2IBuilder) Build() error {
 		contextDir: contextDir,
 		tmpDir:     tmpDir,
 	}
+
+	var push bool
 	// if there is no output target, set one up so the docker build logic
 	// (which requires a tag) will still work, but we won't push it at the end.
 	if s.build.Spec.Output.To == nil || len(s.build.Spec.Output.To.Name) == 0 {
@@ -183,6 +183,7 @@ func (s *S2IBuilder) Build() error {
 		IncrementalFromTag: pushTag,
 
 		Environment:       buildEnvVars(s.build),
+		Labels:            buildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
 		Source:                    sourceURI.String(),
@@ -350,6 +351,14 @@ func buildEnvVars(build *api.Build) s2iapi.EnvironmentList {
 		envVars.Set(fmt.Sprintf("%s=%s", item.Key, item.Value))
 	}
 	return *envVars
+}
+
+func buildLabels(build *api.Build) map[string]string {
+	labels := make(map[string]string)
+	for _, lbl := range build.Spec.Output.ImageLabels {
+		labels[lbl.Name] = lbl.Value
+	}
+	return labels
 }
 
 // scriptProxyConfig determines a proxy configuration for downloading

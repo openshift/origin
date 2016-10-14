@@ -85,7 +85,7 @@ echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
 
 echo "[INFO] Waiting for IP failover to deploy"
-os::cmd::try_until_text "oc get rc/ipfailover-1 --template \"{{ index .metadata.annotations \\\"openshift.io/deployment.phase\\\" }}\"" "Complete"
+os::cmd::expect_success 'oc rollout status dc/ipfailover'
 os::cmd::expect_success "oc delete all -l ipfailover=ipfailover"
 
 # check to make sure that logs for rc works
@@ -347,7 +347,7 @@ os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post
 os::cmd::expect_success 'oc create -f test/testdata/failing-dc.yaml'
 os::cmd::try_until_success 'oc get rc/failing-dc-1'
 os::cmd::expect_success 'oc logs -f dc/failing-dc'
-os::cmd::try_until_text "oc get rc/failing-dc-1 --template={{.metadata.annotations}}" 'openshift.io/deployment.phase:Failed'
+os::cmd::expect_failure 'oc rollout status dc/failing-dc'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
 os::cmd::expect_success 'oc deploy failing-dc --latest'
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc' 'test pre hook executed'
@@ -360,7 +360,7 @@ os::cmd::expect_success 'oc delete dc/failing-dc'
 os::cmd::expect_success 'oc create -f test/testdata/failing-dc-mid.yaml'
 os::cmd::try_until_success 'oc get rc/failing-dc-mid-1'
 os::cmd::expect_success 'oc logs -f dc/failing-dc-mid'
-os::cmd::try_until_text "oc get rc/failing-dc-mid-1 --template={{.metadata.annotations}}" 'openshift.io/deployment.phase:Failed'
+os::cmd::expect_failure 'oc rollout status dc/failing-dc-mid'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc-mid' 'test mid hook executed'
 # The following command is the equivalent of 'oc deploy --latest' on old clients
 # Ensures we won't break those while removing the dc status update from oc

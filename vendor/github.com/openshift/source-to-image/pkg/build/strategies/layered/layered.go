@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/docker/distribution/reference"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
@@ -152,26 +153,11 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 	}
 	defer tarStream.Close()
 
-	dockerImageReference, err := docker.ParseImageReference(builder.config.BuilderImage)
+	namedReference, err := reference.ParseNamed(builder.config.BuilderImage)
 	if err != nil {
 		return nil, err
 	}
-	// if we fall down this path via oc new-app, the builder image will be a docker image ref ending
-	// with a @<hex image id> instead of a tag; simply appending the time stamp to the end of a
-	// hex image id ref is not kosher with the docker API; so we remove the ID piece, and then
-	// construct the new image name
-	var newBuilderImage string
-	if len(dockerImageReference.ID) == 0 {
-		newBuilderImage = fmt.Sprintf("%s-%d", builder.config.BuilderImage, time.Now().UnixNano())
-	} else {
-		if len(dockerImageReference.Registry) > 0 {
-			newBuilderImage = fmt.Sprintf("%s/", dockerImageReference.Registry)
-		}
-		if len(dockerImageReference.Namespace) > 0 {
-			newBuilderImage = fmt.Sprintf("%s%s/", newBuilderImage, dockerImageReference.Namespace)
-		}
-		newBuilderImage = fmt.Sprintf("%s%s:s2i-layered-%d", newBuilderImage, dockerImageReference.Name, time.Now().UnixNano())
-	}
+	newBuilderImage := fmt.Sprintf("%s:s2i-layered-%d", namedReference.Name(), time.Now().UnixNano())
 
 	outReader, outWriter := io.Pipe()
 	defer outReader.Close()

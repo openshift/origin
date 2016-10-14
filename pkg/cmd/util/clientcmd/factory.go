@@ -637,6 +637,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kRollbackerFunc(mapping)
 	}
+	kStatusViewerFunc := w.Factory.StatusViewer
+	w.Factory.StatusViewer = func(mapping *meta.RESTMapping) (kubectl.StatusViewer, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch mapping.GroupVersionKind.GroupKind() {
+		case deployapi.Kind("DeploymentConfig"):
+			return deploycmd.NewDeploymentConfigStatusViewer(oc), nil
+		}
+		return kStatusViewerFunc(mapping)
+	}
 
 	return w
 }

@@ -422,6 +422,7 @@ func validateOutput(output *buildapi.BuildOutput, fldPath *field.Path) field.Err
 	}
 
 	allErrs = append(allErrs, validateSecretRef(output.PushSecret, fldPath.Child("pushSecret"))...)
+	allErrs = append(allErrs, ValidateImageLabels(output.ImageLabels, fldPath.Child("imageLabels"))...)
 
 	return allErrs
 }
@@ -668,5 +669,31 @@ func validateRuntimeImage(sourceStrategy *buildapi.SourceBuildStrategy, fldPath 
 	if sourceStrategy.Incremental != nil && *sourceStrategy.Incremental {
 		return append(allErrs, field.Invalid(fldPath, sourceStrategy.Incremental, "incremental cannot be set to true with extended builds"))
 	}
+	return
+}
+
+func ValidateImageLabels(labels []buildapi.ImageLabel, fldPath *field.Path) (allErrs field.ErrorList) {
+	for i, lbl := range labels {
+		idxPath := fldPath.Index(i)
+		if len(lbl.Name) == 0 {
+			allErrs = append(allErrs, field.Required(idxPath.Child("name"), ""))
+			continue
+		}
+		for _, msg := range kvalidation.IsConfigMapKey(lbl.Name) {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), lbl.Name, msg))
+		}
+	}
+
+	// find duplicates
+	seen := make(map[string]bool)
+	for i, lbl := range labels {
+		idxPath := fldPath.Index(i)
+		if seen[lbl.Name] {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), lbl.Name, "duplicate name"))
+			continue
+		}
+		seen[lbl.Name] = true
+	}
+
 	return
 }

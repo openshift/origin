@@ -94,7 +94,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kc
 		fmt.Fprintln(out)
 
 		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
-		if activeDeployment := deployutil.ActiveDeployment(deploymentConfig, deploymentsHistory); activeDeployment != nil {
+		if activeDeployment := deployutil.ActiveDeployment(deploymentsHistory); activeDeployment != nil {
 			activeDeploymentName = activeDeployment.Name
 		}
 

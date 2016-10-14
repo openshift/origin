@@ -51,6 +51,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitSourceRevision, InType: reflect.TypeOf(&GitSourceRevision{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageChangeCause, InType: reflect.TypeOf(&ImageChangeCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageChangeTrigger, InType: reflect.TypeOf(&ImageChangeTrigger{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageLabel, InType: reflect.TypeOf(&ImageLabel{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageSource, InType: reflect.TypeOf(&ImageSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageSourcePath, InType: reflect.TypeOf(&ImageSourcePath{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_JenkinsPipelineBuildStrategy, InType: reflect.TypeOf(&JenkinsPipelineBuildStrategy{})},
@@ -275,6 +276,15 @@ func DeepCopy_api_BuildOutput(in interface{}, out interface{}, c *conversion.Clo
 			**out = **in
 		} else {
 			out.PushSecret = nil
+		}
+		if in.ImageLabels != nil {
+			in, out := &in.ImageLabels, &out.ImageLabels
+			*out = make([]ImageLabel, len(*in))
+			for i := range *in {
+				(*out)[i] = (*in)[i]
+			}
+		} else {
+			out.ImageLabels = nil
 		}
 		return nil
 	}
@@ -867,6 +877,16 @@ func DeepCopy_api_ImageChangeTrigger(in interface{}, out interface{}, c *convers
 		} else {
 			out.From = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_api_ImageLabel(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ImageLabel)
+		out := out.(*ImageLabel)
+		out.Name = in.Name
+		out.Value = in.Value
 		return nil
 	}
 }

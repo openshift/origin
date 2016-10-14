@@ -23,7 +23,7 @@ func (s *SchedulableOptions) Run() error {
 	for _, node := range nodes {
 		if node.Spec.Unschedulable != unschedulable {
 			node.Spec.Unschedulable = unschedulable
-			node, err = s.Options.Kclient.Nodes().Update(node)
+			node, err = s.Options.KubeClient.Nodes().Update(node)
 			if err != nil {
 				errList = append(errList, err)
 				continue

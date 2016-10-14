@@ -184,6 +184,10 @@ message BuildOutput {
   // up the authentication for executing the Docker push to authentication
   // enabled Docker Registry (or Docker Hub).
   optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pushSecret = 2;
+
+  // imageLabels define a list of labels that are applied to the resulting image. If there
+  // are multiple labels with the same name then the last one in the list is used.
+  repeated ImageLabel imageLabels = 3;
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
@@ -639,6 +643,15 @@ message ImageChangeTrigger {
   // will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
   // a build configuration.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 2;
+}
+
+// ImageLabel represents a label applied to the resulting image.
+message ImageLabel {
+  // name defines the name of the label. It must have non-zero length.
+  optional string name = 1;
+
+  // value defines the literal value of the label.
+  optional string value = 2;
 }
 
 // ImageSource is used to describe build source that will be extracted from an image. A reference of
