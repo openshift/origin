@@ -3807,7 +3807,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
     "annotations": {
       "description": "This example showcases the new Jenkins Pipeline integration in OpenShift, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
       "iconClass": "icon-jenkins",
-      "tags": "instant-app,ruby,mysql,jenkins"
+      "tags": "instant-app,jenkins"
     }
   },
   "message": "The Jenkins server is not currently automatically instantiated for you.  Please instantiate one of the Jenkins templates to create a Jenkins server for managing your pipeline build configurations.",
