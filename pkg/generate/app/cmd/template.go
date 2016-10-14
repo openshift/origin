@@ -15,8 +15,10 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-// TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
-func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsNamespacer, namespace string, parameters map[string]string) (*templateapi.Template, error) {
+// TransformTemplateWithoutDecoding processes a template with the provided parameters. The objects
+// contained in the transformed template are not decoded into proper api types, instead they are
+// left as runtime.Unknown.
+func TransformTemplateWithoutDecoding(tpl *templateapi.Template, client client.TemplateConfigsNamespacer, namespace string, parameters map[string]string) (*templateapi.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
 		v := template.GetParameterByName(tpl, k)
@@ -28,17 +30,27 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 		template.AddParameter(tpl, *v)
 	}
 
-	name := localOrRemoteName(tpl.ObjectMeta, namespace)
-
 	// transform the template
 	result, err := client.TemplateConfigs(namespace).Create(tpl)
 	if err != nil {
+		name := localOrRemoteName(tpl.ObjectMeta, namespace)
 		return nil, fmt.Errorf("error processing template %s: %v", name, err)
+	}
+
+	return result, nil
+}
+
+// TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
+func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsNamespacer, namespace string, parameters map[string]string) (*templateapi.Template, error) {
+	result, err := TransformTemplateWithoutDecoding(tpl, client, namespace, parameters)
+	if err != nil {
+		return nil, err
 	}
 
 	// ensure the template objects are decoded
 	// TODO: in the future, this should be more automatic
 	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
+		name := localOrRemoteName(tpl.ObjectMeta, namespace)
 		err = errors.NewAggregate(errs)
 		return nil, fmt.Errorf("error processing template %s: %v", name, err)
 	}

@@ -95,7 +95,7 @@ func (o *DockerbuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if len(paths) != 2 {
 		return kcmdutil.UsageError(cmd, "the directory to build and tag must be specified")
 	}
-	o.Arguments, _, _ = cmdutil.ParseEnvironmentArguments(envArgs)
+	o.Arguments, _, _ = cmdutil.ParseEnvironmentArguments(envArgs, false)
 	o.Directory = paths[0]
 	o.Tag = paths[1]
 	if len(o.DockerfilePath) == 0 {

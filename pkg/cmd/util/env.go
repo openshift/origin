@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -43,6 +44,7 @@ type Environment map[string]string
 
 var argumentEnvironment = regexp.MustCompile("(?ms)^(.+)\\=(.*)$")
 var validArgumentEnvironment = regexp.MustCompile("(?ms)^(\\w+)\\=(.*)$")
+var validArgumentFile = regexp.MustCompile("(?ms)^(\\w+)@(.*)$")
 
 func IsEnvironmentArgument(s string) bool {
 	return argumentEnvironment.MatchString(s)
@@ -72,21 +74,39 @@ func SplitEnvironmentFromResources(args []string) (resources, envArgs []string, 
 	return resources, envArgs, true
 }
 
-func ParseEnvironmentArguments(s []string) (Environment, []string, []error) {
+// ParseEnvironmentArguments takes a slice of strings in the KEY=VALUE format and transforms it
+// into a map. The second return value is a slice of duplicate keys. If the fileSyntax argument
+// is true the function also accepts KEY@FILE syntax that reads the value from a given file.
+func ParseEnvironmentArguments(s []string, fileSyntax bool) (Environment, []string, []error) {
 	errs := []error{}
 	duplicates := []string{}
 	env := make(Environment)
 	for _, s := range s {
-		switch matches := validArgumentEnvironment.FindStringSubmatch(s); len(matches) {
-		case 3:
-			k, v := matches[1], matches[2]
-			if exist, ok := env[k]; ok {
-				duplicates = append(duplicates, fmt.Sprintf("%s=%s", k, exist))
+		var k, v string
+
+		if matches := validArgumentEnvironment.FindStringSubmatch(s); len(matches) == 3 {
+			k, v = matches[1], matches[2]
+		} else if matches := validArgumentFile.FindStringSubmatch(s); fileSyntax && len(matches) == 3 {
+			k = matches[1]
+			contents, err := ioutil.ReadFile(matches[2])
+			if err != nil {
+				errs = append(errs, err)
+				continue
 			}
-			env[k] = v
-		default:
-			errs = append(errs, fmt.Errorf("environment variables must be of the form key=value: %s", s))
+			v = string(contents)
+		} else {
+			if fileSyntax {
+				errs = append(errs, fmt.Errorf("environment variables must be of the form key=value or key@file: %s", s))
+			} else {
+				errs = append(errs, fmt.Errorf("environment variables must be of the form key=value: %s", s))
+			}
+			continue
 		}
+
+		if exist, ok := env[k]; ok {
+			duplicates = append(duplicates, fmt.Sprintf("%s=%s", k, exist))
+		}
+		env[k] = v
 	}
 	return env, duplicates, errs
 }
