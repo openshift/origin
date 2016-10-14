@@ -340,7 +340,7 @@ func policyNames(policies []osapi.EgressNetworkPolicy) string {
 	return strings.Join(names, ", ")
 }
 
-func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
+func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	otx := plugin.ovs.NewTransaction()
 
 	policies := plugin.egressPolicies[vnid]
@@ -384,14 +384,12 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) error {
 		otx.DeleteFlows("table=9, reg0=%d, cookie=1/1", vnid)
 	}
 
-	err := otx.EndTransaction()
-	if err != nil {
-		return fmt.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
+	if err := otx.EndTransaction(); err != nil {
+		glog.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
+func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.Infof("AddHostSubnetRules for %s", hostSubnetToString(subnet))
 	otx := plugin.ovs.NewTransaction()
 
@@ -404,30 +402,26 @@ func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) error {
 		otx.AddFlow("table=8, priority=100, ip, nw_dst=%s, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", subnet.Subnet, subnet.HostIP)
 	}
 
-	err := otx.EndTransaction()
-	if err != nil {
-		return fmt.Errorf("Error adding OVS flows for subnet: %v, %v", subnet, err)
+	if err := otx.EndTransaction(); err != nil {
+		glog.Errorf("Error adding OVS flows for subnet %q: %v", subnet.Subnet, err)
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) error {
+func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
 	glog.Infof("DeleteHostSubnetRules for %s", hostSubnetToString(subnet))
 
 	otx := plugin.ovs.NewTransaction()
 	otx.DeleteFlows("table=1, tun_src=%s", subnet.HostIP)
 	otx.DeleteFlows("table=8, ip, nw_dst=%s", subnet.Subnet)
 	otx.DeleteFlows("table=8, arp, nw_dst=%s", subnet.Subnet)
-	err := otx.EndTransaction()
-	if err != nil {
-		return fmt.Errorf("Error deleting OVS flows for subnet: %v, %v", subnet, err)
+	if err := otx.EndTransaction(); err != nil {
+		glog.Errorf("Error deleting OVS flows for subnet %q: %v", subnet.Subnet, err)
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) error {
+func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
 	if !plugin.multitenant {
-		return nil
+		return
 	}
 
 	glog.V(5).Infof("AddServiceRules for %v", service)
@@ -435,17 +429,15 @@ func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) err
 	otx := plugin.ovs.NewTransaction()
 	for _, port := range service.Spec.Ports {
 		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, int(port.Port)))
-		err := otx.EndTransaction()
-		if err != nil {
-			return fmt.Errorf("Error adding OVS flows for service: %v, netid: %d, %v", service, netID, err)
+		if err := otx.EndTransaction(); err != nil {
+			glog.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err)
 		}
 	}
-	return nil
 }
 
-func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) error {
+func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) {
 	if !plugin.multitenant {
-		return nil
+		return
 	}
 
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
@@ -453,12 +445,10 @@ func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) error {
 	otx := plugin.ovs.NewTransaction()
 	for _, port := range service.Spec.Ports {
 		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port)))
-		err := otx.EndTransaction()
-		if err != nil {
-			return fmt.Errorf("Error deleting OVS flows for service: %v, %v", service, err)
+		if err := otx.EndTransaction(); err != nil {
+			glog.Errorf("Error deleting OVS flows for service %v: %v", service, err)
 		}
 	}
-	return nil
 }
 
 func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string {

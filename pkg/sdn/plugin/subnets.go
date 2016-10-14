@@ -269,9 +269,7 @@ func (node *OsdnNode) watchSubnets() {
 					break
 				} else {
 					// Delete old subnet rules
-					if err := node.DeleteHostSubnetRules(oldSubnet); err != nil {
-						return err
-					}
+					node.DeleteHostSubnetRules(oldSubnet)
 				}
 			}
 			if err := node.networkInfo.validateNodeIP(hs.HostIP); err != nil {
@@ -279,15 +277,11 @@ func (node *OsdnNode) watchSubnets() {
 				break
 			}
 
-			if err := node.AddHostSubnetRules(hs); err != nil {
-				return err
-			}
+			node.AddHostSubnetRules(hs)
 			subnets[string(hs.UID)] = hs
 		case cache.Deleted:
 			delete(subnets, string(hs.UID))
-			if err := node.DeleteHostSubnetRules(hs); err != nil {
-				return err
-			}
+			node.DeleteHostSubnetRules(hs)
 		}
 		return nil
 	})

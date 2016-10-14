@@ -9,7 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
@@ -148,27 +147,26 @@ func (node *OsdnNode) VnidStartNode() error {
 	return nil
 }
 
-func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32) error {
+func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32) {
 	// FIXME: this is racy; traffic coming from the pods gets switched to the new
 	// VNID before the service and firewall rules are updated to match. We need
 	// to do the updates as a single transaction (ovs-ofctl --bundle).
 
 	pods, err := node.GetLocalPods(namespace)
 	if err != nil {
-		return err
+		log.Errorf("Could not get list of local pods in namespace %q: %v", namespace, err)
 	}
 	services, err := node.kClient.Services(namespace).List(kapi.ListOptions{})
 	if err != nil {
-		return err
+		log.Errorf("Could not get list of services in namespace %q: %v", namespace, err)
+		services = &kapi.ServiceList{}
 	}
-
-	errList := []error{}
 
 	// Update OF rules for the existing/old pods in the namespace
 	for _, pod := range pods {
 		err = node.UpdatePod(pod)
 		if err != nil {
-			errList = append(errList, err)
+			log.Errorf("Could not update pod %q in namespace %q: %v", pod.Name, namespace, err)
 		}
 	}
 
@@ -178,20 +176,12 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 			continue
 		}
 
-		if err = node.DeleteServiceRules(&svc); err != nil {
-			log.Error(err)
-		}
-		if err = node.AddServiceRules(&svc, netID); err != nil {
-			errList = append(errList, err)
-		}
+		node.DeleteServiceRules(&svc)
+		node.AddServiceRules(&svc, netID)
 	}
 
 	// Update namespace references in egress firewall rules
-	if err = node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID); err != nil {
-		errList = append(errList, err)
-	}
-
-	return kerrors.NewAggregate(errList)
+	node.UpdateEgressNetworkPolicyVNID(namespace, oldNetID, netID)
 }
 
 func (node *OsdnNode) watchNetNamespaces() {
@@ -207,18 +197,10 @@ func (node *OsdnNode) watchNetNamespaces() {
 				break
 			}
 			node.vnids.setVNID(netns.NetName, netns.NetID)
-
-			err = node.updatePodNetwork(netns.NetName, oldNetID, netns.NetID)
-			if err != nil {
-				node.vnids.setVNID(netns.NetName, oldNetID)
-				return fmt.Errorf("failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
-			}
+			node.updatePodNetwork(netns.NetName, oldNetID, netns.NetID)
 		case cache.Deleted:
 			// updatePodNetwork needs vnid, so unset vnid after this call
-			err := node.updatePodNetwork(netns.NetName, netns.NetID, osapi.GlobalVNID)
-			if err != nil {
-				return fmt.Errorf("failed to update pod network for namespace '%s', error: %s", netns.NetName, err)
-			}
+			node.updatePodNetwork(netns.NetName, netns.NetID, osapi.GlobalVNID)
 			node.vnids.unsetVNID(netns.NetName)
 		}
 		return nil
@@ -256,9 +238,7 @@ func (node *OsdnNode) watchServices() {
 				if !isServiceChanged(oldsvc, serv) {
 					break
 				}
-				if err := node.DeleteServiceRules(oldsvc); err != nil {
-					log.Error(err)
-				}
+				node.DeleteServiceRules(oldsvc)
 			}
 
 			netid, err := node.vnids.WaitAndGetVNID(serv.Namespace)
@@ -266,15 +246,11 @@ func (node *OsdnNode) watchServices() {
 				return fmt.Errorf("skipped adding service rules for serviceEvent: %v, Error: %v", delta.Type, err)
 			}
 
-			if err = node.AddServiceRules(serv, netid); err != nil {
-				return err
-			}
+			node.AddServiceRules(serv, netid)
 			services[string(serv.UID)] = serv
 		case cache.Deleted:
 			delete(services, string(serv.UID))
-			if err := node.DeleteServiceRules(serv); err != nil {
-				return err
-			}
+			node.DeleteServiceRules(serv)
 		}
 		return nil
 	})
