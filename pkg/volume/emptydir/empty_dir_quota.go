@@ -46,7 +46,7 @@ func (plugin *EmptyDirQuotaPlugin) NewMounter(spec *volume.Spec, pod *api.Pod, o
 		quota:           plugin.Quota,
 		quotaApplicator: plugin.QuotaApplicator,
 	}
-	return wrapperEmptyDir, err
+	return wrapperEmptyDir, nil
 }
 
 // emptyDirQuotaMounter is a wrapper plugin mounter for the k8s empty dir mounter itself.
@@ -69,10 +69,16 @@ func (edq *emptyDirQuotaMounter) SetUp(fsGroup *int64) error {
 
 func (edq *emptyDirQuotaMounter) SetUpAt(dir string, fsGroup *int64) error {
 	err := edq.wrapped.SetUpAt(dir, fsGroup)
-	if err == nil {
-		err = edq.quotaApplicator.Apply(dir, edq.medium, edq.pod, fsGroup, edq.quota)
+	if err != nil {
+		return err
 	}
-	return err
+
+	err = edq.quotaApplicator.Apply(dir, edq.medium, edq.pod, fsGroup, edq.quota)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (edq *emptyDirQuotaMounter) GetAttributes() volume.Attributes {
