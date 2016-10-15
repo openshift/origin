@@ -391,7 +391,7 @@ func (m *Master) Start() error {
 	switch {
 	case m.api:
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
-		glog.Infof("Public master address is %s", m.config.AssetConfig.MasterPublicURL)
+		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
 			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
 		}
