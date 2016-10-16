@@ -221,7 +221,7 @@ func (a *buildDefaults) setDefaultSourceSecret(build *buildapi.Build) (string, e
 }
 
 func contains(s map[string]string, e string) bool {
-	for k, _ := range s {
+	for k := range s {
 		if k == e {
 			return true
 		}
