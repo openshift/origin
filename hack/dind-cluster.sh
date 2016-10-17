@@ -222,7 +222,7 @@ function wait-for-cluster() {
 
   local msg="${expected_node_count} nodes to report readiness"
   local condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
-  local timeout=60
+  local timeout=120
   os::util::wait-for-condition "${msg}" "${condition}" "${timeout}"
 }
 
