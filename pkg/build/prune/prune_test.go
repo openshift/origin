@@ -49,10 +49,6 @@ func TestPruneTask(t *testing.T) {
 		buildapi.BuildPhaseError,
 		buildapi.BuildPhaseFailed,
 	}
-	BuildPhaseFilterSet := sets.String{}
-	for _, BuildPhase := range BuildPhaseFilter {
-		BuildPhaseFilterSet.Insert(string(BuildPhase))
-	}
 
 	for _, orphans := range []bool{true, false} {
 		for _, BuildPhaseOption := range BuildPhaseOptions {

@@ -53,7 +53,7 @@ func (a *andFilter) Filter(items []*kapi.ReplicationController) []*kapi.Replicat
 // FilterPredicate is a function that returns true if the object should be included in the filtered set
 type FilterPredicate func(item *kapi.ReplicationController) bool
 
-// NewFilterBeforePredicate is a function that returns true if the build was created before the current time minus specified duration
+// NewFilterBeforePredicate is a function that returns true if the deployment was created before the current time minus specified duration
 func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
 	now := unversioned.Now()
 	before := unversioned.NewTime(now.Time.Add(-1 * d))

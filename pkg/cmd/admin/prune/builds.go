@@ -63,7 +63,9 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 		Example: fmt.Sprintf(buildsExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			kcmdutil.CheckErr(opts.Validate())
+			if err := opts.Validate(); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+			}
 			kcmdutil.CheckErr(opts.Run())
 		},
 	}
@@ -123,18 +125,18 @@ func (o PruneBuildsOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	buildConfigs := []*buildapi.BuildConfig{}
+	buildConfigs := make([]*buildapi.BuildConfig, len(buildConfigList.Items))
 	for i := range buildConfigList.Items {
-		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
+		buildConfigs[i] = &buildConfigList.Items[i]
 	}
 
 	buildList, err := o.OSClient.Builds(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
-	builds := []*buildapi.Build{}
+	builds := make([]*buildapi.Build, len(buildList.Items))
 	for i := range buildList.Items {
-		builds = append(builds, &buildList.Items[i])
+		builds[i] = &buildList.Items[i]
 	}
 
 	options := prune.PrunerOptions{

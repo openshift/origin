@@ -66,7 +66,9 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 		SuggestFor: []string{"deployment", "deployments"},
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			kcmdutil.CheckErr(opts.Validate())
+			if err := opts.Validate(); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+			}
 			kcmdutil.CheckErr(opts.Run())
 		},
 	}
@@ -127,18 +129,18 @@ func (o PruneDeploymentsOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	deploymentConfigs := []*deployapi.DeploymentConfig{}
+	deploymentConfigs := make([]*deployapi.DeploymentConfig, len(deploymentConfigList.Items))
 	for i := range deploymentConfigList.Items {
-		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
+		deploymentConfigs[i] = &deploymentConfigList.Items[i]
 	}
 
 	deploymentList, err := o.KClient.ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
 	if err != nil {
 		return err
 	}
-	deployments := []*kapi.ReplicationController{}
+	deployments := make([]*kapi.ReplicationController, len(deploymentList.Items))
 	for i := range deploymentList.Items {
-		deployments = append(deployments, &deploymentList.Items[i])
+		deployments[i] = &deploymentList.Items[i]
 	}
 
 	options := prune.PrunerOptions{

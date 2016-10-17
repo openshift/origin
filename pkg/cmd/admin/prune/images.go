@@ -95,7 +95,9 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-			kcmdutil.CheckErr(opts.Validate())
+			if err := opts.Validate(); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+			}
 			kcmdutil.CheckErr(opts.Run())
 		},
 	}
