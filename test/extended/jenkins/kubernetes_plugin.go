@@ -1,7 +1,10 @@
 package jenkins
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -13,27 +16,74 @@ import (
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
+// patchTemplate finds BuildConfigs in a template, changes their source type to Binary, and removes all triggers
+func patchTemplate(filename string, outDir string) string {
+	inputJson, err := ioutil.ReadFile(filename)
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+	var template map[string]interface{}
+	err = json.Unmarshal(inputJson, &template)
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+	for _, obj := range template["objects"].([]interface{}) {
+		bc := obj.(map[string]interface{})
+		if kind := bc["kind"].(string); kind != "BuildConfig" {
+			continue
+		}
+		spec := bc["spec"].(map[string]interface{})
+		spec["triggers"] = []interface{}{}
+
+		source := spec["source"].(map[string]interface{})
+		source["type"] = "Binary"
+		delete(source, "git")
+		delete(source, "contextDir")
+	}
+
+	outputJson, err := json.MarshalIndent(template, "", "  ")
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+	basename := filepath.Base(filename)
+	outputFile := filepath.Join(outDir, basename)
+	err = ioutil.WriteFile(outputFile, outputJson, 0644)
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+	return outputFile
+}
+
 var _ = g.Describe("[jenkins] schedule jobs on pod slaves", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		jenkinsExampleDir           = filepath.Join("examples", "jenkins-master")
-		jenkinsMasterTemplate       = filepath.Join(jenkinsExampleDir, "jenkins-master-template.json")
-		jenkinsSlaveBuilderTemplate = filepath.Join(jenkinsExampleDir, "jenkins-slave-template.json")
-
-		oc = exutil.NewCLI("jenkins-kube", exutil.KubeConfigPath())
+		jenkinsExampleDir = filepath.Join("examples", "jenkins", "master-slave")
+		oc                = exutil.NewCLI("jenkins-kube", exutil.KubeConfigPath())
 	)
 
-	var waitForBuildComplete = func(name string) (bool, error) {
-		out, err := oc.Run("get").Args("build", name, "-o", "template", "--template", "{{ .status.phase }}").Output()
-		if err != nil {
-			return false, nil
-		}
-		return strings.Contains(out, "Complete"), nil
-	}
+	var (
+		jenkinsMasterTemplate       string
+		jenkinsSlaveBuilderTemplate string
+		jsonTempDir                 string
+	)
 
 	g.Describe("use of jenkins with kubernetes plugin", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
+
+		g.BeforeEach(func() {
+			var err error
+			jsonTempDir, err = ioutil.TempDir(exutil.TestContext.OutputDir, "jenkins-kubernetes-")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// We need to prepare the templates first in order to use binary builds:
+			// 1. remove BuildConfig triggers to not start build immediately after instantiating template,
+			// 2. remove contextDir so that we can send just that directory as a binary, not whole repo.
+			jenkinsMasterTemplate = patchTemplate(filepath.Join(jenkinsExampleDir, "jenkins-master-template.json"), jsonTempDir)
+			jenkinsSlaveBuilderTemplate = patchTemplate(filepath.Join(jenkinsExampleDir, "jenkins-slave-template.json"), jsonTempDir)
+		})
+
+		g.AfterEach(func() {
+			if len(jsonTempDir) > 0 {
+				os.RemoveAll(jsonTempDir)
+			}
+		})
 
 		g.It("by creating slave from existing builder and adding it to Jenkins master", func() {
 
@@ -45,28 +95,26 @@ var _ = g.Describe("[jenkins] schedule jobs on pod slaves", func() {
 			err = oc.Run("create").Args("-f", jenkinsMasterTemplate).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("build the Jenkins slave for ruby-22-centos7")
+			g.By("instantiate the slave template")
 			err = oc.Run("new-app").Args("--template", "jenkins-slave-builder").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("wait for the slave to be built")
-			err = wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
-				return waitForBuildComplete("ruby-22-centos7-slave-1")
-			})
+			g.By("build the Jenkins slave for ruby-22-centos7")
+			br, err := exutil.StartBuildAndWait(oc, "ruby-22-centos7-jenkins-slave", "--wait", "--from-dir", "examples/jenkins/master-slave/slave")
+			br.AssertSuccess()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("grant service account in jenkins container access to API")
 			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+oc.Namespace()+":default", "-n", oc.Namespace()).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("build the Jenkins master")
+			g.By("instantiate the master template")
 			err = oc.Run("new-app").Args("--template", "jenkins-master").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("wait for the master to be built")
-			err = wait.Poll(1*time.Second, 5*time.Minute, func() (bool, error) {
-				return waitForBuildComplete("jenkins-master-1")
-			})
+			g.By("build the Jenkins master")
+			br, err = exutil.StartBuildAndWait(oc, "jenkins-master", "--wait", "--from-dir", "examples/jenkins/master-slave")
+			br.AssertSuccess()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("wait for jenkins deployment")
