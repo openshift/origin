@@ -16,6 +16,7 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	//clientcache "k8s.io/kubernetes/pkg/client/cache"
 )
 
 func init() {
@@ -25,6 +26,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
+		//	c.Core().Pods(pod.Namespace).Delete(pod.Name, &api.DeleteOptions{GracePeriodSeconds: &zero})
 
 		glog.V(5).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
 		return NewBuildDefaults(defaultsConfig), nil
@@ -48,6 +50,7 @@ type buildDefaults struct {
 	*admission.Handler
 	defaultsConfig *defaultsapi.BuildDefaultsConfig
 	cache          *projectcache.ProjectCache
+	//	secretsNamespacer clientcache.Store
 }
 
 // NewBuildDefaults returns an admission control for builds that sets build defaults
@@ -93,6 +96,8 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 
 func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	// Apply default env
+
+	glog.V(5).Infof("MJ TEST")
 	buildEnv := getBuildEnv(build)
 	for _, envVar := range a.defaultsConfig.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
@@ -147,7 +152,7 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	secret, err := a.setDefaultSourceSecret(build)
 	if err == nil {
 		if build.Spec.Source.SourceSecret == nil {
-			glog.V(5).Infof("Setting default Git SourceSecret  %s/%s to %s", build.Namespace, build.Name, secret)
+			glog.V(5).Infof("Setting default Git sourceSecret  %s/%s to %s", build.Namespace, build.Name, secret)
 			//var ss kapi.LocalObjectReference
 			t := secret
 			build.Spec.Source.SourceSecret.Name = t
