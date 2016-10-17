@@ -49,7 +49,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/sdn/hostsubnets"
 # test-cmd environment has no nodes, hence no hostsubnets
-os::cmd::expect_success_and_not_text 'oc get hostsubnets' '.'
+os::cmd::expect_success_and_text 'oc get hostsubnets' 'No resources found.'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/sdn/egressnetworkpolicies"
