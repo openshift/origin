@@ -173,7 +173,7 @@ function get-network-plugin() {
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
-  local default_plugin="${subnet_plugin}"
+  local default_plugin="${multitenant_plugin}"
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
