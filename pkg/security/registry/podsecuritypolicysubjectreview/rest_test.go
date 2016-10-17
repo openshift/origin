@@ -6,12 +6,37 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/watch"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
+
+type groupCache struct {
+}
+
+func (*groupCache) ListGroups(ctx kapi.Context, options *kapi.ListOptions) (*userapi.GroupList, error) {
+	return &userapi.GroupList{}, nil
+}
+func (*groupCache) GetGroup(ctx kapi.Context, name string) (*userapi.Group, error) {
+	return nil, nil
+}
+func (*groupCache) CreateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+	return nil, nil
+}
+func (*groupCache) UpdateGroup(ctx kapi.Context, group *userapi.Group) (*userapi.Group, error) {
+	return nil, nil
+}
+func (*groupCache) DeleteGroup(ctx kapi.Context, name string) error {
+	return nil
+}
+func (*groupCache) WatchGroups(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+	return watch.NewFake(), nil
+}
 
 func saSCC() *kapi.SecurityContextConstraints {
 	return &kapi.SecurityContextConstraints{
@@ -122,8 +147,9 @@ func TestAllowed(t *testing.T) {
 			}
 		}
 
+		groupCache := usercache.NewGroupCache(&groupCache{})
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
+		storage := REST{oscc.NewDefaultSCCMatcher(cache), groupCache, csf}
 		ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 		obj, err := storage.Create(ctx, reviewRequest)
 		if err != nil {
@@ -224,17 +250,19 @@ func TestRequests(t *testing.T) {
 	namespace := admissionttesting.CreateNamespaceForTest()
 	serviceAccount := admissionttesting.CreateSAForTest()
 	for testName, testcase := range testcases {
-		cache := &oscache.IndexerToSecurityContextConstraintsLister{
+		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
 		for _, scc := range testcase.sccs {
-			if err := cache.Add(scc); err != nil {
+			if err := sccCache.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
+		groupCache := usercache.NewGroupCache(&groupCache{})
+
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), groupCache, csf}
 		ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 		_, err := storage.Create(ctx, testcase.request)
 		switch {
