@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 18eb7ba3d2bff27238d47fe18e000546e223a6a7
+%global commit 17aa1a1d29d7673e29cae034ef4a3cbba30ef8b0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.10+18eb7ba OS_GIT_COMMIT=18eb7ba OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.11+17aa1a1 OS_GIT_COMMIT=17aa1a1 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.11
+Version:        3.4.0.12
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,33 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Oct 17 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.12
+- Merge remote-tracking branch upstream/master, bump origin-web-console d5318f2
+  (tdawson@redhat.com)
+- fix oc describe suggestion in oc rsh output (jvallejo@redhat.com)
+- add pod bash completion `oc exec` (jvallejo@redhat.com)
+- Enable minimization of net e2e runtime (marun@redhat.com)
+- ParseDockerImageReference use docker/distribution reference parser
+  (agladkov@redhat.com)
+- Delete a redundant arg and optimize some codes in the
+  (miao.yanqiang@zte.com.cn)
+- remove the tmp secret data (li.guangxu@zte.com.cn)
+- remove old atomic doc (pweil@redhat.com)
+- move images extended tests to new tag and directory (bparees@redhat.com)
+- dind: Ensure unique node config and fix perms (marun@redhat.com)
+- dind: ensure node certs are generated serially (marun@redhat.com)
+- integration: retry instantiate on conflict (mkargaki@redhat.com)
+- CLI: add a set build-secret command (cewong@redhat.com)
+- Bug 1383138: suggest 'rollout latest' if 'deploy --latest' returns a bad
+  request (mkargaki@redhat.com)
+- UPSTREAM: 34524: Test x509 intermediates correctly (jliggitt@redhat.com)
+- Test x509 intermediates correctly (jliggitt@redhat.com)
+- Fixing validation msg (jhadvig@redhat.com)
+- Change haproxy router to use a certificate list/map file. (smitram@gmail.com)
+- Note the commit for the release packaged by hack/build-cross.sh
+  (skuznets@redhat.com)
+- new-app: warn when source credentials are needed (cewong@redhat.com)
+
 * Fri Oct 14 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.11
 - Merge remote-tracking branch upstream/master, bump origin-web-console b7fa730
   (tdawson@redhat.com)
