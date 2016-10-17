@@ -112,10 +112,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "securityContext": {
@@ -131,7 +131,6 @@
       },
       "status": {}
     },
-
     {
       "kind": "Service",
       "apiVersion": "v1",
@@ -294,10 +293,10 @@
                   }
                 ],
                 "resources": {
-		    "limits": {
-			"memory": "${MEMORY_LIMIT}"
-		    }
-		},
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "securityContext": {
