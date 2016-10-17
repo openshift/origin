@@ -365,7 +365,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		config.RunKubelet()
 	}
 	if components.Enabled(ComponentPlugins) {
-		config.RunPlugin()
+		config.RunSDN()
 	}
 	if components.Enabled(ComponentProxy) {
 		config.RunProxy()

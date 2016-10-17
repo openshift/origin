@@ -1,4 +1,4 @@
-package plugin
+package master
 
 import (
 	"testing"

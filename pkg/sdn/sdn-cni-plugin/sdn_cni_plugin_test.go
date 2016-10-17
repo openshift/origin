@@ -16,7 +16,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
 
-	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	"github.com/openshift/origin/pkg/sdn/node/cniserver"
 	utiltesting "k8s.io/client-go/util/testing"
 )
 

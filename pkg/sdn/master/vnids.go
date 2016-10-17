@@ -1,4 +1,4 @@
-package plugin
+package master
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/sdn/common"
-	pnetid "github.com/openshift/origin/pkg/sdn/plugin/netid"
+	pnetid "github.com/openshift/origin/pkg/sdn/master/netid"
 )
 
 type masterVNIDMap struct {

@@ -1,4 +1,4 @@
-package plugin
+package master
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	osapivalidation "github.com/openshift/origin/pkg/sdn/apis/network/validation"
 	"github.com/openshift/origin/pkg/sdn/common"
+	"github.com/openshift/origin/pkg/sdn/node"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,7 +37,7 @@ type OsdnMaster struct {
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
+func Start(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
 	if !sdn.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
@@ -138,7 +139,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{Tun0})
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{node.Tun0})
 	if err != nil {
 		return err
 	}

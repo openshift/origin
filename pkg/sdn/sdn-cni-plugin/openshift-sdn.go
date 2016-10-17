@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	"github.com/openshift/origin/pkg/sdn/node/cniserver"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"

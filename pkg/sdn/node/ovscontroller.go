@@ -1,4 +1,4 @@
-package plugin
+package node
 
 import (
 	"encoding/hex"

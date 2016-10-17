@@ -1,4 +1,4 @@
-package plugin
+package node
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
-	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	"github.com/openshift/origin/pkg/sdn/node/cniserver"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 

@@ -1,4 +1,4 @@
-package plugin
+package node
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	"github.com/openshift/origin/pkg/sdn/node/cniserver"
 
 	utiltesting "k8s.io/client-go/util/testing"
 	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
