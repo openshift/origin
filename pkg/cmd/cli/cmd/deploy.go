@@ -259,6 +259,9 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 		dc, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 	}
 	if err != nil {
+		if kerrors.IsBadRequest(err) {
+			err = fmt.Errorf("%v - try 'oc rollout latest dc/%s'", err, config.Name)
+		}
 		return err
 	}
 	fmt.Fprintf(o.out, "Started deployment #%d\n", dc.Status.LatestVersion)

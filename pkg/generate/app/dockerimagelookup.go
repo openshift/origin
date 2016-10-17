@@ -45,11 +45,15 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 	componentMatches := ComponentMatches{}
 	errs := []error{}
 	for _, term := range terms {
-		if term == "__dockerimage_fail" {
+		var (
+			ref imageapi.DockerImageReference
+			err error
+		)
+		switch term {
+		case "__dockerimage_fail":
 			errs = append(errs, fmt.Errorf("unable to find the specified docker image: %s", term))
 			continue
-		}
-		if term == "scratch" {
+		case "scratch":
 			componentMatches = append(componentMatches, &ComponentMatch{
 				Value: term,
 				Score: 0.0,
@@ -59,11 +63,13 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 				Virtual:   true,
 			})
 			return componentMatches, errs
-		}
-
-		ref, err := imageapi.ParseDockerImageReference(term)
-		if err != nil {
-			continue
+		case "*":
+			ref = imageapi.DockerImageReference{Name: term}
+		default:
+			ref, err = imageapi.ParseDockerImageReference(term)
+			if err != nil {
+				continue
+			}
 		}
 
 		termMatches := ScoredComponentMatches{}
@@ -256,9 +262,17 @@ func (r DockerRegistrySearcher) Search(precise bool, terms ...string) (Component
 	componentMatches := ComponentMatches{}
 	var errs []error
 	for _, term := range terms {
-		ref, err := imageapi.ParseDockerImageReference(term)
-		if err != nil {
-			continue
+		var (
+			ref imageapi.DockerImageReference
+			err error
+		)
+		if term != "*" {
+			ref, err = imageapi.ParseDockerImageReference(term)
+			if err != nil {
+				continue
+			}
+		} else {
+			ref = imageapi.DockerImageReference{Name: term}
 		}
 
 		glog.V(4).Infof("checking Docker registry for %q, allow-insecure=%v", ref.String(), r.AllowInsecure)

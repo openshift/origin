@@ -403,9 +403,9 @@ func TestTrackingTags(t *testing.T) {
 
 	image := &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "5678",
+			Name: "sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1",
 		},
-		DockerImageReference: "foo/bar@sha256:5678",
+		DockerImageReference: "foo/bar@sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1",
 	}
 
 	mapping := api.ImageStreamMapping{

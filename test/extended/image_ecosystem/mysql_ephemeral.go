@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[images][mysql][Slow] openshift mysql image", func() {
+var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func() {
 	defer g.GinkgoRecover()
 	var (
 		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")

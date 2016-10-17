@@ -47,7 +47,7 @@ func (s *REST) New() runtime.Object {
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	req, ok := obj.(*deployapi.DeploymentRequest)
 	if !ok {
-		return nil, errors.NewBadRequest(fmt.Sprintf("wrong object passed for requesting a new deployment: %#v", obj))
+		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
 	}
 
 	configObj, err := r.store.Get(ctx, req.Name)
@@ -266,7 +266,7 @@ func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kclient.R
 	}
 	decoded, err := deployutil.DecodeDeploymentConfig(deployment, decoder)
 	if err != nil {
-		return nil, errors.NewBadRequest(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 	return decoded, nil
 }

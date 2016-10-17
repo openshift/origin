@@ -34,6 +34,8 @@ type Repository interface {
 	SubmoduleUpdate(dir string, init, recursive bool) error
 	Archive(dir, ref, format string, w io.Writer) error
 	Init(dir string, bare bool) error
+	Add(dir string, spec string) error
+	Commit(dir string, message string) error
 	AddRemote(dir string, name, url string) error
 	AddLocalConfig(dir, name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
@@ -299,7 +301,22 @@ func (r *repository) ShowFormat(location, ref, format string) (string, error) {
 
 // Init initializes a new git repository in the provided location
 func (r *repository) Init(location string, bare bool) error {
-	_, _, err := r.git("", "init", "--bare", location)
+	args := []string{"init"}
+	if bare {
+		args = append(args, "--bare")
+	}
+	args = append(args, location)
+	_, _, err := r.git("", args...)
+	return err
+}
+
+func (r *repository) Add(location, spec string) error {
+	_, _, err := r.git(location, "add", spec)
+	return err
+}
+
+func (r *repository) Commit(location, message string) error {
+	_, _, err := r.git(location, "commit", "-m", message)
 	return err
 }
 

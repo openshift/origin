@@ -16,8 +16,11 @@ export SHELLOPTS
 #
 # The EmptyDir test is a canary; it will fail if mount propagation is
 # not properly configured on the host.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services|EmptyDir volumes should support \(root,0644,tmpfs\)}"
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services should be able to create a functioning NodePort service|EmptyDir volumes should support \(root,0644,tmpfs\)}"
 NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
+
+# Limit the scope of execution to minimize runtime
+NETWORKING_E2E_MINIMAL="${NETWORKING_E2E_MINIMAL:-}"
 
 DEFAULT_SKIP_LIST=(
   # TODO(marun) This should work with docker >= 1.10
@@ -42,6 +45,10 @@ DEFAULT_SKIP_LIST=(
   "should work after restarting kube-proxy"
   "should work after restarting apiserver"
   "should be able to change the type and ports of a service"
+)
+
+MINIMAL_SKIP_LIST=(
+  "OVS"
 )
 
 CLUSTER_CMD="${OS_ROOT}/hack/dind-cluster.sh"
@@ -191,7 +198,10 @@ function run-extended-tests() {
   local skip_regex="${NETWORKING_E2E_SKIP}"
 
   if [[ -z "${skip_regex}" ]]; then
-      skip_regex=$(join '|' "${DEFAULT_SKIP_LIST[@]}")
+    skip_regex="$(join '|' "${DEFAULT_SKIP_LIST[@]}")"
+    if [[ -n "${NETWORKING_E2E_MINIMAL}" ]]; then
+      skip_regex="${skip_regex}|$(join '|' "${MINIMAL_SKIP_LIST[@]}")"
+    fi
   fi
 
   export KUBECONFIG="${kubeconfig}"
@@ -317,9 +327,12 @@ else
   # Docker-in-docker is not compatible with selinux
   disable-selinux
 
-  # Ignore deployment errors for a given plugin to allow other plugins
-  # to be tested.
-  test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false" || true
+  # Skip the subnet tests during a minimal test run
+  if [[ -z "${NETWORKING_E2E_MINIMAL}" ]]; then
+    # Ignore deployment errors for a given plugin to allow other plugins
+    # to be tested.
+    test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false" || true
+  fi
 
   test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" "true" || true
 fi

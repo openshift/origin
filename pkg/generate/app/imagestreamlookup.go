@@ -25,15 +25,24 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 	componentMatches := ComponentMatches{}
 	var errs []error
 	for _, term := range terms {
-		ref, err := imageapi.ParseDockerImageReference(term)
-		if err != nil || len(ref.Registry) != 0 {
-			glog.V(2).Infof("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>], term %q did not qualify", term)
-			continue
-		}
-		if term == "__imagestream_fail" {
+		var (
+			ref imageapi.DockerImageReference
+			err error
+		)
+		switch term {
+		case "__imagestream_fail":
 			errs = append(errs, fmt.Errorf("unable to find the specified image: %s", term))
 			continue
+		case "*":
+			ref = imageapi.DockerImageReference{Name: term}
+		default:
+			ref, err = imageapi.ParseDockerImageReference(term)
+			if err != nil || len(ref.Registry) != 0 {
+				glog.V(2).Infof("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>], term %q did not qualify", term)
+				continue
+			}
 		}
+
 		namespaces := r.Namespaces
 		if len(ref.Namespace) != 0 {
 			namespaces = []string{ref.Namespace}

@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -12,48 +12,47 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[images][python][Slow] hot deploy for openshift python image", func() {
+var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl image", func() {
 	defer g.GinkgoRecover()
-
 	var (
-		oc               = exutil.NewCLI("s2i-python", exutil.KubeConfigPath())
-		djangoRepository = "https://github.com/openshift/django-ex.git"
-		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
-		pageCountFn      = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
-		dcName           = "django-ex-1"
-		dcLabel          = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
+		dancerTemplate = "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json"
+		oc             = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
+		modifyCommand  = []string{"sed", "-ie", `s/data => \$data\[0\]/data => "1337"/`, "lib/default.pm"}
+		pageCountFn    = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
+		dcName         = "dancer-mysql-example-1"
+		dcLabel        = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
-	g.Describe("Django example", func() {
+
+	g.Describe("Dancer example", func() {
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-			err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
-			err = oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
+			exutil.CheckOpenShiftNamespaceImageStreams(oc)
+			g.By(fmt.Sprintf("calling oc new-app -f %q", dancerTemplate))
+			err := oc.Run("new-app").Args("-f", dancerTemplate).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "django-ex-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "dancer-mysql-example-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn)
 			if err != nil {
-				exutil.DumpBuildLogs("django-ex", oc)
+				exutil.DumpBuildLogs("dancer-mysql-example", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "django-ex", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeREST().ReplicationControllers(oc.Namespace()), "dancer-mysql-example", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
-			err = oc.KubeFramework().WaitForAnEndpoint("django-ex")
+			err = oc.KubeFramework().WaitForAnEndpoint("dancer-mysql-example")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			assertPageCountIs := func(i int) {
 				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, "django-ex", "", pageCountFn(i))
+				result, err := CheckPageContains(oc, "dancer-mysql-example", "", pageCountFn(i))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}
@@ -71,7 +70,7 @@ var _ = g.Describe("[images][python][Slow] hot deploy for openshift python image
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 
 			g.By("turning on hot-deploy")
-			err = oc.Run("env").Args("rc", dcName, "APP_CONFIG=conf/reload.py").Execute()
+			err = oc.Run("env").Args("rc", dcName, "PERL_APACHE2_RELOAD=true").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.Run("scale").Args("rc", dcName, "--replicas=0").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
