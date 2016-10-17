@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[images][mariadb][Slow] openshift mariadb image", func() {
+var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", func() {
 	defer g.GinkgoRecover()
 	var (
 		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")

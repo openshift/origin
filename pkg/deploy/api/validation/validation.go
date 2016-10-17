@@ -279,7 +279,7 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fld
 
 	switch {
 	case hook.ExecNewPod != nil && len(hook.TagImages) > 0:
-		errs = append(errs, field.Invalid(fldPath, "<hook>", "only one of 'execNewPod' of 'tagImages' may be specified"))
+		errs = append(errs, field.Invalid(fldPath, "<hook>", "only one of 'execNewPod' or 'tagImages' may be specified"))
 	case hook.ExecNewPod != nil:
 		errs = append(errs, validateExecNewPod(hook.ExecNewPod, fldPath.Child("execNewPod"))...)
 	case len(hook.TagImages) > 0:

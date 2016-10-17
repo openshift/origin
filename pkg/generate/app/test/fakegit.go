@@ -92,3 +92,11 @@ func (f *FakeGit) TimedListRemote(timeout time.Duration, url string, args ...str
 func (f *FakeGit) GetInfo(location string) (*git.SourceInfo, []error) {
 	return nil, nil
 }
+
+func (f *FakeGit) Add(location string, spec string) error {
+	return nil
+}
+
+func (f *FakeGit) Commit(location string, message string) error {
+	return nil
+}

@@ -207,7 +207,7 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "docker-registry/repository/customBuild",
+						Name: "docker-registry.io/repository/custombuild",
 					},
 					PushSecret: &kapi.LocalObjectReference{Name: "foo"},
 				},

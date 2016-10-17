@@ -24,7 +24,7 @@ import (
 type FakeDockerCfg map[string]map[string]string
 
 const (
-	originalImage = "originalImage"
+	originalImage = "originalimage"
 	newImage      = originalImage + ":" + newTag
 
 	tagName          = "test"

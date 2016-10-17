@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
@@ -357,6 +358,10 @@ mFlG6tStAWz3TmydciZNdiEbeqHw5uaIYWj1zC5AdvFXBFue0ojIrJ5JtbTWccH9
 )
 
 func TestX509(t *testing.T) {
+	multilevelOpts := DefaultVerifyOptions()
+	multilevelOpts.Roots = x509.NewCertPool()
+	multilevelOpts.Roots.AddCert(getCertsFromFile(t, "root")[0])
+
 	testCases := map[string]struct {
 		Insecure bool
 		Certs    []*x509.Certificate
@@ -495,6 +500,24 @@ func TestX509(t *testing.T) {
 			ExpectOK:  false,
 			ExpectErr: true,
 		},
+
+		"multi-level, valid": {
+			Opts:  multilevelOpts,
+			Certs: getCertsFromFile(t, "client-valid", "intermediate"),
+			User:  CommonNameUserConversion,
+
+			ExpectUserName: "My Client",
+			ExpectOK:       true,
+			ExpectErr:      false,
+		},
+		"multi-level, expired": {
+			Opts:  multilevelOpts,
+			Certs: getCertsFromFile(t, "client-expired", "intermediate"),
+			User:  CommonNameUserConversion,
+
+			ExpectOK:  false,
+			ExpectErr: true,
+		},
 	}
 
 	for k, testCase := range testCases {
@@ -531,6 +554,10 @@ func TestX509(t *testing.T) {
 }
 
 func TestX509Verifier(t *testing.T) {
+	multilevelOpts := DefaultVerifyOptions()
+	multilevelOpts.Roots = x509.NewCertPool()
+	multilevelOpts.Roots.AddCert(getCertsFromFile(t, "root")[0])
+
 	testCases := map[string]struct {
 		Insecure bool
 		Certs    []*x509.Certificate
@@ -619,6 +646,21 @@ func TestX509Verifier(t *testing.T) {
 			ExpectOK:  false,
 			ExpectErr: true,
 		},
+
+		"multi-level, valid": {
+			Opts:  multilevelOpts,
+			Certs: getCertsFromFile(t, "client-valid", "intermediate"),
+
+			ExpectOK:  true,
+			ExpectErr: false,
+		},
+		"multi-level, expired": {
+			Opts:  multilevelOpts,
+			Certs: getCertsFromFile(t, "client-expired", "intermediate"),
+
+			ExpectOK:  false,
+			ExpectErr: true,
+		},
 	}
 
 	for k, testCase := range testCases {
@@ -679,6 +721,19 @@ func getRootCertPool(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	pool.AddCert(getCert(t, rootCACert))
 	return pool
+}
+
+func getCertsFromFile(t *testing.T, names ...string) []*x509.Certificate {
+	certs := []*x509.Certificate{}
+	for _, name := range names {
+		filename := "testdata/" + name + ".pem"
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			t.Fatalf("error reading %s: %v", filename, err)
+		}
+		certs = append(certs, getCert(t, string(data)))
+	}
+	return certs
 }
 
 func getCert(t *testing.T, pemData string) *x509.Certificate {

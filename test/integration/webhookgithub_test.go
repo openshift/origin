@@ -53,12 +53,12 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
-			DockerImageRepository: "registry:3000/integration/imageStream",
+			DockerImageRepository: "registry:3000/integration/imagestream",
 			Tags: map[string]imageapi.TagReference{
-				"validTag": {
+				"validtag": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "registry:3000/integration/imageStream:success",
+						Name: "registry:3000/integration/imagestream:success",
 					},
 				},
 			},
@@ -70,12 +70,12 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 
 	ism := &imageapi.ImageStreamMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
-		Tag:        "validTag",
+		Tag:        "validtag",
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "myimage",
 			},
-			DockerImageReference: "registry:3000/integration/imageStream:success",
+			DockerImageReference: "registry:3000/integration/imagestream:success",
 		},
 	}
 	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
@@ -83,7 +83,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigImageParms("originalImage", "imageStream", "validTag")
+	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
 
 	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -114,8 +114,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			t.Errorf("Expected %s or %s, got %s", buildapi.BuildPhaseNew, buildapi.BuildPhasePending, actual.Status.Phase)
 		}
 
-		if actual.Spec.Strategy.DockerStrategy.From.Name != "originalImage" {
-			t.Errorf("Expected %s, got %s", "originalImage", actual.Spec.Strategy.DockerStrategy.From.Name)
+		if actual.Spec.Strategy.DockerStrategy.From.Name != "originalimage" {
+			t.Errorf("Expected %s, got %s", "originalimage", actual.Spec.Strategy.DockerStrategy.From.Name)
 		}
 	}
 }
@@ -156,12 +156,12 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
-			DockerImageRepository: "registry:3000/integration/imageStream",
+			DockerImageRepository: "registry:3000/integration/imagestream",
 			Tags: map[string]imageapi.TagReference{
-				"validTag": {
+				"validtag": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "registry:3000/integration/imageStream:success",
+						Name: "registry:3000/integration/imagestream:success",
 					},
 				},
 			},
@@ -173,12 +173,12 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 
 	ism := &imageapi.ImageStreamMapping{
 		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
-		Tag:        "validTag",
+		Tag:        "validtag",
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "myimage",
 			},
-			DockerImageReference: "registry:3000/integration/imageStream:success",
+			DockerImageReference: "registry:3000/integration/imagestream:success",
 		},
 	}
 	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
@@ -186,7 +186,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigImageStreamParms("originalImage", "image-stream", "validTag")
+	buildConfig := mockBuildConfigImageStreamParms("originalimage", "image-stream", "validtag")
 
 	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -215,8 +215,8 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 			t.Errorf("Expected %s or %s, got %s", buildapi.BuildPhaseNew, buildapi.BuildPhasePending, actual.Status.Phase)
 		}
 
-		if actual.Spec.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imageStream:success" {
-			t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Spec.Strategy.SourceStrategy.From.Name)
+		if actual.Spec.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imagestream:success" {
+			t.Errorf("Expected %s, got %s", "registry:3000/integration/imagestream:success", actual.Spec.Strategy.SourceStrategy.From.Name)
 		}
 	}
 }
@@ -243,7 +243,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	})
 
 	// create buildconfig
-	buildConfig := mockBuildConfigImageParms("originalImage", "imageStream", "validTag")
+	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
 	if _, err := osClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ func getPodNameForTest(image string, t tc) string {
 	return fmt.Sprintf("%s-%s-%s", image, t.Version, t.BaseOS)
 }
 
-var _ = g.Describe("[images][Slow] openshift images should be SCL enabled", func() {
+var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabled", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
 

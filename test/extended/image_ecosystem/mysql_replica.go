@@ -1,4 +1,4 @@
-package images
+package image_ecosystem
 
 import (
 	"fmt"
@@ -186,7 +186,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 	}
 }
 
-var _ = g.Describe("[images][mysql][Slow] openshift mysql replication", func() {
+var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
 	ocs := make([]*exutil.CLI, len(testCases))

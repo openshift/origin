@@ -90,7 +90,7 @@ items:
       sourceStrategy:
         from:
           kind: ImageStreamImage
-          name: ruby-20-centos7@603bfa418
+          name: ruby-20-centos7@sha256:603bfa418e1ff0a486f3d795a8b69a2f8f5eed488fbf5c286bffd8ab77b8e7a5
           namespace: example
       type: Docker
     triggers:

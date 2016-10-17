@@ -60,7 +60,7 @@ __custom_func() {
             ;;
 
         # first arg is a pod name
-        oc_rsh)
+        oc_rsh | oc_exec)
             if [[ ${#nouns[@]} -eq 0 ]]; then
                 __oc_parse_get pods
             fi;
