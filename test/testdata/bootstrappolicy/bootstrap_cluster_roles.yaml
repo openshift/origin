@@ -1622,6 +1622,15 @@ items:
     - get
     - list
   - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - jobs
+    - scheduledjobs
+    verbs:
+    - get
+    - list
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:

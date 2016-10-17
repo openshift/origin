@@ -476,6 +476,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("list").Groups(kapiGroup).Resources("limitranges").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(buildGroup).Resources("buildconfigs", "builds").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(deployGroup).Resources("deploymentconfigs").RuleOrDie(),
+				authorizationapi.NewRule("get", "list").Groups(batchGroup).Resources("jobs", "scheduledjobs").RuleOrDie(),
 
 				authorizationapi.NewRule("delete").Groups(imageGroup).Resources("images").RuleOrDie(),
 				authorizationapi.NewRule("get", "list").Groups(imageGroup).Resources("images", "imagestreams").RuleOrDie(),
