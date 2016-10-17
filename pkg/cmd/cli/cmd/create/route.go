@@ -71,7 +71,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 
 	kcmdutil.AddValidateFlags(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Bool("dry-run", false, "If true, only print the route that would be created, without creating it.")
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
 	cmd.Flags().String("insecure-policy", "", "Set an insecure policy for the new route")
@@ -198,7 +198,7 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 
 	kcmdutil.AddValidateFlags(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Bool("dry-run", false, "If true, only print the route that would be created, without creating it.")
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
@@ -297,7 +297,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 
 	kcmdutil.AddValidateFlags(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Bool("dry-run", false, "If true, only print the route that would be created, without creating it.")
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("port", "", "Name of the service port or number of the container port the route will route traffic to")
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")

@@ -62,7 +62,7 @@ func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 	cmd.Flags().StringVar(&o.FullName, "full-name", o.FullName, "Display name of the user")
-	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
+	cmdutil.AddDryRunFlag(cmd)
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
@@ -76,6 +76,8 @@ func (o *CreateUserOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, a
 	default:
 		return fmt.Errorf("exactly one argument (username) is supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {

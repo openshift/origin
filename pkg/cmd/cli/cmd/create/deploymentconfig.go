@@ -57,9 +57,9 @@ func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, o
 		Aliases: []string{"dc"},
 	}
 
-	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
 	cmd.Flags().String("image", "", "The image for the container to run.")
 	cmd.MarkFlagRequired("image")
+	cmdutil.AddDryRunFlag(cmd)
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
@@ -76,6 +76,7 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 
 	labels := map[string]string{"deployment-config.name": args[0]}
 
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 	o.DC = &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: args[0]},
 		Spec: deployapi.DeploymentConfigSpec{

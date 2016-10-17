@@ -59,7 +59,7 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 		},
 	}
 	cmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -75,6 +75,8 @@ func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clien
 	default:
 		return fmt.Errorf("exactly two arguments (identity and user name) are supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {

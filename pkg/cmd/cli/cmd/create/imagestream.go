@@ -59,7 +59,7 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 	}
 
 	cmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -68,6 +68,8 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 		ObjectMeta: kapi.ObjectMeta{},
 		Spec:       imageapi.ImageStreamSpec{},
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {
 	case 0:

@@ -62,7 +62,7 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 	}
 
 	cmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().BoolVarP(&o.DryRun, "dry-run", "", false, "If true, only print the object that would be sent, without sending it.")
+	cmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("project-label-selector", "", "The project label selector for the cluster resource quota")
 	cmd.Flags().String("project-annotation-selector", "", "The project annotation selector for the cluster resource quota")
 	cmd.Flags().StringSlice("hard", []string{}, "The resource to constrain: RESOURCE=QUANTITY (pods=10)")
@@ -73,6 +73,8 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 	if len(args) != 1 {
 		return fmt.Errorf("NAME is required: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	var labelSelector *unversioned.LabelSelector
 	labelSelectorString := cmdutil.GetFlagString(cmd, "project-label-selector")
