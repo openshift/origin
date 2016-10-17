@@ -85,6 +85,7 @@ var kubeAdmissionPlugins = sets.NewString(
 	"LimitPodHardAntiAffinityTopology",
 	"SCCExecRestrictions",
 	"PersistentVolumeLabel",
+	"OwnerReferencesPermissionEnforcement",
 )
 
 // TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.
