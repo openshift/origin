@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/registry/secret"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
@@ -24,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
+	oswatch "github.com/openshift/origin/pkg/util/watch"
 )
 
 const (
@@ -299,8 +302,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 }
 
 const (
-	tokenSecretWaitInterval = 20 * time.Millisecond
-	tokenSecretWaitTimes    = 100
+	tokenSecretTimeout = 2 * time.Second
 )
 
 // createTokenSecret creates a token secret for a given service account.  Returns the name of the token
@@ -323,20 +325,39 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 		return nil, err
 	}
 
-	// now we have to wait for the service account token controller to make this valid
-	// TODO remove this once we have a create-token endpoint
-	for i := 0; i <= tokenSecretWaitTimes; i++ {
-		liveTokenSecret, err2 := e.client.Secrets(tokenSecret.Namespace).Get(tokenSecret.Name)
-		if err2 != nil {
-			return nil, err2
-		}
+	var liveTokenSecret *api.Secret
 
-		if len(liveTokenSecret.Data[api.ServiceAccountTokenKey]) > 0 {
-			return liveTokenSecret, nil
-		}
-
-		time.Sleep(wait.Jitter(tokenSecretWaitInterval, 0.0))
-
+	tokenReady, err := oswatch.RetryWatchUntil(
+		func(rv string) (watch.Interface, error) {
+			return e.client.Secrets(tokenSecret.Namespace).Watch(api.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", tokenSecret.Name)})
+		},
+		func(event watch.Event) (bool, error) {
+			switch event.Type {
+			case watch.Added, watch.Modified:
+				eventToken, ok := event.Object.(*api.Secret)
+				if !ok {
+					return false, fmt.Errorf("received unknown object: %v", event.Object)
+				}
+				if len(eventToken.Data[api.ServiceAccountTokenKey]) > 0 {
+					liveTokenSecret = eventToken
+					return true, nil
+				}
+			case watch.Deleted:
+				return false, errors.New("the token has been deleted")
+			case watch.Error:
+				return false, kapierrors.FromObject(event.Object)
+			default:
+				return false, fmt.Errorf("unable to understand watch event %v", event)
+			}
+			return false, nil
+		},
+		tokenSecretTimeout,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if tokenReady && liveTokenSecret != nil {
+		return liveTokenSecret, nil
 	}
 
 	// the token wasn't ever created, attempt deletion
