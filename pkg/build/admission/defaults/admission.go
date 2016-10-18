@@ -16,7 +16,6 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	//clientcache "k8s.io/kubernetes/pkg/client/cache"
 )
 
 func init() {
@@ -26,10 +25,9 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		//	c.Core().Pods(pod.Namespace).Delete(pod.Name, &api.DeleteOptions{GracePeriodSeconds: &zero})
 
 		glog.V(5).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
-		return NewBuildDefaults(defaultsConfig), nil
+		return NewBuildDefaults(defaultsConfig, c), nil
 	})
 }
 
@@ -50,15 +48,16 @@ type buildDefaults struct {
 	*admission.Handler
 	defaultsConfig *defaultsapi.BuildDefaultsConfig
 	cache          *projectcache.ProjectCache
-	//	secretsNamespacer clientcache.Store
+	client         clientset.Interface
 }
 
 // NewBuildDefaults returns an admission control for builds that sets build defaults
 // based on the plugin configuration
-func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig) admission.Interface {
+func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig, c clientset.Interface) admission.Interface {
 	return &buildDefaults{
 		Handler:        admission.NewHandler(admission.Create),
 		defaultsConfig: defaultsConfig,
+		client:         c,
 	}
 }
 
@@ -142,20 +141,26 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	if len(a.defaultsConfig.GitNoProxy) != 0 {
 		if build.Spec.Source.Git.NoProxy == nil {
 			t := a.defaultsConfig.GitNoProxy
-			glog.V(5).Infof("Setting default Git no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
+			glog.V(5).Infof("Setting default GIT no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.NoProxy = &t
 		}
 	}
 
 	//apply default source secret if one set after all validation
-	//BUG: build fails because secret is not mounted... where to mount it?
+	//BUG: build fails because secret is not mounted...
 	secret, err := a.setDefaultSourceSecret(build)
 	if err == nil {
 		if build.Spec.Source.SourceSecret == nil {
-			glog.V(5).Infof("Setting default Git sourceSecret  %s/%s to %s", build.Namespace, build.Name, secret)
-			//var ss kapi.LocalObjectReference
-			t := secret
-			build.Spec.Source.SourceSecret.Name = t
+			//check if secret exist for Setting
+			_, err := a.client.Core().Secrets(build.Namespace).Get(secret)
+			if err != nil {
+				glog.V(5).Infof("Default sourceSecret %s not found for  %s/%s  . Skipping it. ", build.Namespace, build.Name, secret)
+			} else {
+				glog.V(5).Infof("Setting sourceSecret for %s/%s %s ", build.Namespace, build.Name, secret)
+				var ss kapi.LocalObjectReference
+				ss.Name = secret
+				build.Spec.Source.SourceSecret = &ss
+			}
 		}
 	}
 }
@@ -221,7 +226,7 @@ func (a *buildDefaults) setDefaultSourceSecret(build *buildapi.Build) (string, e
 			}
 		}
 	}
-	glog.V(5).Infof("No sourceSecret from in admission plugin")
+	glog.V(5).Infof("No default sourceSecret for %s/%s in admission plugin", build.Namespace, build.Name)
 	return "", fmt.Errorf("No default sourceSecret found. default behaviour for %s/%s", build.Namespace, build.Name)
 }
 
