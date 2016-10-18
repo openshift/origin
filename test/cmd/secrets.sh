@@ -53,13 +53,13 @@ GIT_CONFIG_PATH=$(create_gitconfig)
 CA_CERT_PATH=$(create_valid_file ca.pem)
 PRIVATE_KEY_PATH=$(create_valid_file id_rsa)
 
-os::cmd::expect_success 'oc secrets new-basicauth basicauth --username=sample-user --password=sample-password --gitconfig=$GIT_CONFIG_PATH --ca-cert=$PRIVATE_KEY_PATH'
+os::cmd::expect_success 'oc secrets new-basicauth basicauth --username=sample-user --password=sample-password --gitconfig=$GIT_CONFIG_PATH --ca-cert=$CA_CERT_PATH'
 # check to make sure two mutual exclusive flags return error as expected
 os::cmd::expect_failure_and_text 'oc secrets new-basicauth bad-file --password=sample-password --prompt' 'error: must provide either --prompt or --password flag'
 # check to make sure incorrect .gitconfig path fail as expected
 os::cmd::expect_failure_and_text 'oc secrets new-basicauth bad-file --username=user --gitconfig=/bad/path' 'error: open /bad/path: no such file or directory'
 
-os::cmd::expect_success 'oc secrets new-sshauth sshauth --ssh-privatekey=$PRIVATE_KEY_PATH --ca-cert=$PRIVATE_KEY_PATH'
+os::cmd::expect_success 'oc secrets new-sshauth sshauth --ssh-privatekey=$PRIVATE_KEY_PATH --ca-cert=$CA_CERT_PATH'
 # check to make sure incorrect SSH private-key path fail as expected
 os::cmd::expect_failure_and_text 'oc secrets new-sshauth bad-file --ssh-privatekey=/bad/path' 'error: open /bad/path: no such file or directory'
 

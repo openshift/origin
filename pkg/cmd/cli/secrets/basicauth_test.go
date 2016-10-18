@@ -2,6 +2,8 @@ package secrets
 
 import (
 	"testing"
+
+	"k8s.io/kubernetes/pkg/api"
 )
 
 func TestValidateBasicAuth(t *testing.T) {
@@ -69,10 +71,28 @@ func TestValidateBasicAuth(t *testing.T) {
 
 	for _, test := range tests {
 		options := test.params
-		options.Complete(nil, test.args)
-		err := options.Validate()
-		if err != nil && !test.expErr {
+		err := options.Complete(nil, test.args)
+		if err == nil {
+			err = options.Validate()
+		}
+
+		if test.expErr {
+			if err == nil {
+				t.Errorf("%s: unexpected error: %v", test.testName, err)
+			}
+			continue
+		}
+
+		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
+		}
+
+		secret, err := options.NewBasicAuthSecret()
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", test.testName, err)
+		}
+		if secret.Type != api.SecretTypeBasicAuth {
+			t.Errorf("%s: unexpected secret.Type: %v", test.testName, secret.Type)
 		}
 	}
 }
