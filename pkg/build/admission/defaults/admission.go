@@ -149,15 +149,12 @@ func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
 		return
 	}
 
-	found := false
 	for i := range *envVars {
 		if (*envVars)[i].Name == v.Name {
-			found = true
+			return
 		}
 	}
-	if !found {
-		*envVars = append(*envVars, v)
-	}
+	*envVars = append(*envVars, v)
 }
 
 func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {
