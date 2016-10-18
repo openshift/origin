@@ -222,12 +222,12 @@ readonly EXCLUDED_TESTS=(
 	"\[Feature:PodAffinity\]"  # Not enabled yet
 	Ingress                    # Not enabled yet
 	"Cinder"                   # requires an OpenStack cluster
-	"should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to gaurantee for openshift.
+	"should support r/w"       # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 	"should check that the kubernetes-dashboard instance is alive" # we don't create this
 	"\[Feature:ManualPerformance\]" # requires /resetMetrics which we don't expose
 
 	# See the CanSupport implementation in upstream to determine wether these work.
-	"Ceph RBD"      # Works if ceph-common Binary installed (but we can't gaurantee this on all clusters).
+	"Ceph RBD"      # Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
 	"GlusterFS" # May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
 	"should support r/w" # hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 

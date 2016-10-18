@@ -7,7 +7,7 @@ set -o nounset
 set -o pipefail
 
 
-# Values that can be overriden
+# Values that can be overridden
 RPM_TEST_PRODUCT=${RPM_TEST_PRODUCT:-"origin"}           # origin or atomic-enterprise
 RPM_TEST_OUTPUT_DIR=${RPM_TEST_OUTPUT_DIR:-"/tmp/tito/"} # Output for all build artifacts
 RPM_TEST_SKIP_LINT=${RPM_TEST_SKIP_LINT:-""}             # Set to anything to disable rpmlint test

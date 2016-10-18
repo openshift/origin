@@ -34,7 +34,7 @@ type SelectionFields struct {
 
 // clusterQuotaMapper gives thread safe access to the actual mappings that are being stored.
 // Many method use a shareable read lock to check status followed by a non-shareable
-// write lock which double checks the condition before proceding.  Since locks aren't escalatable
+// write lock which double checks the condition before proceeding.  Since locks aren't escalatable
 // you have to perform the recheck because someone could have beaten you in.
 type clusterQuotaMapper struct {
 	lock sync.RWMutex

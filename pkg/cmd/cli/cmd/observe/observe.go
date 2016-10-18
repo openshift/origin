@@ -192,7 +192,7 @@ func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer)
 	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", false, "If present, list the requested object(s) across all projects. Project in current context is ignored.")
 
 	// to perform deletion synchronization
-	cmd.Flags().VarP(&options.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify mulitple times to add arguments.")
+	cmd.Flags().VarP(&options.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
 	cmd.Flags().Var(&options.nameSyncCommand, "names", "A command that will list all of the currently known names, optional. Specify multiple times to add arguments. Use to get notifications when objects are deleted.")
 
 	// add additional arguments / info to the server
@@ -843,7 +843,7 @@ func (p *GoTemplateColumnPrinter) Print(obj interface{}) ([]string, []byte, erro
 			return nil, nil, fmt.Errorf("error executing template '%v': '%v'\n----data----\n%+v\n", p.rawTemplates[i], err, obj)
 		}
 		// if the template resolves to the special <no value> result, return it as an empty string
-		// most arguments will prefer empty vs an arbitary constant, and we are making gotemplates consistent with
+		// most arguments will prefer empty vs an arbitrary constant, and we are making gotemplates consistent with
 		// jsonpath
 		if p.buf.String() == "<no value>" {
 			if p.strict {

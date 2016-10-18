@@ -197,7 +197,7 @@ os::cmd::expect_success 'oc new-project test-cmd-images-2'
 os::cmd::expect_success "oc tag $project/mysql:5.5 newrepo:latest"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'openshift/mysql-55-centos7@sha256:'
-# tag accross projects without specifying the source's project
+# tag across projects without specifying the source's project
 os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mysql:tag1'" "mysql:tag1 set to"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).name}}'" "latest"
 # tagging an image with a DockerImageReference that points to the internal registry across namespaces updates the reference

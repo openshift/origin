@@ -42,5 +42,5 @@ func TestBasicFunctionalityWithAudit(t *testing.T) {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 
-	// TOOD: test oc debug, exec, rsh, port-forward
+	// TODO: test oc debug, exec, rsh, port-forward
 }

@@ -37,7 +37,7 @@ type ClusterResourceQuotaStatus struct {
 	Overall kapi.ResourceQuotaStatus
 
 	// ByNamespace slices the usage by namespace.  This division allows for quick resolution of 
-	// deletion reconcilation inside of a single namespace without requiring a recalculation 
+	// deletion reconciliation inside of a single namespace without requiring a recalculation 
 	// across all namespaces.  This map can be used to pull the deltas for a given namespace.
 	ByNamespace map[string]kapi.ResourceQuotaStatus
 }

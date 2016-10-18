@@ -271,7 +271,7 @@ os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:a
 os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
-os::log::info "Anonymous registry access successfull"
+os::log::info "Anonymous registry access successful"
 
 # log back into docker as e2e-user again
 os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"

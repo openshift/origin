@@ -46,7 +46,7 @@ HA_VRRP_ID_OFFSET=${OPENSHIFT_HA_VRRP_ID_OFFSET:-"0"}
 
 
 #  ========================================================================
-#  Default settings - not currently exposed or overriden on OpenShift.
+#  Default settings - not currently exposed or overridden on OpenShift.
 #  ========================================================================
 
 #  If your environment doesn't support multicast, you can send VRRP adverts

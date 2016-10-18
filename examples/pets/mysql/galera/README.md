@@ -16,7 +16,7 @@ Once you have all 3 nodes in Running, you can run the "test.sh" script in this d
 ## Caveats
 
 Starting up all galera nodes at once leads to an issue where all the mysqls
-belive they're in the primary component because they don't see the others in
+believe they're in the primary component because they don't see the others in
 the DNS. For the bootstrapping to work: mysql-0 needs to see itself, mysql-1
 needs to see itself and mysql-0, and so on, because the first node that sees
 a peer list of 1 will assume it's the leader.

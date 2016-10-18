@@ -268,10 +268,10 @@ func (n namespaceNames) NamespaceNames() (sets.String, error) {
 	return names, nil
 }
 
-func envVarAsStrings(name, defaultValue, seperator string) []string {
+func envVarAsStrings(name, defaultValue, separator string) []string {
 	strlist := []string{}
 	if env := cmdutil.Env(name, defaultValue); env != "" {
-		values := strings.Split(env, seperator)
+		values := strings.Split(env, separator)
 		for i := range values {
 			if val := strings.TrimSpace(values[i]); val != "" {
 				strlist = append(strlist, val)

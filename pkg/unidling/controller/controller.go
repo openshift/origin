@@ -237,7 +237,7 @@ func (c *UnidlingController) awaitRequest() bool {
 		return true
 	}
 
-	// Otherwise, if we have an error, we were at least partially unsucessful in unidling, so
+	// Otherwise, if we have an error, we were at least partially unsuccessful in unidling, so
 	// we requeue the event to process later
 
 	// don't try to process failing requests forever

@@ -42,7 +42,7 @@ func (f *FakeImageStreamLimitVerifier) VerifyLimits(ns string, is *imageapi.Imag
 }
 
 // GetFakeImageStreamListHandler creates a test handler that lists given image streams matching requested
-// namespace. Addionally, a shared image stream will be listed if the requested namespace is "shared".
+// namespace. Additionally, a shared image stream will be listed if the requested namespace is "shared".
 func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) ktestclient.ReactionFunc {
 	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
 	allISs := append(sharedISs, iss...)
