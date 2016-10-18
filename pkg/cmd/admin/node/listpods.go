@@ -64,5 +64,5 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourceP
 	fmt.Fprint(l.Options.ErrWriter, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n\n")
 	printer.PrintObj(pods, l.Options.Writer)
 
-	return err
+	return nil
 }

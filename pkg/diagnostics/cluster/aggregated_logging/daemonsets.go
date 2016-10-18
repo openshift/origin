@@ -106,7 +106,7 @@ func checkDaemonSetPods(r diagnosticReporter, adapter daemonsetAdapter, ds kapis
 		return
 	}
 	if len(podList.Items) != numLabeledNodes {
-		r.Error("AGL0443", nil, fmt.Sprintf("The number of deployed pods %s does not match the number of labeled nodes %d", len(podList.Items), numLabeledNodes))
+		r.Error("AGL0443", nil, fmt.Sprintf("The number of deployed pods %d does not match the number of labeled nodes %d", len(podList.Items), numLabeledNodes))
 	}
 	for _, pod := range podList.Items {
 		if pod.Status.Phase != kapi.PodRunning {
