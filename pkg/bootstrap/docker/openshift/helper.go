@@ -101,7 +101,7 @@ func (h *Helper) TestPorts(ports []int) error {
 		HostNetwork().
 		HostPid().
 		Entrypoint("/bin/bash").
-		Command("-c", "cat /proc/net/tcp /proc/net/tcp6").
+		Command("-c", "cat /proc/net/tcp && ( [ -e /proc/net/tcp6 ] && cat /proc/net/tcp6 || true)").
 		CombinedOutput()
 	if err != nil {
 		return errors.NewError("Cannot get TCP port information from Kubernetes host").WithCause(err)
