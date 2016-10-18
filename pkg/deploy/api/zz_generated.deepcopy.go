@@ -365,6 +365,15 @@ func DeepCopy_api_DeploymentStrategy(in interface{}, out interface{}, c *convers
 		in := in.(*DeploymentStrategy)
 		out := out.(*DeploymentStrategy)
 		out.Type = in.Type
+		if in.CustomParams != nil {
+			in, out := &in.CustomParams, &out.CustomParams
+			*out = new(CustomDeploymentStrategyParams)
+			if err := DeepCopy_api_CustomDeploymentStrategyParams(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.CustomParams = nil
+		}
 		if in.RecreateParams != nil {
 			in, out := &in.RecreateParams, &out.RecreateParams
 			*out = new(RecreateDeploymentStrategyParams)
@@ -382,15 +391,6 @@ func DeepCopy_api_DeploymentStrategy(in interface{}, out interface{}, c *convers
 			}
 		} else {
 			out.RollingParams = nil
-		}
-		if in.CustomParams != nil {
-			in, out := &in.CustomParams, &out.CustomParams
-			*out = new(CustomDeploymentStrategyParams)
-			if err := DeepCopy_api_CustomDeploymentStrategyParams(*in, *out, c); err != nil {
-				return err
-			}
-		} else {
-			out.CustomParams = nil
 		}
 		if err := pkg_api.DeepCopy_api_ResourceRequirements(&in.Resources, &out.Resources, c); err != nil {
 			return err

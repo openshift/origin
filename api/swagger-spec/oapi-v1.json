@@ -23242,7 +23242,7 @@
      },
      "customParams": {
       "$ref": "v1.CustomDeploymentStrategyParams",
-      "description": "CustomParams are the input to the Custom deployment strategy."
+      "description": "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment."
      },
      "recreateParams": {
       "$ref": "v1.RecreateDeploymentStrategyParams",
@@ -23254,7 +23254,7 @@
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "Resources contains resource requirements to execute the deployment and any hooks"
+      "description": "Resources contains resource requirements to execute the deployment and any hooks."
      },
      "labels": {
       "type": "object",
@@ -23423,7 +23423,7 @@
      },
      "post": {
       "$ref": "v1.LifecycleHook",
-      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. The LifecycleHookFailurePolicyAbort policy is NOT supported."
+      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported."
      }
     }
    },
