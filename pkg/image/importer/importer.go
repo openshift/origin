@@ -562,7 +562,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 	}
 
 	// if repository import is requested (MaximumTags), attempt to load the tags, sort them, and request the first N
-	if count := repository.MaximumTags; count > 0 {
+	if count := repository.MaximumTags; count > 0 || count == -1 {
 		tagMap, err := conn.ImageTags(repository.Ref.Namespace, repository.Ref.Name)
 		if err != nil {
 			repository.Err = err
@@ -582,7 +582,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 		// include only the top N tags in the result, put the rest in AdditionalTags
 		api.PrioritizeTags(tags)
 		for _, s := range tags {
-			if count <= 0 {
+			if count <= 0 && repository.MaximumTags != -1 {
 				repository.AdditionalTags = append(repository.AdditionalTags, s)
 				continue
 			}
