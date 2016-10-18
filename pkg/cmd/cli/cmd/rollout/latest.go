@@ -43,6 +43,7 @@ type RolloutLatestOptions struct {
 
 	out         io.Writer
 	shortOutput bool
+	again       bool
 
 	oc              client.Interface
 	kc              kclient.Interface
@@ -75,6 +76,7 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 	}
 
 	kcmdutil.AddOutputFlagsForMutation(cmd)
+	cmd.Flags().Bool("again", false, "Deploy the current pod template without updating state from triggers")
 
 	return cmd
 }
@@ -107,6 +109,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	o.out = out
 	o.shortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
+	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
 	return nil
 }
@@ -146,7 +149,7 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 
 	request := &deployapi.DeploymentRequest{
 		Name:   config.Name,
-		Latest: true,
+		Latest: !o.again,
 		Force:  true,
 	}
 
