@@ -17,12 +17,35 @@ type FakeFile struct {
 	FMode    os.FileMode
 }
 
-func (f *FakeFile) Name() string       { return f.FileName }
-func (f *FakeFile) Size() int64        { return 0 }
-func (f *FakeFile) Mode() os.FileMode  { return f.FMode }
-func (f *FakeFile) ModTime() time.Time { return time.Now() }
-func (f *FakeFile) IsDir() bool        { return f.Dir }
-func (f *FakeFile) Sys() interface{}   { return nil }
+// Name returns the base name of the file
+func (f *FakeFile) Name() string {
+	return f.FileName
+}
+
+// Size returns the length in bytes
+func (f *FakeFile) Size() int64 {
+	return 0
+}
+
+// Mode returns the file mode bits
+func (f *FakeFile) Mode() os.FileMode {
+	return f.FMode
+}
+
+// ModTime returns the modification time
+func (f *FakeFile) ModTime() time.Time {
+	return time.Now()
+}
+
+// IsDir returns true if a directory
+func (f *FakeFile) IsDir() bool {
+	return f.Dir
+}
+
+// Sys returns nil
+func (f *FakeFile) Sys() interface{} {
+	return nil
+}
 
 // FakeFileSystem provides a fake filesystem structure for testing
 type FakeFileSystem struct {

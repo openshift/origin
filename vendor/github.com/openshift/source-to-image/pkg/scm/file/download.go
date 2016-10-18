@@ -17,6 +17,7 @@ type File struct {
 	util.FileSystem
 }
 
+// Download copies sources from a local directory into the working directory
 func (f *File) Download(config *api.Config) (*api.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
 	sourceDir := strings.TrimPrefix(config.Source, "file://")

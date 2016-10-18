@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/docker/distribution/reference"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/docker"
@@ -20,6 +19,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
+	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
 var glog = utilglog.StderrLog
@@ -138,26 +138,32 @@ func (builder *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 // Build handles the `docker build` equivalent execution, returning the
 // success/failure details.
 func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
+	buildResult := &api.Result{}
+
 	if config.HasOnBuild && config.BlockOnBuild {
-		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonOnBuildForbidden, utilstatus.ReasonMessageOnBuildForbidden)
+		return buildResult, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
+	}
+
+	if config.BuilderImage == "" {
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
+		return buildResult, fmt.Errorf("builder image name cannot be empty")
 	}
 
 	if err := builder.CreateDockerfile(config); err != nil {
-		return nil, err
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonDockerfileCreateFailed, utilstatus.ReasonMessageDockerfileCreateFailed)
+		return buildResult, err
 	}
 
 	glog.V(2).Info("Creating application source code image")
 	tarStream, err := builder.SourceTar(config)
 	if err != nil {
-		return nil, err
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonTarSourceFailed, utilstatus.ReasonMessageTarSourceFailed)
+		return buildResult, err
 	}
 	defer tarStream.Close()
 
-	namedReference, err := reference.ParseNamed(builder.config.BuilderImage)
-	if err != nil {
-		return nil, err
-	}
-	newBuilderImage := fmt.Sprintf("%s:s2i-layered-%d", namedReference.Name(), time.Now().UnixNano())
+	newBuilderImage := fmt.Sprintf("s2i-layered-temp-image-%d", time.Now().UnixNano())
 
 	outReader, outWriter := io.Pipe()
 	defer outReader.Close()
@@ -187,7 +193,8 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 
 	glog.V(2).Infof("Building new image %s with scripts and sources already inside", newBuilderImage)
 	if err = builder.docker.BuildImage(opts); err != nil {
-		return nil, err
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonDockerImageBuildFailed, utilstatus.ReasonMessageDockerImageBuildFailed)
+		return buildResult, err
 	}
 
 	// upon successful build we need to modify current config
@@ -202,21 +209,22 @@ func (builder *Layered) Build(config *api.Config) (*api.Result, error) {
 	} else {
 		builder.config.ScriptsURL, err = builder.docker.GetScriptsURL(newBuilderImage)
 		if err != nil {
-			return nil, err
+			buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
+			return buildResult, err
 		}
 	}
 
 	glog.V(2).Infof("Building %s using sti-enabled image", builder.config.Tag)
 	if err := builder.scripts.Execute(api.Assemble, config.AssembleUser, builder.config); err != nil {
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonAssembleFailed, utilstatus.ReasonMessageAssembleFailed)
 		switch e := err.(type) {
 		case errors.ContainerError:
-			return nil, errors.NewAssembleError(builder.config.Tag, e.Output, e)
+			return buildResult, errors.NewAssembleError(builder.config.Tag, e.Output, e)
 		default:
-			return nil, err
+			return buildResult, err
 		}
 	}
+	buildResult.Success = true
 
-	return &api.Result{
-		Success: true,
-	}, nil
+	return buildResult, nil
 }
