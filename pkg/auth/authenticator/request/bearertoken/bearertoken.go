@@ -13,14 +13,20 @@ type Authenticator struct {
 	auth authenticator.Token
 	// removeHeader indicates whether the Authorization header should be removeHeaderd on successful auth
 	removeHeader bool
+
+	// header indicates which header to use
+	header string
 }
 
 func New(auth authenticator.Token, removeHeader bool) *Authenticator {
-	return &Authenticator{auth, removeHeader}
+	return &Authenticator{auth, removeHeader, "Authorization"}
+}
+func NewProxy(auth authenticator.Token, removeHeader bool) *Authenticator {
+	return &Authenticator{auth, removeHeader, "Proxy-Authorization"}
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	auth := strings.TrimSpace(req.Header.Get("Authorization"))
+	auth := strings.TrimSpace(req.Header.Get(a.header))
 	if auth == "" {
 		return nil, false, nil
 	}
