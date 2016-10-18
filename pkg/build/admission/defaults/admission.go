@@ -95,8 +95,6 @@ func (a *buildDefaults) Admit(attributes admission.Attributes) error {
 
 func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	// Apply default env
-
-	glog.V(5).Infof("MJ TEST")
 	buildEnv := getBuildEnv(build)
 	for _, envVar := range a.defaultsConfig.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
@@ -141,7 +139,7 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	if len(a.defaultsConfig.GitNoProxy) != 0 {
 		if build.Spec.Source.Git.NoProxy == nil {
 			t := a.defaultsConfig.GitNoProxy
-			glog.V(5).Infof("Setting default GIT no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
+			glog.V(5).Infof("Setting default Git no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.NoProxy = &t
 		}
 	}
