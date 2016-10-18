@@ -8,76 +8,15 @@ import (
 	"unicode"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
+
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 )
-
-type CommandGroup struct {
-	Message  string
-	Commands []*cobra.Command
-}
-
-type CommandGroups []CommandGroup
-
-func (g CommandGroups) Add(c *cobra.Command) {
-	for _, group := range g {
-		for _, command := range group.Commands {
-			c.AddCommand(command)
-		}
-	}
-}
-
-func (g CommandGroups) Has(c *cobra.Command) bool {
-	for _, group := range g {
-		for _, command := range group.Commands {
-			if command == c {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func AddAdditionalCommands(g CommandGroups, message string, cmds []*cobra.Command) CommandGroups {
-	group := CommandGroup{Message: message}
-	for _, c := range cmds {
-		// Don't show commands that has no short description
-		if !g.Has(c) && len(c.Short) != 0 {
-			group.Commands = append(group.Commands, c)
-		}
-	}
-	if len(group.Commands) == 0 {
-		return g
-	}
-	return append(g, group)
-}
-
-func filter(cmds []*cobra.Command, names ...string) []*cobra.Command {
-	out := []*cobra.Command{}
-	for _, c := range cmds {
-		if c.Hidden {
-			continue
-		}
-		skip := false
-		for _, name := range names {
-			if name == c.Name() {
-				skip = true
-				break
-			}
-		}
-		if skip {
-			continue
-		}
-		out = append(out, c)
-	}
-	return out
-}
 
 type FlagExposer interface {
 	ExposeFlags(cmd *cobra.Command, flags ...string) FlagExposer
 }
 
-// ActsAsRootCommand displays command usage using a root command usage template
 func ActsAsRootCommand(cmd *cobra.Command, filters []string, groups ...CommandGroup) FlagExposer {
 	if cmd == nil {
 		panic("nil root command")
@@ -143,13 +82,16 @@ func (templater *templater) templateFuncs(exposedFlags ...string) template.FuncM
 	return template.FuncMap{
 		"trim":                strings.TrimSpace,
 		"trimRight":           func(s string) string { return strings.TrimRightFunc(s, unicode.IsSpace) },
+		"trimLeft":            func(s string) string { return strings.TrimLeftFunc(s, unicode.IsSpace) },
 		"gt":                  cobra.Gt,
 		"eq":                  cobra.Eq,
 		"rpad":                rpad,
+		"appendIfNotPresent":  appendIfNotPresent,
 		"flagsNotIntersected": flagsNotIntersected,
 		"visibleFlags":        visibleFlags,
 		"flagsUsages":         flagsUsages,
 		"cmdGroups":           templater.cmdGroups,
+		"cmdGroupsString":     templater.cmdGroupsString,
 		"rootCmd":             templater.rootCmdName,
 		"isRootCmd":           templater.isRootCmd,
 		"optionsCmdFor":       templater.optionsCmdFor,
@@ -180,6 +122,20 @@ func (templater *templater) cmdGroups(c *cobra.Command, all []*cobra.Command) []
 			Commands: all,
 		},
 	}
+}
+
+func (t *templater) cmdGroupsString(c *cobra.Command) string {
+	groups := []string{}
+	for _, cmdGroup := range t.cmdGroups(c, c.Commands()) {
+		cmds := []string{cmdGroup.Message}
+		for _, cmd := range cmdGroup.Commands {
+			if cmd.Runnable() {
+				cmds = append(cmds, "  "+rpad(cmd.Name(), cmd.NamePadding())+" "+cmd.Short)
+			}
+		}
+		groups = append(groups, strings.Join(cmds, "\n"))
+	}
+	return strings.Join(groups, "\n\n")
 }
 
 func (t *templater) rootCmdName(c *cobra.Command) string {
@@ -213,25 +169,14 @@ func (t *templater) optionsCmdFor(c *cobra.Command) string {
 	if !c.Runnable() {
 		return ""
 	}
-
-	parentCmdHasOptsArg := false
-	currentCmdHasOptsArg := false
-
-	if t.RootCmd.HasParent() {
-		if _, _, err := t.RootCmd.Parent().Find([]string{"options"}); err == nil {
-			parentCmdHasOptsArg = true
+	rootCmdStructure := t.parents(c)
+	for i := len(rootCmdStructure) - 1; i >= 0; i-- {
+		cmd := rootCmdStructure[i]
+		if _, _, err := cmd.Find([]string{"options"}); err == nil {
+			return cmd.CommandPath() + " options"
 		}
 	}
-
-	if _, _, err := t.RootCmd.Find([]string{"options"}); err == nil {
-		currentCmdHasOptsArg = true
-	}
-
-	if (parentCmdHasOptsArg && currentCmdHasOptsArg) || !t.RootCmd.HasParent() {
-		return t.RootCmd.CommandPath() + " options"
-	}
-
-	return t.RootCmd.Parent().CommandPath() + " options"
+	return ""
 }
 
 func (t *templater) usageLine(c *cobra.Command) string {
@@ -273,6 +218,22 @@ func rpad(s string, padding int) string {
 	return fmt.Sprintf(template, s)
 }
 
+func indentLines(s string, indentation int) string {
+	r := []string{}
+	for _, line := range strings.Split(s, "\n") {
+		indented := strings.Repeat(" ", indentation) + line
+		r = append(r, indented)
+	}
+	return strings.Join(r, "\n")
+}
+
+func appendIfNotPresent(s, stringToAppend string) string {
+	if strings.Contains(s, stringToAppend) {
+		return s
+	}
+	return s + " " + stringToAppend
+}
+
 func flagsNotIntersected(l *flag.FlagSet, r *flag.FlagSet) *flag.FlagSet {
 	f := flag.NewFlagSet("notIntersected", flag.ContinueOnError)
 	l.VisitAll(func(flag *flag.Flag) {
@@ -292,4 +253,25 @@ func visibleFlags(l *flag.FlagSet) *flag.FlagSet {
 		}
 	})
 	return f
+}
+
+func filter(cmds []*cobra.Command, names ...string) []*cobra.Command {
+	out := []*cobra.Command{}
+	for _, c := range cmds {
+		if c.Hidden {
+			continue
+		}
+		skip := false
+		for _, name := range names {
+			if name == c.Name() {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
 }
