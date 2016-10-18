@@ -959,11 +959,6 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: BuildStrategyCustomRoleBindingName},
-			RoleRef:    kapi.ObjectReference{Name: BuildStrategyCustomRoleName},
-			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
-		},
-		{
 			ObjectMeta: kapi.ObjectMeta{Name: BuildStrategySourceRoleBindingName},
 			RoleRef:    kapi.ObjectReference{Name: BuildStrategySourceRoleName},
 			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
