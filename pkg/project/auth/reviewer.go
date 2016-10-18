@@ -12,11 +12,13 @@ import (
 type Review interface {
 	Users() []string
 	Groups() []string
+	EvaluationError() string
 }
 
 type defaultReview struct {
-	users  []string
-	groups []string
+	users           []string
+	groups          []string
+	evaluationError string
 }
 
 func (r *defaultReview) Users() []string {
@@ -26,6 +28,10 @@ func (r *defaultReview) Users() []string {
 // Groups returns the groups that can access a resource
 func (r *defaultReview) Groups() []string {
 	return r.groups
+}
+
+func (r *defaultReview) EvaluationError() string {
+	return r.evaluationError
 }
 
 type review struct {
@@ -40,6 +46,10 @@ func (r *review) Users() []string {
 // Groups returns the groups that can access a resource
 func (r *review) Groups() []string {
 	return r.response.Groups.List()
+}
+
+func (r *review) EvaluationError() string {
+	return r.response.EvaluationError
 }
 
 // Reviewer performs access reviews for a project by name
@@ -98,13 +108,12 @@ func (r *authorizerReviewer) Review(namespaceName string) (Review, error) {
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespaceName)
 	users, groups, err := r.policyChecker.GetAllowedSubjects(ctx, attributes)
-	if err != nil {
-		return nil, err
-	}
-
 	review := &defaultReview{
 		users:  users.List(),
 		groups: groups.List(),
+	}
+	if err != nil {
+		review.evaluationError = err.Error()
 	}
 	return review, nil
 }
