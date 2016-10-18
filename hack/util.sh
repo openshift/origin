@@ -458,10 +458,15 @@ function install_registry() {
 }
 readonly -f install_registry
 
-function wait_for_registry() {
+function is_registry_ready() {
 	local generation="$(oc get dc/docker-registry -o 'jsonpath={.metadata.generation}')"
 	local onereplicajs='{.status.observedGeneration},{.status.replicas},{.status.updatedReplicas},{.status.availableReplicas}'
-	wait_for_command "oc get dc/docker-registry -o 'jsonpath=${onereplicajs}' --config='${ADMIN_KUBECONFIG}' | grep '^${generation},1,1,1$'"  "$((5*TIME_MIN))"
+	oc get dc/docker-registry -o "jsonpath=${onereplicajs}" --config="${ADMIN_KUBECONFIG}" | fgrep -qx "${generation},1,1,1"
+}
+readonly -f is_registry_ready
+
+function wait_for_registry() {
+	wait_for_command 'is_registry_ready'  "$((5*TIME_MIN))"
 	local readyjs='{.items[*].status.conditions[?(@.type=="Ready")].status}'
 	wait_for_command "oc get pod -l deploymentconfig=docker-registry -o 'jsonpath=${readyjs}' --config='${ADMIN_KUBECONFIG}' | grep -qi true" "${TIME_MIN}"
 }
