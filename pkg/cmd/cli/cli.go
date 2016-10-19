@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/observe"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/proxy"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rollout"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
@@ -118,6 +119,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdCancelBuild(cmd.CancelBuildRecommendedCommandName, fullName, f, in, out),
 				cmd.NewCmdImportImage(fullName, f, out, errout),
 				cmd.NewCmdTag(fullName, f, out),
+				proxy.NewCmdProxyProxy("proxy", fullName, f, out),
 			},
 		},
 		{
