@@ -120,7 +120,7 @@ func TestAdmission(t *testing.T) {
 		kubeClient := fake.NewSimpleClientset(tc.objects...)
 		originClient := testclient.NewSimpleFake(tc.objects...)
 
-		admission := NewJenkingsBootstrapper(kubeClient.Core()).(*jenkingsBootstrapper)
+		admission := NewJenkinsBootstrapper(kubeClient.Core()).(*jenkinsBootstrapper)
 		admission.openshiftClient = originClient
 		admission.jenkinsConfig = configapi.JenkinsPipelineConfig{
 			AutoProvisionEnabled: tc.jenkinsEnabled,
