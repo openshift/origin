@@ -23,9 +23,11 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -35,9 +37,11 @@ import (
 	authncache "github.com/openshift/origin/pkg/auth/authenticator/token/cache"
 	authnremote "github.com/openshift/origin/pkg/auth/authenticator/token/remotetokenreview"
 	"github.com/openshift/origin/pkg/auth/group"
+	authzapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
 	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
+	"github.com/openshift/origin/pkg/client"
 	oclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -52,6 +56,9 @@ type proxyFlags struct {
 	KeyFile      string
 	MITMCertFile string
 	MITMKeyFile  string
+
+	AsPod         bool
+	PublicAddress string
 }
 
 type ProxyOptions struct {
@@ -66,6 +73,8 @@ type ProxyOptions struct {
 	AuthorizationCacheSize  int
 
 	MITMSigner tls.Certificate
+
+	PublicAddress string
 }
 
 const proxyLong = `Start the service proxy to allow safe, authenticated access to services without a route.`
@@ -96,6 +105,8 @@ func NewCommandStartProxy(name, basename string, out io.Writer) *cobra.Command {
 	}
 
 	flags := cmd.Flags()
+	flags.StringVar(&f.PublicAddress, "public-address", f.PublicAddress, "Public address for PAC file.")
+	flags.BoolVar(&f.AsPod, "as-pod", f.AsPod, "Indicates that this proxy should run as an unprivileged pod.")
 	flags.StringVar(&f.KubeConfig, "kubeconfig", f.KubeConfig, "Location of the kubeconfig file to for contacting the API server. Required")
 	flags.StringVar(&f.ClientCA, "client-ca-file", f.ClientCA, ""+
 		"If set, any request presenting a client certificate signed by one of "+
@@ -122,17 +133,31 @@ func (f proxyFlags) ToOptions() (*ProxyOptions, error) {
 		AuthorizationCacheTTL:   5 * time.Minute,
 		AuthorizationCacheSize:  1000,
 		RequestContextMapper:    kapi.NewRequestContextMapper(),
+		PublicAddress:           f.PublicAddress,
 	}
 
-	_, kubeconfig, err := configapi.GetKubeClient(f.KubeConfig, &configapi.ClientConnectionOverrides{QPS: 100, Burst: 200})
-	if err != nil {
-		return nil, err
+	var kubeconfig *restclient.Config
+	var err error
+
+	if !f.AsPod {
+		_, kubeconfig, err = configapi.GetKubeClient(f.KubeConfig, &configapi.ClientConnectionOverrides{QPS: 100, Burst: 200})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		kubeconfig, err = restclient.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
 	}
+	kubeconfig.QPS = 100
+	kubeconfig.Burst = 200
+
 	o.KubeClient, err = internalclientset.NewForConfig(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
-	o.OpenShiftClient, _, err = configapi.GetOpenShiftClient(f.KubeConfig, &configapi.ClientConnectionOverrides{QPS: 100, Burst: 200})
+	o.OpenShiftClient, err = client.New(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -159,12 +184,16 @@ func (f proxyFlags) ToOptions() (*ProxyOptions, error) {
 }
 
 func (f proxyFlags) Validate() error {
-	if len(f.KubeConfig) == 0 {
-		return fmt.Errorf("missing kubeconfig")
+	if f.AsPod {
+		if len(f.KubeConfig) != 0 {
+			return fmt.Errorf("has kubeconfig")
+		}
+	} else {
+		if len(f.KubeConfig) == 0 {
+			return fmt.Errorf("missing kubeconfig")
+		}
 	}
-	if len(f.ClientCA) == 0 {
-		return fmt.Errorf("missing client-ca-file")
-	}
+
 	if len(f.CertFile) == 0 {
 		return fmt.Errorf("missing tls-cert-file")
 	}
@@ -187,12 +216,11 @@ func (o *ProxyOptions) RunProxy() error {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = true
 	proxy.OnRequest().HandleConnect(goproxy.FuncHttpsHandler(o.mitm))
-	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 
 	handler = proxy
 	handler = o.withAuthorization(handler)
 	handler = o.withAuthentication(handler)
-	handler = withPAC(handler)
+	handler = o.withPAC(handler)
 	handler, err = kapi.NewRequestContextFilter(o.RequestContextMapper, handler)
 	if err != nil {
 		return err
@@ -213,7 +241,7 @@ func (o *ProxyOptions) RunProxy() error {
 		},
 	}
 
-	if false && len(o.ServingInfo.ClientCA) > 0 {
+	if len(o.ServingInfo.ClientCA) > 0 {
 		clientCAs, err := NewPool(o.ServingInfo.ClientCA)
 		if err != nil {
 			glog.Fatalf("Unable to load client CA file: %v", err)
@@ -223,37 +251,27 @@ func (o *ProxyOptions) RunProxy() error {
 		secureServer.TLSConfig.ClientAuth = tls.RequestClientCert
 		// Specify allowed CAs for client certificates
 		secureServer.TLSConfig.ClientCAs = clientCAs
-		// "h2" NextProtos is necessary for enabling HTTP2 for go's 1.7 HTTP Server
-		secureServer.TLSConfig.NextProtos = []string{"h2"}
-
 	}
 
 	glog.Infof("Serving securely on %s", o.ServingInfo.BindAddress)
-	// if false {
 	if err := secureServer.ListenAndServeTLS(o.ServingInfo.ServerCert.CertFile, o.ServingInfo.ServerCert.KeyFile); err != nil {
 		return err
 	}
-	// }
-	// if err := secureServer.ListenAndServe(); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }
 
-const pac = `function FindProxyForURL(url, host) { 
-	if (shExpMatch(host, "*.svc"))
-		return "HTTPS localhost:8445"; 
-	if (shExpMatch(host, "*.svc.cluster.local"))
-		return "HTTPS localhost:8445"; 
-
-	return "DIRECT";
-}`
-
-func withPAC(handler http.Handler) http.Handler {
+func (o *ProxyOptions) withPAC(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/pac" {
-			w.Write([]byte(pac))
+			w.Write([]byte(`function FindProxyForURL(url, host) { 
+	if (shExpMatch(host, "*.svc"))
+		return "HTTPS ` + o.PublicAddress + `"; 
+	if (shExpMatch(host, "*.svc.cluster.local"))
+		return "HTTPS ` + o.PublicAddress + `"; 
+
+	return "DIRECT";
+}`))
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -302,10 +320,7 @@ func (o ProxyOptions) withAuthentication(handler http.Handler) http.Handler {
 }
 
 func (o ProxyOptions) newAuthenticator() (authenticator.Request, error) {
-	clientCAs, err := kcrypto.CertPoolFromFile(o.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
-	}
+	var err error
 	authenticators := []authenticator.Request{}
 
 	// Authenticate against the remote master
@@ -324,7 +339,12 @@ func (o ProxyOptions) newAuthenticator() (authenticator.Request, error) {
 	authenticators = append(authenticators, bearertoken.NewProxy(tokenAuthenticator, true))
 
 	// Client-cert auth
-	if clientCAs != nil {
+	if len(o.ServingInfo.ClientCA) > 0 {
+		clientCAs, err := kcrypto.CertPoolFromFile(o.ServingInfo.ClientCA)
+		if err != nil {
+			return nil, err
+		}
+
 		opts := x509request.DefaultVerifyOptions()
 		opts.Roots = clientCAs
 		certauth := x509request.New(opts, x509request.SubjectToUserConversion)
@@ -483,6 +503,7 @@ func (o *ProxyOptions) newAuthorizer() (authorizer.Authorizer, error) {
 	)
 
 	// Authorize against the remote master
+	// unprivileged pods won't be able to run token access review or non-self-sar
 	authz, err = authzremote.NewAuthorizer(o.OpenShiftClient)
 	if err != nil {
 		return nil, err
@@ -559,4 +580,69 @@ func ParseCertsPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 		return certs, errors.New("could not read any certificates")
 	}
 	return certs, nil
+}
+
+// SelfSARAuthorizer provides authorization using subject access review and resource access review requests
+type SelfSARAuthorizer struct {
+	anonymousConfig restclient.Config
+}
+
+func newSelfSARAuthorizer(anonymousConfig restclient.Config) authorizer.Authorizer {
+	return &SelfSARAuthorizer{anonymousConfig}
+}
+
+func (r *SelfSARAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (bool, string, error) {
+	var (
+		result *authzapi.SubjectAccessReviewResponse
+		err    error
+	)
+
+	config := r.anonymousConfig
+	// TODO plumb something on request to include bearer token if we want to allow unprivileged
+	client, err := oclient.New(&config)
+	if err != nil {
+		glog.Errorf("error make client: %v", err)
+		return false, "", kapierrors.NewInternalError(err)
+	}
+
+	// Extract namespace from context
+	namespace, _ := kapi.NamespaceFrom(ctx)
+
+	if len(namespace) > 0 {
+		result, err = client.LocalSubjectAccessReviews(namespace).Create(
+			&authzapi.LocalSubjectAccessReview{Action: getAction(namespace, a)})
+	} else {
+		result, err = client.SubjectAccessReviews().Create(
+			&authzapi.SubjectAccessReview{Action: getAction(namespace, a)})
+	}
+
+	if err != nil {
+		glog.Errorf("error running subject access review: %v", err)
+		return false, "", kapierrors.NewInternalError(err)
+	}
+	glog.V(2).Infof("allowed=%v, reason=%s", result.Allowed, result.Reason)
+	return result.Allowed, result.Reason, nil
+}
+
+func (r *SelfSARAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes authorizer.Action) (sets.String, sets.String, error) {
+	return nil, nil, nil
+}
+
+func getAction(namespace string, attributes authorizer.Action) authzapi.Action {
+	return authzapi.Action{
+		Namespace:    namespace,
+		Verb:         attributes.GetVerb(),
+		Group:        attributes.GetAPIGroup(),
+		Version:      attributes.GetAPIVersion(),
+		Resource:     attributes.GetResource(),
+		ResourceName: attributes.GetResourceName(),
+
+		// TODO: missing from authorizer.Action:
+		// Content
+
+		// TODO: missing from authzapi.Action
+		// RequestAttributes (unserializable?)
+		// IsNonResourceURL
+		// URL (doesn't make sense for remote authz?)
+	}
 }
