@@ -104,12 +104,13 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 	cache := i.digestToRepositoryCache[ctx]
 
 	isi.Status.Images = make([]api.ImageImportStatus, len(isi.Spec.Images))
-	for i := range isi.Spec.Images {
-		spec := &isi.Spec.Images[i]
+	for index := range isi.Spec.Images {
+		spec := &isi.Spec.Images[index]
 		from := spec.From
 		if from.Kind != "DockerImage" {
 			continue
 		}
+
 		// TODO: This should be removed in 1.6
 		// See for more info: https://github.com/openshift/origin/pull/11774#issuecomment-258905994
 		var (
@@ -119,7 +120,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 		if from.Name != "*" {
 			ref, err = api.ParseDockerImageReference(from.Name)
 			if err != nil {
-				isi.Status.Images[i].Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
+				isi.Status.Images[index].Status = invalidStatus("", field.Invalid(field.NewPath("from", "name"), from.Name, fmt.Sprintf("invalid name: %v", err)))
 				continue
 			}
 		} else {
@@ -144,7 +145,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 		if len(defaultRef.ID) > 0 {
 			id := manifestKey{repositoryKey: key}
 			id.value = defaultRef.ID
-			ids[id] = append(ids[id], i)
+			ids[id] = append(ids[id], index)
 			if len(ids[id]) == 1 {
 				repo.Digests = append(repo.Digests, importDigest{
 					Name:  defaultRef.ID,
@@ -154,7 +155,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 		} else {
 			tag := manifestKey{repositoryKey: key}
 			tag.value = defaultRef.Tag
-			tags[tag] = append(tags[tag], i)
+			tags[tag] = append(tags[tag], index)
 			if len(tags[tag]) == 1 {
 				repo.Tags = append(repo.Tags, importTag{
 					Name:  defaultRef.Tag,
