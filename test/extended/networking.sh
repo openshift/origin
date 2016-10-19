@@ -82,7 +82,7 @@ function save-container-logs() {
     if [[ ! -d "${dest_dir}" ]]; then
       mkdir -p "${dest_dir}"
     fi
-    sudo docker exec -t "${container_name}" bash -c "journalctl -xe | \
+    sudo docker exec -t "${container_name}" bash -c "journalctl | \
 gzip > ${container_log_file}"
     sudo docker cp "${container_name}:${container_log_file}" "${dest_dir}"
     # Output container logs to stdout to ensure that jenkins has
