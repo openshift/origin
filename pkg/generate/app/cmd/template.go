@@ -32,14 +32,14 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 	// transform the template
 	result, err := client.TemplateConfigs(namespace).Create(tpl)
 	if err != nil {
-		return nil, fmt.Errorf("error processing template %s: %v", name, err)
+		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}
 
 	// ensure the template objects are decoded
 	// TODO: in the future, this should be more automatic
 	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
 		err = errors.NewAggregate(errs)
-		return nil, fmt.Errorf("error processing template %s: %v", name, err)
+		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}
 
 	return result, nil
@@ -49,9 +49,9 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 func DescribeGeneratedTemplate(out io.Writer, input string, result *templateapi.Template, baseNamespace string) {
 	qualifiedName := localOrRemoteName(result.ObjectMeta, baseNamespace)
 	if len(input) > 0 && result.ObjectMeta.Name != input {
-		fmt.Fprintf(out, "--> Deploying template %s for %q\n", qualifiedName, input)
+		fmt.Fprintf(out, "--> Deploying template %q for %q to project %s\n", qualifiedName, input, baseNamespace)
 	} else {
-		fmt.Fprintf(out, "--> Deploying template %s\n", qualifiedName)
+		fmt.Fprintf(out, "--> Deploying template %q to project %s\n", qualifiedName, baseNamespace)
 	}
 	fmt.Fprintln(out)
 

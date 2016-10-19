@@ -30,10 +30,10 @@ func displayName(meta kapi.ObjectMeta) string {
 }
 
 func localOrRemoteName(meta kapi.ObjectMeta, namespace string) string {
-	if len(meta.Namespace) == 0 || namespace == meta.Namespace {
+	if len(meta.Namespace) == 0 {
 		return meta.Name
 	}
-	return fmt.Sprintf("%q in project %q", meta.Name, meta.Namespace)
+	return meta.Namespace + "/" + meta.Name
 }
 
 func extractFirstImageStreamTag(newOnly bool, images ...*app.ImageRef) string {
@@ -65,9 +65,9 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 			if !image.Created.IsZero() {
 				shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
 			}
-			return fmt.Sprintf("Found image %s in image stream %s under tag %q for %q", shortID, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), match.ImageTag, refInput)
+			return fmt.Sprintf("Found image %s in image stream %q under tag %q for %q", shortID, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), match.ImageTag, refInput)
 		}
-		return fmt.Sprintf("Found tag :%s in image stream %s for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
+		return fmt.Sprintf("Found tag :%s in image stream %q for %q", match.ImageTag, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), refInput)
 	case match.Image != nil:
 		image := match.Image
 		shortID := imageapi.ShortDockerImageID(image, 7)
@@ -278,10 +278,10 @@ func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.P
 		fmt.Fprintf(out, "    * %s\n", locatedImage)
 	}
 
-	fmt.Fprintf(out, "    * Install will run in pod %s\n", localOrRemoteName(pod.ObjectMeta, baseNamespace))
+	fmt.Fprintf(out, "    * Install will run in pod %q\n", localOrRemoteName(pod.ObjectMeta, baseNamespace))
 	switch {
 	case secret != nil:
-		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %s.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
+		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %q.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
 		fmt.Fprintf(out, "      If you cancel the install, you should delete the secret or log out of your session.\n")
 	case hasToken && generatorInput.Token.Env != nil:
 		fmt.Fprintf(out, "    * The pod has access to your current session token via environment variable %s.\n", *generatorInput.Token.Env)
