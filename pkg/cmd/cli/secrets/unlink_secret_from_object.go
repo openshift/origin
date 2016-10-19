@@ -8,20 +8,22 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
+
 	"github.com/spf13/cobra"
 )
 
-const (
-	UnlinkSecretRecommendedName = "unlink"
+const UnlinkSecretRecommendedName = "unlink"
 
-	// TODO: move to examples
-	unlinkSecretLong = `
-Unlink (detach) secrets from a service account
+var (
+	unlinkSecretLong = templates.LongDesc(`
+    Unlink (detach) secrets from a service account
 
-If a secret is no longer valid for a pod, build or image pull, you may unlink it from a service account.`
+    If a secret is no longer valid for a pod, build or image pull, you may unlink it from a service account.`)
 
-	unlinkSecretExample = ` # Unlink a secret currently associated with a service account:
-%[1]s serviceaccount-name secret-name another-secret-name ...`
+	unlinkSecretExample = templates.Examples(`
+    # Unlink a secret currently associated with a service account:
+    %[1]s serviceaccount-name secret-name another-secret-name ...`)
 )
 
 type UnlinkSecretOptions struct {

@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -23,34 +24,35 @@ import (
 // TODO: Probably move this pattern upstream?
 const LogsRecommendedCommandName = "logs"
 
-const (
-	logsLong = `
-Print the logs for a resource.
+var (
+	logsLong = templates.LongDesc(`
+		Print the logs for a resource
 
-Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
-When a pod is specified and has more than one container, the container name should be
-specified via -c. When a build config or deployment config is specified, you can view
-the logs for a particular version of it via --version.
+		Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
+		When a pod is specified and has more than one container, the container name should be
+		specified via -c. When a build config or deployment config is specified, you can view
+		the logs for a particular version of it via --version.
 
-If your pod is failing to start, you may need to use the --previous option to see the
-logs of the last attempt.`
+		If your pod is failing to start, you may need to use the --previous option to see the
+		logs of the last attempt.`)
 
-	logsExample = `  # Start streaming the logs of the most recent build of the openldap build config.
-  %[1]s %[2]s -f bc/openldap
+	logsExample = templates.Examples(`
+		# Start streaming the logs of the most recent build of the openldap build config.
+	  %[1]s %[2]s -f bc/openldap
 
-  # Start streaming the logs of the latest deployment of the mysql deployment config.
-  %[1]s %[2]s -f dc/mysql
+	  # Start streaming the logs of the latest deployment of the mysql deployment config.
+	  %[1]s %[2]s -f dc/mysql
 
-  # Get the logs of the first deployment for the mysql deployment config. Note that logs
-  # from older deployments may not exist either because the deployment was successful
-  # or due to deployment pruning or manual deletion of the deployment.
-  %[1]s %[2]s --version=1 dc/mysql
+	  # Get the logs of the first deployment for the mysql deployment config. Note that logs
+	  # from older deployments may not exist either because the deployment was successful
+	  # or due to deployment pruning or manual deletion of the deployment.
+	  %[1]s %[2]s --version=1 dc/mysql
 
-  # Return a snapshot of ruby-container logs from pod backend.
-  %[1]s %[2]s backend -c ruby-container
+	  # Return a snapshot of ruby-container logs from pod backend.
+	  %[1]s %[2]s backend -c ruby-container
 
-  # Start streaming of ruby-container logs from pod backend.
-  %[1]s %[2]s -f pod/backend -c ruby-container`
+	  # Start streaming of ruby-container logs from pod backend.
+	  %[1]s %[2]s -f pod/backend -c ruby-container`)
 )
 
 // OpenShiftLogsOptions holds all the necessary options for running oc logs.

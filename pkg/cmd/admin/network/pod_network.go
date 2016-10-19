@@ -5,17 +5,18 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const PodNetworkCommandName = "pod-network"
 
-const (
-	podNetworkLong = `
-Manage pod network in the cluster
+var (
+	podNetworkLong = templates.LongDesc(`
+		Manage pod network in the cluster
 
-This command provides common pod network operations for administrators.`
+		This command provides common pod network operations for administrators.`)
 )
 
 func NewCmdPodNetwork(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

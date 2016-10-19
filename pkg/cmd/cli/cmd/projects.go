@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/api"
 
@@ -46,12 +47,12 @@ func (p SortByProjectName) Less(i, j int) bool {
 	return p[i].Name < p[j].Name
 }
 
-const (
-	projectsLong = `
-Display information about the current active project and existing projects on the server.
+var (
+	projectsLong = templates.LongDesc(`
+		Display information about the current active project and existing projects on the server.
 
-For advanced configuration, or to manage the contents of your config file, use the 'config'
-command.`
+		For advanced configuration, or to manage the contents of your config file, use the 'config'
+		command.`)
 )
 
 // NewCmdProjects implements the OpenShift cli rollback command

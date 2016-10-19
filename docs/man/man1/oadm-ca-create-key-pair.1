@@ -19,14 +19,8 @@ Create an RSA key pair and generate PEM\-encoded public/private key files
 Example: Creating service account signing and authenticating key files:
 
 .PP
-.RS
-
-.nf
 CONFIG=openshift.local.config/master
-oadm ca create\-key\-pair \-\-public\-key=$CONFIG/serviceaccounts.public.key \-\-private\-key=$CONFIG/serviceaccounts.private.key
-
-.fi
-.RE
+  oadm ca create\-key\-pair \-\-public\-key=$CONFIG/serviceaccounts.public.key \-\-private\-key=$CONFIG/serviceaccounts.private.key
 
 
 .SH OPTIONS

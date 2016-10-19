@@ -16,17 +16,10 @@ oadm router \- Install a router
 Install or configure a router
 
 .PP
-This command helps to setup a router to take edge traffic and balance it to
-your application. With no arguments, the command will check for an existing router
-service called 'router' and create one if it does not exist. If you want to test whether
-a router has already been created add the \-\-dry\-run flag and the command will exit with
-1 if the registry does not exist.
+This command helps to setup a router to take edge traffic and balance it to your application. With no arguments, the command will check for an existing router service called 'router' and create one if it does not exist. If you want to test whether a router has already been created add the \-\-dry\-run flag and the command will exit with 1 if the registry does not exist.
 
 .PP
-If a router does not exist with the given name, this command will
-create a deployment configuration and service that will run the router. If you are
-running your router in production, you should pass \-\-replicas=2 or higher to ensure
-you have failover protection.
+If a router does not exist with the given name, this command will create a deployment configuration and service that will run the router. If you are running your router in production, you should pass \-\-replicas=2 or higher to ensure you have failover protection.
 
 
 .SH OPTIONS
@@ -232,19 +225,18 @@ you have failover protection.
 .nf
   # Check the default router ("router")
   oadm router \-\-dry\-run
-
+  
   # See what the router would look like if created
   oadm router \-o yaml
-
+  
   # Create a router with two replicas if it does not exist
   oadm router router\-west \-\-replicas=2
-
+  
   # Use a different router image
   oadm router region\-west \-\-images=myrepo/somerouter:mytag
-
+  
   # Run the router with a hint to the underlying implementation to \_not\_ expose statistics.
   oadm router router\-west \-\-stats\-port=0
-  
 
 .fi
 .RE

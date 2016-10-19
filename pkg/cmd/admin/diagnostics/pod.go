@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/admin/diagnostics/options"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	poddiag "github.com/openshift/origin/pkg/diagnostics/pod"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -36,10 +37,9 @@ const (
 	StandardMasterUrl    = "https://kubernetes.default.svc.cluster.local"
 )
 
-const longPodDiagDescription = `
-This utility is intended to run diagnostics inside a container and
-log the results so that the calling diagnostic can report them.
-`
+var longPodDiagDescription = templates.LongDesc(`
+	This utility is intended to run diagnostics inside a container and
+	log the results so that the calling diagnostic can report them.`)
 
 // NewCommandPodDiagnostics is the command for running pod diagnostics.
 func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {

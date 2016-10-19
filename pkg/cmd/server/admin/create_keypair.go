@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 const CreateKeyPairCommandName = "create-key-pair"
@@ -29,14 +31,14 @@ type CreateKeyPairOptions struct {
 	Output    io.Writer
 }
 
-const createKeyPairLong = `
-Create an RSA key pair and generate PEM-encoded public/private key files
+var createKeyPairLong = templates.LongDesc(`
+	Create an RSA key pair and generate PEM-encoded public/private key files
 
-Example: Creating service account signing and authenticating key files:
+	Example: Creating service account signing and authenticating key files:
 
-    CONFIG=openshift.local.config/master
-    %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
-`
+	    CONFIG=openshift.local.config/master
+	    %[1]s --public-key=$CONFIG/serviceaccounts.public.key --private-key=$CONFIG/serviceaccounts.private.key
+	`)
 
 func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateKeyPairOptions{Output: out}

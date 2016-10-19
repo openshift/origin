@@ -16,26 +16,18 @@ oadm ca create\-server\-cert \- Create a signed server certificate and key
 Create a key and server certificate
 
 .PP
-Create a key and server certificate valid for the specified hostnames,
-signed by the specified CA. These are useful for securing infrastructure
-components such as the router, authentication server, etc.
+Create a key and server certificate valid for the specified hostnames, signed by the specified CA. These are useful for securing infrastructure components such as the router, authentication server, etc.
 
 .PP
 Example: Creating a secure router certificate.
 
 .PP
-.RS
-
-.nf
 CA=openshift.local.config/master
-oadm ca create\-server\-cert \-\-signer\-cert=$CA/ca.crt \\
-          \-\-signer\-key=$CA/ca.key \-\-signer\-serial=$CA/ca.serial.txt \\
-          \-\-hostnames='*.cloudapps.example.com' \\
-          \-\-cert=cloudapps.crt \-\-key=cloudapps.key
-cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
-
-.fi
-.RE
+      oadm ca create\-server\-cert \-\-signer\-cert=$CA/ca.crt \\
+            \-\-signer\-key=$CA/ca.key \-\-signer\-serial=$CA/ca.serial.txt \\
+            \-\-hostnames='*.cloudapps.example.com' \\
+            \-\-cert=cloudapps.crt \-\-key=cloudapps.key
+  cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
 
 
 .SH OPTIONS

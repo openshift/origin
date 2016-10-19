@@ -16,10 +16,7 @@ oc ex dockerbuild \- Perform a direct Docker build
 Build a Dockerfile into a single layer
 
 .PP
-Builds the provided directory with a Dockerfile into a single layered image.
-Requires that you have a working connection to a Docker engine. You may mount
-secrets or config into the build with the \-\-mount flag \- these files will not
-be included in the final image.
+Builds the provided directory with a Dockerfile into a single layered image. Requires that you have a working connection to a Docker engine. You may mount secrets or config into the build with the \-\-mount flag \- these files will not be included in the final image.
 
 .PP
 Experimental: This command is under active development and may change without notice.
@@ -112,7 +109,7 @@ Experimental: This command is under active development and may change without no
 .nf
   # Build the current directory into a single layer and tag
   oc ex dockerbuild . myimage:latest
-
+  
   # Mount a client secret into the build at a certain path
   oc ex dockerbuild . myimage:latest \-\-mount \~/mysecret.pem:/etc/pki/secret/mysecret.pem
 

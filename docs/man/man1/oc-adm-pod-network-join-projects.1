@@ -100,11 +100,11 @@ Allows projects to join existing project network when using the redhat/openshift
 .RS
 
 .nf
-	# Allow project p2 to use project p1 network
-	oc adm pod\-network join\-projects \-\-to=<p1> <p2>
-
-	# Allow all projects with label name=top\-secret to use project p1 network
-	oc adm pod\-network join\-projects \-\-to=<p1> \-\-selector='name=top\-secret'
+  # Allow project p2 to use project p1 network
+  oc adm pod\-network join\-projects \-\-to=<p1> <p2>
+  
+  # Allow all projects with label name=top\-secret to use project p1 network
+  oc adm pod\-network join\-projects \-\-to=<p1> \-\-selector='name=top\-secret'
 
 .fi
 .RE

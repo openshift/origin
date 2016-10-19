@@ -9,20 +9,21 @@ import (
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
-const (
-	s2iBuilderLong = `
-Perform a Source-to-Image build
+var (
+	s2iBuilderLong = templates.LongDesc(`
+		Perform a Source-to-Image build
 
-This command executes a Source-to-Image build using arguments passed via the environment.
-It expects to be run inside of a container.`
+		This command executes a Source-to-Image build using arguments passed via the environment.
+		It expects to be run inside of a container.`)
 
-	dockerBuilderLong = `
-Perform a Docker build
+	dockerBuilderLong = templates.LongDesc(`
+		Perform a Docker build
 
-This command executes a Docker build using arguments passed via the environment.
-It expects to be run inside of a container.`
+		This command executes a Docker build using arguments passed via the environment.
+		It expects to be run inside of a container.`)
 )
 
 // NewCommandS2IBuilder provides a CLI handler for S2I build type

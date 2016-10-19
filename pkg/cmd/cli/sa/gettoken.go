@@ -12,8 +12,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 
@@ -22,21 +23,22 @@ const (
 
 	getServiceAccountTokenShort = `Get a token assigned to a service account.`
 
-	getServiceAccountTokenLong = `
-Get a token assigned to a service account.
-
-If the service account has multiple tokens, the first token found will be returned.
-
-Service account API tokens are used by service accounts to authenticate to the API.
-Client actions using a service account token will be executed as if the service account
-itself were making the actions.
-`
-
 	getServiceAccountTokenUsage = `%s SA-NAME`
+)
 
-	getServiceAccountTokenExamples = `  # Get the service account token from service account 'default'
-  %[1]s 'default'
-`
+var (
+	getServiceAccountTokenLong = templates.LongDesc(`
+    Get a token assigned to a service account.
+
+    If the service account has multiple tokens, the first token found will be returned.
+
+    Service account API tokens are used by service accounts to authenticate to the API.
+    Client actions using a service account token will be executed as if the service account
+    itself were making the actions.`)
+
+	getServiceAccountTokenExamples = templates.Examples(`
+    # Get the service account token from service account 'default'
+    %[1]s 'default'`)
 )
 
 type GetServiceAccountTokenOptions struct {
@@ -128,7 +130,7 @@ func (o *GetServiceAccountTokenOptions) Run() error {
 			}
 
 			fmt.Fprintf(o.Out, string(token))
-			if util.IsTerminalWriter(o.Out) {
+			if term.IsTerminalWriter(o.Out) {
 				// pretty-print for a TTY
 				fmt.Fprintf(o.Out, "\n")
 			}

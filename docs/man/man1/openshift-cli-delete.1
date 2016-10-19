@@ -19,13 +19,10 @@ Delete a resource
 JSON and YAML formats are accepted.
 
 .PP
-If both a filename and command line arguments are passed, the command line
-arguments are used and the filename is ignored.
+If both a filename and command line arguments are passed, the command line arguments are used and the filename is ignored.
 
 .PP
-Note that the delete command does NOT do resource version checks, so if someone
-submits an update to a resource right when you submit a delete, their update
-will be lost along with the rest of the resource.
+Note that the delete command does NOT do resource version checks, so if someone submits an update to a resource right when you submit a delete, their update will be lost along with the rest of the resource.
 
 
 .SH OPTIONS
@@ -147,21 +144,21 @@ will be lost along with the rest of the resource.
 .nf
   # Delete a pod using the type and ID specified in pod.json.
   openshift cli delete \-f pod.json
-
+  
   # Delete a pod based on the type and ID in the JSON passed into stdin.
   cat pod.json | openshift cli delete \-f \-
-
+  
   # Delete pods and services with label name=myLabel.
   openshift cli delete pods,services \-l name=myLabel
-
+  
   # Delete a pod with name node\-1\-vsjnm.
   openshift cli delete pod node\-1\-vsjnm
-
+  
   # Delete all resources associated with a running app, includes
   # buildconfig,deploymentconfig,service,imagestream,route and pod,
   # where 'appName' is listed in 'Labels' of 'oc describe [resource] [resource name]' output.
   openshift cli delete all \-l app=appName
-
+  
   # Delete all pods
   openshift cli delete pods \-\-all
 

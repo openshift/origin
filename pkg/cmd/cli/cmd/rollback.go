@@ -18,43 +18,45 @@ import (
 	latest "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	describe "github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const (
-	rollbackLong = `
-Revert an application back to a previous deployment
+var (
+	rollbackLong = templates.LongDesc(`
+		Revert an application back to a previous deployment
 
-When you run this command your deployment configuration will be updated to
-match a previous deployment. By default only the pod and container
-configuration will be changed and scaling or trigger settings will be left as-
-is. Note that environment variables and volumes are included in rollbacks, so
-if you've recently updated security credentials in your environment your
-previous deployment may not have the correct values.
+		When you run this command your deployment configuration will be updated to
+		match a previous deployment. By default only the pod and container
+		configuration will be changed and scaling or trigger settings will be left as-
+		is. Note that environment variables and volumes are included in rollbacks, so
+		if you've recently updated security credentials in your environment your
+		previous deployment may not have the correct values.
 
-Any image triggers present in the rolled back configuration will be disabled
-with a warning. This is to help prevent your rolled back deployment from being
-replaced by a triggered deployment soon after your rollback. To re-enable the
-triggers, use the 'deploy' command.
+		Any image triggers present in the rolled back configuration will be disabled
+		with a warning. This is to help prevent your rolled back deployment from being
+		replaced by a triggered deployment soon after your rollback. To re-enable the
+		triggers, use the 'deploy' command.
 
-If you would like to review the outcome of the rollback, pass '--dry-run' to print
-a human-readable representation of the updated deployment configuration instead of
-executing the rollback. This is useful if you're not quite sure what the outcome
-will be.`
+		If you would like to review the outcome of the rollback, pass '--dry-run' to print
+		a human-readable representation of the updated deployment configuration instead of
+		executing the rollback. This is useful if you're not quite sure what the outcome
+		will be.`)
 
-	rollbackExample = `  # Perform a rollback to the last successfully completed deployment for a deploymentconfig
-  %[1]s rollback frontend
+	rollbackExample = templates.Examples(`
+		# Perform a rollback to the last successfully completed deployment for a deploymentconfig
+	  %[1]s rollback frontend
 
-  # See what a rollback to version 3 will look like, but don't perform the rollback
-  %[1]s rollback frontend --to-version=3 --dry-run
+	  # See what a rollback to version 3 will look like, but don't perform the rollback
+	  %[1]s rollback frontend --to-version=3 --dry-run
 
-  # Perform a rollback to a specific deployment
-  %[1]s rollback frontend-2
+	  # Perform a rollback to a specific deployment
+	  %[1]s rollback frontend-2
 
-  # Perform the rollback manually by piping the JSON of the new config back to %[1]s
-  %[1]s rollback frontend -o json | %[1]s replace dc/frontend -f -`
+	  # Perform the rollback manually by piping the JSON of the new config back to %[1]s
+	  %[1]s rollback frontend -o json | %[1]s replace dc/frontend -f -`)
 )
 
 // NewCmdRollback creates a CLI rollback command.

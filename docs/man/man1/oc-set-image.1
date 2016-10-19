@@ -151,13 +151,13 @@ Update existing container image(s) of resources.
 .nf
   # Set a deployment configs's nginx container image to 'nginx:1.9.1', and its busybox container image to 'busybox'.
   oc set image dc/nginx busybox=busybox nginx=nginx:1.9.1
-
+  
   # Update all deployments' and rc's nginx container's image to 'nginx:1.9.1'
   oc set image deployments,rc nginx=nginx:1.9.1 \-\-all
-
+  
   # Update image of all containers of daemonset abc to 'nginx:1.9.1'
   oc set image daemonset abc *=nginx:1.9.1
-
+  
   # Print result (in yaml format) of updating nginx container image from local file, without hitting the server
   oc set image \-f path/to/file.yaml nginx=nginx:1.9.1 \-\-local \-o yaml
 

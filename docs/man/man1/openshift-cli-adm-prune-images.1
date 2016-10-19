@@ -16,12 +16,10 @@ openshift cli adm prune images \- Remove unreferenced images
 Prune images no longer needed due to age and/or status
 
 .PP
-By default, the prune operation performs a dry run making no changes to internal registry. A
-\-\-confirm flag is needed for changes to be effective.
+By default, the prune operation performs a dry run making no changes to internal registry. A \-\-confirm flag is needed for changes to be effective.
 
 .PP
-Only a user with a cluster role system:image\-pruner or higher who is logged\-in will be able to actually delete the
-images.
+Only a user with a cluster role system:image\-pruner or higher who is logged\-in will be able to actually delete the images.
 
 
 .SH OPTIONS
@@ -120,14 +118,14 @@ images.
   # See, what the prune command would delete if only images more than an hour old and obsoleted
   # by 3 newer revisions under the same tag were considered.
   openshift cli adm prune images \-\-keep\-tag\-revisions=3 \-\-keep\-younger\-than=60m
-
+  
   # To actually perform the prune operation, the confirm flag must be appended
   openshift cli adm prune images \-\-keep\-tag\-revisions=3 \-\-keep\-younger\-than=60m \-\-confirm
-
+  
   # See, what the prune command would delete if we're interested in removing images
   # exceeding currently set LimitRanges ('openshift.io/Image')
   openshift cli adm prune images \-\-prune\-over\-size\-limit
-
+  
   # To actually perform the prune operation, the confirm flag must be appended
   openshift cli adm prune images \-\-prune\-over\-size\-limit \-\-confirm
 

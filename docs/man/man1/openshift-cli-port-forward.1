@@ -95,13 +95,13 @@ Forward 1 or more local ports to a pod
 .nf
   # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
   openshift cli port\-forward mypod 5000 6000
-
+  
   # Listens on port 8888 locally, forwarding to 5000 in the pod
   openshift cli port\-forward mypod 8888:5000
-
+  
   # Listens on a random port locally, forwarding to 5000 in the pod
   openshift cli port\-forward mypod :5000
-
+  
   # Listens on a random port locally, forwarding to 5000 in the pod
   openshift cli port\-forward mypod 0:5000
 

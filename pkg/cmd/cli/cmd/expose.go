@@ -10,32 +10,34 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	exposeLong = `
-Expose containers internally as services or externally via routes
+var (
+	exposeLong = templates.LongDesc(`
+		Expose containers internally as services or externally via routes
 
-There is also the ability to expose a deployment configuration, replication controller, service, or pod
-as a new service on a specified port. If no labels are specified, the new object will re-use the
-labels from the object it exposes.`
+		There is also the ability to expose a deployment configuration, replication controller, service, or pod
+		as a new service on a specified port. If no labels are specified, the new object will re-use the
+		labels from the object it exposes.`)
 
-	exposeExample = `  # Create a route based on service nginx. The new route will re-use nginx's labels
-  %[1]s expose service nginx
+	exposeExample = templates.Examples(`
+		# Create a route based on service nginx. The new route will re-use nginx's labels
+	  %[1]s expose service nginx
 
-  # Create a route and specify your own label and route name
-  %[1]s expose service nginx -l name=myroute --name=fromdowntown
+	  # Create a route and specify your own label and route name
+	  %[1]s expose service nginx -l name=myroute --name=fromdowntown
 
-  # Create a route and specify a hostname
-  %[1]s expose service nginx --hostname=www.example.com
+	  # Create a route and specify a hostname
+	  %[1]s expose service nginx --hostname=www.example.com
 
-  # Expose a deployment configuration as a service and use the specified port
-  %[1]s expose dc ruby-hello-world --port=8080
+	  # Expose a deployment configuration as a service and use the specified port
+	  %[1]s expose dc ruby-hello-world --port=8080
 
-  # Expose a service as a route in the specified path
-  %[1]s expose service nginx --path=/nginx`
+	  # Expose a service as a route in the specified path
+	  %[1]s expose service nginx --path=/nginx`)
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command

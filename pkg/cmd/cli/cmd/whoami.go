@@ -9,19 +9,19 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 const WhoAmIRecommendedCommandName = "whoami"
 
-const whoamiLong = `
-Show information about the current session
+var whoamiLong = templates.LongDesc(`
+	Show information about the current session
 
-The default options for this command will return the currently authenticated user name
-or an empty string.  Other flags support returning the currently used token or the
-user context.
-`
+	The default options for this command will return the currently authenticated user name
+	or an empty string.  Other flags support returning the currently used token or the
+	user context.`)
 
 type WhoAmIOptions struct {
 	UserInterface osclient.UserInterface

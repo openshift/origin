@@ -16,14 +16,10 @@ openshift cli import app.json \- Import an app.json definition into OpenShift (e
 Import app.json files as OpenShift objects
 
 .PP
-app.json defines the pattern of a simple, stateless web application that can be horizontally scaled.
-This command will transform a provided app.json object into its OpenShift equivalent.
-During transformation fields in the app.json syntax that are not relevant when running on top of
-a containerized platform will be ignored and a warning printed.
+app.json defines the pattern of a simple, stateless web application that can be horizontally scaled. This command will transform a provided app.json object into its OpenShift equivalent. During transformation fields in the app.json syntax that are not relevant when running on top of a containerized platform will be ignored and a warning printed.
 
 .PP
-The command will create objects unless you pass the \-o yaml or \-\-as\-template flags to generate a
-configuration file for later use.
+The command will create objects unless you pass the \-o yaml or \-\-as\-template flags to generate a configuration file for later use.
 
 .PP
 Experimental: This command is under active development and may change without notice.
@@ -132,10 +128,9 @@ Experimental: This command is under active development and may change without no
 .nf
   # Import a directory containing an app.json file
   $ openshift cli import app.json \-f .
-
+  
   # Turn an app.json file into a template
   $ openshift cli import app.json \-f ./app.json \-o yaml \-\-as\-template
-
 
 .fi
 .RE

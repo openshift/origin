@@ -16,24 +16,15 @@ oadm create\-error\-template \- Create an error page template
 Create a template for customizing the error page
 
 .PP
-This command creates a basic template to use as a starting point for
-customizing the authentication error page. Save the output to a file and edit
-the template to change the look and feel or add content.
+This command creates a basic template to use as a starting point for customizing the authentication error page. Save the output to a file and edit the template to change the look and feel or add content.
 
 .PP
-To use the template, set oauthConfig.templates.error in the master
-configuration to point to the template file. For example,
+To use the template, set oauthConfig.templates.error in the master configuration to point to the template file. For example,
 
 .PP
-.RS
-
-.nf
 oauthConfig:
-  templates:
-    error: templates/error.html
-
-.fi
-.RE
+    templates:
+      error: templates/error.html
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

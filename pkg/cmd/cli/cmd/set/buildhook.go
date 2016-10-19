@@ -14,39 +14,40 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	buildHookLong = `
-Set or remove a build hook on a build config
+var (
+	buildHookLong = templates.LongDesc(`
+		Set or remove a build hook on a build config
 
-Build hooks allow behavior to be injected into the build process.
+		Build hooks allow behavior to be injected into the build process.
 
-A post-commit build hook is executed after a build has committed an image but before the
-image has been pushed to a registry. It can be used to execute tests on the image and verify
-it before it is made available in a registry or for any other logic that is needed to execute
-before the image is pushed to the registry. A new container with the recently built image is
-launched with the build hook command. If the command or script run by the build hook returns a
-non-zero exit code, the resulting image will not be pushed to the registry.
+		A post-commit build hook is executed after a build has committed an image but before the
+		image has been pushed to a registry. It can be used to execute tests on the image and verify
+		it before it is made available in a registry or for any other logic that is needed to execute
+		before the image is pushed to the registry. A new container with the recently built image is
+		launched with the build hook command. If the command or script run by the build hook returns a
+		non-zero exit code, the resulting image will not be pushed to the registry.
 
-The command for a build hook may be specified as a shell script (with the --script argument),
-as a new entrypoint command on the image with the --command argument, or as a set of
-arguments to the image's entrypoint (default).
-`
+		The command for a build hook may be specified as a shell script (with the --script argument),
+		as a new entrypoint command on the image with the --command argument, or as a set of
+		arguments to the image's entrypoint (default).`)
 
-	buildHookExample = `  # Clear post-commit hook on a build config
-  %[1]s build-hook bc/mybuild --post-commit --remove
+	buildHookExample = templates.Examples(`  
+		# Clear post-commit hook on a build config
+	  %[1]s build-hook bc/mybuild --post-commit --remove
 
-  # Set the post-commit hook to execute a test suite using a new entrypoint
-  %[1]s build-hook bc/mybuild --post-commit --command -- /bin/bash -c /var/lib/test-image.sh
+	  # Set the post-commit hook to execute a test suite using a new entrypoint
+	  %[1]s build-hook bc/mybuild --post-commit --command -- /bin/bash -c /var/lib/test-image.sh
 
-  # Set the post-commit hook to execute a shell script
-  %[1]s build-hook bc/mybuild --post-commit --script="/var/lib/test-image.sh param1 param2 && /var/lib/done.sh"
+	  # Set the post-commit hook to execute a shell script
+	  %[1]s build-hook bc/mybuild --post-commit --script="/var/lib/test-image.sh param1 param2 && /var/lib/done.sh"
 
-  # Set the post-commit hook as a set of arguments to the default image entrypoint
-  %[1]s build-hook bc/mybuild --post-commit  -- arg1 arg2`
+	  # Set the post-commit hook as a set of arguments to the default image entrypoint
+	  %[1]s build-hook bc/mybuild --post-commit  -- arg1 arg2`)
 )
 
 type BuildHookOptions struct {

@@ -143,32 +143,32 @@ DEPRECATED: This command has been moved to "oc set env"
 .nf
   # Update deployment 'registry' with a new environment variable
   oc env dc/registry STORAGE\_DIR=/local
-
+  
   # List the environment variables defined on a build config 'sample\-build'
   oc env bc/sample\-build \-\-list
-
+  
   # List the environment variables defined on all pods
   oc env pods \-\-all \-\-list
-
+  
   # Output modified build config in YAML, and does not alter the object on the server
   oc env bc/sample\-build STORAGE\_DIR=/data \-o yaml
-
+  
   # Update all containers in all replication controllers in the project to have ENV=prod
   oc env rc \-\-all ENV=prod
-
+  
   # Import environment from a secret
   oc env \-\-from=secret/mysecret dc/myapp
-
+  
   # Import environment from a config map with a prefix
   oc env \-\-from=configmap/myconfigmap \-\-prefix=MYSQL\_ dc/myapp
-
+  
   # Remove the environment variable ENV from container 'c1' in all deployment configs
   oc env dc \-\-all \-\-containers="c1" ENV\-
-
+  
   # Remove the environment variable ENV from a deployment config definition on disk and
   # update the deployment config on the server
   oc env \-f dc.json ENV\-
-
+  
   # Set some of the local shell environment into a deployment config on the server
   env | grep RAILS\_ | oc env \-e \- dc/registry
 

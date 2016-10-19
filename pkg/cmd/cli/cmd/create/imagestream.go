@@ -12,21 +12,23 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-const (
-	ImageStreamRecommendedName = "imagestream"
+const ImageStreamRecommendedName = "imagestream"
 
-	imageStreamLong = `
-Create a new image stream
+var (
+	imageStreamLong = templates.LongDesc(`
+		Create a new image stream
 
-Image streams allow you to track, tag, and import images from other registries. They also define an
-access controlled destination that you can push images to.`
+		Image streams allow you to track, tag, and import images from other registries. They also define an
+		access controlled destination that you can push images to.`)
 
-	imageStreamExample = `  # Create a new image stream
-  %[1]s mysql`
+	imageStreamExample = templates.Examples(`
+		# Create a new image stream
+  	%[1]s mysql`)
 )
 
 type CreateImageStreamOptions struct {

@@ -17,26 +17,28 @@ import (
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	dockerbuilder "github.com/openshift/imagebuilder/dockerclient"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	dockerbuildLong = `
-Build a Dockerfile into a single layer
+var (
+	dockerbuildLong = templates.LongDesc(`
+		Build a Dockerfile into a single layer
 
-Builds the provided directory with a Dockerfile into a single layered image.
-Requires that you have a working connection to a Docker engine. You may mount
-secrets or config into the build with the --mount flag - these files will not
-be included in the final image.
+		Builds the provided directory with a Dockerfile into a single layered image.
+		Requires that you have a working connection to a Docker engine. You may mount
+		secrets or config into the build with the --mount flag - these files will not
+		be included in the final image.
 
-Experimental: This command is under active development and may change without notice.`
+		Experimental: This command is under active development and may change without notice.`)
 
-	dockerbuildExample = `  # Build the current directory into a single layer and tag
-  %[1]s ex dockerbuild . myimage:latest
+	dockerbuildExample = templates.Examples(`
+		# Build the current directory into a single layer and tag
+	  %[1]s ex dockerbuild . myimage:latest
 
-  # Mount a client secret into the build at a certain path
-  %[1]s ex dockerbuild . myimage:latest --mount ~/mysecret.pem:/etc/pki/secret/mysecret.pem`
+	  # Mount a client secret into the build at a certain path
+	  %[1]s ex dockerbuild . myimage:latest --mount ~/mysecret.pem:/etc/pki/secret/mysecret.pem`)
 )
 
 type DockerbuildOptions struct {

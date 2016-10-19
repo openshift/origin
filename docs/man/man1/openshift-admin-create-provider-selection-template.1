@@ -16,25 +16,15 @@ openshift admin create\-provider\-selection\-template \- Create a provider selec
 Create a template for customizing the provider selection page
 
 .PP
-This command creates a basic template to use as a starting point for
-customizing the login provider selection page. Save the output to a file and edit
-the template to change the look and feel or add content. Be careful not to remove
-any parameter values inside curly braces.
+This command creates a basic template to use as a starting point for customizing the login provider selection page. Save the output to a file and edit the template to change the look and feel or add content. Be careful not to remove any parameter values inside curly braces.
 
 .PP
-To use the template, set oauthConfig.templates.providerSelection in the master
-configuration to point to the template file. For example,
+To use the template, set oauthConfig.templates.providerSelection in the master configuration to point to the template file. For example,
 
 .PP
-.RS
-
-.nf
 oauthConfig:
-  templates:
-    providerSelection: templates/provider\-selection.html
-
-.fi
-.RE
+    templates:
+      providerSelection: templates/provider\-selection.html
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

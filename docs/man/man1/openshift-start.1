@@ -16,28 +16,22 @@ openshift start \- Launch all\-in\-one server
 Start an all\-in\-one server
 
 .PP
-This command helps you launch an all\-in\-one server, which allows you to run all of the
-components of an enterprise Kubernetes system on a server with Docker. Running:
+This command helps you launch an all\-in\-one server, which allows you to run all of the components of an enterprise Kubernetes system on a server with Docker. Running:
 
 .PP
 openshift start
 
 .PP
-will start listening on all interfaces, launch an etcd server to store persistent
-data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "openshift start master" and
-"openshift start node".
+will start listening on all interfaces, launch an etcd server to store persistent data, and launch the Kubernetes system components. The server will run in the foreground until you terminate the process.  This command delegates to "openshift start master" and "openshift start node".
 
 .PP
-Note: starting OpenShift without passing the \-\-master address will attempt to find the IP
-address that will be visible inside running Docker containers. This is not always successful,
-so if you have problems tell OpenShift what public address it will be via \-\-master=<ip>.
+Note: starting OpenShift without passing the \-\-master address will attempt to find the IP address that will be visible inside running Docker containers. This is not always successful, so if you have problems tell OpenShift what public address it will be via \-\-master= <ip>.
 
 .PP
-You may also pass \-\-etcd=<address> to connect to an external etcd server.
+You may also pass \-\-etcd= <address>to connect to an external etcd server.
 
 .PP
-You may also pass \-\-kubeconfig=<path> to connect to an external Kubernetes cluster.
+You may also pass \-\-kubeconfig= <path>to connect to an external Kubernetes cluster.
 
 
 .SH OPTIONS

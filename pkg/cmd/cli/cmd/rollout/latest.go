@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -19,19 +20,19 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const (
-	rolloutLatestLong = `
-Start a new rollout for a deployment config with the latest state from its triggers
+var (
+	rolloutLatestLong = templates.LongDesc(`
+		Start a new rollout for a deployment config with the latest state from its triggers
 
-This command is appropriate for running manual rollouts. If you want full control over
-running new rollouts, use "oc set triggers --manual" to disable all triggers in your
-deployment config and then whenever you want to run a new deployment process, use this
-command in order to pick up the latest images found in the cluster that are pointed by
-your image change triggers.`
+		This command is appropriate for running manual rollouts. If you want full control over
+		running new rollouts, use "oc set triggers --manual" to disable all triggers in your
+		deployment config and then whenever you want to run a new deployment process, use this
+		command in order to pick up the latest images found in the cluster that are pointed by
+		your image change triggers.`)
 
-	rolloutLatestExample = `  # Start a new rollout based on the latest images defined in the image change triggers.
-  %[1]s rollout latest dc/nginx
-`
+	rolloutLatestExample = templates.Examples(`
+		# Start a new rollout based on the latest images defined in the image change triggers.
+  	%[1]s rollout latest dc/nginx`)
 )
 
 // RolloutLatestOptions holds all the options for the `rollout latest` command.

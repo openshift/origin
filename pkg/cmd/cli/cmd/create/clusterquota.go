@@ -16,20 +16,22 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
 
-const (
-	ClusterQuotaRecommendedName = "clusterresourcequota"
+const ClusterQuotaRecommendedName = "clusterresourcequota"
 
-	clusterQuotaLong = `
-Create a cluster resource quota that controls certain resources.
+var (
+	clusterQuotaLong = templates.LongDesc(`
+		Create a cluster resource quota that controls certain resources.
 
-Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.`
+		Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.`)
 
-	clusterQuotaExample = `  # Create a cluster resource quota limited to 10 pods
-  %[1]s limit-bob --project-annotation-selector=openshift.io/requester=user-bob --hard=pods=10`
+	clusterQuotaExample = templates.Examples(`
+		# Create a cluster resource quota limited to 10 pods
+  	%[1]s limit-bob --project-annotation-selector=openshift.io/requester=user-bob --hard=pods=10`)
 )
 
 type CreateClusterQuotaOptions struct {

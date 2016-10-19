@@ -16,9 +16,7 @@ openshift cli run \- Run a particular image on the cluster
 Create and run a particular image, possibly replicated
 
 .PP
-Creates a deployment config to manage the created container(s). You can choose to run in the
-foreground for an interactive container execution.  You may pass 'run/v1' to
-\-\-generator to create a replication controller instead of a deployment config.
+Creates a deployment config to manage the created container(s). You can choose to run in the foreground for an interactive container execution.  You may pass 'run/v1' to \-\-generator to create a replication controller instead of a deployment config.
 
 
 .SH OPTIONS
@@ -236,24 +234,24 @@ foreground for an interactive container execution.  You may pass 'run/v1' to
 .nf
   # Starts a single instance of nginx.
   openshift cli run nginx \-\-image=nginx
-
+  
   # Starts a replicated instance of nginx.
   openshift cli run nginx \-\-image=nginx \-\-replicas=5
-
+  
   # Dry run. Print the corresponding API objects without creating them.
   openshift cli run nginx \-\-image=nginx \-\-dry\-run
-
+  
   # Start a single instance of nginx, but overload the spec of the replication
   # controller with a partial set of values parsed from JSON.
   openshift cli run nginx \-\-image=nginx \-\-overrides='{ "apiVersion": "v1", "spec": { ... } }'
-
+  
   # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
   openshift cli run \-i \-\-tty nginx \-\-image=nginx \-\-restart=Never
-
+  
   # Start the nginx container using the default command, but use custom
   # arguments (arg1 .. argN) for that command.
   openshift cli run nginx \-\-image=nginx \-\- <arg1> <arg2> ... <argN>
-
+  
   # Start the nginx container using a different command and custom arguments
   openshift cli run nginx \-\-image=nginx \-\-command \-\- <cmd> <arg1> ... <argN>
 

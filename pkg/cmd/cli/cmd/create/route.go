@@ -10,19 +10,19 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/route/api"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
-const (
-	routeLong = `
-Expose containers externally via secured routes
+var (
+	routeLong = templates.LongDesc(`
+		Expose containers externally via secured routes
 
-Three types of secured routes are supported: edge, passthrough, and reencrypt.
-If you wish to create unsecured routes, see "%[1]s expose -h"
-`
+		Three types of secured routes are supported: edge, passthrough, and reencrypt.
+		If you wish to create unsecured routes, see "%[1]s expose -h"`)
 )
 
 // NewCmdCreateRoute is a macro command to create a secured route.
@@ -41,19 +41,20 @@ func NewCmdCreateRoute(fullName string, f *clientcmd.Factory, out io.Writer) *co
 	return cmd
 }
 
-const (
-	edgeRouteLong = `
-Create a route that uses edge TLS termination
+var (
+	edgeRouteLong = templates.LongDesc(`
+		Create a route that uses edge TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the
-generated route should expose via the --service flag.`
+		Specify the service (either just its name or using type/name syntax) that the
+		generated route should expose via the --service flag.`)
 
-	edgeRouteExample = `  # Create an edge route named "my-route" that exposes frontend service.
-  %[1]s create route edge my-route --service=frontend
+	edgeRouteExample = templates.Examples(`
+		# Create an edge route named "my-route" that exposes frontend service.
+	  %[1]s create route edge my-route --service=frontend
 
-  # Create an edge route that exposes the frontend service and specify a path.
-  # If the route name is omitted, the service name will be re-used.
-  %[1]s create route edge --service=frontend --path /assets`
+	  # Create an edge route that exposes the frontend service and specify a path.
+	  # If the route name is omitted, the service name will be re-used.
+	  %[1]s create route edge --service=frontend --path /assets`)
 )
 
 // NewCmdCreateEdgeRoute is a macro command to create an edge route.
@@ -168,19 +169,20 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	return nil
 }
 
-const (
-	passthroughRouteLong = `
-Create a route that uses passthrough TLS termination
+var (
+	passthroughRouteLong = templates.LongDesc(`
+		Create a route that uses passthrough TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the
-generated route should expose via the --service flag.`
+		Specify the service (either just its name or using type/name syntax) that the
+		generated route should expose via the --service flag.`)
 
-	passthroughRouteExample = `  # Create a passthrough route named "my-route" that exposes the frontend service.
-  %[1]s create route passthrough my-route --service=frontend
+	passthroughRouteExample = templates.Examples(`
+		# Create a passthrough route named "my-route" that exposes the frontend service.
+	  %[1]s create route passthrough my-route --service=frontend
 
-  # Create a passthrough route that exposes the frontend service and specify
-  # a hostname. If the route name is omitted, the service name will be re-used.
-  %[1]s create route passthrough --service=frontend --hostname=www.example.com`
+	  # Create a passthrough route that exposes the frontend service and specify
+	  # a hostname. If the route name is omitted, the service name will be re-used.
+	  %[1]s create route passthrough --service=frontend --hostname=www.example.com`)
 )
 
 // NewCmdCreatePassthroughRoute is a macro command to create a passthrough route.
@@ -266,20 +268,21 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	return nil
 }
 
-const (
-	reencryptRouteLong = `
-Create a route that uses reencrypt TLS termination
+var (
+	reencryptRouteLong = templates.LongDesc(`
+		Create a route that uses reencrypt TLS termination
 
-Specify the service (either just its name or using type/name syntax) that the
-generated route should expose via the --service flag. A destination CA certificate
-is needed for reencrypt routes, specify one with the --dest-ca-cert flag.`
+		Specify the service (either just its name or using type/name syntax) that the
+		generated route should expose via the --service flag. A destination CA certificate
+		is needed for reencrypt routes, specify one with the --dest-ca-cert flag.`)
 
-	reencryptRouteExample = `  # Create a route named "my-route" that exposes the frontend service.
-  %[1]s create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
+	reencryptRouteExample = templates.Examples(`
+		# Create a route named "my-route" that exposes the frontend service.
+	  %[1]s create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
 
-  # Create a reencrypt route that exposes the frontend service and re-use
-  # the service name as the route name.
-  %[1]s create route reencrypt --service=frontend --dest-ca-cert cert.cert`
+	  # Create a reencrypt route that exposes the frontend service and re-use
+	  # the service name as the route name.
+	  %[1]s create route reencrypt --service=frontend --dest-ca-cert cert.cert`)
 )
 
 // NewCmdCreateReencryptRoute is a macro command to create a reencrypt route.

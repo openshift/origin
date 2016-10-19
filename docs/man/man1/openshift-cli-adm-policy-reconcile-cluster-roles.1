@@ -16,9 +16,7 @@ openshift cli adm policy reconcile\-cluster\-roles \- Update cluster roles to ma
 Update cluster roles to match the recommended bootstrap policy
 
 .PP
-This command will compare cluster roles against the recommended bootstrap policy.  Any cluster role
-that does not match will be replaced by the recommended bootstrap role.  This command will not remove
-any additional cluster role.
+This command will compare cluster roles against the recommended bootstrap policy.  Any cluster role that does not match will be replaced by the recommended bootstrap role.  This command will not remove any additional cluster role.
 
 .PP
 Cluster roles with the annotation openshift.io/reconcile\-protect set to "true" are skipped.
@@ -142,14 +140,14 @@ You can see which cluster roles have recommended changed by choosing an output t
 .nf
   # Display the names of cluster roles that would be modified
   openshift cli adm policy reconcile\-cluster\-roles \-o name
-
+  
   # Add missing permissions to cluster roles that don't match the current defaults
   openshift cli adm policy reconcile\-cluster\-roles \-\-confirm
-
+  
   # Add missing permissions and remove extra permissions from
   # cluster roles that don't match the current defaults
   openshift cli adm policy reconcile\-cluster\-roles \-\-additive\-only=false \-\-confirm
-
+  
   # Display the union of the default and modified cluster roles
   openshift cli adm policy reconcile\-cluster\-roles \-\-additive\-only
 

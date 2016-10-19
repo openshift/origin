@@ -96,11 +96,11 @@ Allows projects to isolate their network from other projects when using the redh
 .RS
 
 .nf
-	# Provide isolation for project p1
-	oadm pod\-network isolate\-projects <p1>
-
-	# Allow all projects with label name=top\-secret to have their own isolated project network
-	oadm pod\-network isolate\-projects \-\-selector='name=top\-secret'
+  # Provide isolation for project p1
+  oadm pod\-network isolate\-projects <p1>
+  
+  # Allow all projects with label name=top\-secret to have their own isolated project network
+  oadm pod\-network isolate\-projects \-\-selector='name=top\-secret'
 
 .fi
 .RE

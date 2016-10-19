@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
 func BasicEnabled() bool {
@@ -70,12 +70,12 @@ func (c *BasicChallengeHandler) HandleChallenge(requestURL string, headers http.
 			fmt.Fprintf(w, "Authentication required for %s\n", c.Host)
 		}
 		if missingUsername {
-			username = util.PromptForString(c.Reader, w, "Username: ")
+			username = term.PromptForString(c.Reader, w, "Username: ")
 		} else {
 			fmt.Fprintf(w, "Username: %s\n", username)
 		}
 		if missingPassword {
-			password = util.PromptForPasswordString(c.Reader, w, "Password: ")
+			password = term.PromptForPasswordString(c.Reader, w, "Password: ")
 		}
 		// remember so we don't re-prompt
 		c.prompted = true

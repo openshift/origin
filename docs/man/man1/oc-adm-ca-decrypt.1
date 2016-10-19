@@ -101,12 +101,11 @@ Decrypt data encrypted with "oc adm ca encrypt"
 .RS
 
 .nf
-	# Decrypt an encrypted file to a cleartext file:
-	oc adm ca decrypt \-\-key=secret.key \-\-in=secret.encrypted \-\-out=secret.decrypted
-	
-	# Decrypt from stdin to stdout:
-	oc adm ca decrypt \-\-key=secret.key < secret2.encrypted > secret2.decrypted
-
+  # Decrypt an encrypted file to a cleartext file:
+  oc adm ca decrypt \-\-key=secret.key \-\-in=secret.encrypted \-\-out=secret.decrypted
+  
+  # Decrypt from stdin to stdout:
+  oc adm ca decrypt \-\-key=secret.key < secret2.encrypted > secret2.decrypted
 
 .fi
 .RE

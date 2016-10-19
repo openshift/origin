@@ -16,9 +16,7 @@ openshift ex build\-chain \- Output the inputs and dependencies of your builds
 Output the inputs and dependencies of your builds
 
 .PP
-Supported formats for the generated graph are dot and a human\-readable output.
-Tag and namespace are optional and if they are not specified, 'latest' and the
-default namespace will be used respectively.
+Supported formats for the generated graph are dot and a human\-readable output. Tag and namespace are optional and if they are not specified, 'latest' and the default namespace will be used respectively.
 
 
 .SH OPTIONS
@@ -112,10 +110,10 @@ default namespace will be used respectively.
 .nf
   # Build the dependency tree for the 'latest' tag in <image\-stream>
   openshift ex build\-chain <image\-stream>
-
+  
   # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
   openshift ex build\-chain <image\-stream>:v2 \-o dot | dot \-T svg \-o deps.svg
-
+  
   # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
   openshift ex build\-chain <image\-stream> \-n test \-\-all
 

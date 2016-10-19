@@ -156,11 +156,11 @@ JSON and YAML formats are accepted.
 .RS
 
 .nf
-# Apply the configuration in pod.json to a pod.
-oc apply \-f ./pod.json
-
-# Apply the JSON passed into stdin to a pod.
-cat pod.json | oc apply \-f \-
+  # Apply the configuration in pod.json to a pod.
+  oc apply \-f ./pod.json
+  
+  # Apply the JSON passed into stdin to a pod.
+  cat pod.json | oc apply \-f \-
 
 .fi
 .RE

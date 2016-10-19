@@ -15,42 +15,43 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	internalMigrateStorageLong = `
-Migrate internal object storage via update
+var (
+	internalMigrateStorageLong = templates.LongDesc(`
+		Migrate internal object storage via update
 
-This command invokes an update operation on every API object reachable by the caller. This forces
-the server to write to the underlying storage if the object representation has changed. Use this
-command to ensure that the most recent storage changes have been applied to all objects (storage
-version, storage encoding, any newer object defaults).
+		This command invokes an update operation on every API object reachable by the caller. This forces
+		the server to write to the underlying storage if the object representation has changed. Use this
+		command to ensure that the most recent storage changes have been applied to all objects (storage
+		version, storage encoding, any newer object defaults).
 
-To operate on a subset of resources, use the --include flag. If you encounter errors during a run
-the command will output a list of resources that received errors, which you can then re-run the
-command on. You may also specify --from-key and --to-key to restrict the set of resource names
-to operate on (key is NAMESPACE/NAME for resources in namespaces or NAME for cluster scoped
-resources). --from-key is inclusive if specified, while --to-key is exclusive.
+		To operate on a subset of resources, use the --include flag. If you encounter errors during a run
+		the command will output a list of resources that received errors, which you can then re-run the
+		command on. You may also specify --from-key and --to-key to restrict the set of resource names
+		to operate on (key is NAMESPACE/NAME for resources in namespaces or NAME for cluster scoped
+		resources). --from-key is inclusive if specified, while --to-key is exclusive.
 
-By default, events are not migrated since they expire within a very short period of time. If you
-have significantly increased the expiration time of events, run a migration with --include=events
+		By default, events are not migrated since they expire within a very short period of time. If you
+		have significantly increased the expiration time of events, run a migration with --include=events
 
-WARNING: This is a slow command and will put significant load on an API server. It may also
-  result in significant intra-cluster traffic.`
+		WARNING: This is a slow command and will put significant load on an API server. It may also
+		result in significant intra-cluster traffic.`)
 
-	internalMigrateStorageExample = `  # Perform a dry-run of updating all objects
-  %[1]s
+	internalMigrateStorageExample = templates.Examples(`
+		# Perform a dry-run of updating all objects
+	  %[1]s
 
-  # To actually perform the update, the confirm flag must be appended
-  %[1]s --confirm
+	  # To actually perform the update, the confirm flag must be appended
+	  %[1]s --confirm
 
-  # Only migrate pods
-  %[1]s --include=pods --confirm
+	  # Only migrate pods
+	  %[1]s --include=pods --confirm
 
-  # Only pods that are in namespaces starting with "bar"
-  %[1]s --include=pods --confirm --from-key=bar/ --to-key=bar/\xFF
-`
+	  # Only pods that are in namespaces starting with "bar"
+	  %[1]s --include=pods --confirm --from-key=bar/ --to-key=bar/\xFF`)
 )
 
 type MigrateAPIStorageOptions struct {

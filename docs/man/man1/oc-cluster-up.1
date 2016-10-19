@@ -13,24 +13,16 @@ oc cluster up \- Start OpenShift on Docker with reasonable defaults
 
 .SH DESCRIPTION
 .PP
-Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
-initial templates, and a default project.
+Starts an OpenShift cluster using Docker containers, provisioning a registry, router, initial templates, and a default project.
 
 .PP
-This command will attempt to use an existing connection to a Docker daemon. Before running
-the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
+This command will attempt to use an existing connection to a Docker daemon. Before running the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
 
 .PP
-Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
-driver when the \-\-create\-machine argument is specified. The machine will be named 'openshift'
-by default. To name the machine differently, use the \-\-docker\-machine=NAME argument. If the
-\-\-docker\-machine=NAME argument is specified, but \-\-create\-machine is not, the command will attempt
-to find an existing docker machine with that name and start it if it's not running.
+Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox driver when the \-\-create\-machine argument is specified. The machine will be named 'openshift' by default. To name the machine differently, use the \-\-docker\-machine=NAME argument. If the \-\-docker\-machine=NAME argument is specified, but \-\-create\-machine is not, the command will attempt to find an existing docker machine with that name and start it if it's not running.
 
 .PP
-By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
-This is to allow dynamic host names to be created for routes. An alternate routing suffix
-can be specified using the \-\-routing\-suffix flag.
+By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io. This is to allow dynamic host names to be created for routes. An alternate routing suffix can be specified using the \-\-routing\-suffix flag.
 
 .PP
 A public hostname can also be specified for the server with the \-\-public\-hostname flag.
@@ -173,19 +165,17 @@ A public hostname can also be specified for the server with the \-\-public\-host
 .RS
 
 .nf
-
   # Start OpenShift on a new docker machine named 'openshift'
   oc cluster up \-\-create\-machine
-
+  
   # Start OpenShift using a specific public host name
   oc cluster up \-\-public\-hostname=my.address.example.com
-
+  
   # Start OpenShift and preserve data and config between restarts
   oc cluster up \-\-host\-data\-dir=/mydata \-\-use\-existing\-config
-
+  
   # Use a different set of images
   oc cluster up \-\-image="registry.example.com/origin" \-\-version="v1.1"
-
 
 .fi
 .RE

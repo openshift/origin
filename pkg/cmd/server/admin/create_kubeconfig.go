@@ -17,11 +17,43 @@ import (
 
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 )
 
 const CreateKubeConfigCommandName = "create-kubeconfig"
+
+var createKubeConfigLongDesc = templates.LongDesc(`
+  Create's a .kubeconfig file at <--kubeconfig> that looks like this:
+
+      clusters:
+      - cluster:
+      certificate-authority-data: <contents of --certificate-authority>
+      server: <--master>
+      name: <--cluster>
+      - cluster:
+      certificate-authority-data: <contents of --certificate-authority>
+      server: <--public-master>
+      name: public-<--cluster>
+      contexts:
+      - context:
+      cluster: <--cluster>
+      user: <--user>
+      namespace: <--namespace>
+      name: <--context>
+      - context:
+      cluster: public-<--cluster>
+      user: <--user>
+      namespace: <--namespace>
+      name: public-<--context>
+      current-context: <--context>
+      kind: Config
+      users:
+      - name: <--user>
+      user:
+      client-certificate-data: <contents of --client-certificate>
+      client-key-data: <contents of --client-key>`)
 
 type CreateKubeConfigOptions struct {
 	APIServerURL       string
@@ -43,37 +75,7 @@ func NewCommandCreateKubeConfig(commandName string, fullName string, out io.Writ
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a basic .kubeconfig file from client certs",
-		Long: `
-Create's a .kubeconfig file at <--kubeconfig> that looks like this:
-
-clusters:
-- cluster:
-    certificate-authority-data: <contents of --certificate-authority>
-    server: <--master>
-  name: <--cluster>
-- cluster:
-    certificate-authority-data: <contents of --certificate-authority>
-    server: <--public-master>
-  name: public-<--cluster>
-contexts:
-- context:
-    cluster: <--cluster>
-    user: <--user>
-    namespace: <--namespace>
-  name: <--context>
-- context:
-    cluster: public-<--cluster>
-    user: <--user>
-    namespace: <--namespace>
-  name: public-<--context>
-current-context: <--context>
-kind: Config
-users:
-- name: <--user>
-  user:
-    client-certificate-data: <contents of --client-certificate>
-    client-key-data: <contents of --client-key>
-`,
+		Long:  createKubeConfigLongDesc,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
