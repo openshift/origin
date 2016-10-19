@@ -47,9 +47,14 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	}
 	processor := template.NewProcessor(generators)
-	if errs := processor.Process(tpl); len(errs) > 0 {
-		glog.V(1).Infof(errs.ToAggregate().Error())
-		return nil, errors.NewInvalid(api.Kind("Template"), tpl.Name, errs)
+	templateErrs, err := processor.Process(tpl)
+	if len(templateErrs) > 0 {
+		glog.V(1).Infof(templateErrs.ToAggregate().Error())
+		return nil, errors.NewInvalid(api.Kind("Template"), tpl.Name, templateErrs)
+	}
+	if err != nil {
+		glog.V(1).Infof(err.Error())
+		return nil, errors.NewInternalError(err)
 	}
 
 	// we know that we get back runtime.Unstructured objects from the Process call.  We need to encode those

@@ -1,10 +1,12 @@
 package template
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
@@ -12,10 +14,16 @@ import (
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
-	"github.com/openshift/origin/pkg/util/stringreplace"
 )
 
-var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
+// match ${KEY}, KEY will be grouped
+var stringParameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+?)\}`)
+
+// match ${{KEY}}, KEY will be grouped
+var nonStringParameterExp = regexp.MustCompile(`\$\{\{([a-zA-Z0-9\_]+?)\}\}`)
+
+// any quoted string
+var fieldExp = regexp.MustCompile(`".*?"`)
 
 // Processor process the Template into the List with substituted parameters
 type Processor struct {
@@ -30,24 +38,13 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // Process transforms Template object into List object. It generates
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurrences with their corresponding
-// values (currently in the containers' Environment variables only).
-func (p *Processor) Process(template *api.Template) field.ErrorList {
+// values.
+func (p *Processor) Process(template *api.Template) (field.ErrorList, error) {
 	templateErrors := field.ErrorList{}
 
-	if fieldError := p.GenerateParameterValues(template); fieldError != nil {
-		return append(templateErrors, fieldError)
-	}
-
-	// Place parameters into a map for efficient lookup
-	paramMap := make(map[string]api.Parameter)
-	for _, param := range template.Parameters {
-		paramMap[param.Name] = param
-	}
-
-	// Perform parameter substitution on the template's user message. This can be used to
-	// instruct a user on next steps for the template.
-	template.Message = p.EvaluateParameterSubstitution(paramMap, template.Message)
-
+	// We start with a list of runtime.Unknown objects in the template, so first we need to
+	// Decode them to runtime.Unstructured so we can manipulate the set of Labels and strip
+	// the Namespace.
 	itemPath := field.NewPath("item")
 	for i, item := range template.Objects {
 		idxPath := itemPath.Index(i)
@@ -60,24 +57,59 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 			}
 			item = decodedObj
 		}
-
-		newItem, err := p.SubstituteParameters(paramMap, item)
-		if err != nil {
-			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("parameters"), template.Parameters, err.Error()))
-		}
 		// If an object definition's metadata includes a namespace field, the field will be stripped out of
 		// the definition during template instantiation.  This is necessary because all objects created during
 		// instantiation are placed into the target namespace, so it would be invalid for the object to declare
-		//a different namespace.
-		stripNamespace(newItem)
-		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
+		// a different namespace.
+		stripNamespace(item)
+		if err := util.AddObjectLabels(item, template.ObjectLabels); err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
 				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
 		}
-		template.Objects[i] = newItem
+		template.Objects[i] = item
+	}
+	if fieldError := p.GenerateParameterValues(template); fieldError != nil {
+		templateErrors = append(templateErrors, fieldError)
 	}
 
-	return templateErrors
+	// accrued errors from processing the template objects and parameters
+	if len(templateErrors) != 0 {
+		return templateErrors, nil
+	}
+
+	// Place parameters into a map for efficient lookup
+	paramMap := make(map[string]api.Parameter)
+	for _, param := range template.Parameters {
+		paramMap[param.Name] = param
+	}
+
+	// Turn the template object into json so we can do search/replace on it
+	// to substitute parameter values.
+	serializer, found := kapi.Codecs.SerializerForMediaType("application/json", nil)
+	if !found {
+		return templateErrors, errors.New("Could not load json serializer")
+	}
+
+	templateBytes, err := runtime.Encode(serializer, template)
+	if err != nil {
+		return templateErrors, err
+	}
+	templateString := string(templateBytes)
+
+	// consider we start with a field like "${PARAM1}${{PARAM2}}"
+	// if we substitute and strip quotes first, we're left with
+	// ${PARAM1}VALUE2 and then when we search for ${{KEY}} parameters
+	// to replace, we won't find any because the value is not inside quotes anymore.
+	// So instead we must do the string-parameter substitution first, so we have
+	// "VALUE1${{PARAM2}}" which we can then substitute into VALUE1VALUE2.
+	templateString = p.EvaluateParameterSubstitution(paramMap, templateString, true)
+	templateString = p.EvaluateParameterSubstitution(paramMap, templateString, false)
+
+	// Now that the json is properly substituted and de-quoted where needed for non-string
+	// field values, decode the json back into the template object.  This will leave us
+	// with runtime.Unstructured json structs in the Object list again.
+	err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), []byte(templateString), template)
+	return templateErrors, err
 }
 
 func stripNamespace(obj runtime.Object) {
@@ -126,28 +158,38 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 
 // EvaluateParameterSubstitution replaces escaped parameters in a string with values from the
 // provided map.
-func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Parameter, in string) string {
-	for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
-		if len(match) > 1 {
-			if paramValue, found := params[match[1]]; found {
-				in = strings.Replace(in, match[0], paramValue.Value, 1)
+func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Parameter, in string, stringParameters bool) string {
+
+	// find quoted blocks
+	for _, fieldValue := range fieldExp.FindAllStringSubmatch(in, -1) {
+		origFieldValue := fieldValue[0]
+		// find ${{KEY}} or ${KEY} entries in the string
+		parameterExp := stringParameterExp
+		if !stringParameters {
+			parameterExp = nonStringParameterExp
+		}
+		subbed := false
+		for _, parameterRef := range parameterExp.FindAllStringSubmatch(fieldValue[0], -1) {
+			if len(parameterRef) > 1 {
+				// parameterRef[0] contains a field with a parameter reference like "SOME ${PARAM_KEY}" (including the quotes)
+				// parameterRef[1] contains PARAM_KEY
+				if paramValue, found := params[parameterRef[1]]; found {
+					// fieldValue[0] will now contain "SOME PARAM_VALUE" (including the quotes)
+					fieldValue[0] = strings.Replace(fieldValue[0], parameterRef[0], paramValue.Value, 1)
+					subbed = true
+				}
 			}
+		}
+		if subbed {
+			newFieldValue := fieldValue[0]
+			if !stringParameters {
+				// strip quotes from either end of the string if we matched a ${{KEY}} type parameter
+				newFieldValue = fieldValue[0][1 : len(fieldValue[0])-1]
+			}
+			in = strings.Replace(in, origFieldValue, newFieldValue, -1)
 		}
 	}
 	return in
-}
-
-// SubstituteParameters loops over all values defined in structured
-// and unstructured types that are children of item.
-//
-// Example of Parameter expression:
-//   - ${PARAMETER_NAME}
-//
-func (p *Processor) SubstituteParameters(params map[string]api.Parameter, item runtime.Object) (runtime.Object, error) {
-	stringreplace.VisitObjectStrings(item, func(in string) string {
-		return p.EvaluateParameterSubstitution(params, in)
-	})
-	return item, nil
 }
 
 // GenerateParameterValues generates Value for each Parameter of the given
