@@ -62,7 +62,7 @@ function cleanup()
 
 trap "cleanup" EXIT INT TERM
 
-os::log::start_system_logger
+os::log::system::start
 
 out=$(
 	set +e

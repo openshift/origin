@@ -75,9 +75,9 @@ function os::test::extended::setup () {
 			os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
 		fi
 
-		os::log::start_system_logger
+		os::log::system::start
 
-		
+
 		if [[ -n "${SHOW_ALL:-}" ]]; then
 			SKIP_NODE=1
 		fi
