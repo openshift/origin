@@ -178,7 +178,7 @@ func TestErrors(t *testing.T) {
 				},
 			},
 			serviceAccount: admissionttesting.CreateSAForTest(),
-			errorMessage:   `PodSecurityPolicyReview "" is invalid: spec.podSpec.serviceAccountName: Invalid value: "A.B.C.D.E": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`,
+			errorMessage:   `PodSecurityPolicyReview "" is invalid: spec.template.spec.serviceAccountName: Invalid value: "A.B.C.D.E": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`,
 		},
 		"no SA": {
 			request: &securityapi.PodSecurityPolicyReview{
