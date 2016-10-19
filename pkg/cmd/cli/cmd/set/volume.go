@@ -18,7 +18,6 @@ import (
 	kresource "k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -117,6 +116,7 @@ type VolumeOptions struct {
 	Containers    string
 	Confirm       bool
 	Output        string
+	PrintObject   func([]*resource.Info) error
 	OutputVersion unversioned.GroupVersion
 
 	// Add op params
@@ -152,7 +152,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 		Run: func(cmd *cobra.Command, args []string) {
 			addOpts.TypeChanged = cmd.Flag("type").Changed
 
-			err := opts.Validate(args)
+			err := opts.Validate(cmd, args)
 			if err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
@@ -176,8 +176,6 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Name of the volume. If empty, auto generated for add operation")
 	cmd.Flags().StringVarP(&opts.Containers, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", false, "Confirm that you really want to remove multiple volumes")
-	cmd.Flags().StringVarP(&opts.Output, "output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml")
-	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
 
 	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
 	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove")
@@ -190,6 +188,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
 
+	kcmdutil.AddPrinterFlags(cmd)
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	// deprecate --list option
@@ -198,7 +197,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	return cmd
 }
 
-func (v *VolumeOptions) Validate(args []string) error {
+func (v *VolumeOptions) Validate(cmd *cobra.Command, args []string) error {
 	if len(v.Selector) > 0 {
 		if _, err := labels.Parse(v.Selector); err != nil {
 			return errors.New("--selector=<selector> must be a valid label selector")
@@ -229,7 +228,8 @@ func (v *VolumeOptions) Validate(args []string) error {
 		return errors.New("you may only specify one operation at a time")
 	}
 
-	if v.List && len(v.Output) > 0 {
+	output := kcmdutil.GetFlagString(cmd, "output")
+	if v.List && len(output) > 0 {
 		return errors.New("--list and --output may not be specified together")
 	}
 
@@ -341,6 +341,13 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	}
 	mapper, typer := f.Object(false)
 
+	v.Output = kcmdutil.GetFlagString(cmd, "output")
+	if len(v.Output) > 0 {
+		v.PrintObject = func(infos []*resource.Info) error {
+			return f.PrintResourceInfos(cmd, infos, v.Out)
+		}
+	}
+
 	v.DefaultNamespace = cmdNamespace
 	v.ExplicitNamespace = explicit
 	v.Out = out
@@ -431,18 +438,8 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	if patchError != nil {
 		return patchError
 	}
-
-	objects, err := resource.AsVersionedObject(infos, false, v.OutputVersion, kapi.Codecs.LegacyCodec(v.OutputVersion))
-	if err != nil {
-		return err
-	}
-
-	if len(v.Output) != 0 {
-		p, _, err := kubectl.GetPrinter(v.Output, "", false)
-		if err != nil {
-			return err
-		}
-		return p.PrintObj(objects, v.Out)
+	if v.PrintObject != nil {
+		return v.PrintObject(infos)
 	}
 
 	failed := false

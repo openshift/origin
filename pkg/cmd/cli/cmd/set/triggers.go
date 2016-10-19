@@ -86,7 +86,7 @@ type TriggersOptions struct {
 	OutputVersion unversioned.GroupVersion
 
 	PrintTable  bool
-	PrintObject func(runtime.Object) error
+	PrintObject func([]*resource.Info) error
 
 	Remove    bool
 	RemoveAll bool
@@ -210,8 +210,10 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		Flatten()
 
 	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) != 0 {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
+	if len(output) > 0 {
+		o.PrintObject = func(infos []*resource.Info) error {
+			return f.PrintResourceInfos(cmd, infos, o.Out)
+		}
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -286,11 +288,7 @@ func (o *TriggersOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singular, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
-		}
-		return o.PrintObject(object)
+		return o.PrintObject(infos)
 	}
 
 	failed := false
