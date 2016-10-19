@@ -144,6 +144,44 @@ func TestAllocateSubnetOverlapping(t *testing.T) {
 	}
 }
 
+// 10.1.HHHHHHHH.HHHHHHHH
+func TestAllocateSubnetNoSubnetBits(t *testing.T) {
+	sna, err := NewSubnetAllocator("10.1.0.0/16", 16, nil)
+	if err != nil {
+		t.Fatal("Failed to initialize subnet allocator: ", err)
+	}
+
+	sn, err := sna.GetNetwork()
+	if err != nil {
+		t.Fatal("Failed to get network: ", err)
+	}
+	if sn.String() != "10.1.0.0/16" {
+		t.Fatalf("Did not get expected subnet (sn=%s)", sn.String())
+	}
+
+	sn, err = sna.GetNetwork()
+	if err == nil {
+		t.Fatalf("Unexpectedly succeeded in getting network (sn=%s)", sn.String())
+	}
+}
+
+func TestAllocateSubnetInvalidHostBitsOrCIDR(t *testing.T) {
+	_, err := NewSubnetAllocator("10.1.0.0/16", 18, nil)
+	if err == nil {
+		t.Fatal("Unexpectedly succeeded in initializing subnet allocator")
+	}
+
+	_, err = NewSubnetAllocator("10.1.0.0/16", 0, nil)
+	if err == nil {
+		t.Fatal("Unexpectedly succeeded in initializing subnet allocator")
+	}
+
+	_, err = NewSubnetAllocator("10.1.0.0/33", 16, nil)
+	if err == nil {
+		t.Fatal("Unexpectedly succeeded in initializing subnet allocator")
+	}
+}
+
 func TestAllocateSubnetInUse(t *testing.T) {
 	inUse := []string{"10.1.0.0/24", "10.1.2.0/24", "10.2.2.2/24", "Invalid"}
 	sna, err := NewSubnetAllocator("10.1.0.0/16", 8, inUse)
