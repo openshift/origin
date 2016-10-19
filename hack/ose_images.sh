@@ -151,7 +151,9 @@ add_group_to_list() {
       ;;
     jenkins)
       add_to_list openshift-jenkins-docker
-      add_to_list openshift-jenkins-2-docker
+      if ! [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] || [ ${MAJOR_RELEASE} == "3.3" ] ; then
+        add_to_list openshift-jenkins-2-docker
+      fi
       add_to_list jenkins-slave-base-rhel7-docker
       add_to_list jenkins-slave-maven-rhel7-docker
       add_to_list jenkins-slave-nodejs-rhel7-docker
@@ -390,10 +392,21 @@ show_git_diffs() {
       echo "(c)ontinue [rhpkg commit], (i)gnore, (q)uit [exit script] : "
       read choice < /dev/tty
       case ${choice} in
-        c | C | continue ) mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff ; git add .osbs-logs/Dockerfile.diff ; rhpkg commit -p -m "${COMMIT_MESSAGE} ${version_version} ${release_version} ${rhel_version}" > /dev/null ;;
-        i | I | ignore ) rm -f .osbs-logs/Dockerfile.diff.new ;;
-        q | Q | quit ) break;;
-        * ) echo "${choice} not and option.  Assuming ignore" ; rm -f .osbs-logs/Dockerfile.diff.new ;;
+        c | C | continue )
+          mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff
+          git add .osbs-logs/Dockerfile.diff
+          rhpkg commit -p -m "${COMMIT_MESSAGE} ${version_version} ${release_version} ${rhel_version}" > /dev/null
+          ;;
+        i | I | ignore )
+          rm -f .osbs-logs/Dockerfile.diff.new
+          ;;
+        q | Q | quit )
+          break
+          ;;
+        * )
+          echo "${choice} not and option.  Assuming ignore"
+          rm -f .osbs-logs/Dockerfile.diff.new
+          ;;
         #* ) echo "${choice} not and option.  Assuming continue" ;  mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff ; git add .osbs-logs/Dockerfile.diff ; rhpkg commit -p -m "Updating dockerfile diff" ;;
       esac
     fi
