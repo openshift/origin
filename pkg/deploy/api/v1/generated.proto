@@ -269,7 +269,9 @@ message DeploymentStrategy {
   // Type is the name of a deployment strategy.
   optional string type = 1;
 
-  // CustomParams are the input to the Custom deployment strategy.
+  // CustomParams are the input to the Custom deployment strategy, and may also
+  // be specified for the Recreate and Rolling strategies to customize the execution
+  // process that runs the deployment.
   optional CustomDeploymentStrategyParams customParams = 2;
 
   // RecreateParams are the input to the Recreate deployment strategy.
@@ -278,7 +280,7 @@ message DeploymentStrategy {
   // RollingParams are the input to the Rolling deployment strategy.
   optional RollingDeploymentStrategyParams rollingParams = 4;
 
-  // Resources contains resource requirements to execute the deployment and any hooks
+  // Resources contains resource requirements to execute the deployment and any hooks.
   optional k8s.io.kubernetes.pkg.api.v1.ResourceRequirements resources = 5;
 
   // Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
@@ -424,8 +426,8 @@ message RollingDeploymentStrategyParams {
   optional LifecycleHook pre = 7;
 
   // Post is a lifecycle hook which is executed after the strategy has
-  // finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
-  // is NOT supported.
+  // finished all deployment logic. All LifecycleHookFailurePolicy values
+  // are supported.
   optional LifecycleHook post = 8;
 }
 

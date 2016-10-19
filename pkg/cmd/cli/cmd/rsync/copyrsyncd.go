@@ -129,7 +129,7 @@ func localPort() (int, error) {
 }
 
 func (s *rsyncDaemonStrategy) getFreePort() (int, error) {
-	cmd := []string{"cat", "/proc/net/tcp", "/proc/net/tcp6"}
+	cmd := []string{"bash", "-c", "cat /proc/net/tcp && ( [ -e /proc/net/tcp6 ] && cat /proc/net/tcp6 || true)"}
 	tcpData := &bytes.Buffer{}
 	cmdErr := &bytes.Buffer{}
 	usedPorts := map[int]struct{}{}

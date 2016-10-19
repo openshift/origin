@@ -124,7 +124,7 @@ func (o *CreateBasicAuthSecretOptions) CreateBasicAuthSecret() error {
 func (o *CreateBasicAuthSecretOptions) NewBasicAuthSecret() (*api.Secret, error) {
 	secret := &api.Secret{}
 	secret.Name = o.SecretName
-	secret.Type = api.SecretTypeOpaque
+	secret.Type = api.SecretTypeBasicAuth
 	secret.Data = map[string][]byte{}
 
 	if len(o.Username) != 0 {

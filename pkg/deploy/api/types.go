@@ -6,176 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
-// DeploymentStatus describes the possible states a deployment can be in.
-type DeploymentStatus string
-
-const (
-	// DeploymentStatusNew means the deployment has been accepted but not yet acted upon.
-	DeploymentStatusNew DeploymentStatus = "New"
-	// DeploymentStatusPending means the deployment been handed over to a deployment strategy,
-	// but the strategy has not yet declared the deployment to be running.
-	DeploymentStatusPending DeploymentStatus = "Pending"
-	// DeploymentStatusRunning means the deployment strategy has reported the deployment as
-	// being in-progress.
-	DeploymentStatusRunning DeploymentStatus = "Running"
-	// DeploymentStatusComplete means the deployment finished without an error.
-	DeploymentStatusComplete DeploymentStatus = "Complete"
-	// DeploymentStatusFailed means the deployment finished with an error.
-	DeploymentStatusFailed DeploymentStatus = "Failed"
-)
-
-// DeploymentStrategy describes how to perform a deployment.
-type DeploymentStrategy struct {
-	// Type is the name of a deployment strategy.
-	Type DeploymentStrategyType
-
-	// RecreateParams are the input to the Recreate deployment strategy.
-	RecreateParams *RecreateDeploymentStrategyParams
-	// RollingParams are the input to the Rolling deployment strategy.
-	RollingParams *RollingDeploymentStrategyParams
-
-	// CustomParams are the input to the Custom deployment strategy, and may also
-	// be specified for the Recreate and Rolling strategies to customize the execution
-	// process that runs the deployment.
-	CustomParams *CustomDeploymentStrategyParams
-
-	// Resources contains resource requirements to execute the deployment
-	Resources kapi.ResourceRequirements
-	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
-	Labels map[string]string
-	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
-	Annotations map[string]string
-}
-
-// DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
-type DeploymentStrategyType string
-
-const (
-	// DeploymentStrategyTypeRecreate is a simple strategy suitable as a default.
-	DeploymentStrategyTypeRecreate DeploymentStrategyType = "Recreate"
-	// DeploymentStrategyTypeCustom is a user defined strategy. It is optional to set.
-	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
-	// DeploymentStrategyTypeRolling uses the Kubernetes RollingUpdater.
-	DeploymentStrategyTypeRolling DeploymentStrategyType = "Rolling"
-)
-
-// CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
-type CustomDeploymentStrategyParams struct {
-	// Image specifies a Docker image which can carry out a deployment.
-	Image string
-	// Environment holds the environment which will be given to the container for Image.
-	Environment []kapi.EnvVar
-	// Command is optional and overrides CMD in the container Image.
-	Command []string
-}
-
-// RecreateDeploymentStrategyParams are the input to the Recreate deployment
-// strategy.
-type RecreateDeploymentStrategyParams struct {
-	// TimeoutSeconds is the time to wait for updates before giving up. If the
-	// value is nil, a default will be used.
-	TimeoutSeconds *int64
-	// Pre is a lifecycle hook which is executed before the strategy manipulates
-	// the deployment. All LifecycleHookFailurePolicy values are supported.
-	Pre *LifecycleHook
-	// Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new
-	// pod is created. All LifecycleHookFailurePolicy values are supported.
-	Mid *LifecycleHook
-	// Post is a lifecycle hook which is executed after the strategy has
-	// finished all deployment logic.
-	Post *LifecycleHook
-}
-
-// LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.
-type LifecycleHook struct {
-	// FailurePolicy specifies what action to take if the hook fails.
-	FailurePolicy LifecycleHookFailurePolicy
-
-	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
-	ExecNewPod *ExecNewPodHook
-
-	// TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag if the deployment succeeds.
-	TagImages []TagImageHook
-}
-
-// LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
-type LifecycleHookFailurePolicy string
-
-const (
-	// LifecycleHookFailurePolicyRetry means retry the hook until it succeeds.
-	LifecycleHookFailurePolicyRetry LifecycleHookFailurePolicy = "Retry"
-	// LifecycleHookFailurePolicyAbort means abort the deployment (if possible).
-	LifecycleHookFailurePolicyAbort LifecycleHookFailurePolicy = "Abort"
-	// LifecycleHookFailurePolicyIgnore means ignore failure and continue the deployment.
-	LifecycleHookFailurePolicyIgnore LifecycleHookFailurePolicy = "Ignore"
-)
-
-// ExecNewPodHook is a hook implementation which runs a command in a new pod
-// based on the specified container which is assumed to be part of the
-// deployment template.
-type ExecNewPodHook struct {
-	// Command is the action command and its arguments.
-	Command []string
-	// Env is a set of environment variables to supply to the hook pod's container.
-	Env []kapi.EnvVar
-	// ContainerName is the name of a container in the deployment pod template
-	// whose Docker image will be used for the hook pod's container.
-	ContainerName string
-	// Volumes is a list of named volumes from the pod template which should be
-	// copied to the hook pod.
-	Volumes []string
-}
-
-// TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.
-type TagImageHook struct {
-	// ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag
-	ContainerName string
-	// To is the target ImageStreamTag to set the image of
-	To kapi.ObjectReference
-}
-
-// RollingDeploymentStrategyParams are the input to the Rolling deployment
-// strategy.
-type RollingDeploymentStrategyParams struct {
-	// UpdatePeriodSeconds is the time to wait between individual pod updates.
-	// If the value is nil, a default will be used.
-	UpdatePeriodSeconds *int64
-	// IntervalSeconds is the time to wait between polling deployment status
-	// after update. If the value is nil, a default will be used.
-	IntervalSeconds *int64
-	// TimeoutSeconds is the time to wait for updates before giving up. If the
-	// value is nil, a default will be used.
-	TimeoutSeconds *int64
-	// The maximum number of pods that can be unavailable during the update.
-	// Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%).
-	// Absolute number is calculated from percentage by rounding up.
-	// This can not be 0 if MaxSurge is 0.
-	// By default, a fixed value of 1 is used.
-	// Example: when this is set to 30%, the old RC can be scaled down by 30%
-	// immediately when the rolling update starts. Once new pods are ready, old RC
-	// can be scaled down further, followed by scaling up the new RC, ensuring
-	// that at least 70% of original number of pods are available at all times
-	// during the update.
-	MaxUnavailable intstr.IntOrString
-	// The maximum number of pods that can be scheduled above the original number of
-	// pods.
-	// Value can be an absolute number (ex: 5) or a percentage of total pods at
-	// the start of the update (ex: 10%). This can not be 0 if MaxUnavailable is 0.
-	// Absolute number is calculated from percentage by rounding up.
-	// By default, a value of 1 is used.
-	// Example: when this is set to 30%, the new RC can be scaled up by 30%
-	// immediately when the rolling update starts. Once old pods have been killed,
-	// new RC can be scaled up further, ensuring that total number of pods running
-	// at any time during the update is atmost 130% of original pods.
-	MaxSurge intstr.IntOrString
-	// Pre is a lifecycle hook which is executed before the deployment process
-	// begins. All LifecycleHookFailurePolicy values are supported.
-	Pre *LifecycleHook
-	// Post is a lifecycle hook which is executed after the strategy has
-	// finished all deployment logic.
-	Post *LifecycleHook
-}
-
+// These constants represent defaults used in the deployment process.
 const (
 	// DefaultRollingTimeoutSeconds is the default TimeoutSeconds for RollingDeploymentStrategyParams.
 	DefaultRollingTimeoutSeconds int64 = 10 * 60
@@ -183,6 +14,10 @@ const (
 	DefaultRollingIntervalSeconds int64 = 1
 	// DefaultRollingUpdatePeriodSeconds is the default PeriodSeconds for RollingDeploymentStrategyParams.
 	DefaultRollingUpdatePeriodSeconds int64 = 1
+	// MaxDeploymentDurationSeconds represents the maximum duration that a deployment is allowed to run.
+	// This is set as the default value for ActiveDeadlineSeconds for the deployer pod.
+	// Currently set to 6 hours.
+	MaxDeploymentDurationSeconds int64 = 21600
 )
 
 // These constants represent keys used for correlating objects related to deployments.
@@ -248,6 +83,13 @@ const (
 	PostHookPodSuffix = "hook-post"
 )
 
+// These constants represent values used in deployment annotations.
+const (
+	// DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
+	// annotation that signifies that the deployment should be cancelled
+	DeploymentCancelledAnnotationValue = "true"
+)
+
 // These constants represent the various reasons for cancelling a deployment
 // or for a deployment being placed in a failed state
 const (
@@ -257,18 +99,23 @@ const (
 	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
 )
 
-// MaxDeploymentDurationSeconds represents the maximum duration that a deployment is allowed to run
-// This is set as the default value for ActiveDeadlineSeconds for the deployer pod
-// Currently set to 6 hours
-const MaxDeploymentDurationSeconds int64 = 21600
+// DeploymentStatus describes the possible states a deployment can be in.
+type DeploymentStatus string
 
-// DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
-// annotation that signifies that the deployment should be cancelled
-const DeploymentCancelledAnnotationValue = "true"
-
-// DeploymentInstantiatedAnnotationValue represents the value for the DeploymentInstantiatedAnnotation
-// annotation that signifies that the deployment should be instantiated.
-const DeploymentInstantiatedAnnotationValue = "true"
+const (
+	// DeploymentStatusNew means the deployment has been accepted but not yet acted upon.
+	DeploymentStatusNew DeploymentStatus = "New"
+	// DeploymentStatusPending means the deployment been handed over to a deployment strategy,
+	// but the strategy has not yet declared the deployment to be running.
+	DeploymentStatusPending DeploymentStatus = "Pending"
+	// DeploymentStatusRunning means the deployment strategy has reported the deployment as
+	// being in-progress.
+	DeploymentStatusRunning DeploymentStatus = "Running"
+	// DeploymentStatusComplete means the deployment finished without an error.
+	DeploymentStatusComplete DeploymentStatus = "Complete"
+	// DeploymentStatusFailed means the deployment finished with an error.
+	DeploymentStatusFailed DeploymentStatus = "Failed"
+)
 
 // +genclient=true
 
@@ -326,27 +173,162 @@ type DeploymentConfigSpec struct {
 	Template *kapi.PodTemplateSpec
 }
 
-// DeploymentConfigStatus represents the current deployment state.
-type DeploymentConfigStatus struct {
-	// LatestVersion is used to determine whether the current deployment associated with a deployment
-	// config is out of sync.
-	LatestVersion int64
-	// ObservedGeneration is the most recent generation observed by the deployment config controller.
-	ObservedGeneration int64
-	// Replicas is the total number of pods targeted by this deployment config.
-	Replicas int32
-	// UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config
-	// that have the desired template spec.
-	UpdatedReplicas int32
-	// AvailableReplicas is the total number of available pods targeted by this deployment config.
-	AvailableReplicas int32
-	// UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.
-	UnavailableReplicas int32
-	// Details are the reasons for the update to this deployment config.
-	// This could be based on a change made by the user or caused by an automatic trigger
-	Details *DeploymentDetails
-	// Conditions represents the latest available observations of a deployment config's current state.
-	Conditions []DeploymentCondition
+// DeploymentStrategy describes how to perform a deployment.
+type DeploymentStrategy struct {
+	// Type is the name of a deployment strategy.
+	Type DeploymentStrategyType
+
+	// CustomParams are the input to the Custom deployment strategy, and may also
+	// be specified for the Recreate and Rolling strategies to customize the execution
+	// process that runs the deployment.
+	CustomParams *CustomDeploymentStrategyParams
+	// RecreateParams are the input to the Recreate deployment strategy.
+	RecreateParams *RecreateDeploymentStrategyParams
+	// RollingParams are the input to the Rolling deployment strategy.
+	RollingParams *RollingDeploymentStrategyParams
+
+	// Resources contains resource requirements to execute the deployment and any hooks.
+	Resources kapi.ResourceRequirements
+	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Labels map[string]string
+	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
+	Annotations map[string]string
+}
+
+// DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
+type DeploymentStrategyType string
+
+const (
+	// DeploymentStrategyTypeRecreate is a simple strategy suitable as a default.
+	DeploymentStrategyTypeRecreate DeploymentStrategyType = "Recreate"
+	// DeploymentStrategyTypeCustom is a user defined strategy.
+	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
+	// DeploymentStrategyTypeRolling uses the Kubernetes RollingUpdater.
+	DeploymentStrategyTypeRolling DeploymentStrategyType = "Rolling"
+)
+
+// CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
+type CustomDeploymentStrategyParams struct {
+	// Image specifies a Docker image which can carry out a deployment.
+	Image string
+	// Environment holds the environment which will be given to the container for Image.
+	Environment []kapi.EnvVar
+	// Command is optional and overrides CMD in the container Image.
+	Command []string
+}
+
+// RecreateDeploymentStrategyParams are the input to the Recreate deployment
+// strategy.
+type RecreateDeploymentStrategyParams struct {
+	// TimeoutSeconds is the time to wait for updates before giving up. If the
+	// value is nil, a default will be used.
+	TimeoutSeconds *int64
+	// Pre is a lifecycle hook which is executed before the strategy manipulates
+	// the deployment. All LifecycleHookFailurePolicy values are supported.
+	Pre *LifecycleHook
+	// Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new
+	// pod is created. All LifecycleHookFailurePolicy values are supported.
+	Mid *LifecycleHook
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all deployment logic. All LifecycleHookFailurePolicy values are supported.
+	Post *LifecycleHook
+}
+
+// RollingDeploymentStrategyParams are the input to the Rolling deployment
+// strategy.
+type RollingDeploymentStrategyParams struct {
+	// UpdatePeriodSeconds is the time to wait between individual pod updates.
+	// If the value is nil, a default will be used.
+	UpdatePeriodSeconds *int64
+	// IntervalSeconds is the time to wait between polling deployment status
+	// after update. If the value is nil, a default will be used.
+	IntervalSeconds *int64
+	// TimeoutSeconds is the time to wait for updates before giving up. If the
+	// value is nil, a default will be used.
+	TimeoutSeconds *int64
+	// MaxUnavailable is the maximum number of pods that can be unavailable
+	// during the update. Value can be an absolute number (ex: 5) or a
+	// percentage of total pods at the start of update (ex: 10%). Absolute
+	// number is calculated from percentage by rounding up.
+	//
+	// This cannot be 0 if MaxSurge is 0. By default, 25% is used.
+	//
+	// Example: when this is set to 30%, the old RC can be scaled down by 30%
+	// immediately when the rolling update starts. Once new pods are ready, old
+	// RC can be scaled down further, followed by scaling up the new RC,
+	// ensuring that at least 70% of original number of pods are available at
+	// all times during the update.
+	MaxUnavailable intstr.IntOrString
+	// MaxSurge is the maximum number of pods that can be scheduled above the
+	// original number of pods. Value can be an absolute number (ex: 5) or a
+	// percentage of total pods at the start of the update (ex: 10%). Absolute
+	// number is calculated from percentage by rounding up.
+	//
+	// This cannot be 0 if MaxUnavailable is 0. By default, 25% is used.
+	//
+	// Example: when this is set to 30%, the new RC can be scaled up by 30%
+	// immediately when the rolling update starts. Once old pods have been
+	// killed, new RC can be scaled up further, ensuring that total number of
+	// pods running at any time during the update is atmost 130% of original
+	// pods.
+	MaxSurge intstr.IntOrString
+	// Pre is a lifecycle hook which is executed before the deployment process
+	// begins. All LifecycleHookFailurePolicy values are supported.
+	Pre *LifecycleHook
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all deployment logic. All LifecycleHookFailurePolicy values
+	// are supported.
+	Post *LifecycleHook
+}
+
+// LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.
+type LifecycleHook struct {
+	// FailurePolicy specifies what action to take if the hook fails.
+	FailurePolicy LifecycleHookFailurePolicy
+
+	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
+	ExecNewPod *ExecNewPodHook
+
+	// TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.
+	TagImages []TagImageHook
+}
+
+// LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
+type LifecycleHookFailurePolicy string
+
+const (
+	// LifecycleHookFailurePolicyRetry means retry the hook until it succeeds.
+	LifecycleHookFailurePolicyRetry LifecycleHookFailurePolicy = "Retry"
+	// LifecycleHookFailurePolicyAbort means abort the deployment.
+	LifecycleHookFailurePolicyAbort LifecycleHookFailurePolicy = "Abort"
+	// LifecycleHookFailurePolicyIgnore means ignore failure and continue the deployment.
+	LifecycleHookFailurePolicyIgnore LifecycleHookFailurePolicy = "Ignore"
+)
+
+// ExecNewPodHook is a hook implementation which runs a command in a new pod
+// based on the specified container which is assumed to be part of the
+// deployment template.
+type ExecNewPodHook struct {
+	// Command is the action command and its arguments.
+	Command []string
+	// Env is a set of environment variables to supply to the hook pod's container.
+	Env []kapi.EnvVar
+	// ContainerName is the name of a container in the deployment pod template
+	// whose Docker image will be used for the hook pod's container.
+	ContainerName string
+	// Volumes is a list of named volumes from the pod template which should be
+	// copied to the hook pod. Volumes names not found in pod spec are ignored.
+	// An empty list means no volumes will be copied.
+	Volumes []string
+}
+
+// TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.
+type TagImageHook struct {
+	// ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single
+	// container this value will be defaulted to the name of that container.
+	ContainerName string
+	// To is the target ImageStreamTag to set the container's image onto.
+	To kapi.ObjectReference
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
@@ -384,6 +366,29 @@ type DeploymentTriggerImageChangeParams struct {
 	From kapi.ObjectReference
 	// LastTriggeredImage is the last image to be triggered.
 	LastTriggeredImage string
+}
+
+// DeploymentConfigStatus represents the current deployment state.
+type DeploymentConfigStatus struct {
+	// LatestVersion is used to determine whether the current deployment associated with a deployment
+	// config is out of sync.
+	LatestVersion int64
+	// ObservedGeneration is the most recent generation observed by the deployment config controller.
+	ObservedGeneration int64
+	// Replicas is the total number of pods targeted by this deployment config.
+	Replicas int32
+	// UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config
+	// that have the desired template spec.
+	UpdatedReplicas int32
+	// AvailableReplicas is the total number of available pods targeted by this deployment config.
+	AvailableReplicas int32
+	// UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.
+	UnavailableReplicas int32
+	// Details are the reasons for the update to this deployment config.
+	// This could be based on a change made by the user or caused by an automatic trigger
+	Details *DeploymentDetails
+	// Conditions represents the latest available observations of a deployment config's current state.
+	Conditions []DeploymentCondition
 }
 
 // DeploymentDetails captures information about the causes of a deployment.

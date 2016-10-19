@@ -88,7 +88,7 @@ func TestSAR(t *testing.T) {
 	cache := projectcache.NewFake(mockClient.Namespaces(), store, "")
 
 	mockClientset := clientsetfake.NewSimpleClientset()
-	handler := &lifecycle{client: mockClientset}
+	handler := &lifecycle{client: mockClientset, creatableResources: recommendedCreatableResources}
 	handler.SetProjectCache(cache)
 
 	tests := map[string]struct {

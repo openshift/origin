@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 17aa1a1d29d7673e29cae034ef4a3cbba30ef8b0
+%global commit ff13f5b9242480196d40b09cd0bfe6815e5a9b1d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.11+17aa1a1 OS_GIT_COMMIT=17aa1a1 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.12+ff13f5b OS_GIT_COMMIT=ff13f5b OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.12
+Version:        3.4.0.13
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,45 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Oct 19 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.13
+- Update ose_images.sh - 2016-10-17 (tdawson@redhat.com)
+- Remove dependence on external mysql image tag order (jliggitt@redhat.com)
+- Set test/extended/networking-minimal.sh +x (marun@redhat.com)
+- UPSTREAM: 32084: Do not allow creation of GCE PDs in unmanaged zones
+  (jsafrane@redhat.com)
+- UPSTREAM: 32077: Do not report warning event when an unknown provisioner is
+  requested (jsafrane@redhat.com)
+- Clarify new-app messages (jminter@redhat.com)
+- allow review endpoints on missing namespaces (deads@redhat.com)
+- UPSTREAM: <carry>: update namespace lifecycle to allow review APIs
+  (deads@redhat.com)
+- Correct secret type in oc secrets new-{basic,ssh}auth (jminter@redhat.com)
+- add cmd test (jvallejo@redhat.com)
+- oc: generated code for switching from --latest to --again
+  (mkargaki@redhat.com)
+- oc: deprecate 'deploy --latest' in favor of 'rollout latest --again'
+  (mkargaki@redhat.com)
+- UPSTREAM: 34010: Match GroupVersionKind against specific version
+  (maszulik@redhat.com)
+- deploy: generated code for api refactoring (mkargaki@redhat.com)
+- deploy: api types refactoring (mkargaki@redhat.com)
+- make function addDefaultEnvVar cleaner (li.guangxu@zte.com.cn)
+- add client config invalid flags error handling test (jvallejo@redhat.com)
+- UPSTREAM: 29236: handle invalid client config option errors
+  (jvallejo@redhat.com)
+- UPSTREAM: 34020: Allow empty annotation values Annotations with empty values
+  can be used, for example, in diagnostics logging. This patch removes the
+  client-side check for empty values in an annotation key-value pair.
+  (jvallejo@redhat.com)
+- Add logging to project request failures (jliggitt@redhat.com)
+- Allow cluster up and rsync when no ipv6 on container host
+  (jminter@redhat.com)
+- UPSTREAM: <carry>: sysctls SCC strategy (agoldste@redhat.com)
+- Fix a typo of logging code in pkg/router/template/router.go
+  (yhlou@travelsky.com)
+- Add wildcard entry to cluster up router cert (ironcladlou@gmail.com)
+- Update cluster_up_down.md (chris-milsted@users.noreply.github.com)
+
 * Mon Oct 17 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.12
 - Merge remote-tracking branch upstream/master, bump origin-web-console d5318f2
   (tdawson@redhat.com)

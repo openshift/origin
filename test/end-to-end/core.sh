@@ -349,7 +349,7 @@ os::cmd::try_until_success 'oc get rc/failing-dc-1'
 os::cmd::expect_success 'oc logs -f dc/failing-dc'
 os::cmd::expect_failure 'oc rollout status dc/failing-dc'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
-os::cmd::expect_success 'oc deploy failing-dc --latest'
+os::cmd::expect_success 'oc rollout latest dc/failing-dc --again'
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc' 'test pre hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc'  'test pre hook executed'
 # Make sure --since-time adds the right query param, and actually returns logs

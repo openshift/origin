@@ -671,6 +671,15 @@ func Convert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentStrat
 
 func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *api.DeploymentStrategy, out *DeploymentStrategy, s conversion.Scope) error {
 	out.Type = DeploymentStrategyType(in.Type)
+	if in.CustomParams != nil {
+		in, out := &in.CustomParams, &out.CustomParams
+		*out = new(CustomDeploymentStrategyParams)
+		if err := Convert_api_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrategyParams(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.CustomParams = nil
+	}
 	if in.RecreateParams != nil {
 		in, out := &in.RecreateParams, &out.RecreateParams
 		*out = new(RecreateDeploymentStrategyParams)
@@ -688,15 +697,6 @@ func autoConvert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *api.Deploym
 		}
 	} else {
 		out.RollingParams = nil
-	}
-	if in.CustomParams != nil {
-		in, out := &in.CustomParams, &out.CustomParams
-		*out = new(CustomDeploymentStrategyParams)
-		if err := Convert_api_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrategyParams(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.CustomParams = nil
 	}
 	if err := api_v1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err

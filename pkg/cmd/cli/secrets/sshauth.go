@@ -117,7 +117,7 @@ func (o *CreateSSHAuthSecretOptions) CreateSSHAuthSecret() error {
 func (o *CreateSSHAuthSecretOptions) NewSSHAuthSecret() (*api.Secret, error) {
 	secret := &api.Secret{}
 	secret.Name = o.SecretName
-	secret.Type = api.SecretTypeOpaque
+	secret.Type = api.SecretTypeSSHAuth
 	secret.Data = map[string][]byte{}
 
 	if len(o.PrivateKeyPath) != 0 {
