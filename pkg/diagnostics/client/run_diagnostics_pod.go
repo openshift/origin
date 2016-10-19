@@ -8,8 +8,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	"github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -21,7 +21,7 @@ const (
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
 type DiagnosticPod struct {
-	KubeClient          kclient.Client
+	KubeClient          client.KClientInterface
 	Namespace           string
 	Level               int
 	Factory             *osclientcmd.Factory

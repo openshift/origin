@@ -69,7 +69,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 }
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
-	RunEventQueue(proxy.osClient.GetRESTClient(), EgressNetworkPolicies, func(delta cache.Delta) error {
+	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 		if delta.Type == cache.Deleted {
 			policy.Spec.Egress = nil

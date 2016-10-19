@@ -10,7 +10,6 @@ import (
 	etcdversion "github.com/coreos/etcd/version"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeversion "k8s.io/kubernetes/pkg/version"
@@ -33,7 +32,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (client.Interface, *kclient.Client, error)
+	Clients      func() (client.Interface, client.KClientInterface, error)
 
 	Timeout time.Duration
 
@@ -158,7 +157,7 @@ func (o VersionOptions) RunVersion() error {
 			return
 		}
 
-		ocVersionBody, err := oClient.GetRESTClient().Get().AbsPath("/version/openshift").Do().Raw()
+		ocVersionBody, err := oClient.Get().AbsPath("/version/openshift").Do().Raw()
 		switch {
 		case err == nil:
 			var ocServerInfo version.Info

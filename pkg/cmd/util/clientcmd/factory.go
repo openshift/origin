@@ -158,7 +158,7 @@ func (c defaultingClientConfig) ClientConfig() (*restclient.Config, error) {
 To view or setup config directly use the 'config' command.`)}
 }
 
-// Factory provides common options for OpenShift commands
+// Factory implements FactoryInterface and provides common options for OpenShift commands.
 type Factory struct {
 	*cmdutil.Factory
 	OpenShiftClientConfig kclientcmd.ClientConfig
@@ -222,7 +222,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 
 		cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
-		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.GetRESTClient()), cacheDir, time.Duration(10*time.Minute))
+		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient), cacheDir, time.Duration(10*time.Minute))
 
 		// if we can't find the server version or its too old to have Kind information in the discovery doc, skip the discovery RESTMapper
 		// and use our hardcoded levels
@@ -279,7 +279,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if err != nil {
 				return nil, err
 			}
-			return client.GetRESTClient(), nil
+			return client, nil
 		}
 		return kClientForMapping(mapping)
 	}
@@ -591,7 +591,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		if err != nil {
 			return nil, err
 		}
-		return w.OriginSwaggerSchema(oc.GetRESTClient(), gvk.GroupVersion())
+		return w.OriginSwaggerSchema(oc, gvk.GroupVersion())
 	}
 
 	w.Factory.EditorEnvs = func() []string {
@@ -993,7 +993,7 @@ func podNameForJob(job *batch.Job, kc *kclient.Client, timeout time.Duration, so
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (f *Factory) Clients() (client.Interface, *kclient.Client, error) {
+func (f *Factory) Clients() (client.Interface, client.KClientInterface, error) {
 	kClient, err := f.Client()
 	if err != nil {
 		return nil, nil, err
@@ -1006,7 +1006,7 @@ func (f *Factory) Clients() (client.Interface, *kclient.Client, error) {
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *Factory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+func (f *Factory) OriginSwaggerSchema(client resource.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
 	if version.Empty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}

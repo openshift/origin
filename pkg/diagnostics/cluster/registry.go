@@ -9,7 +9,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -20,7 +19,7 @@ import (
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
 type ClusterRegistry struct {
-	KubeClient          *kclient.Client
+	KubeClient          osclient.KClientInterface
 	OsClient            osclient.Interface
 	PreventModification bool
 }
@@ -252,7 +251,7 @@ func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.Diagnos
 
 func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticResult) {
 	// pull out logs from the pod
-	readCloser, err := d.KubeClient.RESTClient.Get().
+	readCloser, err := d.KubeClient.Get().
 		Namespace("default").Name(pod.ObjectMeta.Name).
 		Resource("pods").SubResource("log").
 		Param("follow", "false").

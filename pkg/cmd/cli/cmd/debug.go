@@ -278,7 +278,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	if err != nil {
 		return err
 	}
-	o.Attach.Client = kc
+	o.Attach.Client = kc.(*kclient.Client)
 	return nil
 }
 func (o DebugOptions) Validate() error {

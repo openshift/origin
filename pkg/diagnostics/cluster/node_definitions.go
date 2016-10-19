@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -47,7 +46,7 @@ other options for 'oadm manage-node').
 
 // NodeDefinitions is a Diagnostic for analyzing the nodes in a cluster.
 type NodeDefinitions struct {
-	KubeClient *kclient.Client
+	KubeClient osclient.KClientInterface
 	OsClient   osclient.Interface
 }
 

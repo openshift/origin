@@ -202,7 +202,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	return nil
 }
 
-func validateServiceAccount(client *kclient.Client, ns string, serviceAccount string) error {
+func validateServiceAccount(client kclient.Interface, ns string, serviceAccount string) error {
 
 	sccList, err := client.SecurityContextConstraints().List(kapi.ListOptions{})
 	if err != nil {

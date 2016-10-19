@@ -13,6 +13,8 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kubeclient "k8s.io/kubernetes/pkg/client/unversioned"
+
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -532,8 +534,8 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	}
 
 	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, kclient)
-	dcGetter := deployclient.New(oclient.GetRESTClient())
-	rcGetter := clientset.FromUnversionedClient(kclient)
+	dcGetter := deployclient.New(oclient)
+	rcGetter := clientset.FromUnversionedClient(kclient.(*kubeclient.Client))
 
 	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, rcGetter, func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)

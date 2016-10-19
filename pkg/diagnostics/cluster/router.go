@@ -11,7 +11,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -22,7 +21,7 @@ import (
 
 // ClusterRouter is a Diagnostic to check that there is a working router.
 type ClusterRouter struct {
-	KubeClient *kclient.Client
+	KubeClient osclient.KClientInterface
 	OsClient   osclient.Interface
 }
 
@@ -170,7 +169,7 @@ func (s *lineScanner) Text() string { return s.Scanner.Text() }
 func (s *lineScanner) Close() error { return s.ReadCloser.Close() }
 
 func (d *ClusterRouter) getPodLogScanner(pod *kapi.Pod) (*lineScanner, error) {
-	readCloser, err := d.KubeClient.RESTClient.Get().
+	readCloser, err := d.KubeClient.Get().
 		Namespace(pod.ObjectMeta.Namespace).
 		Name(pod.ObjectMeta.Name).
 		Resource("pods").SubResource("log").

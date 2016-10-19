@@ -254,7 +254,7 @@ func (master *OsdnMaster) watchSubnets() {
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
 	subnets := make(map[string]*osapi.HostSubnet)
-	RunEventQueue(node.osClient.GetRESTClient(), HostSubnets, func(delta cache.Delta) error {
+	RunEventQueue(node.osClient, HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
 			return nil

@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -16,6 +19,14 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/version"
 )
+
+// KClientInterface is an Interface for kubectl client.
+type KClientInterface interface {
+	kclient.Interface
+	kclient.DaemonSetsNamespacer
+	kclient.ScaleNamespacer
+	resource.RESTClient
+}
 
 // Interface exposes methods on OpenShift resources.
 type Interface interface {
@@ -66,10 +77,10 @@ type Interface interface {
 	ClusterRoleBindingsInterface
 	ClusterResourceQuotasInterface
 	AppliedClusterResourceQuotasNamespacer
-
 	// Openshift specific methods.
 	Discovery() discovery.DiscoveryInterface
-	GetRESTClient() *restclient.RESTClient
+	// Implements kubectl RESTClient
+	resource.RESTClient
 }
 
 // Builds provides a REST client for Builds
@@ -316,14 +327,27 @@ func New(c *restclient.Config) (*Client, error) {
 	return &Client{client}, nil
 }
 
-// DiscoveryClient returns a discovery client.
+// Discovery returns a discovery client.
 func (c *Client) Discovery() discovery.DiscoveryInterface {
 	d := NewDiscoveryClient(c.RESTClient)
 	return d
 }
 
-func (c *Client) GetRESTClient() *restclient.RESTClient {
-	return c.RESTClient
+// Methods above implements RESTClient interface.
+func (c *Client) Post() *restclient.Request {
+	return c.RESTClient.Post()
+}
+func (c *Client) Put() *restclient.Request {
+	return c.RESTClient.Put()
+}
+func (c *Client) Patch(pt kapi.PatchType) *restclient.Request {
+	return c.RESTClient.Patch(pt)
+}
+func (c *Client) Get() *restclient.Request {
+	return c.RESTClient.Get()
+}
+func (c *Client) Delete() *restclient.Request {
+	return c.RESTClient.Delete()
 }
 
 // SetOpenShiftDefaults sets the default settings on the passed

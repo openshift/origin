@@ -195,7 +195,7 @@ func (node *OsdnNode) updatePodNetwork(namespace string, oldNetID, netID uint32)
 }
 
 func (node *OsdnNode) watchNetNamespaces() {
-	RunEventQueue(node.osClient.GetRESTClient(), NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(node.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)

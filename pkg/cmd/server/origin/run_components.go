@@ -557,7 +557,7 @@ func (c *MasterConfig) RunUnidlingController() {
 	resyncPeriod := 2 * time.Hour
 	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc)
 	coreClient := clientadapter.FromUnversionedClient(kc).Core()
-	dcCoreClient := deployclient.New(oc.GetRESTClient())
+	dcCoreClient := deployclient.New(oc)
 	cont := unidlingcontroller.NewUnidlingController(scaleNamespacer, coreClient, coreClient, dcCoreClient, coreClient, resyncPeriod)
 
 	cont.Run(utilwait.NeverStop)

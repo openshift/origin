@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
@@ -22,7 +21,7 @@ const (
 )
 
 //checkKibana verifies the various integration points between Kibana and logging
-func checkKibana(r types.DiagnosticResult, osClient client.Interface, kClient *kclient.Client, project string) {
+func checkKibana(r types.DiagnosticResult, osClient client.Interface, kClient client.KClientInterface, project string) {
 	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName)
 	if err != nil {
 		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
@@ -33,7 +32,7 @@ func checkKibana(r types.DiagnosticResult, osClient client.Interface, kClient *k
 }
 
 //checkKibanaSecret confirms the secret used by kibana matches that configured in the oauth client
-func checkKibanaSecret(r types.DiagnosticResult, osClient client.Interface, kClient *kclient.Client, project string, oauthclient *oauthapi.OAuthClient) {
+func checkKibanaSecret(r types.DiagnosticResult, osClient client.Interface, kClient client.KClientInterface, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
 	secret, err := kClient.Secrets(project).Get(kibanaProxySecretName)
 	if err != nil {

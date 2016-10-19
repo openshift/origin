@@ -294,7 +294,7 @@ func (master *OsdnMaster) watchNamespaces() {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	RunEventQueue(master.osClient.GetRESTClient(), NetNamespaces, func(delta cache.Delta) error {
+	RunEventQueue(master.osClient, NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 

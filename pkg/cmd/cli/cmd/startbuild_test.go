@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
@@ -225,7 +224,7 @@ func TestStartBuildComplete(t *testing.T) {
 		OnObject: func(bool) (kmeta.RESTMapper, kruntime.ObjectTyper) {
 			return registered.RESTMapper(), kapi.Scheme
 		},
-		OnClients: func() (client.Interface, *kclient.Client, error) {
+		OnClients: func() (client.Interface, client.KClientInterface, error) {
 			return osclient, nil, nil
 		},
 		OnOSClientConfig: func() kclientcmd.ClientConfig {

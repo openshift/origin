@@ -19,17 +19,9 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-// InterfaceFactory represents an interface for a Factory.
-type InterfaceFactory interface {
-	UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error)
-	ExtractFileContents(obj runtime.Object) (map[string][]byte, bool, error)
-	ApproximatePodTemplateForObject(object runtime.Object) (*api.PodTemplateSpec, error)
-	PodForResource(resource string, timeout time.Duration) (string, error)
-	Clients() (client.Interface, *kclient.Client, error)
-	OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error)
-	OSClientConfig() kclientcmd.ClientConfig
-
-	// Methods below are wrappers for kubernetes Factory methods.
+// KubernetesFactory represents the kubernetes Factory interface.
+// TODO: When implemented in kubernetes this can be removed.
+type KubernetesFactory interface {
 	Object(thirdPartyDiscovery bool) (meta.RESTMapper, runtime.ObjectTyper)
 	UnstructuredObject() (meta.RESTMapper, runtime.ObjectTyper, error)
 	Decoder(toInternal bool) runtime.Decoder
@@ -64,9 +56,22 @@ type InterfaceFactory interface {
 	PrintObjectSpecificMessage(obj runtime.Object, out io.Writer)
 }
 
-// Missing methods to turn Factory a InterfaceFactory interface.
+// FactoryInterface represents an interface for a Factory.
+type FactoryInterface interface {
+	KubernetesFactory
 
-// OSClientConfig returns an Openshift CLientConfig.
+	UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error)
+	ExtractFileContents(obj runtime.Object) (map[string][]byte, bool, error)
+	ApproximatePodTemplateForObject(object runtime.Object) (*api.PodTemplateSpec, error)
+	PodForResource(resource string, timeout time.Duration) (string, error)
+	Clients() (client.Interface, client.KClientInterface, error)
+	OriginSwaggerSchema(client resource.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error)
+	OSClientConfig() kclientcmd.ClientConfig
+}
+
+// Missing methods needed to make Factory implement FactoryInterface.
+
+// OSClientConfig returns an Openshift ClientConfig.
 func (f *Factory) OSClientConfig() kclientcmd.ClientConfig {
 	return f.OpenShiftClientConfig
 }

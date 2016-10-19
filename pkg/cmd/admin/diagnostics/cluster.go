@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -44,7 +43,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 
 	var (
 		clusterClient  client.Interface
-		kclusterClient *kclient.Client
+		kclusterClient client.KClientInterface
 	)
 
 	clusterClient, kclusterClient, found, serverUrl, err := o.findClusterClients(rawConfig)
@@ -84,7 +83,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 }
 
 // attempts to find which context in the config might be a cluster-admin for the server in the current context.
-func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (client.Interface, *kclient.Client, bool, string, error) {
+func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (client.Interface, client.KClientInterface, bool, string, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
 		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; exists {
 			configErr := fmt.Errorf("Specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
@@ -120,7 +119,7 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 }
 
 // makes the client from the specified context and determines whether it is a cluster-admin.
-func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (client.Interface, *kclient.Client, bool, string, error) {
+func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (client.Interface, client.KClientInterface, bool, string, error) {
 	overrides := &clientcmd.ConfigOverrides{Context: *context}
 	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)
 	serverUrl := rawConfig.Clusters[context.Cluster].Server

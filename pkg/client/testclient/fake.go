@@ -354,6 +354,18 @@ func (c *Fake) Discovery() discovery.DiscoveryInterface {
 	return nil
 }
 
-func (c *Fake) GetRESTClient() *restclient.RESTClient {
+func (c *Fake) Post() *restclient.Request {
+	return nil
+}
+func (c *Fake) Put() *restclient.Request {
+	return nil
+}
+func (c *Fake) Patch(pt kapi.PatchType) *restclient.Request {
+	return nil
+}
+func (c *Fake) Get() *restclient.Request {
+	return nil
+}
+func (c *Fake) Delete() *restclient.Request {
 	return nil
 }

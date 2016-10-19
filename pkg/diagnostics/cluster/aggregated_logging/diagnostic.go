@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
@@ -27,7 +26,7 @@ type AggregatedLogging struct {
 	masterConfig     *configapi.MasterConfig
 	MasterConfigFile string
 	OsClient         client.Interface
-	KubeClient       *kclient.Client
+	KubeClient       client.KClientInterface
 	result           types.DiagnosticResult
 }
 
@@ -45,7 +44,7 @@ const (
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
 
 //NewAggregatedLogging returns the AggregatedLogging Diagnostic
-func NewAggregatedLogging(masterConfigFile string, kclient *kclient.Client, osclient client.Interface) *AggregatedLogging {
+func NewAggregatedLogging(masterConfigFile string, kclient client.KClientInterface, osclient client.Interface) *AggregatedLogging {
 	return &AggregatedLogging{nil, masterConfigFile, osclient, kclient, types.NewDiagnosticResult(AggregatedLoggingName)}
 }
 

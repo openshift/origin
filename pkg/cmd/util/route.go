@@ -5,16 +5,16 @@ import (
 	"strconv"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/route/api"
 )
 
 // UnsecuredRoute will return a route with enough info so that it can direct traffic to
 // the service provided by --service. Callers of this helper are responsible for providing
 // tls configuration, path, and the hostname of the route.
-func UnsecuredRoute(kc *kclient.Client, namespace, routeName, serviceName, portString string) (*api.Route, error) {
+func UnsecuredRoute(kc client.KClientInterface, namespace, routeName, serviceName, portString string) (*api.Route, error) {
 	if len(routeName) == 0 {
 		routeName = serviceName
 	}

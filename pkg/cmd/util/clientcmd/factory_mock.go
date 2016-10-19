@@ -25,8 +25,8 @@ type MockFactory struct {
 	OnExtractFileContents             func(obj runtime.Object) (map[string][]byte, bool, error)
 	OnApproximatePodTemplateForObject func(object runtime.Object) (*api.PodTemplateSpec, error)
 	OnPodForResource                  func(resource string, timeout time.Duration) (string, error)
-	OnClients                         func() (client.Interface, *kclient.Client, error)
-	OnOriginSwaggerSchema             func(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error)
+	OnClients                         func() (client.Interface, client.KClientInterface, error)
+	OnOriginSwaggerSchema             func(client resource.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error)
 	OnOSClientConfig                  func() kclientcmd.ClientConfig
 
 	// Kubernetes Factory functions.
@@ -81,12 +81,12 @@ func (m *MockFactory) PodForResource(resource string, timeout time.Duration) (st
 }
 
 // Clients returns an OpenShift and Kubernetes client.
-func (m *MockFactory) Clients() (client.Interface, *kclient.Client, error) {
+func (m *MockFactory) Clients() (client.Interface, client.KClientInterface, error) {
 	return m.OnClients()
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (m *MockFactory) OriginSwaggerSchema(client *restclient.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
+func (m *MockFactory) OriginSwaggerSchema(client resource.RESTClient, version unversioned.GroupVersion) (*swagger.ApiDeclaration, error) {
 	return m.OnOriginSwaggerSchema(client, version)
 }
 

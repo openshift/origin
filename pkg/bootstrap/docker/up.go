@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -795,7 +794,7 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 }
 
 // Clients returns clients for OpenShift and Kube
-func (c *ClientStartConfig) Clients() (client.Interface, *kclient.Client, error) {
+func (c *ClientStartConfig) Clients() (client.Interface, client.KClientInterface, error) {
 	f, err := c.Factory()
 	if err != nil {
 		return nil, nil, err
