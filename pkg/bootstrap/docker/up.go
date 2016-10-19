@@ -105,6 +105,7 @@ var (
 		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.json",
+		"logging":                     "examples/logging/logging-deployer.yaml",
 	}
 	dockerVersion19  = semver.MustParse("1.9.0")
 	dockerVersion110 = semver.MustParse("1.10.0")
@@ -144,6 +145,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
+	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
 	return cmd
 }
 
@@ -168,6 +170,7 @@ type ClientStartConfig struct {
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
 	ShouldInstallMetrics      bool
+	ShouldInstallLogging      bool
 	PortForwarding            bool
 
 	UseNsenterMount    bool
@@ -283,7 +286,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.addConditionalTask("Installing router", c.InstallRouter, c.ShouldInitializeData)
 
 	// Install metrics
-	c.addConditionalTask("Install Metrics", c.InstallMetrics, func() bool {
+	c.addConditionalTask("Installing metrics", c.InstallMetrics, func() bool {
 		return c.ShouldInstallMetrics && c.ShouldInitializeData()
 	})
 
@@ -292,6 +295,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Import templates
 	c.addConditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData)
+
+	// Install logging
+	c.addConditionalTask("Installing logging", c.InstallLogging, func() bool {
+		return c.ShouldInstallLogging && c.ShouldInitializeData()
+	})
 
 	// Login with an initial default user
 	c.addConditionalTask("Login to server", c.Login, c.ShouldCreateUser)
@@ -636,6 +644,9 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
 	}
+	if c.ShouldInstallLogging {
+		opt.LoggingHost = openshift.LoggingHost(c.RoutingSuffix, c.ServerIP)
+	}
 	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
 	return err
 }
@@ -682,13 +693,20 @@ func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 	return c.importObjects(out, templateLocations)
 }
 
-/*
-// TODO: implement this
-func (c *ClientStartConfig) InstallLogging() error {
-	return nil
+// InstallLogging will start the installation of logging components
+func (c *ClientStartConfig) InstallLogging(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	publicMaster := c.PublicHostname
+	if len(publicMaster) == 0 {
+		publicMaster = c.ServerIP
+	}
+	return c.OpenShiftHelper().InstallLogging(f, publicMaster, openshift.LoggingHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
 }
-*/
 
+// InstallMetrics will start the installation of Metrics components
 func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 	f, err := c.Factory()
 	if err != nil {
@@ -705,7 +723,11 @@ func (c *ClientStartConfig) Login(out io.Writer) error {
 
 // CreateProject creates a new project for the current user
 func (c *ClientStartConfig) CreateProject(out io.Writer) error {
-	return openshift.CreateProject(initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
+	f, err := openshift.LoggedInUserFactory()
+	if err != nil {
+		return errors.NewError("cannot get logged in user client").WithCause(err)
+	}
+	return openshift.CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
 }
 
 // RemoveTemporaryDirectory removes the local configuration directory
@@ -720,9 +742,14 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
 			"    https://%s\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
 	}
+	loggingInfo := ""
+	if c.ShouldInstallLogging && c.ShouldInitializeData() {
+		loggingInfo = fmt.Sprintf("The kibana logging UI is available at:\n"+
+			"    https://%s\n\n", openshift.LoggingHost(c.RoutingSuffix, c.ServerIP))
+	}
 	msg := fmt.Sprintf("OpenShift server started.\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n%s", c.OpenShiftHelper().Master(c.ServerIP), metricsInfo)
+		"    %s\n\n%s%s", c.OpenShiftHelper().Master(c.ServerIP), metricsInfo, loggingInfo)
 
 	if c.ShouldCreateUser() {
 		msg += fmt.Sprintf("You are logged in as:\n"+
