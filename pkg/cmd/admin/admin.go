@@ -22,7 +22,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/registry"
 	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/admin/top"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/completion"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/config"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/options"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -129,15 +132,15 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 
 	cmds.AddCommand(
 		// part of every root command
-		cmd.NewCmdConfig(fullName, "config"),
-		cmd.NewCmdCompletion(fullName, f, out),
+		config.NewCmdConfig(fullName, "config"),
+		completion.NewCmdCompletion(fullName, f, out),
 
 		// hidden
-		cmd.NewCmdOptions(out),
+		options.NewCmdOptions(out),
 	)
 
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{}))
+		cmds.AddCommand(version.NewCmdVersion(fullName, f, out, version.VersionOptions{}))
 	}
 
 	return cmds

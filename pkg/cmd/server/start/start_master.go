@@ -55,9 +55,6 @@ type MasterOptions struct {
 }
 
 func (o *MasterOptions) DefaultsFromName(basename string) {
-	if cmdutil.GetProductName(basename) == cmdutil.ProductAtomicEnterprise {
-		o.DisabledFeatures = configapi.AtomicDisabledFeatures
-	}
 }
 
 const masterLong = `Start a master server

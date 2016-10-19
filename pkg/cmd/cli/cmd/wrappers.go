@@ -4,22 +4,19 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/create"
-	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
+// TODO: remove me by fixing upstream
 func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
 	for _, subCmd := range cmd.Commands() {
 		adjustCmdExamples(subCmd, parentName, cmd.Name())
@@ -181,41 +178,6 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out io.Writer) *cobra
 
 	adjustCmdExamples(cmd, parentName, "create")
 
-	return cmd
-}
-
-const (
-	completionLong = `This command prints shell code which must be evaluated to provide interactive
-completion of %s commands.`
-
-	completionExample = `  # Generate the %s completion code for bash
-  %s completion bash > bash_completion.sh
-  source bash_completion.sh
-
-  # The above example depends on the bash-completion framework.
-  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
-
-  brew install bash-completion
-  source $(brew --prefix)/etc/bash_completion
-  %s completion bash > bash_completion.sh
-  source bash_completion.sh
-
-  # In zsh*, the following will load openshift cli zsh completion:
-  source <(%s completion zsh)
-
-  * zsh completions are only supported in versions of zsh >= 5.2`
-)
-
-func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmdHelpName := fullName
-
-	if strings.HasSuffix(fullName, "completion") {
-		cmdHelpName = "openshift"
-	}
-
-	cmd := kcmd.NewCmdCompletion(f.Factory, out)
-	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
-	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	return cmd
 }
 
@@ -623,43 +585,5 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *c
 	cmd := kcmd.NewCmdEdit(f.Factory, out, errout)
 	cmd.Long = editLong
 	cmd.Example = fmt.Sprintf(editExample, fullName)
-	return cmd
-}
-
-const (
-	configLong = `
-Manage the client config files
-
-The client stores configuration in the current user's home directory (under the .kube directory as
-config). When you login the first time, a new config file is created, and subsequent project changes with the
-'project' command will set the current context. These subcommands allow you to manage the config directly.
-
-Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md`
-
-	configExample = `  # Change the config context to use
-  %[1]s %[2]s use-context my-context
-
-  # Set the value of a config preference
-  %[1]s %[2]s set preferences.some true`
-)
-
-// NewCmdConfig is a wrapper for the Kubernetes cli config command
-func NewCmdConfig(parentName, name string) *cobra.Command {
-	pathOptions := &kclientcmd.PathOptions{
-		GlobalFile:       cmdconfig.RecommendedHomeFile,
-		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
-		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
-
-		GlobalFileSubpath: cmdconfig.OpenShiftConfigHomeDirFileName,
-
-		LoadingRules: cmdconfig.NewOpenShiftClientConfigLoadingRules(),
-	}
-	pathOptions.LoadingRules.DoNotResolvePaths = true
-
-	cmd := config.NewCmdConfig(pathOptions, os.Stdout)
-	cmd.Short = "Change configuration files for the client"
-	cmd.Long = configLong
-	cmd.Example = fmt.Sprintf(configExample, parentName, name)
-	adjustCmdExamples(cmd, parentName, name)
 	return cmd
 }
