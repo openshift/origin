@@ -96,10 +96,11 @@ func (c *DeploymentTriggerController) addDeploymentConfig(obj interface{}) {
 }
 
 func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{}) {
-	// A periodic relist will send update events for all known configs.
+	// If there is no generation update for this deployment config,
+	// we have a good indication to not enqueue it.
 	newDc := cur.(*deployapi.DeploymentConfig)
 	oldDc := old.(*deployapi.DeploymentConfig)
-	if newDc.ResourceVersion == oldDc.ResourceVersion {
+	if newDc.Generation == oldDc.Generation {
 		return
 	}
 
