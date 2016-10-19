@@ -1,6 +1,7 @@
 package set
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -159,5 +160,74 @@ func TestAddVolume(t *testing.T) {
 
 	if patchError != nil {
 		t.Error(patchError)
+	}
+}
+
+func TestCreateClaim(t *testing.T) {
+	addOpts := &AddVolumeOptions{
+		Type:       "persistentVolumeClaim",
+		ClaimClass: "foobar",
+		ClaimName:  "foo-vol",
+		ClaimSize:  "5G",
+		MountPath:  "/sandbox",
+	}
+
+	pvc := addOpts.createClaim()
+	if len(pvc.Annotations) == 0 {
+		t.Errorf("Expected storage class annotation")
+	}
+
+	if pvc.Annotations[storageAnnClass] != "foobar" {
+		t.Errorf("Expected storage annotated class to be %s", addOpts.ClaimClass)
+	}
+}
+
+func TestValidateAddOptions(t *testing.T) {
+	tests := []struct {
+		name          string
+		addOpts       *AddVolumeOptions
+		expectedError error
+	}{
+		{
+			"using existing pvc",
+			&AddVolumeOptions{Type: "persistentVolumeClaim"},
+			errors.New("must provide --claim-name or --claim-size (to create a new claim) for --type=pvc"),
+		},
+		{
+			"creating new pvc",
+			&AddVolumeOptions{Type: "persistentVolumeClaim", ClaimName: "sandbox-pvc", ClaimSize: "5G"},
+			nil,
+		},
+		{
+			"error creating pvc with storage class",
+			&AddVolumeOptions{Type: "persistentVolumeClaim", ClaimName: "sandbox-pvc", ClaimClass: "slow"},
+			errors.New("must provide --claim-size to create new pvc with claim-class"),
+		},
+		{
+			"creating pvc with storage class",
+			&AddVolumeOptions{Type: "persistentVolumeClaim", ClaimName: "sandbox-pvc", ClaimClass: "slow", ClaimSize: "5G"},
+			nil,
+		},
+	}
+
+	for _, testCase := range tests {
+		addOpts := testCase.addOpts
+		err := addOpts.Validate(true)
+		if testCase.expectedError == nil && err != nil {
+			t.Errorf("Expected nil error for %s got %s", testCase.name, err)
+			continue
+		}
+
+		if testCase.expectedError != nil {
+			if err == nil {
+				t.Errorf("Expected %s, got nil", testCase.expectedError)
+				continue
+			}
+
+			if testCase.expectedError.Error() != err.Error() {
+				t.Errorf("Expected %s, got %s", testCase.expectedError, err)
+			}
+		}
+
 	}
 }

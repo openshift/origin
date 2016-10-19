@@ -29,7 +29,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const volumePrefix = "volume-"
+const (
+	volumePrefix    = "volume-"
+	storageAnnClass = "volume.beta.kubernetes.io/storage-class"
+)
 
 var (
 	volumeLong = templates.LongDesc(`
@@ -136,6 +139,7 @@ type AddVolumeOptions struct {
 	ClaimName   string
 	ClaimSize   string
 	ClaimMode   string
+	ClaimClass  string
 
 	TypeChanged bool
 }
@@ -186,6 +190,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&addOpts.ConfigMapName, "configmap-name", "", "Name of the persisted config map. Must be provided for configmap volume type")
 	cmd.Flags().StringVar(&addOpts.SecretName, "secret-name", "", "Name of the persisted secret. Must be provided for secret volume type")
 	cmd.Flags().StringVar(&addOpts.ClaimName, "claim-name", "", "Persistent volume claim name. Must be provided for persistentVolumeClaim volume type")
+	cmd.Flags().StringVar(&addOpts.ClaimClass, "claim-class", "", "StorageClass to use for provisioning the persistent volume.")
 	cmd.Flags().StringVar(&addOpts.ClaimSize, "claim-size", "", "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
 	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
@@ -312,6 +317,15 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 			err = json.Unmarshal([]byte(a.Source), &vs)
 			if err != nil {
 				return err
+			}
+		}
+		if len(a.ClaimClass) > 0 {
+			selectedLowerType := strings.ToLower(a.Type)
+			if selectedLowerType != "persistentvolumeclaim" && selectedLowerType != "pvc" {
+				return errors.New("must provide --type as persistentVolumeClaim")
+			}
+			if len(a.ClaimSize) == 0 {
+				return errors.New("must provide --claim-size to create new pvc with claim-class")
 			}
 		}
 	} else if len(a.Source) > 0 || len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ConfigMapName) > 0 || len(a.ClaimName) > 0 || a.Overwrite {
@@ -563,7 +577,7 @@ func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
 }
 
 func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
-	return &kapi.PersistentVolumeClaim{
+	pvc := &kapi.PersistentVolumeClaim{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: v.ClaimName,
 		},
@@ -576,6 +590,12 @@ func (v *AddVolumeOptions) createClaim() *kapi.PersistentVolumeClaim {
 			},
 		},
 	}
+	if len(v.ClaimClass) > 0 {
+		pvc.Annotations = map[string]string{
+			storageAnnClass: v.ClaimClass,
+		}
+	}
+	return pvc
 }
 
 func (v *VolumeOptions) setVolumeSource(kv *kapi.Volume) error {
