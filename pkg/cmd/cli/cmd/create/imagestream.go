@@ -33,6 +33,8 @@ type CreateImageStreamOptions struct {
 	IS     *imageapi.ImageStream
 	Client client.ImageStreamsNamespacer
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -56,7 +58,8 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 		Aliases: []string{"is"},
 	}
 
-	cmdutil.AddOutputFlagsForMutation(cmd)
+	cmdutil.AddPrinterFlags(cmd)
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -65,6 +68,8 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 		ObjectMeta: kapi.ObjectMeta{},
 		Spec:       imageapi.ImageStreamSpec{},
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {
 	case 0:
@@ -117,13 +122,22 @@ func (o *CreateImageStreamOptions) Validate() error {
 }
 
 func (o *CreateImageStreamOptions) Run() error {
-	actualObj, err := o.Client.ImageStreams(o.IS.Namespace).Create(o.IS)
-	if err != nil {
-		return err
+	actualObj := o.IS
+
+	var err error
+	if !o.DryRun {
+		actualObj, err = o.Client.ImageStreams(o.IS.Namespace).Create(o.IS)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, created)
 		return nil
 	}
 

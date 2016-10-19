@@ -36,6 +36,8 @@ type CreateClusterQuotaOptions struct {
 	ClusterQuota *quotaapi.ClusterResourceQuota
 	Client       client.ClusterResourceQuotasInterface
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -59,10 +61,11 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 		Aliases: []string{"clusterquota"},
 	}
 
+	cmdutil.AddPrinterFlags(cmd)
+	cmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("project-label-selector", "", "The project label selector for the cluster resource quota")
 	cmd.Flags().String("project-annotation-selector", "", "The project annotation selector for the cluster resource quota")
 	cmd.Flags().StringSlice("hard", []string{}, "The resource to constrain: RESOURCE=QUANTITY (pods=10)")
-	cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -70,6 +73,8 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 	if len(args) != 1 {
 		return fmt.Errorf("NAME is required: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	var labelSelector *unversioned.LabelSelector
 	labelSelectorString := cmdutil.GetFlagString(cmd, "project-label-selector")
@@ -147,13 +152,23 @@ func (o *CreateClusterQuotaOptions) Validate() error {
 }
 
 func (o *CreateClusterQuotaOptions) Run() error {
-	actualObj, err := o.Client.ClusterResourceQuotas().Create(o.ClusterQuota)
-	if err != nil {
-		return err
+	actualObj := o.ClusterQuota
+
+	var err error
+	if !o.DryRun {
+		actualObj, err = o.Client.ClusterResourceQuotas().Create(o.ClusterQuota)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "clusterquota", actualObj.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "clusterquota", actualObj.Name, created)
 		return nil
 	}
 

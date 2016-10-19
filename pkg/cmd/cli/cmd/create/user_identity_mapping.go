@@ -35,6 +35,8 @@ type CreateUserIdentityMappingOptions struct {
 
 	UserIdentityMappingClient client.UserIdentityMappingInterface
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -57,6 +59,7 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 		},
 	}
 	cmdutil.AddPrinterFlags(cmd)
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -72,6 +75,8 @@ func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clien
 	default:
 		return fmt.Errorf("exactly two arguments (identity and user name) are supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {
@@ -117,13 +122,22 @@ func (o *CreateUserIdentityMappingOptions) Run() error {
 	mapping.Identity = kapi.ObjectReference{Name: o.Identity}
 	mapping.User = kapi.ObjectReference{Name: o.User}
 
-	actualMapping, err := o.UserIdentityMappingClient.Create(mapping)
-	if err != nil {
-		return err
+	actualMapping := mapping
+
+	var err error
+	if !o.DryRun {
+		actualMapping, err = o.UserIdentityMappingClient.Create(mapping)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, created)
 		return nil
 	}
 

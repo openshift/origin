@@ -38,6 +38,8 @@ type CreateUserOptions struct {
 
 	UserClient client.UserInterface
 
+	DryRun bool
+
 	Mapper       meta.RESTMapper
 	OutputFormat string
 	Out          io.Writer
@@ -60,6 +62,7 @@ func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 	cmd.Flags().StringVar(&o.FullName, "full-name", o.FullName, "Display name of the user")
+	cmdutil.AddDryRunFlag(cmd)
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
@@ -73,6 +76,8 @@ func (o *CreateUserOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, a
 	default:
 		return fmt.Errorf("exactly one argument (username) is supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {
@@ -115,13 +120,22 @@ func (o *CreateUserOptions) Run() error {
 	user.Name = o.Name
 	user.FullName = o.FullName
 
-	actualUser, err := o.UserClient.Create(user)
-	if err != nil {
-		return err
+	actualUser := user
+
+	var err error
+	if !o.DryRun {
+		actualUser, err = o.UserClient.Create(user)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "user", actualUser.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "user", actualUser.Name, created)
 		return nil
 	}
 
