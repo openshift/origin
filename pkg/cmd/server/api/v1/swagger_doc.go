@@ -586,9 +586,9 @@ func (OAuthConfig) SwaggerDoc() map[string]string {
 
 var map_OAuthTemplates = map[string]string{
 	"":                  "OAuthTemplates allow for customization of pages like the login page",
-	"login":             "Login is a path to a file containing a go template used to render the login page. If unspecified, the default login page is used.",
-	"providerSelection": "ProviderSelection is a path to a file containing a go template used to render the provider selection page. If unspecified, the default provider selection page is used.",
-	"error":             "Error is a path to a file containing a go template used to render error pages during the authentication or grant flow If unspecified, the default error page is used.",
+	"login":             "Login is a path to a file containing a Go template used to render the login page. If unspecified, the default login page is used.",
+	"providerSelection": "ProviderSelection is a path to a file containing a Go template used to render the provider selection page. If unspecified, the default provider selection page is used.",
+	"error":             "Error is a path to a file containing a Go template used to render error pages during the authentication or grant flow If unspecified, the default error page is used.",
 }
 
 func (OAuthTemplates) SwaggerDoc() map[string]string {

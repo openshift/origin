@@ -660,15 +660,15 @@ type OAuthConfig struct {
 }
 
 type OAuthTemplates struct {
-	// Login is a path to a file containing a go template used to render the login page.
+	// Login is a path to a file containing a Go template used to render the login page.
 	// If unspecified, the default login page is used.
 	Login string
 
-	// ProviderSelection is a path to a file containing a go template used to render the provider selection page.
+	// ProviderSelection is a path to a file containing a Go template used to render the provider selection page.
 	// If unspecified, the default provider selection page is used.
 	ProviderSelection string
 
-	// Error is a path to a file containing a go template used to render error pages during the authentication or grant flow
+	// Error is a path to a file containing a Go template used to render error pages during the authentication or grant flow
 	// If unspecified, the default error page is used.
 	Error string
 }
