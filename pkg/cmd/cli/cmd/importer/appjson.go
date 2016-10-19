@@ -23,7 +23,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	appcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/appjson"
@@ -54,7 +53,7 @@ Experimental: This command is under active development and may change without no
 )
 
 type AppJSONOptions struct {
-	Action configcmd.BulkAction
+	Action cmdutil.BulkAction
 
 	In        io.Reader
 	Filenames []string
@@ -74,7 +73,7 @@ type AppJSONOptions struct {
 // as a template.
 func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &AppJSONOptions{
-		Action: configcmd.BulkAction{
+		Action: cmdutil.BulkAction{
 			Out:    out,
 			ErrOut: errout,
 		},
@@ -124,7 +123,7 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	o.OutputVersions = append(o.OutputVersions, registered.EnabledVersions()...)
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
+	o.Action.Bulk.Op = cmdutil.Create
 	mapper, _ := f.Object(false)
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, cmd, mapper, o.Action.Out)
 

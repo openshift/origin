@@ -18,7 +18,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/ipfailover"
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
 )
@@ -57,7 +56,7 @@ value that matches the number of nodes for the given labeled selector.`
 
 func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	options := &ipfailover.IPFailoverConfigCmdOptions{
-		Action: configcmd.BulkAction{
+		Action: cmdutil.BulkAction{
 			Out:    out,
 			ErrOut: errout,
 		},
@@ -153,7 +152,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	}
 
 	options.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	options.Action.Bulk.Op = configcmd.Create
+	options.Action.Bulk.Op = cmdutil.Create
 
 	if err := ipfailover.ValidateCmdOptions(options); err != nil {
 		return err

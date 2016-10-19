@@ -32,7 +32,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -120,7 +119,7 @@ To search templates, image streams, and Docker images that match the arguments p
 )
 
 type NewAppOptions struct {
-	Action configcmd.BulkAction
+	Action cmdutil.BulkAction
 	Config *newcmd.AppConfig
 
 	BaseName    string
@@ -202,7 +201,7 @@ func (o *NewAppOptions) Complete(baseName, name string, f *clientcmd.Factory, c 
 
 	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
+	o.Action.Bulk.Op = cmdutil.Create
 	// Retry is used to support previous versions of the API server that will
 	// consider the presence of an unknown trigger type to be an error.
 	o.Action.Bulk.Retry = retryBuildConfig
@@ -281,7 +280,7 @@ func (o *NewAppOptions) RunNewApp() error {
 		o.Action.Compact()
 	}
 
-	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
+	if errs := o.Action.WithMessage(cmdutil.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
 		return cmdutil.ErrExit
 	}
 
