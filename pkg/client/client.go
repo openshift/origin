@@ -25,6 +25,7 @@ type KClientInterface interface {
 	kclient.Interface
 	kclient.DaemonSetsNamespacer
 	kclient.ScaleNamespacer
+	kclient.ReplicaSetsNamespacer
 	resource.RESTClient
 }
 
