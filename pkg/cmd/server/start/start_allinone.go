@@ -116,6 +116,7 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 	cmds.AddCommand(startNode)
 	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
+	cmds.AddCommand(NewCommandStartProxy("proxy", basename, out))
 
 	startKube := kubernetes.NewCommand("kubernetes", basename, out)
 	cmds.AddCommand(startKube)
