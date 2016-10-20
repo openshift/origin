@@ -309,29 +309,6 @@ readonly -f disable-selinux
 # end of common functions for extended test group's run.sh scripts
 ######
 
-function os::log::with-severity() {
-	local msg=$1
-	local severity=$2
-
-	echo "[$2] ${1}"
-}
-readonly -f os::log::with-severity
-
-function os::log::info() {
-	os::log::with-severity "${1}" "INFO"
-}
-readonly -f os::log::info
-
-function os::log::warn() {
-	os::log::with-severity "${1}" "WARNING" 1>&2
-}
-readonly -f os::log::warn
-
-function os::log::error() {
-	os::log::with-severity "${1}" "ERROR" 1>&2
-}
-readonly -f os::log::error
-
 function find_files() {
 	find . -not \( \
 		\( \
