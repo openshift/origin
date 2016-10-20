@@ -22,6 +22,8 @@ import (
 	clientadapter "k8s.io/kubernetes/pkg/client/unversioned/adapters/internalclientset"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	kubeletnetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kcrypto "k8s.io/kubernetes/pkg/util/crypto"
@@ -190,9 +192,33 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, err
 	}
 
+	// Initialize SDN before building kubelet config so it can modify options
+	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
+	}
+	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU)
+	if err != nil {
+		return nil, fmt.Errorf("SDN initialization failed: %v", err)
+	}
+	if sdnPlugin != nil {
+		// SDN plugin pod setup/teardown is implemented as a CNI plugin
+		server.NetworkPluginName = kubeletcni.CNIPluginName
+		server.NetworkPluginDir = kubeletcni.DefaultNetDir
+		server.HairpinMode = componentconfig.HairpinNone
+		server.ConfigureCBR0 = false
+	}
+
 	deps, err := kubeletapp.UnsecuredKubeletDeps(server)
 	if err != nil {
 		return nil, err
+	}
+
+	// Replace the kubelet-created CNI plugin with the SDN plugin
+	// Kubelet must be initialized with NetworkPluginName="cni" but
+	// the SDN plugin (if available) needs to be the only one used
+	if sdnPlugin != nil {
+		deps.NetworkPlugins = []kubeletnetwork.NetworkPlugin{sdnPlugin}
 	}
 
 	// provide any config overrides
@@ -248,18 +274,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		}
 	} else {
 		deps.TLSOptions = nil
-	}
-
-	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
-	}
-	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU)
-	if err != nil {
-		return nil, fmt.Errorf("SDN initialization failed: %v", err)
-	}
-	if sdnPlugin != nil {
-		deps.NetworkPlugins = append(deps.NetworkPlugins, sdnPlugin)
 	}
 
 	sdnProxy, err := sdnplugin.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)

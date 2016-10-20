@@ -264,9 +264,16 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 
 # Install sdn scripts
-pushd pkg/sdn/plugin/bin
+install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
+pushd pkg/sdn/plugin/sdn-cni-plugin
+   install -p -m 644 80-openshift-sdn.conf %{buildroot}%{_sysconfdir}/cni/net.d
    install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
 popd
+install -d -m 0755 %{buildroot}/opt/cni/bin
+install -p -m 0755 _build/bin/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
+install -p -m 0755 _build/bin/host-local %{buildroot}/opt/cni/bin
+install -p -m 0755 _build/bin/loopback %{buildroot}/opt/cni/bin
+
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
@@ -411,8 +418,12 @@ fi
 %files sdn-ovs
 %dir %{_unitdir}/docker.service.d/
 %dir %{_unitdir}/%{name}-node.service.d/
+%dir %{_sysconfdir}/cni/net.d
+%dir /opt/cni/bin
 %{_bindir}/openshift-sdn-ovs
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
+%{_sysconfdir}/cni/net.d/80-openshift-sdn.conf
+/opt/cni/bin/*
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by
