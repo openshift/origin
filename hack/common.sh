@@ -23,10 +23,16 @@ readonly -f os::build::host_platform
 
 readonly OS_IMAGE_COMPILE_PLATFORMS=("$(os::build::host_platform)")
 
+readonly OS_SDN_COMPILE_TARGETS_LINUX=(
+  pkg/sdn/plugin/sdn-cni-plugin
+  vendor/github.com/containernetworking/cni/plugins/ipam/host-local
+  vendor/github.com/containernetworking/cni/plugins/main/loopback
+)
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   cmd/dockerregistry
   cmd/gitserver
+  "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
 readonly OS_IMAGE_COMPILE_GOFLAGS="-tags include_gcs"
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
@@ -356,14 +362,16 @@ function os::build::export_targets() {
   done
 
   if [[ ${#targets[@]} -eq 0 ]]; then
-    targets=("${OS_ALL_TARGETS[@]}")
+    echo "No targets to export!"
+    exit 1
   fi
 
   binaries=($(os::build::binaries_from_targets "${targets[@]}"))
 
   platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
   if [[ ${#platforms[@]} -eq 0 ]]; then
-    platforms=("$(os::build::host_platform)")
+    echo "No platforms to build for!"
+    exit 1
   fi
 }
 readonly -f os::build::export_targets

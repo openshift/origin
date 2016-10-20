@@ -11,6 +11,7 @@
 FROM openshift/origin
 
 COPY bin/* /usr/bin/
+COPY opt/cni/bin/* /opt/cni/bin/
 COPY conf/openshift-sdn-ovs.conf /usr/lib/systemd/system/origin-node.service.d/
 COPY scripts/* /usr/local/bin/
 

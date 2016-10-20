@@ -201,8 +201,11 @@ function copy-runtime() {
 
   cp "$(os::build::find-binary openshift)" "${target}"
   cp "$(os::build::find-binary host-local)" "${target}"
-  local osdn_plugin_path="${origin_root}/pkg/sdn/plugin/bin"
-  cp "${osdn_plugin_path}/openshift-sdn-ovs" "${target}"
+  cp "$(os::build::find-binary loopback)" "${target}"
+  cp "$(os::build::find-binary sdn-cni-plugin)" "${target}/openshift-sdn"
+  local osdn_plugin_path="${origin_root}/pkg/sdn/plugin"
+  cp "${osdn_plugin_path}/bin/openshift-sdn-ovs" "${target}"
+  cp "${osdn_plugin_path}/sdn-cni-plugin/80-openshift-sdn.conf" "${target}"
 }
 
 function wait-for-cluster() {

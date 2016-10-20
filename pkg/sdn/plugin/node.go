@@ -9,6 +9,8 @@ import (
 
 	log "github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/ipcmd"
@@ -34,6 +36,7 @@ type OsdnNode struct {
 	osClient           *osclient.Client
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
+	podManager         *podManager
 	localSubnetCIDR    string
 	localIP            string
 	hostName           string
@@ -42,8 +45,9 @@ type OsdnNode struct {
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
-	host               knetwork.Host
-	cniConfig          []byte
+
+	host             knetwork.Host
+	kubeletCniPlugin knetwork.NetworkPlugin
 
 	clearLbr0IptablesRule bool
 }
@@ -199,6 +203,11 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	node.podManager, err = newPodManager(node.host, node.multitenant, node.localSubnetCIDR, node.networkInfo, node.kClient, node.vnids, node.mtu)
+	if err != nil {
+		return err
+	}
+
 	if networkChanged {
 		var pods []kapi.Pod
 		pods, err = node.GetLocalPods(kapi.NamespaceAll)
@@ -214,9 +223,29 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
+		return err
+	}
+
 	node.markPodNetworkReady()
 
 	return nil
+}
+
+// FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
+// See https://github.com/containernetworking/cni/issues/89
+func (node *OsdnNode) UpdatePod(namespace string, name string, id kubeletTypes.ContainerID) error {
+	req := &cniserver.PodRequest{
+		Command:      cniserver.CNI_UPDATE,
+		PodNamespace: namespace,
+		PodName:      name,
+		ContainerId:  id.String(),
+		// netns is read from docker if needed, since we don't get it from kubelet
+	}
+
+	// Send request and wait for the result
+	_, err := node.podManager.handleCNIRequest(req)
+	return err
 }
 
 func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
@@ -244,18 +273,11 @@ func (node *OsdnNode) markPodNetworkReady() {
 	close(node.podNetworkReady)
 }
 
-func (node *OsdnNode) WaitForPodNetworkReady() error {
-	logInterval := 10 * time.Second
-	numIntervals := 12 // timeout: 2 mins
-
-	for i := 0; i < numIntervals; i++ {
-		select {
-		// Wait for StartNode() to finish SDN setup
-		case <-node.podNetworkReady:
-			return nil
-		case <-time.After(logInterval):
-			log.Infof("Waiting for SDN pod network to be ready...")
-		}
+func (node *OsdnNode) IsPodNetworkReady() error {
+	select {
+	case <-node.podNetworkReady:
+		return nil
+	default:
+		return fmt.Errorf("SDN pod network is not ready")
 	}
-	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
 }

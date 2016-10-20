@@ -47,6 +47,7 @@ COPY openshift-enable-ssh-access.service /etc/systemd/system/
 RUN systemctl enable openshift-enable-ssh-access.service
 
 # SDN plugin setup
+RUN mkdir -p /etc/cni/net.d
 RUN mkdir -p /opt/cni/bin
 
 # Symlink from the data path intended to be mounted as a volume to
@@ -63,6 +64,9 @@ RUN ln -sf /data/openshift-sdn-ovs /usr/local/bin/ && \
     ln -sf /data/openshift /usr/local/bin/openshift-docker-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-sti-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-f5-router && \
-    ln -sf /data/host-local /opt/cni/bin/
+    ln -sf /data/openshift-sdn /opt/cni/bin/ && \
+    ln -sf /data/host-local    /opt/cni/bin/ && \
+    ln -sf /data/loopback      /opt/cni/bin/ && \
+    ln -sf /data/80-openshift-sdn.conf /etc/cni/net.d/
 
 ENV KUBECONFIG /data/openshift.local.config/master/admin.kubeconfig
