@@ -46,6 +46,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	oclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type proxyFlags struct {
@@ -58,6 +59,7 @@ type proxyFlags struct {
 	MITMKeyFile  string
 
 	AsPod         bool
+	Unprivileged  bool
 	PublicAddress string
 }
 
@@ -74,7 +76,9 @@ type ProxyOptions struct {
 
 	MITMSigner tls.Certificate
 
-	PublicAddress string
+	AnonymousConfig restclient.Config
+	Unprivileged    bool
+	PublicAddress   string
 }
 
 const proxyLong = `Start the service proxy to allow safe, authenticated access to services without a route.`
@@ -107,6 +111,7 @@ func NewCommandStartProxy(name, basename string, out io.Writer) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&f.PublicAddress, "public-address", f.PublicAddress, "Public address for PAC file.")
 	flags.BoolVar(&f.AsPod, "as-pod", f.AsPod, "Indicates that this proxy should run as an unprivileged pod.")
+	flags.BoolVar(&f.Unprivileged, "unprivileged", f.Unprivileged, "Indicates that this proxy should run as an unprivileged pod.")
 	flags.StringVar(&f.KubeConfig, "kubeconfig", f.KubeConfig, "Location of the kubeconfig file to for contacting the API server. Required")
 	flags.StringVar(&f.ClientCA, "client-ca-file", f.ClientCA, ""+
 		"If set, any request presenting a client certificate signed by one of "+
@@ -129,11 +134,12 @@ func NewCommandStartProxy(name, basename string, out io.Writer) *cobra.Command {
 func (f proxyFlags) ToOptions() (*ProxyOptions, error) {
 	o := &ProxyOptions{
 		AuthenticationCacheTTL:  5 * time.Minute,
-		AuthenticationCacheSize: 1000,
+		AuthenticationCacheSize: 0,
 		AuthorizationCacheTTL:   5 * time.Minute,
-		AuthorizationCacheSize:  1000,
+		AuthorizationCacheSize:  0,
 		RequestContextMapper:    kapi.NewRequestContextMapper(),
 		PublicAddress:           f.PublicAddress,
+		Unprivileged:            f.Unprivileged,
 	}
 
 	var kubeconfig *restclient.Config
@@ -152,6 +158,7 @@ func (f proxyFlags) ToOptions() (*ProxyOptions, error) {
 	}
 	kubeconfig.QPS = 100
 	kubeconfig.Burst = 200
+	o.AnonymousConfig = oclientcmd.AnonymousClientConfig(kubeconfig)
 
 	o.KubeClient, err = internalclientset.NewForConfig(kubeconfig)
 	if err != nil {
@@ -292,6 +299,9 @@ func (o ProxyOptions) mitm(host string, ctx *goproxy.ProxyCtx) (*goproxy.Connect
 }
 
 func (o ProxyOptions) withAuthentication(handler http.Handler) http.Handler {
+	if o.Unprivileged {
+		return handler
+	}
 	authenticator, err := o.newAuthenticator()
 	if err != nil {
 		panic(err)
@@ -393,6 +403,12 @@ func (o *ProxyOptions) withAuthorization(handler http.Handler) http.Handler {
 			return
 		}
 		ctx = kapi.WithNamespace(ctx, namespace)
+		bearer := req.Header.Get("Proxy-Authorization")
+		if len(bearer) > 0 {
+			bearer = strings.Split(bearer, " ")[1]
+		}
+		fmt.Printf("#### bearer: %q\n", bearer)
+		ctx = kapi.WithValue(ctx, "proxybearer", bearer)
 
 		allowed, reason, err := authorizer.Authorize(ctx, attributes)
 		if err != nil {
@@ -502,9 +518,14 @@ func (o *ProxyOptions) newAuthorizer() (authorizer.Authorizer, error) {
 		err   error
 	)
 
-	// Authorize against the remote master
-	// unprivileged pods won't be able to run token access review or non-self-sar
-	authz, err = authzremote.NewAuthorizer(o.OpenShiftClient)
+	if o.Unprivileged {
+		authz = newSelfSARAuthorizer(o.AnonymousConfig)
+
+	} else {
+		// Authorize against the remote master
+		// unprivileged pods won't be able to run token access review or non-self-sar
+		authz, err = authzremote.NewAuthorizer(o.OpenShiftClient)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +618,10 @@ func (r *SelfSARAuthorizer) Authorize(ctx kapi.Context, a authorizer.Action) (bo
 		err    error
 	)
 
+	bearertoken := ctx.Value("proxybearer").(string)
+	fmt.Printf("#### bearertoken: %q\n", bearertoken)
 	config := r.anonymousConfig
+	config.BearerToken = bearertoken
 	// TODO plumb something on request to include bearer token if we want to allow unprivileged
 	client, err := oclient.New(&config)
 	if err != nil {
