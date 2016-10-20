@@ -326,14 +326,22 @@ os::cmd::expect_success 'oc whoami'
 
 echo "[INFO] Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
-oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
+
+os::cmd::expect_success "oc run cli-with-token --image=\"openshift/origin:${TAG}\" --restart=Never -- cli status"
+os::cmd::try_until_text 'oc get pod cli-with-token -o jsonpath="{.status.phase}"' "Succeeded"
+oc logs pods/cli-with-token > "${LOG_DIR}/cli-with-token.log" 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
 os::cmd::expect_success 'oc delete pod cli-with-token'
-oc run cli-with-token-2 --attach --image="openshift/origin:${TAG}" --restart=Never -- cli whoami --loglevel=4 > "${LOG_DIR}/cli-with-token2.log" 2>&1
+
+os::cmd::expect_success "oc run cli-with-token-2 --image=\"openshift/origin:${TAG}\" --restart=Never -- cli whoami"
+os::cmd::try_until_text 'oc get pod cli-with-token-2 -o jsonpath="{.status.phase}"' "Succeeded"
+oc logs pods/cli-with-token-2 > "${LOG_DIR}/cli-with-token2.log" 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
 os::cmd::expect_success 'oc delete pod cli-with-token-2'
-oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=Never --command -- kubectl get pods --loglevel=4 > "${LOG_DIR}/kubectl-with-token.log" 2>&1
+
+os::cmd::expect_success "oc run kubectl-with-token --image=\"openshift/origin:${TAG}\" --restart=Never --command -- kubectl get pods --loglevel=4"
+os::cmd::try_until_text 'oc get pod kubectl-with-token -o jsonpath="{.status.phase}"' "Succeeded"
+oc logs pods/kubectl-with-token > "${LOG_DIR}/kubectl-with-token.log" 2>&1
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
 os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
 
