@@ -50,9 +50,6 @@ const (
 
 	defaultRedirectClient  = "openshift-web-console"
 	developmentRedirectURI = "https://localhost:9000"
-
-	defaultImages         = "openshift/origin-${component}:${version}"
-	defaultOpenShiftImage = "openshift/origin:${version}"
 )
 
 var (
