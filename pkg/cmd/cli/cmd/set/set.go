@@ -35,6 +35,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 			Message: "Replication controllers, deployments, and daemon sets:",
 			Commands: []*cobra.Command{
 				NewCmdEnv(name, f, in, out, errout),
+				NewCmdResources(name, f, out, errout),
 				NewCmdVolume(name, f, out, errout),
 				NewCmdProbe(name, f, out, errout),
 				NewCmdDeploymentHook(name, f, out, errout),
@@ -92,6 +93,43 @@ func NewCmdImage(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 
 	flags := cmd.Flags()
 	f.ImageResolutionOptions.Bind(flags)
+
+	return cmd
+}
+
+var (
+	setResourcesLong = templates.LongDesc(`
+Specify compute resource requirements (cpu, memory) for any resource that defines a pod template. If a pod is successfully schedualed it is guaranteed the amount of resource requested, but may burst up to its specified limits.
+
+For each compute resource, if a limit is specified and a request is omitted, the request will default to the limit.
+
+Possible resources include (case insensitive):
+"ReplicationController", "Deployment", "DaemonSet", "Job", "ReplicaSet", "DeploymentConfigs"`)
+
+	setResourcesExample = templates.Examples(`
+# Set a deployments nginx container cpu limits to "200m and memory to 512Mi"
+
+%[1]s resources deployment nginx -c=nginx --limits=cpu=200m,memory=512Mi
+
+
+# Set the resource request and limits for all containers in nginx
+
+%[1]s resources deployment nginx --limits=cpu=200m,memory=512Mi --requests=cpu=100m,memory=256Mi
+
+# Remove the resource requests for resources on containers in nginx
+
+%[1]s resources deployment nginx --limits=cpu=0,memory=0 --requests=cpu=0,memory=0
+
+# Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
+
+%[1]s resources -f path/to/file.yaml --limits=cpu=200m,memory=512Mi --local -o yaml`)
+)
+
+// NewCmdResources is a wrapper for the Kubernetes CLI set resources command
+func NewCmdResources(fullName string, f *clientcmd.Factory, out io.Writer, errOut io.Writer) *cobra.Command {
+	cmd := set.NewCmdResources(f.Factory, out, errOut)
+	cmd.Long = setResourcesLong
+	cmd.Example = fmt.Sprintf(setResourcesExample, fullName)
 
 	return cmd
 }

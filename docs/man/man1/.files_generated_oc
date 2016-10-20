@@ -210,6 +210,7 @@ oc-set-deployment-hook.1
 oc-set-env.1
 oc-set-image.1
 oc-set-probe.1
+oc-set-resources.1
 oc-set-route-backends.1
 oc-set-triggers.1
 oc-set-volumes.1

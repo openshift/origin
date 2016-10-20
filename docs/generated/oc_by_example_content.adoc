@@ -2657,6 +2657,33 @@ Update a probe on a pod template
 ====
 
 
+== oc set resources
+update resource requests/limits on objects with pod templates
+
+====
+
+[options="nowrap"]
+----
+  # Set a deployments nginx container cpu limits to "200m and memory to 512Mi"
+  
+  oc set resources deployment nginx -c=nginx --limits=cpu=200m,memory=512Mi
+  
+  
+  # Set the resource request and limits for all containers in nginx
+  
+  oc set resources deployment nginx --limits=cpu=200m,memory=512Mi --requests=cpu=100m,memory=256Mi
+  
+  # Remove the resource requests for resources on containers in nginx
+  
+  oc set resources deployment nginx --limits=cpu=0,memory=0 --requests=cpu=0,memory=0
+  
+  # Print the result (in yaml format) of updating nginx container limits from a local, without hitting the server
+  
+  oc set resources -f path/to/file.yaml --limits=cpu=200m,memory=512Mi --local -o yaml
+----
+====
+
+
 == oc set route-backends
 Update the backends for a route
 

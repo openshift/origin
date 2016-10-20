@@ -20,6 +20,7 @@ var localFlagExceptions = sets.NewString(
 	"route-backends",
 	"triggers",
 	"volumes",
+	"resources",
 )
 
 func TestLocalFlag(t *testing.T) {
