@@ -1497,6 +1497,8 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /.well-known
+    - /.well-known/*
     - /api
     - /api/*
     - /apis
@@ -2114,6 +2116,8 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /.well-known
+    - /.well-known/*
     - /api
     - /api/*
     - /apis

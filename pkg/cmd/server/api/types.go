@@ -635,7 +635,7 @@ type OAuthConfig struct {
 	// MasterURL is used for making server-to-server calls to exchange authorization codes for access tokens
 	MasterURL string
 
-	// MasterPublicURL is used for building valid client redirect URLs for external access
+	// MasterPublicURL is used for building valid client redirect URLs for internal and external access
 	MasterPublicURL string
 
 	// AssetPublicURL is used for building valid client redirect URLs for external access

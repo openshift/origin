@@ -69,6 +69,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	"github.com/openshift/origin/pkg/oauth/discovery"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -134,6 +135,10 @@ const (
 	OpenShiftAPIV1           = "v1"
 	OpenShiftAPIPrefixV1     = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
 	swaggerAPIPrefix         = "/swaggerapi/"
+	// Discovery endpoint for OAuth 2.0 Authorization Server Metadata
+	// See IETF Draft:
+	// https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	oauthMetadataEndpoint = "/.well-known/oauth-authorization-server"
 )
 
 var (
@@ -446,35 +451,68 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) ([]stri
 	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 	initVersionRoute(container, "/version/openshift")
 
+	// Set up OAuth metadata only if we are configured to use OAuth
+	if c.Options.OAuthConfig != nil {
+		initOAuthAuthorizationServerMetadataRoute(container, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
+	}
+
 	return messages, nil
 }
 
-// initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
+// initVersionRoute initializes an HTTP endpoint for the server's version information.
 func initVersionRoute(container *restful.Container, path string) {
+	// Build version info once
+	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
+	if err != nil {
+		glog.Errorf("Unable to initialize version route: %v", err)
+		return
+	}
+
 	// Set up a service to return the git code version.
 	versionWS := new(restful.WebService)
 	versionWS.Path(path)
 	versionWS.Doc("git code version from which this is built")
 	versionWS.Route(
-		versionWS.GET("/").To(handleVersion).
+		versionWS.GET("/").To(func(_ *restful.Request, resp *restful.Response) {
+			writeJSON(resp, versionInfo)
+		}).
 			Doc("get the code version").
 			Operation("getCodeVersion").
-			Produces(restful.MIME_JSON).
-			Consumes(restful.MIME_JSON))
+			Produces(restful.MIME_JSON))
 
 	container.Add(versionWS)
 }
 
-// handleVersion writes the server's version information.
-func handleVersion(req *restful.Request, resp *restful.Response) {
-	output, err := json.MarshalIndent(version.Get(), "", "  ")
-	if err != nil {
-		http.Error(resp.ResponseWriter, err.Error(), http.StatusInternalServerError)
-		return
-	}
+func writeJSON(resp *restful.Response, json []byte) {
 	resp.ResponseWriter.Header().Set("Content-Type", "application/json")
 	resp.ResponseWriter.WriteHeader(http.StatusOK)
-	resp.ResponseWriter.Write(output)
+	resp.ResponseWriter.Write(json)
+}
+
+// initOAuthAuthorizationServerMetadataRoute initializes an HTTP endpoint for OAuth 2.0 Authorization Server Metadata discovery
+// https://tools.ietf.org/id/draft-ietf-oauth-discovery-04.html#rfc.section.2
+// masterPublicURL should be internally and externally routable to allow all users to discover this information
+func initOAuthAuthorizationServerMetadataRoute(container *restful.Container, path, masterPublicURL string) {
+	// Build OAuth metadata once
+	metadata, err := json.MarshalIndent(discovery.Get(masterPublicURL, OpenShiftOAuthAuthorizeURL(masterPublicURL), OpenShiftOAuthTokenURL(masterPublicURL)), "", "  ")
+	if err != nil {
+		glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
+		return
+	}
+
+	// Set up a service to return the OAuth metadata.
+	oauthWS := new(restful.WebService)
+	oauthWS.Path(path)
+	oauthWS.Doc("OAuth 2.0 Authorization Server Metadata")
+	oauthWS.Route(
+		oauthWS.GET("/").To(func(_ *restful.Request, resp *restful.Response) {
+			writeJSON(resp, metadata)
+		}).
+			Doc("get the server's OAuth 2.0 Authorization Server Metadata").
+			Operation("getOAuthAuthorizationServerMetadata").
+			Produces(restful.MIME_JSON))
+
+	container.Add(oauthWS)
 }
 
 func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
