@@ -71,6 +71,7 @@ type DeploymentHookOptions struct {
 	All       bool
 
 	ShortOutput bool
+	Local       bool
 	Mapper      meta.RESTMapper
 
 	PrintObject func(runtime.Object) error
@@ -127,6 +128,8 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 
 	cmd.Flags().String("failure-policy", "ignore", "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
 
+	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set deployment hook will NOT contact api-server but run locally.")
+
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
@@ -160,16 +163,20 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, false, o.Filenames...).
-		SelectorParam(o.Selector).
-		ResourceNames("deploymentconfigs", resources...).
 		Flatten()
+	if !o.Local {
+		o.Builder = o.Builder.
+			ResourceNames("deploymentconfigs", resources...).
+			SelectorParam(o.Selector).
+			Latest()
+		if o.All {
+			o.Builder.ResourceTypes("deploymentconfigs").SelectAllParam(o.All)
+		}
 
-	if o.All {
-		o.Builder.ResourceTypes("deploymentconfigs").SelectAllParam(o.All)
 	}
 
 	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) != 0 {
+	if len(output) != 0 || o.Local {
 		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
 	}
 
