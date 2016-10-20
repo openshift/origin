@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/elazarl/goproxy"
 	"github.com/spf13/cobra"
 
+	ktransport "k8s.io/kubernetes/pkg/client/transport"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -68,12 +71,30 @@ func (o *ProxyProxyOptions) Validate() error {
 func (o *ProxyProxyOptions) RunProxy() error {
 	var handler http.Handler
 
-	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = true
-	proxy.OnRequest().DoFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-		r.Header.Set("X-Proxy-Authorization", o.UserToken)
-		return r, nil
-	})
+	url, err := url.Parse(o.RemoteHost)
+	if err != nil {
+		return err
+	}
+
+	_ = goproxy.NewProxyHttpServer()
+	// proxy.Verbose = true
+	// _ = http.ProxyURL(url)
+	// _ = ktransport.DebugWrappers(proxy.Tr)
+	// _ = NewBearerAuthRoundTripper(o.UserToken, proxy.Tr)
+
+	// var roundTripper http.RoundTripper
+	// proxyTransport := http.DefaultTransport
+	// proxyTransport.(*http.Transport).Proxy = http.ProxyURL(url)
+	// roundTripper = ktransport.DebugWrappers(proxyTransport)
+
+	myClient := &http.Client{
+		Transport: NewBearerAuthRoundTripper(o.UserToken, ktransport.DebugWrappers(&Transport{Proxy: http.ProxyURL(url)})),
+	}
+
+	proxy := &proxyproxy{
+		client:   myClient,
+		proxyURL: url,
+	}
 
 	handler = proxy
 	handler = o.withPAC(handler)
@@ -109,4 +130,147 @@ func (o *ProxyProxyOptions) withPAC(handler http.Handler) http.Handler {
 
 		handler.ServeHTTP(w, req)
 	})
+}
+
+type proxyproxy struct {
+	client *http.Client
+
+	proxyURL *url.URL
+}
+
+func (p *proxyproxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// *outreq = *req // includes shallow copies of maps, but okay
+
+	// if closeNotifier, ok := rw.(http.CloseNotifier); ok {
+	// 	if requestCanceler, ok := p.roundTripper.(requestCanceler); ok {
+	// 		reqDone := make(chan struct{})
+	// 		defer close(reqDone)
+
+	// 		clientGone := closeNotifier.CloseNotify()
+
+	// 		outreq.Body = struct {
+	// 			io.Reader
+	// 			io.Closer
+	// 		}{
+	// 			Reader: &runOnFirstRead{
+	// 				Reader: outreq.Body,
+	// 				fn: func() {
+	// 					go func() {
+	// 						select {
+	// 						case <-clientGone:
+	// 							requestCanceler.CancelRequest(outreq)
+	// 						case <-reqDone:
+	// 						}
+	// 					}()
+	// 				},
+	// 			},
+	// 			Closer: outreq.Body,
+	// 		}
+	// 	}
+	// }
+
+	requestURI, _ := url.ParseRequestURI(req.RequestURI)
+	urlString := p.proxyURL.Scheme + "://" + p.proxyURL.Host + requestURI.Path
+	outreq, err := http.NewRequest(req.Method, requestURI.String(), nil)
+	if err != nil {
+		fmt.Printf("##### ERROR %v\n", err)
+		rw.WriteHeader(http.StatusBadGateway)
+		return
+	}
+
+	copyHeader(outreq.Header, req.Header)
+	outreq.Proto = "HTTP/1.1"
+	outreq.ProtoMajor = 1
+	outreq.ProtoMinor = 1
+	outreq.Close = false
+	outreq.Header.Set("Host", requestURI.Host)
+
+	fmt.Printf("#### %q %q %q\n", req.Header.Get("Host"), req.Header.Get("Request URI"), urlString)
+
+	res, err := p.client.Do(outreq)
+
+	// dump, _ := httputil.DumpRequest(outreq, false)
+	// fmt.Printf("SENDING %v\n", string(dump))
+
+	// res, err := p.roundTripper.RoundTrip(outreq)
+	if err != nil {
+		fmt.Printf("##### ERROR %v\n", err)
+		rw.WriteHeader(http.StatusBadGateway)
+		return
+	}
+
+	copyHeader(rw.Header(), res.Header)
+
+	// The "Trailer" header isn't included in the Transport's response,
+	// at least for *http.Transport. Build it up from Trailer.
+	if len(res.Trailer) > 0 {
+		var trailerKeys []string
+		for k := range res.Trailer {
+			trailerKeys = append(trailerKeys, k)
+		}
+		rw.Header().Add("Trailer", strings.Join(trailerKeys, ", "))
+	}
+
+	rw.WriteHeader(res.StatusCode)
+	if len(res.Trailer) > 0 {
+		// Force chunking if we saw a response trailer.
+		// This prevents net/http from calculating the length for short
+		// bodies and adding a Content-Length.
+		if fl, ok := rw.(http.Flusher); ok {
+			fl.Flush()
+		}
+	}
+	copyResponse(rw, res.Body)
+	res.Body.Close() // close now, instead of defer, to populate res.Trailer
+	copyHeader(rw.Header(), res.Trailer)
+}
+
+func copyResponse(dst io.Writer, src io.Reader) {
+	var buf []byte
+	io.CopyBuffer(dst, src, buf)
+}
+
+type bearerAuthRoundTripper struct {
+	bearer string
+	rt     http.RoundTripper
+}
+
+// NewBearerAuthRoundTripper adds the provided bearer token to a request
+// unless the authorization header has already been set.
+func NewBearerAuthRoundTripper(bearer string, rt http.RoundTripper) http.RoundTripper {
+	return &bearerAuthRoundTripper{bearer, rt}
+}
+
+func (rt *bearerAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if len(req.Header.Get("Proxy-Authorization")) != 0 {
+		return rt.rt.RoundTrip(req)
+	}
+
+	req = cloneRequest(req)
+	req.Header.Set("Proxy-Authorization", fmt.Sprintf("Bearer %s", rt.bearer))
+	return rt.rt.RoundTrip(req)
+}
+
+func (rt *bearerAuthRoundTripper) CancelRequest(req *http.Request) {
+	if canceler, ok := rt.rt.(requestCanceler); ok {
+		canceler.CancelRequest(req)
+	} else {
+		fmt.Printf("CancelRequest not implemented")
+	}
+}
+
+func (rt *bearerAuthRoundTripper) WrappedRoundTripper() http.RoundTripper { return rt.rt }
+
+// cloneRequest returns a clone of the provided *http.Request.
+// The clone is a shallow copy of the struct and its Header map.
+func cloneRequest(r *http.Request) *http.Request {
+	// shallow copy of the struct
+	r2 := new(http.Request)
+	*r2 = *r
+	// deep copy of the Header
+	r2.Header = make(http.Header)
+	for k, s := range r.Header {
+		r2.Header[k] = s
+	}
+	return r2
 }
