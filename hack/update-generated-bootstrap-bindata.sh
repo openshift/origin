@@ -2,6 +2,8 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+os::build::setup_env
+
 EXAMPLES=examples
 OUTPUT_PARENT=${OUTPUT_ROOT:-$OS_ROOT}
 
