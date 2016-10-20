@@ -583,10 +583,16 @@ func init() {
 					Resources: sets.NewString("events"),
 				},
 				// PersistentVolumeBinder.findProvisionablePlugin()
+				// Glusterfs provisioner
 				{
 					APIGroups: []string{storage.GroupName},
-					Verbs:     sets.NewString("list", "watch"),
+					Verbs:     sets.NewString("list", "watch", "get"),
 					Resources: sets.NewString("storageclasses"),
+				},
+				// Gluster provisioner
+				{
+					Verbs:     sets.NewString("get", "create", "delete"),
+					Resources: sets.NewString("services", "endpoints"),
 				},
 			},
 		},

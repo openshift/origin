@@ -3034,8 +3034,19 @@ items:
     resources:
     - storageclasses
     verbs:
+    - get
     - list
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    - services
+    verbs:
+    - create
+    - delete
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:
