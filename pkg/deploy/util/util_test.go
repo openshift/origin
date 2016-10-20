@@ -1,6 +1,7 @@
 package util
 
 import (
+	"reflect"
 	"sort"
 	"strconv"
 	"testing"
@@ -348,6 +349,228 @@ func TestCanTransitionPhase(t *testing.T) {
 		got := CanTransitionPhase(test.current, test.next)
 		if got != test.expected {
 			t.Errorf("%s: expected %t, got %t", test.name, test.expected, got)
+		}
+	}
+}
+
+var (
+	now             = unversioned.Now()
+	condProgressing = func() deployapi.DeploymentCondition {
+		return deployapi.DeploymentCondition{
+			Type:               deployapi.DeploymentProgressing,
+			Status:             kapi.ConditionFalse,
+			LastTransitionTime: now,
+			Reason:             "ForSomeReason",
+		}
+	}
+
+	later                        = unversioned.Time{Time: now.Add(time.Minute)}
+	condProgressingDifferentTime = func() deployapi.DeploymentCondition {
+		return deployapi.DeploymentCondition{
+			Type:               deployapi.DeploymentProgressing,
+			Status:             kapi.ConditionFalse,
+			LastTransitionTime: later,
+			Reason:             "ForSomeReason",
+		}
+	}
+
+	condProgressingDifferentReason = func() deployapi.DeploymentCondition {
+		return deployapi.DeploymentCondition{
+			Type:   deployapi.DeploymentProgressing,
+			Status: kapi.ConditionTrue,
+			Reason: "BecauseItIs",
+		}
+	}
+
+	condNotProgressing = func() deployapi.DeploymentCondition {
+		return deployapi.DeploymentCondition{
+			Type:   deployapi.DeploymentProgressing,
+			Status: kapi.ConditionFalse,
+			Reason: "NotYet",
+		}
+	}
+
+	condAvailable = func() deployapi.DeploymentCondition {
+		return deployapi.DeploymentCondition{
+			Type:   deployapi.DeploymentAvailable,
+			Status: kapi.ConditionTrue,
+			Reason: "AwesomeController",
+		}
+	}
+)
+
+func TestGetCondition(t *testing.T) {
+	exampleStatus := func() deployapi.DeploymentConfigStatus {
+		return deployapi.DeploymentConfigStatus{
+			Conditions: []deployapi.DeploymentCondition{condProgressing(), condAvailable()},
+		}
+	}
+
+	tests := []struct {
+		name string
+
+		status     deployapi.DeploymentConfigStatus
+		condType   deployapi.DeploymentConditionType
+		condStatus kapi.ConditionStatus
+		condReason string
+
+		expected bool
+	}{
+		{
+			name: "condition exists",
+
+			status:   exampleStatus(),
+			condType: deployapi.DeploymentAvailable,
+
+			expected: true,
+		},
+		{
+			name: "condition does not exist",
+
+			status:   exampleStatus(),
+			condType: deployapi.DeploymentReplicaFailure,
+
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		cond := GetDeploymentCondition(test.status, test.condType)
+		exists := cond != nil
+		if exists != test.expected {
+			t.Errorf("%s: expected condition to exist: %t, got: %t", test.name, test.expected, exists)
+		}
+	}
+}
+
+func TestSetCondition(t *testing.T) {
+	tests := []struct {
+		name string
+
+		status *deployapi.DeploymentConfigStatus
+		cond   deployapi.DeploymentCondition
+
+		expectedStatus *deployapi.DeploymentConfigStatus
+	}{
+		{
+			name: "set for the first time",
+
+			status: &deployapi.DeploymentConfigStatus{},
+			cond:   condAvailable(),
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					condAvailable(),
+				},
+			},
+		},
+		{
+			name: "simple set",
+
+			status: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					condProgressing(),
+				},
+			},
+			cond: condAvailable(),
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					condProgressing(), condAvailable(),
+				},
+			},
+		},
+		{
+			name: "replace if status changes",
+
+			status: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					condNotProgressing(),
+				},
+			},
+			cond: condProgressing(),
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressing()}},
+		},
+		{
+			name: "replace if reason changes",
+
+			status: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					condProgressing(),
+				},
+			},
+			cond: condProgressingDifferentReason(),
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressingDifferentReason()}},
+		},
+		{
+			name: "don't replace if status and reason doesn't changes",
+
+			status: &deployapi.DeploymentConfigStatus{
+				Conditions: []deployapi.DeploymentCondition{
+					condProgressing(),
+				},
+			},
+			cond: condProgressingDifferentTime(),
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressing()}},
+		},
+	}
+
+	for _, test := range tests {
+		SetDeploymentCondition(test.status, test.cond)
+		if !reflect.DeepEqual(test.status, test.expectedStatus) {
+			t.Errorf("%s: expected status: %v, got: %v", test.name, test.expectedStatus, test.status)
+		}
+	}
+}
+
+func TestRemoveCondition(t *testing.T) {
+	exampleStatus := func() *deployapi.DeploymentConfigStatus {
+		return &deployapi.DeploymentConfigStatus{
+			Conditions: []deployapi.DeploymentCondition{condProgressing(), condAvailable()},
+		}
+	}
+
+	tests := []struct {
+		name string
+
+		status   *deployapi.DeploymentConfigStatus
+		condType deployapi.DeploymentConditionType
+
+		expectedStatus *deployapi.DeploymentConfigStatus
+	}{
+		{
+			name: "remove from empty status",
+
+			status:   &deployapi.DeploymentConfigStatus{},
+			condType: deployapi.DeploymentProgressing,
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{},
+		},
+		{
+			name: "simple remove",
+
+			status:   &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressing()}},
+			condType: deployapi.DeploymentProgressing,
+
+			expectedStatus: &deployapi.DeploymentConfigStatus{},
+		},
+		{
+			name: "doesn't remove anything",
+
+			status:   exampleStatus(),
+			condType: deployapi.DeploymentReplicaFailure,
+
+			expectedStatus: exampleStatus(),
+		},
+	}
+
+	for _, test := range tests {
+		RemoveDeploymentCondition(test.status, test.condType)
+		if !reflect.DeepEqual(test.status, test.expectedStatus) {
+			t.Errorf("%s: expected status: %v, got: %v", test.name, test.expectedStatus, test.status)
 		}
 	}
 }
