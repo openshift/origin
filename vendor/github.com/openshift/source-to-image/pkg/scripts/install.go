@@ -211,8 +211,8 @@ func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig,
 // InstallRequired Downloads and installs required scripts into dstDir, the result is a
 // map of scripts with detailed information about each of the scripts install process
 // with error if installing some of them failed
-func (i *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir string) ([]api.InstallResult, error) {
-	result := i.InstallOptional(scripts, dstDir)
+func (m *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir string) ([]api.InstallResult, error) {
+	result := m.InstallOptional(scripts, dstDir)
 	failedScripts := []string{}
 	var err error
 	for _, r := range result {
@@ -228,12 +228,12 @@ func (i *DefaultScriptSourceManager) InstallRequired(scripts []string, dstDir st
 
 // InstallOptional downloads and installs a set of scripts into dstDir, the result is a
 // map of scripts with detailed information about each of the scripts install process
-func (i *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir string) []api.InstallResult {
+func (m *DefaultScriptSourceManager) InstallOptional(scripts []string, dstDir string) []api.InstallResult {
 	result := []api.InstallResult{}
 	for _, script := range scripts {
 		installed := false
 		failedSources := []string{}
-		for _, e := range i.sources {
+		for _, e := range m.sources {
 			detected := false
 			h := e.(ScriptHandler)
 			h.SetDestinationDir(dstDir)

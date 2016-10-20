@@ -325,6 +325,31 @@ type Result struct {
 
 	// ImageID describes resulting image ID.
 	ImageID string
+
+	// BuildInfo holds information about the result of a build.
+	BuildInfo BuildInfo
+}
+
+// BuildInfo holds information about a particular step in the build process.
+type BuildInfo struct {
+	// FailureReason is a camel case reason that is used by the machine to reply
+	// back to the OpenShift builder with information why any of the steps in the
+	// build, failed.
+	FailureReason FailureReason
+}
+
+// StepFailureReason holds the type of failure that occured during the build
+// process.
+type StepFailureReason string
+
+// StepFailureMessage holds the detailed message of a failure.
+type StepFailureMessage string
+
+// FailureReason holds the type of failure that occured during the build
+// process.
+type FailureReason struct {
+	Reason  StepFailureReason
+	Message StepFailureMessage
 }
 
 // InstallResult structure describes the result of install operation
