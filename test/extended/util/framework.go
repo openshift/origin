@@ -1095,8 +1095,35 @@ func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) 
 	}
 	prefix = fmt.Sprintf("%s%s-", pvPrefix, prefix)
 	for _, pv := range pvs.Items {
-		if strings.HasPrefix(pv.Name, prefix) {
-			c.Delete(pv.Name)
+		if !strings.HasPrefix(pv.Name, prefix) {
+			continue
+		}
+
+		if err = c.Delete(pv.Name); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
+			continue
+		}
+
+		pvInfo, err := c.Get(pv.Name)
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't get meta info for PV %s: %v\n", pv.Name, err)
+			continue
+		}
+
+		volumeDir := pvInfo.Spec.HostPath.Path
+		if err = os.RemoveAll(volumeDir); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove directory %q: %v\n", volumeDir, err)
+			continue
+		}
+
+		parentDir := filepath.Dir(volumeDir)
+		if parentDir == "." || parentDir == "/" {
+			continue
+		}
+
+		if err = os.Remove(parentDir); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove directory %q: %v\n", parentDir, err)
+			continue
 		}
 	}
 	return nil

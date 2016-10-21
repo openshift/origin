@@ -34,8 +34,6 @@ var _ = g.Describe("[image_ecosystem][mongodb][Slow] openshift mongodb replicati
 			defer func() {
 				// We're removing only PVs because all other things will be removed
 				// together with namespace.
-				// TODO: unfortunately it doesn't remove the directories on the filesystem.
-				// Need to figure out how to fix it.
 				err := exutil.CleanupHostPathVolumes(oc.AdminKubeREST().PersistentVolumes(), oc.Namespace())
 				if err != nil {
 					fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't cleanup persistent volumes: %v", err)
