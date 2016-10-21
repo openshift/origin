@@ -35,62 +35,6 @@ func (s *noopCredentialStore) SetRefreshToken(url *url.URL, service string, toke
 	glog.Infof("asked to provide SetRefreshToken for %s", url)
 }
 
-func NewBasicCredentials() *BasicCredentials {
-	return &BasicCredentials{}
-}
-
-type basicForURL struct {
-	url                url.URL
-	username, password string
-}
-
-type BasicCredentials struct {
-	creds []basicForURL
-}
-
-func (c *BasicCredentials) Add(url *url.URL, username, password string) {
-	c.creds = append(c.creds, basicForURL{*url, username, password})
-}
-
-func (c *BasicCredentials) Basic(url *url.URL) (string, string) {
-	for _, cred := range c.creds {
-		if len(cred.url.Host) != 0 && cred.url.Host != url.Host {
-			continue
-		}
-		if len(cred.url.Path) != 0 && cred.url.Path != url.Path {
-			continue
-		}
-		return cred.username, cred.password
-	}
-	return "", ""
-}
-
-func (c *BasicCredentials) RefreshToken(url *url.URL, service string) string {
-	return ""
-}
-
-func (c *BasicCredentials) SetRefreshToken(url *url.URL, service string, token string) {
-}
-
-func NewLocalCredentials() auth.CredentialStore {
-	return &keyringCredentialStore{credentialprovider.NewDockerKeyring()}
-}
-
-type keyringCredentialStore struct {
-	credentialprovider.DockerKeyring
-}
-
-func (s *keyringCredentialStore) Basic(url *url.URL) (string, string) {
-	return basicCredentialsFromKeyring(s.DockerKeyring, url)
-}
-
-func (s *keyringCredentialStore) RefreshToken(url *url.URL, service string) string {
-	return ""
-}
-
-func (s *keyringCredentialStore) SetRefreshToken(url *url.URL, service string, token string) {
-}
-
 func NewCredentialsForSecrets(secrets []kapi.Secret) *SecretCredentialStore {
 	return &SecretCredentialStore{secrets: secrets}
 }
