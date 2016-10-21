@@ -145,6 +145,18 @@ message ClusterRoleList {
   repeated ClusterRole items = 2;
 }
 
+// GroupRestriction matches a group either by a string match on the group name
+// or a label selector applied to group labels.
+message GroupRestriction {
+  // Groups is a list of groups used to match against an individual user's
+  // groups. If the user is a member of one of the whitelisted groups, the user
+  // is allowed to be bound to a role.
+  repeated string groups = 1;
+
+  // Selectors specifies a list of label selectors over group labels.
+  repeated k8s.io.kubernetes.pkg.api.unversioned.LabelSelector labels = 2;
+}
+
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
 message IsPersonalSubjectAccessReview {
 }
@@ -376,6 +388,41 @@ message RoleBindingList {
   repeated RoleBinding items = 2;
 }
 
+// RoleBindingRestriction is an object that can be matched against a subject
+// (user, group, or service account) to determine whether rolebindings on that
+// subject are allowed in the namespace to which the RoleBindingRestriction
+// belongs.  If any one of those RoleBindingRestriction objects matches
+// a subject, rolebindings on that subject in the namespace are allowed.
+message RoleBindingRestriction {
+  // Standard object's metadata.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+
+  // Spec defines the matcher.
+  optional RoleBindingRestrictionSpec spec = 2;
+}
+
+// RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.
+message RoleBindingRestrictionList {
+  // Standard object's metadata.
+  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+
+  // Items is a list of RoleBindingRestriction objects.
+  repeated RoleBindingRestriction items = 2;
+}
+
+// RoleBindingRestrictionSpec defines a rolebinding restriction.  Exactly one
+// field must be non-nil.
+message RoleBindingRestrictionSpec {
+  // UserRestriction matches against user subjects.
+  optional UserRestriction userrestriction = 1;
+
+  // GroupRestriction matches against group subjects.
+  optional GroupRestriction grouprestriction = 2;
+
+  // ServiceAccountRestriction matches against service-account subjects.
+  optional ServiceAccountRestriction serviceaccountrestriction = 3;
+}
+
 // RoleList is a collection of Roles
 message RoleList {
   // Standard object's metadata.
@@ -399,6 +446,30 @@ message SelfSubjectRulesReviewSpec {
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil means "use the scopes on this request".
   optional OptionalScopes scopes = 1;
+}
+
+// ServiceAccountReference specifies a service account and namespace by their
+// names.
+message ServiceAccountReference {
+  // Name is the name of the service account.
+  optional string name = 1;
+
+  // Namespace is the namespace of the service account.  Service accounts from
+  // inside the whitelisted namespaces are allowed to be bound to roles.  If
+  // Namespace is empty, then the namespace of the RoleBindingRestriction in
+  // which the ServiceAccountReference is embedded is used.
+  optional string namespace = 2;
+}
+
+// ServiceAccountRestriction matches a service account by a string match on
+// either the service-account name or the name of the service account's
+// namespace.
+message ServiceAccountRestriction {
+  // ServiceAccounts specifies a list of literal service-account names.
+  repeated ServiceAccountReference serviceaccounts = 1;
+
+  // Namespaces specifies a list of literal namespace names.
+  repeated string namespaces = 2;
 }
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
@@ -465,5 +536,19 @@ message SubjectRulesReviewStatus {
   // EvaluationError can appear in combination with Rules.  It means some error happened during evaluation
   // that may have prevented additional rules from being populated.
   optional string evaluationError = 2;
+}
+
+// UserRestriction matches a user either by a string match on the user name,
+// a string match on the name of a group to which the user belongs, or a label
+// selector applied to the user labels.
+message UserRestriction {
+  // Users specifies a list of literal user names.
+  repeated string users = 1;
+
+  // Groups specifies a list of literal group names.
+  repeated string groups = 2;
+
+  // Selectors specifies a list of label selectors over user labels.
+  repeated k8s.io.kubernetes.pkg.api.unversioned.LabelSelector labels = 3;
 }
 

@@ -449,6 +449,17 @@ func init() {
 				return true, authorizationv1.Convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview(a, b, s)
 			}
 
+		case *authorizationv1.RoleBindingRestriction:
+			switch b := objB.(type) {
+			case *authorizationapi.RoleBindingRestriction:
+				return true, authorizationv1.Convert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(a, b, s)
+			}
+		case *authorizationapi.RoleBindingRestriction:
+			switch b := objB.(type) {
+			case *authorizationv1.RoleBindingRestriction:
+				return true, authorizationv1.Convert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(a, b, s)
+			}
+
 		case *userv1.User:
 			switch b := objB.(type) {
 			case *userapi.User:
