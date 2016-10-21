@@ -34,6 +34,7 @@ const (
 	DefaultDNSPort         = 53
 	AlternateDNSPort       = 8053
 	cmdDetermineNodeHost   = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	OpenShiftContainer     = "origin"
 )
 
 var (
@@ -438,50 +439,17 @@ func (h *Helper) copyConfig(hostDir string) (string, error) {
 		return "", err
 	}
 	glog.V(1).Infof("Copying from host directory %s to local directory %s", hostDir, tempDir)
-	if err = h.hostHelper.CopyFromHost(hostDir, tempDir); err != nil {
+	if err = h.hostHelper.DownloadDirFromContainer(hostDir, tempDir); err != nil {
 		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
 			glog.V(2).Infof("Error removing temporary config dir %s: %v", tempDir, removeErr)
 		}
 		return "", err
 	}
 
-	// The configuration dir comes in as something like /tmp/openshift-config%d/openshift.local.config/... .
-	// Remove the intermediate openshift.local.config directory and reparent its files.
-	// Thus the return value of this function represents both the configuration
-	// directory as well as the temporary directory which should be removed at exit.
-
-	subDirPath := filepath.Join(tempDir, filepath.Base(hostDir))
-	subDir, err := os.Open(subDirPath)
-	if err != nil {
-		glog.V(2).Infof("Error opening temporary config dir %s: %v", subDir, err)
-		return "", err
-	}
-
-	names, err := subDir.Readdirnames(0)
-	if err != nil {
-		glog.V(2).Infof("Error listing temporary config dir %s: %v", subDir, err)
-		return "", err
-	}
-
-	for _, name := range names {
-		err = os.Rename(filepath.Join(subDirPath, name), filepath.Join(tempDir, name))
-		if err != nil {
-			glog.V(2).Infof("Error moving file/dir %s: %v", filepath.Join(subDirPath, name), err)
-			return "", err
-		}
-	}
-
-	subDir.Close()
-
-	err = os.Remove(subDirPath)
-	if err != nil {
-		glog.V(2).Infof("Error removing temporary config dir %s: %v", subDirPath, err)
-	}
-
 	return tempDir, nil
 }
 
-func (h *Helper) GetConfig(configDir string) (*configapi.MasterConfig, string, error) {
+func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfig, string, error) {
 	configPath := filepath.Join(configDir, "master", "master-config.yaml")
 	glog.V(1).Infof("Reading master config from %s", configPath)
 	cfg, err := configapilatest.ReadMasterConfig(configPath)
@@ -492,9 +460,27 @@ func (h *Helper) GetConfig(configDir string) (*configapi.MasterConfig, string, e
 	return cfg, configPath, nil
 }
 
-func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost, loggingHost string) error {
+func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, error) {
+	r, err := dockerhelper.StreamFileFromContainer(client, OpenShiftContainer, serverMasterConfig)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
 
-	cfg, configPath, err := h.GetConfig(configDir)
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	config := &configapi.MasterConfig{}
+	err = configapilatest.ReadYAMLInto(data, config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost, loggingHost string) error {
+	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
 		return err
 	}
@@ -521,11 +507,11 @@ func (h *Helper) updateConfig(configDir, hostDir, routerIP, metricsHost, logging
 	if err != nil {
 		return err
 	}
-	return h.hostHelper.CopyMasterConfigToHost(configPath, hostDir)
+	return h.hostHelper.UploadFileToContainer(configPath, serverMasterConfig)
 }
 
 func (h *Helper) getOpenShiftConfigFiles(hostname string) (string, string, error) {
-	return "/var/lib/origin/openshift.local.config/master/master-config.yaml",
+	return serverMasterConfig,
 		fmt.Sprintf("/var/lib/origin/openshift.local.config/node-%s/node-config.yaml", hostname),
 		nil
 }

@@ -53,7 +53,7 @@ func (p *TaskPrinter) TaskWriter() io.Writer {
 // that caused the failure
 func (p *TaskPrinter) Failure(err error) {
 	fmt.Fprintf(p.out, "FAIL\n")
-	printError(err, prefixwriter.New(taskIndent, p.out))
+	PrintError(err, prefixwriter.New(taskIndent, p.out))
 }
 
 type hasCause interface {
@@ -68,7 +68,7 @@ type hasSolution interface {
 	Solution() string
 }
 
-func printError(err error, out io.Writer) {
+func PrintError(err error, out io.Writer) {
 	fmt.Fprintf(out, "Error: %v\n", err)
 	if d, ok := err.(hasDetails); ok && len(d.Details()) > 0 {
 		fmt.Fprintf(out, "Details:\n")
@@ -84,7 +84,7 @@ func printError(err error, out io.Writer) {
 	if c, ok := err.(hasCause); ok && c.Cause() != nil {
 		fmt.Fprintf(out, "Caused By:\n")
 		w := prefixwriter.New("  ", out)
-		printError(c.Cause(), w)
+		PrintError(c.Cause(), w)
 	}
 }
 

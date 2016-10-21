@@ -1,19 +1,19 @@
-.TH "OC CLUSTER" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+.TH "OPENSHIFT CLI CLUSTER" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
 
 
 .SH NAME
 .PP
-oc cluster down \- Stop OpenShift on Docker
+openshift cli cluster status \- Show OpenShift on Docker status
 
 
 .SH SYNOPSIS
 .PP
-\fBoc cluster down\fP [OPTIONS]
+\fBopenshift cli cluster status\fP [OPTIONS]
 
 
 .SH DESCRIPTION
 .PP
-Stops the container running OpenShift on Docker and associated containers.
+Show the status of the local OpenShift cluster.
 
 .PP
 If you started your OpenShift with a specific docker\-machine, you need to specify the same machine using the \-\-docker\-machine argument.
@@ -100,11 +100,11 @@ If you started your OpenShift with a specific docker\-machine, you need to speci
 .RS
 
 .nf
-  # Stop local OpenShift cluster
-  oc cluster down
+  # See status of local OpenShift cluster
+  openshift cli cluster status
   
-  # Stop cluster running on Docker machine 'mymachine'
-  oc cluster down \-\-docker\-machine=mymachine
+  # See status of OpenShift cluster running on Docker machine 'mymachine'
+  openshift cli cluster status \-\-docker\-machine=mymachine
 
 .fi
 .RE
@@ -112,7 +112,7 @@ If you started your OpenShift with a specific docker\-machine, you need to speci
 
 .SH SEE ALSO
 .PP
-\fBoc\-cluster(1)\fP,
+\fBopenshift\-cli\-cluster(1)\fP,
 
 
 .SH HISTORY

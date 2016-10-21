@@ -39,7 +39,6 @@ const (
 	// CmdUpRecommendedName is the recommended command name
 	CmdUpRecommendedName = "up"
 
-	openShiftContainer = "origin"
 	openShiftNamespace = "openshift"
 
 	initialUser     = "developer"
@@ -403,18 +402,27 @@ func (c *ClientStartConfig) CheckOpenShiftClient(out io.Writer) error {
 	return nil
 }
 
-// GetDockerClient will obtain a new Docker client from the environment or
+// GetDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary
 func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
-	var err error
+	dockerClient, engineAPIClient, err := getDockerClient(out, c.DockerMachine, true)
+	if err != nil {
+		return err
+	}
+	c.dockerClient, c.engineAPIClient = dockerClient, engineAPIClient
+	return nil
+}
 
-	if len(c.DockerMachine) > 0 {
-		glog.V(2).Infof("Getting client for Docker machine %q", c.DockerMachine)
-		c.dockerClient, c.engineAPIClient, err = getDockerMachineClient(c.DockerMachine, out)
+// getDockerClient obtains a new Docker client from the environment or
+// from a Docker machine, starting it if necessary and permitted
+func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (*docker.Client, *dockerclient.Client, error) {
+	if len(dockerMachine) > 0 {
+		glog.V(2).Infof("Getting client for Docker machine %q", dockerMachine)
+		dockerClient, engineAPIClient, err := getDockerMachineClient(dockerMachine, out, canStartDockerMachine)
 		if err != nil {
-			return errors.ErrNoDockerMachineClient(c.DockerMachine, err)
+			return nil, nil, errors.ErrNoDockerMachineClient(dockerMachine, err)
 		}
-		return nil
+		return dockerClient, engineAPIClient, nil
 	}
 
 	if glog.V(4) {
@@ -436,9 +444,9 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 			glog.Infof("DOCKER_CERT_PATH=%s", dockerCertPath)
 		}
 	}
-	c.dockerClient, _, err = dockerutil.NewHelper().GetClient()
+	dockerClient, _, err := dockerutil.NewHelper().GetClient()
 	if err != nil {
-		return errors.ErrNoDockerClient(err)
+		return nil, nil, errors.ErrNoDockerClient(err)
 	}
 	// FIXME: Workaround for docker engine API client on OS X - sets the default to
 	// the wrong DOCKER_HOST string
@@ -448,30 +456,30 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 			os.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
 		}
 	}
-	c.engineAPIClient, err = dockerclient.NewEnvClient()
+	engineAPIClient, err := dockerclient.NewEnvClient()
 	if err != nil {
-		return errors.ErrNoDockerClient(err)
+		return nil, nil, errors.ErrNoDockerClient(err)
 	}
-	if err = c.dockerClient.Ping(); err != nil {
-		return errors.ErrCannotPingDocker(err)
+	if err = dockerClient.Ping(); err != nil {
+		return nil, nil, errors.ErrCannotPingDocker(err)
 	}
 	glog.V(4).Infof("Docker ping succeeded")
-	return nil
+	return dockerClient, engineAPIClient, nil
 }
 
 // CheckExistingOpenShiftContainer checks the state of an OpenShift container. If one
 // is already running, it throws an error. If one exists, it removes it so a new one
 // can be created.
 func (c *ClientStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error {
-	exists, running, err := c.DockerHelper().GetContainerState(openShiftContainer)
+	container, running, err := c.DockerHelper().GetContainerState(openshift.OpenShiftContainer)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
 	if running {
 		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", cmdutil.SiblingCommand(c.command, "down"))
 	}
-	if exists {
-		err = c.DockerHelper().RemoveContainer(openShiftContainer)
+	if container != nil {
+		err = c.DockerHelper().RemoveContainer(openshift.OpenShiftContainer)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -793,7 +801,7 @@ func (c *ClientStartConfig) Clients() (*client.Client, *kclient.Client, error) {
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *ClientStartConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openShiftHelper == nil {
-		c.openShiftHelper = openshift.NewHelper(c.dockerClient, c.HostHelper(), c.openShiftImage(), openShiftContainer, c.PublicHostname, c.RoutingSuffix)
+		c.openShiftHelper = openshift.NewHelper(c.dockerClient, c.HostHelper(), c.openShiftImage(), openshift.OpenShiftContainer, c.PublicHostname, c.RoutingSuffix)
 	}
 	return c.openShiftHelper
 }
@@ -833,8 +841,8 @@ func (c *ClientStartConfig) openShiftImage() string {
 	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 }
 
-func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, *dockerclient.Client, error) {
-	if !dockermachine.IsRunning(machine) {
+func getDockerMachineClient(machine string, out io.Writer, canStart bool) (*docker.Client, *dockerclient.Client, error) {
+	if !dockermachine.IsRunning(machine) && canStart {
 		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
 		err := dockermachine.Start(machine)
 		if err != nil {
@@ -955,7 +963,7 @@ func (c *ClientStartConfig) ShouldCreateUser() bool {
 			return true
 		}
 
-		cfg, _, err := c.OpenShiftHelper().GetConfig(c.LocalConfigDir)
+		cfg, _, err := c.OpenShiftHelper().GetConfigFromLocalDir(c.LocalConfigDir)
 		if err != nil {
 			glog.V(2).Infof("error reading config: %v", err)
 			return true
