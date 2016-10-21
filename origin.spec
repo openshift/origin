@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ff13f5b9242480196d40b09cd0bfe6815e5a9b1d
+%global commit abd31eacd0a56f8db8584b94e7469047c961c6f0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.12+ff13f5b OS_GIT_COMMIT=ff13f5b OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.13+abd31ea OS_GIT_COMMIT=abd31ea OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.13
+Version:        3.4.0.14
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -473,6 +473,106 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Fri Oct 21 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.14
+- Merge remote-tracking branch upstream/master, bump origin-web-console 5e10797
+  (tdawson@redhat.com)
+- Implement cluster status command (jminter@redhat.com)
+- Enable Gluster and RBD provisioners (jsafrane@redhat.com)
+- Add compression to haproxy v2 (cw-aleks@users.noreply.github.com)
+- Add extended test for PetSet based MongoDB replica set. (vsemushi@redhat.com)
+- Enable PV controller to provisiong Gluster volumes (jsafrane@redhat.com)
+- UPSTREAM: 34705: Make use of PVC namespace when provisioning gluster volumes
+  (jsafrane@redhat.com)
+- UPSTREAM: 35141: remove pv annotation from rbd volume (jsafrane@redhat.com)
+- Update role binding docs (mkhan@redhat.com)
+- Do not use "*" as DockerImageReference.Name for ImageStreamImport
+  (agladkov@redhat.com)
+- oc new-app --search: don't require docker hub access (mmilata@redhat.com)
+- UPSTREAM: 35022: Remove PV annotations for Gluster provisioner
+  (hchen@redhat.com)
+- add extened test for pipeline build (haowang@redhat.com)
+- Work around broken run --attach for now (agoldste@redhat.com)
+- Fixes issue #10108 Adds os::build::setup_env to hack/update-generated-
+  bootstrap-bindata.sh which ensures that the GOPATH env variable is set and
+  not empty (cdaley@redhat.com)
+- Update ose_images.sh - 2016-10-19 (tdawson@redhat.com)
+- Fixes bug 1345773 - https://bugzilla.redhat.com/show_bug.cgi?id=1345773
+  (cdaley@redhat.com)
+- change gitserver template strategy to Recrate
+  (shiywang@dhcp-140-35.nay.redhat.com)
+- Bug 1386054: enqueue in the trigger controller only when really needed
+  (mkargaki@redhat.com)
+- keepalived vip (vrrp) requires 224.0.0.18/32 (pcameron@redhat.com)
+- update build status reasons to StatusReason type (jvallejo@redhat.com)
+- IngressIP controller: Fix Service update in an exponential backoff manner
+  (rpenta@redhat.com)
+- update generated docs (jvallejo@redhat.com)
+- bump(k8s.io/client-go): add Timeout field to 1.4 restclient
+  (jvallejo@redhat.com)
+- rename global flag to --request-timeout (jvallejo@redhat.com)
+- UPSTREAM: 33958: update --request-timeout flag to string value
+  (jvallejo@redhat.com)
+- UPSTREAM: 33958: add global timeout flag (jvallejo@redhat.com)
+- Update the cli hacking guide (ffranz@redhat.com)
+- Help templates which allow reordering of sections (ffranz@redhat.com)
+- Update generated docs (ffranz@redhat.com)
+- Tools for checking CLI conventions (ffranz@redhat.com)
+- Normalize CLI examples and long descriptions (ffranz@redhat.com)
+- Markdown rendering engine (ffranz@redhat.com)
+- Commands must always use the provided err output (ffranz@redhat.com)
+- Add writers capable of adjusting to terminal sizes (ffranz@redhat.com)
+- bump(github.com/mitchellh/go-wordwrap):
+  ad45545899c7b13c020ea92b2072220eefad42b8 (ffranz@redhat.com)
+- Minor fixups after s2i bump (jminter@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  5009651d01b7f96b5373979317f4d4f32415f32b (jminter@redhat.com)
+- React to new --revision flag in rollout status (mkargaki@redhat.com)
+- enable and test owner reference protection (deads@redhat.com)
+- UPSTREAM: 34443: kubectl: add --revision flag in rollout status
+  (mkargaki@redhat.com)
+- oc: add -o revision in rollout latest (mkargaki@redhat.com)
+- Reject Builds with unresolved image references (mmilata@redhat.com)
+- Allow running extended test without specifying namespace
+  (maszulik@redhat.com)
+- Fix validation messages for PodSecurityPolicy*Review objects
+  (maszulik@redhat.com)
+- Add a missing err return (miao.yanqiang@zte.com.cn)
+- Fix an imperfect if statement (miao.yanqiang@zte.com.cn)
+- To add Informer for ServiceAccount (salvatore-dario.minonne@amadeus.com)
+- dind: deploy multitenant plugin by default (marun@redhat.com)
+- dind: stop truncating systemd logs (marun@redhat.com)
+- Bump origin-web-console (d5318f2) (jforrest@redhat.com)
+- Cleaned up the system logging Bash library (skuznets@redhat.com)
+- update docs (jvallejo@redhat.com)
+- UPSTREAM: 32555: WantsAuthorizer admission plugin support (deads@redhat.com)
+- use cmdutil DryRun flag helper (jvallejo@redhat.com)
+- UPSTREAM: 34028: add --dry-run option to apply kube cmd (jvallejo@redhat.com)
+- UPSTREAM: 34028: add --dry-run option to create root cmd
+  (jvallejo@redhat.com)
+- Add --dry-run option to create sub-commands (jvallejo@redhat.com)
+- UPSTREAM: 34829: add ownerref permission checks (deads@redhat.com)
+- Make OAuth provider discoverable from within a Pod (mkhan@redhat.com)
+- remove ruby, mysql tags from pipeline sample template (bparees@redhat.com)
+- UPSTREAM: 32662: Change the default volume type of GlusterFS provisioner
+  (jsafrane@redhat.com)
+- spell jenkins correctly (jminter@redhat.com)
+- cluster up: add option to install logging components (cewong@redhat.com)
+- Remove -f flag from docker tag (gethemant@gmail.com)
+- Remove signature store from registry (agladkov@redhat.com)
+- UPSTREAM: docker/distribution: 1857: Provide stat descriptor for Create
+  method during cross-repo mount (jliggitt@redhat.com)
+- UPSTREAM: docker/distribution: 1757: Export storage.CreateOptions in top-
+  level package (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Update dependencies
+  (agladkov@redhat.com)
+- bump(github.com/docker/distribution):
+  12acdf0a6c1e56d965ac6eb395d2bce687bf22fc (agladkov@redhat.com)
+- Enable exec/http proxy e2e test (agoldste@redhat.com)
+- refactor install to support configuration, plus help manpage
+  (aweiteka@redhat.com)
+
 * Wed Oct 19 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.13
 - Update ose_images.sh - 2016-10-17 (tdawson@redhat.com)
 - Remove dependence on external mysql image tag order (jliggitt@redhat.com)
