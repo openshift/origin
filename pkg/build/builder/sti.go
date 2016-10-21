@@ -33,7 +33,7 @@ type builderFactory interface {
 // validator is the interval interface to decouple S2I-specific code from Origin builder code
 type validator interface {
 	// Perform validation of S2I configuration, returns slice of validation errors
-	ValidateConfig(config *s2iapi.Config) []validation.ValidationError
+	ValidateConfig(config *s2iapi.Config) []validation.Error
 }
 
 // runtimeBuilderFactory is the default implementation of stiBuilderFactory
@@ -41,14 +41,15 @@ type runtimeBuilderFactory struct{}
 
 // Builder delegates execution to S2I-specific code
 func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error) {
-	return s2i.Strategy(config, overrides)
+	builder, _, err := s2i.Strategy(config, overrides)
+	return builder, err
 }
 
 // runtimeConfigValidator is the default implementation of stiConfigValidator
 type runtimeConfigValidator struct{}
 
 // ValidateConfig delegates execution to S2I-specific code
-func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validation.ValidationError {
+func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validation.Error {
 	return validation.ValidateConfig(config)
 }
 
@@ -243,7 +244,7 @@ func (s *S2IBuilder) Build() error {
 		return errors.New(buffer.String())
 	}
 
-	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
+	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
 	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
 	if err != nil {
 		return err

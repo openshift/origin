@@ -26,7 +26,7 @@ os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
 os::util::environment::use_sudo
 reset_tmp_dir
 
-os::log::start_system_logger
+os::log::system::start
 
 configure_os_server
 start_os_server

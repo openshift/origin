@@ -12,25 +12,29 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-const (
-	DeploymentConfigRecommendedName = "deploymentconfig"
+var DeploymentConfigRecommendedName = "deploymentconfig"
 
-	deploymentConfigLong = `
-Create a deployment config that uses a given image.
+var (
+	deploymentConfigLong = templates.LongDesc(`
+		Create a deployment config that uses a given image.
 
-Deployment configs define the template for a pod and manages deploying new images or configuration changes.`
+		Deployment configs define the template for a pod and manages deploying new images or configuration changes.`)
 
-	deploymentConfigExample = `  # Create an nginx deployment config named my-nginx
-  %[1]s my-nginx --image=nginx`
+	deploymentConfigExample = templates.Examples(`
+		# Create an nginx deployment config named my-nginx
+  	%[1]s my-nginx --image=nginx`)
 )
 
 type CreateDeploymentConfigOptions struct {
 	DC     *deployapi.DeploymentConfig
 	Client client.DeploymentConfigsNamespacer
+
+	DryRun bool
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -57,7 +61,8 @@ func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, o
 
 	cmd.Flags().String("image", "", "The image for the container to run.")
 	cmd.MarkFlagRequired("image")
-	cmdutil.AddOutputFlagsForMutation(cmd)
+	cmdutil.AddDryRunFlag(cmd)
+	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -73,6 +78,7 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 
 	labels := map[string]string{"deployment-config.name": args[0]}
 
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 	o.DC = &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: args[0]},
 		Spec: deployapi.DeploymentConfigSpec{
@@ -135,13 +141,24 @@ func (o *CreateDeploymentConfigOptions) Validate() error {
 }
 
 func (o *CreateDeploymentConfigOptions) Run() error {
-	actualObj, err := o.Client.DeploymentConfigs(o.DC.Namespace).Create(o.DC)
-	if err != nil {
-		return err
+	actualObj := o.DC
+
+	var err error
+	if !o.DryRun {
+
+		actualObj, err = o.Client.DeploymentConfigs(o.DC.Namespace).Create(o.DC)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "deploymentconfig", actualObj.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "deploymentconfig", actualObj.Name, created)
 		return nil
 	}
 

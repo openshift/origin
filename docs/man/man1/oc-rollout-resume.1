@@ -16,8 +16,7 @@ oc rollout resume \- Resume a paused resource
 Resume a paused resource
 
 .PP
-Paused resources will not be reconciled by a controller. By resuming a
-resource, we allow it to be reconciled again.
+Paused resources will not be reconciled by a controller. By resuming a resource, we allow it to be reconciled again.
 
 
 .SH OPTIONS
@@ -82,6 +81,10 @@ resource, we allow it to be reconciled again.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

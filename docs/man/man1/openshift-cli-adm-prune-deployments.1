@@ -16,8 +16,7 @@ openshift cli adm prune deployments \- Remove old completed and failed deploymen
 Prune old completed and failed deployments
 
 .PP
-By default, the prune operation performs a dry run making no changes to the deployments.
-A \-\-confirm flag is needed for changes to be effective.
+By default, the prune operation performs a dry run making no changes to the deployments. A \-\-confirm flag is needed for changes to be effective.
 
 
 .SH OPTIONS
@@ -96,6 +95,10 @@ A \-\-confirm flag is needed for changes to be effective.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -115,7 +118,7 @@ A \-\-confirm flag is needed for changes to be effective.
 .nf
   # Dry run deleting all but the last complete deployment for every deployment config
   openshift cli adm prune deployments \-\-keep\-complete=1
-
+  
   # To actually perform the prune operation, the confirm flag must be appended
   openshift cli adm prune deployments \-\-keep\-complete=1 \-\-confirm
 

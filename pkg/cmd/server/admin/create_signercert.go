@@ -11,6 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 const CreateSignerCertCommandName = "create-signer-cert"
@@ -41,9 +42,8 @@ func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.
 	cobra.MarkFlagFilename(flags, prefix+"serial")
 }
 
-const createSignerLong = `
-Create a self-signed CA key/cert for signing certificates used by server components.
-`
+var createSignerLong = templates.LongDesc(`
+	Create a self-signed CA key/cert for signing certificates used by server components.`)
 
 func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateSignerCertOptions{Overwrite: true, Output: out}

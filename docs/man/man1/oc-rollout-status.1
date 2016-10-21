@@ -25,6 +25,10 @@ Watch the status of the latest rollout, until it's done.
 \fB\-R\fP, \fB\-\-recursive\fP=false
     Process the directory used in \-f, \-\-filename recursively. Useful when you want to manage related manifests organized within the same directory.
 
+.PP
+\fB\-\-revision\fP=0
+    Pin to a specific revision for showing its status. Defaults to 0 (last revision).
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
@@ -80,6 +84,10 @@ Watch the status of the latest rollout, until it's done.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -99,7 +107,6 @@ Watch the status of the latest rollout, until it's done.
 .nf
   # Watch the status of the latest rollout
   oc rollout status dc/nginx
-
 
 .fi
 .RE

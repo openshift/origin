@@ -18,49 +18,51 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	probeLong = `
-Set or remove a liveness or readiness probe from a pod or pod template
+var (
+	probeLong = templates.LongDesc(`
+		Set or remove a liveness or readiness probe from a pod or pod template
 
-Each container in a pod may define one or more probes that are used for general health
-checking. A liveness probe is checked periodically to ensure the container is still healthy:
-if the probe fails, the container is restarted. Readiness probes set or clear the ready
-flag for each container, which controls whether the container's ports are included in the list
-of endpoints for a service and whether a deployment can proceed. A readiness check should
-indicate when your container is ready to accept incoming traffic or begin handling work.
-Setting both liveness and readiness probes for each container is highly recommended.
+		Each container in a pod may define one or more probes that are used for general health
+		checking. A liveness probe is checked periodically to ensure the container is still healthy:
+		if the probe fails, the container is restarted. Readiness probes set or clear the ready
+		flag for each container, which controls whether the container's ports are included in the list
+		of endpoints for a service and whether a deployment can proceed. A readiness check should
+		indicate when your container is ready to accept incoming traffic or begin handling work.
+		Setting both liveness and readiness probes for each container is highly recommended.
 
-The three probe types are:
+		The three probe types are:
 
-1. Open a TCP socket on the pod IP
-2. Perform an HTTP GET against a URL on a container that must return 200 OK
-3. Run a command in the container that must return exit code 0
+		1. Open a TCP socket on the pod IP
+		2. Perform an HTTP GET against a URL on a container that must return 200 OK
+		3. Run a command in the container that must return exit code 0
 
-Containers that take a variable amount of time to start should set generous
-initial-delay-seconds values, otherwise as your application evolves you may suddenly begin
-to fail.`
+		Containers that take a variable amount of time to start should set generous
+		initial-delay-seconds values, otherwise as your application evolves you may suddenly begin
+		to fail.`)
 
-	probeExample = `  # Clear both readiness and liveness probes off all containers
-  %[1]s probe dc/registry --remove --readiness --liveness
+	probeExample = templates.Examples(`
+		# Clear both readiness and liveness probes off all containers
+	  %[1]s probe dc/registry --remove --readiness --liveness
 
-  # Set an exec action as a liveness probe to run 'echo ok'
-  %[1]s probe dc/registry --liveness -- echo ok
+	  # Set an exec action as a liveness probe to run 'echo ok'
+	  %[1]s probe dc/registry --liveness -- echo ok
 
-  # Set a readiness probe to try to open a TCP socket on 3306
-  %[1]s probe rc/mysql --readiness --open-tcp=3306
+	  # Set a readiness probe to try to open a TCP socket on 3306
+	  %[1]s probe rc/mysql --readiness --open-tcp=3306
 
-  # Set an HTTP readiness probe for port 8080 and path /healthz over HTTP on the pod IP
-  %[1]s probe dc/webapp --readiness --get-url=http://:8080/healthz
+	  # Set an HTTP readiness probe for port 8080 and path /healthz over HTTP on the pod IP
+	  %[1]s probe dc/webapp --readiness --get-url=http://:8080/healthz
 
-  # Set an HTTP readiness probe over HTTPS on 127.0.0.1 for a hostNetwork pod
-  %[1]s probe dc/router --readiness --get-url=https://127.0.0.1:1936/stats
+	  # Set an HTTP readiness probe over HTTPS on 127.0.0.1 for a hostNetwork pod
+	  %[1]s probe dc/router --readiness --get-url=https://127.0.0.1:1936/stats
 
-  # Set only the initial-delay-seconds field on all deployments
-  %[1]s probe dc --all --readiness --initial-delay-seconds=30`
+	  # Set only the initial-delay-seconds field on all deployments
+	  %[1]s probe dc --all --readiness --initial-delay-seconds=30`)
 )
 
 type ProbeOptions struct {

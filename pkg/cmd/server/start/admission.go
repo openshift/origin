@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	// Admission control plug-ins used by OpenShift
-	_ "github.com/openshift/origin/pkg/api/admission/ownerref"
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
 	_ "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -68,6 +67,7 @@ var (
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",
+		"OwnerReferencesPermissionEnforcement",
 		quotaadmission.PluginName,
 		"openshift.io/ClusterResourceQuota",
 	)
@@ -83,7 +83,6 @@ var (
 		"BuildOverrides",
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
-		"openshift.io/OwnerReference",
 	)
 )
 

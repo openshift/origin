@@ -16,8 +16,7 @@ openshift cli adm \- Tools for managing a cluster
 Administrative Commands
 
 .PP
-Commands for managing a cluster are exposed here. Many administrative
-actions involve interaction with the command\-line client as well.
+Commands for managing a cluster are exposed here. Many administrative actions involve interaction with the command\-line client as well.
 
 
 .SH OPTIONS
@@ -64,6 +63,10 @@ actions involve interaction with the command\-line client as well.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

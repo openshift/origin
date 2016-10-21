@@ -84,6 +84,10 @@ Decrypt data encrypted with "openshift cli adm ca encrypt"
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -101,12 +105,11 @@ Decrypt data encrypted with "openshift cli adm ca encrypt"
 .RS
 
 .nf
-	# Decrypt an encrypted file to a cleartext file:
-	openshift cli adm ca decrypt \-\-key=secret.key \-\-in=secret.encrypted \-\-out=secret.decrypted
-	
-	# Decrypt from stdin to stdout:
-	openshift cli adm ca decrypt \-\-key=secret.key < secret2.encrypted > secret2.decrypted
-
+  # Decrypt an encrypted file to a cleartext file:
+  openshift cli adm ca decrypt \-\-key=secret.key \-\-in=secret.encrypted \-\-out=secret.decrypted
+  
+  # Decrypt from stdin to stdout:
+  openshift cli adm ca decrypt \-\-key=secret.key < secret2.encrypted > secret2.decrypted
 
 .fi
 .RE

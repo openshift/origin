@@ -19,53 +19,55 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
-const (
-	backendsLong = `
-Set and adjust route backends
+var (
+	backendsLong = templates.LongDesc(`
+		Set and adjust route backends
 
-Routes may have one or more optional backend services with weights controlling how much
-traffic flows to each service. Traffic is assigned proportional to the combined weights
-of each backend. A weight of zero means that the backend will receive no traffic. If all
-weights are zero the route will not send traffic to any backends.
+		Routes may have one or more optional backend services with weights controlling how much
+		traffic flows to each service. Traffic is assigned proportional to the combined weights
+		of each backend. A weight of zero means that the backend will receive no traffic. If all
+		weights are zero the route will not send traffic to any backends.
 
-When setting backends, the first backend is the primary and the other backends are
-considered alternates. For example:
+		When setting backends, the first backend is the primary and the other backends are
+		considered alternates. For example:
 
-    $ %[1]s route-backends web prod=99 canary=1
+		    $ %[1]s route-backends web prod=99 canary=1
 
-will set the primary backend to service "prod" with a weight of 99 and the first
-alternate backend to service "canary" with a weight of 1. This means 99%% of traffic will
-be sent to the service "prod".
+		will set the primary backend to service "prod" with a weight of 99 and the first
+		alternate backend to service "canary" with a weight of 1. This means 99%% of traffic will
+		be sent to the service "prod".
 
-The --adjust flag allows you to alter the weight of an individual service relative to
-itself or to the primary backend. Specifying a percentage will adjust the backend
-relative to either the primary or the first alternate (if you specify the primary).
-If there are other backends their weights will be kept proportional to the changed.
+		The --adjust flag allows you to alter the weight of an individual service relative to
+		itself or to the primary backend. Specifying a percentage will adjust the backend
+		relative to either the primary or the first alternate (if you specify the primary).
+		If there are other backends their weights will be kept proportional to the changed.
 
-Not all routers may support multiple or weighted backends.`
+		Not all routers may support multiple or weighted backends.`)
 
-	backendsExample = `  # Print the backends on the route 'web'
-  %[1]s route-backends web
+	backendsExample = templates.Examples(`
+		# Print the backends on the route 'web'
+	  %[1]s route-backends web
 
-  # Set two backend services on route 'web' with 2/3rds of traffic going to 'a'
-  %[1]s route-backends web a=2 b=1
+	  # Set two backend services on route 'web' with 2/3rds of traffic going to 'a'
+	  %[1]s route-backends web a=2 b=1
 
-  # Increase the traffic percentage going to b by 10%% relative to a
-  %[1]s route-backends web --adjust b=+10%%
+	  # Increase the traffic percentage going to b by 10%% relative to a
+	  %[1]s route-backends web --adjust b=+10%%
 
-  # Set traffic percentage going to b to 10%% of the traffic going to a
-  %[1]s route-backends web --adjust b=10%%
+	  # Set traffic percentage going to b to 10%% of the traffic going to a
+	  %[1]s route-backends web --adjust b=10%%
 
-  # Set weight of b to 10
-  %[1]s route-backends web --adjust b=10
+	  # Set weight of b to 10
+	  %[1]s route-backends web --adjust b=10
 
-  # Set the weight to all backends to zero
-  %[1]s route-backends web --zero`
+	  # Set the weight to all backends to zero
+	  %[1]s route-backends web --zero`)
 )
 
 type BackendsOptions struct {

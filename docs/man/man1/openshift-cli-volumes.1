@@ -156,6 +156,10 @@ DEPRECATED: This command has been moved to "openshift cli set volume"
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -175,27 +179,27 @@ DEPRECATED: This command has been moved to "openshift cli set volume"
 .nf
   # List volumes defined on all deployment configs in the current project
   openshift cli volume dc \-\-all
-
+  
   # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
   # /var/lib/registry
   openshift cli volume dc/registry \-\-add \-\-mount\-path=/var/lib/registry
-
+  
   # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
   openshift cli volume dc/registry \-\-add \-\-name=v1 \-t pvc \-\-claim\-name=pvc1 \-\-overwrite
-
+  
   # Remove volume 'v1' from deployment config 'registry'
   openshift cli volume dc/registry \-\-remove \-\-name=v1
-
+  
   # Create a new persistent volume claim that overwrites an existing volume 'v1'
   openshift cli volume dc/registry \-\-add \-\-name=v1 \-t pvc \-\-claim\-size=1G \-\-overwrite
-
+  
   # Change the mount point for volume 'v1' to /data
   openshift cli volume dc/registry \-\-add \-\-name=v1 \-m /data \-\-overwrite
-
+  
   # Modify the deployment config by removing volume mount "v1" from container "c1"
   # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
   openshift cli volume dc/registry \-\-remove \-\-name=v1 \-\-containers=c1
-
+  
   # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
   # Ceph, Gluster, NFS, ISCSI, ...)
   openshift cli volume dc/registry \-\-add \-m /repo \-\-source=<json\-string>

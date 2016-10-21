@@ -82,7 +82,7 @@ function save-container-logs() {
     if [[ ! -d "${dest_dir}" ]]; then
       mkdir -p "${dest_dir}"
     fi
-    sudo docker exec -t "${container_name}" bash -c "journalctl -xe | \
+    sudo docker exec -t "${container_name}" bash -c "journalctl | \
 gzip > ${container_log_file}"
     sudo docker cp "${container_name}:${container_log_file}" "${dest_dir}"
     # Output container logs to stdout to ensure that jenkins has
@@ -294,7 +294,7 @@ else
   os::util::environment::setup_tmpdir_vars "test-extended/networking"
   reset_tmp_dir
 
-  os::log::start_system_logger
+  os::log::system::start
 
   os::log::info "Building docker-in-docker images"
   ${CLUSTER_CMD} build-images

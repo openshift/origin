@@ -76,6 +76,10 @@ Add users or serviceaccount to a security context constraint
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -95,7 +99,7 @@ Add users or serviceaccount to a security context constraint
 .nf
   # Add the 'restricted' security context contraint to user1 and user2
   openshift admin policy add\-scc\-to\-user restricted user1 user2
-
+  
   # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
   openshift admin policy add\-scc\-to\-user privileged \-z serviceaccount1
 

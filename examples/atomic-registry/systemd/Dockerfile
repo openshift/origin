@@ -12,6 +12,15 @@ LABEL name="projectatomic/atomic-registry-install" \
                 -v /etc/atomic-registry/:/etc/atomic-registry/ \
                 -v /var/lib/atomic-registry/:/var/lib/atomic-registry/ \
                 -v /:/host \
+                -e REGISTRYPORT \
+                -e MASTERPORT \
+                -e CONSOLEPORT \
+                -e REGISTRYIMAGE \
+                -e MASTERIMAGE \
+                -e CONSOLEIMAGE \
+                -e REGISTRYTAG \
+                -e MASTERTAG \
+                -e CONSOLETAG \
                 --entrypoint /usr/bin/install.sh \
                 $IMAGE' \
       UNINSTALL='docker run -i --rm \
@@ -20,5 +29,6 @@ LABEL name="projectatomic/atomic-registry-install" \
                 --entrypoint /usr/bin/uninstall.sh \
                 $IMAGE'
 
+ADD help.1 /
 ADD services/ templates/ setup-atomic-registry.sh /exports/
 ADD install.sh uninstall.sh /usr/bin/

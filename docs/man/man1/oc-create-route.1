@@ -16,8 +16,7 @@ oc create route \- Expose containers externally via secured routes
 Expose containers externally via secured routes
 
 .PP
-Three types of secured routes are supported: edge, passthrough, and reencrypt.
-If you wish to create unsecured routes, see "oc expose \-h"
+Three types of secured routes are supported: edge, passthrough, and reencrypt. If you wish to create unsecured routes, see "oc expose \-h"
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -72,6 +71,10 @@ If you wish to create unsecured routes, see "oc expose \-h"
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

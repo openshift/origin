@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -16,34 +17,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	CreateDockerConfigSecretRecommendedName = "new-dockercfg"
+const CreateDockerConfigSecretRecommendedName = "new-dockercfg"
 
-	createDockercfgLong = `
-Create a new dockercfg secret
+var (
+	createDockercfgLong = templates.LongDesc(`
+    Create a new dockercfg secret
 
-Dockercfg secrets are used to authenticate against Docker registries.
+    Dockercfg secrets are used to authenticate against Docker registries.
 
-When using the Docker command line to push images, you can authenticate to a given registry by running
-  'docker login DOCKER_REGISTRY_SERVER --username=DOCKER_USER --password=DOCKER_PASSWORD --email=DOCKER_EMAIL'.
-That produces a ~/.dockercfg file that is used by subsequent 'docker push' and 'docker pull' commands to
-authenticate to the registry.
+    When using the Docker command line to push images, you can authenticate to a given registry by running
+    'docker login DOCKER_REGISTRY_SERVER --username=DOCKER_USER --password=DOCKER_PASSWORD --email=DOCKER_EMAIL'.
+    That produces a ~/.dockercfg file that is used by subsequent 'docker push' and 'docker pull' commands to
+    authenticate to the registry.
 
-When creating applications, you may have a Docker registry that requires authentication.  In order for the
-nodes to pull images on your behalf, they have to have the credentials.  You can provide this information
-by creating a dockercfg secret and attaching it to your service account.`
+    When creating applications, you may have a Docker registry that requires authentication.  In order for the
+    nodes to pull images on your behalf, they have to have the credentials.  You can provide this information
+    by creating a dockercfg secret and attaching it to your service account.`)
 
-	createDockercfgExample = `  # Create a new .dockercfg secret:
-  %[1]s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+	createDockercfgExample = templates.Examples(`
+    # Create a new .dockercfg secret:
+    %[1]s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
-  # Create a new .dockercfg secret from an existing file:
-  %[2]s SECRET path/to/.dockercfg
+    # Create a new .dockercfg secret from an existing file:
+    %[2]s SECRET path/to/.dockercfg
 
-  # Create a new .docker/config.json secret from an existing file:
-  %[2]s SECRET .dockerconfigjson=path/to/.docker/config.json
+    # Create a new .docker/config.json secret from an existing file:
+    %[2]s SECRET .dockerconfigjson=path/to/.docker/config.json
 
-  # To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
-  %[3]s SERVICE_ACCOUNT`
+    # To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
+    %[3]s SERVICE_ACCOUNT`)
 )
 
 type CreateDockerConfigOptions struct {

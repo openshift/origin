@@ -16,9 +16,7 @@ openshift admin policy reconcile\-cluster\-roles \- Update cluster roles to matc
 Update cluster roles to match the recommended bootstrap policy
 
 .PP
-This command will compare cluster roles against the recommended bootstrap policy.  Any cluster role
-that does not match will be replaced by the recommended bootstrap role.  This command will not remove
-any additional cluster role.
+This command will compare cluster roles against the recommended bootstrap policy.  Any cluster role that does not match will be replaced by the recommended bootstrap role.  This command will not remove any additional cluster role.
 
 .PP
 Cluster roles with the annotation openshift.io/reconcile\-protect set to "true" are skipped.
@@ -123,6 +121,10 @@ You can see which cluster roles have recommended changed by choosing an output t
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -142,14 +144,14 @@ You can see which cluster roles have recommended changed by choosing an output t
 .nf
   # Display the names of cluster roles that would be modified
   openshift admin policy reconcile\-cluster\-roles \-o name
-
+  
   # Add missing permissions to cluster roles that don't match the current defaults
   openshift admin policy reconcile\-cluster\-roles \-\-confirm
-
+  
   # Add missing permissions and remove extra permissions from
   # cluster roles that don't match the current defaults
   openshift admin policy reconcile\-cluster\-roles \-\-additive\-only=false \-\-confirm
-
+  
   # Display the union of the default and modified cluster roles
   openshift admin policy reconcile\-cluster\-roles \-\-additive\-only
 

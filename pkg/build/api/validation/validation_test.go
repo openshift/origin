@@ -2748,3 +2748,233 @@ func TestDiffBuildSpec(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateBuildImageRefs(t *testing.T) {
+	tests := []struct {
+		name          string
+		build         buildapi.Build
+		expectedError string
+	}{
+		{
+			name: "valid docker build",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
+						Strategy: buildapi.BuildStrategy{
+							DockerStrategy: &buildapi.DockerBuildStrategy{
+								From: &kapi.ObjectReference{
+									Kind: "DockerImage",
+									Name: "myimage:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "",
+		},
+		{
+			name: "valid s2i build w/ runtimeImage",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								From: kapi.ObjectReference{
+									Kind: "DockerImage",
+									Name: "myimage:tag",
+								},
+								RuntimeImage: &kapi.ObjectReference{
+									Kind: "DockerImage",
+									Name: "runtimestream:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "",
+		},
+		{
+			name: "docker build with ImageStreamTag in from",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
+						Strategy: buildapi.BuildStrategy{
+							DockerStrategy: &buildapi.DockerBuildStrategy{
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "myimagestream:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "only DockerImage references",
+		},
+		{
+			name: "s2i build with valid source image references",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+							Images: []buildapi.ImageSource{
+								{
+									From: kapi.ObjectReference{
+										Kind: "DockerImage",
+										Name: "myimage:tag",
+									},
+									Paths: []buildapi.ImageSourcePath{
+										{
+											SourcePath:     "/some/path",
+											DestinationDir: "test/dir",
+										},
+									},
+								},
+							},
+						},
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								From: kapi.ObjectReference{
+									Kind: "DockerImage",
+									Name: "myimagestream:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "",
+		},
+		{
+			name: "image with sources uses ImageStreamTag",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+							Images: []buildapi.ImageSource{
+								{
+									From: kapi.ObjectReference{
+										Kind: "DockerImage",
+										Name: "myimage:tag",
+									},
+									Paths: []buildapi.ImageSourcePath{
+										{
+											SourcePath:     "/some/path",
+											DestinationDir: "test/dir",
+										},
+									},
+								},
+								{
+									From: kapi.ObjectReference{
+										Kind: "ImageStreamTag",
+										Name: "myimagestream:tag",
+									},
+									Paths: []buildapi.ImageSourcePath{
+										{
+											SourcePath:     "/some/path",
+											DestinationDir: "test/dir",
+										},
+									},
+								},
+							},
+						},
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								From: kapi.ObjectReference{
+									Kind: "DockerImage",
+									Name: "myimagestream:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "only DockerImage references",
+		},
+		{
+			name: "s2i build with ImageStreamTag runtimeImage",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								From: kapi.ObjectReference{
+									Kind: "DockerImage",
+									Name: "myimage:tag",
+								},
+								RuntimeImage: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "runtimestream:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "only DockerImage references",
+		},
+		{
+			name: "custom build with ImageStreamTag in from",
+			build: buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{Name: "build", Namespace: "default"},
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "myimagestream:tag",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "only DockerImage references",
+		},
+	}
+
+	for _, tc := range tests {
+		errs := ValidateBuild(&tc.build)
+		if tc.expectedError == "" && len(errs) > 0 {
+			t.Errorf("%s: Unexpected validation result: %v", tc.name, errs)
+		}
+
+		if tc.expectedError != "" {
+			found := false
+			for _, err := range errs {
+				if strings.Contains(err.Error(), tc.expectedError) {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%s: Expected to fail with %q, result: %v", tc.name, tc.expectedError, errs)
+			}
+		}
+	}
+}

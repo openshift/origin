@@ -12,6 +12,7 @@ var glog = utilglog.StderrLog
 type Noop struct {
 }
 
+// Download is a no-op downloader so that Noop satisfies build.Downloader
 func (n *Noop) Download(config *api.Config) (*api.SourceInfo, error) {
 	glog.V(1).Info("No source location defined (the assemble script is responsible for obtaining the source)")
 

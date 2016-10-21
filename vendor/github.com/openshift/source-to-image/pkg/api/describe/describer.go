@@ -14,7 +14,7 @@ import (
 )
 
 // Config returns the Config object in nice readable, tabbed format.
-func DescribeConfig(config *api.Config) string {
+func Config(config *api.Config) string {
 	out, err := tabbedString(func(out io.Writer) error {
 		if len(config.DisplayName) > 0 {
 			fmt.Fprintf(out, "Application Name:\t%s\n", config.DisplayName)

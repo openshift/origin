@@ -22,37 +22,40 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
 	oserrors "github.com/openshift/origin/pkg/util/errors"
 )
 
-const (
-	// PruneImagesRecommendedName is the recommended command name
-	PruneImagesRecommendedName = "images"
+// PruneImagesRecommendedName is the recommended command name
+const PruneImagesRecommendedName = "images"
 
-	imagesLongDesc = `Prune images no longer needed due to age and/or status
+var (
+	imagesLongDesc = templates.LongDesc(`
+		Prune images no longer needed due to age and/or status
 
-By default, the prune operation performs a dry run making no changes to internal registry. A
---confirm flag is needed for changes to be effective.
+		By default, the prune operation performs a dry run making no changes to internal registry. A
+		--confirm flag is needed for changes to be effective.
 
-Only a user with a cluster role %s or higher who is logged-in will be able to actually delete the
-images.`
+		Only a user with a cluster role %s or higher who is logged-in will be able to actually delete the
+		images.`)
 
-	imagesExample = `  # See, what the prune command would delete if only images more than an hour old and obsoleted
-  # by 3 newer revisions under the same tag were considered.
-  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
+	imagesExample = templates.Examples(`
+		# See, what the prune command would delete if only images more than an hour old and obsoleted
+	  # by 3 newer revisions under the same tag were considered.
+	  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
 
-  # To actually perform the prune operation, the confirm flag must be appended
-  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm
+	  # To actually perform the prune operation, the confirm flag must be appended
+	  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm
 
-  # See, what the prune command would delete if we're interested in removing images
-  # exceeding currently set LimitRanges ('openshift.io/Image')
-  %[1]s %[2]s --prune-over-size-limit
+	  # See, what the prune command would delete if we're interested in removing images
+	  # exceeding currently set LimitRanges ('openshift.io/Image')
+	  %[1]s %[2]s --prune-over-size-limit
 
-  # To actually perform the prune operation, the confirm flag must be appended
-  %[1]s %[2]s --prune-over-size-limit --confirm`
+	  # To actually perform the prune operation, the confirm flag must be appended
+	  %[1]s %[2]s --prune-over-size-limit --confirm`)
 )
 
 var (

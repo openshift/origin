@@ -16,9 +16,7 @@ openshift cli expose \- Expose a replicated application as a service or route
 Expose containers internally as services or externally via routes
 
 .PP
-There is also the ability to expose a deployment configuration, replication controller, service, or pod
-as a new service on a specified port. If no labels are specified, the new object will re\-use the
-labels from the object it exposes.
+There is also the ability to expose a deployment configuration, replication controller, service, or pod as a new service on a specified port. If no labels are specified, the new object will re\-use the labels from the object it exposes.
 
 
 .SH OPTIONS
@@ -197,6 +195,10 @@ labels from the object it exposes.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -216,16 +218,16 @@ labels from the object it exposes.
 .nf
   # Create a route based on service nginx. The new route will re\-use nginx's labels
   openshift cli expose service nginx
-
+  
   # Create a route and specify your own label and route name
   openshift cli expose service nginx \-l name=myroute \-\-name=fromdowntown
-
+  
   # Create a route and specify a hostname
   openshift cli expose service nginx \-\-hostname=www.example.com
-
+  
   # Expose a deployment configuration as a service and use the specified port
   openshift cli expose dc ruby\-hello\-world \-\-port=8080
-
+  
   # Expose a service as a route in the specified path
   openshift cli expose service nginx \-\-path=/nginx
 

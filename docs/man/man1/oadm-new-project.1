@@ -16,9 +16,7 @@ oadm new\-project \- Create a new project
 Create a new project
 
 .PP
-Use this command to create a project. You may optionally specify metadata about the project,
-an admin user (and role, if you want to use a non\-default admin role), and a node selector
-to restrict which nodes pods in this project can be scheduled to.
+Use this command to create a project. You may optionally specify metadata about the project, an admin user (and role, if you want to use a non\-default admin role), and a node selector to restrict which nodes pods in this project can be scheduled to.
 
 
 .SH OPTIONS
@@ -95,6 +93,10 @@ to restrict which nodes pods in this project can be scheduled to.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

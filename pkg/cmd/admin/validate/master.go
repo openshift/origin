@@ -13,22 +13,25 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/templates"
+
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 )
 
 const (
-	ValidateMasterConfigRecommendedName = "master-config"
-
-	validateMasterConfigLong = `
-Validate the configuration file for a master server.
-
-This command validates that a configuration file intended to be used for a master server is valid.
-`
-
-	validateMasterConfigExample = ` // Validate master server configuration file
-  %s openshift.local.config/master/master-config.yaml`
-
+	ValidateMasterConfigRecommendedName    = "master-config"
 	validateMasterConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oadm diagnostics MasterConfigCheck --master-config=path/to/config.yaml' instead.`
+)
+
+var (
+	validateMasterConfigLong = templates.LongDesc(`
+		Validate the configuration file for a master server.
+
+		This command validates that a configuration file intended to be used for a master server is valid.`)
+
+	validateMasterConfigExample = templates.Examples(`
+		# Validate master server configuration file
+		%s openshift.local.config/master/master-config.yaml`)
 )
 
 type ValidateMasterConfigOptions struct {

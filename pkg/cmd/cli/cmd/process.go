@@ -19,39 +19,41 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-const (
-	processLong = `
-Process template into a list of resources specified in filename or stdin
+var (
+	processLong = templates.LongDesc(`
+		Process template into a list of resources specified in filename or stdin
 
-Templates allow parameterization of resources prior to being sent to the server for creation or
-update. Templates have "parameters", which may either be generated on creation or set by the user,
-as well as metadata describing the template.
+		Templates allow parameterization of resources prior to being sent to the server for creation or
+		update. Templates have "parameters", which may either be generated on creation or set by the user,
+		as well as metadata describing the template.
 
-The output of the process command is always a list of one or more resources. You may pipe the
-output to the create command over STDIN (using the '-f -' option) or redirect it to a file.`
+		The output of the process command is always a list of one or more resources. You may pipe the
+		output to the create command over STDIN (using the '-f -' option) or redirect it to a file.`)
 
-	processExample = `  # Convert template.json file into resource list and pass to create
-  %[1]s process -f template.json | %[1]s create -f -
+	processExample = templates.Examples(`
+		# Convert template.json file into resource list and pass to create
+	  %[1]s process -f template.json | %[1]s create -f -
 
-  # Process template while passing a user-defined label
-  %[1]s process -f template.json -l name=mytemplate
+	  # Process template while passing a user-defined label
+	  %[1]s process -f template.json -l name=mytemplate
 
-  # Convert stored template into resource list
-  %[1]s process foo
+	  # Convert stored template into resource list
+	  %[1]s process foo
 
-  # Convert stored template into resource list by setting/overriding parameter values
-  %[1]s process foo PARM1=VALUE1 PARM2=VALUE2
+	  # Convert stored template into resource list by setting/overriding parameter values
+	  %[1]s process foo PARM1=VALUE1 PARM2=VALUE2
 
-  # Convert template stored in different namespace into a resource list
-  %[1]s process openshift//foo
+	  # Convert template stored in different namespace into a resource list
+	  %[1]s process openshift//foo
 
-  # Convert template.json into resource list
-  cat template.json | %[1]s process -f -`
+	  # Convert template.json into resource list
+	  cat template.json | %[1]s process -f -`)
 )
 
 // NewCmdProcess implements the OpenShift cli process command

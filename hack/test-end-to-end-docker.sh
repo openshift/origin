@@ -62,7 +62,7 @@ function cleanup()
 
 trap "cleanup" EXIT INT TERM
 
-os::log::start_system_logger
+os::log::system::start
 
 out=$(
 	set +e
@@ -80,6 +80,8 @@ echo "[INFO] Starting OpenShift containerized server"
 oc cluster up --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
+
+oc cluster status
 
 IMAGE_WORKING_DIR=/var/lib/origin
 docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}

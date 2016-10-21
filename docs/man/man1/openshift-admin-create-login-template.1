@@ -16,25 +16,15 @@ openshift admin create\-login\-template \- Create a login template
 Create a template for customizing the login page
 
 .PP
-This command creates a basic template to use as a starting point for
-customizing the login page. Save the output to a file and edit the template to
-change the look and feel or add content. Be careful not to remove any parameter
-values inside curly braces.
+This command creates a basic template to use as a starting point for customizing the login page. Save the output to a file and edit the template to change the look and feel or add content. Be careful not to remove any parameter values inside curly braces.
 
 .PP
-To use the template, set oauthConfig.templates.login in the master
-configuration to point to the template file. For example,
+To use the template, set oauthConfig.templates.login in the master configuration to point to the template file. For example,
 
 .PP
-.RS
-
-.nf
 oauthConfig:
-  templates:
-    login: templates/login.html
-
-.fi
-.RE
+    templates:
+      login: templates/login.html
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -89,6 +79,10 @@ oauthConfig:
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

@@ -16,17 +16,10 @@ openshift cli adm ipfailover \- Install an IP failover group to a set of nodes
 Configure or view IP Failover configuration
 
 .PP
-This command helps to setup an IP failover configuration for the
-cluster. An administrator can configure IP failover on an entire
-cluster or on a subset of nodes (as defined via a labeled selector).
+This command helps to setup an IP failover configuration for the cluster. An administrator can configure IP failover on an entire cluster or on a subset of nodes (as defined via a labeled selector).
 
 .PP
-If an IP failover configuration does not exist with the given name,
-the \-\-create flag can be passed to create a deployment configuration that
-will provide IP failover capability. If you are running in production, it is
-recommended that the labeled selector for the nodes matches at least 2 nodes
-to ensure you have failover protection, and that you provide a \-\-replicas=<n>
-value that matches the number of nodes for the given labeled selector.
+If an IP failover configuration does not exist with the given name, the \-\-create flag can be passed to create a deployment configuration that will provide IP failover capability. If you are running in production, it is recommended that the labeled selector for the nodes matches at least 2 nodes to ensure you have failover protection, and that you provide a \-\-replicas= <n> value that matches the number of nodes for the given labeled selector.
 
 
 .SH OPTIONS
@@ -49,6 +42,10 @@ value that matches the number of nodes for the given labeled selector.
 .PP
 \fB\-i\fP, \fB\-\-interface\fP=""
     Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.
+
+.PP
+\fB\-\-iptables\-chain\fP="INPUT"
+    Add a rule to this iptables chain to accept 224.0.0.28 multicast packets if no rule exists. When iptables\-chain is empty do not change iptables.
 
 .PP
 \fB\-\-latest\-images\fP=false
@@ -145,6 +142,10 @@ value that matches the number of nodes for the given labeled selector.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -164,18 +165,18 @@ value that matches the number of nodes for the given labeled selector.
 .nf
   # Check the default IP failover configuration ("ipfailover"):
   openshift cli adm ipfailover
-
+  
   # See what the IP failover configuration would look like if it is created:
   openshift cli adm ipfailover \-o json
-
+  
   # Create an IP failover configuration if it does not already exist:
   openshift cli adm ipfailover ipf \-\-virtual\-ips="10.1.1.1\-4" \-\-create
-
+  
   # Create an IP failover configuration on a selection of nodes labeled
   # "router=us\-west\-ha" (on 4 nodes with 7 virtual IPs monitoring a service
   # listening on port 80, such as the router process).
   openshift cli adm ipfailover ipfailover \-\-selector="router=us\-west\-ha" \-\-virtual\-ips="1.2.3.4,10.1.1.100\-104,5.6.7.8" \-\-watch\-port=80 \-\-replicas=4 \-\-create
-
+  
   # Use a different IP failover config image and see the configuration:
   openshift cli adm ipfailover ipf\-alt \-\-selector="hagroup=us\-west\-ha" \-\-virtual\-ips="1.2.3.4" \-o yaml \-\-images=myrepo/myipfailover:mytag
 

@@ -16,25 +16,29 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
 
-const (
-	ClusterQuotaRecommendedName = "clusterresourcequota"
+const ClusterQuotaRecommendedName = "clusterresourcequota"
 
-	clusterQuotaLong = `
-Create a cluster resource quota that controls certain resources.
+var (
+	clusterQuotaLong = templates.LongDesc(`
+		Create a cluster resource quota that controls certain resources.
 
-Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.`
+		Cluster resource quota objects defined quota restrictions that span multiple projects based on label selectors.`)
 
-	clusterQuotaExample = `  # Create a cluster resource quota limited to 10 pods
-  %[1]s limit-bob --project-annotation-selector=openshift.io/requester=user-bob --hard=pods=10`
+	clusterQuotaExample = templates.Examples(`
+		# Create a cluster resource quota limited to 10 pods
+  	%[1]s limit-bob --project-annotation-selector=openshift.io/requester=user-bob --hard=pods=10`)
 )
 
 type CreateClusterQuotaOptions struct {
 	ClusterQuota *quotaapi.ClusterResourceQuota
 	Client       client.ClusterResourceQuotasInterface
+
+	DryRun bool
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -59,10 +63,11 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 		Aliases: []string{"clusterquota"},
 	}
 
+	cmdutil.AddPrinterFlags(cmd)
+	cmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().String("project-label-selector", "", "The project label selector for the cluster resource quota")
 	cmd.Flags().String("project-annotation-selector", "", "The project annotation selector for the cluster resource quota")
 	cmd.Flags().StringSlice("hard", []string{}, "The resource to constrain: RESOURCE=QUANTITY (pods=10)")
-	cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -70,6 +75,8 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 	if len(args) != 1 {
 		return fmt.Errorf("NAME is required: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	var labelSelector *unversioned.LabelSelector
 	labelSelectorString := cmdutil.GetFlagString(cmd, "project-label-selector")
@@ -147,13 +154,23 @@ func (o *CreateClusterQuotaOptions) Validate() error {
 }
 
 func (o *CreateClusterQuotaOptions) Run() error {
-	actualObj, err := o.Client.ClusterResourceQuotas().Create(o.ClusterQuota)
-	if err != nil {
-		return err
+	actualObj := o.ClusterQuota
+
+	var err error
+	if !o.DryRun {
+		actualObj, err = o.Client.ClusterResourceQuotas().Create(o.ClusterQuota)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "clusterquota", actualObj.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "clusterquota", actualObj.Name, created)
 		return nil
 	}
 

@@ -76,6 +76,10 @@ Forward 1 or more local ports to a pod
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -95,13 +99,13 @@ Forward 1 or more local ports to a pod
 .nf
   # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
   openshift cli port\-forward mypod 5000 6000
-
+  
   # Listens on port 8888 locally, forwarding to 5000 in the pod
   openshift cli port\-forward mypod 8888:5000
-
+  
   # Listens on a random port locally, forwarding to 5000 in the pod
   openshift cli port\-forward mypod :5000
-
+  
   # Listens on a random port locally, forwarding to 5000 in the pod
   openshift cli port\-forward mypod 0:5000
 

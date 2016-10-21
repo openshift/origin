@@ -29,6 +29,32 @@ func ValidateBuild(build *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
 	allErrs = append(allErrs, validateCommonSpec(&build.Spec.CommonSpec, field.NewPath("spec"))...)
+
+	// Check that all source image references are of DockerImage kind.
+	strategyPath := field.NewPath("spec", "strategy")
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		allErrs = append(allErrs, validateBuildImageReference(&build.Spec.Strategy.SourceStrategy.From, strategyPath.Child("sourceStrategy").Child("from"))...)
+		allErrs = append(allErrs, validateBuildImageReference(build.Spec.Strategy.SourceStrategy.RuntimeImage, strategyPath.Child("sourceStrategy").Child("runtimeImage"))...)
+	case build.Spec.Strategy.DockerStrategy != nil:
+		allErrs = append(allErrs, validateBuildImageReference(build.Spec.Strategy.DockerStrategy.From, strategyPath.Child("dockerStrategy").Child("from"))...)
+	case build.Spec.Strategy.CustomStrategy != nil:
+		allErrs = append(allErrs, validateBuildImageReference(&build.Spec.Strategy.CustomStrategy.From, strategyPath.Child("customStrategy").Child("from"))...)
+	}
+
+	imagesPath := field.NewPath("spec", "source", "images")
+	for i, image := range build.Spec.Source.Images {
+		allErrs = append(allErrs, validateBuildImageReference(&image.From, imagesPath.Index(i).Child("from"))...)
+	}
+
+	return allErrs
+}
+
+func validateBuildImageReference(reference *kapi.ObjectReference, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if reference != nil && reference.Kind != "DockerImage" {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("kind"), reference.Kind, "only DockerImage references are supported for Builds"))
+	}
 	return allErrs
 }
 

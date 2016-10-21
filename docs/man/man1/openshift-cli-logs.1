@@ -13,17 +13,13 @@ openshift cli logs \- Print the logs for a resource.
 
 .SH DESCRIPTION
 .PP
-Print the logs for a resource.
+Print the logs for a resource
 
 .PP
-Supported resources are builds, build configs (bc), deployment configs (dc), and pods.
-When a pod is specified and has more than one container, the container name should be
-specified via \-c. When a build config or deployment config is specified, you can view
-the logs for a particular version of it via \-\-version.
+Supported resources are builds, build configs (bc), deployment configs (dc), and pods. When a pod is specified and has more than one container, the container name should be specified via \-c. When a build config or deployment config is specified, you can view the logs for a particular version of it via \-\-version.
 
 .PP
-If your pod is failing to start, you may need to use the \-\-previous option to see the
-logs of the last attempt.
+If your pod is failing to start, you may need to use the \-\-previous option to see the logs of the last attempt.
 
 
 .SH OPTIONS
@@ -126,6 +122,10 @@ logs of the last attempt.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -145,18 +145,18 @@ logs of the last attempt.
 .nf
   # Start streaming the logs of the most recent build of the openldap build config.
   openshift cli logs \-f bc/openldap
-
+  
   # Start streaming the logs of the latest deployment of the mysql deployment config.
   openshift cli logs \-f dc/mysql
-
+  
   # Get the logs of the first deployment for the mysql deployment config. Note that logs
   # from older deployments may not exist either because the deployment was successful
   # or due to deployment pruning or manual deletion of the deployment.
   openshift cli logs \-\-version=1 dc/mysql
-
+  
   # Return a snapshot of ruby\-container logs from pod backend.
   openshift cli logs backend \-c ruby\-container
-
+  
   # Start streaming of ruby\-container logs from pod backend.
   openshift cli logs \-f pod/backend \-c ruby\-container
 

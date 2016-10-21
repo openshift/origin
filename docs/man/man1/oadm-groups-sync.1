@@ -16,13 +16,7 @@ oadm groups sync \- Sync OpenShift groups with records from an external provider
 Sync OpenShift Groups with records from an external provider.
 
 .PP
-In order to sync OpenShift Group records with those from an external provider, determine which Groups you wish
-to sync and where their records live. For instance, all or some groups may be selected from the current Groups
-stored in OpenShift that have been synced previously, or similarly all or some groups may be selected from those
-stored on an LDAP server. The path to a sync configuration file is required in order to describe how data is
-requested from the external record store and migrated to OpenShift records. Default behavior is to do a dry\-run
-without changing OpenShift records. Passing '\-\-confirm' will sync all groups from the LDAP server returned by the
-LDAP query templates.
+In order to sync OpenShift Group records with those from an external provider, determine which Groups you wish to sync and where their records live. For instance, all or some groups may be selected from the current Groups stored in OpenShift that have been synced previously, or similarly all or some groups may be selected from those stored on an LDAP server. The path to a sync configuration file is required in order to describe how data is requested from the external record store and migrated to OpenShift records. Default behavior is to do a dry\-run without changing OpenShift records. Passing '\-\-confirm' will sync all groups from the LDAP server returned by the LDAP query templates.
 
 
 .SH OPTIONS
@@ -133,6 +127,10 @@ LDAP query templates.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -152,19 +150,18 @@ LDAP query templates.
 .nf
   # Sync all groups from an LDAP server
   oadm groups sync \-\-sync\-config=/path/to/ldap\-sync\-config.yaml \-\-confirm
-
+  
   # Sync all groups except the ones from the blacklist file from an LDAP server
   oadm groups sync \-\-blacklist=/path/to/blacklist.txt \-\-sync\-config=/path/to/ldap\-sync\-config.yaml \-\-confirm
-
+  
   # Sync specific groups specified in a whitelist file with an LDAP server
   oadm groups sync \-\-whitelist=/path/to/whitelist.txt \-\-sync\-config=/path/to/sync\-config.yaml \-\-confirm
-
+  
   # Sync all OpenShift Groups that have been synced previously with an LDAP server
   oadm groups sync \-\-type=openshift \-\-sync\-config=/path/to/ldap\-sync\-config.yaml \-\-confirm
-
+  
   # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
   oadm groups sync groups/group1 groups/group2 groups/group3 \-\-sync\-config=/path/to/sync\-config.yaml \-\-confirm
-
 
 .fi
 .RE

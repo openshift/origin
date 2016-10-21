@@ -16,11 +16,7 @@ openshift cli label \- Update the labels on a resource
 Update the labels on one or more resources
 
 .PP
-A valid label value is consisted of letters and/or numbers with a max length of 63
-characters. If \-\-overwrite is true, then existing labels can be overwritten, otherwise
-attempting to overwrite a label will result in an error. If \-\-resource\-version is
-specified, then updates will use this resource version, otherwise the existing
-resource\-version will be used.
+A valid label value is consisted of letters and/or numbers with a max length of  63 characters. If \-\-overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error. If \-\-resource\-version is specified, then updates will use this resource version, otherwise the existing resource\-version will be used.
 
 
 .SH OPTIONS
@@ -147,6 +143,10 @@ resource\-version will be used.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -166,16 +166,16 @@ resource\-version will be used.
 .nf
   # Update pod 'foo' with the label 'unhealthy' and the value 'true'.
   openshift cli label pods foo unhealthy=true
-
+  
   # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
   openshift cli label \-\-overwrite pods foo status=unhealthy
-
+  
   # Update all pods in the namespace
   openshift cli label pods \-\-all status=unhealthy
-
+  
   # Update pod 'foo' only if the resource is unchanged from version 1.
   openshift cli label pods foo status=unhealthy \-\-resource\-version=1
-
+  
   # Update pod 'foo' by removing a label named 'bar' if it exists.
   # Does not require the \-\-overwrite flag.
   openshift cli label pods foo bar\-

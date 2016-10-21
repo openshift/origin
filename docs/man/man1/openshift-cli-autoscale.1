@@ -16,9 +16,7 @@ openshift cli autoscale \- Autoscale a deployment config, deployment, replicatio
 Autoscale a deployment config or replication controller.
 
 .PP
-Looks up a deployment config or replication controller by name and creates an autoscaler that uses
-this deployment config or replication controller as a reference. An autoscaler can automatically
-increase or decrease number of pods deployed within the system as needed.
+Looks up a deployment config or replication controller by name and creates an autoscaler that uses this deployment config or replication controller as a reference. An autoscaler can automatically increase or decrease number of pods deployed within the system as needed.
 
 
 .SH OPTIONS
@@ -153,6 +151,10 @@ increase or decrease number of pods deployed within the system as needed.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -170,10 +172,12 @@ increase or decrease number of pods deployed within the system as needed.
 .RS
 
 .nf
-  # Auto scale a deployment config "foo", with the number of pods between 2 to 10, target CPU utilization at a default value that server applies:
+  # Auto scale a deployment config "foo", with the number of pods between 2 to
+  # 10, target CPU utilization at a default value that server applies:
   openshift cli autoscale dc/foo \-\-min=2 \-\-max=10
-
-  # Auto scale a replication controller "foo", with the number of pods between 1 to 5, target CPU utilization at 80%
+  
+  # Auto scale a replication controller "foo", with the number of pods between
+  # 1 to 5, target CPU utilization at 80%
   openshift cli autoscale rc/foo \-\-max=5 \-\-cpu\-percent=80
 
 .fi

@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 const CreateServerCertCommandName = "create-server-cert"
@@ -27,22 +28,22 @@ type CreateServerCertOptions struct {
 	Output    io.Writer
 }
 
-const createServerLong = `
-Create a key and server certificate
+var createServerLong = templates.LongDesc(`
+	Create a key and server certificate
 
-Create a key and server certificate valid for the specified hostnames,
-signed by the specified CA. These are useful for securing infrastructure
-components such as the router, authentication server, etc.
+	Create a key and server certificate valid for the specified hostnames,
+	signed by the specified CA. These are useful for securing infrastructure
+	components such as the router, authentication server, etc.
 
-Example: Creating a secure router certificate.
+	Example: Creating a secure router certificate.
 
-    CA=openshift.local.config/master
-	%[1]s --signer-cert=$CA/ca.crt \
-	          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
-	          --hostnames='*.cloudapps.example.com' \
-	          --cert=cloudapps.crt --key=cloudapps.key
-    cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
-`
+	    CA=openshift.local.config/master
+			%[1]s --signer-cert=$CA/ca.crt \
+		          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
+		          --hostnames='*.cloudapps.example.com' \
+		          --cert=cloudapps.crt --key=cloudapps.key
+	    cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
+	`)
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateServerCertOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}

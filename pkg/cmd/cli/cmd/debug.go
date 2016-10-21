@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/term"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	generateapp "github.com/openshift/origin/pkg/generate/app"
@@ -59,45 +60,47 @@ type DebugOptions struct {
 }
 
 const (
-	debugLong = `
-Launch a command shell to debug a running application
-
-When debugging images and setup problems, it's useful to get an exact copy of a running
-pod configuration and troubleshoot with a shell. Since a pod that is failing may not be
-started and not accessible to 'rsh' or 'exec', the 'debug' command makes it easy to
-create a carbon copy of that setup.
-
-The default mode is to start a shell inside of the first container of the referenced pod,
-replication controller, or deployment config. The started pod will be a copy of your
-source pod, with labels stripped, the command changed to '/bin/sh', and readiness and
-liveness checks disabled. If you just want to run a command, add '--' and a command to
-run. Passing a command will not create a TTY or send STDIN by default. Other flags are
-supported for altering the container or pod in common ways.
-
-A common problem running containers is a security policy that prohibits you from running
-as a root user on the cluster. You can use this command to test running a pod as
-non-root (with --as-user) or to run a non-root pod as root (with --as-root).
-
-The debug pod is deleted when the the remote command completes or the user interrupts
-the shell.`
-
-	debugExample = `
-  # Debug a currently running deployment
-  %[1]s dc/test
-
-  # Test running a deployment as a non-root user
-  %[1]s dc/test --as-user=1000000
-
-  # Debug a specific failing container by running the env command in the 'second' container
-  %[1]s dc/test -c second -- /bin/env
-
-  # See the pod that would be created to debug
-  %[1]s dc/test -o yaml`
-
 	debugPodLabelName = "debug.openshift.io/name"
 
 	debugPodAnnotationSourceContainer = "debug.openshift.io/source-container"
 	debugPodAnnotationSourceResource  = "debug.openshift.io/source-resource"
+)
+
+var (
+	debugLong = templates.LongDesc(`
+		Launch a command shell to debug a running application
+
+		When debugging images and setup problems, it's useful to get an exact copy of a running
+		pod configuration and troubleshoot with a shell. Since a pod that is failing may not be
+		started and not accessible to 'rsh' or 'exec', the 'debug' command makes it easy to
+		create a carbon copy of that setup.
+
+		The default mode is to start a shell inside of the first container of the referenced pod,
+		replication controller, or deployment config. The started pod will be a copy of your
+		source pod, with labels stripped, the command changed to '/bin/sh', and readiness and
+		liveness checks disabled. If you just want to run a command, add '--' and a command to
+		run. Passing a command will not create a TTY or send STDIN by default. Other flags are
+		supported for altering the container or pod in common ways.
+
+		A common problem running containers is a security policy that prohibits you from running
+		as a root user on the cluster. You can use this command to test running a pod as
+		non-root (with --as-user) or to run a non-root pod as root (with --as-root).
+
+		The debug pod is deleted when the the remote command completes or the user interrupts
+		the shell.`)
+
+	debugExample = templates.Examples(`
+	  # Debug a currently running deployment
+	  %[1]s dc/test
+
+	  # Test running a deployment as a non-root user
+	  %[1]s dc/test --as-user=1000000
+
+	  # Debug a specific failing container by running the env command in the 'second' container
+	  %[1]s dc/test -c second -- /bin/env
+
+	  # See the pod that would be created to debug
+	  %[1]s dc/test -o yaml`)
 )
 
 // NewCmdDebug creates a command for debugging pods.

@@ -10,17 +10,17 @@ import (
 	"net/url"
 	"os"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/user/api"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/term"
-
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/user/api"
+	kterm "k8s.io/kubernetes/pkg/util/term"
 )
 
 // getMatchingClusters examines the kubeconfig for all clusters that point to the same server
@@ -96,12 +96,12 @@ func promptForInsecureTLS(reader io.Reader, out io.Writer, reason error) bool {
 		}
 	}
 	var input bool
-	if term.IsTerminal(reader) {
+	if kterm.IsTerminal(reader) {
 		if len(insecureTLSRequestReason) > 0 {
 			fmt.Fprintln(out, insecureTLSRequestReason)
 		}
 		fmt.Fprintln(out, "You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
-		input = cmdutil.PromptForBool(os.Stdin, out, "Use insecure connections? (y/n): ")
+		input = term.PromptForBool(os.Stdin, out, "Use insecure connections? (y/n): ")
 		fmt.Fprintln(out)
 	}
 	return input

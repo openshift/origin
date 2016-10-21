@@ -142,8 +142,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 }
 
 // GetContainerState returns whether a container exists and if it does whether it's running
-func (h *Helper) GetContainerState(id string) (exists, running bool, err error) {
-	var container *docker.Container
+func (h *Helper) GetContainerState(id string) (container *docker.Container, running bool, err error) {
 	glog.V(5).Infof("Inspecting docker container %q", id)
 	container, err = h.client.InspectContainer(id)
 	if err != nil {
@@ -155,10 +154,9 @@ func (h *Helper) GetContainerState(id string) (exists, running bool, err error) 
 		glog.V(5).Infof("An error occurred inspecting container %q: %v", id, err)
 		return
 	}
-	exists = true
 	running = container.State.Running
 	glog.V(5).Infof("Container inspect result: %#v", container)
-	glog.V(5).Infof("Container exists = %v, running = %v", exists, running)
+	glog.V(5).Infof("Container running = %v", running)
 	return
 }
 

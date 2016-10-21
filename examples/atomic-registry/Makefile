@@ -21,8 +21,11 @@ install-atomic:
 install-systemd:
 	atomic install $(TEST_IMAGE) $(INSTALLHOST)
 	systemctl enable --now atomic-registry-master.service
-	sleep 10
-	/var/run/setup-atomic-registry.sh $(INSTALLHOST)
+	while ! /bin/curl -kfLs https://localhost:8443/healthz; do \
+	    /bin/sleep 1; \
+	    echo -n '.'; \
+	done
+	/var/run/setup-atomic-registry.sh
 
 install-allinone:
 	atomic install $(TEST_IMAGE) $(INSTALLHOST)

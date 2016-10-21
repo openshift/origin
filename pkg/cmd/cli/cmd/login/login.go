@@ -17,30 +17,32 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	loginLong = `
-Log in to your server and save login for subsequent use
+var (
+	loginLong = templates.LongDesc(`
+		Log in to your server and save login for subsequent use
 
-First-time users of the client should run this command to connect to a server,
-establish an authenticated session, and save connection to the configuration file. The
-default configuration will be saved to your home directory under
-".kube/config".
+		First-time users of the client should run this command to connect to a server,
+		establish an authenticated session, and save connection to the configuration file. The
+		default configuration will be saved to your home directory under
+		".kube/config".
 
-The information required to login -- like username and password, a session token, or
-the server details -- can be provided through flags. If not provided, the command will
-prompt for user input as needed.`
+		The information required to login -- like username and password, a session token, or
+		the server details -- can be provided through flags. If not provided, the command will
+		prompt for user input as needed.`)
 
-	loginExample = `  # Log in interactively
-  %[1]s login
+	loginExample = templates.Examples(`
+		# Log in interactively
+	  %[1]s login
 
-  # Log in to the given server with the given certificate authority file
-  %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
+	  # Log in to the given server with the given certificate authority file
+	  %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
 
-  # Log in to the given server with the given credentials (will not prompt interactively)
-  %[1]s login localhost:8443 --username=myuser --password=mypass`
+	  # Log in to the given server with the given credentials (will not prompt interactively)
+	  %[1]s login localhost:8443 --username=myuser --password=mypass`)
 )
 
 // NewCmdLogin implements the OpenShift cli login command

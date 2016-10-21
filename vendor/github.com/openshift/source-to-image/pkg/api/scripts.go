@@ -40,6 +40,6 @@ const (
 	// RuntimeArtifactsDir is the location of application artifacts and scripts that will be copied into a runtime image.
 	RuntimeArtifactsDir = "upload" + string(os.PathSeparator) + "runtimeArtifacts"
 
-	// Ignorefile is the s2i version for ignore files like we see with .gitignore or .dockerignore .. initial impl mirrors documented .dockerignore capabilities
+	// IgnoreFile is the s2i version for ignore files like we see with .gitignore or .dockerignore .. initial impl mirrors documented .dockerignore capabilities
 	IgnoreFile = ".s2iignore"
 )

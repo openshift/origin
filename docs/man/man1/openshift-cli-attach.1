@@ -16,8 +16,7 @@ openshift cli attach \- Attach to a running container
 Attach to a running container
 
 .PP
-Attach the current shell to a remote container, returning output or setting up a full
-terminal session. Can be used to debug containers and invoke interactive commands.
+Attach the current shell to a remote container, returning output or setting up a full terminal session. Can be used to debug containers and invoke interactive commands.
 
 
 .SH OPTIONS
@@ -88,6 +87,10 @@ terminal session. Can be used to debug containers and invoke interactive command
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -107,10 +110,10 @@ terminal session. Can be used to debug containers and invoke interactive command
 .nf
   # Get output from running pod 123456\-7890, using the first container by default
   openshift cli attach 123456\-7890
-
+  
   # Get output from ruby\-container from pod 123456\-7890
   openshift cli attach 123456\-7890 \-c ruby\-container
-
+  
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby\-container from pod 123456\-780
   # and sends stdout/stderr from 'bash' back to the client
   openshift cli attach 123456\-7890 \-c ruby\-container \-i \-t

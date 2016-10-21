@@ -8,13 +8,15 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
-const (
-	recyclerLong = `
-Recycle a volume
+var (
+	recyclerLong = templates.LongDesc(`
+		Recycle a volume
 
-This command will recycle a single volume provided as an argument.`
+		This command will recycle a single volume provided as an argument.`)
 )
 
 // NewCommandRecycle provides a CLI handler for recycling volumes

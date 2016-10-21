@@ -16,17 +16,10 @@ openshift admin router \- Install a router
 Install or configure a router
 
 .PP
-This command helps to setup a router to take edge traffic and balance it to
-your application. With no arguments, the command will check for an existing router
-service called 'router' and create one if it does not exist. If you want to test whether
-a router has already been created add the \-\-dry\-run flag and the command will exit with
-1 if the registry does not exist.
+This command helps to setup a router to take edge traffic and balance it to your application. With no arguments, the command will check for an existing router service called 'router' and create one if it does not exist. If you want to test whether a router has already been created add the \-\-dry\-run flag and the command will exit with 1 if the registry does not exist.
 
 .PP
-If a router does not exist with the given name, this command will
-create a deployment configuration and service that will run the router. If you are
-running your router in production, you should pass \-\-replicas=2 or higher to ensure
-you have failover protection.
+If a router does not exist with the given name, this command will create a deployment configuration and service that will run the router. If you are running your router in production, you should pass \-\-replicas=2 or higher to ensure you have failover protection.
 
 
 .SH OPTIONS
@@ -213,6 +206,10 @@ you have failover protection.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -232,19 +229,18 @@ you have failover protection.
 .nf
   # Check the default router ("router")
   openshift admin router \-\-dry\-run
-
+  
   # See what the router would look like if created
   openshift admin router \-o yaml
-
+  
   # Create a router with two replicas if it does not exist
   openshift admin router router\-west \-\-replicas=2
-
+  
   # Use a different router image
   openshift admin router region\-west \-\-images=myrepo/somerouter:mytag
-
+  
   # Run the router with a hint to the underlying implementation to \_not\_ expose statistics.
   openshift admin router router\-west \-\-stats\-port=0
-  
 
 .fi
 .RE

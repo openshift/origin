@@ -18,7 +18,7 @@ func ValidatePodSecurityPolicySubjectReview(podSecurityPolicySubjectReview *secu
 
 func validatePodSecurityPolicySubjectReviewSpec(podSecurityPolicySubjectReviewSpec *securityapi.PodSecurityPolicySubjectReviewSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicySubjectReviewSpec.Template.Spec, fldPath.Child("podSpec"))...)
+	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicySubjectReviewSpec.Template.Spec, fldPath.Child("template", "spec"))...)
 	return allErrs
 }
 
@@ -31,7 +31,7 @@ func ValidatePodSecurityPolicySelfSubjectReview(podSecurityPolicySelfSubjectRevi
 
 func validatePodSecurityPolicySelfSubjectReviewSpec(podSecurityPolicySelfSubjectReviewSpec *securityapi.PodSecurityPolicySelfSubjectReviewSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicySelfSubjectReviewSpec.Template.Spec, fldPath.Child("podSpec"))...)
+	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicySelfSubjectReviewSpec.Template.Spec, fldPath.Child("template", "spec"))...)
 	return allErrs
 }
 
@@ -44,7 +44,7 @@ func ValidatePodSecurityPolicyReview(podSecurityPolicyReview *securityapi.PodSec
 
 func validatePodSecurityPolicyReviewSpec(podSecurityPolicyReviewSpec *securityapi.PodSecurityPolicyReviewSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicyReviewSpec.Template.Spec, fldPath.Child("podSpec"))...)
+	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicyReviewSpec.Template.Spec, fldPath.Child("template", "spec"))...)
 	allErrs = append(allErrs, validateServiceAccountNames(podSecurityPolicyReviewSpec.ServiceAccountNames, fldPath.Child("serviceAccountNames"))...)
 	return allErrs
 }

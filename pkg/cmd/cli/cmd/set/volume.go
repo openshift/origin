@@ -24,68 +24,70 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	volumeLong = `
-Update volumes on a pod template
+const volumePrefix = "volume-"
 
-This command can add, update or remove volumes from containers for any object
-that has a pod template (deployment configs, replication controllers, or pods).
-You can list volumes in pod or any object that has a pod template. You can
-specify a single object or multiple, and alter volumes on all containers or
-just those that match a given name.
+var (
+	volumeLong = templates.LongDesc(`
+		Update volumes on a pod template
 
-If you alter a volume setting on a deployment config, a deployment will be
-triggered. Changing a replication controller will not affect running pods, and
-you cannot change a pod's volumes once it has been created.
+		This command can add, update or remove volumes from containers for any object
+		that has a pod template (deployment configs, replication controllers, or pods).
+		You can list volumes in pod or any object that has a pod template. You can
+		specify a single object or multiple, and alter volumes on all containers or
+		just those that match a given name.
 
-Volume types include:
+		If you alter a volume setting on a deployment config, a deployment will be
+		triggered. Changing a replication controller will not affect running pods, and
+		you cannot change a pod's volumes once it has been created.
 
-* emptydir (empty directory) *default*
-    A directory allocated when the pod is created on a local host, is removed when
-    the pod is deleted and is not copied across servers
-* hostdir (host directory)
-    A directory with specific path on any host (requires elevated privileges)
-* persistentvolumeclaim or pvc (persistent volume claim)
-    Link the volume directory in the container to a persistent volume claim you have
-    allocated by name - a persistent volume claim is a request to allocate storage.
-    Note that if your claim hasn't been bound, your pods will not start.
-* secret (mounted secret)
-    Secret volumes mount a named secret to the provided directory.
+		Volume types include:
 
-For descriptions on other volume types, see https://docs.openshift.com`
+		* emptydir (empty directory) *default*: A directory allocated when the pod is
+		  created on a local host, is removed when the pod is deleted and is not copied
+			across servers
+		* hostdir (host directory): A directory with specific path on any host
+		 (requires elevated privileges)
+		* persistentvolumeclaim or pvc (persistent volume claim): Link the volume
+		  directory in the container to a persistent volume claim you have allocated by
+			name - a persistent volume claim is a request to allocate storage. Note that
+			if your claim hasn't been bound, your pods will not start.
+		* secret (mounted secret): Secret volumes mount a named secret to the provided
+		  directory.
 
-	volumeExample = `  # List volumes defined on all deployment configs in the current project
-  %[1]s volume dc --all
+		For descriptions on other volume types, see https://docs.openshift.com`)
 
-  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
-  # /var/lib/registry
-  %[1]s volume dc/registry --add --mount-path=/var/lib/registry
+	volumeExample = templates.Examples(`
+		# List volumes defined on all deployment configs in the current project
+	  %[1]s volume dc --all
 
-  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
-  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
+	  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+	  # /var/lib/registry
+	  %[1]s volume dc/registry --add --mount-path=/var/lib/registry
 
-  # Remove volume 'v1' from deployment config 'registry'
-  %[1]s volume dc/registry --remove --name=v1
+	  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+	  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
-  # Create a new persistent volume claim that overwrites an existing volume 'v1'
-  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+	  # Remove volume 'v1' from deployment config 'registry'
+	  %[1]s volume dc/registry --remove --name=v1
 
-  # Change the mount point for volume 'v1' to /data
-  %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
+	  # Create a new persistent volume claim that overwrites an existing volume 'v1'
+	  %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
 
-  # Modify the deployment config by removing volume mount "v1" from container "c1"
-  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  %[1]s volume dc/registry --remove --name=v1 --containers=c1
+	  # Change the mount point for volume 'v1' to /data
+	  %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
 
-  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
-  # Ceph, Gluster, NFS, ISCSI, ...)
-  %[1]s volume dc/registry --add -m /repo --source=<json-string>`
+	  # Modify the deployment config by removing volume mount "v1" from container "c1"
+	  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+	  %[1]s volume dc/registry --remove --name=v1 --containers=c1
 
-	volumePrefix = "volume-"
+	  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+	  # Ceph, Gluster, NFS, ISCSI, ...)
+	  %[1]s volume dc/registry --add -m /repo --source=<json-string>`)
 )
 
 type VolumeOptions struct {

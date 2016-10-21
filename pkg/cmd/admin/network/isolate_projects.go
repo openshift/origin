@@ -9,23 +9,25 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-const (
-	IsolateProjectsNetworkCommandName = "isolate-projects"
+const IsolateProjectsNetworkCommandName = "isolate-projects"
 
-	isolateProjectsNetworkLong = `
-Isolate project network
+var (
+	isolateProjectsNetworkLong = templates.LongDesc(`
+		Isolate project network
 
-Allows projects to isolate their network from other projects when using the %[1]s network plugin.`
+		Allows projects to isolate their network from other projects when using the %[1]s network plugin.`)
 
-	isolateProjectsNetworkExample = `	# Provide isolation for project p1
-	%[1]s <p1>
+	isolateProjectsNetworkExample = templates.Examples(`
+		# Provide isolation for project p1
+		%[1]s <p1>
 
-	# Allow all projects with label name=top-secret to have their own isolated project network
-	%[1]s --selector='name=top-secret'`
+		# Allow all projects with label name=top-secret to have their own isolated project network
+		%[1]s --selector='name=top-secret'`)
 )
 
 type IsolateOptions struct {

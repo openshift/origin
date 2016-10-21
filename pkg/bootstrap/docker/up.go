@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -38,7 +39,6 @@ const (
 	// CmdUpRecommendedName is the recommended command name
 	CmdUpRecommendedName = "up"
 
-	openShiftContainer = "origin"
 	openShiftNamespace = "openshift"
 
 	initialUser     = "developer"
@@ -53,42 +53,41 @@ const (
 
 	defaultImages         = "openshift/origin-${component}:${version}"
 	defaultOpenShiftImage = "openshift/origin:${version}"
-
-	cmdUpLong = `
-Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
-initial templates, and a default project.
-
-This command will attempt to use an existing connection to a Docker daemon. Before running
-the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
-
-Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
-driver when the --create-machine argument is specified. The machine will be named 'openshift'
-by default. To name the machine differently, use the --docker-machine=NAME argument. If the
---docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
-to find an existing docker machine with that name and start it if it's not running.
-
-By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
-This is to allow dynamic host names to be created for routes. An alternate routing suffix
-can be specified using the --routing-suffix flag.
-
-A public hostname can also be specified for the server with the --public-hostname flag.
-`
-	cmdUpExample = `
-  # Start OpenShift on a new docker machine named 'openshift'
-  %[1]s --create-machine
-
-  # Start OpenShift using a specific public host name
-  %[1]s --public-hostname=my.address.example.com
-
-  # Start OpenShift and preserve data and config between restarts
-  %[1]s --host-data-dir=/mydata --use-existing-config
-
-  # Use a different set of images
-  %[1]s --image="registry.example.com/origin" --version="v1.1"
-`
 )
 
 var (
+	cmdUpLong = templates.LongDesc(`
+		Starts an OpenShift cluster using Docker containers, provisioning a registry, router,
+		initial templates, and a default project.
+
+		This command will attempt to use an existing connection to a Docker daemon. Before running
+		the command, ensure that you can execure docker commands successfully (ie. 'docker ps').
+
+		Optionally, the command can create a new Docker machine for OpenShift using the VirtualBox
+		driver when the --create-machine argument is specified. The machine will be named 'openshift'
+		by default. To name the machine differently, use the --docker-machine=NAME argument. If the
+		--docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
+		to find an existing docker machine with that name and start it if it's not running.
+
+		By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
+		This is to allow dynamic host names to be created for routes. An alternate routing suffix
+		can be specified using the --routing-suffix flag.
+
+		A public hostname can also be specified for the server with the --public-hostname flag.`)
+
+	cmdUpExample = templates.Examples(`
+	  # Start OpenShift on a new docker machine named 'openshift'
+	  %[1]s --create-machine
+
+	  # Start OpenShift using a specific public host name
+	  %[1]s --public-hostname=my.address.example.com
+
+	  # Start OpenShift and preserve data and config between restarts
+	  %[1]s --host-data-dir=/mydata --use-existing-config
+
+	  # Use a different set of images
+	  %[1]s --image="registry.example.com/origin" --version="v1.1"`)
+
 	imageStreamLocations = map[string]string{
 		"origin centos7 image streams": "examples/image-streams/image-streams-centos7.json",
 	}
@@ -105,6 +104,7 @@ var (
 		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.json",
+		"logging":                     "examples/logging/logging-deployer.yaml",
 	}
 	dockerVersion19  = semver.MustParse("1.9.0")
 	dockerVersion110 = semver.MustParse("1.10.0")
@@ -144,6 +144,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	cmd.Flags().StringSliceVarP(&config.Environment, "env", "e", config.Environment, "Specify key value pairs of environment variables to set on OpenShift container")
 	cmd.Flags().BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
+	cmd.Flags().BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
 	return cmd
 }
 
@@ -168,6 +169,7 @@ type ClientStartConfig struct {
 	ShouldCreateDockerMachine bool
 	SkipRegistryCheck         bool
 	ShouldInstallMetrics      bool
+	ShouldInstallLogging      bool
 	PortForwarding            bool
 
 	UseNsenterMount    bool
@@ -283,7 +285,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.addConditionalTask("Installing router", c.InstallRouter, c.ShouldInitializeData)
 
 	// Install metrics
-	c.addConditionalTask("Install Metrics", c.InstallMetrics, func() bool {
+	c.addConditionalTask("Installing metrics", c.InstallMetrics, func() bool {
 		return c.ShouldInstallMetrics && c.ShouldInitializeData()
 	})
 
@@ -292,6 +294,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Import templates
 	c.addConditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData)
+
+	// Install logging
+	c.addConditionalTask("Installing logging", c.InstallLogging, func() bool {
+		return c.ShouldInstallLogging && c.ShouldInitializeData()
+	})
 
 	// Login with an initial default user
 	c.addConditionalTask("Login to server", c.Login, c.ShouldCreateUser)
@@ -395,18 +402,27 @@ func (c *ClientStartConfig) CheckOpenShiftClient(out io.Writer) error {
 	return nil
 }
 
-// GetDockerClient will obtain a new Docker client from the environment or
+// GetDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary
 func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
-	var err error
+	dockerClient, engineAPIClient, err := getDockerClient(out, c.DockerMachine, true)
+	if err != nil {
+		return err
+	}
+	c.dockerClient, c.engineAPIClient = dockerClient, engineAPIClient
+	return nil
+}
 
-	if len(c.DockerMachine) > 0 {
-		glog.V(2).Infof("Getting client for Docker machine %q", c.DockerMachine)
-		c.dockerClient, c.engineAPIClient, err = getDockerMachineClient(c.DockerMachine, out)
+// getDockerClient obtains a new Docker client from the environment or
+// from a Docker machine, starting it if necessary and permitted
+func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (*docker.Client, *dockerclient.Client, error) {
+	if len(dockerMachine) > 0 {
+		glog.V(2).Infof("Getting client for Docker machine %q", dockerMachine)
+		dockerClient, engineAPIClient, err := getDockerMachineClient(dockerMachine, out, canStartDockerMachine)
 		if err != nil {
-			return errors.ErrNoDockerMachineClient(c.DockerMachine, err)
+			return nil, nil, errors.ErrNoDockerMachineClient(dockerMachine, err)
 		}
-		return nil
+		return dockerClient, engineAPIClient, nil
 	}
 
 	if glog.V(4) {
@@ -428,9 +444,9 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 			glog.Infof("DOCKER_CERT_PATH=%s", dockerCertPath)
 		}
 	}
-	c.dockerClient, _, err = dockerutil.NewHelper().GetClient()
+	dockerClient, _, err := dockerutil.NewHelper().GetClient()
 	if err != nil {
-		return errors.ErrNoDockerClient(err)
+		return nil, nil, errors.ErrNoDockerClient(err)
 	}
 	// FIXME: Workaround for docker engine API client on OS X - sets the default to
 	// the wrong DOCKER_HOST string
@@ -440,30 +456,30 @@ func (c *ClientStartConfig) GetDockerClient(out io.Writer) error {
 			os.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
 		}
 	}
-	c.engineAPIClient, err = dockerclient.NewEnvClient()
+	engineAPIClient, err := dockerclient.NewEnvClient()
 	if err != nil {
-		return errors.ErrNoDockerClient(err)
+		return nil, nil, errors.ErrNoDockerClient(err)
 	}
-	if err = c.dockerClient.Ping(); err != nil {
-		return errors.ErrCannotPingDocker(err)
+	if err = dockerClient.Ping(); err != nil {
+		return nil, nil, errors.ErrCannotPingDocker(err)
 	}
 	glog.V(4).Infof("Docker ping succeeded")
-	return nil
+	return dockerClient, engineAPIClient, nil
 }
 
 // CheckExistingOpenShiftContainer checks the state of an OpenShift container. If one
 // is already running, it throws an error. If one exists, it removes it so a new one
 // can be created.
 func (c *ClientStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error {
-	exists, running, err := c.DockerHelper().GetContainerState(openShiftContainer)
+	container, running, err := c.DockerHelper().GetContainerState(openshift.OpenShiftContainer)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
 	if running {
 		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", cmdutil.SiblingCommand(c.command, "down"))
 	}
-	if exists {
-		err = c.DockerHelper().RemoveContainer(openShiftContainer)
+	if container != nil {
+		err = c.DockerHelper().RemoveContainer(openshift.OpenShiftContainer)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -636,6 +652,9 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
 	}
+	if c.ShouldInstallLogging {
+		opt.LoggingHost = openshift.LoggingHost(c.RoutingSuffix, c.ServerIP)
+	}
 	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
 	return err
 }
@@ -654,7 +673,7 @@ func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), out)
+	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), out, os.Stderr)
 }
 
 // InstallRouter installs a default router on the server
@@ -667,7 +686,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.RouterIP, c.PortForwarding, out)
+	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.RouterIP, c.PortForwarding, out, os.Stderr)
 }
 
 // ImportImageStreams imports default image streams into the server
@@ -682,13 +701,20 @@ func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 	return c.importObjects(out, templateLocations)
 }
 
-/*
-// TODO: implement this
-func (c *ClientStartConfig) InstallLogging() error {
-	return nil
+// InstallLogging will start the installation of logging components
+func (c *ClientStartConfig) InstallLogging(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	publicMaster := c.PublicHostname
+	if len(publicMaster) == 0 {
+		publicMaster = c.ServerIP
+	}
+	return c.OpenShiftHelper().InstallLogging(f, publicMaster, openshift.LoggingHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
 }
-*/
 
+// InstallMetrics will start the installation of Metrics components
 func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 	f, err := c.Factory()
 	if err != nil {
@@ -705,7 +731,11 @@ func (c *ClientStartConfig) Login(out io.Writer) error {
 
 // CreateProject creates a new project for the current user
 func (c *ClientStartConfig) CreateProject(out io.Writer) error {
-	return openshift.CreateProject(initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
+	f, err := openshift.LoggedInUserFactory()
+	if err != nil {
+		return errors.NewError("cannot get logged in user client").WithCause(err)
+	}
+	return openshift.CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
 }
 
 // RemoveTemporaryDirectory removes the local configuration directory
@@ -720,9 +750,14 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
 			"    https://%s\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
 	}
+	loggingInfo := ""
+	if c.ShouldInstallLogging && c.ShouldInitializeData() {
+		loggingInfo = fmt.Sprintf("The kibana logging UI is available at:\n"+
+			"    https://%s\n\n", openshift.LoggingHost(c.RoutingSuffix, c.ServerIP))
+	}
 	msg := fmt.Sprintf("OpenShift server started.\n"+
 		"The server is accessible via web console at:\n"+
-		"    %s\n\n%s", c.OpenShiftHelper().Master(c.ServerIP), metricsInfo)
+		"    %s\n\n%s%s", c.OpenShiftHelper().Master(c.ServerIP), metricsInfo, loggingInfo)
 
 	if c.ShouldCreateUser() {
 		msg += fmt.Sprintf("You are logged in as:\n"+
@@ -766,7 +801,7 @@ func (c *ClientStartConfig) Clients() (*client.Client, *kclient.Client, error) {
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *ClientStartConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openShiftHelper == nil {
-		c.openShiftHelper = openshift.NewHelper(c.dockerClient, c.HostHelper(), c.openShiftImage(), openShiftContainer, c.PublicHostname, c.RoutingSuffix)
+		c.openShiftHelper = openshift.NewHelper(c.dockerClient, c.HostHelper(), c.openShiftImage(), openshift.OpenShiftContainer, c.PublicHostname, c.RoutingSuffix)
 	}
 	return c.openShiftHelper
 }
@@ -806,8 +841,8 @@ func (c *ClientStartConfig) openShiftImage() string {
 	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 }
 
-func getDockerMachineClient(machine string, out io.Writer) (*docker.Client, *dockerclient.Client, error) {
-	if !dockermachine.IsRunning(machine) {
+func getDockerMachineClient(machine string, out io.Writer, canStart bool) (*docker.Client, *dockerclient.Client, error) {
+	if !dockermachine.IsRunning(machine) && canStart {
 		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
 		err := dockermachine.Start(machine)
 		if err != nil {
@@ -928,7 +963,7 @@ func (c *ClientStartConfig) ShouldCreateUser() bool {
 			return true
 		}
 
-		cfg, _, err := c.OpenShiftHelper().GetConfig(c.LocalConfigDir)
+		cfg, _, err := c.OpenShiftHelper().GetConfigFromLocalDir(c.LocalConfigDir)
 		if err != nil {
 			glog.V(2).Infof("error reading config: %v", err)
 			return true

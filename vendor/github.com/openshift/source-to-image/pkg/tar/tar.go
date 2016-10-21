@@ -52,7 +52,7 @@ type Tar interface {
 
 	// ExtractTarStream extracts files from a given tar stream.
 	// Times out if reading from the stream for any given file
-	// exceeds the value of timeout
+	// exceeds the value of timeout.
 	ExtractTarStream(dir string, reader io.Reader) error
 
 	// ExtractTarStreamWithLogging extracts files from a given tar stream.
@@ -60,6 +60,12 @@ type Tar interface {
 	// exceeds the value of timeout.
 	// Extracted file names are written to the logger if provided.
 	ExtractTarStreamWithLogging(dir string, reader io.Reader, logger io.Writer) error
+
+	// ExtractTarStreamFromTarReader extracts files from a given tar stream.
+	// Times out if reading from the stream for any given file
+	// exceeds the value of timeout.
+	// Extracted file names are written to the logger if provided.
+	ExtractTarStreamFromTarReader(dir string, tarReader Reader, logger io.Writer) error
 
 	// StreamFileAsTar streams a single file as a TAR archive into specified
 	// writer. The second argument is the file name in archive.
@@ -81,6 +87,12 @@ type Tar interface {
 	// By specifying walkFn you can modify files' permissions in arbitrary way.
 	// If modifyInplace is set to false, all the files will be copied into a temporary directory before changing their permissions.
 	StreamDirAsTarWithCallback(source string, writer io.Writer, walkFn filepath.WalkFunc, modifyInplace bool) error
+}
+
+// Reader is an interface which tar.Reader implements.
+type Reader interface {
+	io.Reader
+	Next() (*tar.Header, error)
 }
 
 // New creates a new Tar
@@ -313,23 +325,31 @@ func (t *stiTar) writeTarHeader(tarWriter *tar.Writer, dir string, path string, 
 	return nil
 }
 
-// ExtractTarStream calls ExtractTarStreamWithLogging with a nil logger
+// ExtractTarStream calls ExtractTarStreamFromTarReader with a default reader and nil logger
 func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
-	return t.ExtractTarStreamWithLogging(dir, reader, nil)
+	tarReader := tar.NewReader(reader)
+	return t.ExtractTarStreamFromTarReader(dir, tarReader, nil)
 }
 
-// ExtractTarStreamWithLogging extracts files from a given tar stream.
-// Times out if reading from the stream for any given file
-// exceeds the value of timeout
+// ExtractTarStreamWithLogging calls ExtractTarStreamFromTarReader with a default reader
 func (t *stiTar) ExtractTarStreamWithLogging(dir string, reader io.Reader, logger io.Writer) error {
 	tarReader := tar.NewReader(reader)
-	errorChannel := make(chan error)
-	timeout := t.timeout
-	timeoutTimer := time.NewTimer(timeout)
+	return t.ExtractTarStreamFromTarReader(dir, tarReader, logger)
+}
+
+// ExtractTarStreamFromTarReader extracts files from a given tar stream.
+// Times out if reading from the stream for any given file
+// exceeds the value of timeout
+func (t *stiTar) ExtractTarStreamFromTarReader(dir string, tarReader Reader, logger io.Writer) error {
+	errorChannel := make(chan error, 1)
+	timeoutTimer := time.NewTimer(t.timeout)
 	go func() {
 		for {
 			header, err := tarReader.Next()
-			timeoutTimer.Reset(timeout)
+			if !timeoutTimer.Stop() {
+				break
+			}
+			timeoutTimer.Reset(t.timeout)
 			if err == io.EOF {
 				errorChannel <- nil
 				break

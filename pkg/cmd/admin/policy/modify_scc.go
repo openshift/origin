@@ -12,6 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -23,12 +24,13 @@ const (
 	RemoveSCCFromUserRecommendedName  = "remove-scc-from-user"
 )
 
-const (
-	addSCCToUserExample = `  # Add the 'restricted' security context contraint to user1 and user2
-  %[1]s restricted user1 user2
+var (
+	addSCCToUserExample = templates.Examples(`
+		# Add the 'restricted' security context contraint to user1 and user2
+	  %[1]s restricted user1 user2
 
-  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
-  %[1]s privileged -z serviceaccount1`
+	  # Add the 'privileged' security context contraint to the service account serviceaccount1 in the current namespace
+	  %[1]s privileged -z serviceaccount1`)
 )
 
 type SCCModificationOptions struct {

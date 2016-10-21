@@ -117,7 +117,7 @@ fi
 
 echo "Logging to ${LOG_DIR}..."
 
-os::log::start_system_logger
+os::log::system::start
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG

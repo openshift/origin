@@ -88,6 +88,10 @@ Execute a command in a container
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -107,7 +111,7 @@ Execute a command in a container
 .nf
   # Get output from running 'date' in ruby\-container from pod 'mypod'
   oc exec mypod \-c ruby\-container date
-
+  
   # Switch to raw terminal mode, sends stdin to 'bash' in ruby\-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
   oc exec mypod \-c ruby\-container \-i \-t \-\- bash \-il
 

@@ -12,21 +12,23 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	UserIdentityMappingRecommendedName = "useridentitymapping"
+const UserIdentityMappingRecommendedName = "useridentitymapping"
 
-	userIdentityMappingLong = `
-Typically, identities are automatically mapped to users during login. If automatic 
-mapping is disabled (by using the "lookup" mapping method), or a mapping needs to 
-be manually established between an identity and a user, this command can be used 
-to create a useridentitymapping object.`
+var (
+	userIdentityMappingLong = templates.LongDesc(`
+		Typically, identities are automatically mapped to users during login. If automatic
+		mapping is disabled (by using the "lookup" mapping method), or a mapping needs to
+		be manually established between an identity and a user, this command can be used
+		to create a useridentitymapping object.`)
 
-	userIdentityMappingExample = `  # Map the identity "acme_ldap:adamjones" to the user "ajones"
-  %[1]s acme_ldap:adamjones ajones`
+	userIdentityMappingExample = templates.Examples(`
+		# Map the identity "acme_ldap:adamjones" to the user "ajones"
+  	%[1]s acme_ldap:adamjones ajones`)
 )
 
 type CreateUserIdentityMappingOptions struct {
@@ -34,6 +36,8 @@ type CreateUserIdentityMappingOptions struct {
 	Identity string
 
 	UserIdentityMappingClient client.UserIdentityMappingInterface
+
+	DryRun bool
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -57,6 +61,7 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 		},
 	}
 	cmdutil.AddPrinterFlags(cmd)
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -72,6 +77,8 @@ func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clien
 	default:
 		return fmt.Errorf("exactly two arguments (identity and user name) are supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {
@@ -117,13 +124,22 @@ func (o *CreateUserIdentityMappingOptions) Run() error {
 	mapping.Identity = kapi.ObjectReference{Name: o.Identity}
 	mapping.User = kapi.ObjectReference{Name: o.User}
 
-	actualMapping, err := o.UserIdentityMappingClient.Create(mapping)
-	if err != nil {
-		return err
+	actualMapping := mapping
+
+	var err error
+	if !o.DryRun {
+		actualMapping, err = o.UserIdentityMappingClient.Create(mapping)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "useridentitymapping", actualMapping.Name, created)
 		return nil
 	}
 

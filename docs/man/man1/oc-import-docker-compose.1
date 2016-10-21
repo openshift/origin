@@ -16,14 +16,10 @@ oc import docker\-compose \- Import a docker\-compose.yml project into OpenShift
 Import a Docker Compose file as OpenShift objects
 
 .PP
-Docker Compose files offer a container centric build and deploy pattern for simple applications.
-This command will transform a provided docker\-compose.yml application into its OpenShift equivalent.
-During transformation fields in the compose syntax that are not relevant when running on top of
-a containerized platform will be ignored and a warning printed.
+Docker Compose files offer a container centric build and deploy pattern for simple applications. This command will transform a provided docker\-compose.yml application into its OpenShift equivalent. During transformation fields in the compose syntax that are not relevant when running on top of a containerized platform will be ignored and a warning printed.
 
 .PP
-The command will create objects unless you pass the \-o yaml or \-\-as\-template flags to generate a
-configuration file for later use.
+The command will create objects unless you pass the \-o yaml or \-\-as\-template flags to generate a configuration file for later use.
 
 .PP
 Experimental: This command is under active development and may change without notice.
@@ -109,6 +105,10 @@ Experimental: This command is under active development and may change without no
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -128,10 +128,9 @@ Experimental: This command is under active development and may change without no
 .nf
   # Import a docker\-compose.yml file into OpenShift
   oc import docker\-compose \-f ./docker\-compose.yml
-
-	# Turn a docker\-compose.yml file into a template
+  
+  # Turn a docker\-compose.yml file into a template
   oc import docker\-compose \-f ./docker\-compose.yml \-o yaml \-\-as\-template
-
 
 .fi
 .RE

@@ -29,6 +29,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -36,45 +37,45 @@ import (
 	"github.com/openshift/source-to-image/pkg/tar"
 )
 
-const (
-	startBuildLong = `
-Start a build
+var (
+	startBuildLong = templates.LongDesc(`
+		Start a build
 
-This command starts a new build for the provided build config or copies an existing build using
---from-build=<name>. Pass the --follow flag to see output from the build.
+		This command starts a new build for the provided build config or copies an existing build using
+		--from-build=<name>. Pass the --follow flag to see output from the build.
 
-In addition, you can pass a file, directory, or source code repository with the --from-file,
---from-dir, or --from-repo flags directly to the build. The contents will be streamed to the build
-and override the current build source settings. When using --from-repo, the --commit flag can be
-used to control which branch, tag, or commit is sent to the server. If you pass --from-file, the
-file is placed in the root of an empty directory with the same filename. Note that builds
-triggered from binary input will not preserve the source on the server, so rebuilds triggered by
-base image changes will use the source specified on the build config.
-`
+		In addition, you can pass a file, directory, or source code repository with the --from-file,
+		--from-dir, or --from-repo flags directly to the build. The contents will be streamed to the build
+		and override the current build source settings. When using --from-repo, the --commit flag can be
+		used to control which branch, tag, or commit is sent to the server. If you pass --from-file, the
+		file is placed in the root of an empty directory with the same filename. Note that builds
+		triggered from binary input will not preserve the source on the server, so rebuilds triggered by
+		base image changes will use the source specified on the build config.`)
 
-	startBuildExample = `  # Starts build from build config "hello-world"
-  %[1]s start-build hello-world
+	startBuildExample = templates.Examples(`
+		# Starts build from build config "hello-world"
+	  %[1]s start-build hello-world
 
-  # Starts build from a previous build "hello-world-1"
-  %[1]s start-build --from-build=hello-world-1
+	  # Starts build from a previous build "hello-world-1"
+	  %[1]s start-build --from-build=hello-world-1
 
-  # Use the contents of a directory as build input
-  %[1]s start-build hello-world --from-dir=src/
+	  # Use the contents of a directory as build input
+	  %[1]s start-build hello-world --from-dir=src/
 
-  # Send the contents of a Git repository to the server from tag 'v2'
-  %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
+	  # Send the contents of a Git repository to the server from tag 'v2'
+	  %[1]s start-build hello-world --from-repo=../hello-world --commit=v2
 
-  # Start a new build for build config "hello-world" and watch the logs until the build
-  # completes or fails.
-  %[1]s start-build hello-world --follow
+	  # Start a new build for build config "hello-world" and watch the logs until the build
+	  # completes or fails.
+	  %[1]s start-build hello-world --follow
 
-  # Start a new build for build config "hello-world" and wait until the build completes. It
-  # exits with a non-zero return code if the build fails.
-  %[1]s start-build hello-world --wait`
+	  # Start a new build for build config "hello-world" and wait until the build completes. It
+	  # exits with a non-zero return code if the build fails.
+	  %[1]s start-build hello-world --wait`)
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &StartBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -84,7 +85,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 		Example:    fmt.Sprintf(startBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(f, in, out, cmd, fullName, args))
+			kcmdutil.CheckErr(o.Complete(f, in, out, errout, cmd, fullName, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -144,10 +145,10 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.OutOrStderr()
+	o.ErrOut = errout
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig
 	o.Mapper, _ = f.Object(false)

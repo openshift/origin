@@ -16,13 +16,10 @@ openshift admin policy \- Manage policy
 Manage policy on the cluster
 
 .PP
-These commands allow you to assign and manage the roles and policies that apply to users. The reconcile
-commands allow you to reset and upgrade your system policies to the latest default policies.
+These commands allow you to assign and manage the roles and policies that apply to users. The reconcile commands allow you to reset and upgrade your system policies to the latest default policies.
 
 .PP
-To see more information on roles and policies, use the 'get' and 'describe' commands on the following
-resources: 'clusterroles', 'clusterpolicy', 'clusterrolebindings', 'roles', 'policy', 'rolebindings',
-and 'scc'.
+To see more information on roles and policies, use the 'get' and 'describe' commands on the following resources: 'clusterroles', 'clusterpolicy', 'clusterrolebindings', 'roles', 'policy', 'rolebindings', and 'scc'.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -77,6 +74,10 @@ and 'scc'.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""
