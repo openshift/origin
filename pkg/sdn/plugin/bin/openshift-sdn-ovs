@@ -113,8 +113,8 @@ del_ovs_flows() {
     ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_dst=${ipaddr}"
     ovs-ofctl -O OpenFlow13 del-flows br0 "arp,nw_src=${ipaddr}"
 
-    qos=$(ovs-vsctl get port ${veth_host} qos)
-    if [ "$qos" != "[]" ]; then
+    qos=$(ovs-vsctl get port ${veth_host} qos || true)
+    if [ -n "${qos}" -a "${qos}" != "[]" ]; then
         ovs-vsctl clear port ${veth_host} qos
         ovs-vsctl --if-exists destroy qos ${qos}
     fi
