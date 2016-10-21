@@ -22,6 +22,7 @@ type DeploymentConfigInterface interface {
 	Get(name string) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	Patch(name string, pt kapi.PatchType, data []byte, subresources ...string) (result *deployapi.DeploymentConfig, err error)
 	Delete(name string) error
 	Watch(opts kapi.ListOptions) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
@@ -77,6 +78,14 @@ func (c *deploymentConfigs) Create(deploymentConfig *deployapi.DeploymentConfig)
 func (c *deploymentConfigs) Update(deploymentConfig *deployapi.DeploymentConfig) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
 	err = c.r.Put().Namespace(c.ns).Resource("deploymentConfigs").Name(deploymentConfig.Name).Body(deploymentConfig).Do().Into(result)
+	return
+}
+
+// Patch takes the partial representation of a deployment config and updates it.
+// Returns the server's representation of the deployment config, and an error, if there is any.
+func (c *deploymentConfigs) Patch(name string, pt kapi.PatchType, data []byte, subresources ...string) (result *deployapi.DeploymentConfig, err error) {
+	result = &deployapi.DeploymentConfig{}
+	err = c.r.Patch(kapi.StrategicMergePatchType).Namespace(c.ns).Resource("deploymentConfigs").SubResource(subresources...).Name(name).Body(data).Do().Into(result)
 	return
 }
 

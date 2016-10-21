@@ -559,40 +559,28 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return []string{"OC_EDITOR", "EDITOR"}
 	}
 	w.PrintObjectSpecificMessage = func(obj runtime.Object, out io.Writer) {}
-	kPauseObjectFunc := w.Factory.PauseObject
-	w.Factory.PauseObject = func(object runtime.Object) (bool, error) {
-		switch t := object.(type) {
+	kPauseObjectFunc := w.Factory.PauseFn
+	w.Factory.PauseFn = func(object *resource.Info) (bool, error) {
+		switch t := object.Object.(type) {
 		case *deployapi.DeploymentConfig:
 			if t.Spec.Paused {
-				return true, nil
+				return true, errors.New("is already paused")
 			}
 			t.Spec.Paused = true
-			oc, _, err := w.Clients()
-			if err != nil {
-				return false, err
-			}
-			_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
-			// TODO: Pause the deployer containers.
-			return false, err
+			return true, nil
 		default:
 			return kPauseObjectFunc(object)
 		}
 	}
-	kResumeObjectFunc := w.Factory.ResumeObject
-	w.Factory.ResumeObject = func(object runtime.Object) (bool, error) {
-		switch t := object.(type) {
+	kResumeObjectFunc := w.Factory.ResumeFn
+	w.Factory.ResumeFn = func(object *resource.Info) (bool, error) {
+		switch t := object.Object.(type) {
 		case *deployapi.DeploymentConfig:
 			if !t.Spec.Paused {
-				return true, nil
+				return true, errors.New("is not paused")
 			}
 			t.Spec.Paused = false
-			oc, _, err := w.Clients()
-			if err != nil {
-				return false, err
-			}
-			_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
-			// TODO: Resume the deployer containers.
-			return false, err
+			return true, nil
 		default:
 			return kResumeObjectFunc(object)
 		}
