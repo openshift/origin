@@ -45,6 +45,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ClusterPolicyBindingList{},
 		&ClusterRoleBindingList{},
 		&ClusterRoleList{},
+
+		&RoleBindingRestriction{},
+		&RoleBindingRestrictionList{},
 	)
 	return nil
 }
