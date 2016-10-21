@@ -7,7 +7,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
 
 // DiscoveryClient implements the functions that discovery server-supported API groups,
@@ -64,6 +63,6 @@ func (d *DiscoveryClient) ServerResources() (map[string]*unversioned.APIResource
 }
 
 // New creates a new DiscoveryClient for the given RESTClient.
-func NewDiscoveryClient(c resource.RESTClient) *DiscoveryClient {
-	return &DiscoveryClient{discovery.NewDiscoveryClient(c.(*restclient.RESTClient))}
+func NewDiscoveryClient(c *restclient.RESTClient) *DiscoveryClient {
+	return &DiscoveryClient{discovery.NewDiscoveryClient(c)}
 }

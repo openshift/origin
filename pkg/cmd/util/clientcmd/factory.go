@@ -222,7 +222,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 
 		cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
-		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient), cacheDir, time.Duration(10*time.Minute))
+		cachedDiscoverClient := NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.(*client.Client).RESTClient), cacheDir, time.Duration(10*time.Minute))
 
 		// if we can't find the server version or its too old to have Kind information in the discovery doc, skip the discovery RESTMapper
 		// and use our hardcoded levels
@@ -768,7 +768,7 @@ func getProtocols(spec api.PodSpec) map[string]string {
 	return result
 }
 
-func ResourceMapper(f *Factory) *resource.Mapper {
+func ResourceMapper(f FactoryInterface) *resource.Mapper {
 	mapper, typer := f.Object(false)
 	return &resource.Mapper{
 		RESTMapper:   mapper,
