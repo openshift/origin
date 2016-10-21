@@ -7,7 +7,7 @@ CONSOLEPORT=$(awk -F '=' '/CONSOLEPORT/ {print $2}' /etc/sysconfig/atomic-regist
 
 # we're running this on the host
 # the commands will be exec'd in the master container that has the oc client
-CMD="docker exec -it"
+CMD="docker exec"
 
 # boostrap the registry components using the supported command
 # we'll delete the dc and service components later
