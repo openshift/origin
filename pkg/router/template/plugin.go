@@ -107,6 +107,8 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		"matchPattern":      matchPattern,      //anchors provided regular expression and evaluates against given string
 		"isInteger":         isInteger,         //determines if a given variable is an integer
 		"matchValues":       matchValues,       //compares a given string to a list of allowed strings
+
+		"genDomainWildcardRegexp": genDomainWildcardRegexp, //generates a regular expression matching wildcard hosts (and paths) for a [sub]domain
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {

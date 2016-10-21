@@ -203,6 +203,23 @@ func matchPattern(pattern, s string) bool {
 	return false
 }
 
+// Generate a regular expression to match wildcard hosts (and paths if any)
+// for a [sub]domain.
+func genDomainWildcardRegexp(hostname, path string, exactPath bool) string {
+	route := &routeapi.Route{Spec: routeapi.RouteSpec{Host: hostname}}
+	host, wildcard := routeapi.NormalizeWildcardHost(route.Spec.Host)
+	if !wildcard {
+		return fmt.Sprintf("%s%s", host, path)
+	}
+
+	expr := regexp.QuoteMeta(fmt.Sprintf(".%s%s", host, path))
+	if exactPath {
+		return fmt.Sprintf("[^\\.]*%s", expr)
+	}
+
+	return fmt.Sprintf("[^\\.]*%s(|/.*)", expr)
+}
+
 func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
 	if len(alias.PreferPort) == 0 {
 		return svc.EndpointTable
@@ -514,6 +531,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeapi.Route, host string) bool {
 	backendKey := r.routeKey(route)
 
+	_, wildcard := routeapi.NormalizeWildcardHost(route.Spec.Host)
 	config, ok := r.state[backendKey]
 
 	if !ok {
@@ -522,6 +540,7 @@ func (r *templateRouter) AddRoute(serviceID string, weight int32, route *routeap
 			Namespace:        route.Namespace,
 			Host:             host,
 			Path:             route.Spec.Path,
+			IsWildcard:       wildcard,
 			Annotations:      route.Annotations,
 			ServiceUnitNames: make(map[string]int32),
 		}

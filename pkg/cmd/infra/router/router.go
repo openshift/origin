@@ -43,6 +43,15 @@ type RouterSelection struct {
 	ProjectLabels        labels.Selector
 
 	IncludeUDP bool
+
+	DeniedDomains      []string
+	BlacklistedDomains sets.String
+
+	AllowedDomains     []string
+	WhitelistedDomains sets.String
+
+	AllowWildcardRoutes        bool
+	RestrictSubdomainOwnership bool
 }
 
 // Bind sets the appropriate labels
@@ -55,6 +64,9 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
 	flag.StringVar(&o.NamespaceLabelSelector, "namespace-labels", cmdutil.Env("NAMESPACE_LABELS", ""), "A label selector to apply to namespaces to watch")
 	flag.BoolVar(&o.IncludeUDP, "include-udp-endpoints", false, "If true, UDP endpoints will be considered as candidates for routing")
+	flag.StringSliceVar(&o.DeniedDomains, "denied-domains", envVarAsStrings("ROUTER_DENIED_DOMAINS", "", ","), "List of comma separated domains to deny in routes")
+	flag.StringSliceVar(&o.AllowedDomains, "allowed-domains", envVarAsStrings("ROUTER_ALLOWED_DOMAINS", "", ","), "List of comma separated domains to allow in routes. If specified, only the domains in this list will be allowed routes. Note that domains in the denied list take precedence over the ones in the allowed list")
+	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "") == "true", "Allow wildcard host names for routes")
 }
 
 // RouteSelectionFunc returns a func that identifies the host for a route.
@@ -80,6 +92,50 @@ func (o *RouterSelection) RouteSelectionFunc() controller.RouteHostFunc {
 			return ""
 		}
 		return strings.Trim(s, "\"'")
+	}
+}
+
+func (o *RouterSelection) AdmissionCheck(route *routeapi.Route) error {
+	if len(route.Spec.Host) < 1 {
+		return nil
+	}
+
+	if hostInDomainList(route.Spec.Host, o.BlacklistedDomains) {
+		glog.V(4).Infof("host %s in list of denied domains", route.Spec.Host)
+		return fmt.Errorf("host in list of denied domains")
+	}
+
+	if o.WhitelistedDomains.Len() > 0 {
+		glog.V(4).Infof("Checking if host %s is in the list of allowed domains", route.Spec.Host)
+		if hostInDomainList(route.Spec.Host, o.WhitelistedDomains) {
+			glog.V(4).Infof("host %s admitted - in the list of allowed domains", route.Spec.Host)
+			return nil
+		}
+
+		glog.V(4).Infof("host %s rejected - not in the list of allowed domains", route.Spec.Host)
+		return fmt.Errorf("host not in the allowed list of domains")
+	}
+
+	glog.V(4).Infof("host %s admitted", route.Spec.Host)
+	return nil
+}
+
+// RouteAdmissionFunc returns a func that checks if a route can be admitted
+// based on blacklist & whitelist checks and wildcard routes policy setting.
+// Note: The blacklist settings trumps the whitelist ones.
+func (o *RouterSelection) RouteAdmissionFunc() controller.RouteAdmissionFunc {
+	return func(route *routeapi.Route) error {
+		if err := o.AdmissionCheck(route); err != nil {
+			return err
+		}
+
+		if _, wildcard := routeapi.NormalizeWildcardHost(route.Spec.Host); wildcard {
+			if !o.AllowWildcardRoutes {
+				return fmt.Errorf("wildcard routes are not allowed")
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -138,6 +194,13 @@ func (o *RouterSelection) Complete() error {
 		}
 		o.NamespaceLabels = s
 	}
+
+	o.BlacklistedDomains = sets.NewString(o.DeniedDomains...)
+	o.WhitelistedDomains = sets.NewString(o.AllowedDomains...)
+
+	// Restrict subdomains is currently enforced for wildcard routes.
+	o.RestrictSubdomainOwnership = o.AllowWildcardRoutes
+
 	return nil
 }
 
@@ -197,4 +260,29 @@ func (n namespaceNames) NamespaceNames() (sets.String, error) {
 		names.Insert(all.Items[i].Name)
 	}
 	return names, nil
+}
+
+func envVarAsStrings(name, defaultValue, seperator string) []string {
+	strlist := []string{}
+	if env := cmdutil.Env(name, defaultValue); env != "" {
+		values := strings.Split(env, seperator)
+		for i := range values {
+			if val := strings.TrimSpace(values[i]); val != "" {
+				strlist = append(strlist, val)
+			}
+		}
+	}
+	return strlist
+}
+
+func hostInDomainList(host string, domains sets.String) bool {
+	if domains.Has(host) {
+		return true
+	}
+
+	if idx := strings.IndexRune(host, '.'); idx > 0 {
+		return hostInDomainList(host[idx+1:], domains)
+	}
+
+	return false
 }
