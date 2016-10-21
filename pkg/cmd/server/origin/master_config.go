@@ -819,6 +819,12 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }
 
+// OAuthServerClients returns the openshift and kubernetes OAuth server client objects
+// The returned clients are privileged
+func (c *MasterConfig) OAuthServerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
 // PolicyClient returns the policy client object
 // It must have the following capabilities:
 //  list, watch all policyBindings in all namespaces

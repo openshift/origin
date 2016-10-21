@@ -303,3 +303,29 @@ func ValidateScopes(scopes []string, fldPath *field.Path) field.ErrorList {
 
 	return allErrs
 }
+
+func ValidateOAuthRedirectReference(sref *api.OAuthRedirectReference) field.ErrorList {
+	allErrs := validation.ValidateObjectMeta(&sref.ObjectMeta, true, oapi.MinimalNameRequirements, field.NewPath("metadata"))
+	return append(allErrs, validateRedirectReference(&sref.Reference)...)
+}
+
+func validateRedirectReference(ref *api.RedirectReference) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if len(ref.Name) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("name"), "may not be empty"))
+	} else {
+		for _, msg := range oapi.MinimalNameRequirements(ref.Name, false) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("name"), ref.Name, msg))
+		}
+	}
+	switch ref.Kind {
+	case "":
+		allErrs = append(allErrs, field.Required(field.NewPath("kind"), "may not be empty"))
+	case "Route":
+		// Valid, TODO add ingress once we support it and update error message
+	default:
+		allErrs = append(allErrs, field.Invalid(field.NewPath("kind"), ref.Kind, "must be Route"))
+	}
+	// TODO validate group once we start using it
+	return allErrs
+}
