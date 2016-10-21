@@ -159,13 +159,8 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		return err
 	}
 
-	created := "created"
-	if dryRun {
-		created = "created (DRY RUN)"
-	}
-
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, created)
+	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, dryRun, "created")
 	return nil
 }
 
@@ -258,13 +253,8 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		return err
 	}
 
-	created := "created"
-	if dryRun {
-		created = "created (DRY RUN)"
-	}
-
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, created)
+	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, dryRun, "created")
 	return nil
 }
 
@@ -389,13 +379,8 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 		return err
 	}
 
-	created := "created"
-	if dryRun {
-		created = "created (DRY RUN)"
-	}
-
 	shortOutput := kcmdutil.GetFlagString(cmd, "output") == "name"
-	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, created)
+	kcmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, dryRun, "created")
 	return nil
 }
 
