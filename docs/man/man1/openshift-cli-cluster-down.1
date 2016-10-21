@@ -16,8 +16,7 @@ openshift cli cluster down \- Stop OpenShift on Docker
 Stops the container running OpenShift on Docker and associated containers.
 
 .PP
-If you started your OpenShift with a specific docker\-machine, you need to specify the
-same machine using the \-\-docker\-machine argument.
+If you started your OpenShift with a specific docker\-machine, you need to specify the same machine using the \-\-docker\-machine argument.
 
 
 .SH OPTIONS
@@ -80,6 +79,10 @@ same machine using the \-\-docker\-machine argument.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -97,13 +100,11 @@ same machine using the \-\-docker\-machine argument.
 .RS
 
 .nf
-
-  # Stop local Docker cluster
+  # Stop local OpenShift cluster
   openshift cli cluster down
-
+  
   # Stop cluster running on Docker machine 'mymachine'
   openshift cli cluster down \-\-docker\-machine=mymachine
-
 
 .fi
 .RE

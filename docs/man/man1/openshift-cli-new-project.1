@@ -16,8 +16,7 @@ openshift cli new\-project \- Request a new project
 Create a new project for yourself
 
 .PP
-If your administrator allows self\-service, this command will create a new project for you and assign you
-as the project admin.
+If your administrator allows self\-service, this command will create a new project for you and assign you as the project admin.
 
 .PP
 After your project is created it will become the default project in your config.
@@ -91,6 +90,10 @@ After your project is created it will become the default project in your config.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -110,7 +113,7 @@ After your project is created it will become the default project in your config.
 .nf
   # Create a new project with minimal information
   openshift cli new\-project web\-team\-dev
-
+  
   # Create a new project with a display name and description
   openshift cli new\-project web\-team\-dev \-\-display\-name="Web Team Development" \-\-description="Development project for the web team."
 

@@ -16,21 +16,13 @@ openshift cli export \- Export resources so they can be used elsewhere
 Export resources so they can be used elsewhere
 
 .PP
-The export command makes it easy to take existing objects and convert them to configuration files
-for backups or for creating elsewhere in the cluster. Fields that cannot be specified on create
-will be set to empty, and any field which is assigned on creation (like a service's clusterIP, or
-a deployment config's latestVersion). The status part of objects is also cleared.
+The export command makes it easy to take existing objects and convert them to configuration files for backups or for creating elsewhere in the cluster. Fields that cannot be specified on create will be set to empty, and any field which is assigned on creation (like a service's clusterIP, or a deployment config's latestVersion). The status part of objects is also cleared.
 
 .PP
-Some fields like clusterIP may be useful when exporting an application from one cluster to apply
-to another \- assuming another service on the destination cluster does not already use that IP.
-The \-\-exact flag will instruct export to not clear fields that might be useful. You may also use
-\-\-raw to get the exact values for an object \- useful for converting a file on disk between API
-versions.
+Some fields like clusterIP may be useful when exporting an application from one cluster to apply to another \- assuming another service on the destination cluster does not already use that IP. The \-\-exact flag will instruct export to not clear fields that might be useful. You may also use \-\-raw to get the exact values for an object \- useful for converting a file on disk between API versions.
 
 .PP
-Another use case for export is to create reusable templates for applications. Pass \-\-as\-template
-to generate the API structure for a template to which you can add parameters and object labels.
+Another use case for export is to create reusable templates for applications. Pass \-\-as\-template to generate the API structure for a template to which you can add parameters and object labels.
 
 
 .SH OPTIONS
@@ -149,6 +141,10 @@ to generate the API structure for a template to which you can add parameters and
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -168,10 +164,10 @@ to generate the API structure for a template to which you can add parameters and
 .nf
   # export the services and deployment configurations labeled name=test
   openshift cli export svc,dc \-l name=test
-
+  
   # export all services to a template
   openshift cli export service \-\-as\-template=test
-
+  
   # export to JSON
   openshift cli export service \-o json
 

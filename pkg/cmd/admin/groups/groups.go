@@ -6,18 +6,17 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const GroupsRecommendedName = "groups"
 
-const (
-	groupLong = `
-Manage groups in your cluster
+var groupLong = templates.LongDesc(`
+	Manage groups in your cluster
 
-Groups are sets of users that can be used when describing policy.`
-)
+	Groups are sets of users that can be used when describing policy.`)
 
 func NewCmdGroups(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.

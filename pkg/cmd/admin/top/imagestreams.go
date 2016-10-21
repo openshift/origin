@@ -12,22 +12,26 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/graph"
+	"github.com/openshift/origin/pkg/cmd/templates"
+
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
-const (
-	TopImageStreamsRecommendedName = "imagestreams"
+const TopImageStreamsRecommendedName = "imagestreams"
 
-	topImageStreamsLong = `Show usage statistics for ImageStreams
+var (
+	topImageStreamsLong = templates.LongDesc(`
+		Show usage statistics for ImageStreams
 
-This command analyzes all the ImageStreams managed by the platform and presents current
-usage statistics.`
+		This command analyzes all the ImageStreams managed by the platform and presents current
+		usage statistics.`)
 
-	topImageStreamsExample = `  # Show usage statistics for ImageStreams
-  %[1]s %[2]s`
+	topImageStreamsExample = templates.Examples(`
+		# Show usage statistics for ImageStreams
+  	%[1]s %[2]s`)
 )
 
 // NewCmdTopImageStreams implements the OpenShift cli top imagestreams command.

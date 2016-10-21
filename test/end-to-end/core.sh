@@ -132,7 +132,7 @@ os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-us
 echo "[INFO] Docker login successful"
 
 echo "[INFO] Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
-os::cmd::expect_success "docker tag -f centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
+os::cmd::expect_success "docker tag centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 echo "[INFO] Pushed ruby-22-centos7"
 
@@ -251,7 +251,7 @@ echo "[INFO] Anonymous registry access"
 # setup: log out of docker, log into openshift as e2e-user to run policy commands, tag image to use for push attempts
 os::cmd::expect_success 'oc login -u e2e-user'
 os::cmd::expect_success 'docker pull busybox'
-os::cmd::expect_success "docker tag -f busybox ${DOCKER_REGISTRY}/missing/image:tag"
+os::cmd::expect_success "docker tag busybox ${DOCKER_REGISTRY}/missing/image:tag"
 os::cmd::expect_success "docker logout ${DOCKER_REGISTRY}"
 # unauthorized pulls return "not found" errors to anonymous users, regardless of backing data
 os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/missing/image:tag"              "not found"
@@ -327,15 +327,23 @@ os::cmd::expect_success 'oc whoami'
 echo "[INFO] Running a CLI command in a container using the service account"
 os::cmd::expect_success 'oc policy add-role-to-user view -z default'
 oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
+# TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
+#os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
+#os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
+os::cmd::expect_success_and_text "oc logs cli-with-token" 'Using in-cluster configuration'
+os::cmd::expect_success_and_text "oc logs cli-with-token" 'In project test'
 os::cmd::expect_success 'oc delete pod cli-with-token'
 oc run cli-with-token-2 --attach --image="openshift/origin:${TAG}" --restart=Never -- cli whoami --loglevel=4 > "${LOG_DIR}/cli-with-token2.log" 2>&1
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
+# TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
+#os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
+os::cmd::expect_success_and_text "oc logs cli-with-token-2" 'system:serviceaccount:test:default'
 os::cmd::expect_success 'oc delete pod cli-with-token-2'
 oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=Never --command -- kubectl get pods --loglevel=4 > "${LOG_DIR}/kubectl-with-token.log" 2>&1
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
+# TODO Switch back to using cat once https://github.com/docker/docker/pull/26718 is in our Godeps
+#os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
+#os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
+os::cmd::expect_success_and_text "oc logs kubectl-with-token" 'Using in-cluster configuration'
+os::cmd::expect_success_and_text "oc logs kubectl-with-token" 'kubectl-with-token'
 
 echo "[INFO] Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
@@ -349,7 +357,7 @@ os::cmd::try_until_success 'oc get rc/failing-dc-1'
 os::cmd::expect_success 'oc logs -f dc/failing-dc'
 os::cmd::expect_failure 'oc rollout status dc/failing-dc'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
-os::cmd::expect_success 'oc rollout latest dc/failing-dc --again'
+os::cmd::expect_success_and_text 'oc rollout latest failing-dc --again -o revision' '2'
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc' 'test pre hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc'  'test pre hook executed'
 # Make sure --since-time adds the right query param, and actually returns logs
@@ -493,15 +501,15 @@ os::cmd::expect_success 'docker pull gcr.io/google_containers/pause'
 os::cmd::expect_success 'docker pull openshift/hello-openshift'
 
 # tag and push 1st image - layers unique to this image will be pruned
-os::cmd::expect_success "docker tag -f busybox ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "docker tag busybox ${DOCKER_REGISTRY}/cache/prune"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # tag and push 2nd image - layers unique to this image will be pruned
-os::cmd::expect_success "docker tag -f openshift/hello-openshift ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "docker tag openshift/hello-openshift ${DOCKER_REGISTRY}/cache/prune"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # tag and push 3rd image - it won't be pruned
-os::cmd::expect_success "docker tag -f gcr.io/google_containers/pause ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "docker tag gcr.io/google_containers/pause ${DOCKER_REGISTRY}/cache/prune"
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # record the storage before pruning

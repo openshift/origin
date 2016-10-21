@@ -246,32 +246,32 @@ const (
 
 	// StatusReasonCannotCreateBuildPodSpec is an error condition when the build
 	// strategy cannot create a build pod spec.
-	StatusReasonCannotCreateBuildPodSpec = "CannotCreateBuildPodSpec"
+	StatusReasonCannotCreateBuildPodSpec StatusReason = "CannotCreateBuildPodSpec"
 
 	// StatusReasonCannotCreateBuildPod is an error condition when a build pod
 	// cannot be created.
-	StatusReasonCannotCreateBuildPod = "CannotCreateBuildPod"
+	StatusReasonCannotCreateBuildPod StatusReason = "CannotCreateBuildPod"
 
 	// StatusReasonInvalidOutputReference is an error condition when the build
 	// output is an invalid reference.
-	StatusReasonInvalidOutputReference = "InvalidOutputReference"
+	StatusReasonInvalidOutputReference StatusReason = "InvalidOutputReference"
 
 	// StatusReasonCancelBuildFailed is an error condition when cancelling a build
 	// fails.
-	StatusReasonCancelBuildFailed = "CancelBuildFailed"
+	StatusReasonCancelBuildFailed StatusReason = "CancelBuildFailed"
 
 	// StatusReasonBuildPodDeleted is an error condition when the build pod is
 	// deleted before build completion.
-	StatusReasonBuildPodDeleted = "BuildPodDeleted"
+	StatusReasonBuildPodDeleted StatusReason = "BuildPodDeleted"
 
 	// StatusReasonExceededRetryTimeout is an error condition when the build has
 	// not completed and retrying the build times out.
-	StatusReasonExceededRetryTimeout = "ExceededRetryTimeout"
+	StatusReasonExceededRetryTimeout StatusReason = "ExceededRetryTimeout"
 
 	// StatusReasonMissingPushSecret indicates that the build is missing required
 	// secret for pushing the output image.
 	// The build will stay in the pending state until the secret is created, or the build times out.
-	StatusReasonMissingPushSecret = "MissingPushSecret"
+	StatusReasonMissingPushSecret StatusReason = "MissingPushSecret"
 )
 
 // BuildSource is the input used for the build.

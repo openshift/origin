@@ -16,15 +16,10 @@ openshift cli login \- Log in to a server
 Log in to your server and save login for subsequent use
 
 .PP
-First\-time users of the client should run this command to connect to a server,
-establish an authenticated session, and save connection to the configuration file. The
-default configuration will be saved to your home directory under
-".kube/config".
+First\-time users of the client should run this command to connect to a server, establish an authenticated session, and save connection to the configuration file. The default configuration will be saved to your home directory under ".kube/config".
 
 .PP
-The information required to login \-\- like username and password, a session token, or
-the server details \-\- can be provided through flags. If not provided, the command will
-prompt for user input as needed.
+The information required to login \-\- like username and password, a session token, or the server details \-\- can be provided through flags. If not provided, the command will prompt for user input as needed.
 
 
 .SH OPTIONS
@@ -91,6 +86,10 @@ prompt for user input as needed.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -110,10 +109,10 @@ prompt for user input as needed.
 .nf
   # Log in interactively
   openshift cli login
-
+  
   # Log in to the given server with the given certificate authority file
   openshift cli login localhost:8443 \-\-certificate\-authority=/path/to/cert.crt
-
+  
   # Log in to the given server with the given credentials (will not prompt interactively)
   openshift cli login localhost:8443 \-\-username=myuser \-\-password=mypass
 

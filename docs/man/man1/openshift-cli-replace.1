@@ -123,6 +123,10 @@ JSON and YAML formats are accepted.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -142,10 +146,10 @@ JSON and YAML formats are accepted.
 .nf
   # Replace a pod using the data in pod.json.
   openshift cli replace \-f pod.json
-
+  
   # Replace a pod based on the JSON passed into stdin.
   cat pod.json | openshift cli replace \-f \-
-
+  
   # Force replace, delete and then re\-create the resource
   openshift cli replace \-\-force \-f pod.json
 

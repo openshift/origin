@@ -16,18 +16,13 @@ openshift cli set triggers \- Update the triggers on a build or deployment confi
 Set or remove triggers for build configs and deployment configs
 
 .PP
-All build configs and deployment configs may have a set of triggers that result in a new deployment
-or build being created. This command enables you to alter those triggers \- making them automatic or
-manual, adding new entries, or changing existing entries.
+All build configs and deployment configs may have a set of triggers that result in a new deployment or build being created. This command enables you to alter those triggers \- making them automatic or manual, adding new entries, or changing existing entries.
 
 .PP
-Deployments support triggering off of image changes and on config changes. Config changes are any
-alterations to the pod template, while image changes will result in the container image value being
-updated whenever an image stream tag is updated.
+Deployments support triggering off of image changes and on config changes. Config changes are any alterations to the pod template, while image changes will result in the container image value being updated whenever an image stream tag is updated.
 
 .PP
-Build configs support triggering off of image changes, config changes, and webhooks (both GitHub\-specific
-and generic). The config change trigger for a build config will only trigger the first build.
+Build configs support triggering off of image changes, config changes, and webhooks (both GitHub\-specific and generic). The config change trigger for a build config will only trigger the first build.
 
 
 .SH OPTIONS
@@ -170,6 +165,10 @@ and generic). The config change trigger for a build config will only trigger the
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -189,23 +188,23 @@ and generic). The config change trigger for a build config will only trigger the
 .nf
   # Print the triggers on the registry
   openshift cli set triggers dc/registry
-
+  
   # Set all triggers to manual
   openshift cli set triggers dc/registry \-\-manual
-
+  
   # Enable all automatic triggers
   openshift cli set triggers dc/registry \-\-auto
-
+  
   # Reset the GitHub webhook on a build to a new, generated secret
   openshift cli set triggers bc/webapp \-\-from\-github
   openshift cli set triggers bc/webapp \-\-from\-webhook
-
+  
   # Remove all triggers
   openshift cli set triggers bc/webapp \-\-remove\-all
-
+  
   # Stop triggering on config change
   openshift cli set triggers dc/registry \-\-from\-config \-\-remove
-
+  
   # Add an image trigger to a build config
   openshift cli set triggers bc/webapp \-\-from\-image=namespace1/image:latest
 

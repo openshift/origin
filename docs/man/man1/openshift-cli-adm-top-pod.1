@@ -19,8 +19,7 @@ Display Resource (CPU/Memory/Storage) usage of pods.
 The 'top pod' command allows you to see the resource consumption of pods.
 
 .PP
-Due to the metrics pipeline delay, they may be unavailable for a few minutes
-since pod creation.
+Due to the metrics pipeline delay, they may be unavailable for a few minutes since pod creation.
 
 
 .SH OPTIONS
@@ -91,6 +90,10 @@ since pod creation.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -108,18 +111,17 @@ since pod creation.
 .RS
 
 .nf
-
-# Show metrics for all pods in the default namespace
-kubectl top pod
-
-# Show metrics for all pods in the given namespace
-kubectl top pod \-\-namespace=NAMESPACE
-
-# Show metrics for a given pod and its containers
-kubectl top pod POD\_NAME \-\-containers
-
-# Show metrics for the pods defined by label name=myLabel
-kubectl top pod \-l name=myLabel
+  # Show metrics for all pods in the default namespace
+  kubectl top pod
+  
+  # Show metrics for all pods in the given namespace
+  kubectl top pod \-\-namespace=NAMESPACE
+  
+  # Show metrics for a given pod and its containers
+  kubectl top pod POD\_NAME \-\-containers
+  
+  # Show metrics for the pods defined by label name=myLabel
+  kubectl top pod \-l name=myLabel
 
 .fi
 .RE

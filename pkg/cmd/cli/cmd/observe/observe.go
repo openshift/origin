@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/jsonpath"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/util/proc"
 )
@@ -61,101 +62,100 @@ var (
 	)
 )
 
-const (
-	observeLong = `
-Observe changes to resources and take action on them
+var (
+	observeLong = templates.LongDesc(`
+		Observe changes to resources and take action on them
 
-This command assists in building scripted reactions to changes that occur in
-Kubernetes or OpenShift resources. This is frequently referred to as a
-'controller' in Kubernetes and acts to ensure particular conditions are
-maintained. On startup, observe will list all of the resources of a
-particular type and execute the provided script on each one. Observe watches
-the server for changes, and will reexecute the script for each update.
+		This command assists in building scripted reactions to changes that occur in
+		Kubernetes or OpenShift resources. This is frequently referred to as a
+		'controller' in Kubernetes and acts to ensure particular conditions are
+		maintained. On startup, observe will list all of the resources of a
+		particular type and execute the provided script on each one. Observe watches
+		the server for changes, and will reexecute the script for each update.
 
-Observe works best for problems of the form "for every resource X, make sure
-Y is true". Some examples of ways observe can be used include:
+		Observe works best for problems of the form "for every resource X, make sure
+		Y is true". Some examples of ways observe can be used include:
 
-* Ensure every namespace has a quota or limit range object
-* Ensure every service is registered in DNS by making calls to a DNS API
-* Send an email alert whenever a node reports 'NotReady'
-* Watch for the 'FailedScheduling' event and write an IRC message
-* Dynamically provision persistent volumes when a new PVC is created
-* Delete pods that have reached successful completion after a period of time.
+		* Ensure every namespace has a quota or limit range object
+		* Ensure every service is registered in DNS by making calls to a DNS API
+		* Send an email alert whenever a node reports 'NotReady'
+		* Watch for the 'FailedScheduling' event and write an IRC message
+		* Dynamically provision persistent volumes when a new PVC is created
+		* Delete pods that have reached successful completion after a period of time.
 
-The simplest pattern is maintaining an invariant on an object - for instance,
-"every namespace should have an annotation that indicates its owner". If the
-object is deleted no reaction is necessary. A variation on that pattern is
-creating another object: "every namespace should have a quota object based
-on the resources allowed for an owner".
+		The simplest pattern is maintaining an invariant on an object - for instance,
+		"every namespace should have an annotation that indicates its owner". If the
+		object is deleted no reaction is necessary. A variation on that pattern is
+		creating another object: "every namespace should have a quota object based
+		on the resources allowed for an owner".
 
-  $ cat set_owner.sh
-  #!/bin/sh
-  if [[ "$(%[1]s get namespace "$1" --template='{{ .metadata.annotations.owner }}')" == "" ]]; then
-    %[1]s annotate namespace "$1" owner=bob
-  fi
+		    $ cat set_owner.sh
+		    #!/bin/sh
+		    if [[ "$(%[1]s get namespace "$1" --template='{{ .metadata.annotations.owner }}')" == "" ]]; then
+		      %[1]s annotate namespace "$1" owner=bob
+		    fi
 
-  $ %[1]s observe namespaces -- ./set_owner.sh
+		    $ %[1]s observe namespaces -- ./set_owner.sh
 
-The set_owner.sh script is invoked with a single argument (the namespace name)
-for each namespace. This simple script ensures that any user without the
-"owner" annotation gets one set, but preserves any existing value.
+		The set_owner.sh script is invoked with a single argument (the namespace name)
+		for each namespace. This simple script ensures that any user without the
+		"owner" annotation gets one set, but preserves any existing value.
 
-The next common of controller pattern is provisioning - making changes in an
-external system to match the state of a Kubernetes resource. These scripts need
-to account for deletions that may take place while the observe command is not
-running. You can provide the list of known objects via the --names command,
-which should return a newline-delimited list of names or namespace/name pairs.
-Your command will be invoked whenever observe checks the latest state on the
-server - any resources returned by --names that are not found on the server
-will be passed to your --delete command.
+		The next common of controller pattern is provisioning - making changes in an
+		external system to match the state of a Kubernetes resource. These scripts need
+		to account for deletions that may take place while the observe command is not
+		running. You can provide the list of known objects via the --names command,
+		which should return a newline-delimited list of names or namespace/name pairs.
+		Your command will be invoked whenever observe checks the latest state on the
+		server - any resources returned by --names that are not found on the server
+		will be passed to your --delete command.
 
-For example, you may wish to ensure that every node that is added to Kubernetes
-is added to your cluster inventory along with its IP:
+		For example, you may wish to ensure that every node that is added to Kubernetes
+		is added to your cluster inventory along with its IP:
 
-  $ cat add_to_inventory.sh
-  #!/bin/sh
-  echo "$1 $2" >> inventory
-  sort -u inventory -o inventory
+		    $ cat add_to_inventory.sh
+		    #!/bin/sh
+		    echo "$1 $2" >> inventory
+		    sort -u inventory -o inventory
 
-  $ cat remove_from_inventory.sh
-  #!/bin/sh
-  grep -vE "^$1 " inventory > /tmp/newinventory
-  mv -f /tmp/newinventory inventory
+		    $ cat remove_from_inventory.sh
+		    #!/bin/sh
+		    grep -vE "^$1 " inventory > /tmp/newinventory
+		    mv -f /tmp/newinventory inventory
 
-  $ cat known_nodes.sh
-  #!/bin/sh
-  touch inventory
-  cut -f 1-1 -d ' ' inventory
+		    $ cat known_nodes.sh
+		    #!/bin/sh
+		    touch inventory
+		    cut -f 1-1 -d ' ' inventory
 
-  $ %[1]s observe nodes -a '{ .status.addresses[0].address }' \
-      --names ./known_nodes.sh \
-      --delete ./remove_from_inventory.sh \
-      -- ./add_to_inventory.sh
+		    $ %[1]s observe nodes -a '{ .status.addresses[0].address }' \
+		      --names ./known_nodes.sh \
+		      --delete ./remove_from_inventory.sh \
+		      -- ./add_to_inventory.sh
 
+		If you stop the observe command and then delete a node, when you launch observe
+		again the contents of inventory will be compared to the list of nodes from the
+		server, and any node in the inventory file that no longer exists will trigger
+		a call to remove_from_inventory.sh with the name of the node.
 
-If you stop the observe command and then delete a node, when you launch observe
-again the contents of inventory will be compared to the list of nodes from the
-server, and any node in the inventory file that no longer exists will trigger
-a call to remove_from_inventory.sh with the name of the node.
+		Important: when handling deletes, the previous state of the object may not be
+		available and only the name/namespace of the object will be passed to	your
+		--delete command as arguments (all custom arguments are omitted).
 
-Important: when handling deletes, the previous state of the object may not be
-  available and only the name/namespace of the object will be passed to	your
-	--delete command as arguments (all custom arguments are omitted).
+		More complicated interactions build on the two examples above - your inventory
+		script could make a call to allocate storage on your infrastructure as a
+		service, or register node names in DNS, or set complex firewalls. The more
+		complex your integration, the more important it is to record enough data in the
+		remote system that you can identify when resources on either side are deleted.
 
-More complicated interactions build on the two examples above - your inventory
-script could make a call to allocate storage on your infrastructure as a
-service, or register node names in DNS, or set complex firewalls. The more
-complex your integration, the more important it is to record enough data in the
-remote system that you can identify when resources on either side are deleted.
+		Experimental: This command is under active development and may change without notice.`)
 
-Experimental: This command is under active development and may change without notice.`
+	observeExample = templates.Examples(`
+		# Observe changes to services
+	  %[1]s observe services
 
-	observeExample = `	# observe changes to services
-	%[1]s observe services
-
-	# observe changes to services, including the clusterIP and invoke a script for each
-	%[1]s observe services -a '{ .spec.clusterIP }' -- register_dns.sh
-`
+	  # Observe changes to services, including the clusterIP and invoke a script for each
+	  %[1]s observe services -a '{ .spec.clusterIP }' -- register_dns.sh`)
 )
 
 // NewCmdObserve creates the observe command.

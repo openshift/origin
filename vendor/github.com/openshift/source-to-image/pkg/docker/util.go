@@ -12,7 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/docker/distribution/reference"
+	"github.com/docker/engine-api/client"
+	"github.com/openshift/origin/pkg/image/reference"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
@@ -28,6 +29,8 @@ var (
 	DefaultEntrypoint = []string{"/usr/bin/env"}
 )
 
+// AuthConfigurations maps a registry name to an AuthConfig, as used for example
+// in the .dockercfg file
 type AuthConfigurations struct {
 	Configs map[string]api.AuthConfig
 }
@@ -47,16 +50,15 @@ const (
 // image name and a given set of client authentication objects.
 func GetImageRegistryAuth(auths *AuthConfigurations, imageName string) api.AuthConfig {
 	glog.V(5).Infof("Getting docker credentials for %s", imageName)
-	namedReference, err := reference.ParseNamed(imageName)
+	ref, err := reference.ParseNamedDockerImageReference(imageName)
 	if err != nil {
 		glog.V(0).Infof("error: Failed to parse docker reference %s", imageName)
 		return api.AuthConfig{}
 	}
 
-	hostname, _ := reference.SplitHostname(namedReference)
-	if strings.ContainsAny(hostname, ":.") || hostname == "localhost" {
-		if auth, ok := auths.Configs[hostname]; ok {
-			glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, hostname, imageName)
+	if ref.Registry != "" {
+		if auth, ok := auths.Configs[ref.Registry]; ok {
+			glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, ref.Registry, imageName)
 			return auth
 		}
 	}
@@ -287,7 +289,8 @@ func IsReachable(config *api.Config) bool {
 	if err != nil {
 		return false
 	}
-	return d.Ping() == nil
+	_, err = d.Version()
+	return err == nil
 }
 
 func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config *api.Config, forcePull bool) (*PullResult, error) {
@@ -341,13 +344,14 @@ func GetRuntimeImage(config *api.Config, docker Docker) error {
 	return err
 }
 
+// GetDefaultDockerConfig checks relevant Docker environment variables to
+// provide defaults for our command line flags
 func GetDefaultDockerConfig() *api.DockerConfig {
 	cfg := &api.DockerConfig{}
 	if cfg.Endpoint = os.Getenv("DOCKER_HOST"); cfg.Endpoint == "" {
-		cfg.Endpoint = "unix:///var/run/docker.sock"
+		cfg.Endpoint = client.DefaultDockerHost
 	}
-	if os.Getenv("DOCKER_TLS_VERIFY") == "1" {
-		certPath := os.Getenv("DOCKER_CERT_PATH")
+	if certPath := os.Getenv("DOCKER_CERT_PATH"); certPath != "" {
 		cfg.CertFile = filepath.Join(certPath, "cert.pem")
 		cfg.KeyFile = filepath.Join(certPath, "key.pem")
 		cfg.CAFile = filepath.Join(certPath, "ca.pem")

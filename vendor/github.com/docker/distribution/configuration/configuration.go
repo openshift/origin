@@ -95,6 +95,19 @@ type Configuration struct {
 			// Specifies the CA certs for client authentication
 			// A file may contain multiple CA certificates encoded as PEM
 			ClientCAs []string `yaml:"clientcas,omitempty"`
+
+			// LetsEncrypt is used to configuration setting up TLS through
+			// Let's Encrypt instead of manually specifying certificate and
+			// key. If a TLS certificate is specified, the Let's Encrypt
+			// section will not be used.
+			LetsEncrypt struct {
+				// CacheFile specifies cache file to use for lets encrypt
+				// certificates and keys.
+				CacheFile string `yaml:"cachefile,omitempty"`
+
+				// Email is the email to use during Let's Encrypt registration
+				Email string `yaml:"email,omitempty"`
+			} `yaml:"letsencrypt,omitempty"`
 		} `yaml:"tls,omitempty"`
 
 		// Headers is a set of headers to include in HTTP responses. A common
@@ -157,11 +170,6 @@ type Configuration struct {
 			// TrustKey is the signing key to use for adding the signature to
 			// schema1 manifests.
 			TrustKey string `yaml:"signingkeyfile,omitempty"`
-
-			// DisableSignatureStore will cause all signatures attached to schema1 manifests
-			// to be ignored. Signatures will be generated on all schema1 manifest requests
-			// rather than only requests which converted schema2 to schema1.
-			DisableSignatureStore bool `yaml:"disablesignaturestore,omitempty"`
 		} `yaml:"schema1,omitempty"`
 	} `yaml:"compatibility,omitempty"`
 }
@@ -419,7 +427,7 @@ func (storage Storage) MarshalYAML() (interface{}, error) {
 // Auth defines the configuration for registry authorization.
 type Auth map[string]Parameters
 
-// Type returns the storage driver type, such as filesystem or s3
+// Type returns the auth type, such as htpasswd or token
 func (auth Auth) Type() string {
 	// Return only key in this map
 	for k := range auth {

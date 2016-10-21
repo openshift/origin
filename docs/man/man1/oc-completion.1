@@ -13,8 +13,7 @@ oc completion \- Output shell completion code for the given shell (bash or zsh)
 
 .SH DESCRIPTION
 .PP
-This command prints shell code which must be evaluated to provide interactive
-completion of oc commands.
+This command prints shell code which must be evaluated to provide interactive completion of oc commands.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -71,6 +70,10 @@ completion of oc commands.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -91,18 +94,19 @@ completion of oc commands.
   # Generate the oc completion code for bash
   oc completion bash > bash\_completion.sh
   source bash\_completion.sh
-
+  
   # The above example depends on the bash\-completion framework.
-  It must be sourced before sourcing the openshift cli completion, i.e. on the Mac:
-
+  # It must be sourced before sourcing the openshift cli completion,
+  # i.e. on the Mac:
+  
   brew install bash\-completion
   source $(brew \-\-prefix)/etc/bash\_completion
   oc completion bash > bash\_completion.sh
   source bash\_completion.sh
-
+  
   # In zsh*, the following will load openshift cli zsh completion:
   source <(oc completion zsh)
-
+  
   * zsh completions are only supported in versions of zsh >= 5.2
 
 .fi

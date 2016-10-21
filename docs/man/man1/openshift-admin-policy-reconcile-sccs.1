@@ -16,12 +16,7 @@ openshift admin policy reconcile\-sccs \- Replace cluster SCCs to match the reco
 Replace cluster SCCs to match the recommended bootstrap policy
 
 .PP
-This command will inspect the cluster SCCs against the recommended bootstrap SCCs.
-Any cluster SCC that does not match will be replaced by the recommended SCC.
-This command will not remove any additional cluster SCCs.  By default, this command
-will not remove additional users and groups that have been granted access to the SCC and
-will preserve existing priorities (but will always reconcile unset priorities and the policy
-definition).
+This command will inspect the cluster SCCs against the recommended bootstrap SCCs. Any cluster SCC that does not match will be replaced by the recommended SCC. This command will not remove any additional cluster SCCs.  By default, this command will not remove additional users and groups that have been granted access to the SCC and will preserve existing priorities (but will always reconcile unset priorities and the policy definition).
 
 .PP
 You can see which cluster SCCs have recommended changes by choosing an output type.
@@ -127,6 +122,10 @@ You can see which cluster SCCs have recommended changes by choosing an output ty
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -146,11 +145,11 @@ You can see which cluster SCCs have recommended changes by choosing an output ty
 .nf
   # Display the cluster SCCs that would be modified
   openshift admin policy reconcile\-sccs
-
+  
   # Update cluster SCCs that don't match the current defaults preserving additional grants
   # for users and group and keeping any priorities that are already set
   openshift admin policy reconcile\-sccs \-\-confirm
-
+  
   # Replace existing users, groups, and priorities that do not match defaults
   openshift admin policy reconcile\-sccs \-\-additive\-only=false \-\-confirm
 

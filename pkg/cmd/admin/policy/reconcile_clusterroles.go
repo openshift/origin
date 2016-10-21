@@ -17,8 +17,10 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -43,30 +45,31 @@ type ReconcileClusterRolesOptions struct {
 	RoleClient client.ClusterRoleInterface
 }
 
-const (
-	reconcileLong = `
-Update cluster roles to match the recommended bootstrap policy
+var (
+	reconcileLong = templates.LongDesc(`
+		Update cluster roles to match the recommended bootstrap policy
 
-This command will compare cluster roles against the recommended bootstrap policy.  Any cluster role
-that does not match will be replaced by the recommended bootstrap role.  This command will not remove
-any additional cluster role.
+		This command will compare cluster roles against the recommended bootstrap policy.  Any cluster role
+		that does not match will be replaced by the recommended bootstrap role.  This command will not remove
+		any additional cluster role.
 
-Cluster roles with the annotation %s set to "true" are skipped.
+		Cluster roles with the annotation %s set to "true" are skipped.
 
-You can see which cluster roles have recommended changed by choosing an output type.`
+		You can see which cluster roles have recommended changed by choosing an output type.`)
 
-	reconcileExample = `  # Display the names of cluster roles that would be modified
-  %[1]s -o name
+	reconcileExample = templates.Examples(`
+		# Display the names of cluster roles that would be modified
+	  %[1]s -o name
 
-  # Add missing permissions to cluster roles that don't match the current defaults
-  %[1]s --confirm
+	  # Add missing permissions to cluster roles that don't match the current defaults
+	  %[1]s --confirm
 
-  # Add missing permissions and remove extra permissions from
-  # cluster roles that don't match the current defaults
-  %[1]s --additive-only=false --confirm
+	  # Add missing permissions and remove extra permissions from
+	  # cluster roles that don't match the current defaults
+	  %[1]s --additive-only=false --confirm
 
-  # Display the union of the default and modified cluster roles
-  %[1]s --additive-only`
+	  # Display the union of the default and modified cluster roles
+	  %[1]s --additive-only`)
 )
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command

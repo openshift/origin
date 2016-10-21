@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -19,19 +20,19 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const (
-	rolloutLatestLong = `
-Start a new rollout for a deployment config with the latest state from its triggers
+var (
+	rolloutLatestLong = templates.LongDesc(`
+		Start a new rollout for a deployment config with the latest state from its triggers
 
-This command is appropriate for running manual rollouts. If you want full control over
-running new rollouts, use "oc set triggers --manual" to disable all triggers in your
-deployment config and then whenever you want to run a new deployment process, use this
-command in order to pick up the latest images found in the cluster that are pointed by
-your image change triggers.`
+		This command is appropriate for running manual rollouts. If you want full control over
+		running new rollouts, use "oc set triggers --manual" to disable all triggers in your
+		deployment config and then whenever you want to run a new deployment process, use this
+		command in order to pick up the latest images found in the cluster that are pointed by
+		your image change triggers.`)
 
-	rolloutLatestExample = `  # Start a new rollout based on the latest images defined in the image change triggers.
-  %[1]s rollout latest dc/nginx
-`
+	rolloutLatestExample = templates.Examples(`
+		# Start a new rollout based on the latest images defined in the image change triggers.
+  	%[1]s rollout latest dc/nginx`)
 )
 
 // RolloutLatestOptions holds all the options for the `rollout latest` command.
@@ -41,9 +42,9 @@ type RolloutLatestOptions struct {
 	typer  runtime.ObjectTyper
 	infos  []*resource.Info
 
-	out         io.Writer
-	shortOutput bool
-	again       bool
+	out    io.Writer
+	output string
+	again  bool
 
 	oc              client.Interface
 	kc              kclient.Interface
@@ -108,7 +109,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	}
 
 	o.out = out
-	o.shortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
+	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
 	return nil
@@ -166,6 +167,11 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 
 	info.Refresh(dc, true)
 
-	kcmdutil.PrintSuccess(o.mapper, o.shortOutput, o.out, info.Mapping.Resource, info.Name, "rolled out")
+	if o.output == "revision" {
+		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
+		return nil
+	}
+
+	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, "rolled out")
 	return nil
 }

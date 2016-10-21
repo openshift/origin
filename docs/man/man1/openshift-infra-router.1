@@ -16,21 +16,16 @@ openshift infra router \- Start a router
 Start a router
 
 .PP
-This command launches a router connected to your cluster master. The router listens for routes and endpoints
-created by users and keeps a local router configuration up to date with those changes.
+This command launches a router connected to your cluster master. The router listens for routes and endpoints created by users and keeps a local router configuration up to date with those changes.
 
 .PP
 You may customize the router by providing your own \-\-template and \-\-reload scripts.
 
 .PP
-The router must have a default certificate in pem format. You may provide it via \-\-default\-cert otherwise
-one is automatically created.
+The router must have a default certificate in pem format. You may provide it via \-\-default\-cert otherwise one is automatically created.
 
 .PP
-You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has
-access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all
-namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note
-that you must have a cluster\-wide administrative role to view all namespaces.
+You may restrict the set of routes exposed to a single project (with \-\-namespace), projects your client has access to with a set of labels (\-\-project\-labels), namespaces matching a label (\-\-namespace\-labels), or all namespaces (no argument). You can limit the routes to those matching a \-\-labels or \-\-fields selector. Note that you must have a cluster\-wide administrative role to view all namespaces.
 
 
 .SH OPTIONS
@@ -139,6 +134,10 @@ that you must have a cluster\-wide administrative role to view all namespaces.
 .PP
 \fB\-\-reload\fP=""
     The path to the reload script to use
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-resync\-interval\fP=0

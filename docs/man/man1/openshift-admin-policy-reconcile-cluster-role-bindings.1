@@ -16,9 +16,7 @@ openshift admin policy reconcile\-cluster\-role\-bindings \- Update cluster role
 Update cluster role bindings to match the recommended bootstrap policy
 
 .PP
-This command will inspect the cluster role bindings against the recommended bootstrap policy.
-Any cluster role binding that does not match will be replaced by the recommended bootstrap role binding.
-This command will not remove any additional cluster role bindings.
+This command will inspect the cluster role bindings against the recommended bootstrap policy. Any cluster role binding that does not match will be replaced by the recommended bootstrap role binding. This command will not remove any additional cluster role bindings.
 
 .PP
 You can see which recommended cluster role bindings have changed by choosing an output type.
@@ -128,6 +126,10 @@ You can see which recommended cluster role bindings have changed by choosing an 
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -147,16 +149,16 @@ You can see which recommended cluster role bindings have changed by choosing an 
 .nf
   # Display the names of cluster role bindings that would be modified
   openshift admin policy reconcile\-cluster\-role\-bindings \-o name
-
+  
   # Display the cluster role bindings that would be modified, removing any extra subjects
   openshift admin policy reconcile\-cluster\-role\-bindings \-\-additive\-only=false
-
+  
   # Update cluster role bindings that don't match the current defaults
   openshift admin policy reconcile\-cluster\-role\-bindings \-\-confirm
-
+  
   # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
   openshift admin policy reconcile\-cluster\-role\-bindings \-\-confirm \-\-exclude\-groups=system:authenticated
-
+  
   # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
   openshift admin policy reconcile\-cluster\-role\-bindings \-\-confirm \-\-additive\-only=false
 

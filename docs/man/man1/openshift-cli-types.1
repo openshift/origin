@@ -16,10 +16,7 @@ openshift cli types \- An introduction to concepts and types
 Concepts and Types
 
 .PP
-Kubernetes and OpenShift help developers and operators build, test, and deploy
-applications in a containerized cloud environment. Applications may be composed
-of all of the components below, although most developers will be concerned with
-Services, Deployments, and Builds for delivering changes.
+Kubernetes and OpenShift help developers and operators build, test, and deploy applications in a containerized cloud environment. Applications may be composed of all of the components below, although most developers will be concerned with Services, Deployments, and Builds for delivering changes.
 
 .PP
 Concepts:
@@ -220,6 +217,10 @@ For more, see
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -239,13 +240,13 @@ For more, see
 .nf
   # View all projects you have access to
   openshift cli get projects
-
+  
   # See a list of all services in the current project
   openshift cli get svc
-
+  
   # Describe a deployment configuration in detail
   openshift cli describe dc mydeploymentconfig
-
+  
   # Show the images tagged into an image stream
   openshift cli describe is ruby\-centos7
 

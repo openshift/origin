@@ -16,8 +16,7 @@ oc adm prune \- Remove older versions of resources from the server
 Remove older versions of resources from the server
 
 .PP
-The commands here allow administrators to manage the older versions of resources on
-the system by removing them.
+The commands here allow administrators to manage the older versions of resources on the system by removing them.
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
@@ -72,6 +71,10 @@ the system by removing them.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

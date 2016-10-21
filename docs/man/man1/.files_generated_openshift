@@ -183,6 +183,7 @@ openshift-cli-autoscale.1
 openshift-cli-build-logs.1
 openshift-cli-cancel-build.1
 openshift-cli-cluster-down.1
+openshift-cli-cluster-status.1
 openshift-cli-cluster-up.1
 openshift-cli-cluster.1
 openshift-cli-completion.1

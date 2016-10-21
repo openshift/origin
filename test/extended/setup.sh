@@ -75,9 +75,9 @@ function os::test::extended::setup () {
 			os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
 		fi
 
-		os::log::start_system_logger
+		os::log::system::start
 
-		
+
 		if [[ -n "${SHOW_ALL:-}" ]]; then
 			SKIP_NODE=1
 		fi
@@ -248,7 +248,6 @@ readonly EXCLUDED_TESTS=(
 	"Networking should function for intra-pod" # Needs two nodes, add equiv test for 1 node, then use networking suite
 	"should test kube-proxy"     # needs 2 nodes
 	"authentication: OpenLDAP"   # needs separate setup and bucketing for openldap bootstrapping
-	"should support exec through an HTTP proxy" # doesn't work because it requires a) static binary b) linux c) kubectl, https://github.com/openshift/origin/issues/7097
 	"NFS"                      # no permissions https://github.com/openshift/origin/pull/6884
 	"\[Feature:Example\]"      # may need to pre-pull images
 	"ResourceQuota and capture the life of a secret" # https://github.com/openshift/origin/issue/9414

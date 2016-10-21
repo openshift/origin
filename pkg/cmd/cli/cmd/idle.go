@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/unversioned"
@@ -31,20 +32,21 @@ import (
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 )
 
-const (
-	idleLong = `
-Idle scalable resources.
+var (
+	idleLong = templates.LongDesc(`
+		Idle scalable resources
 
-Idling discovers the scalable resources (such as deployment configs and replication controllers)
-associated with a series of services by examining the endpoints of the service.
-Each service is then marked as idled, the associated resources are recorded, and the resources
-are scaled down to zero replicas.
+		Idling discovers the scalable resources (such as deployment configs and replication controllers)
+		associated with a series of services by examining the endpoints of the service.
+		Each service is then marked as idled, the associated resources are recorded, and the resources
+		are scaled down to zero replicas.
 
-Upon receiving network traffic, the services (and any associated routes) will "wake up" the
-associated resources by scaling them back up to their previous scale.`
+		Upon receiving network traffic, the services (and any associated routes) will "wake up" the
+		associated resources by scaling them back up to their previous scale.`)
 
-	idleExample = `  # Idle the scalable controllers associated with the services listed in to-idle.txt
-  $ %[1]s idle --resource-names-file to-idle.txt`
+	idleExample = templates.Examples(`
+		# Idle the scalable controllers associated with the services listed in to-idle.txt
+	  $ %[1]s idle --resource-names-file to-idle.txt`)
 )
 
 // NewCmdIdle implements the OpenShift cli idle command

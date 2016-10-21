@@ -14,19 +14,21 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
-const apiLong = `Start the master API
+var apiLong = templates.LongDesc(`
+	Start the master API
 
-This command starts the master API.  Running
+	This command starts the master API.  Running
 
-  %[1]s start master %[2]s
+	    %[1]s start master %[2]s
 
-will start the server listening for incoming API requests. The server
-will run in the foreground until you terminate the process.`
+	will start the server listening for incoming API requests. The server
+	will run in the foreground until you terminate the process.`)
 
 // NewCommandStartMasterAPI starts only the APIserver
-func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMasterAPI(name, basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
 	options.DefaultsFromName(basename)
 
@@ -36,17 +38,17 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		Long:  fmt.Sprintf(apiLong, basename, name),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(errout, kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
 			if len(options.ConfigFile) == 0 {
-				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, "--config is required for this command"))
+				fmt.Fprintln(errout, kcmdutil.UsageError(c, "--config is required for this command"))
 				return
 			}
 
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.OutOrStderr(), kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(errout, kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -55,9 +57,9 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.OutOrStderr(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(c.OutOrStderr(), "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}

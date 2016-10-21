@@ -25,8 +25,10 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -35,36 +37,36 @@ import (
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
-const (
-	routerLong = `
-Install or configure a router
+var (
+	routerLong = templates.LongDesc(`
+		Install or configure a router
 
-This command helps to setup a router to take edge traffic and balance it to
-your application. With no arguments, the command will check for an existing router
-service called 'router' and create one if it does not exist. If you want to test whether
-a router has already been created add the --dry-run flag and the command will exit with
-1 if the registry does not exist.
+		This command helps to setup a router to take edge traffic and balance it to
+		your application. With no arguments, the command will check for an existing router
+		service called 'router' and create one if it does not exist. If you want to test whether
+		a router has already been created add the --dry-run flag and the command will exit with
+		1 if the registry does not exist.
 
-If a router does not exist with the given name, this command will
-create a deployment configuration and service that will run the router. If you are
-running your router in production, you should pass --replicas=2 or higher to ensure
-you have failover protection.`
+		If a router does not exist with the given name, this command will
+		create a deployment configuration and service that will run the router. If you are
+		running your router in production, you should pass --replicas=2 or higher to ensure
+		you have failover protection.`)
 
-	routerExample = `  # Check the default router ("router")
-  %[1]s %[2]s --dry-run
+	routerExample = templates.Examples(`
+		# Check the default router ("router")
+	  %[1]s %[2]s --dry-run
 
-  # See what the router would look like if created
-  %[1]s %[2]s -o yaml
+	  # See what the router would look like if created
+	  %[1]s %[2]s -o yaml
 
-  # Create a router with two replicas if it does not exist
-  %[1]s %[2]s router-west --replicas=2
+	  # Create a router with two replicas if it does not exist
+	  %[1]s %[2]s router-west --replicas=2
 
-  # Use a different router image
-  %[1]s %[2]s region-west --images=myrepo/somerouter:mytag
+	  # Use a different router image
+	  %[1]s %[2]s region-west --images=myrepo/somerouter:mytag
 
-  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  %[1]s %[2]s router-west --stats-port=0
-  `
+	  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+	  %[1]s %[2]s router-west --stats-port=0`)
 
 	secretsVolumeName = "secret-volume"
 	secretsPath       = "/etc/secret-volume"
@@ -79,9 +81,9 @@ you have failover protection.`
 	privkeyVolumeName = "external-host-private-key-volume"
 	privkeyName       = "router.pem"
 	privkeyPath       = secretsPath + "/" + privkeyName
-)
 
-var defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
+	defaultCertificatePath = path.Join(defaultCertificateDir, "tls.crt")
+)
 
 // RouterConfig contains the configuration parameters necessary to
 // launch a router, including general parameters, type of router, and
@@ -210,7 +212,7 @@ const (
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
-func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	cfg := &RouterConfig{
 		Name:          "router",
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -233,7 +235,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Long:    routerLong,
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunCmdRouter(f, cmd, out, cfg, args)
+			err := RunCmdRouter(f, cmd, out, errout, cfg, args)
 			if err != cmdutil.ErrExit {
 				kcmdutil.CheckErr(err)
 			} else {
@@ -454,7 +456,7 @@ func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *k
 
 // RunCmdRouter contains all the necessary functionality for the
 // OpenShift CLI router command.
-func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *RouterConfig, args []string) error {
+func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
 	switch len(args) {
 	case 0:
 		// uses default value
@@ -544,7 +546,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	}
 
 	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	cfg.Action.Out, cfg.Action.ErrOut = out, cmd.OutOrStderr()
+	cfg.Action.Out, cfg.Action.ErrOut = out, errout
 	cfg.Action.Bulk.Op = configcmd.Create
 
 	var clusterIP string
@@ -580,7 +582,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if !cfg.Action.ShouldPrint() {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStderr(), "error: %v\n", err)
+		fmt.Fprintf(errout, "error: %v\n", err)
 		defaultOutputErr = cmdutil.ErrExit
 	}
 
@@ -624,7 +626,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if len(cfg.StatsPassword) == 0 {
 		cfg.StatsPassword = generateStatsPassword()
 		if !cfg.Action.ShouldPrint() {
-			fmt.Fprintf(cmd.OutOrStderr(), "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+			fmt.Fprintf(errout, "info: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 	}
 

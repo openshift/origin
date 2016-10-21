@@ -9,27 +9,27 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/auth/server/login"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	CreateLoginTemplateCommand = "create-login-template"
-	longDescription            = `
-Create a template for customizing the login page
+const CreateLoginTemplateCommand = "create-login-template"
 
-This command creates a basic template to use as a starting point for
-customizing the login page. Save the output to a file and edit the template to
-change the look and feel or add content. Be careful not to remove any parameter
-values inside curly braces.
+var longDescription = templates.LongDesc(`
+	Create a template for customizing the login page
 
-To use the template, set oauthConfig.templates.login in the master
-configuration to point to the template file. For example,
+	This command creates a basic template to use as a starting point for
+	customizing the login page. Save the output to a file and edit the template to
+	change the look and feel or add content. Be careful not to remove any parameter
+	values inside curly braces.
 
-    oauthConfig:
-      templates:
-        login: templates/login.html
-`
-)
+	To use the template, set oauthConfig.templates.login in the master
+	configuration to point to the template file. For example,
+
+	    oauthConfig:
+	      templates:
+	        login: templates/login.html
+	`)
 
 type CreateLoginTemplateOptions struct{}
 

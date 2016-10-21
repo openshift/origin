@@ -7,18 +7,19 @@ import (
 
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	TopRecommendedName = "top"
+const TopRecommendedName = "top"
 
-	topLong = `Show usage statistics of resources on the server
+var topLong = templates.LongDesc(`
+	Show usage statistics of resources on the server
 
-This command analyzes resources managed by the platform and presents current
-usage statistics.`
-)
+	This command analyzes resources managed by the platform and presents current
+	usage statistics.`)
 
 func NewCommandTop(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
@@ -31,7 +32,13 @@ func NewCommandTop(name, fullName string, f *clientcmd.Factory, out io.Writer) *
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, out))
-	cmds.AddCommand(kcmd.NewCmdTopNode(f.Factory, out))
-	cmds.AddCommand(kcmd.NewCmdTopPod(f.Factory, out))
+	cmdTopNode := kcmd.NewCmdTopNode(f.Factory, out)
+	cmdTopNode.Long = templates.LongDesc(cmdTopNode.Long)
+	cmdTopNode.Example = templates.Examples(cmdTopNode.Example)
+	cmdTopPod := kcmd.NewCmdTopPod(f.Factory, out)
+	cmdTopPod.Long = templates.LongDesc(cmdTopPod.Long)
+	cmdTopPod.Example = templates.Examples(cmdTopPod.Example)
+	cmds.AddCommand(cmdTopNode)
+	cmds.AddCommand(cmdTopPod)
 	return cmds
 }

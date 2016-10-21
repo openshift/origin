@@ -18,10 +18,12 @@ func (f *FakeInstaller) run(scripts []string, dstDir string) []api.InstallResult
 	return result
 }
 
+// InstallRequired downloads and installs required scripts into dstDir
 func (f *FakeInstaller) InstallRequired(scripts []string, dstDir string) ([]api.InstallResult, error) {
 	return f.run(scripts, dstDir), f.Error
 }
 
+// InstallOptional downloads and installs optional scripts into dstDir
 func (f *FakeInstaller) InstallOptional(scripts []string, dstDir string) []api.InstallResult {
 	return f.run(scripts, dstDir)
 }

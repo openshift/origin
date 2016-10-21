@@ -75,7 +75,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 		termMatches := ScoredComponentMatches{}
 
 		// first look for the image in the remote docker registry
-		if r.RegistrySearcher != nil {
+		if r.RegistrySearcher != nil && ref.String() != "*" {
 			glog.V(4).Infof("checking remote registry for %q", ref.String())
 			matches, err := r.RegistrySearcher.Search(precise, term)
 			errs = append(errs, err...)
@@ -213,6 +213,8 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 		if image.Status.Status != unversioned.StatusSuccess {
 			glog.V(4).Infof("image import failed: %#v", image)
 			switch image.Status.Reason {
+			case unversioned.StatusReasonInternalError:
+				glog.Warningf("Docker registry lookup failed: %s", image.Status.Message)
 			case unversioned.StatusReasonInvalid, unversioned.StatusReasonUnauthorized, unversioned.StatusReasonNotFound:
 			default:
 				errs = append(errs, fmt.Errorf("can't look up Docker image %q: %s", term, image.Status.Message))

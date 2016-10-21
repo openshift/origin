@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -23,36 +24,38 @@ import (
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
 )
 
-const (
-	ipFailover_long = `Configure or view IP Failover configuration
+var (
+	ipFailover_long = templates.LongDesc(`
+		Configure or view IP Failover configuration
 
-This command helps to setup an IP failover configuration for the
-cluster. An administrator can configure IP failover on an entire
-cluster or on a subset of nodes (as defined via a labeled selector).
+		This command helps to setup an IP failover configuration for the
+		cluster. An administrator can configure IP failover on an entire
+		cluster or on a subset of nodes (as defined via a labeled selector).
 
-If an IP failover configuration does not exist with the given name,
-the --create flag can be passed to create a deployment configuration that
-will provide IP failover capability. If you are running in production, it is
-recommended that the labeled selector for the nodes matches at least 2 nodes
-to ensure you have failover protection, and that you provide a --replicas=<n>
-value that matches the number of nodes for the given labeled selector.`
+		If an IP failover configuration does not exist with the given name,
+		the --create flag can be passed to create a deployment configuration that
+		will provide IP failover capability. If you are running in production, it is
+		recommended that the labeled selector for the nodes matches at least 2 nodes
+		to ensure you have failover protection, and that you provide a --replicas=<n>
+		value that matches the number of nodes for the given labeled selector.`)
 
-	ipFailover_example = `  # Check the default IP failover configuration ("ipfailover"):
-  %[1]s %[2]s
+	ipFailover_example = templates.Examples(`
+		# Check the default IP failover configuration ("ipfailover"):
+	  %[1]s %[2]s
 
-  # See what the IP failover configuration would look like if it is created:
-  %[1]s %[2]s -o json
+	  # See what the IP failover configuration would look like if it is created:
+	  %[1]s %[2]s -o json
 
-  # Create an IP failover configuration if it does not already exist:
-  %[1]s %[2]s ipf --virtual-ips="10.1.1.1-4" --create
+	  # Create an IP failover configuration if it does not already exist:
+	  %[1]s %[2]s ipf --virtual-ips="10.1.1.1-4" --create
 
-  # Create an IP failover configuration on a selection of nodes labeled
-  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
-  # listening on port 80, such as the router process).
-  %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
+	  # Create an IP failover configuration on a selection of nodes labeled
+	  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+	  # listening on port 80, such as the router process).
+	  %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
-  # Use a different IP failover config image and see the configuration:
-  %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`
+	  # Use a different IP failover config image and see the configuration:
+	  %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`)
 )
 
 func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
@@ -95,6 +98,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 	cmd.Flags().BoolVar(&options.Create, "create", options.Create, "Create the configuration if it does not exist.")
 
 	cmd.Flags().StringVar(&options.VirtualIPs, "virtual-ips", "", "A set of virtual IP ranges and/or addresses that the routers bind and serve on and provide IP failover capability for.")
+	cmd.Flags().StringVar(&options.IptablesChain, "iptables-chain", ipfailover.DefaultIptablesChain, "Add a rule to this iptables chain to accept 224.0.0.28 multicast packets if no rule exists. When iptables-chain is empty do not change iptables.")
 	cmd.Flags().StringVarP(&options.NetworkInterface, "interface", "i", "", "Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.")
 
 	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipfailover.DefaultWatchPort, "Port to monitor or watch for resource availability.")

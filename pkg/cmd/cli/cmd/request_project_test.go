@@ -30,7 +30,7 @@ func TestRequestProjectDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdRequestProject("oc", RequestProjectRecommendedCommandName, nil, nil)
+	cmd := NewCmdRequestProject("oc", RequestProjectRecommendedCommandName, nil, nil, nil)
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

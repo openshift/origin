@@ -16,22 +16,14 @@ oc adm drain \- Drain node in preparation for maintenance
 Drain node in preparation for maintenance.
 
 .PP
-The given node will be marked unschedulable to prevent new pods from arriving.
-Then drain deletes all pods except mirror pods (which cannot be deleted through
-the API server).  If there are DaemonSet\-managed pods, drain will not proceed
-without \-\-ignore\-daemonsets, and regardless it will not delete any
-DaemonSet\-managed pods, because those pods would be immediately replaced by the
-DaemonSet controller, which ignores unschedulable markings.  If there are any
-pods that are neither mirror pods nor managed\-\-by ReplicationController,
-ReplicaSet, DaemonSet or Job\-\-, then drain will not delete any pods unless you
-use \-\-force.
+The given node will be marked unschedulable to prevent new pods from arriving. Then drain deletes all pods except mirror pods (which cannot be deleted through the API server).  If there are DaemonSet\-managed pods, drain will not proceed without \-\-ignore\-daemonsets, and regardless it will not delete any DaemonSet\-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed\-\-by ReplicationController, ReplicaSet, DaemonSet or Job\-\-, then drain will not delete any pods unless you use \-\-force.
 
 .PP
-When you are ready to put the node back into service, use kubectl uncordon, which
-will make the node schedulable again.
+When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
 
 .PP
-
+! 
+\[la]http://kubernetes.io/images/docs/kubectl_drain.svg\[ra]
 
 
 .SH OPTIONS
@@ -106,6 +98,10 @@ will make the node schedulable again.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -123,13 +119,11 @@ will make the node schedulable again.
 .RS
 
 .nf
-
-# Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
-$ oc adm drain foo \-\-force
-
-# As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
-$ oc adm drain foo \-\-grace\-period=900
-
+  # Drain node "foo", even if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet on it.
+  $ oc adm drain foo \-\-force
+  
+  # As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, or DaemonSet, and use a grace period of 15 minutes.
+  $ oc adm drain foo \-\-grace\-period=900
 
 .fi
 .RE

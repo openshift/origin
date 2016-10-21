@@ -5,19 +5,19 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const ServiceAccountsRecommendedName = "serviceaccounts"
 
+var serviceAccountsLong = templates.LongDesc(`Manage service accounts in your project.
+
+Service accounts allow system components to access the API.`)
+
 const (
 	serviceAccountsShort = `Manage service accounts in your project.`
-
-	serviceAccountsLong = `
-Manage service accounts in your project.
-
-Service accounts allow system components to access the API.`
 )
 
 func NewCmdServiceAccounts(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

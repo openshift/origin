@@ -10,23 +10,26 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-const (
-	JoinProjectsNetworkCommandName = "join-projects"
+const JoinProjectsNetworkCommandName = "join-projects"
 
-	joinProjectsNetworkLong = `
-Join project network
+var (
+	joinProjectsNetworkLong = templates.LongDesc(`
+		Join project network
 
-Allows projects to join existing project network when using the %[1]s network plugin.`
+		Allows projects to join existing project network when using the %[1]s network plugin.`)
 
-	joinProjectsNetworkExample = `	# Allow project p2 to use project p1 network
-	%[1]s --to=<p1> <p2>
+	joinProjectsNetworkExample = templates.Examples(`
+		# Allow project p2 to use project p1 network
+		%[1]s --to=<p1> <p2>
 
-	# Allow all projects with label name=top-secret to use project p1 network
-	%[1]s --to=<p1> --selector='name=top-secret'`
+		# Allow all projects with label name=top-secret to use project p1 network
+		%[1]s --to=<p1> --selector='name=top-secret'`)
 )
 
 type JoinOptions struct {

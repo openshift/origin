@@ -17,8 +17,10 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -43,30 +45,31 @@ type ReconcileClusterRoleBindingsOptions struct {
 	RoleBindingClient client.ClusterRoleBindingInterface
 }
 
-const (
-	reconcileBindingsLong = `
-Update cluster role bindings to match the recommended bootstrap policy
+var (
+	reconcileBindingsLong = templates.LongDesc(`
+		Update cluster role bindings to match the recommended bootstrap policy
 
-This command will inspect the cluster role bindings against the recommended bootstrap policy.
-Any cluster role binding that does not match will be replaced by the recommended bootstrap role binding.
-This command will not remove any additional cluster role bindings.
+		This command will inspect the cluster role bindings against the recommended bootstrap policy.
+		Any cluster role binding that does not match will be replaced by the recommended bootstrap role binding.
+		This command will not remove any additional cluster role bindings.
 
-You can see which recommended cluster role bindings have changed by choosing an output type.`
+		You can see which recommended cluster role bindings have changed by choosing an output type.`)
 
-	reconcileBindingsExample = `  # Display the names of cluster role bindings that would be modified
-  %[1]s -o name
+	reconcileBindingsExample = templates.Examples(`
+		# Display the names of cluster role bindings that would be modified
+	  %[1]s -o name
 
-  # Display the cluster role bindings that would be modified, removing any extra subjects
-  %[1]s --additive-only=false
+	  # Display the cluster role bindings that would be modified, removing any extra subjects
+	  %[1]s --additive-only=false
 
-  # Update cluster role bindings that don't match the current defaults
-  %[1]s --confirm
+	  # Update cluster role bindings that don't match the current defaults
+	  %[1]s --confirm
 
-  # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
-  %[1]s --confirm --exclude-groups=system:authenticated
+	  # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
+	  %[1]s --confirm --exclude-groups=system:authenticated
 
-  # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
-  %[1]s --confirm --additive-only=false`
+	  # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
+	  %[1]s --confirm --additive-only=false`)
 )
 
 // NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command

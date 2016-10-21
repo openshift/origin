@@ -13,11 +13,7 @@ import (
 )
 
 // CreateProject creates a project
-func CreateProject(name, display, desc, basecmd string, out io.Writer) error {
-	f, err := loggedInUserFactory()
-	if err != nil {
-		return err
-	}
+func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
 	client, _, err := f.Clients()
 	if err != nil {
 		return nil
@@ -56,7 +52,7 @@ func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
 	return opt.RunProject()
 }
 
-func loggedInUserFactory() (*clientcmd.Factory, error) {
+func LoggedInUserFactory() (*clientcmd.Factory, error) {
 	cfg, err := config.NewOpenShiftClientConfigLoadingRules().Load()
 	if err != nil {
 		return nil, err

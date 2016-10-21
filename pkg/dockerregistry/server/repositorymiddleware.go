@@ -620,26 +620,9 @@ func (r *repository) signedManifestFromImage(image *imageapi.Image) (*schema1.Si
 		}
 	}
 
-	dgst, err := digest.ParseDigest(image.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	var signBytes [][]byte
-	if len(image.DockerImageSignatures) == 0 {
-		// Fetch the signatures for the manifest
-		signatures, errSign := r.getSignatures(dgst)
-		if errSign != nil {
-			return nil, errSign
-		}
-
-		for _, signatureDigest := range signatures {
-			signBytes = append(signBytes, []byte(signatureDigest))
-		}
-	} else {
-		for _, sign := range image.DockerImageSignatures {
-			signBytes = append(signBytes, sign)
-		}
+	for _, sign := range image.DockerImageSignatures {
+		signBytes = append(signBytes, sign)
 	}
 
 	jsig, err := libtrust.NewJSONSignature(raw, signBytes...)
@@ -658,28 +641,6 @@ func (r *repository) signedManifestFromImage(image *imageapi.Image) (*schema1.Si
 		return nil, err
 	}
 	return &sm, err
-}
-
-func (r *repository) getSignatures(dgst digest.Digest) ([]digest.Digest, error) {
-	// We can not use the r.repository here. docker/distribution wraps all the methods that
-	// write or read blobs. It is made for notifications service. We need to get a real
-	// repository without any wrappers.
-	repository, err := dockerRegistry.Repository(r.ctx, r.Named())
-	if err != nil {
-		return nil, err
-	}
-
-	manifestService, err := repository.Manifests(r.ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	signaturesGetter, ok := manifestService.(distribution.SignaturesGetter)
-	if !ok {
-		return nil, fmt.Errorf("unable to convert ManifestService into SignaturesGetter")
-	}
-
-	return signaturesGetter.GetSignatures(r.ctx, dgst)
 }
 
 // deserializedManifestFromImage converts an Image to a DeserializedManifest.

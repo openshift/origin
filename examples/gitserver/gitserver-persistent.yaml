@@ -12,6 +12,8 @@ items:
     labels:
       app: git
   spec:
+    strategy: 
+      type: Recreate
     replicas: 1 # the git server is not HA and should not be scaled past 1
     selector:
       run-container: git

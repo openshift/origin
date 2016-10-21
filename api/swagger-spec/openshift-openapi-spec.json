@@ -10,6 +10,23 @@
    "version": "latest"
   },
   "paths": {
+   "/.well-known/oauth-authorization-server/": {
+    "get": {
+     "description": "get the server's OAuth 2.0 Authorization Server Metadata",
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "getOAuthAuthorizationServerMetadata",
+     "responses": {
+      "default": {
+       "description": "Default Response."
+      }
+     }
+    }
+   },
    "/api/": {
     "get": {
      "description": "get available API versions",
@@ -44079,9 +44096,6 @@
    "/version/openshift/": {
     "get": {
      "description": "get the code version",
-     "consumes": [
-      "application/json"
-     ],
      "produces": [
       "application/json"
      ],
@@ -45433,7 +45447,7 @@
     }
    },
    "v1.ClusterRoleBinding": {
-    "description": "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
+    "description": "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
     "required": [
      "userNames",
      "groupNames",
@@ -45446,7 +45460,7 @@
       "type": "string"
      },
      "groupNames": {
-      "description": "GroupNames holds all the groups directly bound to the role",
+      "description": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
       "type": "array",
       "items": {
        "type": "string"
@@ -45463,14 +45477,14 @@
       "$ref": "#/definitions/v1.ObjectReference"
      },
      "subjects": {
-      "description": "Subjects hold object references to authorize with this rule",
+      "description": "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.ObjectReference"
       }
      },
      "userNames": {
-      "description": "UserNames holds all the usernames directly bound to the role",
+      "description": "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
       "type": "array",
       "items": {
        "type": "string"
@@ -51053,7 +51067,7 @@
     }
    },
    "v1.RoleBinding": {
-    "description": "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
+    "description": "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
     "required": [
      "userNames",
      "groupNames",
@@ -51066,7 +51080,7 @@
       "type": "string"
      },
      "groupNames": {
-      "description": "GroupNames holds all the groups directly bound to the role",
+      "description": "GroupNames holds all the groups directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
       "type": "array",
       "items": {
        "type": "string"
@@ -51083,14 +51097,14 @@
       "$ref": "#/definitions/v1.ObjectReference"
      },
      "subjects": {
-      "description": "Subjects hold object references to authorize with this rule",
+      "description": "Subjects hold object references to authorize with this rule. This field is ignored if UserNames or GroupNames are specified to support legacy clients and servers. Thus newer clients that do not need to support backwards compatibility should send only fully qualified Subjects and should omit the UserNames and GroupNames fields. Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.ObjectReference"
       }
      },
      "userNames": {
-      "description": "UserNames holds all the usernames directly bound to the role",
+      "description": "UserNames holds all the usernames directly bound to the role. This field should only be specified when supporting legacy clients and servers. See Subjects for further details.",
       "type": "array",
       "items": {
        "type": "string"

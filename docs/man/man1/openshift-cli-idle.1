@@ -13,17 +13,13 @@ openshift cli idle \- Idle scalable resources
 
 .SH DESCRIPTION
 .PP
-Idle scalable resources.
+Idle scalable resources
 
 .PP
-Idling discovers the scalable resources (such as deployment configs and replication controllers)
-associated with a series of services by examining the endpoints of the service.
-Each service is then marked as idled, the associated resources are recorded, and the resources
-are scaled down to zero replicas.
+Idling discovers the scalable resources (such as deployment configs and replication controllers) associated with a series of services by examining the endpoints of the service. Each service is then marked as idled, the associated resources are recorded, and the resources are scaled down to zero replicas.
 
 .PP
-Upon receiving network traffic, the services (and any associated routes) will "wake up" the
-associated resources by scaling them back up to their previous scale.
+Upon receiving network traffic, the services (and any associated routes) will "wake up" the associated resources by scaling them back up to their previous scale.
 
 
 .SH OPTIONS
@@ -100,6 +96,10 @@ associated resources by scaling them back up to their previous scale.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

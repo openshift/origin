@@ -5,36 +5,32 @@ import (
 	"io"
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
-	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 )
 
-const (
-	cmdDownLong = `
-Stops the container running OpenShift on Docker and associated containers.
+const CmdDownRecommendedName = "down"
 
-If you started your OpenShift with a specific docker-machine, you need to specify the 
-same machine using the --docker-machine argument.
-`
+var (
+	cmdDownLong = templates.LongDesc(`
+		Stops the container running OpenShift on Docker and associated containers.
 
-	cmdDownExample = `
-  # Stop local Docker cluster
-  %[1]s
+		If you started your OpenShift with a specific docker-machine, you need to specify the
+		same machine using the --docker-machine argument.`)
 
-  # Stop cluster running on Docker machine 'mymachine'
-  %[1]s --docker-machine=mymachine
-`
+	cmdDownExample = templates.Examples(`
+	  # Stop local OpenShift cluster
+	  %[1]s
 
-	CmdDownRecommendedName = "down"
+	  # Stop cluster running on Docker machine 'mymachine'
+	  %[1]s --docker-machine=mymachine`)
 )
 
 type ClientStopConfig struct {
@@ -60,7 +56,7 @@ func NewCmdDown(name, fullName string, f *osclientcmd.Factory, out io.Writer) *c
 // Stop stops the currently running origin container and any
 // containers started by the node.
 func (c *ClientStopConfig) Stop(out io.Writer) error {
-	client, err := c.getDockerClient(out)
+	client, _, err := getDockerClient(out, c.DockerMachine, false)
 	if err != nil {
 		return err
 	}
@@ -93,17 +89,4 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 		}
 	}
 	return nil
-}
-
-func (c *ClientStopConfig) getDockerClient(out io.Writer) (*docker.Client, error) {
-	// Get Docker client
-	if len(c.DockerMachine) > 0 {
-		client, _, err := getDockerMachineClient(c.DockerMachine, out)
-		return client, err
-	}
-	client, _, err := dockerutil.NewHelper().GetClient()
-	if err != nil {
-		return nil, errors.ErrNoDockerClient(err)
-	}
-	return client, nil
 }

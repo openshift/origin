@@ -13,25 +13,28 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	NewGroupRecommendedName = "new"
-	newLong                 = `
-Create a new group.
+const NewGroupRecommendedName = "new"
 
-This command will create a new group with an optional list of users.`
+var (
+	newLong = templates.LongDesc(`
+		Create a new group.
 
-	newExample = `  # Add a group with no users
-  %[1]s my-group
+		This command will create a new group with an optional list of users.`)
 
-  # Add a group with two users
-  %[1]s my-group user1 user2
+	newExample = templates.Examples(`
+		# Add a group with no users
+	  %[1]s my-group
 
-  # Add a group with one user and shorter output
-  %[1]s my-group user1 -o name`
+	  # Add a group with two users
+	  %[1]s my-group user1 user2
+
+	  # Add a group with one user and shorter output
+	  %[1]s my-group user1 -o name`)
 )
 
 type NewGroupOptions struct {

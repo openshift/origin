@@ -15,6 +15,7 @@ import (
 	ktypes "k8s.io/kubernetes/pkg/types"
 
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
@@ -23,25 +24,24 @@ import (
 	"github.com/openshift/origin/pkg/util/proc"
 )
 
-const (
-	routerLong = `
-Start a router
+// defaultReloadInterval is how often to do reloads in seconds.
+const defaultReloadInterval = 5
 
-This command launches a router connected to your cluster master. The router listens for routes and endpoints
-created by users and keeps a local router configuration up to date with those changes.
+var routerLong = templates.LongDesc(`
+	Start a router
 
-You may customize the router by providing your own --template and --reload scripts.
+	This command launches a router connected to your cluster master. The router listens for routes and endpoints
+	created by users and keeps a local router configuration up to date with those changes.
 
-The router must have a default certificate in pem format. You may provide it via --default-cert otherwise
-one is automatically created.
+	You may customize the router by providing your own --template and --reload scripts.
 
-You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
-access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
-namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
-that you must have a cluster-wide administrative role to view all namespaces.`
-	// defaultReloadInterval is how often to do reloads in seconds.
-	defaultReloadInterval = 5
-)
+	The router must have a default certificate in pem format. You may provide it via --default-cert otherwise
+	one is automatically created.
+
+	You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
+	access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
+	namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
+	that you must have a cluster-wide administrative role to view all namespaces.`)
 
 type TemplateRouterOptions struct {
 	Config *clientcmd.Config

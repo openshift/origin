@@ -16,9 +16,7 @@ openshift cli adm build\-chain \- Output the inputs and dependencies of your bui
 Output the inputs and dependencies of your builds
 
 .PP
-Supported formats for the generated graph are dot and a human\-readable output.
-Tag and namespace are optional and if they are not specified, 'latest' and the
-default namespace will be used respectively.
+Supported formats for the generated graph are dot and a human\-readable output. Tag and namespace are optional and if they are not specified, 'latest' and the default namespace will be used respectively.
 
 
 .SH OPTIONS
@@ -93,6 +91,10 @@ default namespace will be used respectively.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -112,10 +114,10 @@ default namespace will be used respectively.
 .nf
   # Build the dependency tree for the 'latest' tag in <image\-stream>
   openshift cli adm build\-chain <image\-stream>
-
+  
   # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
   openshift cli adm build\-chain <image\-stream>:v2 \-o dot | dot \-T svg \-o deps.svg
-
+  
   # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
   openshift cli adm build\-chain <image\-stream> \-n test \-\-all
 

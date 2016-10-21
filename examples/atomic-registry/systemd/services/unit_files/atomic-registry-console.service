@@ -6,8 +6,9 @@ Requires=docker.service
 
 [Service]
 Environment=GOTRACEBACK=crash
+EnvironmentFile=/etc/sysconfig/atomic-registry-console
 ExecStartPre=-/usr/bin/docker rm -f atomic-registry-console
-ExecStart=/usr/bin/docker run --rm --env-file=/etc/sysconfig/atomic-registry-console --name atomic-registry-console -p 9090:9090 --net=host -u 1001 cockpit/kubernetes
+ExecStart=/usr/bin/docker run --rm --env-file=/etc/sysconfig/atomic-registry-console --name atomic-registry-console -p ${CONSOLEPORT}:9090 -u 1001 ${CONSOLEIMAGE}:${CONSOLETAG}
 ExecStop=/usr/bin/docker stop atomic-registry-console
 LimitNOFILE=131072
 LimitCORE=infinity

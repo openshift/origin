@@ -18,6 +18,15 @@ import (
 
 const MinTokenLength = 32
 
+// PKCE [RFC7636] code challenge methods supported
+// https://tools.ietf.org/html/rfc7636#section-4.3
+const (
+	codeChallengeMethodPlain  = "plain"
+	codeChallengeMethodSHA256 = "S256"
+)
+
+var CodeChallengeMethodsSupported = []string{codeChallengeMethodPlain, codeChallengeMethodSHA256}
+
 func ValidateTokenName(name string, prefix bool) []string {
 	if reasons := oapi.MinimalNameRequirements(name, prefix); len(reasons) != 0 {
 		return reasons
@@ -101,10 +110,10 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 		switch authorizeToken.CodeChallengeMethod {
 		case "":
 			allErrs = append(allErrs, field.Required(field.NewPath("codeChallengeMethod"), "required if codeChallenge is specified"))
-		case "plain", "S256":
+		case codeChallengeMethodPlain, codeChallengeMethodSHA256:
 			// no-op, good
 		default:
-			allErrs = append(allErrs, field.NotSupported(field.NewPath("codeChallengeMethod"), authorizeToken.CodeChallengeMethod, []string{"plain", "S256"}))
+			allErrs = append(allErrs, field.NotSupported(field.NewPath("codeChallengeMethod"), authorizeToken.CodeChallengeMethod, CodeChallengeMethodsSupported))
 		}
 	}
 

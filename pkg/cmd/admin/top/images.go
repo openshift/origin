@@ -16,23 +16,29 @@ import (
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 const (
 	TopImagesRecommendedName = "images"
+	maxImageIDLength         = 20
+)
 
-	topImagesLong = `Show usage statistics for Images
+var (
+	topImagesLong = templates.LongDesc(`
+		Show usage statistics for Images
 
-This command analyzes all the Images managed by the platform and presents current
-usage statistics.`
+		This command analyzes all the Images managed by the platform and presents current
+		usage statistics.`)
 
-	topImagesExample = `  # Show usage statistics for Images
-  %[1]s %[2]s`
-	maxImageIDLength = 20
+	topImagesExample = templates.Examples(`
+		# Show usage statistics for Images
+  	%[1]s %[2]s`)
 )
 
 // NewCmdTopImages implements the OpenShift cli top images command.

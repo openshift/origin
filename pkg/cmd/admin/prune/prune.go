@@ -6,18 +6,21 @@ import (
 	"github.com/spf13/cobra"
 
 	groups "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const PruneRecommendedName = "prune"
+const (
+	PruneRecommendedName       = "prune"
+	PruneGroupsRecommendedName = "groups"
+)
 
-const PruneGroupsRecommendedName = "groups"
+var pruneLong = templates.LongDesc(`
+	Remove older versions of resources from the server
 
-const pruneLong = `Remove older versions of resources from the server
-
-The commands here allow administrators to manage the older versions of resources on
-the system by removing them.`
+	The commands here allow administrators to manage the older versions of resources on
+	the system by removing them.`)
 
 func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.

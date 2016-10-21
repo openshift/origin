@@ -16,36 +16,32 @@ oc observe \- Observe changes to resources and react to them (experimental)
 Observe changes to resources and take action on them
 
 .PP
-This command assists in building scripted reactions to changes that occur in
-Kubernetes or OpenShift resources. This is frequently referred to as a
-'controller' in Kubernetes and acts to ensure particular conditions are
-maintained. On startup, observe will list all of the resources of a
-particular type and execute the provided script on each one. Observe watches
-the server for changes, and will reexecute the script for each update.
+This command assists in building scripted reactions to changes that occur in Kubernetes or OpenShift resources. This is frequently referred to as a 'controller' in Kubernetes and acts to ensure particular conditions are maintained. On startup, observe will list all of the resources of a particular type and execute the provided script on each one. Observe watches the server for changes, and will reexecute the script for each update.
 
 .PP
-Observe works best for problems of the form "for every resource X, make sure
-Y is true". Some examples of ways observe can be used include:
+Observe works best for problems of the form "for every resource X, make sure Y is true". Some examples of ways observe can be used include:
 .IP 
 
 .IP
 \(bu Ensure every namespace has a quota or limit range object
+.br
 .IP
 \(bu Ensure every service is registered in DNS by making calls to a DNS API
+.br
 .IP
 \(bu Send an email alert whenever a node reports 'NotReady'
+.br
 .IP
 \(bu Watch for the 'FailedScheduling' event and write an IRC message
+.br
 .IP
 \(bu Dynamically provision persistent volumes when a new PVC is created
+.br
 .IP
 \(bu Delete pods that have reached successful completion after a period of time.
+.br
 .PP
-The simplest pattern is maintaining an invariant on an object \- for instance,
-"every namespace should have an annotation that indicates its owner". If the
-object is deleted no reaction is necessary. A variation on that pattern is
-creating another object: "every namespace should have a quota object based
-on the resources allowed for an owner".
+The simplest pattern is maintaining an invariant on an object \- for instance, "every namespace should have an annotation that indicates its owner". If the object is deleted no reaction is necessary. A variation on that pattern is creating another object: "every namespace should have a quota object based on the resources allowed for an owner".
 
 .PP
 $ cat set\_owner.sh
@@ -58,23 +54,13 @@ $ cat set\_owner.sh
 $ oc observe namespaces \-\- ./set\_owner.sh
 
 .PP
-The set\_owner.sh script is invoked with a single argument (the namespace name)
-for each namespace. This simple script ensures that any user without the
-"owner" annotation gets one set, but preserves any existing value.
+The set \_owner.sh script is invoked with a single argument (the namespace name) for each namespace. This simple script ensures that any user without the "owner" annotation gets one set, but preserves any existing value.
 
 .PP
-The next common of controller pattern is provisioning \- making changes in an
-external system to match the state of a Kubernetes resource. These scripts need
-to account for deletions that may take place while the observe command is not
-running. You can provide the list of known objects via the \-\-names command,
-which should return a newline\-delimited list of names or namespace/name pairs.
-Your command will be invoked whenever observe checks the latest state on the
-server \- any resources returned by \-\-names that are not found on the server
-will be passed to your \-\-delete command.
+The next common of controller pattern is provisioning \- making changes in an external system to match the state of a Kubernetes resource. These scripts need to account for deletions that may take place while the observe command is not running. You can provide the list of known objects via the \-\-names command, which should return a newline\-delimited list of names or namespace/name pairs. Your command will be invoked whenever observe checks the latest state on the server \- any resources returned by \-\-names that are not found on the server will be passed to your \-\-delete command.
 
 .PP
-For example, you may wish to ensure that every node that is added to Kubernetes
-is added to your cluster inventory along with its IP:
+For example, you may wish to ensure that every node that is added to Kubernetes is added to your cluster inventory along with its IP:
 
 .PP
 $ cat add\_to\_inventory.sh
@@ -96,27 +82,18 @@ $ cat known\_nodes.sh
 
 .PP
 $ oc observe nodes \-a '{ .status.addresses[0].address }' \\
-      \-\-names ./known\_nodes.sh \\
-      \-\-delete ./remove\_from\_inventory.sh \\
-      \-\- ./add\_to\_inventory.sh
+    \-\-names ./known\_nodes.sh \\
+    \-\-delete ./remove\_from\_inventory.sh \\
+    \-\- ./add\_to\_inventory.sh
 
 .PP
-If you stop the observe command and then delete a node, when you launch observe
-again the contents of inventory will be compared to the list of nodes from the
-server, and any node in the inventory file that no longer exists will trigger
-a call to remove\_from\_inventory.sh with the name of the node.
+If you stop the observe command and then delete a node, when you launch observe again the contents of inventory will be compared to the list of nodes from the server, and any node in the inventory file that no longer exists will trigger a call to remove from inventory.sh with the name of the node.
 
 .PP
-Important: when handling deletes, the previous state of the object may not be
-  available and only the name/namespace of the object will be passed to your
-    \-\-delete command as arguments (all custom arguments are omitted).
+Important: when handling deletes, the previous state of the object may not be available and only the name/namespace of the object will be passed to   your \-\-delete command as arguments (all custom arguments are omitted).
 
 .PP
-More complicated interactions build on the two examples above \- your inventory
-script could make a call to allocate storage on your infrastructure as a
-service, or register node names in DNS, or set complex firewalls. The more
-complex your integration, the more important it is to record enough data in the
-remote system that you can identify when resources on either side are deleted.
+More complicated interactions build on the two examples above \- your inventory script could make a call to allocate storage on your infrastructure as a service, or register node names in DNS, or set complex firewalls. The more complex your integration, the more important it is to record enough data in the remote system that you can identify when resources on either side are deleted.
 
 .PP
 Experimental: This command is under active development and may change without notice.
@@ -246,6 +223,10 @@ Experimental: This command is under active development and may change without no
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -263,12 +244,11 @@ Experimental: This command is under active development and may change without no
 .RS
 
 .nf
-	# observe changes to services
-	oc observe services
-
-	# observe changes to services, including the clusterIP and invoke a script for each
-	oc observe services \-a '{ .spec.clusterIP }' \-\- register\_dns.sh
-
+  # Observe changes to services
+  oc observe services
+  
+  # Observe changes to services, including the clusterIP and invoke a script for each
+  oc observe services \-a '{ .spec.clusterIP }' \-\- register\_dns.sh
 
 .fi
 .RE

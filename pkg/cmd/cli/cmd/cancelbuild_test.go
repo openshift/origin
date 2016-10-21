@@ -35,7 +35,7 @@ func TestCancelBuildDefaultFlags(t *testing.T) {
 		},
 	}
 
-	cmd := NewCmdCancelBuild("oc", CancelBuildRecommendedCommandName, nil, nil, nil)
+	cmd := NewCmdCancelBuild("oc", CancelBuildRecommendedCommandName, nil, nil, nil, nil)
 
 	for _, v := range tests {
 		f := cmd.Flag(v.flagName)

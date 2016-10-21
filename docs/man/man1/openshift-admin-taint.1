@@ -16,11 +16,7 @@ openshift admin taint \- Update the taints on one or more nodes
 Update the taints on one or more nodes.
 
 .PP
-A taint consists of a key, value, and effect. As an argument here, it is expressed as key=value:effect.
-The key must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to 253 characters.
-The value must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to 253 characters.
-The effect must be NoSchedule or PreferNoSchedule.
-Currently taint can only apply to node.
+A taint consists of a key, value, and effect. As an argument here, it is expressed as key=value:effect. The key must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to 253 characters. The value must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to 253 characters. The effect must be NoSchedule or PreferNoSchedule. Currently taint can only apply to node.
 
 
 .SH OPTIONS
@@ -135,6 +131,10 @@ Currently taint can only apply to node.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -152,16 +152,15 @@ Currently taint can only apply to node.
 .RS
 
 .nf
-
-# Update node 'foo' with a taint with key 'dedicated' and value 'special\-user' and effect 'NoSchedule'.
-# If a taint with that key and effect already exists, its value is replaced as specified.
-openshift admin taint nodes foo dedicated=special\-user:NoSchedule
-
-# Remove from node 'foo' the taint with key 'dedicated' and effect 'NoSchedule' if one exists.
-openshift admin taint nodes foo dedicated:NoSchedule\-
-
-# Remove from node 'foo' all the taints with key 'dedicated'
-openshift admin taint nodes foo dedicated\-
+  # Update node 'foo' with a taint with key 'dedicated' and value 'special\-user' and effect 'NoSchedule'.
+  # If a taint with that key and effect already exists, its value is replaced as specified.
+  openshift admin taint nodes foo dedicated=special\-user:NoSchedule
+  
+  # Remove from node 'foo' the taint with key 'dedicated' and effect 'NoSchedule' if one exists.
+  openshift admin taint nodes foo dedicated:NoSchedule\-
+  
+  # Remove from node 'foo' all the taints with key 'dedicated'
+  openshift admin taint nodes foo dedicated\-
 
 .fi
 .RE

@@ -15,7 +15,6 @@ import (
 // FIXME: Remove commands from this list as the --local flag is implemented
 var localFlagExceptions = sets.NewString(
 	"build-hook",
-	"deployment-hook",
 	"env",
 	"probe",
 	"route-backends",

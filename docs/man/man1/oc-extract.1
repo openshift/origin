@@ -16,13 +16,10 @@ oc extract \- Extract secrets or config maps to disk
 Extract files out of secrets and config maps
 
 .PP
-The extract command makes it easy to download the contents of a config map or secret into a directory.
-Each key in the config map or secret is created as a separate file with the name of the key, as it
-is when you mount a secret or config map into a container.
+The extract command makes it easy to download the contents of a config map or secret into a directory. Each key in the config map or secret is created as a separate file with the name of the key, as it is when you mount a secret or config map into a container.
 
 .PP
-You can limit which keys are extracted with the \-\-keys=NAME flag, or set the directory to extract to
-with \-\-to=DIRECTORY.
+You can limit which keys are extracted with the \-\-keys=NAME flag, or set the directory to extract to with \-\-to=DIRECTORY.
 
 
 .SH OPTIONS
@@ -129,6 +126,10 @@ with \-\-to=DIRECTORY.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -148,10 +149,10 @@ with \-\-to=DIRECTORY.
 .nf
   # extract the secret "test" to the current directory
   oc extract secret/test
-
+  
   # extract the config map "nginx" to the /tmp directory
   oc extract configmap/nginx \-\-to=/tmp
-
+  
   # extract only the key "nginx.conf" from config map "nginx" to the /tmp directory
   oc extract configmap/nginx \-\-to=/tmp \-\-keys=nginx.conf
 

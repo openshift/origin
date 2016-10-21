@@ -11,25 +11,27 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-const (
-	UserRecommendedName = "user"
+const UserRecommendedName = "user"
 
-	userLong = `
-This command can be used to create a user object.
+var (
+	userLong = templates.LongDesc(`
+		This command can be used to create a user object.
 
-Typically, users are created automatically during login. If automatic 
-creation is disabled (by using the "lookup" mapping method), users must
-be created manually.
+		Typically, users are created automatically during login. If automatic
+		creation is disabled (by using the "lookup" mapping method), users must
+		be created manually.
 
-Corresponding identity and useridentitymapping objects must also be created 
-to allow logging in as the created user.`
+		Corresponding identity and useridentitymapping objects must also be created
+		to allow logging in as the created user.`)
 
-	userExample = `  # Create a user with the username "ajones" and the display name "Adam Jones"
-  %[1]s ajones --full-name="Adam Jones"`
+	userExample = templates.Examples(`
+		# Create a user with the username "ajones" and the display name "Adam Jones"
+  	%[1]s ajones --full-name="Adam Jones"`)
 )
 
 type CreateUserOptions struct {
@@ -37,6 +39,8 @@ type CreateUserOptions struct {
 	FullName string
 
 	UserClient client.UserInterface
+
+	DryRun bool
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -60,6 +64,7 @@ func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 	cmd.Flags().StringVar(&o.FullName, "full-name", o.FullName, "Display name of the user")
+	cmdutil.AddDryRunFlag(cmd)
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
@@ -73,6 +78,8 @@ func (o *CreateUserOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, a
 	default:
 		return fmt.Errorf("exactly one argument (username) is supported, not: %v", args)
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	client, _, err := f.Clients()
 	if err != nil {
@@ -115,13 +122,22 @@ func (o *CreateUserOptions) Run() error {
 	user.Name = o.Name
 	user.FullName = o.FullName
 
-	actualUser, err := o.UserClient.Create(user)
-	if err != nil {
-		return err
+	actualUser := user
+
+	var err error
+	if !o.DryRun {
+		actualUser, err = o.UserClient.Create(user)
+		if err != nil {
+			return err
+		}
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "user", actualUser.Name, "created")
+		created := "created"
+		if o.DryRun {
+			created = "created (DRY RUN)"
+		}
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "user", actualUser.Name, created)
 		return nil
 	}
 

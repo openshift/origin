@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
 // OnBuild strategy executes the simple Docker build in case the image does not
@@ -75,7 +76,8 @@ func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 	return builder, nil
 }
 
-// SourceTar produces a tar archive containing application source and stream it
+// SourceTar produces a tar archive containing application source and streams
+// it
 func (builder *OnBuild) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	uploadDir := filepath.Join(config.WorkingDir, "upload", "src")
 	tarFileName, err := builder.tar.CreateTarFile(config.WorkingDir, uploadDir)
@@ -87,14 +89,17 @@ func (builder *OnBuild) SourceTar(config *api.Config) (io.ReadCloser, error) {
 
 // Build executes the ONBUILD kind of build
 func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
+	buildResult := &api.Result{}
+
 	if config.BlockOnBuild {
-		return nil, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonOnBuildForbidden, utilstatus.ReasonMessageOnBuildForbidden)
+		return buildResult, fmt.Errorf("builder image uses ONBUILD instructions but ONBUILD is not allowed")
 	}
 	glog.V(2).Info("Preparing the source code for build")
 	// Change the installation directory for this config to store scripts inside
 	// the application root directory.
 	if err := builder.source.Prepare(config); err != nil {
-		return nil, err
+		return buildResult, err
 	}
 
 	// If necessary, copy the STI scripts into application root directory
@@ -102,13 +107,15 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 
 	glog.V(2).Info("Creating application Dockerfile")
 	if err := builder.CreateDockerfile(config); err != nil {
-		return nil, err
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonDockerfileCreateFailed, utilstatus.ReasonMessageDockerfileCreateFailed)
+		return buildResult, err
 	}
 
 	glog.V(2).Info("Creating application source code image")
 	tarStream, err := builder.SourceTar(config)
 	if err != nil {
-		return nil, err
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonTarSourceFailed, utilstatus.ReasonMessageTarSourceFailed)
+		return buildResult, err
 	}
 	defer tarStream.Close()
 
@@ -121,7 +128,8 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 
 	glog.V(2).Info("Building the application source")
 	if err = builder.docker.BuildImage(opts); err != nil {
-		return nil, err
+		buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonDockerImageBuildFailed, utilstatus.ReasonMessageDockerImageBuildFailed)
+		return buildResult, err
 	}
 
 	glog.V(2).Info("Cleaning up temporary containers")
@@ -131,7 +139,8 @@ func (builder *OnBuild) Build(config *api.Config) (*api.Result, error) {
 
 	if len(opts.Name) > 0 {
 		if imageID, err = builder.docker.GetImageID(opts.Name); err != nil {
-			return nil, err
+			buildResult.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonGenericS2IBuildFailed, utilstatus.ReasonMessageGenericS2iBuildFailed)
+			return buildResult, err
 		}
 	}
 

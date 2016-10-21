@@ -12,22 +12,23 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
 )
 
-const (
-	f5Long = `
-Start an F5 route synchronizer
+var (
+	f5Long = templates.LongDesc(`
+		Start an F5 route synchronizer
 
-This command launches a process that will synchronize an F5 to the route configuration of your master.
+		This command launches a process that will synchronize an F5 to the route configuration of your master.
 
-You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
-access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
-namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
-that you must have a cluster-wide administrative role to view all namespaces.`
+		You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
+		access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
+		namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
+		that you must have a cluster-wide administrative role to view all namespaces.`)
 )
 
 // F5RouterOptions represent the complete structure needed to start an F5 router

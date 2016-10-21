@@ -16,10 +16,7 @@ openshift cli explain \- Documentation of resources
 Documentation of resources.
 
 .PP
-Possible resource types include: pods (po), services (svc),
-replicationcontrollers (rc), nodes (no), events (ev), componentstatuses (cs),
-limitranges (limits), persistentvolumes (pv), persistentvolumeclaims (pvc),
-resourcequotas (quota), namespaces (ns) or endpoints (ep).
+Possible resource types include: pods (po), services (svc), replicationcontrollers (rc), nodes (no), events (ev), componentstatuses (cs), limitranges (limits), persistentvolumes (pv), persistentvolumeclaims (pvc), resourcequotas (quota), namespaces (ns) or endpoints (ep).
 
 
 .SH OPTIONS
@@ -86,6 +83,10 @@ resourcequotas (quota), namespaces (ns) or endpoints (ep).
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -103,11 +104,11 @@ resourcequotas (quota), namespaces (ns) or endpoints (ep).
 .RS
 
 .nf
-# Get the documentation of the resource and its fields
-openshift cli explain pods
-
-# Get the documentation of a specific field of a resource
-openshift cli explain pods.spec.containers
+  # Get the documentation of the resource and its fields
+  openshift cli explain pods
+  
+  # Get the documentation of a specific field of a resource
+  openshift cli explain pods.spec.containers
 
 .fi
 .RE

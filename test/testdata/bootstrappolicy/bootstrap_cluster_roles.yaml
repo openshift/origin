@@ -1497,6 +1497,8 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /.well-known
+    - /.well-known/*
     - /api
     - /api/*
     - /apis
@@ -2114,6 +2116,8 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /.well-known
+    - /.well-known/*
     - /api
     - /api/*
     - /apis
@@ -3034,8 +3038,19 @@ items:
     resources:
     - storageclasses
     verbs:
+    - get
     - list
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    - services
+    verbs:
+    - create
+    - delete
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:

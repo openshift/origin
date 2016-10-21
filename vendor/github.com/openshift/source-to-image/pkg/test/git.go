@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -78,6 +79,7 @@ func (f *FakeGit) SubmoduleUpdate(repo string, init, recursive bool) error {
 	return f.SubmoduleUpdateError
 }
 
+// GetInfo retrieves the information about the source code and commit
 func (f *FakeGit) GetInfo(repo string) *api.SourceInfo {
 	return &api.SourceInfo{
 		Ref:      "master",
@@ -86,28 +88,60 @@ func (f *FakeGit) GetInfo(repo string) *api.SourceInfo {
 	}
 }
 
-// Creates a git directory with one unlikely but possible commit hash
+// CreateLocalGitDirectory creates a git directory with a commit
 func CreateLocalGitDirectory(t *testing.T) string {
-	dir, err := ioutil.TempDir(os.TempDir(), "gitdir-s2i-test")
+	dir := CreateEmptyLocalGitDirectory(t)
+	f, err := os.Create(filepath.Join(dir, "testfile"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	os.MkdirAll(filepath.Join(dir, ".git/refs/heads"), 0777)
-	os.MkdirAll(filepath.Join(dir, ".git/refs/remotes"), 0777)
-	os.MkdirAll(filepath.Join(dir, ".git/branches"), 0777)
-	os.MkdirAll(filepath.Join(dir, ".git/objects/fo"), 0777)
-	os.Create(filepath.Join(dir, ".git/objects/fo") + "12345678901234567890123456789012345678") // 40 character SHA-1 hash
+	f.Close()
+	cmd := exec.Command("git", "add", ".")
+	cmd.Dir = dir
+	err = cmd.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd = exec.Command("git", "commit", "-m", "testcommit")
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GIT_AUTHOR_NAME=test", "GIT_AUTHOR_EMAIL=test@test", "GIT_COMMITTER_NAME=test", "GIT_COMMITTER_EMAIL=test@test")
+	cmd.Dir = dir
+	err = cmd.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return dir
 }
 
+// CreateEmptyLocalGitDirectory creates a git directory with no checkin yet
 func CreateEmptyLocalGitDirectory(t *testing.T) string {
 	dir, err := ioutil.TempDir(os.TempDir(), "gitdir-s2i-test")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	os.MkdirAll(filepath.Join(dir, ".git/refs/heads"), 0777)
-	os.MkdirAll(filepath.Join(dir, ".git/refs/remotes"), 0777)
-	os.MkdirAll(filepath.Join(dir, ".git/branches"), 0777)
-	os.MkdirAll(filepath.Join(dir, ".git/objects"), 0777)
+	cmd := exec.Command("git", "init")
+	cmd.Dir = dir
+	err = cmd.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return dir
+}
+
+// CreateLocalGitDirectoryWithSubmodule creates a git directory with a submodule
+func CreateLocalGitDirectoryWithSubmodule(t *testing.T) string {
+	submodule := CreateLocalGitDirectory(t)
+	defer os.RemoveAll(submodule)
+
+	dir := CreateEmptyLocalGitDirectory(t)
+	cmd := exec.Command("git", "submodule", "add", submodule, "submodule")
+	cmd.Dir = dir
+	err := cmd.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return dir
 }

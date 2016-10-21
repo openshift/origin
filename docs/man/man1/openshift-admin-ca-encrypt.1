@@ -88,6 +88,10 @@ Encrypt data with AES\-256\-CBC encryption
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -105,12 +109,11 @@ Encrypt data with AES\-256\-CBC encryption
 .RS
 
 .nf
-	# Encrypt the content of secret.txt with a generated key:
-	openshift admin ca encrypt \-\-genkey=secret.key \-\-in=secret.txt \-\-out=secret.encrypted
-	
-	# Encrypt the content of secret2.txt with an existing key:
-	openshift admin ca encrypt \-\-key=secret.key < secret2.txt > secret2.encrypted
-
+  # Encrypt the content of secret.txt with a generated key:
+  openshift admin ca encrypt \-\-genkey=secret.key \-\-in=secret.txt \-\-out=secret.encrypted
+  
+  # Encrypt the content of secret2.txt with an existing key:
+  openshift admin ca encrypt \-\-key=secret.key < secret2.txt > secret2.encrypted
 
 .fi
 .RE

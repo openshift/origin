@@ -16,20 +16,21 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const (
-	importImageLong = `
-Import tag and image information from an external Docker image repository
+var (
+	importImageLong = templates.LongDesc(`
+		Import tag and image information from an external Docker image repository
 
-Only image streams that have a value set for spec.dockerImageRepository and/or
-spec.Tags may have tag and image information imported.`
+		Only image streams that have a value set for spec.dockerImageRepository and/or
+		spec.Tags may have tag and image information imported.`)
 
-	importImageExample = `  %[1]s import-image mystream`
+	importImageExample = templates.Examples(`  %[1]s import-image mystream`)
 )
 
 // NewCmdImportImage implements the OpenShift cli import-image command.

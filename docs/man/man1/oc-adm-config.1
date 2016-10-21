@@ -16,9 +16,7 @@ oc adm config \- Change configuration files for the client
 Manage the client config files
 
 .PP
-The client stores configuration in the current user's home directory (under the .kube directory as
-config). When you login the first time, a new config file is created, and subsequent project changes with the
-'project' command will set the current context. These subcommands allow you to manage the config directly.
+The client stores configuration in the current user's home directory (under the .kube directory as config). When you login the first time, a new config file is created, and subsequent project changes with the 'project' command will set the current context. These subcommands allow you to manage the config directly.
 
 .PP
 Reference: 
@@ -79,6 +77,10 @@ Reference:
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

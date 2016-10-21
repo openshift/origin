@@ -12,6 +12,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/crypto"
+
+	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -31,13 +33,12 @@ type CreateClientOptions struct {
 	Output             io.Writer
 }
 
-const createClientLong = `
-Create a client configuration for connecting to the server
+var createClientLong = templates.LongDesc(`
+	Create a client configuration for connecting to the server
 
-This command creates a folder containing a client certificate, a client key,
-a server certificate authority, and a .kubeconfig file for connecting to the
-master as the provided user.
-`
+	This command creates a folder containing a client certificate, a client key,
+	a server certificate authority, and a .kubeconfig file for connecting to the
+	master as the provided user.`)
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateClientOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}

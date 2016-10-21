@@ -9,27 +9,28 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
 )
 
-const (
-	// LinkSecretRecommendedName `oc secrets link`
-	LinkSecretRecommendedName = "link"
+// LinkSecretRecommendedName `oc secrets link`
+const LinkSecretRecommendedName = "link"
 
-	// TODO: move to examples
-	linkSecretLong = `
-Link secrets to a service account
+var (
+	linkSecretLong = templates.LongDesc(`
+    Link secrets to a service account
 
-Linking a secret enables a service account to automatically use that secret for some forms of authentication`
+    Linking a secret enables a service account to automatically use that secret for some forms of authentication.`)
 
-	linkSecretExample = `  # Add an image pull secret to a service account to automatically use it for pulling pod images:
-  %[1]s serviceaccount-name pull-secret --for=pull
+	linkSecretExample = templates.Examples(`
+    # Add an image pull secret to a service account to automatically use it for pulling pod images:
+    %[1]s serviceaccount-name pull-secret --for=pull
 
-  # Add an image pull secret to a service account to automatically use it for both pulling and pushing build images:
-  %[1]s builder builder-image-secret --for=pull,mount
+    # Add an image pull secret to a service account to automatically use it for both pulling and pushing build images:
+    %[1]s builder builder-image-secret --for=pull,mount
 
-  # If the cluster's serviceAccountConfig is operating with limitSecretReferences: True, secrets must be added to the pod's service account whitelist in order to be available to the pod:
-  %[1]s pod-sa pod-secret`
+    # If the cluster's serviceAccountConfig is operating with limitSecretReferences: True, secrets must be added to the pod's service account whitelist in order to be available to the pod:
+    %[1]s pod-sa pod-secret`)
 )
 
 type LinkSecretOptions struct {

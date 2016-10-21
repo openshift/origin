@@ -16,8 +16,7 @@ openshift cli rollout pause \- Mark the provided resource as paused
 Mark the provided resource as paused
 
 .PP
-Paused resources will not be reconciled by a controller.
-Use \\"%[1]s rollout resume\\" to resume a paused resource.
+Paused resources will not be reconciled by a controller. Use \\"% [1]s rollout resume \\" to resume a paused resource.
 
 
 .SH OPTIONS
@@ -82,6 +81,10 @@ Use \\"%[1]s rollout resume\\" to resume a paused resource.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

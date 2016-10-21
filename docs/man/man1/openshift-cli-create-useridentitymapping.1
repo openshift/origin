@@ -13,13 +13,14 @@ openshift cli create useridentitymapping \- Manually map an identity to a user.
 
 .SH DESCRIPTION
 .PP
-Typically, identities are automatically mapped to users during login. If automatic
-mapping is disabled (by using the "lookup" mapping method), or a mapping needs to
-be manually established between an identity and a user, this command can be used
-to create a useridentitymapping object.
+Typically, identities are automatically mapped to users during login. If automatic mapping is disabled (by using the "lookup" mapping method), or a mapping needs to be manually established between an identity and a user, this command can be used to create a useridentitymapping object.
 
 
 .SH OPTIONS
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
 .PP
 \fB\-\-no\-headers\fP=false
     When using the default or custom\-column output format, don't print headers.
@@ -105,6 +106,10 @@ to create a useridentitymapping object.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

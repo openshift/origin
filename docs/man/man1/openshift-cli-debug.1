@@ -16,27 +16,16 @@ openshift cli debug \- Launch a new instance of a pod for debugging
 Launch a command shell to debug a running application
 
 .PP
-When debugging images and setup problems, it's useful to get an exact copy of a running
-pod configuration and troubleshoot with a shell. Since a pod that is failing may not be
-started and not accessible to 'rsh' or 'exec', the 'debug' command makes it easy to
-create a carbon copy of that setup.
+When debugging images and setup problems, it's useful to get an exact copy of a running pod configuration and troubleshoot with a shell. Since a pod that is failing may not be started and not accessible to 'rsh' or 'exec', the 'debug' command makes it easy to create a carbon copy of that setup.
 
 .PP
-The default mode is to start a shell inside of the first container of the referenced pod,
-replication controller, or deployment config. The started pod will be a copy of your
-source pod, with labels stripped, the command changed to '/bin/sh', and readiness and
-liveness checks disabled. If you just want to run a command, add '\-\-' and a command to
-run. Passing a command will not create a TTY or send STDIN by default. Other flags are
-supported for altering the container or pod in common ways.
+The default mode is to start a shell inside of the first container of the referenced pod, replication controller, or deployment config. The started pod will be a copy of your source pod, with labels stripped, the command changed to '/bin/sh', and readiness and liveness checks disabled. If you just want to run a command, add '\-\-' and a command to run. Passing a command will not create a TTY or send STDIN by default. Other flags are supported for altering the container or pod in common ways.
 
 .PP
-A common problem running containers is a security policy that prohibits you from running
-as a root user on the cluster. You can use this command to test running a pod as
-non\-root (with \-\-as\-user) or to run a non\-root pod as root (with \-\-as\-root).
+A common problem running containers is a security policy that prohibits you from running as a root user on the cluster. You can use this command to test running a pod as non\-root (with \-\-as\-user) or to run a non\-root pod as root (with \-\-as\-root).
 
 .PP
-The debug pod is deleted when the the remote command completes or the user interrupts
-the shell.
+The debug pod is deleted when the the remote command completes or the user interrupts the shell.
 
 
 .SH OPTIONS
@@ -162,6 +151,10 @@ the shell.
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-server\fP=""
     The address and port of the Kubernetes API server
 
@@ -179,16 +172,15 @@ the shell.
 .RS
 
 .nf
-
   # Debug a currently running deployment
   openshift cli debug dc/test
-
+  
   # Test running a deployment as a non\-root user
   openshift cli debug dc/test \-\-as\-user=1000000
-
+  
   # Debug a specific failing container by running the env command in the 'second' container
   openshift cli debug dc/test \-c second \-\- /bin/env
-
+  
   # See the pod that would be created to debug
   openshift cli debug dc/test \-o yaml
 

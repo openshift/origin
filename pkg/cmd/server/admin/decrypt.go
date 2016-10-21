@@ -8,12 +8,13 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
@@ -36,12 +37,12 @@ type DecryptOptions struct {
 	KeyFile string
 }
 
-const decryptExample = `	# Decrypt an encrypted file to a cleartext file:
+var decryptExample = templates.Examples(`
+	# Decrypt an encrypted file to a cleartext file:
 	%[1]s --key=secret.key --in=secret.encrypted --out=secret.decrypted
-	
+
 	# Decrypt from stdin to stdout:
-	%[1]s --key=secret.key < secret2.encrypted > secret2.decrypted
-`
+	%[1]s --key=secret.key < secret2.encrypted > secret2.decrypted`)
 
 func NewCommandDecrypt(commandName string, fullName, encryptFullName string, out io.Writer) *cobra.Command {
 	options := &DecryptOptions{
@@ -79,7 +80,7 @@ func (o *DecryptOptions) Validate(args []string) error {
 		return errors.New("no arguments are supported")
 	}
 
-	if len(o.EncryptedFile) == 0 && len(o.EncryptedData) == 0 && (o.EncryptedReader == nil || util.IsTerminalReader(o.EncryptedReader)) {
+	if len(o.EncryptedFile) == 0 && len(o.EncryptedData) == 0 && (o.EncryptedReader == nil || term.IsTerminalReader(o.EncryptedReader)) {
 		return errors.New("no input data specified")
 	}
 	if len(o.EncryptedFile) > 0 && len(o.EncryptedData) > 0 {
@@ -105,7 +106,7 @@ func (o *DecryptOptions) Decrypt() error {
 		}
 	case len(o.EncryptedData) > 0:
 		data = o.EncryptedData
-	case o.EncryptedReader != nil && !util.IsTerminalReader(o.EncryptedReader):
+	case o.EncryptedReader != nil && !term.IsTerminalReader(o.EncryptedReader):
 		if d, err := ioutil.ReadAll(o.EncryptedReader); err != nil {
 			return err
 		} else {
@@ -147,7 +148,7 @@ func (o *DecryptOptions) Decrypt() error {
 		}
 	case o.DecryptedWriter != nil:
 		fmt.Fprint(o.DecryptedWriter, string(plaintext))
-		if util.IsTerminalWriter(o.DecryptedWriter) {
+		if term.IsTerminalWriter(o.DecryptedWriter) {
 			fmt.Fprintln(o.DecryptedWriter)
 		}
 	}

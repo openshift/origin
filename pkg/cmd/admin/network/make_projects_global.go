@@ -9,23 +9,26 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
-const (
-	MakeGlobalProjectsNetworkCommandName = "make-projects-global"
+const MakeGlobalProjectsNetworkCommandName = "make-projects-global"
 
-	makeGlobalProjectsNetworkLong = `
-Make project network global
+var (
+	makeGlobalProjectsNetworkLong = templates.LongDesc(`
+		Make project network global
 
-Allows projects to access all pods in the cluster and vice versa when using the %[1]s network plugin.`
+		Allows projects to access all pods in the cluster and vice versa when using the %[1]s network plugin.`)
 
-	makeGlobalProjectsNetworkExample = `	# Allow project p1 to access all pods in the cluster and vice versa
-	%[1]s <p1>
+	makeGlobalProjectsNetworkExample = templates.Examples(`
+		# Allow project p1 to access all pods in the cluster and vice versa
+		%[1]s <p1>
 
-	# Allow all projects with label name=share to access all pods in the cluster and vice versa
-	%[1]s --selector='name=share'`
+		# Allow all projects with label name=share to access all pods in the cluster and vice versa
+		%[1]s --selector='name=share'`)
 )
 
 type MakeGlobalOptions struct {

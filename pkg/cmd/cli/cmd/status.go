@@ -12,6 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
 )
@@ -19,26 +20,27 @@ import (
 // StatusRecommendedName is the recommended command name.
 const StatusRecommendedName = "status"
 
-const (
-	statusLong = `
-Show a high level overview of the current project
+var (
+	statusLong = templates.LongDesc(`
+		Show a high level overview of the current project
 
-This command will show services, deployment configs, build configurations, and active deployments.
-If you have any misconfigured components information about them will be shown. For more information
-about individual items, use the describe command (e.g. %[1]s describe buildConfig,
-%[1]s describe deploymentConfig, %[1]s describe service).
+		This command will show services, deployment configs, build configurations, and active deployments.
+		If you have any misconfigured components information about them will be shown. For more information
+		about individual items, use the describe command (e.g. %[1]s describe buildConfig,
+		%[1]s describe deploymentConfig, %[1]s describe service).
 
-You can specify an output format of "-o dot" to have this command output the generated status
-graph in DOT format that is suitable for use by the "dot" command.`
+		You can specify an output format of "-o dot" to have this command output the generated status
+		graph in DOT format that is suitable for use by the "dot" command.`)
 
-	statusExample = `  # See an overview of the current project.
-  %[1]s
+	statusExample = templates.Examples(`
+		# See an overview of the current project.
+	  %[1]s
 
-  # Export the overview of the current project in an svg file.
-  %[1]s -o dot | dot -T svg -o project.svg
+	  # Export the overview of the current project in an svg file.
+	  %[1]s -o dot | dot -T svg -o project.svg
 
-  # See an overview of the current project including details for any identified issues.
-  %[1]s -v`
+	  # See an overview of the current project including details for any identified issues.
+	  %[1]s -v`)
 )
 
 // StatusOptions contains all the necessary options for the Openshift cli status command.

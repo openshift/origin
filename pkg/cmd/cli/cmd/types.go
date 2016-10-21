@@ -9,6 +9,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/templates"
 	ocutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -194,7 +195,7 @@ func writeConcept(w io.Writer, c concept) {
 }
 
 var (
-	typesLong = heredoc.Doc(`
+	typesLong = templates.LongDesc(`
     Concepts and Types
 
     Kubernetes and OpenShift help developers and operators build, test, and deploy
@@ -204,20 +205,20 @@ var (
 
     Concepts:
 
-    %[1]sFor more, see https://docs.openshift.com
-  `)
+    %[1]sFor more, see https://docs.openshift.com`)
 
-	typesExample = `  # View all projects you have access to
-  %[1]s get projects
+	typesExample = templates.Examples(`
+		# View all projects you have access to
+	  %[1]s get projects
 
-  # See a list of all services in the current project
-  %[1]s get svc
+	  # See a list of all services in the current project
+	  %[1]s get svc
 
-  # Describe a deployment configuration in detail
-  %[1]s describe dc mydeploymentconfig
+	  # Describe a deployment configuration in detail
+	  %[1]s describe dc mydeploymentconfig
 
-  # Show the images tagged into an image stream
-  %[1]s describe is ruby-centos7`
+	  # Show the images tagged into an image stream
+	  %[1]s describe is ruby-centos7`)
 )
 
 func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

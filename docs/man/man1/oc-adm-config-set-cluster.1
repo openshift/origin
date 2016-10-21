@@ -13,8 +13,7 @@ oc adm config set\-cluster \- Sets a cluster entry in kubeconfig
 
 .SH DESCRIPTION
 .PP
-Sets a cluster entry in kubeconfig.
-Specifying a name that already exists will merge new fields on top of existing values for those fields.
+Sets a cluster entry in kubeconfig. Specifying a name that already exists will merge new fields on top of existing values for those fields.
 
 
 .SH OPTIONS
@@ -81,6 +80,10 @@ Specifying a name that already exists will merge new fields on top of existing v
     If present, the namespace scope for this CLI request
 
 .PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+
+.PP
 \fB\-\-token\fP=""
     Bearer token for authentication to the API server
 
@@ -94,7 +97,6 @@ Specifying a name that already exists will merge new fields on top of existing v
 .RS
 
 .nf
-  
   # Set only the server field on the e2e cluster entry without touching other values.
   oc adm config set\-cluster e2e \-\-server=https://1.2.3.4
   

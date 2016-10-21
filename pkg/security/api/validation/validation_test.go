@@ -52,7 +52,7 @@ func TestValidatePodSecurityPolicySelfSubjectReview(t *testing.T) {
 	}
 
 	koCases := map[string]securityapi.PodSecurityPolicySelfSubjectReview{
-		"[spec.podSpec.containers[0].name: Required value, spec.podSpec.containers[0].image: Required value, spec.podSpec.containers[0].imagePullPolicy: Required value]": {
+		"[spec.template.spec.containers[0].name: Required value, spec.template.spec.containers[0].image: Required value, spec.template.spec.containers[0].imagePullPolicy: Required value]": {
 			Spec: securityapi.PodSecurityPolicySelfSubjectReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: invalidPodSpec(),
@@ -90,7 +90,7 @@ func TestValidatePodSecurityPolicySubjectReview(t *testing.T) {
 	}
 
 	koCases := map[string]securityapi.PodSecurityPolicySubjectReview{
-		"[spec.podSpec.containers[0].name: Required value, spec.podSpec.containers[0].image: Required value, spec.podSpec.containers[0].imagePullPolicy: Required value]": {
+		"[spec.template.spec.containers[0].name: Required value, spec.template.spec.containers[0].image: Required value, spec.template.spec.containers[0].imagePullPolicy: Required value]": {
 			Spec: securityapi.PodSecurityPolicySubjectReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: invalidPodSpec(),
@@ -136,7 +136,7 @@ func TestValidatePodSecurityPolicyReview(t *testing.T) {
 	}
 
 	koCases := map[string]securityapi.PodSecurityPolicyReview{
-		"[spec.podSpec.containers[0].name: Required value, spec.podSpec.containers[0].image: Required value, spec.podSpec.containers[0].imagePullPolicy: Required value]": {
+		"[spec.template.spec.containers[0].name: Required value, spec.template.spec.containers[0].image: Required value, spec.template.spec.containers[0].imagePullPolicy: Required value]": {
 			Spec: securityapi.PodSecurityPolicyReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: invalidPodSpec(),

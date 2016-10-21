@@ -19,6 +19,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -26,27 +27,28 @@ import (
 // CancelBuildRecommendedCommandName is the recommended command name.
 const CancelBuildRecommendedCommandName = "cancel-build"
 
-const (
-	cancelBuildLong = `
-Cancel running, pending, or new builds
+var (
+	cancelBuildLong = templates.LongDesc(`
+		Cancel running, pending, or new builds
 
-This command requests a graceful shutdown of the build. There may be a delay between requesting
-the build and the time the build is terminated.`
+		This command requests a graceful shutdown of the build. There may be a delay between requesting
+		the build and the time the build is terminated.`)
 
-	cancelBuildExample = `  # Cancel the build with the given name
-  %[1]s %[2]s ruby-build-2
+	cancelBuildExample = templates.Examples(`
+	  # Cancel the build with the given name
+	  %[1]s %[2]s ruby-build-2
 
-  # Cancel the named build and print the build logs
-  %[1]s %[2]s ruby-build-2 --dump-logs
+	  # Cancel the named build and print the build logs
+	  %[1]s %[2]s ruby-build-2 --dump-logs
 
-  # Cancel the named build and create a new one with the same parameters
-  %[1]s %[2]s ruby-build-2 --restart
+	  # Cancel the named build and create a new one with the same parameters
+	  %[1]s %[2]s ruby-build-2 --restart
 
-  # Cancel multiple builds
-  %[1]s %[2]s ruby-build-1 ruby-build-2 ruby-build-3
+	  # Cancel multiple builds
+	  %[1]s %[2]s ruby-build-1 ruby-build-2 ruby-build-3
 
-  # Cancel all builds created from 'ruby-build' build configuration that are in 'new' state
-  %[1]s %[2]s bc/ruby-build --state=new`
+	  # Cancel all builds created from 'ruby-build' build configuration that are in 'new' state
+	  %[1]s %[2]s bc/ruby-build --state=new`)
 )
 
 // CancelBuildOptions contains all the options for running the CancelBuild cli command.
@@ -69,7 +71,7 @@ type CancelBuildOptions struct {
 }
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
-func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &CancelBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -79,11 +81,8 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader
 		Example:    fmt.Sprintf(cancelBuildExample, baseName, name),
 		SuggestFor: []string{"builds", "stop-build"},
 		Run: func(cmd *cobra.Command, args []string) {
-			err := o.Complete(f, cmd, args, in, out)
-			kcmdutil.CheckErr(err)
-
-			err = o.RunCancelBuild()
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(o.Complete(f, cmd, args, in, out, errout))
+			kcmdutil.CheckErr(o.RunCancelBuild())
 		},
 	}
 
@@ -94,10 +93,10 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader
 }
 
 // Complete completes all the required options.
-func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, in io.Reader, out io.Writer) error {
+func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	o.In = in
 	o.Out = out
-	o.ErrOut = cmd.OutOrStderr()
+	o.ErrOut = errout
 	o.ReportError = func(err error) {
 		o.HasError = true
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())

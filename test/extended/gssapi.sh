@@ -14,7 +14,7 @@ os::util::environment::setup_time_vars
 os::util::environment::setup_all_server_vars "${test_name}"
 os::util::environment::use_sudo
 
-os::log::start_system_logger
+os::log::system::start
 
 ensure_iptables_or_die
 reset_tmp_dir

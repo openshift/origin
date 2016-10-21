@@ -155,6 +155,7 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 	app.configureRedis(config)
 	app.configureLogHook(config)
 
+	options := registrymiddleware.GetRegistryOptions()
 	if config.Compatibility.Schema1.TrustKey != "" {
 		app.trustKey, err = libtrust.LoadKeyFile(config.Compatibility.Schema1.TrustKey)
 		if err != nil {
@@ -169,6 +170,8 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 		}
 	}
 
+	options = append(options, storage.Schema1SigningKey(app.trustKey))
+
 	if config.HTTP.Host != "" {
 		u, err := url.Parse(config.HTTP.Host)
 		if err != nil {
@@ -177,15 +180,8 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 		app.httpHost = *u
 	}
 
-	options := registrymiddleware.GetRegistryOptions()
-
 	if app.isCache {
 		options = append(options, storage.DisableDigestResumption)
-	}
-
-	if config.Compatibility.Schema1.DisableSignatureStore {
-		options = append(options, storage.DisableSchema1Signatures)
-		options = append(options, storage.Schema1SigningKey(app.trustKey))
 	}
 
 	// configure deletion
@@ -654,6 +650,8 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 					context.Errors = append(context.Errors, v2.ErrorCodeNameUnknown.WithDetail(err))
 				case distribution.ErrRepositoryNameInvalid:
 					context.Errors = append(context.Errors, v2.ErrorCodeNameInvalid.WithDetail(err))
+				case errcode.Error:
+					context.Errors = append(context.Errors, err)
 				}
 
 				if err := errcode.ServeJSON(w, context.Errors); err != nil {

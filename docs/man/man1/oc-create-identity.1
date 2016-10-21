@@ -16,16 +16,17 @@ oc create identity \- Manually create an identity (only needed if automatic crea
 This command can be used to create an identity object.
 
 .PP
-Typically, identities are created automatically during login. If automatic
-creation is disabled (by using the "lookup" mapping method), identities must
-be created manually.
+Typically, identities are created automatically during login. If automatic creation is disabled (by using the "lookup" mapping method), identities must be created manually.
 
 .PP
-Corresponding user and useridentitymapping objects must also be created
-to allow logging in with the created identity.
+Corresponding user and useridentitymapping objects must also be created to allow logging in with the created identity.
 
 
 .SH OPTIONS
+.PP
+\fB\-\-dry\-run\fP=false
+    If true, only print the object that would be sent, without sending it.
+
 .PP
 \fB\-\-no\-headers\fP=false
     When using the default or custom\-column output format, don't print headers.
@@ -111,6 +112,10 @@ to allow logging in with the created identity.
 .PP
 \fB\-n\fP, \fB\-\-namespace\fP=""
     If present, the namespace scope for this CLI request
+
+.PP
+\fB\-\-request\-timeout\fP="0"
+    The length of time to wait before giving up on a single server request. Non\-zero values should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
 
 .PP
 \fB\-\-server\fP=""

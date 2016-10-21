@@ -41,7 +41,7 @@ type Downloader interface {
 	Download(*api.Config) (*api.SourceInfo, error)
 }
 
-// Implement ignore file type processing on source tree
+// Ignorer provides ignore file processing on source tree
 // NOTE: raised to this level for possible future extensions to
 // support say both .gitignore and .dockerignore level functionality
 // ( currently do .dockerignore)
