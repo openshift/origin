@@ -213,6 +213,8 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 		if image.Status.Status != unversioned.StatusSuccess {
 			glog.V(4).Infof("image import failed: %#v", image)
 			switch image.Status.Reason {
+			case unversioned.StatusReasonInternalError:
+				glog.Warningf("Docker registry lookup failed: %s", image.Status.Message)
 			case unversioned.StatusReasonInvalid, unversioned.StatusReasonUnauthorized, unversioned.StatusReasonNotFound:
 			default:
 				errs = append(errs, fmt.Errorf("can't look up Docker image %q: %s", term, image.Status.Message))
