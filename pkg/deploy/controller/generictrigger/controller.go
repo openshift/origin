@@ -1,6 +1,7 @@
 package generictrigger
 
 import (
+	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/workqueue"
@@ -20,10 +21,14 @@ type DeploymentTriggerController struct {
 	// queue contains deployment configs that need to be synced.
 	queue workqueue.RateLimitingInterface
 
-	// dcStore provides a local cache for deployment configs.
-	dcStore oscache.StoreToDeploymentConfigLister
-	// dcStoreSynced makes sure the dc store is synced before reconcling any deployment config.
-	dcStoreSynced func() bool
+	// dcLister provides a local cache for deployment configs.
+	dcLister oscache.StoreToDeploymentConfigLister
+	// dcListerSynced makes sure the dc store is synced before reconcling any deployment config.
+	dcListerSynced func() bool
+	// rcLister provides a local cache for replication controllers.
+	rcLister cache.StoreToReplicationControllerLister
+	// rcListerSynced makes sure the dc store is synced before reconcling any replication controller.
+	rcListerSynced func() bool
 
 	// codec is used for decoding a config out of a deployment.
 	codec runtime.Codec
