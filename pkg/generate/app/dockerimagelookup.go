@@ -75,7 +75,7 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 		termMatches := ScoredComponentMatches{}
 
 		// first look for the image in the remote docker registry
-		if r.RegistrySearcher != nil {
+		if r.RegistrySearcher != nil && ref.String() != "*" {
 			glog.V(4).Infof("checking remote registry for %q", ref.String())
 			matches, err := r.RegistrySearcher.Search(precise, term)
 			errs = append(errs, err...)
