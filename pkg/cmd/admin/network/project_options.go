@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -144,27 +145,6 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 	return projectList, nil
 }
 
-func (p *ProjectOptions) validateNetNamespace(netns *sdnapi.NetNamespace) error {
-	// Timeout: 10 secs
-	retries := 20
-	retryInterval := 500 * time.Millisecond
-
-	for i := 0; i < retries; i++ {
-		updatedNetNs, err := p.Oclient.NetNamespaces().Get(netns.NetName)
-		if err != nil {
-			return err
-		}
-
-		switch _, _, err := sdnapi.GetChangePodNetworkAnnotation(updatedNetNs); err {
-		case sdnapi.ErrorPodNetworkAnnotationNotFound:
-			return nil
-		default:
-			time.Sleep(retryInterval)
-		}
-	}
-	return fmt.Errorf("failed to apply pod network change for project %q", netns.NetName)
-}
-
 func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetworkAction, args string) error {
 	// Get corresponding NetNamespace for given namespace
 	netns, err := p.Oclient.NetNamespaces().Get(nsName)
@@ -182,5 +162,21 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetwor
 	}
 
 	// Validate SDN controller applied or rejected the intent
-	return p.validateNetNamespace(netns)
+	backoff := wait.Backoff{
+		Steps:    15,
+		Duration: 500 * time.Millisecond,
+		Factor:   1.1,
+	}
+	return wait.ExponentialBackoff(backoff, func() (bool, error) {
+		updatedNetNs, err := p.Oclient.NetNamespaces().Get(netns.NetName)
+		if err != nil {
+			return false, err
+		}
+
+		if _, _, err = sdnapi.GetChangePodNetworkAnnotation(updatedNetNs); err == sdnapi.ErrorPodNetworkAnnotationNotFound {
+			return true, nil
+		}
+		// Pod network change not applied yet
+		return false, nil
+	})
 }
