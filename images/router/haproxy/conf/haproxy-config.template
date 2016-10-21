@@ -109,36 +109,15 @@ frontend public
   acl secure_redirect base,map_beg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
   redirect scheme https if secure_redirect
 
-{{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
-  #  Check for wildcard domains with redirected http routes.
-  acl wildcard_domain hdr(host),map_reg(/var/lib/haproxy/conf/os_wildcard_domain.map) -m found
-
-  acl wildcard_secure_redirect base,map_reg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
-  redirect scheme https if wildcard_domain wildcard_secure_redirect
-
-{{ end }}
-
   # Check if it is an edge route exposed insecurely.
   acl edge_http_expose base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
   use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if edge_http_expose
 
   # map to http backend
   # Search from most specific to general path (host case).
-  acl http_backend base,map_beg(/var/lib/haproxy/conf/os_http_be.map) -m found
-  use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)] if http_backend
-
-{{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
-  #  Check for wildcard domains with exposed http routes.
-  acl wildcard_edge_http_expose base,map_reg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
-  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if wildcard_domain wildcard_edge_http_expose
-
-  # map to http backend
-  # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_http_%[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)] if wildcard_domain
-
-{{ end }}
+  use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
 
   default_backend openshift_default
 
@@ -154,15 +133,6 @@ frontend public_ssl
   acl sni req.ssl_sni -m found
   acl sni_passthrough req.ssl_sni,map(/var/lib/haproxy/conf/os_sni_passthrough.map) -m found
   use_backend be_tcp_%[req.ssl_sni,map(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
-
-{{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
-  #  Check for wildcard domains with passthrough.
-  acl sni_wildcard_domain req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_wildcard_domain.map) -m found
-
-  acl sni_wildcard_passthrough req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_sni_passthrough.map) -m found
-  use_backend be_tcp_%[req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_wildcard_domain sni_wildcard_passthrough
-
-{{ end }}
 
   # if the route is SNI and NOT passthrough enter the termination flow
   use_backend be_sni if sni
@@ -201,23 +171,9 @@ frontend fe_sni
 
   # map to http backend
   # Search from most specific to general path (host case).
-  acl http_backend base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map) -m found
-  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)] if http_backend
-
-{{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
-  #  Check for wildcard domains with redirected or exposed http routes.
-  acl sni_wildcard_domain hdr(host),map_reg(/var/lib/haproxy/conf/os_wildcard_domain.map) -m found
-
-  acl wildcard_reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if sni_wildcard_domain wildcard_reencrypt
-
-  # map to http backend
-  # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http_%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)] if sni_wildcard_domain
-
-{{ end }}
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   default_backend openshift_default
 
@@ -252,22 +208,9 @@ frontend fe_no_sni
 
   # map to http backend
   # Search from most specific to general path (host case).
-  acl edge_http_backend base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map) -m found
-  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)] if edge_http_backend
-
-{{ if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
-  acl host_wildcard_domain req.ssl_sni,map_reg(/var/lib/haproxy/conf/os_wildcard_domain.map) -m found
-
-  acl host_reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if host_wildcard_domain host_reencrypt
-
-  # map to http backend
-  # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http_%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)] if host_wildcard_domain
-
-{{ end }}
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   default_backend openshift_default
 
@@ -387,8 +330,8 @@ backend be_edge_http_{{$cfgIdx}}
     {{ end }}{{/* end iterate over services */}}
   {{ end }}{{/* end if tls==edge/none */}}
 
-  {{ if eq $cfg.TLSTermination "passthrough" }}
 # Secure backend, pass through
+  {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$cfgIdx}}
 {{ if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
@@ -451,8 +394,8 @@ backend be_tcp_{{$cfgIdx}}
     {{ end }}{{/* end iterate over services*/}}
   {{ end }}{{/*end tls==passthrough*/}}
 
-  {{ if eq $cfg.TLSTermination "reencrypt" }}
 # Secure backend which requires re-encryption
+  {{ if eq $cfg.TLSTermination "reencrypt" }}
 backend be_secure_{{$cfgIdx}}
   mode http
   option redispatch
@@ -529,34 +472,13 @@ backend be_secure_{{$cfgIdx}}
 
 {{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
 {{/*
-    os_wildcard_domain.map: contains a mapping of wildcard hosts for a
-			[sub]domain regexps. This map is used to check if
-			a host matches a [sub]domain with has wildcard support.
-*/}}
-{{ define "/var/lib/haproxy/conf/os_wildcard_domain.map" }}
-{{     if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "")}}
-{{       range $idx, $cfg := .State }}
-{{         if ne $cfg.Host ""}}
-{{           if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host "" true}} 1
-{{           end }}
-{{         end }}
-{{       end }}
-{{     end }}{{/* end if router allows wildcard routes */}}
-{{ end }}{{/* end wildcard domain map template */}}
-
-{{/*
     os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
                         by attaching a prefix (be_http_) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "")}}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
-{{         else }}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end http host map template */}}
@@ -568,11 +490,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_be.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge")}}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
-{{         else }}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end edge http host map template */}}
@@ -585,11 +503,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
-{{         else }}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end edge insecure expose http host map template */}}
@@ -602,11 +516,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect"))}}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
-{{         else }}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end edge insecure redirect http host map template */}}
@@ -619,11 +529,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt"))) }}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host "" true}} {{$idx}}
-{{         else }}
 {{$cfg.Host}} {{$idx}}
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end tcp host map template */}}
@@ -635,11 +541,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "passthrough") }}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host "" true}} {{$idx}}
-{{         else }}
 {{$cfg.Host}} 1
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end sni passthrough map template */}}
@@ -652,11 +554,7 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_reencrypt.map" }}
 {{     range $idx, $cfg := .State }}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") }}
-{{         if $cfg.IsWildcard }}
-{{genDomainWildcardRegexp $cfg.Host $cfg.Path false}} {{$idx}}
-{{         else }}
 {{$cfg.Host}}{{$cfg.Path}} {{$idx}}
-{{         end }}
 {{       end }}
 {{     end }}
 {{ end }}{{/* end reencrypt map template */}}
