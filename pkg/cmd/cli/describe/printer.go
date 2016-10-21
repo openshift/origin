@@ -62,6 +62,8 @@ var (
 	egressNetworkPolicyColumns = []string{"NAME"}
 
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
+
+	roleBindingRestrictionColumns = []string{"NAME", "SUBJECT TYPE", "SUBJECTS"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -138,6 +140,9 @@ func NewHumanReadablePrinter(printOptions kctl.PrintOptions) *kctl.HumanReadable
 	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuotaList)
 	p.Handler(clusterResourceQuotaColumns, printAppliedClusterResourceQuota)
 	p.Handler(clusterResourceQuotaColumns, printAppliedClusterResourceQuotaList)
+
+	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestriction)
+	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestrictionList)
 
 	return p
 }
@@ -1059,6 +1064,68 @@ func printAppliedClusterResourceQuota(resourceQuota *quotaapi.AppliedClusterReso
 func printAppliedClusterResourceQuotaList(list *quotaapi.AppliedClusterResourceQuotaList, w io.Writer, options kctl.PrintOptions) error {
 	for i := range list.Items {
 		if err := printClusterResourceQuota(quotaapi.ConvertAppliedClusterResourceQuotaToClusterResourceQuota(&list.Items[i]), w, options); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction, w io.Writer, options kctl.PrintOptions) error {
+	name := formatResourceName(options.Kind, rbr.Name, options.WithKind)
+	subjectType := roleBindingRestrictionType(rbr)
+	subjectList := []string{}
+	const numOfSubjectsShown = 3
+	switch {
+	case rbr.Spec.UserRestriction != nil:
+		for _, user := range rbr.Spec.UserRestriction.Users {
+			subjectList = append(subjectList, user)
+		}
+		for _, group := range rbr.Spec.UserRestriction.Groups {
+			subjectList = append(subjectList, fmt.Sprintf("group(%s)", group))
+		}
+		for _, selector := range rbr.Spec.UserRestriction.Selectors {
+			subjectList = append(subjectList,
+				unversioned.FormatLabelSelector(&selector))
+		}
+	case rbr.Spec.GroupRestriction != nil:
+		for _, group := range rbr.Spec.GroupRestriction.Groups {
+			subjectList = append(subjectList, group)
+		}
+		for _, selector := range rbr.Spec.GroupRestriction.Selectors {
+			subjectList = append(subjectList,
+				unversioned.FormatLabelSelector(&selector))
+		}
+	case rbr.Spec.ServiceAccountRestriction != nil:
+		for _, sa := range rbr.Spec.ServiceAccountRestriction.ServiceAccounts {
+			subjectList = append(subjectList, fmt.Sprintf("%s/%s",
+				sa.Namespace, sa.Name))
+		}
+		for _, ns := range rbr.Spec.ServiceAccountRestriction.Namespaces {
+			subjectList = append(subjectList, fmt.Sprintf("%s/*", ns))
+		}
+	}
+
+	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "\t%s", subjectType); err != nil {
+		return err
+	}
+	subjects := "<none>"
+	if len(subjectList) > numOfSubjectsShown {
+		subjects = fmt.Sprintf("%s + %d more...",
+			strings.Join(subjectList[:numOfSubjectsShown], ", "),
+			len(subjectList)-numOfSubjectsShown)
+	} else if len(subjectList) > 0 {
+		subjects = strings.Join(subjectList, ", ")
+	}
+	_, err := fmt.Fprintf(w, "\t%s\n", subjects)
+	return err
+}
+
+func printRoleBindingRestrictionList(list *authorizationapi.RoleBindingRestrictionList, w io.Writer, options kctl.PrintOptions) error {
+	for i := range list.Items {
+		if err := printRoleBindingRestriction(&list.Items[i], w, options); err != nil {
 			return err
 		}
 	}

@@ -37,35 +37,36 @@ import (
 
 func describerMap(c *client.Client, kclient kclient.Interface, host string) map[unversioned.GroupKind]kctl.Describer {
 	m := map[unversioned.GroupKind]kctl.Describer{
-		buildapi.Kind("Build"):                        &BuildDescriber{c, kclient},
-		buildapi.Kind("BuildConfig"):                  &BuildConfigDescriber{c, kclient, host},
-		deployapi.Kind("DeploymentConfig"):            &DeploymentConfigDescriber{c, kclient, nil},
-		authorizationapi.Kind("Identity"):             &IdentityDescriber{c},
-		imageapi.Kind("Image"):                        &ImageDescriber{c},
-		imageapi.Kind("ImageStream"):                  &ImageStreamDescriber{c},
-		imageapi.Kind("ImageStreamTag"):               &ImageStreamTagDescriber{c},
-		imageapi.Kind("ImageStreamImage"):             &ImageStreamImageDescriber{c},
-		routeapi.Kind("Route"):                        &RouteDescriber{c, kclient},
-		projectapi.Kind("Project"):                    &ProjectDescriber{c, kclient},
-		templateapi.Kind("Template"):                  &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
-		authorizationapi.Kind("Policy"):               &PolicyDescriber{c},
-		authorizationapi.Kind("PolicyBinding"):        &PolicyBindingDescriber{c},
-		authorizationapi.Kind("RoleBinding"):          &RoleBindingDescriber{c},
-		authorizationapi.Kind("Role"):                 &RoleDescriber{c},
-		authorizationapi.Kind("ClusterPolicy"):        &ClusterPolicyDescriber{c},
-		authorizationapi.Kind("ClusterPolicyBinding"): &ClusterPolicyBindingDescriber{c},
-		authorizationapi.Kind("ClusterRoleBinding"):   &ClusterRoleBindingDescriber{c},
-		authorizationapi.Kind("ClusterRole"):          &ClusterRoleDescriber{c},
-		oauthapi.Kind("OAuthAccessToken"):             &OAuthAccessTokenDescriber{c},
-		userapi.Kind("User"):                          &UserDescriber{c},
-		userapi.Kind("Group"):                         &GroupDescriber{c.Groups()},
-		userapi.Kind("UserIdentityMapping"):           &UserIdentityMappingDescriber{c},
-		quotaapi.Kind("ClusterResourceQuota"):         &ClusterQuotaDescriber{c},
-		quotaapi.Kind("AppliedClusterResourceQuota"):  &AppliedClusterQuotaDescriber{c},
-		sdnapi.Kind("ClusterNetwork"):                 &ClusterNetworkDescriber{c},
-		sdnapi.Kind("HostSubnet"):                     &HostSubnetDescriber{c},
-		sdnapi.Kind("NetNamespace"):                   &NetNamespaceDescriber{c},
-		sdnapi.Kind("EgressNetworkPolicy"):            &EgressNetworkPolicyDescriber{c},
+		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
+		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
+		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{c, kclient, nil},
+		authorizationapi.Kind("Identity"):               &IdentityDescriber{c},
+		imageapi.Kind("Image"):                          &ImageDescriber{c},
+		imageapi.Kind("ImageStream"):                    &ImageStreamDescriber{c},
+		imageapi.Kind("ImageStreamTag"):                 &ImageStreamTagDescriber{c},
+		imageapi.Kind("ImageStreamImage"):               &ImageStreamImageDescriber{c},
+		routeapi.Kind("Route"):                          &RouteDescriber{c, kclient},
+		projectapi.Kind("Project"):                      &ProjectDescriber{c, kclient},
+		templateapi.Kind("Template"):                    &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		authorizationapi.Kind("Policy"):                 &PolicyDescriber{c},
+		authorizationapi.Kind("PolicyBinding"):          &PolicyBindingDescriber{c},
+		authorizationapi.Kind("RoleBinding"):            &RoleBindingDescriber{c},
+		authorizationapi.Kind("Role"):                   &RoleDescriber{c},
+		authorizationapi.Kind("ClusterPolicy"):          &ClusterPolicyDescriber{c},
+		authorizationapi.Kind("ClusterPolicyBinding"):   &ClusterPolicyBindingDescriber{c},
+		authorizationapi.Kind("ClusterRoleBinding"):     &ClusterRoleBindingDescriber{c},
+		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{c},
+		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{c},
+		userapi.Kind("User"):                            &UserDescriber{c},
+		userapi.Kind("Group"):                           &GroupDescriber{c.Groups()},
+		userapi.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{c},
+		quotaapi.Kind("ClusterResourceQuota"):           &ClusterQuotaDescriber{c},
+		quotaapi.Kind("AppliedClusterResourceQuota"):    &AppliedClusterQuotaDescriber{c},
+		sdnapi.Kind("ClusterNetwork"):                   &ClusterNetworkDescriber{c},
+		sdnapi.Kind("HostSubnet"):                       &HostSubnetDescriber{c},
+		sdnapi.Kind("NetNamespace"):                     &NetNamespaceDescriber{c},
+		sdnapi.Kind("EgressNetworkPolicy"):              &EgressNetworkPolicyDescriber{c},
+		authorizationapi.Kind("RoleBindingRestriction"): &RoleBindingRestrictionDescriber{c},
 	}
 	return m
 }
@@ -1610,6 +1611,67 @@ func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings
 		for _, rule := range policy.Spec.Egress {
 			fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
 		}
+		return nil
+	})
+}
+
+type RoleBindingRestrictionDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a RoleBindingRestriction.
+func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, settings kctl.DescriberSettings) (string, error) {
+	rbr, err := d.RoleBindingRestrictions(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, rbr.ObjectMeta)
+
+		subjectType := roleBindingRestrictionType(rbr)
+		if subjectType == "" {
+			subjectType = "<none>"
+		}
+		formatString(out, "Subject type", subjectType)
+
+		var labelSelectors []unversioned.LabelSelector
+
+		switch {
+		case rbr.Spec.UserRestriction != nil:
+			formatString(out, "Users",
+				strings.Join(rbr.Spec.UserRestriction.Users, ", "))
+			formatString(out, "Users in groups",
+				strings.Join(rbr.Spec.UserRestriction.Groups, ", "))
+			labelSelectors = rbr.Spec.UserRestriction.Selectors
+		case rbr.Spec.GroupRestriction != nil:
+			formatString(out, "Groups",
+				strings.Join(rbr.Spec.GroupRestriction.Groups, ", "))
+			labelSelectors = rbr.Spec.GroupRestriction.Selectors
+		case rbr.Spec.ServiceAccountRestriction != nil:
+			serviceaccounts := []string{}
+			for _, sa := range rbr.Spec.ServiceAccountRestriction.ServiceAccounts {
+				serviceaccounts = append(serviceaccounts, sa.Name)
+			}
+			formatString(out, "ServiceAccounts", strings.Join(serviceaccounts, ", "))
+			formatString(out, "Namespaces",
+				strings.Join(rbr.Spec.ServiceAccountRestriction.Namespaces, ", "))
+		}
+
+		if rbr.Spec.UserRestriction != nil || rbr.Spec.GroupRestriction != nil {
+			if len(labelSelectors) == 0 {
+				formatString(out, "Label selectors", "")
+			} else {
+				fmt.Fprintf(out, "Label selectors:\n")
+				for _, labelSelector := range labelSelectors {
+					selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+					if err != nil {
+						return err
+					}
+					fmt.Fprintf(out, "\t%s\n", selector)
+				}
+			}
+		}
+
 		return nil
 	})
 }

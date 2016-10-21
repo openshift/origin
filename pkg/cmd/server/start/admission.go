@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	// Admission control plug-ins used by OpenShift
+	_ "github.com/openshift/origin/pkg/authorization/admission/restrictusers"
 	_ "github.com/openshift/origin/pkg/build/admission/defaults"
 	_ "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
 	_ "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -79,6 +80,7 @@ var (
 		imagepolicy.PluginName,
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
+		"openshift.io/RestrictSubjectBindings",
 	)
 )
 

@@ -179,6 +179,7 @@ items:
     - clusterroles
     - policies
     - policybindings
+    - rolebindingrestrictions
     - rolebindings
     - roles
     verbs:
@@ -653,6 +654,7 @@ items:
     resources:
     - policies
     - policybindings
+    - rolebindingrestrictions
     verbs:
     - get
     - list

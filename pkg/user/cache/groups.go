@@ -67,6 +67,17 @@ func (c *GroupCache) RunUntil(stopChannel <-chan struct{}) {
 	c.reflector.RunUntil(stopChannel)
 }
 
+// Running determines if the cache is initialized and running.
+func (c *GroupCache) Running() bool {
+	return c.indexer != nil
+}
+
+// LastSyncResourceVersioner exposes the LastSyncResourceVersion of the internal
+// reflector.
+func (c *GroupCache) LastSyncResourceVersion() string {
+	return c.reflector.LastSyncResourceVersion()
+}
+
 func (c *GroupCache) GroupsFor(username string) ([]*userapi.Group, error) {
 	objs, err := c.indexer.ByIndex(byUserIndexName, username)
 	if err != nil {
