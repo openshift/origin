@@ -1123,8 +1123,15 @@ function os::build::environment::create() {
     fi
   fi
 
+  local args
+  if [[ $# -eq 0 ]]; then
+    args=( "echo" "docker create ${additional_context} ${release_image}" )
+  else
+    args=( "$@" )
+  fi
+
   # Create a new container to from the release environment
-  docker create ${additional_context} "${release_image}" "$@"
+  docker create ${additional_context} "${release_image}" "${args[@]}"
 }
 readonly -f os::build::environment::create
 
@@ -1191,19 +1198,39 @@ function os::build::environment::withsource() {
   local container=$1
   local commit=${2:-HEAD}
 
-  if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER:-}" ]]; then
+  if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER-}" ]]; then
     # running locally, no change necessary
     os::build::get_version_vars
     os::build::save_version_vars "${OS_ROOT}/os-version-defs"
   else
-    # Generate version definitions. Tree state is clean because we are pulling from git directly.
-    OS_GIT_TREE_STATE=clean os::build::get_version_vars
-    os::build::save_version_vars "/tmp/os-version-defs"
-
     local workingdir
     workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:${workingdir}"
-    git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+    if [[ -n "${OS_BUILD_ENV_REUSE_VOLUME-}" ]]; then
+      local excluded=()
+      local oldIFS="${IFS}"
+      IFS=:
+      for exclude in ${OS_BUILD_ENV_EXCLUDE:-_output}; do
+        excluded+=("--exclude=${exclude}")
+      done
+      IFS="${oldIFS}"
+      if which rsync &>/dev/null; then
+        local name
+        name="$( echo "${OS_BUILD_ENV_REUSE_VOLUME}" | tr '[:upper:]' '[:lower:]' )"
+        if ! rsync -a --blocking-io ${excluded[@]} --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${name}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
+          # fall back to a tar if rsync is not in container
+          tar -cf - ${excluded[@]} . | docker cp - "${container}:${workingdir}"
+        fi
+      else
+        tar -cf - ${excluded[@]} . | docker cp - "${container}:${workingdir}"
+      fi
+    else
+      # Generate version definitions. Tree state is clean because we are pulling from git directly.
+      OS_GIT_TREE_STATE=clean os::build::get_version_vars
+      os::build::save_version_vars "/tmp/os-version-defs"
+
+      tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:${workingdir}"
+      git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+    fi
   fi
 
   os::build::environment::start "${container}"
@@ -1215,21 +1242,14 @@ readonly -f os::build::environment::withsource
 function os::build::environment::run() {
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume="${OS_BUILD_ENV_REUSE_VOLUME:-}"
-  local exists=
-  if [[ -z "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
+  if [[ -z "${volume}" ]]; then
     volume="origin-build-$( git rev-parse "${commit}" )"
-  elif docker volume inspect "${OS_BUILD_ENV_REUSE_VOLUME}" &>/dev/null; then
-    exists=y
   fi
 
   local container
   container="$( OS_BUILD_ENV_REUSE_VOLUME=${volume} os::build::environment::create "$@" )"
   trap "os::build::environment::cleanup ${container}" EXIT
 
-  if [[ "${exists}" == "y" ]]; then
-    os::build::environment::start "${container}"
-  else
-    os::build::environment::withsource "${container}" "${commit}"
-  fi
+  os::build::environment::withsource "${container}" "${commit}"
 }
 readonly -f os::build::environment::run
