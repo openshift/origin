@@ -25,7 +25,9 @@ func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*Subne
 	}
 
 	netMaskSize, _ := netIP.Mask.Size()
-	if hostBits > (32 - uint32(netMaskSize)) {
+	if hostBits == 0 {
+		return nil, fmt.Errorf("Host capacity cannot be zero.")
+	} else if hostBits > (32 - uint32(netMaskSize)) {
 		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available.")
 	}
 	subnetBits := 32 - uint32(netMaskSize) - hostBits
