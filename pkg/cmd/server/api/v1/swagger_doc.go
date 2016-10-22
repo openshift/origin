@@ -75,8 +75,12 @@ func (AssetExtensionsConfig) SwaggerDoc() map[string]string {
 }
 
 var map_AuditConfig = map[string]string{
-	"":        "AuditConfig holds configuration for the audit capabilities",
-	"enabled": "If this flag is set, basic audit log will be printed in the logs. The logs contains, method, user and a requested URL.",
+	"":                         "AuditConfig holds configuration for the audit capabilities",
+	"enabled":                  "If this flag is set, audit log will be printed in the logs. The logs contains, method, user and a requested URL.",
+	"auditFilePath":            "All requests coming to the apiserver will be logged to this file.",
+	"maximumFileRetentionDays": "Maximum number of days to retain old log files based on the timestamp encoded in their filename.",
+	"maximumRetainedFiles":     "Maximum number of old log files to retain.",
+	"maximumFileSizeMegabytes": "Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.",
 }
 
 func (AuditConfig) SwaggerDoc() map[string]string {
