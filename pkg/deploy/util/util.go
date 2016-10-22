@@ -70,8 +70,13 @@ func GetDeploymentCondition(status deployapi.DeploymentConfigStatus, condType de
 	return nil
 }
 
-// SetDeploymentCondition updates the deployment to include the provided condition.
+// SetDeploymentCondition updates the deployment to include the provided condition. If the condition that
+// we are about to add already exists and has the same status and reason then we are not going to update.
 func SetDeploymentCondition(status *deployapi.DeploymentConfigStatus, condition deployapi.DeploymentCondition) {
+	currentCond := GetDeploymentCondition(*status, condition.Type)
+	if currentCond != nil && currentCond.Status == condition.Status && currentCond.Reason == condition.Reason {
+		return
+	}
 	newConditions := filterOutCondition(status.Conditions, condition.Type)
 	status.Conditions = append(newConditions, condition)
 }
@@ -472,6 +477,15 @@ func CanTransitionPhase(current, next deployapi.DeploymentStatus) bool {
 // IsRollingConfig returns true if the strategy type is a rolling update.
 func IsRollingConfig(config *deployapi.DeploymentConfig) bool {
 	return config.Spec.Strategy.Type == deployapi.DeploymentStrategyTypeRolling
+}
+
+// IsProgressing expects a state deployment config and its updated status in order to
+// determine if there is any progress.
+func IsProgressing(config deployapi.DeploymentConfig, newStatus deployapi.DeploymentConfigStatus) bool {
+	oldStatusOldReplicas := config.Status.Replicas - config.Status.UpdatedReplicas
+	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
+
+	return (newStatus.UpdatedReplicas > config.Status.UpdatedReplicas) || (newStatusOldReplicas < oldStatusOldReplicas)
 }
 
 // MaxUnavailable returns the maximum unavailable pods a rolling deployment config can take.
