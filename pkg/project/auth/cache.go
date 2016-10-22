@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -413,6 +414,10 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 	addSubjectsToNamespace(groupSubjectRecordStore, review.Groups(), namespace)
 	cacheReviewRecord(request, lastKnownValue, review, reviewRecordStore)
 	ac.notifyWatchers(namespace, lastKnownValue, sets.NewString(review.Users()...), sets.NewString(review.Groups()...))
+
+	if errMsg := review.EvaluationError(); len(errMsg) > 0 {
+		return errors.New(errMsg)
+	}
 	return nil
 }
 
