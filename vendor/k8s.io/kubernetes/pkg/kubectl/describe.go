@@ -2515,6 +2515,33 @@ func describeNetworkPolicy(networkPolicy *extensions.NetworkPolicy) (string, err
 		return nil
 	})
 }
+type StorageClassDescriber struct {
+	clientset.Interface
+}
+
+func (s *StorageClassDescriber) Describe(namespace, name string, describerSettings DescriberSettings) (string, error) {
+	sc, err := s.Storage().StorageClasses().Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", sc.Name)
+		fmt.Fprintf(out, "IsDefaultClass:\t%s\n", storageutil.IsDefaultAnnotationText(sc.ObjectMeta))
+		fmt.Fprintf(out, "Annotations:\t%s\n", labels.FormatLabels(sc.Annotations))
+		fmt.Fprintf(out, "Provisioner:\t%s\n", sc.Provisioner)
+		fmt.Fprintf(out, "Parameters:\t%s\n", labels.FormatLabels(sc.Parameters))
+		if describerSettings.ShowEvents {
+			events, err := s.Core().Events(namespace).Search(sc)
+			if err != nil {
+				return err
+			}
+			if events != nil {
+				DescribeEvents(events, out)
+			}
+		}
+		return nil
+	})
+}
 
 type StorageClassDescriber struct {
 	client.Interface
