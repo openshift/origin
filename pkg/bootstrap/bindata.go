@@ -3217,7 +3217,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
@@ -3303,8 +3303,12 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                 },
                 "env": [
                   {
-                    "name": "JENKINS_PASSWORD",
-                    "value": "${JENKINS_PASSWORD}"
+                    "name": "OPENSHIFT_ENABLE_OAUTH",
+                    "value": "true"
+                  },
+                  {
+                    "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                    "value": "true"
                   },
                   {
                     "name": "KUBERNETES_MASTER",
@@ -3357,7 +3361,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "kind": "ServiceAccount",
         "apiVersion": "v1",
         "metadata": {
-            "name": "${JENKINS_SERVICE_NAME}"
+            "name": "${JENKINS_SERVICE_NAME}",
+            "annotations": {
+		"serviceaccounts.openshift.io/oauth-redirectreference.jenkins": "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
+            }
         }
     },
     {
@@ -3443,14 +3450,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "value": "jenkins-jnlp"
     },
     {
-      "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins 'admin' user.",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}",
-      "required": true
-    },
-    {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
@@ -3502,7 +3501,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
@@ -3605,8 +3604,12 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                 },
                 "env": [
                   {
-                    "name": "JENKINS_PASSWORD",
-                    "value": "${JENKINS_PASSWORD}"
+                    "name": "OPENSHIFT_ENABLE_OAUTH",
+                    "value": "true"
+                  },
+                  {
+                    "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                    "value": "true"
                   },
                   {
                     "name": "KUBERNETES_MASTER",
@@ -3659,7 +3662,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "kind": "ServiceAccount",
         "apiVersion": "v1",
         "metadata": {
-            "name": "${JENKINS_SERVICE_NAME}"
+            "name": "${JENKINS_SERVICE_NAME}",
+            "annotations": {
+                  "serviceaccounts.openshift.io/oauth-redirectref.jenkins": "{\"kind\": \"Route\", \"name\": \"${JENKINS_SERVICE_NAME}\", \"group\": \"\"}"
+            }
         }
     },
     {
@@ -3743,14 +3749,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "displayName": "Jenkins JNLP Service Name",
       "description": "The name of the service used for master/slave communication.",
       "value": "jenkins-jnlp"
-    },
-    {
-      "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins 'admin' user.",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}",
-      "required": true
     },
     {
       "name": "MEMORY_LIMIT",

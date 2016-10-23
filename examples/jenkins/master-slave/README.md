@@ -65,10 +65,9 @@ Before you begin, ensure you have created the [default imagestreams](https://doc
    ready to be used.
 
 8. Now click on *Add to project* again and select the `jenkins-master` template.
-   Here you can pick your Jenkins administrator password, alternative Docker
-   image (by default the OpenShift Jenkins Image will be used) or the custom S2I
-   repository with your configuration. For this sample, you don't need to change
-   these values.
+   Here you can pick an alternative Docker image (by default the OpenShift Jenkins
+   Image will be used) or the custom S2I repository with your configuration. For this
+   sample, you don't need to change these values.
 
 9. Click *Create* and navigate to the *Overview* page. You should see the
    Jenkins route and the link to a `jenkins-master #1 build`. Once the build
