@@ -1,6 +1,7 @@
 package defaults
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/golang/glog"
@@ -12,6 +13,9 @@ import (
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
 func init() {
@@ -23,7 +27,7 @@ func init() {
 		}
 
 		glog.V(5).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
-		return NewBuildDefaults(defaultsConfig), nil
+		return NewBuildDefaults(defaultsConfig, c), nil
 	})
 }
 
@@ -43,15 +47,24 @@ func getConfig(in io.Reader) (*defaultsapi.BuildDefaultsConfig, error) {
 type buildDefaults struct {
 	*admission.Handler
 	defaultsConfig *defaultsapi.BuildDefaultsConfig
+	cache          *projectcache.ProjectCache
+	client         clientset.Interface
 }
 
 // NewBuildDefaults returns an admission control for builds that sets build defaults
 // based on the plugin configuration
-func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig) admission.Interface {
+func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig, c clientset.Interface) admission.Interface {
 	return &buildDefaults{
 		Handler:        admission.NewHandler(admission.Create),
 		defaultsConfig: defaultsConfig,
+		client:         c,
 	}
+}
+
+var _ = oadmission.WantsProjectCache(&buildDefaults{})
+
+func (a *buildDefaults) SetProjectCache(cache *projectcache.ProjectCache) {
+	a.cache = cache
 }
 
 // Admit applies configured build defaults to a pod that is identified
@@ -130,6 +143,24 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 			build.Spec.Source.Git.NoProxy = &t
 		}
 	}
+
+	//apply default source secret if one set after all validation
+	//BUG: build fails because secret is not mounted...
+	secret, err := a.setDefaultSourceSecret(build)
+	if err == nil {
+		if build.Spec.Source.SourceSecret == nil {
+			//check if secret exist for Setting
+			_, err := a.client.Core().Secrets(build.Namespace).Get(secret)
+			if err != nil {
+				glog.V(5).Infof("Default sourceSecret %s not found for  %s/%s  . Skipping it. ", build.Namespace, build.Name, secret)
+			} else {
+				glog.V(5).Infof("Setting sourceSecret for %s/%s %s ", build.Namespace, build.Name, secret)
+				var ss kapi.LocalObjectReference
+				ss.Name = secret
+				build.Spec.Source.SourceSecret = &ss
+			}
+		}
+	}
 }
 
 func getBuildEnv(build *buildapi.Build) *[]kapi.EnvVar {
@@ -167,4 +198,38 @@ func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.I
 	if !found {
 		*buildLabels = append(*buildLabels, defaultLabel)
 	}
+}
+
+//setDefaultSourceSecret method check if sourcesecret is set via defaults options and return result or err in non found
+func (a *buildDefaults) setDefaultSourceSecret(build *buildapi.Build) (string, error) {
+	//check if project annotion is set for default SourceSecret
+	//second option is global config.
+	ns, err := a.cache.GetNamespace(build.Namespace)
+	if err == nil {
+		if contains(ns.Annotations, "openshift.io/sourceSecret") {
+			annotation := ns.Annotations["openshift.io/sourceSecret"]
+			if len(annotation) > 0 {
+				//todo add checks if secret exist.
+				glog.V(5).Infof("Setting SourceSecret from project annotation on %s/%s . Secret name:  %s", build.Namespace, build.Name, annotation)
+				return annotation, nil
+			}
+		} else {
+			if len(a.defaultsConfig.SourceSecret) != 0 {
+				//todo add checks if secret exist.
+				glog.V(5).Infof("Setting sourceSecret from defaultConfig on %s/%s . Secret name: %s", build.Namespace, build.Name, a.defaultsConfig.SourceSecret)
+				return a.defaultsConfig.SourceSecret, nil
+			}
+		}
+	}
+	glog.V(5).Infof("No default sourceSecret for %s/%s in admission plugin", build.Namespace, build.Name)
+	return "", fmt.Errorf("No default sourceSecret found. default behaviour for %s/%s", build.Namespace, build.Name)
+}
+
+func contains(s map[string]string, e string) bool {
+	for k := range s {
+		if k == e {
+			return true
+		}
+	}
+	return false
 }
