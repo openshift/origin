@@ -479,11 +479,7 @@ function os::build::place_bins() {
 readonly -f os::build::place_bins
 
 function os::build::archive_name() {
-  if [[ "${OS_GIT_VERSION}" == *+${OS_GIT_COMMIT} ]]; then
-    echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1"
-    return
-  fi
-  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-$1"
+  echo "${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-$1"
 }
 readonly -f os::build::archive_name
 
@@ -672,10 +668,8 @@ function os::build::os_version_vars() {
         OS_GIT_TREE_STATE="dirty"
       fi
     fi
-    OS_GIT_SHORT_VERSION="${OS_GIT_COMMIT}"
-
     # Use git describe to find the version based on annotated tags.
-    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+    if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --long --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
       # Try to match the "git describe" output to a regex to try to extract
       # the "major" and "minor" versions and whether this is the exact tagged
       # version or whether the tree is between two tagged versions.
@@ -689,16 +683,14 @@ function os::build::os_version_vars() {
 
       # This translates the "git describe" to an actual semver.org
       # compatible semantic version that looks something like this:
-      #   v1.1.0-alpha.0.6+84c76d1142ea4d
-      #
-      # TODO: We continue calling this "git version" because so many
-      # downstream consumers are expecting it there.
-      OS_GIT_VERSION=$(echo "${OS_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7,40\}\)$/\+\2/")
+      #   v1.1.0-alpha.0.6+84c76d1-345
+      OS_GIT_VERSION=$(echo "${OS_GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{7,40\}\)$/\+\2-\1/")
+      # If this is an exact tag, remove the last segment.
+      OS_GIT_VERSION=$(echo "${OS_GIT_VERSION}" | sed "s/-0$//")
       if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
         # git describe --dirty only considers changes to existing files, but
         # that is problematic since new untracked .go files affect the build,
         # so use our idea of "dirty" from git status instead.
-        OS_GIT_SHORT_VERSION+="-dirty"
         OS_GIT_VERSION+="-dirty"
       fi
     fi
