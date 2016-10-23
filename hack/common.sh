@@ -929,7 +929,7 @@ function os::build::environment::withsource() {
   else
     local workingdir
     workingdir="$(docker inspect -f '{{ index . "Config" "WorkingDir" }}' "${container}")"
-    if [[ -n "{OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
+    if [[ -n "${OS_BUILD_ENV_REUSE_VOLUME:-}" ]]; then
       local excluded=()
       local oldIFS="${IFS}"
       IFS=:
