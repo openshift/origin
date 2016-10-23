@@ -32,6 +32,9 @@ type BuildDefaultsConfig struct {
 	// User can override a default label by providing a label with the same name in their
 	// Build/BuildConfig.
 	ImageLabels []buildapi.ImageLabel
+
+	// Resources computes resource requirements to execute the build.
+	Resources *kapi.ResourceRequirements
 }
 
 // SourceStrategyDefaultsConfig contains values that apply to builds using the
