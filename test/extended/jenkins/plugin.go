@@ -29,7 +29,7 @@ func getAdminPassword(oc *exutil.CLI) string {
 			return s[1]
 		}
 	}
-	return ""
+	return "password"
 }
 
 func immediateInteractionWithJenkins(uri, method, password string, body io.Reader, status int) {
@@ -142,7 +142,8 @@ var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
 			testingSnapshot = true
 		} else {
 			// no test image, testing the base jenkins image with the current, supported version of the plugin
-			jenkinsEphemeralPath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+			//TODO disabling oauth until we can update getAdminPassword path to handle oauth (perhaps borrow from oauth integration tests)
+			jenkinsEphemeralPath = exutil.FixturePath("testdata", "jenkins-ephemeral-template-no-oauth.json")
 		}
 		err = oc.Run("new-app").Args(jenkinsEphemeralPath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
