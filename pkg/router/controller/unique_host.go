@@ -84,6 +84,11 @@ func (p *UniqueHost) HandleEndpoints(eventType watch.EventType, endpoints *kapi.
 	return p.plugin.HandleEndpoints(eventType, endpoints)
 }
 
+// HandleNode processes watch events on the Node resource and calls the router
+func (p *UniqueHost) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	return p.plugin.HandleNode(eventType, node)
+}
+
 // HandleRoute processes watch events on the Route resource.
 // TODO: this function can probably be collapsed with the router itself, as a function that
 //   determines which component needs to be recalculated (which template) and then does so

@@ -295,6 +295,10 @@ func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.
 	return a.plugin.HandleRoute(eventType, route)
 }
 
+func (a *StatusAdmitter) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	return a.plugin.HandleNode(eventType, node)
+}
+
 func (a *StatusAdmitter) HandleEndpoints(eventType watch.EventType, route *kapi.Endpoints) error {
 	return a.plugin.HandleEndpoints(eventType, route)
 }
