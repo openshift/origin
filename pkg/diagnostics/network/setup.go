@@ -17,14 +17,13 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	diagutil "github.com/openshift/origin/pkg/diagnostics/util"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 )
 
 func (d *NetworkDiagnostic) TestSetup() error {
 	d.nsName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
 
 	nsList := []string{d.nsName}
-	if sdnplugin.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
+	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
 		d.globalnsName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
 		nsList = append(nsList, d.globalnsName)
 	}

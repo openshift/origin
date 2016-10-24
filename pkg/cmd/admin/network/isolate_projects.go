@@ -41,7 +41,7 @@ func NewCmdIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.Fac
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Isolate project network",
-		Long:    fmt.Sprintf(isolateProjectsNetworkLong, ovsPluginName),
+		Long:    fmt.Sprintf(isolateProjectsNetworkLong, sdnapi.MultiTenantPluginName),
 		Example: fmt.Sprintf(isolateProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {
