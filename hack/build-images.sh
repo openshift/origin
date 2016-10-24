@@ -15,7 +15,7 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
   imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
   # identical to build-cross.sh
   os::build::os_version_vars
-  OS_RELEASE_COMMIT="${OS_GIT_VERSION}"
+  OS_RELEASE_COMMIT="${OS_GIT_VERSION//+/-}"
   OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
 
   echo "Building images from source ${OS_RELEASE_COMMIT}:"
