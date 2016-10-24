@@ -1,0 +1,42 @@
+.TH "OPENSHIFT INFRA" "1" " Openshift CLI User Manuals" "Openshift" "June 2016"  ""
+
+
+.SH NAME
+.PP
+openshift infra network\-diagnostic\-pod \- Within a privileged pod, run network diagnostics
+
+
+.SH SYNOPSIS
+.PP
+\fBopenshift infra network\-diagnostic\-pod\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+This utility is intended to run network diagnostics inside a privileged container and log the results so that the calling diagnostic can report them.
+
+
+.SH OPTIONS
+.PP
+\fB\-l\fP, \fB\-\-diaglevel\fP=1
+    Level of diagnostic output: 4: Error, 3: Warn, 2: Notice, 1: Info, 0: Debug
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-\-google\-json\-key\fP=""
+    The Google Cloud Platform Service Account JSON Key to use for authentication.
+
+.PP
+\fB\-\-log\-flush\-frequency\fP=0
+    Maximum number of seconds between log flushes
+
+
+.SH SEE ALSO
+.PP
+\fBopenshift\-infra(1)\fP,
+
+
+.SH HISTORY
+.PP
+June 2016, Ported from the Kubernetes man\-doc generator

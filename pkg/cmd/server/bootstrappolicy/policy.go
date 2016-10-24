@@ -531,6 +531,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("list", "watch").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
 				authorizationapi.NewRule("list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),
+				authorizationapi.NewRule("list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 
 				authorizationapi.NewRule("list", "watch").Groups(routeGroup).Resources("routes").RuleOrDie(),
 				authorizationapi.NewRule("update").Groups(routeGroup).Resources("routes/status").RuleOrDie(),

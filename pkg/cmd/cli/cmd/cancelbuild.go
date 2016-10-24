@@ -234,7 +234,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			}
 
 			resource, name, _ := cmdutil.ResolveResource(buildapi.Resource("builds"), build.Name, o.Mapper)
-			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, resource.Resource, name, "cancelled")
+			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, resource.Resource, name, false, "cancelled")
 		}(b)
 	}
 	wg.Wait()
@@ -248,7 +248,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				continue
 			}
 			resource, name, _ := cmdutil.ResolveResource(buildapi.Resource("builds"), build.Name, o.Mapper)
-			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, resource.Resource, name, fmt.Sprintf("restarted build %q", b.Name))
+			kcmdutil.PrintSuccess(o.Mapper, false, o.Out, resource.Resource, name, false, fmt.Sprintf("restarted build %q", b.Name))
 		}
 	}
 

@@ -119,6 +119,27 @@ func (OAuthClientList) SwaggerDoc() map[string]string {
 	return map_OAuthClientList
 }
 
+var map_OAuthRedirectReference = map[string]string{
+	"":          "OAuthRedirectReference is a reference to an OAuth redirect object.",
+	"metadata":  "Standard object's metadata.",
+	"reference": "The reference to an redirect object in the current namespace.",
+}
+
+func (OAuthRedirectReference) SwaggerDoc() map[string]string {
+	return map_OAuthRedirectReference
+}
+
+var map_RedirectReference = map[string]string{
+	"":      "RedirectReference specifies the target in the current namespace that resolves into redirect URIs.  Only the 'Route' kind is currently allowed.",
+	"group": "The group of the target that is being referred to.",
+	"kind":  "The kind of the target that is being referred to.  Currently, only 'Route' is allowed.",
+	"name":  "The name of the target that is being referred to. e.g. name of the Route.",
+}
+
+func (RedirectReference) SwaggerDoc() map[string]string {
+	return map_RedirectReference
+}
+
 var map_ScopeRestriction = map[string]string{
 	"":            "ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.",
 	"literals":    "ExactValues means the scope has to match a particular set of strings exactly",

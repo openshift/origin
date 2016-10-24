@@ -36,12 +36,12 @@ var (
 )
 
 // RolloutLatestOptions holds all the options for the `rollout latest` command.
-// TODO: Support --dry-run
 type RolloutLatestOptions struct {
 	mapper meta.RESTMapper
 	typer  runtime.ObjectTyper
 	infos  []*resource.Info
 
+	DryRun bool
 	out    io.Writer
 	output string
 	again  bool
@@ -76,7 +76,8 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 		ValidArgs: []string{"deploymentconfig"},
 	}
 
-	kcmdutil.AddOutputFlagsForMutation(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().Bool("again", false, "Deploy the current pod template without updating state from triggers")
 
 	return cmd
@@ -91,6 +92,8 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	if err != nil {
 		return err
 	}
+
+	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
 	o.oc, o.kc, err = f.Clients()
 	if err != nil {
@@ -148,30 +151,35 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 		return err
 	}
 
-	request := &deployapi.DeploymentRequest{
-		Name:   config.Name,
-		Latest: !o.again,
-		Force:  true,
-	}
+	dc := config
+	if !o.DryRun {
+		request := &deployapi.DeploymentRequest{
+			Name:   config.Name,
+			Latest: !o.again,
+			Force:  true,
+		}
 
-	dc, err := o.oc.DeploymentConfigs(config.Namespace).Instantiate(request)
-	// Pre 1.4 servers don't support the instantiate endpoint. Fallback to incrementing
-	// latestVersion on them.
-	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
-		config.Status.LatestVersion++
-		dc, err = o.oc.DeploymentConfigs(config.Namespace).Update(config)
-	}
-	if err != nil {
-		return err
-	}
+		dc, err = o.oc.DeploymentConfigs(config.Namespace).Instantiate(request)
 
-	info.Refresh(dc, true)
+		// Pre 1.4 servers don't support the instantiate endpoint. Fallback to incrementing
+		// latestVersion on them.
+		if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
+			config.Status.LatestVersion++
+			dc, err = o.oc.DeploymentConfigs(config.Namespace).Update(config)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		info.Refresh(dc, true)
+	}
 
 	if o.output == "revision" {
 		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
 		return nil
 	}
 
-	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, "rolled out")
+	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, o.DryRun, "rolled out")
 	return nil
 }

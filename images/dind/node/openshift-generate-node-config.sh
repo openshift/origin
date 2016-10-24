@@ -33,7 +33,7 @@ function ensure-node-config() {
 
     # Wait for the master to generate its config
     local condition="test -f ${master_config_file}"
-    os::util::wait-for-condition "admin config" "${condition}" "${OS_WAIT_FOREVER}"
+    os::util::wait-for-condition "admin config" "${condition}"
 
     local master_host
     master_host="$(grep server "${master_config_file}" | grep -v localhost | awk '{print $2}')"

@@ -122,7 +122,7 @@ func (o *CreatePolicyBindingOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "policybinding", actualBinding.Name, "created")
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "policybinding", actualBinding.Name, false, "created")
 		return nil
 	}
 

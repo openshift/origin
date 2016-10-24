@@ -256,6 +256,8 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.ControllerConfig.ServiceServingCert.Signer.KeyFile)
 	}
 
+	refs = append(refs, &config.AuditConfig.AuditFilePath)
+
 	return refs
 }
 

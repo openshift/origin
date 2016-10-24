@@ -85,11 +85,11 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 	return errs
 }
 
-func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, indent string) AfterFunc {
+func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, dryRun bool, indent string) AfterFunc {
 	return func(info *resource.Info, err error) bool {
 		if err == nil {
 			fmt.Fprintf(out, indent)
-			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Resource, info.Name, operation)
+			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Resource, info.Name, dryRun, operation)
 		} else {
 			fmt.Fprintf(errs, "%serror: %v\n", indent, err)
 		}
@@ -191,10 +191,10 @@ func (b BulkAction) WithMessage(action, individual string) Runner {
 	switch {
 	// TODO: this should be b printer
 	case b.Output == "":
-		b.Bulk.After = NewPrintNameOrErrorAfterIndent(b.Bulk.Mapper, false, individual, b.Out, b.ErrOut, b.DefaultIndent())
+		b.Bulk.After = NewPrintNameOrErrorAfterIndent(b.Bulk.Mapper, false, individual, b.Out, b.ErrOut, b.DryRun, b.DefaultIndent())
 	// TODO: needs to be unified with the name printer (incremental vs exact execution), possibly by creating b synthetic printer?
 	case b.Output == "name":
-		b.Bulk.After = NewPrintNameOrErrorAfterIndent(b.Bulk.Mapper, true, individual, b.Out, b.ErrOut, b.DefaultIndent())
+		b.Bulk.After = NewPrintNameOrErrorAfterIndent(b.Bulk.Mapper, true, individual, b.Out, b.ErrOut, b.DryRun, b.DefaultIndent())
 	default:
 		b.Bulk.After = NewPrintErrorAfter(b.Bulk.Mapper, b.ErrOut)
 		if b.StopOnError {
@@ -214,7 +214,7 @@ func (b *BulkAction) Run(list *kapi.List, namespace string) []error {
 	var modifier string
 	if b.DryRun {
 		run.Op = NoOp
-		modifier = " (DRY RUN)"
+		modifier = " (dry run)"
 	}
 
 	errs := run.Run(list, namespace)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	"github.com/openshift/origin/pkg/diagnostics/util"
 )
 
 // ConfigLoading is a little special in that it is run separately as a precondition
@@ -93,13 +94,8 @@ or you can set the environment variable %[1]s:
 If not, obtain a config file and place it in the standard
 location for use by the client and diagnostics.
 `
-		adminPaths := []string{
-			"/etc/openshift/master/admin.kubeconfig",           // enterprise
-			"/openshift.local.config/master/admin.kubeconfig",  // origin systemd
-			"./openshift.local.config/master/admin.kubeconfig", // origin binary
-		}
 		// look for it in auto-generated locations when not found properly
-		for _, path := range adminPaths {
+		for _, path := range util.AdminKubeConfigPaths {
 			msg := fmt.Sprintf("Looking for a possible client config at %s\n", path)
 			if d.canOpenConfigFile(path, msg, r) {
 				r.Warn("DCli1003", nil, fmt.Sprintf(adminWarningF, config.OpenShiftConfigPathEnvVar, path, config.RecommendedHomeFile))

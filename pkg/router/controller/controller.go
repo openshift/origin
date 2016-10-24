@@ -28,6 +28,7 @@ type RouterController struct {
 
 	Plugin        router.Plugin
 	NextRoute     func() (watch.EventType, *routeapi.Route, error)
+	NextNode      func() (watch.EventType, *kapi.Node, error)
 	NextEndpoints func() (watch.EventType, *kapi.Endpoints, error)
 
 	RoutesListConsumed    func() bool
@@ -35,6 +36,8 @@ type RouterController struct {
 	routesListConsumed    bool
 	endpointsListConsumed bool
 	filteredByNamespace   bool
+
+	WatchNodes bool
 
 	Namespaces            NamespaceLister
 	NamespaceSyncInterval time.Duration
@@ -51,6 +54,9 @@ func (c *RouterController) Run() {
 	}
 	go utilwait.Forever(c.HandleRoute, 0)
 	go utilwait.Forever(c.HandleEndpoints, 0)
+	if c.WatchNodes {
+		go utilwait.Forever(c.HandleNode, 0)
+	}
 }
 
 func (c *RouterController) HandleNamespaces() {
@@ -76,6 +82,25 @@ func (c *RouterController) HandleNamespaces() {
 		time.Sleep(c.NamespaceWaitInterval)
 	}
 	glog.V(4).Infof("Unable to update list of namespaces")
+}
+
+// HandleNode handles a single Node event and synchronizes the router backend
+func (c *RouterController) HandleNode() {
+	eventType, node, err := c.NextNode()
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("unable to read nodes: %v", err))
+		return
+	}
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	glog.V(4).Infof("Processing Node : %s", node.Name)
+	glog.V(4).Infof("           Event: %s", eventType)
+
+	if err := c.Plugin.HandleNode(eventType, node); err != nil {
+		utilruntime.HandleError(err)
+	}
 }
 
 // HandleRoute handles a single Route event and synchronizes the router backend.

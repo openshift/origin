@@ -325,13 +325,21 @@ type AuditConfig struct {
 	// If this flag is set, audit log will be printed in the logs.
 	// The logs contains, method, user and a requested URL.
 	Enabled bool
+	// All requests coming to the apiserver will be logged to this file.
+	AuditFilePath string
+	// Maximum number of days to retain old log files based on the timestamp encoded in their filename.
+	MaximumFileRetentionDays int
+	// Maximum number of old log files to retain.
+	MaximumRetainedFiles int
+	// Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.
+	MaximumFileSizeMegabytes int
 }
 
 // JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy
 type JenkinsPipelineConfig struct {
 	// AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided
 	// template when the first build config in the project with type JenkinsPipeline
-	// is created. When not specified this option defaults to false.
+	// is created. When not specified this option defaults to true.
 	AutoProvisionEnabled *bool
 	// TemplateNamespace contains the namespace name where the Jenkins template is stored
 	TemplateNamespace string

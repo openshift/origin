@@ -3217,7 +3217,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
@@ -3303,8 +3303,12 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                 },
                 "env": [
                   {
-                    "name": "JENKINS_PASSWORD",
-                    "value": "${JENKINS_PASSWORD}"
+                    "name": "OPENSHIFT_ENABLE_OAUTH",
+                    "value": "true"
+                  },
+                  {
+                    "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                    "value": "true"
                   },
                   {
                     "name": "KUBERNETES_MASTER",
@@ -3357,7 +3361,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "kind": "ServiceAccount",
         "apiVersion": "v1",
         "metadata": {
-            "name": "${JENKINS_SERVICE_NAME}"
+            "name": "${JENKINS_SERVICE_NAME}",
+            "annotations": {
+		"serviceaccounts.openshift.io/oauth-redirectreference.jenkins": "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
+            }
         }
     },
     {
@@ -3443,14 +3450,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "value": "jenkins-jnlp"
     },
     {
-      "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins 'admin' user.",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}",
-      "required": true
-    },
-    {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
@@ -3502,7 +3501,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
@@ -3605,8 +3604,12 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                 },
                 "env": [
                   {
-                    "name": "JENKINS_PASSWORD",
-                    "value": "${JENKINS_PASSWORD}"
+                    "name": "OPENSHIFT_ENABLE_OAUTH",
+                    "value": "true"
+                  },
+                  {
+                    "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                    "value": "true"
                   },
                   {
                     "name": "KUBERNETES_MASTER",
@@ -3659,7 +3662,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "kind": "ServiceAccount",
         "apiVersion": "v1",
         "metadata": {
-            "name": "${JENKINS_SERVICE_NAME}"
+            "name": "${JENKINS_SERVICE_NAME}",
+            "annotations": {
+                  "serviceaccounts.openshift.io/oauth-redirectref.jenkins": "{\"kind\": \"Route\", \"name\": \"${JENKINS_SERVICE_NAME}\", \"group\": \"\"}"
+            }
         }
     },
     {
@@ -3745,14 +3751,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "value": "jenkins-jnlp"
     },
     {
-      "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins 'admin' user.",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}",
-      "required": true
-    },
-    {
       "name": "MEMORY_LIMIT",
       "displayName": "Memory Limit",
       "description": "Maximum amount of memory the container can use.",
@@ -3806,7 +3804,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
     "name": "jenkins-pipeline-example",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This example showcases the new Jenkins Pipeline integration in OpenShift, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
+      "description": "This example showcases the new Jenkins Pipeline integration in OpenShift, which performs continuous integration and deployment right on the platform. The template contains a Jenkinsfile - a definition of a multi-stage CI/CD process - that leverages the underlying OpenShift platform for dynamic and scalable builds. OpenShift integrates the status of your pipeline builds into the web console allowing you to see your entire application lifecycle in a single view.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -3823,7 +3821,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
           "name": "sample-pipeline"
         },
         "annotations": {
-          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"frontend\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
+          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"${NAME}\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
         }
       },
       "spec": {
@@ -3844,463 +3842,455 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('maven') {\nstage 'build'\nopenshiftBuild(buildConfig: 'ruby-sample-build', showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: 'frontend')\n}"
+            "jenkinsfile": "node('nodejs') {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}' showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
           }
         }
       }
     },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null,
-        "annotations": {
-          "service.alpha.openshift.io/dependencies": "[{\"name\": \"database\", \"namespace\": \"\", \"kind\": \"Service\"}]"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "web",
-            "protocol": "TCP",
-            "port": 5432,
-            "targetPort": 8080,
-            "nodePort": 0
+      {
+        "kind": "Service",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]"
           }
-        ],
-        "selector": {
-          "name": "frontend"
         },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    },
-    {
-      "kind": "Route",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "to": {
-          "kind": "Service",
-          "name": "frontend"
-        },
-        "tls": {
-          "termination": "edge"
-        }
-      },
-      "status": {}
-    },
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "ruby-sample-build",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "ruby-sample-build"
-        }
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "GitHub",
-            "github": {
-              "secret": "secret101"
+        "spec": {
+          "ports": [
+            {
+              "name": "web",
+              "port": 8080,
+              "targetPort": 8080
             }
-          },
-          {
-            "type": "Generic",
-            "generic": {
-              "secret": "secret101"
-            }
+          ],
+          "selector": {
+            "name": "${NAME}"
           }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git"
-          }
+        }
+      },
+      {
+        "kind": "Route",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}"
         },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "ruby:2.2",
-              "namespace": "openshift"
-            },
-            "env": [
-              {
-                "name": "EXAMPLE",
-                "value": "sample-app"
-              }
-            ]
-          }
-        },
-        "output": {
+        "spec": {
+          "host": "${APPLICATION_DOMAIN}",
           "to": {
-            "kind": "ImageStreamTag",
-            "name": "origin-ruby-sample:latest"
-          }
-        },
-        "postCommit": {
-          "args": ["bundle", "exec", "rake", "test"]
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "strategy": {
-          "type": "Rolling",
-          "rollingParams": {
-            "updatePeriodSeconds": 1,
-            "intervalSeconds": 1,
-            "timeoutSeconds": 120,
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            }
-          },
-          "resources": {}
-        },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "ruby-helloworld"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "origin-ruby-sample:latest"
-              }
-            }
-          }
-        ],
-        "replicas": 2,
-        "selector": {
-          "name": "frontend"
-        },
-        "template": {
-          "metadata": {
-            "creationTimestamp": null,
-            "labels": {
-              "name": "frontend"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld",
-                "image": " ",
-                "ports": [
-                  {
-                    "containerPort": 8080,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "ADMIN_USERNAME",
-                    "value": "${ADMIN_USERNAME}"
-                  },
-                  {
-                    "name": "ADMIN_PASSWORD",
-                    "value": "${ADMIN_PASSWORD}"
-                  },
-                  {
-                    "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
-                  },
-                  {
-                    "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
-                  }
-                ],
-                "resources": {},
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
+            "kind": "Service",
+            "name": "${NAME}"
           }
         }
       },
-      "status": {}
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "db",
-            "protocol": "TCP",
-            "port": 5434,
-            "targetPort": 3306,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "database"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    },
-    {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "database",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "strategy": {
-          "type": "Recreate",
-          "recreateParams": {
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "mid": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            }
-          },
-          "resources": {}
-        },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "ruby-helloworld-database"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "mysql:5.6",
-                "namespace": "openshift"
-              }
-            }
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
-        "replicas": 1,
-        "selector": {
-          "name": "database"
-        },
-        "template": {
-          "metadata": {
-            "creationTimestamp": null,
-            "labels": {
-              "name": "database"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "ruby-helloworld-database",
-                "image": " ",
-                "ports": [
-                  {
-                    "containerPort": 3306,
-                    "protocol": "TCP"
-                  }
-                ],
-                "env": [
-                  {
-                    "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
-                  },
-                  {
-                    "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
-                  },
-                  {
-                    "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
-                  }
-                ],
-                "resources": {},
-                "volumeMounts": [
-                  {
-                    "name": "ruby-helloworld-data",
-                    "mountPath": "/var/lib/mysql/data"
-                  }
-                ],
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "Always",
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "volumes": [
-              {
-                "name": "ruby-helloworld-data",
-                "emptyDir": {
-                  "medium": ""
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
+      {
+        "kind": "ImageStream",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Keeps track of changes in the application image"
           }
         }
       },
-      "status": {}
-    }
-  ],
+      {
+        "kind": "BuildConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Defines how to build the application"
+          }
+        },
+        "spec": {
+          "source": {
+            "type": "Git",
+            "git": {
+              "uri": "${SOURCE_REPOSITORY_URL}",
+              "ref": "${SOURCE_REPOSITORY_REF}"
+            },
+            "contextDir": "${CONTEXT_DIR}"
+          },
+          "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "${NAMESPACE}",
+                "name": "nodejs:4"
+              },
+              "env":  [
+                {
+                    "name": "NPM_MIRROR",
+                    "value": "${NPM_MIRROR}"
+                }
+              ]
+            }
+          },
+          "output": {
+            "to": {
+              "kind": "ImageStreamTag",
+              "name": "${NAME}:latest"
+            }
+          },
+          "triggers": [
+            {
+              "type": "GitHub",
+              "github": {
+                "secret": "${GITHUB_WEBHOOK_SECRET}"
+              }
+            },
+            {
+              "type": "Generic",
+              "generic": {
+                "secret": "${GENERIC_WEBHOOK_SECRET}"
+              }
+            }
+          ],
+          "postCommit": {
+            "script": "npm test"
+          }
+        }
+      },
+      {
+        "kind": "DeploymentConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${NAME}",
+          "annotations": {
+            "description": "Defines how to deploy the application server"
+          }
+        },
+        "spec": {
+          "strategy": {
+            "type": "Rolling"
+          },
+          "triggers": [
+            {
+              "type": "ImageChange",
+              "imageChangeParams": {
+                "automatic": true,
+                "containerNames": [
+                  "nodejs-mongodb-example"
+                ],
+                "from": {
+                  "kind": "ImageStreamTag",
+                  "name": "${NAME}:latest"
+                }
+              }
+            },
+            {
+              "type": "ConfigChange"
+            }
+          ],
+          "replicas": 1,
+          "selector": {
+            "name": "${NAME}"
+          },
+          "template": {
+            "metadata": {
+              "name": "${NAME}",
+              "labels": {
+                "name": "${NAME}"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "nodejs-mongodb-example",
+                  "image": " ",
+                  "ports": [
+                    {
+                      "containerPort": 8080
+                    }
+                  ],
+                  "env": [
+                    {
+                      "name": "DATABASE_SERVICE_NAME",
+                      "value": "${DATABASE_SERVICE_NAME}"
+                    },
+                    {
+                      "name": "MONGODB_USER",
+                      "value": "${DATABASE_USER}"
+                    },
+                    {
+                      "name": "MONGODB_PASSWORD",
+                      "value": "${DATABASE_PASSWORD}"
+                    },
+                    {
+                      "name": "MONGODB_DATABASE",
+                      "value": "${DATABASE_NAME}"
+                    },
+                    {
+                      "name": "MONGODB_ADMIN_PASSWORD",
+                      "value": "${DATABASE_ADMIN_PASSWORD}"
+                    }
+                  ],
+                  "readinessProbe": {
+                    "timeoutSeconds": 3,
+                    "initialDelaySeconds": 3,
+                    "httpGet": {
+                      "path": "/pagecount",
+                      "port": 8080
+                    }
+                  },
+                  "livenessProbe": {
+                      "timeoutSeconds": 3,
+                      "initialDelaySeconds": 30,
+                      "httpGet": {
+                          "path": "/pagecount",
+                          "port": 8080
+                      }
+                  },
+                  "resources": {
+                      "limits": {
+                          "memory": "${MEMORY_LIMIT}"
+                      }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "Service",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${DATABASE_SERVICE_NAME}",
+          "annotations": {
+            "description": "Exposes the database server"
+          }
+        },
+        "spec": {
+          "ports": [
+            {
+              "name": "mongodb",
+              "port": 27017,
+              "targetPort": 27017
+            }
+          ],
+          "selector": {
+            "name": "${DATABASE_SERVICE_NAME}"
+          }
+        }
+      },
+      {
+        "kind": "DeploymentConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "${DATABASE_SERVICE_NAME}",
+          "annotations": {
+            "description": "Defines how to deploy the database"
+          }
+        },
+        "spec": {
+          "strategy": {
+            "type": "Recreate"
+          },
+          "triggers": [
+            {
+              "type": "ImageChange",
+              "imageChangeParams": {
+                "automatic": true,
+                "containerNames": [
+                  "mongodb"
+                ],
+                "from": {
+                  "kind": "ImageStreamTag",
+                  "namespace": "${NAMESPACE}",
+                  "name": "mongodb:3.2"
+                }
+              }
+            },
+            {
+              "type": "ConfigChange"
+            }
+          ],
+          "replicas": 1,
+          "selector": {
+            "name": "${DATABASE_SERVICE_NAME}"
+          },
+          "template": {
+            "metadata": {
+              "name": "${DATABASE_SERVICE_NAME}",
+              "labels": {
+                "name": "${DATABASE_SERVICE_NAME}"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "mongodb",
+                  "image": " ",
+                  "ports": [
+                    {
+                      "containerPort": 27017
+                    }
+                  ],
+                  "env": [
+                    {
+                      "name": "MONGODB_USER",
+                      "value": "${DATABASE_USER}"
+                    },
+                    {
+                      "name": "MONGODB_PASSWORD",
+                      "value": "${DATABASE_PASSWORD}"
+                    },
+                    {
+                      "name": "MONGODB_DATABASE",
+                      "value": "${DATABASE_NAME}"
+                    },
+                    {
+                      "name": "MONGODB_ADMIN_PASSWORD",
+                      "value": "${DATABASE_ADMIN_PASSWORD}"
+                    }
+                  ],
+                  "readinessProbe": {
+                    "timeoutSeconds": 1,
+                    "initialDelaySeconds": 3,
+                    "exec": {
+                      "command": [ "/bin/sh", "-i", "-c", "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""]
+                    }
+                  },
+                  "livenessProbe": {
+                    "timeoutSeconds": 1,
+                    "initialDelaySeconds": 30,
+                    "tcpSocket": {
+                      "port": 27017
+                    }
+                  },
+                  "resources": {
+                      "limits": {
+                          "memory": "${MEMORY_MONGODB_LIMIT}"
+                      }
+                  },
+                  "volumeMounts": [
+                    {
+                      "name": "${DATABASE_SERVICE_NAME}-data",
+                      "mountPath": "/var/lib/mongodb/data"
+                    }
+                  ]
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "${DATABASE_SERVICE_NAME}-data",
+                  "emptyDir": {
+                    "medium": ""
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
   "parameters": [
-    {
-      "name": "ADMIN_USERNAME",
-      "description": "administrator username",
-      "generate": "expression",
-      "from": "admin[A-Z0-9]{3}"
-    },
-    {
-      "name": "ADMIN_PASSWORD",
-      "description": "administrator password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
-    },
-    {
-      "name": "MYSQL_USER",
-      "description": "database username",
-      "generate": "expression",
-      "from": "user[A-Z0-9]{3}",
-      "required": true
-    },
-    {
-      "name": "MYSQL_PASSWORD",
-      "description": "database password",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}",
-      "required": true
-    },
-    {
-      "name": "MYSQL_DATABASE",
-      "description": "database name",
-      "value": "root",
-      "required": true
-    }
+      {
+        "name": "NAME",
+        "displayName": "Name",
+        "description": "The name assigned to all of the frontend objects defined in this template.",
+        "required": true,
+        "value": "nodejs-mongodb-example"
+      },
+      {
+        "name": "NAMESPACE",
+        "displayName": "Namespace",
+        "description": "The OpenShift Namespace where the ImageStream resides.",
+        "required": true,
+        "value": "openshift"
+      },
+      {
+        "name": "MEMORY_LIMIT",
+        "displayName": "Memory Limit",
+        "description": "Maximum amount of memory the Node.js container can use.",
+        "required": true,
+        "value": "512Mi"
+      },
+      {
+        "name": "MEMORY_MONGODB_LIMIT",
+        "displayName": "Memory Limit (MongoDB)",
+        "description": "Maximum amount of memory the MongoDB container can use.",
+        "required": true,
+        "value": "512Mi"
+      },
+      {
+        "name": "SOURCE_REPOSITORY_URL",
+        "displayName": "Git Repository URL",
+        "description": "The URL of the repository with your application source code.",
+        "required": true,
+        "value": "https://github.com/openshift/nodejs-ex.git"
+      },
+      {
+        "name": "SOURCE_REPOSITORY_REF",
+        "displayName": "Git Reference",
+        "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+      },
+      {
+        "name": "CONTEXT_DIR",
+        "displayName": "Context Directory",
+        "description": "Set this to the relative path to your project if it is not in the root of your repository."
+      },
+      {
+        "name": "APPLICATION_DOMAIN",
+        "displayName": "Application Hostname",
+        "description": "The exposed hostname that will route to the Node.js service, if left blank a value will be defaulted.",
+        "value": ""
+      },
+      {
+        "name": "GITHUB_WEBHOOK_SECRET",
+        "displayName": "GitHub Webhook Secret",
+        "description": "A secret string used to configure the GitHub webhook.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{40}"
+      },
+      {
+        "name": "GENERIC_WEBHOOK_SECRET",
+        "displayName": "Generic Webhook Secret",
+        "description": "A secret string used to configure the Generic webhook.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{40}"
+      },
+      {
+        "name": "DATABASE_SERVICE_NAME",
+        "displayName": "Database Service Name",
+        "required": true,
+        "value": "mongodb"
+      },
+      {
+        "name": "DATABASE_USER",
+        "displayName": "MongoDB Username",
+        "description": "Username for MongoDB user that will be used for accessing the database.",
+        "generate": "expression",
+        "from": "user[A-Z0-9]{3}"
+      },
+      {
+        "name": "DATABASE_PASSWORD",
+        "displayName": "MongoDB Password",
+        "description": "Password for the MongoDB user.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{16}"
+      },
+      {
+        "name": "DATABASE_NAME",
+        "displayName": "Database Name",
+        "required": true,
+        "value": "sampledb"
+      },
+      {
+        "name": "DATABASE_ADMIN_PASSWORD",
+        "displayName": "Database Administrator Password",
+        "description": "Password for the database admin user.",
+        "generate": "expression",
+        "from": "[a-zA-Z0-9]{16}"
+      },
+      {
+        "name": "NPM_MIRROR",
+        "displayName": "Custom NPM Mirror URL",
+        "description": "The custom NPM mirror URL",
+        "value": ""
+      }
   ],
   "labels": {
     "template": "application-template-sample-pipeline"

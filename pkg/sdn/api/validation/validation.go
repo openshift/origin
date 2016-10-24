@@ -8,7 +8,6 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 )
 
 // ValidateClusterNetwork tests if required fields in the ClusterNetwork are set.
@@ -88,7 +87,7 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 
 	if hs.Subnet == "" {
 		// check if annotation exists, then let the Subnet field be empty
-		if _, ok := hs.Annotations[sdnplugin.AssignHostSubnetAnnotation]; !ok {
+		if _, ok := hs.Annotations[sdnapi.AssignHostSubnetAnnotation]; !ok {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "Field cannot be empty"))
 		}
 	} else {

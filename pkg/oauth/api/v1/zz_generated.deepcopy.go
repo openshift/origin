@@ -28,6 +28,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_OAuthClientAuthorization, InType: reflect.TypeOf(&OAuthClientAuthorization{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_OAuthClientAuthorizationList, InType: reflect.TypeOf(&OAuthClientAuthorizationList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_OAuthClientList, InType: reflect.TypeOf(&OAuthClientList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_OAuthRedirectReference, InType: reflect.TypeOf(&OAuthRedirectReference{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RedirectReference, InType: reflect.TypeOf(&RedirectReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ScopeRestriction, InType: reflect.TypeOf(&ScopeRestriction{})},
 	)
 }
@@ -250,6 +252,30 @@ func DeepCopy_v1_OAuthClientList(in interface{}, out interface{}, c *conversion.
 		} else {
 			out.Items = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_OAuthRedirectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*OAuthRedirectReference)
+		out := out.(*OAuthRedirectReference)
+		out.TypeMeta = in.TypeMeta
+		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+			return err
+		}
+		out.Reference = in.Reference
+		return nil
+	}
+}
+
+func DeepCopy_v1_RedirectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*RedirectReference)
+		out := out.(*RedirectReference)
+		out.Group = in.Group
+		out.Kind = in.Kind
+		out.Name = in.Name
 		return nil
 	}
 }

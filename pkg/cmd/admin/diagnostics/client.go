@@ -7,13 +7,14 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	clientdiags "github.com/openshift/origin/pkg/diagnostics/client"
+	networkdiags "github.com/openshift/origin/pkg/diagnostics/network"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 var (
 	// availableClientDiagnostics contains the names of client diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClientDiagnostics = sets.NewString(clientdiags.ConfigContextsName, clientdiags.DiagnosticPodName)
+	availableClientDiagnostics = sets.NewString(clientdiags.ConfigContextsName, clientdiags.DiagnosticPodName, networkdiags.NetworkDiagnosticName)
 )
 
 // buildClientDiagnostics builds client Diagnostic objects based on the rawConfig passed in.
@@ -21,8 +22,7 @@ var (
 func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
 	available := availableClientDiagnostics
 
-	// osClient, kubeClient, clientErr := o.Factory.Clients() // use with a diagnostic that needs OpenShift/Kube client
-	_, kubeClient, clientErr := o.Factory.Clients()
+	osClient, kubeClient, clientErr := o.Factory.Clients()
 	if clientErr != nil {
 		o.Logger.Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)
@@ -52,6 +52,16 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 				Factory:             o.Factory,
 				PreventModification: o.PreventModification,
 				ImageTemplate:       o.ImageTemplate,
+			})
+		case networkdiags.NetworkDiagnosticName:
+			diagnostics = append(diagnostics, &networkdiags.NetworkDiagnostic{
+				KubeClient:          kubeClient,
+				OSClient:            osClient,
+				ClientFlags:         o.ClientFlags,
+				Level:               o.LogOptions.Level,
+				Factory:             o.Factory,
+				PreventModification: o.PreventModification,
+				LogDir:              o.NetworkDiagLogDir,
 			})
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)

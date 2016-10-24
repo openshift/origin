@@ -46,9 +46,7 @@ func (c *DeploymentTriggerController) Handle(config *deployapi.DeploymentConfig)
 }
 
 func (c *DeploymentTriggerController) handleErr(err error, key interface{}) {
-	// TODO: "empty data" comes from the protobuf serializer when instantiate
-	// returns a 204. This should be a typed error we ignore in this controller.
-	if err == nil || err.Error() == "empty data" {
+	if err == nil {
 		c.queue.Forget(key)
 		return
 	}

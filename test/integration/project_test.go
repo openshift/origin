@@ -7,8 +7,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -425,6 +427,110 @@ func TestScopedProjectAccess(t *testing.T) {
 	}
 	waitForOnlyDelete("one", allWatch, t)
 	waitForOnlyDelete("one", oneTwoWatch, t)
+}
+
+func TestInvalidRoleRefs(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	bobClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "bob")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	aliceClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "alice")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "foo", "bob"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "bar", "alice"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	roleName := "missing-role"
+	if _, err := clusterAdminClient.ClusterRoles().Create(&authorizationapi.ClusterRole{ObjectMeta: kapi.ObjectMeta{Name: roleName}}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}}
+	// mess up rolebindings in "foo"
+	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", clusterAdminClient)
+	if err := modifyRole.AddRole(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// mess up rolebindings in "bar"
+	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("bar", clusterAdminClient)
+	if err := modifyRole.AddRole(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// mess up clusterrolebindings
+	modifyRole.RoleBindingAccessor = policy.NewClusterRoleBindingAccessor(clusterAdminClient)
+	if err := modifyRole.AddRole(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Orphan the rolebindings by deleting the role
+	if err := clusterAdminClient.ClusterRoles().Delete(roleName); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// wait for evaluation errors to show up in both namespaces and at cluster scope
+	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+		review := &authorizationapi.ResourceAccessReview{Action: authorizationapi.Action{Verb: "get", Resource: "pods"}}
+		review.Action.Namespace = "foo"
+		if resp, err := clusterAdminClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+			return false, err
+		}
+		review.Action.Namespace = "bar"
+		if resp, err := clusterAdminClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+			return false, err
+		}
+		review.Action.Namespace = ""
+		if resp, err := clusterAdminClient.ResourceAccessReviews().Create(review); err != nil || resp.EvaluationError == "" {
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Make sure bob still sees his project (and only his project)
+	if projects, err := bobClient.Projects().List(kapi.ListOptions{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	} else if hasErr := hasExactlyTheseProjects(projects, sets.NewString("foo")); hasErr != nil {
+		t.Error(hasErr)
+	}
+	// Make sure alice still sees her project (and only her project)
+	if projects, err := aliceClient.Projects().List(kapi.ListOptions{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	} else if hasErr := hasExactlyTheseProjects(projects, sets.NewString("bar")); hasErr != nil {
+		t.Error(hasErr)
+	}
+	// Make sure cluster admin still sees all projects
+	if projects, err := clusterAdminClient.Projects().List(kapi.ListOptions{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	} else {
+		projectNames := sets.NewString()
+		for _, project := range projects.Items {
+			projectNames.Insert(project.Name)
+		}
+		if !projectNames.HasAll("foo", "bar", "openshift-infra", "openshift", "default") {
+			t.Errorf("Expected projects foo and bar, got %v", projectNames.List())
+		}
+	}
 }
 
 func hasExactlyTheseProjects(list *projectapi.ProjectList, projects sets.String) error {

@@ -299,6 +299,7 @@ openshift-cli-set-deployment-hook.1
 openshift-cli-set-env.1
 openshift-cli-set-image.1
 openshift-cli-set-probe.1
+openshift-cli-set-resources.1
 openshift-cli-set-route-backends.1
 openshift-cli-set-triggers.1
 openshift-cli-set-volumes.1
@@ -330,6 +331,7 @@ openshift-infra-docker-build-version.1
 openshift-infra-docker-build.1
 openshift-infra-f5-router-version.1
 openshift-infra-f5-router.1
+openshift-infra-network-diagnostic-pod.1
 openshift-infra-recycle.1
 openshift-infra-router-version.1
 openshift-infra-router.1
@@ -399,6 +401,7 @@ openshift-kube-rollout.1
 openshift-kube-run.1
 openshift-kube-scale.1
 openshift-kube-set-image.1
+openshift-kube-set-resources.1
 openshift-kube-set.1
 openshift-kube-stop.1
 openshift-kube-taint.1

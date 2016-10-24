@@ -632,7 +632,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 			}
 		}
 
-		fmt.Fprintf(o.out, "Idled %s %s/%s\n", scaleRef.Kind, info.namespace, scaleRef.Name)
+		fmt.Fprintf(o.out, "Idled %s %s/%s (dry run)\n", scaleRef.Kind, info.namespace, scaleRef.Name)
 	}
 
 	if hadError {
