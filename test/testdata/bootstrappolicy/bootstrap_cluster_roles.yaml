@@ -1776,14 +1776,6 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - nodes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
     - routes
     verbs:
     - list
