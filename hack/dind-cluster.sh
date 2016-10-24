@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # WARNING: The script modifies the host that docker is running on.  It
-# attempts to load the overlay, openvswitch and br_netfilter modules
-# and sets net.bridge.bridge-nf-call-iptables=0.  If this modification
+# attempts to load the overlay and openvswitch modules. If this modification
 # is undesirable consider running docker in a VM.
 #
 # Overview
@@ -81,10 +80,8 @@ function start() {
   # due to its having sysctl installed.
   ${DOCKER_CMD} run --privileged --net=host --rm -v /lib/modules:/lib/modules \
                 openshift/dind-node bash -e -c \
-                '/usr/sbin/sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null;
-                /usr/sbin/modprobe openvswitch;
-                /usr/sbin/modprobe overlay 2> /dev/null || true;
-                /usr/sbin/modprobe br_netfilter 2> /dev/null || true;'
+                '/usr/sbin/modprobe openvswitch;
+                /usr/sbin/modprobe overlay 2> /dev/null || true;'
 
   # Initialize the cluster config path
   mkdir -p "${config_root}"
@@ -203,9 +200,12 @@ function copy-runtime() {
   local target=$2
 
   cp "$(os::build::find-binary openshift)" "${target}"
-  local osdn_plugin_path="${origin_root}/pkg/sdn/plugin/bin"
-  cp "${osdn_plugin_path}/openshift-sdn-ovs" "${target}"
-  cp "${osdn_plugin_path}/openshift-sdn-docker-setup.sh" "${target}"
+  cp "$(os::build::find-binary host-local)" "${target}"
+  cp "$(os::build::find-binary loopback)" "${target}"
+  cp "$(os::build::find-binary sdn-cni-plugin)" "${target}/openshift-sdn"
+  local osdn_plugin_path="${origin_root}/pkg/sdn/plugin"
+  cp "${osdn_plugin_path}/bin/openshift-sdn-ovs" "${target}"
+  cp "${osdn_plugin_path}/sdn-cni-plugin/80-openshift-sdn.conf" "${target}"
 }
 
 function wait-for-cluster() {

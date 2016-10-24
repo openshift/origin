@@ -9,7 +9,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
-	"github.com/openshift/origin/pkg/sdn/plugin/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -23,7 +22,7 @@ type proxyFirewallItem struct {
 	net    *net.IPNet
 }
 
-type ovsProxyPlugin struct {
+type OsdnProxy struct {
 	kClient              *kclient.Client
 	osClient             *osclient.Client
 	networkInfo          *NetworkInfo
@@ -35,19 +34,19 @@ type ovsProxyPlugin struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (api.FilteringEndpointsConfigHandler, error) {
-	if !IsOpenShiftMultitenantNetworkPlugin(pluginName) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client) (*OsdnProxy, error) {
+	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
-	return &ovsProxyPlugin{
+	return &OsdnProxy{
 		kClient:  kClient,
 		osClient: osClient,
 		firewall: make(map[string][]proxyFirewallItem),
 	}, nil
 }
 
-func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) error {
+func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
@@ -69,7 +68,7 @@ func (proxy *ovsProxyPlugin) Start(baseHandler pconfig.EndpointsConfigHandler) e
 	return nil
 }
 
-func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
+func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 		if delta.Type == cache.Deleted {
@@ -88,7 +87,7 @@ func (proxy *ovsProxyPlugin) watchEgressNetworkPolicies() {
 	})
 }
 
-func (proxy *ovsProxyPlugin) updateNetworkPolicy(policy osapi.EgressNetworkPolicy) {
+func (proxy *OsdnProxy) updateNetworkPolicy(policy osapi.EgressNetworkPolicy) {
 	firewall := make([]proxyFirewallItem, len(policy.Spec.Egress))
 	for i, rule := range policy.Spec.Egress {
 		_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
@@ -107,7 +106,7 @@ func (proxy *ovsProxyPlugin) updateNetworkPolicy(policy osapi.EgressNetworkPolic
 	}
 }
 
-func (proxy *ovsProxyPlugin) firewallBlocksIP(namespace string, ip net.IP) bool {
+func (proxy *OsdnProxy) firewallBlocksIP(namespace string, ip net.IP) bool {
 	for _, item := range proxy.firewall[namespace] {
 		if item.net.Contains(ip) {
 			return item.policy == osapi.EgressNetworkPolicyRuleDeny
@@ -116,14 +115,14 @@ func (proxy *ovsProxyPlugin) firewallBlocksIP(namespace string, ip net.IP) bool 
 	return false
 }
 
-func (proxy *ovsProxyPlugin) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 	proxy.allEndpoints = allEndpoints
 	proxy.updateEndpoints()
 }
 
-func (proxy *ovsProxyPlugin) updateEndpoints() {
+func (proxy *OsdnProxy) updateEndpoints() {
 	if len(proxy.firewall) == 0 {
 		proxy.baseEndpointsHandler.OnEndpointsUpdate(proxy.allEndpoints)
 		return

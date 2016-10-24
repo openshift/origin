@@ -91,7 +91,7 @@ func (n *NodeIPTables) syncIPTableRules() error {
 // Get openshift iptables rules
 func (n *NodeIPTables) getStaticNodeIPTablesRules() []FirewallRule {
 	return []FirewallRule{
-		{"nat", "POSTROUTING", []string{"-s", n.clusterNetworkCIDR, "!", "-d", n.clusterNetworkCIDR, "-j", "MASQUERADE"}},
+		{"nat", "POSTROUTING", []string{"-s", n.clusterNetworkCIDR, "-j", "MASQUERADE"}},
 		{"filter", "INPUT", []string{"-p", "udp", "-m", "multiport", "--dports", VXLAN_PORT, "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
 		{"filter", "INPUT", []string{"-i", TUN, "-m", "comment", "--comment", "traffic from docker for internet", "-j", "ACCEPT"}},
 		{"filter", "FORWARD", []string{"-d", n.clusterNetworkCIDR, "-j", "ACCEPT"}},

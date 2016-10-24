@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -15,7 +16,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/iptables"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
@@ -26,12 +29,9 @@ const (
 	VERSION_TABLE  = "table=253"
 	VERSION_ACTION = "actions=note:"
 
-	BR       = "br0"
-	LBR      = "lbr0"
-	TUN      = "tun0"
-	VLINUXBR = "vlinuxbr"
-	VOVSBR   = "vovsbr"
-	VXLAN    = "vxlan0"
+	BR    = "br0"
+	TUN   = "tun0"
+	VXLAN = "vxlan0"
 
 	VXLAN_PORT = "4789"
 )
@@ -82,7 +82,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 	var found bool
 
 	exec := kexec.New()
-	itx := ipcmd.NewTransaction(exec, LBR)
+	itx := ipcmd.NewTransaction(exec, TUN)
 	addrs, err := itx.GetAddresses()
 	itx.EndTransaction()
 	if err != nil {
@@ -90,7 +90,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 	}
 	found = false
 	for _, addr := range addrs {
-		if addr == localSubnetGatewayCIDR {
+		if strings.Contains(addr, localSubnetGatewayCIDR+" ") {
 			found = true
 			break
 		}
@@ -98,6 +98,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 	if !found {
 		return false
 	}
+
 	itx = ipcmd.NewTransaction(exec, TUN)
 	routes, err := itx.GetRoutes()
 	itx.EndTransaction()
@@ -177,18 +178,25 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 }
 
 func (plugin *OsdnNode) SetupSDN() (bool, error) {
-	localSubnetCIDR, err := plugin.getLocalSubnet()
-	if err != nil {
-		return false, err
-	}
 	clusterNetworkCIDR := plugin.networkInfo.ClusterNetwork.String()
 	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
 
+	localSubnetCIDR := plugin.localSubnetCIDR
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
 
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
+
+	exec := kexec.New()
+
+	if plugin.clearLbr0IptablesRule {
+		// Delete docker's left-over lbr0 rule; cannot do this from
+		// NewNodePlugin (where docker is cleaned up) because we need
+		// localSubnetCIDR which is only valid after plugin start
+		ipt := iptables.New(exec, utildbus.New(), iptables.ProtocolIpv4)
+		ipt.DeleteRule(iptables.TableNAT, iptables.ChainPostrouting, "-s", localSubnetCIDR, "!", "-o", "lbr0", "-j", "MASQUERADE")
+	}
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
 	if plugin.alreadySetUp(gwCIDR, clusterNetworkCIDR) {
@@ -197,61 +205,11 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
-	mtuStr := fmt.Sprint(plugin.mtu)
-
-	exec := kexec.New()
-	itx := ipcmd.NewTransaction(exec, LBR)
-	itx.SetLink("down")
-	itx.IgnoreError()
-	itx.DeleteLink()
-	itx.IgnoreError()
-	itx.AddLink("type", "bridge")
-	itx.AddAddress(gwCIDR)
-	itx.SetLink("up")
-	err = itx.EndTransaction()
-	if err != nil {
-		glog.Errorf("Failed to configure docker bridge: %v", err)
+	if err := os.MkdirAll("/run/openshift-sdn", 0700); err != nil {
 		return false, err
 	}
-	defer deleteLocalSubnetRoute(LBR, localSubnetCIDR)
-
-	glog.V(5).Infof("[SDN setup] docker setup %s mtu %s", LBR, mtuStr)
-	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, mtuStr).CombinedOutput()
-	if err != nil {
-		glog.Errorf("Failed to configure docker networking: %v\n%s", err, out)
-		return false, err
-	} else {
-		glog.V(5).Infof("[SDN setup] docker setup success:\n%s", out)
-	}
-
 	config := fmt.Sprintf("export OPENSHIFT_CLUSTER_SUBNET=%s", clusterNetworkCIDR)
 	err = ioutil.WriteFile("/run/openshift-sdn/config.env", []byte(config), 0644)
-	if err != nil {
-		return false, err
-	}
-
-	itx = ipcmd.NewTransaction(exec, VLINUXBR)
-	itx.DeleteLink()
-	itx.IgnoreError()
-	itx.AddLink("mtu", mtuStr, "type", "veth", "peer", "name", VOVSBR, "mtu", mtuStr)
-	itx.SetLink("up")
-	itx.SetLink("txqueuelen", "0")
-	err = itx.EndTransaction()
-	if err != nil {
-		return false, err
-	}
-
-	itx = ipcmd.NewTransaction(exec, VOVSBR)
-	itx.SetLink("up")
-	itx.SetLink("txqueuelen", "0")
-	err = itx.EndTransaction()
-	if err != nil {
-		return false, err
-	}
-
-	itx = ipcmd.NewTransaction(exec, LBR)
-	itx.AddSlave(VLINUXBR)
-	err = itx.EndTransaction()
 	if err != nil {
 		return false, err
 	}
@@ -270,10 +228,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	_, err = plugin.ovs.AddPort(VOVSBR, 3)
-	if err != nil {
-		return false, err
-	}
 
 	otx := plugin.ovs.NewTransaction()
 	// Table 0: initial dispatch based on in_port
@@ -285,10 +239,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:5", localSubnetGateway, clusterNetworkCIDR)
 	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:5")
 	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
-	// vovsbr
-	otx.AddFlow("table=0, priority=200, in_port=3, arp, nw_src=%s, actions=goto_table:5", localSubnetCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=3, ip, nw_src=%s, actions=goto_table:5", localSubnetCIDR)
-	otx.AddFlow("table=0, priority=150, in_port=3, actions=drop")
 	// else, from a container
 	otx.AddFlow("table=0, priority=100, arp, actions=goto_table:2")
 	otx.AddFlow("table=0, priority=100, ip, actions=goto_table:2")
@@ -325,12 +275,12 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 
 	// Table 6: ARP to container, filled in by openshift-sdn-ovs
 	// eg, "table=6, priority=100, arp, nw_dst=${container_ip}, actions=output:${ovs_port}"
-	otx.AddFlow("table=6, priority=0, actions=output:3")
+	otx.AddFlow("table=6, priority=0, actions=drop")
 
 	// Table 7: IP to container; filled in by openshift-sdn-ovs
 	// eg, "table=7, priority=100, reg0=0, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
 	// eg, "table=7, priority=100, reg0=${tenant_id}, ip, nw_dst=${ipaddr}, actions=output:${ovs_port}"
-	otx.AddFlow("table=7, priority=0, actions=output:3")
+	otx.AddFlow("table=7, priority=0, actions=drop")
 
 	// Table 8: to remote container; filled in by AddHostSubnetRules()
 	// eg, "table=8, priority=100, arp, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
@@ -346,10 +296,10 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		return false, err
 	}
 
-	itx = ipcmd.NewTransaction(exec, TUN)
+	itx := ipcmd.NewTransaction(exec, TUN)
 	itx.AddAddress(gwCIDR)
 	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
-	itx.SetLink("mtu", mtuStr)
+	itx.SetLink("mtu", fmt.Sprint(plugin.mtu))
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
 	itx.AddRoute(serviceNetworkCIDR)
@@ -367,17 +317,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	_ = itx.EndTransaction()
 
 	sysctl := sysctl.New()
-
-	// Disable iptables for linux bridges (and in particular lbr0), ignoring errors.
-	// (This has to have been performed in advance for docker-in-docker deployments,
-	// since this will fail there).
-	_, _ = exec.Command("modprobe", "br_netfilter").CombinedOutput()
-	err = sysctl.SetSysctl("net/bridge/bridge-nf-call-iptables", 0)
-	if err != nil {
-		glog.Warningf("Could not set net.bridge.bridge-nf-call-iptables sysctl: %s", err)
-	} else {
-		glog.V(5).Infof("[SDN setup] set net.bridge.bridge-nf-call-iptables to 0")
-	}
 
 	// Enable IP forwarding for ipv4 packets
 	err = sysctl.SetSysctl("net/ipv4/ip_forward", 1)

@@ -77,7 +77,7 @@ ln_or_cp "${imagedir}/oc"              examples/gitserver/bin
 ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
 
 # Copy SDN scripts into images/node
-os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
+os::provision::install-sdn "${OS_ROOT}" "${imagedir}" "${OS_ROOT}/images/node"
 mkdir -p images/node/conf/
 cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 
