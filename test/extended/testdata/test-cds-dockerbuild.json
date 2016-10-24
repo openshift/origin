@@ -8,11 +8,8 @@
     "completionDeadlineSeconds": 5,
     "triggers":[],
     "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/openshift/origin"
-      },
-      "contextDir":"test/extended/testdata/test-build-app"
+      "type":"Dockerfile",
+      "dockerfile":"FROM centos:7\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
