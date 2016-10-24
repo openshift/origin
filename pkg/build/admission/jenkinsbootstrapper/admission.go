@@ -53,7 +53,7 @@ func NewJenkinsBootstrapper(serviceClient coreclient.ServicesGetter) admission.I
 }
 
 func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
-	if a.jenkinsConfig.AutoProvisionEnabled == nil || !*a.jenkinsConfig.AutoProvisionEnabled {
+	if a.jenkinsConfig.AutoProvisionEnabled != nil && !*a.jenkinsConfig.AutoProvisionEnabled {
 		return nil
 	}
 	if len(attributes.GetSubresource()) != 0 {
