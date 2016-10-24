@@ -36,8 +36,10 @@ import (
 // TODO: allow override
 func SecureTLSConfig(config *tls.Config) *tls.Config {
 	// Recommendations from https://wiki.mozilla.org/Security/Server_Side_TLS
-	// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-	config.MinVersion = tls.VersionTLS10
+	// Can't use SSLv3 because of POODLE and BEAST
+	// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
+	// Can't use TLSv1.1 because of RC4 cipher usage
+	config.MinVersion = tls.VersionTLS12
 	// In a legacy environment, allow cipher control to be disabled.
 	if len(os.Getenv("OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES")) == 0 {
 		config.PreferServerCipherSuites = true
