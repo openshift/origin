@@ -77,7 +77,6 @@ function os::test::extended::setup () {
 
 		os::log::system::start
 
-
 		if [[ -n "${SHOW_ALL:-}" ]]; then
 			SKIP_NODE=1
 		fi
@@ -309,4 +308,5 @@ readonly CONFORMANCE_TESTS=(
 	"\[Feature\:SecurityContext\]"
 	"should create a LimitRange with defaults"
 	"Generated release_1_2 clientset"
+	"\[Feature\:PodDisruptionbudget\]"
 )
