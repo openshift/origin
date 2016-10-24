@@ -544,21 +544,3 @@ function os::util::host_platform() {
 	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 readonly -f os::util::host_platform
-
-function os::util::sed() {
-	if LANG=C sed --help 2>&1 | grep -qs "GNU sed"; then
-		sed -i'' "$@"
-	else
-		sed -i '' "$@"
-	fi
-}
-readonly -f os::util::sed
-
-function os::util::base64decode() {
-	if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
-		base64 -D $@
-	else
-		base64 -d $@
-	fi
-}
-readonly -f os::util::base64decode
