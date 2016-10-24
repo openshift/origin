@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit abd31eacd0a56f8db8584b94e7469047c961c6f0
+%global commit c852c00d50e6760d63de7b2ec9330391be6bac35
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.13+abd31ea OS_GIT_COMMIT=abd31ea OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.14+c852c00-118 OS_GIT_COMMIT=c852c00 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.14
+Version:        3.4.0.15
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -480,6 +480,110 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Mon Oct 24 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.15
+- Merge remote-tracking branch upstream/master, bump origin-web-console 9a90917
+  (tdawson@redhat.com)
+- PodDisruptionBudget - generated changes (maszulik@redhat.com)
+- Enable PodDistruptionbudget e2e tests in conformance (maszulik@redhat.com)
+- UPSTREAM: 35287: Add resource printer and describer for PodDisruptionBudget
+  (maszulik@redhat.com)
+- UPSTREAM: 35274: Fix PDB e2e test, off-by-one (maszulik@redhat.com)
+- Correcting wording of error message (cdaley@redhat.com)
+- Added cccp.yml file to build container on CentOS Container Pipeline.
+  (mohammed.zee1000@gmail.com)
+- sdn: re-add missing NAT for pods that docker used to do (dcbw@redhat.com)
+- sdn: convert pod network setup to a CNI plugin (dcbw@redhat.com)
+- sdn: use CNI for IPAM instead of docker (dcbw@redhat.com)
+- Drop pkg/sdn/plugin/api, add stuff to pkg/sdn/api (danw@redhat.com)
+- bump(github.com/containernetworking/cni):
+  b8e92ed030588120f9fda47dd359e17a3234142d (dcbw@redhat.com)
+- Remove the func 'parseRepositoryTag' (miao.yanqiang@zte.com.cn)
+- f5 vxlan integration with sdn (rchopra@redhat.com)
+- test-cmd fails when the user is root (ccoleman@redhat.com)
+- for now disable jenkins oauth for ext tests (gmontero@redhat.com)
+- re-enable jenkins autoprovisioning (bparees@redhat.com)
+- Use actual semantic versioning for Git tags (ccoleman@redhat.com)
+- hack/env upgrades - use rsync for sync (ccoleman@redhat.com)
+- UPSTREAM: 32593: Audit test fails to take into account timezone
+  (ccoleman@redhat.com)
+- client: fix instantiate call to handle 204 (mkargaki@redhat.com)
+- doc and template updates for jenkins openshift oauth plugin
+  (gmontero@redhat.com)
+- Revert "Add router support for wildcard domains (*.foo.com)"
+  (ccoleman@redhat.com)
+- Bump origin-web-console (7c57218) (spadgett@redhat.com)
+- Bump to tls1.2 (jliggitt@redhat.com)
+- Add `bc` to the release Docker image specs for test-cmd (skuznets@redhat.com)
+- Generated: docs/bash completions for network diagnostics (rpenta@redhat.com)
+- Added network diagnostic validation test (rpenta@redhat.com)
+- Expose network diagnostics via 'oadm diagnostics NetworkCheck'
+  (rpenta@redhat.com)
+- Make network diagnostics log directory configurable (rpenta@redhat.com)
+- Added support for Network diagnostics (rpenta@redhat.com)
+- Collect and consolidate remote network diagnostic logs (rpenta@redhat.com)
+- Create test environment for network diagnostics (rpenta@redhat.com)
+- Custom pod/service objects for network diagnostics (rpenta@redhat.com)
+- Added support for openshift infra network-diagnostic-pod (rpenta@redhat.com)
+- Diagnostics: Collect network debug logs on the node (rpenta@redhat.com)
+- Helper methods to capture master/node logs (rpenta@redhat.com)
+- Diagnostics: Added service connectivity checks (rpenta@redhat.com)
+- Diagnostics: Added external connectivity checks (rpenta@redhat.com)
+- Diagnostics: Added pod network checks (rpenta@redhat.com)
+- Modify GetHostIPNetworks() to also return host IPs (rpenta@redhat.com)
+- Diagnostics: Added node network checks (rpenta@redhat.com)
+- Added diagnostics util functions (rpenta@redhat.com)
+- adding oc set resources as a wrapper for an upstream commit
+  (jtanenba@redhat.com)
+- UPSTREAM: 27206: Add kubectl set resources (jtanenba@redhat.com)
+- fix annotations test flake (jvallejo@redhat.com)
+- Change pipeline sample to use Node.js+MongoDB sample and also "nodejs"
+  Jenkins slave. (sspeiche@redhat.com)
+- CleanupHostPathVolumes(): remove also directories from the filesystem.
+  (vsemushi@redhat.com)
+- Update ose_images.sh - 2016-10-21 (tdawson@redhat.com)
+- Update shell completions with oc describe storageclass (jsafrane@redhat.com)
+- atomic registry systemd install bugfixes (aweiteka@redhat.com)
+- UPSTREAM: 34638: Storage class updates in oc output (jsafrane@redhat.com)
+- Implement route based annotations for service accounts (mkhan@redhat.com)
+- UPSTREAM: 31607: Add kubectl describe storageclass (jsafrane@redhat.com)
+- Bug 1386018: use deployment conditions when creating a rc
+  (mkargaki@redhat.com)
+-    o Split out cert list and use commit from PR 11217    o Allow wildcard
+  (currently only *.) routes to be created and add tests.    o Add a host
+  admission controller and allow/deny list of domains and control      the
+  admission/blockage of wildcard routes.    o Fix test cases and expection.
+  o Add helper to generate valid wildcard regular expressions.    o Add
+  wildcard domain map + regex based rules and use the rules for wildcard
+  routes.    o Bug fixes and add tests.    o Add generated completions and
+  docs.    o Changes as per @marun, @rajatchopra, @smarterclayton review
+  comments (smitram@gmail.com)
+- Fix an issue with route ordering: it was possible for a newer route to be
+  reported as the older route based on name/namespace checks. Ensure that we
+  have a stable ordering based on the age of a route. (smitram@gmail.com)
+- Cleanup: Use wait.ExponentialBackoff instead of retry loop
+  (rpenta@redhat.com)
+- Continue project cache evaluation in the presence of evaluation errors
+  (jliggitt@redhat.com)
+- group podLists into single list (jvallejo@redhat.com)
+- update generated docs (jvallejo@redhat.com)
+- Update oc create success message when using --dry-run (jvallejo@redhat.com)
+- UPSTREAM: 31276: Update oc create success message when using --dry-run
+  (jvallejo@redhat.com)
+- Update completions and man pages for volume cmd (gethemant@gmail.com)
+- Add AuditConfig validation and backwards compatibility if no AuditFilePath is
+  provided (maszulik@redhat.com)
+- Support specifying StorageClass while creating volumes (gethemant@gmail.com)
+- Check if hostBits equals zero and add some test cases
+  (zhao.xiangpeng@zte.com.cn)
+- update oc env, return resources in list (jvallejo@redhat.com)
+- Switch to use upstream audit handler - generated changes
+  (maszulik@redhat.com)
+- Switch to use upstream audit handler (maszulik@redhat.com)
+- UPSTREAM: 33934: Add asgroups to audit log (maszulik@redhat.com)
+- dind: bump deployment timeout to 120s (marun@redhat.com)
+- dind: wait-for-condition forever by default (marun@redhat.com)
+- UPSTREAM: 30145: Add PVC storage to Limit Range (mturansk@redhat.com)
+
 * Fri Oct 21 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.14
 - Merge remote-tracking branch upstream/master, bump origin-web-console 5e10797
   (tdawson@redhat.com)
