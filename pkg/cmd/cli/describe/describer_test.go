@@ -74,6 +74,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
+	reflect.TypeOf(&oauthapi.OAuthRedirectReference{}),
 }
 
 // MissingDescriberCoverageExceptions is the list of types that were missing describer methods when I started
@@ -111,7 +112,7 @@ main:
 
 		_, ok := DescriberFor(api.SchemeGroupVersion.WithKind(apiType.Name()).GroupKind(), c, &ktestclient.Fake{}, "")
 		if !ok {
-			t.Errorf("missing printer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
+			t.Errorf("missing describer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}
 	}
 }

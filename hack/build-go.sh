@@ -4,11 +4,13 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+build_targets=("$@")
+platform="$(os::build::host_platform)"
+
 # only works on Linux for now, all other platforms must build binaries themselves
 if [[ -z "$@" ]]; then
   if [[ "${OS_RELEASE:-}" != "n" ]] && \
     os::build::detect_local_release_tars $(os::build::host_platform_friendly) >/dev/null; then
-    platform=$(os::build::host_platform)
     echo "++ Using release artifacts from ${OS_RELEASE_COMMIT} for ${platform} instead of building"
     mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
     os::build::extract_tar "${OS_PRIMARY_RELEASE_TAR}" "${OS_OUTPUT_BINPATH}/${platform}"
@@ -19,10 +21,17 @@ if [[ -z "$@" ]]; then
 
     ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
   fi
+
+  build_targets=("${OS_ALL_TARGETS[@]}")
+  # Also build SDN components on Linux by default
+  if [[ "${platform}" =~ linux/.* ]]; then
+    build_targets=("${build_targets[@]}" "${OS_SDN_COMPILE_TARGETS_LINUX[@]}")
+  fi
 fi
 
-os::build::build_binaries "$@"
-os::build::place_bins "$@"
+OS_BUILD_PLATFORMS=("${OS_BUILD_PLATFORMS[@]:-${platform}}")
+os::build::build_binaries "${build_targets[@]}"
+os::build::place_bins "${build_targets[@]}"
 os::build::make_openshift_binary_symlinks
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

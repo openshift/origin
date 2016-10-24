@@ -50,24 +50,6 @@ func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
 	return fn()
 }
 
-// parseRepositoryTag splits a string into its name component and either tag or id if present.
-// TODO remove
-func parseRepositoryTag(repos string) (base string, tag string, id string) {
-	n := strings.Index(repos, "@")
-	if n >= 0 {
-		parts := strings.Split(repos, "@")
-		return parts[0], "", parts[1]
-	}
-	n = strings.LastIndex(repos, ":")
-	if n < 0 {
-		return repos, "", ""
-	}
-	if tag := repos[n+1:]; !strings.Contains(tag, "/") {
-		return repos[:n], tag, ""
-	}
-	return repos, "", ""
-}
-
 // ParseImageStreamImageName splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.
 func ParseImageStreamImageName(input string) (name string, id string, err error) {

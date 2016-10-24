@@ -167,3 +167,15 @@ type OAuthClientAuthorizationList struct {
 	unversioned.ListMeta
 	Items []OAuthClientAuthorization
 }
+
+type OAuthRedirectReference struct {
+	unversioned.TypeMeta
+	kapi.ObjectMeta
+	Reference RedirectReference
+}
+
+type RedirectReference struct {
+	Group string
+	Kind  string
+	Name  string
+}

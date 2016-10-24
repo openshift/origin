@@ -18,6 +18,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 )
@@ -51,6 +52,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&securityapi.PodSecurityPolicySubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
+	reflect.TypeOf(&oauthapi.OAuthRedirectReference{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started

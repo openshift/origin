@@ -11,7 +11,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -81,7 +80,7 @@ func TestOadmPodNetwork(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
-	masterConfig.NetworkConfig.NetworkPluginName = sdnplugin.MultiTenantPluginName
+	masterConfig.NetworkConfig.NetworkPluginName = sdnapi.MultiTenantPluginName
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)

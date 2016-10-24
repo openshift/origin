@@ -100,7 +100,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 		if defaultSA.Annotations == nil {
 			defaultSA.Annotations = map[string]string{}
 		}
-		defaultSA.Annotations[saoauth.OAuthRedirectURISecretAnnotationPrefix+"one"] = redirectURL
+		defaultSA.Annotations[saoauth.OAuthRedirectModelAnnotationURIPrefix+"one"] = redirectURL
 		defaultSA.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
 		defaultSA, err = clusterAdminKubeClient.ServiceAccounts(projectName).Update(defaultSA)
 		return err

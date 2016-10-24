@@ -27,10 +27,10 @@ func GenerateDefaultGateway(sna *net.IPNet) net.IP {
 
 // Return Host IP Networks
 // Ignores provided interfaces and filters loopback and non IPv4 addrs.
-func GetHostIPNetworks(skipInterfaces []string) ([]*net.IPNet, error) {
+func GetHostIPNetworks(skipInterfaces []string) ([]*net.IPNet, []net.IP, error) {
 	hostInterfaces, err := net.Interfaces()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	skipInterfaceMap := make(map[string]bool)
@@ -40,6 +40,7 @@ func GetHostIPNetworks(skipInterfaces []string) ([]*net.IPNet, error) {
 
 	errList := []error{}
 	var hostIPNets []*net.IPNet
+	var hostIPs []net.IP
 	for _, iface := range hostInterfaces {
 		if skipInterfaceMap[iface.Name] {
 			continue
@@ -60,10 +61,11 @@ func GetHostIPNetworks(skipInterfaces []string) ([]*net.IPNet, error) {
 			// Skip loopback and non IPv4 addrs
 			if !ip.IsLoopback() && ip.To4() != nil {
 				hostIPNets = append(hostIPNets, ipNet)
+				hostIPs = append(hostIPs, ip)
 			}
 		}
 	}
-	return hostIPNets, kerrors.NewAggregate(errList)
+	return hostIPNets, hostIPs, kerrors.NewAggregate(errList)
 }
 
 func GetNodeIP(nodeName string) (string, error) {

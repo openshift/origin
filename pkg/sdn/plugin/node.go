@@ -3,24 +3,31 @@ package plugin
 import (
 	"fmt"
 	"net"
+	osexec "os/exec"
 	"strings"
 	"time"
 
 	log "github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
-	"github.com/openshift/origin/pkg/sdn/plugin/api"
+	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"
+
+	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/labels"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	kubeutilnet "k8s.io/kubernetes/pkg/util/net"
+	kwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 type OsdnNode struct {
@@ -29,6 +36,8 @@ type OsdnNode struct {
 	osClient           *osclient.Client
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
+	podManager         *podManager
+	localSubnetCIDR    string
 	localIP            string
 	hostName           string
 	podNetworkReady    chan struct{}
@@ -36,11 +45,16 @@ type OsdnNode struct {
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 	egressPolicies     map[uint32][]*osapi.EgressNetworkPolicy
+
+	host             knetwork.Host
+	kubeletCniPlugin knetwork.NetworkPlugin
+
+	clearLbr0IptablesRule bool
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (api.OsdnNodePlugin, error) {
-	if !IsOpenShiftNetworkPlugin(pluginName) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclient.Client, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+	if !osapi.IsOpenShiftNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
@@ -74,7 +88,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 	}
 
 	plugin := &OsdnNode{
-		multitenant:        IsOpenShiftMultitenantNetworkPlugin(pluginName),
+		multitenant:        osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName),
 		kClient:            kClient,
 		osClient:           osClient,
 		ovs:                ovsif,
@@ -86,7 +100,71 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]*osapi.EgressNetworkPolicy),
 	}
+
+	if err := plugin.dockerPreCNICleanup(); err != nil {
+		return nil, err
+	}
+
 	return plugin, nil
+}
+
+// Detect whether we are upgrading from a pre-CNI openshift and clean up
+// interfaces and iptables rules that are no longer required
+func (node *OsdnNode) dockerPreCNICleanup() error {
+	exec := kexec.New()
+	itx := ipcmd.NewTransaction(exec, "lbr0")
+	itx.SetLink("down")
+	if err := itx.EndTransaction(); err != nil {
+		// no cleanup required
+		return nil
+	}
+
+	node.clearLbr0IptablesRule = true
+
+	// Restart docker to kill old pods and make it use docker0 again.
+	// "systemctl restart" will bail out (unnecessarily) in the
+	// OpenShift-in-a-container case, so we work around that by sending
+	// the messages by hand.
+	if err := osexec.Command("dbus-send", "--system", "--print-reply", "--reply-timeout=2000", "--type=method_call", "--dest=org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager.Reload"); err != nil {
+		log.Error(err)
+	}
+	if err := osexec.Command("dbus-send", "--system", "--print-reply", "--reply-timeout=2000", "--type=method_call", "--dest=org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager.RestartUnit", "string:'docker.service' string:'replace'"); err != nil {
+		log.Error(err)
+	}
+
+	// Delete pre-CNI interfaces
+	for _, intf := range []string{"lbr0", "vovsbr", "vlinuxbr"} {
+		itx := ipcmd.NewTransaction(exec, intf)
+		itx.DeleteLink()
+		itx.IgnoreError()
+		itx.EndTransaction()
+	}
+
+	// Wait until docker has restarted since kubelet will exit it docker isn't running
+	dockerClient, err := docker.NewClientFromEnv()
+	if err != nil {
+		return fmt.Errorf("failed to get docker client: %v", err)
+	}
+	err = kwait.ExponentialBackoff(
+		kwait.Backoff{
+			Duration: 100 * time.Millisecond,
+			Factor:   1.2,
+			Steps:    6,
+		},
+		func() (bool, error) {
+			if err := dockerClient.Ping(); err != nil {
+				// wait longer
+				return false, nil
+			}
+			return true, nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to connect to docker after SDN cleanup restart: %v", err)
+	}
+
+	log.Infof("Cleaned up left-over openshift-sdn docker bridge and interfaces")
+
+	return nil
 }
 
 func (node *OsdnNode) Start() error {
@@ -99,6 +177,11 @@ func (node *OsdnNode) Start() error {
 	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("Failed to set up iptables: %v", err)
+	}
+
+	node.localSubnetCIDR, err = node.getLocalSubnet()
+	if err != nil {
+		return err
 	}
 
 	networkChanged, err := node.SetupSDN()
@@ -120,6 +203,11 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	node.podManager, err = newPodManager(node.host, node.multitenant, node.localSubnetCIDR, node.networkInfo, node.kClient, node.vnids, node.mtu)
+	if err != nil {
+		return err
+	}
+
 	if networkChanged {
 		var pods []kapi.Pod
 		pods, err = node.GetLocalPods(kapi.NamespaceAll)
@@ -128,16 +216,37 @@ func (node *OsdnNode) Start() error {
 		}
 		for _, p := range pods {
 			containerID := getPodContainerID(&p)
-			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.DockerID(containerID))
+			err = node.UpdatePod(p.Namespace, p.Name, kubeletTypes.ContainerID{ID: containerID})
 			if err != nil {
 				log.Warningf("Could not update pod %q (%s): %s", p.Name, containerID, err)
 			}
 		}
 	}
 
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
+		return err
+	}
+
 	node.markPodNetworkReady()
 
 	return nil
+}
+
+// FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
+// See https://github.com/containernetworking/cni/issues/89
+func (node *OsdnNode) UpdatePod(namespace string, name string, id kubeletTypes.ContainerID) error {
+	req := &cniserver.PodRequest{
+		Command:      cniserver.CNI_UPDATE,
+		PodNamespace: namespace,
+		PodName:      name,
+		ContainerId:  id.String(),
+		// netns is read from docker if needed, since we don't get it from kubelet
+		Result: make(chan *cniserver.PodResult),
+	}
+
+	// Send request and wait for the result
+	_, err := node.podManager.handleCNIRequest(req)
+	return err
 }
 
 func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
@@ -165,18 +274,11 @@ func (node *OsdnNode) markPodNetworkReady() {
 	close(node.podNetworkReady)
 }
 
-func (node *OsdnNode) WaitForPodNetworkReady() error {
-	logInterval := 10 * time.Second
-	numIntervals := 12 // timeout: 2 mins
-
-	for i := 0; i < numIntervals; i++ {
-		select {
-		// Wait for StartNode() to finish SDN setup
-		case <-node.podNetworkReady:
-			return nil
-		case <-time.After(logInterval):
-			log.Infof("Waiting for SDN pod network to be ready...")
-		}
+func (node *OsdnNode) IsPodNetworkReady() error {
+	select {
+	case <-node.podNetworkReady:
+		return nil
+	default:
+		return fmt.Errorf("SDN pod network is not ready")
 	}
-	return fmt.Errorf("SDN pod network is not ready(timeout: 2 mins)")
 }

@@ -213,7 +213,7 @@ func (master *OsdnMaster) watchSubnets() {
 		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
-			if _, ok := hs.Annotations[AssignHostSubnetAnnotation]; ok {
+			if _, ok := hs.Annotations[osapi.AssignHostSubnetAnnotation]; ok {
 				// Delete the annotated hostsubnet and create a new one with an assigned subnet
 				// We do not update (instead of delete+create) because the watchSubnets on the nodes
 				// will skip the event if it finds that the hostsubnet has the same host

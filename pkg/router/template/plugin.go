@@ -176,6 +176,13 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 	return nil
 }
 
+// HandleNode processes watch events on the Node resource
+// The template type of plugin currently does not need to act on such events
+// so the implementation just returns without error
+func (p *TemplatePlugin) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	return nil
+}
+
 // HandleRoute processes watch events on the Route resource.
 // TODO: this function can probably be collapsed with the router itself, as a function that
 //   determines which component needs to be recalculated (which template) and then does so

@@ -15,7 +15,7 @@ if os::util::is-master; then
 else
   # Wait for the master to generate the keypair
   CONDITION="test -f ${PUBLIC_KEY}"
-  os::util::wait-for-condition "public key to be generated" "${CONDITION}" "${OS_WAIT_FOREVER}"
+  os::util::wait-for-condition "public key to be generated" "${CONDITION}"
 fi
 
 mkdir -p /root/.ssh

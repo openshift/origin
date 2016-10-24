@@ -15,7 +15,7 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
   imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
   # identical to build-cross.sh
   os::build::os_version_vars
-  OS_RELEASE_COMMIT="${OS_GIT_SHORT_VERSION}"
+  OS_RELEASE_COMMIT="${OS_GIT_VERSION}"
   OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
 
   echo "Building images from source ${OS_RELEASE_COMMIT}:"
@@ -77,7 +77,7 @@ ln_or_cp "${imagedir}/oc"              examples/gitserver/bin
 ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
 
 # Copy SDN scripts into images/node
-os::provision::install-sdn "${OS_ROOT}" "${OS_ROOT}/images/node"
+os::provision::install-sdn "${OS_ROOT}" "${imagedir}" "${OS_ROOT}/images/node"
 mkdir -p images/node/conf/
 cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
 

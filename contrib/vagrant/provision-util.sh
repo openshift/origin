@@ -49,7 +49,7 @@ os::provision::base-install() {
 
   echo "Installing openshift"
   os::provision::install-cmds "${origin_root}"
-  os::provision::install-sdn "${origin_root}"
+  os::provision::install-sdn "${origin_root}" "$(os::build::get-bin-output-path "${OS_ROOT}")"
   os::provision::set-os-env "${origin_root}" "${config_root}"
 }
 

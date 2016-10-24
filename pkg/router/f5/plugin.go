@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // F5Plugin holds state for the f5 plugin.
@@ -52,19 +53,32 @@ type F5PluginConfig struct {
 	// PartitionPath specifies the F5 partition path to use. This is used
 	// to create an access control boundary for users and applications.
 	PartitionPath string
+
+	// VxlanGateway is the ip address assigned to the local tunnel interface
+	// inside F5 box. This address is the one that the packets generated from F5
+	// will carry. The pods will return the packets to this address itself.
+	// It is important that the gateway be one of the ip addresses of the subnet
+	// that has been generated for F5.
+	VxlanGateway string
+
+	// InternalAddress is the ip address of the vtep interface used to connect to
+	// VxLAN overlay. It is the hostIP address listed in the subnet generated for F5
+	InternalAddress string
 }
 
 // NewF5Plugin makes a new f5 router plugin.
 func NewF5Plugin(cfg F5PluginConfig) (*F5Plugin, error) {
 	f5LTMCfg := f5LTMCfg{
-		host:          cfg.Host,
-		username:      cfg.Username,
-		password:      cfg.Password,
-		httpVserver:   cfg.HttpVserver,
-		httpsVserver:  cfg.HttpsVserver,
-		privkey:       cfg.PrivateKey,
-		insecure:      cfg.Insecure,
-		partitionPath: cfg.PartitionPath,
+		host:            cfg.Host,
+		username:        cfg.Username,
+		password:        cfg.Password,
+		httpVserver:     cfg.HttpVserver,
+		httpsVserver:    cfg.HttpsVserver,
+		privkey:         cfg.PrivateKey,
+		insecure:        cfg.Insecure,
+		partitionPath:   cfg.PartitionPath,
+		vxlanGateway:    cfg.VxlanGateway,
+		internalAddress: cfg.InternalAddress,
 	}
 	f5, err := newF5LTM(f5LTMCfg)
 	if err != nil {
@@ -466,8 +480,52 @@ func (p *F5Plugin) deleteRoute(routename string) error {
 	return nil
 }
 
+func getNodeIP(node *kapi.Node) (string, error) {
+	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
+		return node.Status.Addresses[0].Address, nil
+	} else {
+		return netutils.GetNodeIP(node.Name)
+	}
+}
+
 func (p *F5Plugin) HandleNamespaces(namespaces sets.String) error {
 	return fmt.Errorf("namespace limiting for F5 is not implemented")
+}
+
+func (p *F5Plugin) HandleNode(eventType watch.EventType, node *kapi.Node) error {
+	// The F5 appliance, if hooked to use the VxLAN encapsulation
+	// should have its FDB updated depending on nodes arriving and leaving the cluster
+	switch eventType {
+	case watch.Added:
+		// New VTEP created, add the record to the vxlan fdb
+		ip, err := getNodeIP(node)
+		if err != nil {
+			// just log the error
+			glog.Warningf("Error in obtaining IP address of newly added node %s - %v", node.Name, err)
+			return nil
+		}
+		err = p.F5Client.AddVtep(ip)
+		if err != nil {
+			glog.Errorf("Error in adding node '%s' to F5s FDB - %v", ip, err)
+			return err
+		}
+	case watch.Deleted:
+		// VTEP deleted, delete the record from vxlan fdb
+		ip, err := getNodeIP(node)
+		if err != nil {
+			// just log the error
+			glog.Warningf("Error in obtaining IP address of deleted node %s - %v", node.Name, err)
+			return nil
+		}
+		err = p.F5Client.RemoveVtep(ip)
+		if err != nil {
+			glog.Errorf("Error in removing node '%s' from F5s FDB - %v", ip, err)
+			return err
+		}
+	case watch.Modified:
+		// ignore the modified event. Change in IP address of the node is not supported.
+	}
+	return nil
 }
 
 // HandleRoute processes watch events on the Route resource and

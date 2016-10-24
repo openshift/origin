@@ -45,7 +45,7 @@ func NewCmdJoinProjectsNetwork(commandName, fullName string, f *clientcmd.Factor
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Join project network",
-		Long:    fmt.Sprintf(joinProjectsNetworkLong, ovsPluginName),
+		Long:    fmt.Sprintf(joinProjectsNetworkLong, sdnapi.MultiTenantPluginName),
 		Example: fmt.Sprintf(joinProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {

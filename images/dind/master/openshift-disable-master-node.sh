@@ -19,7 +19,7 @@ function disable-node() {
 
   local msg="${node_name} to register with the master"
   local condition="is-node-registered ${config} ${node_name}"
-  os::util::wait-for-condition "${msg}" "${condition}" "${OS_WAIT_FOREVER}"
+  os::util::wait-for-condition "${msg}" "${condition}"
 
   echo "Disabling scheduling for node ${node_name}"
   /usr/local/bin/osadm --config="${config}" manage-node "${node_name}" --schedulable=false > /dev/null

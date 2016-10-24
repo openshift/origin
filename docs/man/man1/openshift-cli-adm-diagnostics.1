@@ -41,7 +41,7 @@ Diagnostics may be individually run by passing diagnostic name as arguments.
 openshift cli adm diagnostics <DiagnosticName>
 
 .PP
-The available diagnostic names are: AggregatedLogging, AnalyzeLogs, ClusterRegistry, ClusterRoleBindings, ClusterRoles, ClusterRouter, ConfigContexts, DiagnosticPod, MasterConfigCheck, MasterNode, MetricsApiProxy, NodeConfigCheck, NodeDefinitions, ServiceExternalIPs, UnitStatus.
+The available diagnostic names are: AggregatedLogging, AnalyzeLogs, ClusterRegistry, ClusterRoleBindings, ClusterRoles, ClusterRouter, ConfigContexts, DiagnosticPod, MasterConfigCheck, MasterNode, MetricsApiProxy, NetworkCheck, NodeConfigCheck, NodeDefinitions, ServiceExternalIPs, UnitStatus.
 
 
 .SH OPTIONS
@@ -84,6 +84,10 @@ The available diagnostic names are: AggregatedLogging, AnalyzeLogs, ClusterRegis
 .PP
 \fB\-\-master\-config\fP=""
     Path to master config file (implies \-\-host)
+
+.PP
+\fB\-\-network\-logdir\fP="/tmp/openshift/"
+    Path to store network diagnostic results
 
 .PP
 \fB\-\-node\-config\fP=""

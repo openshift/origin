@@ -111,6 +111,8 @@ type MasterConfig struct {
 
 	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
+	// RequestInfoResolver is responsible for reading request attributes
+	RequestInfoResolver *apiserver.RequestInfoResolver
 
 	AdmissionControl admission.Interface
 
@@ -817,6 +819,12 @@ func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, groupMapper identi
 // KubeClient returns the kubernetes client object
 func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
+}
+
+// OAuthServerClients returns the openshift and kubernetes OAuth server client objects
+// The returned clients are privileged
+func (c *MasterConfig) OAuthServerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // PolicyClient returns the policy client object

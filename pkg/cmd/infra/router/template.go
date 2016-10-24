@@ -210,7 +210,7 @@ func (o *TemplateRouterOptions) Run() error {
 	plugin := controller.NewUniqueHost(nextPlugin, o.RouteSelectionFunc(), controller.RejectionRecorder(statusPlugin))
 
 	factory := o.RouterSelection.NewFactory(oc, kc)
-	controller := factory.Create(plugin)
+	controller := factory.Create(plugin, false)
 	controller.Run()
 
 	proc.StartReaper()

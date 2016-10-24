@@ -10,7 +10,7 @@
       "tags": "instant-app,jenkins"
     }
   },
-  "message": "A Jenkins service has been created in your project.  The username/password are admin/${JENKINS_PASSWORD}.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
   "objects": [
     {
       "kind": "Route",
@@ -113,8 +113,12 @@
                 },
                 "env": [
                   {
-                    "name": "JENKINS_PASSWORD",
-                    "value": "${JENKINS_PASSWORD}"
+                    "name": "OPENSHIFT_ENABLE_OAUTH",
+                    "value": "true"
+                  },
+                  {
+                    "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                    "value": "true"
                   },
                   {
                     "name": "KUBERNETES_MASTER",
@@ -167,7 +171,10 @@
       "kind": "ServiceAccount",
         "apiVersion": "v1",
         "metadata": {
-            "name": "${JENKINS_SERVICE_NAME}"
+            "name": "${JENKINS_SERVICE_NAME}",
+            "annotations": {
+                  "serviceaccounts.openshift.io/oauth-redirectref.jenkins": "{\"kind\": \"Route\", \"name\": \"${JENKINS_SERVICE_NAME}\", \"group\": \"\"}"
+            }
         }
     },
     {
@@ -251,14 +258,6 @@
       "displayName": "Jenkins JNLP Service Name",
       "description": "The name of the service used for master/slave communication.",
       "value": "jenkins-jnlp"
-    },
-    {
-      "name": "JENKINS_PASSWORD",
-      "displayName": "Jenkins Password",
-      "description": "Password for the Jenkins 'admin' user.",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}",
-      "required": true
     },
     {
       "name": "MEMORY_LIMIT",

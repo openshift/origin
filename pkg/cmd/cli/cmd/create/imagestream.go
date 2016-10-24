@@ -135,11 +135,7 @@ func (o *CreateImageStreamOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		created := "created"
-		if o.DryRun {
-			created = "created (DRY RUN)"
-		}
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, created)
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "imagestream", actualObj.Name, o.DryRun, "created")
 		return nil
 	}
 

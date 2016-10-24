@@ -142,11 +142,7 @@ func (o *CreateIdentityOptions) Run() error {
 	}
 
 	if useShortOutput := o.OutputFormat == "name"; useShortOutput || len(o.OutputFormat) == 0 {
-		created := "created"
-		if o.DryRun {
-			created = "created (DRY RUN)"
-		}
-		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "identity", actualIdentity.Name, created)
+		cmdutil.PrintSuccess(o.Mapper, useShortOutput, o.Out, "identity", actualIdentity.Name, o.DryRun, "created")
 		return nil
 	}
 

@@ -159,7 +159,12 @@ func (c *deploymentConfigs) UpdateStatus(deploymentConfig *deployapi.DeploymentC
 // Instantiate instantiates a new build from build config returning new object or an error
 func (c *deploymentConfigs) Instantiate(request *deployapi.DeploymentRequest) (*deployapi.DeploymentConfig, error) {
 	result := &deployapi.DeploymentConfig{}
-	err := c.r.Post().Namespace(c.ns).Resource("deploymentConfigs").Name(request.Name).SubResource("instantiate").Body(request).Do().Into(result)
+	resp := c.r.Post().Namespace(c.ns).Resource("deploymentConfigs").Name(request.Name).SubResource("instantiate").Body(request).Do()
+	var statusCode int
+	if resp.StatusCode(&statusCode); statusCode == 204 {
+		return nil, nil
+	}
+	err := resp.Into(result)
 	return result, err
 }
 
