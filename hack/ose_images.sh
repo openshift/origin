@@ -841,6 +841,7 @@ else
   echo "Exiting ..."
   exit 42
 fi
+
 # Setup groups
 for group_input in ${group_list}
 do
