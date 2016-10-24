@@ -1,4 +1,4 @@
-package jenkins
+package image_ecosystem
 
 import (
 	"encoding/json"
@@ -50,7 +50,7 @@ func patchTemplate(filename string, outDir string) string {
 	return outputFile
 }
 
-var _ = g.Describe("[jenkins] schedule jobs on pod slaves", func() {
+var _ = g.Describe("[image_ecosystem][jenkins] schedule jobs on pod slaves", func() {
 	defer g.GinkgoRecover()
 
 	var (
