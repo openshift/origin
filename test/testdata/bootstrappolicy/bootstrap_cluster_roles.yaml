@@ -437,7 +437,6 @@ items:
     attributeRestrictions: null
     resources:
     - persistentvolumes
-    - persistentvolumes/status
     verbs:
     - create
     - delete
@@ -2073,13 +2072,6 @@ items:
     attributeRestrictions: null
     resources:
     - endpoints
-    verbs:
-    - get
-  - apiGroups:
-    - storage.k8s.io
-    attributeRestrictions: null
-    resources:
-    - storageclasses
     verbs:
     - get
 - apiVersion: v1

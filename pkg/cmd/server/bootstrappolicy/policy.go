@@ -222,7 +222,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: StorageAdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule(readWrite...).Groups(kapiGroup).Resources("persistentvolumes", "persistentvolumes/status").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(kapiGroup).Resources("persistentvolumes").RuleOrDie(),
 				authorizationapi.NewRule(readWrite...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
 			},
@@ -636,8 +636,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// TODO: change glusterfs to use DNS lookup so this isn't needed?
 				// Needed for glusterfs volumes
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
-				// Needed for Dynamic Provisioning
-				authorizationapi.NewRule("get").Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 			},
 		},
 
