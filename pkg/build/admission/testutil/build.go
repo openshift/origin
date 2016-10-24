@@ -54,6 +54,11 @@ func (b *TestBuild) WithImageLabels(labels []buildapi.ImageLabel) *TestBuild {
 	return b
 }
 
+func (b *TestBuild) WithNodeSelector(ns map[string]string) *TestBuild {
+	b.Spec.NodeSelector = ns
+	return b
+}
+
 func (b *TestBuild) AsBuild() *buildapi.Build {
 	return (*buildapi.Build)(b)
 }

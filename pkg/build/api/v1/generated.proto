@@ -493,6 +493,12 @@ message CommonSpec {
   // be active on a node before the system actively tries to terminate the
   // build; value must be positive integer
   optional int64 completionDeadlineSeconds = 8;
+
+  // nodeSelector is a selector which must be true for the build pod to fit on a node
+  // If nil, it can be overridden by default build nodeselector values for the cluster.
+  // If set to an empty map or a map with any values, default build nodeselector values
+  // are ignored.
+  optional OptionalNodeSelector nodeSelector = 9;
 }
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
@@ -693,6 +699,15 @@ message JenkinsPipelineBuildStrategy {
 
   // Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
   optional string jenkinsfile = 2;
+}
+
+// OptionalNodeSelector is a map that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
+message OptionalNodeSelector {
+  // items, if empty, will result in an empty map
+
+  map<string, string> items = 1;
 }
 
 // ProxyConfig defines what proxies to use for an operation
