@@ -272,9 +272,9 @@ pushd pkg/sdn/plugin/bin
    install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
 popd
 install -d -m 0755 %{buildroot}/opt/cni/bin
-install -p -m 0755 _build/bin/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
-install -p -m 0755 _build/bin/host-local %{buildroot}/opt/cni/bin
-install -p -m 0755 _build/bin/loopback %{buildroot}/opt/cni/bin
+install -p -m 0755 _output/local/bin/linux/amd64/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
+install -p -m 0755 _output/local/bin/linux/amd64/host-local %{buildroot}/opt/cni/bin
+install -p -m 0755 _output/local/bin/linux/amd64/loopback %{buildroot}/opt/cni/bin
 
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
