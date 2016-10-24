@@ -266,8 +266,10 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
 pushd pkg/sdn/plugin/sdn-cni-plugin
-   install -p -m 644 80-openshift-sdn.conf %{buildroot}%{_sysconfdir}/cni/net.d
-   install -p -m 755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
+   install -p -m 0644 80-openshift-sdn.conf %{buildroot}%{_sysconfdir}/cni/net.d
+popd
+pushd pkg/sdn/plugin/bin
+   install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
 popd
 install -d -m 0755 %{buildroot}/opt/cni/bin
 install -p -m 0755 _build/bin/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
