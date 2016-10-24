@@ -1,0 +1,24 @@
+# This is for the purpose of containers on the CentOS Community Container Pipeline. 
+# The containers are built, tested and delivered to registry.centos.org and lifecycled
+# as well. A corresponding entry must exist in the container index itself, located at
+# https://github.com/CentOS/container-index/tree/master/index.d
+#  You can know more at the following links:
+# * https://github.com/CentOS/container-pipeline-service/blob/master/README.md
+# * https://github.com/CentOS/container-pipeline-service/blob/master/README.md
+# * https://wiki.centos.org/ContainerPipeline
+job-id: atomic-registry-install 
+
+#the following are optional, can be left blank
+#defaults, where applicable are filled in
+#nulecule-file   : nulecule
+#test-skip       : True
+#test-script     :
+#build-script    :
+#delivery-script :
+#docker-index    : True
+#custom-delivery : False
+#local-delivery  : True
+#Upstreams       :
+#        - ref           :
+#          url           :
+#desired-tag     : null
