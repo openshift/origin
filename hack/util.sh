@@ -40,27 +40,6 @@ function ensure_iptables_or_die() {
 }
 readonly -f ensure_iptables_or_die
 
-# tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
-function tryuntil() {
-	timeout=$(($(date +%s) + 90))
-	echo "++ Retrying until success or timeout: ${@}"
-	while [ 1 ]; do
-		if eval "${@}" >/dev/null 2>&1; then
-			return 0
-		fi
-		if [[ $(date +%s) -gt $timeout ]]; then
-			# run it one more time so we can display the output
-			# for debugging, since above we /dev/null the output
-			if eval "${@}"; then
-				return 0
-			fi
-			echo "++ timed out"
-			return 1
-		fi
-	done
-}
-readonly -f tryuntil
-
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
 #
