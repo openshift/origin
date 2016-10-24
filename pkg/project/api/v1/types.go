@@ -32,6 +32,7 @@ type ProjectStatus struct {
 }
 
 // +genclient=true
+// +nonNamespaced=true
 
 // Projects are the unit of isolation and collaboration in OpenShift. A project has one or more members,
 // a quota on the resources that the project may consume, and the security controls on the resources in

@@ -88,3 +88,14 @@ func (c *FakePolicies) Watch(opts pkg_api.ListOptions) (watch.Interface, error) 
 		InvokesWatch(core.NewWatchAction(policiesResource, c.ns, opts))
 
 }
+
+// Patch applies the patch and returns the patched policy.
+func (c *FakePolicies) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
+	obj, err := c.Fake.
+		Invokes(core.NewPatchSubresourceAction(policiesResource, c.ns, name, data, subresources...), &api.Policy{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.Policy), err
+}

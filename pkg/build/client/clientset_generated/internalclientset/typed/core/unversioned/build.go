@@ -21,6 +21,7 @@ type BuildInterface interface {
 	Get(name string) (*api.Build, error)
 	List(opts pkg_api.ListOptions) (*api.BuildList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Build, err error)
 	BuildExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *builds) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 		Resource("builds").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched build.
+func (c *builds) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Build, err error) {
+	result = &api.Build{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("builds").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

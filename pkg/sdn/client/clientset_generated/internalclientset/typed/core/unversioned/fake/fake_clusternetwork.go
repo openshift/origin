@@ -88,3 +88,14 @@ func (c *FakeClusterNetworks) Watch(opts pkg_api.ListOptions) (watch.Interface, 
 		InvokesWatch(core.NewWatchAction(clusternetworksResource, c.ns, opts))
 
 }
+
+// Patch applies the patch and returns the patched clusterNetwork.
+func (c *FakeClusterNetworks) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error) {
+	obj, err := c.Fake.
+		Invokes(core.NewPatchSubresourceAction(clusternetworksResource, c.ns, name, data, subresources...), &api.ClusterNetwork{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.ClusterNetwork), err
+}

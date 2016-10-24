@@ -21,6 +21,7 @@ type OAuthClientInterface interface {
 	Get(name string) (*api.OAuthClient, error)
 	List(opts pkg_api.ListOptions) (*api.OAuthClientList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.OAuthClient, err error)
 	OAuthClientExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *oAuthClients) Watch(opts pkg_api.ListOptions) (watch.Interface, error) 
 		Resource("oauthclients").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched oAuthClient.
+func (c *oAuthClients) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.OAuthClient, err error) {
+	result = &api.OAuthClient{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("oauthclients").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }
