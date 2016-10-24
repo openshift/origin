@@ -359,7 +359,7 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 				return
 			}
 			e2e.Logf("\n%s\n", out)
-			out, _ = oc.Run("logs").Args("pod/" + pod.Name).Output()
+			out, _ = oc.Run("logs").Args("pod/"+pod.Name, "--timestamps=true").Output()
 			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
 	}
