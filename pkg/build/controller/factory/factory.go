@@ -312,10 +312,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			retryFunc("ImageStream update", func(err error) bool {
-				_, isFatal := err.(buildcontroller.ImageChangeControllerFatalError)
-				return isFatal
-			}),
+			retryFunc("ImageStream update", nil),
 			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
