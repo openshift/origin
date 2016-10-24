@@ -418,7 +418,6 @@ fi
 %systemd_postun
 
 %files sdn-ovs
-%dir %{_unitdir}/docker.service.d/
 %dir %{_unitdir}/%{name}-node.service.d/
 %dir %{_sysconfdir}/cni/net.d
 %dir /opt/cni/bin
