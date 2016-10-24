@@ -219,27 +219,6 @@ function validate_response() {
 }
 readonly -f validate_response
 
-# reset_tmp_dir will try to delete the testing directory.
-# If it fails will unmount all the mounts associated with
-# the test.
-#
-# $1 expression for which the mounts should be checked
-function reset_tmp_dir() {
-	local sudo="${USE_SUDO:+sudo}"
-
-	set +e
-	${sudo} rm -rf ${BASETMPDIR} &>/dev/null
-	if [[ $? != 0 ]]; then
-		echo "[INFO] Unmounting previously used volumes ..."
-		findmnt -lo TARGET | grep ${BASETMPDIR} | xargs -r ${sudo} umount
-		${sudo} rm -rf ${BASETMPDIR}
-	fi
-
-	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
-	set -e
-}
-readonly -f reset_tmp_dir
-
 # kill_all_processes function will kill all
 # all processes created by the test script.
 function kill_all_processes() {

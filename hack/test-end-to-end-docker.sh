@@ -9,9 +9,8 @@ echo "[INFO] Starting containerized end-to-end test"
 
 unset KUBECONFIG
 
-os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 os::util::environment::use_sudo
-reset_tmp_dir
+os::util::environment::setup_all_server_vars "test-end-to-end-docker/"
 
 function cleanup()
 {

@@ -28,9 +28,7 @@ export API_PORT=38443
 export ETCD_PORT=34001
 export ETCD_PEER_PORT=37001
 os::util::environment::setup_all_server_vars "generate-swagger-spec/"
-reset_tmp_dir
 os::start::configure_server
-
 
 SWAGGER_SPEC_REL_DIR="${1:-}"
 SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"

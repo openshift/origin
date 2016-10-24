@@ -23,9 +23,8 @@ trap "cleanup" EXIT
 
 echo "[INFO] Starting server"
 
-os::util::environment::setup_all_server_vars "test-extended/cmd/"
 os::util::environment::use_sudo
-reset_tmp_dir
+os::util::environment::setup_all_server_vars "test-extended/cmd/"
 
 os::log::system::start
 

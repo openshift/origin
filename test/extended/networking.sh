@@ -292,7 +292,6 @@ else
   )
 
   os::util::environment::setup_tmpdir_vars "test-extended/networking"
-  reset_tmp_dir
 
   os::log::system::start
 
