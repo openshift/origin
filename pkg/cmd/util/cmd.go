@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -19,6 +20,8 @@ import (
 
 // ErrExit is a marker interface for cli commands indicating that the response has been processed
 var ErrExit = fmt.Errorf("exit directly")
+
+var commaSepVarsPattern = regexp.MustCompile(".*=.*,.*=.*")
 
 // ReplaceCommandName recursively processes the examples in a given command to change a hardcoded
 // command name (like 'kubectl' to the appropriate target name). It returns c.
@@ -161,5 +164,13 @@ func VersionedPrintObject(fn func(*cobra.Command, meta.RESTMapper, runtime.Objec
 			obj = result[0]
 		}
 		return fn(c, mapper, obj, out)
+	}
+}
+
+func WarnAboutCommaSeparation(errout io.Writer, values []string, flag string) {
+	for _, value := range values {
+		if commaSepVarsPattern.MatchString(value) {
+			fmt.Fprintf(errout, "warning: %s no longer accepts comma-separated lists of values. %q will be treated as a single key-value pair.\n", flag, value)
+		}
 	}
 }

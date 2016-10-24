@@ -20,6 +20,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -57,20 +58,20 @@ var (
 )
 
 // NewCmdProcess implements the OpenShift cli process command
-func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProcess(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
 		Short:   "Process a template into list of resources",
 		Long:    processLong,
 		Example: fmt.Sprintf(processExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunProcess(f, out, cmd, args)
+			err := RunProcess(f, out, errout, cmd, args)
 			kcmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
-	cmd.Flags().StringSliceP("value", "v", nil, "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
+	cmd.Flags().StringArrayP("value", "v", nil, "Specify a key-value pair (eg. -v FOO=BAR) to set/override a parameter value in the template.")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
@@ -83,7 +84,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 }
 
 // RunProcess contains all the necessary functionality for the OpenShift cli process command
-func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func RunProcess(f *clientcmd.Factory, out, errout io.Writer, cmd *cobra.Command, args []string) error {
 	templateName, valueArgs := "", []string{}
 	for _, s := range args {
 		isValue := strings.Contains(s, "=")
@@ -102,8 +103,10 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	var flagValues []string
 	if cmd.Flag("value").Changed {
-		flagValues = kcmdutil.GetFlagStringSlice(cmd, "value")
+		flagValues = getFlagStringArray(cmd, "value")
 	}
+
+	cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--value")
 
 	for _, value := range flagValues {
 		key := strings.Split(value, "=")[0]
@@ -238,7 +241,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	// Override the values for the current template parameters
 	// when user specify the --value
 	if cmd.Flag("value").Changed {
-		values := kcmdutil.GetFlagStringSlice(cmd, "value")
+		values := getFlagStringArray(cmd, "value")
 		if errs := injectUserVars(values, obj); errs != nil {
 			return kerrors.NewAggregate(errs)
 		}
