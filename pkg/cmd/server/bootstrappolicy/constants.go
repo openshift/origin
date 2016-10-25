@@ -54,6 +54,7 @@ const (
 	ClusterAdminRoleName       = "cluster-admin"
 	SudoerRoleName             = "sudoer"
 	ClusterReaderRoleName      = "cluster-reader"
+	StorageAdminRoleName       = "storage-admin"
 	AdminRoleName              = "admin"
 	EditRoleName               = "edit"
 	ViewRoleName               = "view"
