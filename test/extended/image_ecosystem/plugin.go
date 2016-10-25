@@ -1,4 +1,4 @@
-package jenkins
+package image_ecosystem
 
 import (
 	g "github.com/onsi/ginkgo"
@@ -29,6 +29,7 @@ func getAdminPassword(oc *exutil.CLI) string {
 			return s[1]
 		}
 	}
+	// use the image default of password if not set
 	return "password"
 }
 
@@ -119,7 +120,7 @@ func jenkinsJobBytes(filename, namespace string) []byte {
 	return data
 }
 
-var _ = g.Describe("[jenkins][Slow] openshift pipeline plugin", func() {
+var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("jenkins-plugin", exutil.KubeConfigPath())
 	var hostPort string
