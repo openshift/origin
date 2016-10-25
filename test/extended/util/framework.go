@@ -127,30 +127,21 @@ func DumpImageStreams(oc *CLI) {
 }
 
 func DumpNamedBuildLogs(buildName string, oc *CLI) {
-	bldOuput, err := oc.Run("logs").Args("-f", "build/"+buildName).Output()
+	buildOuput, err := oc.Run("logs").Args("-f", "build/"+buildName, "--timestamps").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs for %s: %s\n\n", buildName, bldOuput)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs for %s: %s\n\n", buildName, buildOuput)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs for %s: %+v\n\n", buildName, err)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on build logs for %s: %+v\n\n", buildName, err)
 	}
 }
 
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
-	bldOuput, err := oc.Run("logs").Args("-f", "bc/"+bc).Output()
+	buildOuput, err := oc.Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", bldOuput)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", buildOuput)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on bld logs %+v\n\n", err)
-
-		// there have been some issues with oc new-app where build don't appear to even be started;
-		// temporarily trying a start-build to see what is up
-		/*err = oc.Run("start-build").Args(bc).Execute()
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "\n GGM start-build error for %s is %+v", bc, err)
-		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n GGM start build after new-app hiccup for %s worked\n", bc)
-		}*/
+		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on build logs %+v\n\n", err)
 	}
 
 	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
@@ -193,15 +184,6 @@ func DumpDeploymentLogs(dc string, oc *CLI) {
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
 	}
-	// temporary debug around deployments not even getting started with oc new-app
-	/*out, err = oc.Run("deploy").Args(dc, "--latest").Output()
-	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n debug oc test deploy for %s is OK\n", dc)
-	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n debug oc test deploy for %s got error %+v\n\n", dc, err)
-	}*/
-	// temporary debug dump the local images for the neutered, deploy doesn't even start scenario
-
 }
 
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
@@ -337,11 +319,11 @@ func (t *BuildResult) DumpLogs() {
 
 	fmt.Fprintf(g.GinkgoWriter, "\n** Build Logs:\n")
 
-	bldOuput, err := t.Logs()
+	buildOuput, err := t.Logs()
 	if err != nil {
 		fmt.Fprintf(g.GinkgoWriter, "Error during log retrieval: %+v\n", err)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "%s\n", bldOuput)
+		fmt.Fprintf(g.GinkgoWriter, "%s\n", buildOuput)
 	}
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
@@ -360,12 +342,12 @@ func (t *BuildResult) Logs() (string, error) {
 		return "", fmt.Errorf("Not enough information to retrieve logs for %#v", *t)
 	}
 
-	bldOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath).Output()
+	buildOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()
 	if err != nil {
 		return "", fmt.Errorf("Error retieving logs for %#v: %v", *t, err)
 	}
 
-	return bldOuput, nil
+	return buildOuput, nil
 }
 
 // Dumps logs and triggers a Ginkgo assertion if the build did NOT succeed.
