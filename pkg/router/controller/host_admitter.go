@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -15,12 +16,11 @@ import (
 // RouteAdmissionFunc determines whether or not to admit a route.
 type RouteAdmissionFunc func(*routeapi.Route) (error, bool)
 
-// SubdomainToRouteMap contains all routes associated with a subdomain -
-// fully qualified and wildcard routes.
-type SubdomainToRouteMap map[string][]*routeapi.Route
+// RouteMap contains all routes associated with a key
+type RouteMap map[string][]*routeapi.Route
 
-// RemoveRoute removes any existing route(s) for a subdomain.
-func (srm SubdomainToRouteMap) RemoveRoute(key string, route *routeapi.Route) bool {
+// RemoveRoute removes any existing routes that match the given route's namespace and name for a key
+func (srm RouteMap) RemoveRoute(key string, route *routeapi.Route) bool {
 	k := 0
 	removed := false
 
@@ -46,7 +46,7 @@ func (srm SubdomainToRouteMap) RemoveRoute(key string, route *routeapi.Route) bo
 	return removed
 }
 
-func (srm SubdomainToRouteMap) InsertRoute(key string, route *routeapi.Route) {
+func (srm RouteMap) InsertRoute(key string, route *routeapi.Route) {
 	// To replace any existing route[s], first we remove all old entries.
 	srm.RemoveRoute(key, route)
 
@@ -85,9 +85,9 @@ type HostAdmitter struct {
 	// (of subdomains) to a single owner/namespace.
 	restrictOwnership bool
 
-	// subdomainToRoute contains all routes associated with a subdomain
-	// (includes fully qualified and wildcard routes).
-	subdomainToRoute SubdomainToRouteMap
+	claimedHosts     RouteMap
+	claimedWildcards RouteMap
+	blockedWildcards RouteMap
 }
 
 // NewHostAdmitter creates a plugin wrapper that checks whether or not to
@@ -100,7 +100,9 @@ func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, restrict bool,
 		recorder: recorder,
 
 		restrictOwnership: restrict,
-		subdomainToRoute:  make(SubdomainToRouteMap),
+		claimedHosts:      RouteMap{},
+		claimedWildcards:  RouteMap{},
+		blockedWildcards:  RouteMap{},
 	}
 }
 
@@ -144,9 +146,10 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 			}
 
 		case watch.Deleted:
-			if subdomain := routeapi.GetSubdomainForHost(route.Spec.Host); len(subdomain) > 0 {
-				p.subdomainToRoute.RemoveRoute(subdomain, route)
-			}
+			p.claimedHosts.RemoveRoute(route.Spec.Host, route)
+			wildcardKey := getDomain(route.Spec.Host)
+			p.claimedWildcards.RemoveRoute(wildcardKey, route)
+			p.blockedWildcards.RemoveRoute(wildcardKey, route)
 		}
 	}
 
@@ -163,45 +166,100 @@ func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
+func getDomain(hostname string) string {
+	index := strings.IndexRune(hostname, '.')
+	if index == -1 {
+		return ""
+	}
+	return hostname[index+1:]
+}
+
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
 func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
-	subdomain := routeapi.GetSubdomainForHost(route.Spec.Host)
-	if len(subdomain) == 0 {
-		return nil
-	}
-
-	routeList, ok := p.subdomainToRoute[subdomain]
-	if !ok {
-		p.subdomainToRoute.InsertRoute(subdomain, route)
-		return nil
-	}
-
-	oldest := routeList[0]
-	if oldest.Namespace == route.Namespace {
-		p.subdomainToRoute.InsertRoute(subdomain, route)
-		return nil
-	}
-
-	// Route is in another namespace, land grab check here.
-	if routeapi.RouteLessThan(oldest, route) {
-		glog.V(4).Infof("Route %s cannot take subdomain %s from %s", routeNameKey(route), subdomain, routeNameKey(oldest))
-		err := fmt.Errorf("a route in another namespace holds subdomain %s and is older than %s", subdomain, route.Name)
-		p.recorder.RecordRouteRejection(route, "SubdomainAlreadyClaimed", err.Error())
+	// Find displaced routes (or error if an existing route displaces us)
+	displacedRoutes, err := p.displacedRoutes(route)
+	if err != nil {
+		err := fmt.Errorf("a route in another namespace holds host %s (%v)", route.Spec.Host, err)
+		p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
 		return err
 	}
 
-	// Namespace of this route is now the proud owner of the subdomain.
-	glog.V(4).Infof("Route %s is reclaiming subdomain %s from namespace %s", routeNameKey(route), subdomain, oldest.Namespace)
+	// Remove displaced routes
+	for _, displacedRoute := range displacedRoutes {
+		wildcardKey := getDomain(displacedRoute.Spec.Host)
+		p.claimedHosts.RemoveRoute(displacedRoute.Spec.Host, displacedRoute)
+		p.blockedWildcards.RemoveRoute(wildcardKey, displacedRoute)
+		p.claimedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 
-	// Delete all the routes belonging to the previous "owner" (namespace).
-	for idx := range routeList {
-		msg := fmt.Sprintf("a route in another namespace %s owns subdomain %s", route.Namespace, subdomain)
-		glog.V(4).Infof("Route %s not admitted: %s", routeNameKey(routeList[idx]), msg)
-		p.recorder.RecordRouteRejection(routeList[idx], "SubdomainAlreadyClaimed", msg)
-		p.plugin.HandleRoute(watch.Deleted, routeList[idx])
+		msg := fmt.Sprintf("a route in another namespace holds host %s", displacedRoute.Spec.Host)
+		p.recorder.RecordRouteRejection(displacedRoute, "SubdomainAlreadyClaimed", msg)
+		p.plugin.HandleRoute(watch.Deleted, displacedRoute)
 	}
 
-	// And claim the subdomain.
-	p.subdomainToRoute[subdomain] = []*routeapi.Route{route}
+	// Add the new route
+	wildcardKey := getDomain(route.Spec.Host)
+
+	switch route.Spec.WildcardPolicy {
+	case routeapi.WildcardPolicyNone:
+		// claim the host, block wildcards that would conflict with this host
+		p.claimedHosts.InsertRoute(route.Spec.Host, route)
+		p.blockedWildcards.InsertRoute(wildcardKey, route)
+		// ensure the route doesn't exist as a claimed wildcard (in case it previously was)
+		p.claimedWildcards.RemoveRoute(wildcardKey, route)
+
+	case routeapi.WildcardPolicySubdomain:
+		// claim the wildcard
+		p.claimedWildcards.InsertRoute(wildcardKey, route)
+		// ensure the route doesn't exist as a claimed host or blocked wildcard
+		p.claimedHosts.RemoveRoute(route.Spec.Host, route)
+		p.blockedWildcards.RemoveRoute(wildcardKey, route)
+	}
+
 	return nil
+}
+
+func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Route, error) {
+	displaced := []*routeapi.Route{}
+
+	// See if any existing routes block our host, or if we displace their host
+	for i, route := range p.claimedHosts[newRoute.Spec.Host] {
+		if route.Namespace == newRoute.Namespace {
+			// Never displace a route in our namespace
+			continue
+		}
+		if routeapi.RouteLessThan(route, newRoute) {
+			return nil, fmt.Errorf("route %s/%s has host %s", route.Namespace, route.Name, route.Spec.Host)
+		}
+		displaced = append(displaced, p.claimedHosts[newRoute.Spec.Host][i])
+	}
+
+	wildcardKey := getDomain(newRoute.Spec.Host)
+
+	// See if any existing wildcard routes block our domain, or if we displace them
+	for i, route := range p.claimedWildcards[wildcardKey] {
+		if route.Namespace == newRoute.Namespace {
+			// Never displace a route in our namespace
+			continue
+		}
+		if routeapi.RouteLessThan(route, newRoute) {
+			return nil, fmt.Errorf("wildcard route %s/%s has host *.%s, blocking %s", route.Namespace, route.Name, wildcardKey, newRoute.Spec.Host)
+		}
+		displaced = append(displaced, p.claimedWildcards[wildcardKey][i])
+	}
+
+	// If this is a wildcard route, see if any specific hosts block our wildcardSpec, or if we displace them
+	if newRoute.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain {
+		for i, route := range p.blockedWildcards[wildcardKey] {
+			if route.Namespace == newRoute.Namespace {
+				// Never displace a route in our namespace
+				continue
+			}
+			if routeapi.RouteLessThan(route, newRoute) {
+				return nil, fmt.Errorf("route %s/%s has host %s, blocking *.%s", route.Namespace, route.Name, route.Spec.Host, wildcardKey)
+			}
+			displaced = append(displaced, p.blockedWildcards[wildcardKey][i])
+		}
+	}
+
+	return displaced, nil
 }
