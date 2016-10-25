@@ -46,6 +46,7 @@ func getClientConfig(path string) (*restclient.Config, error) {
 func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions, kconfig *restclient.Config) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
 	replicas := strconv.FormatInt(int64(options.Replicas), 10)
+	interval := strconv.Itoa(options.CheckInterval)
 	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
 	env := app.Environment{}
 
@@ -70,6 +71,9 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 		"OPENSHIFT_HA_REPLICA_COUNT":     replicas,
 		"OPENSHIFT_HA_USE_UNICAST":       "false",
 		"OPENSHIFT_HA_IPTABLES_CHAIN":    options.IptablesChain,
+		"OPENSHIFT_HA_NOTIFY_SCRIPT":     options.NotifyScript,
+		"OPENSHIFT_HA_CHECK_SCRIPT":      options.CheckScript,
+		"OPENSHIFT_HA_CHECK_INTERVAL":    interval,
 		// "OPENSHIFT_HA_UNICAST_PEERS":     "127.0.0.1",
 	})
 	return env
