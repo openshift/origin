@@ -21,7 +21,7 @@ import (
 func TestImportNothing(t *testing.T) {
 	ctx := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials)
 	isi := &api.ImageStreamImport{}
-	i := NewImageStreamImporter(ctx, 5, nil)
+	i := NewImageStreamImporter(ctx, 5, nil, nil)
 	if err := i.Import(nil, isi); err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestImport(t *testing.T) {
 		},
 	}
 	for i, test := range testCases {
-		im := NewImageStreamImporter(test.retriever, 5, nil)
+		im := NewImageStreamImporter(test.retriever, 5, nil, nil)
 		if err := im.Import(nil, &test.isi); err != nil {
 			t.Errorf("%d: %v", i, err)
 		}

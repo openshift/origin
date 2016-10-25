@@ -52,14 +52,17 @@ type ImageStreamImporter struct {
 	digestToRepositoryCache map[gocontext.Context]map[manifestKey]*api.Image
 
 	// digestToLayerSizeCache maps layer digests to size.
-	digestToLayerSizeCache map[string]int64
+	digestToLayerSizeCache *ImageStreamLayerCache
 }
 
 // NewImageStreamImport creates an importer that will load images from a remote Docker registry into an
 // ImageStreamImport object. Limiter may be nil.
-func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo int, limiter flowcontrol.RateLimiter) *ImageStreamImporter {
+func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo int, limiter flowcontrol.RateLimiter, cache *ImageStreamLayerCache) *ImageStreamImporter {
 	if limiter == nil {
 		limiter = flowcontrol.NewFakeAlwaysRateLimiter()
+	}
+	if cache == nil {
+		glog.V(5).Infof("the global layer cache is disabled")
 	}
 	return &ImageStreamImporter{
 		maximumTagsPerRepo: maximumTagsPerRepo,
@@ -68,23 +71,25 @@ func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo in
 		limiter:   limiter,
 
 		digestToRepositoryCache: make(map[gocontext.Context]map[manifestKey]*api.Image),
-		digestToLayerSizeCache:  make(map[string]int64),
-	}
-}
-
-// contextImageCache initializes the image cache entry for a context and layer size cache.
-func (i *ImageStreamImporter) contextImageCache(ctx gocontext.Context) {
-	if i.digestToLayerSizeCache == nil {
-		i.digestToLayerSizeCache = make(map[string]int64)
-	}
-	if _, ok := i.digestToRepositoryCache[ctx]; !ok {
-		i.digestToRepositoryCache[ctx] = make(map[manifestKey]*api.Image)
+		digestToLayerSizeCache:  cache,
 	}
 }
 
 // Import tries to complete the provided isi object with images loaded from remote registries.
 func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *api.ImageStreamImport) error {
-	i.contextImageCache(ctx)
+	// Initialize layer size cache if not given.
+	if i.digestToLayerSizeCache == nil {
+		cache, err := NewImageStreamLayerCache(DefaultImageStreamLayerCacheSize)
+		if err != nil {
+			return err
+		}
+		i.digestToLayerSizeCache = &cache
+	}
+	// Initialize the image cache entry for a context.
+	if _, ok := i.digestToRepositoryCache[ctx]; !ok {
+		i.digestToRepositoryCache[ctx] = make(map[manifestKey]*api.Image)
+	}
+
 	i.importImages(ctx, i.retriever, isi, i.limiter)
 	i.importFromRepository(ctx, i.retriever, isi, i.maximumTagsPerRepo, i.limiter)
 	return nil
@@ -320,8 +325,8 @@ func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, repo d
 		}
 		blobSet.Insert(layer.Name)
 
-		if layerSize, ok := isi.digestToLayerSizeCache[layer.Name]; ok {
-			size += layerSize
+		if layerSize, ok := isi.digestToLayerSizeCache.Get(layer.Name); ok {
+			size += layerSize.(int64)
 			continue
 		}
 
@@ -330,7 +335,7 @@ func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, repo d
 			return err
 		}
 
-		isi.digestToLayerSizeCache[layer.Name] = desc.Size
+		isi.digestToLayerSizeCache.Add(layer.Name, desc.Size)
 		layer.LayerSize = desc.Size
 		size += desc.Size
 	}
