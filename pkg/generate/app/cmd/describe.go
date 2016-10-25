@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -258,7 +259,7 @@ func hasEmptyDir(image *imageapi.DockerImage) bool {
 	return len(image.Config.Volumes) > 0
 }
 
-func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.Pod, secret *kapi.Secret, baseNamespace string) {
+func describeGeneratedJob(out io.Writer, ref app.ComponentReference, kjob *kbatch.Job, secret *kapi.Secret, baseNamespace string) {
 	refInput := ref.Input()
 	generatorInput := refInput.ResolvedMatch.GeneratorInput
 	hasToken := generatorInput.Token != nil
@@ -268,27 +269,27 @@ func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.P
 		fmt.Fprintf(out, "    * %s\n", locatedImage)
 	}
 
-	fmt.Fprintf(out, "    * Install will run in pod %q\n", localOrRemoteName(pod.ObjectMeta, baseNamespace))
+	fmt.Fprintf(out, "    * Install will run in job %s\n", localOrRemoteName(kjob.ObjectMeta, baseNamespace))
 	switch {
 	case secret != nil:
-		fmt.Fprintf(out, "    * The pod has access to your current session token through the secret %q.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
+		fmt.Fprintf(out, "    * The job has access to your current session token through the secret %q.\n", localOrRemoteName(secret.ObjectMeta, baseNamespace))
 		fmt.Fprintf(out, "      If you cancel the install, you should delete the secret or log out of your session.\n")
 	case hasToken && generatorInput.Token.Env != nil:
-		fmt.Fprintf(out, "    * The pod has access to your current session token via environment variable %s.\n", *generatorInput.Token.Env)
-		fmt.Fprintf(out, "      If you cancel the install, you should delete the pod or log out of your session.\n")
+		fmt.Fprintf(out, "    * The job has access to your current session token via environment variable %s.\n", *generatorInput.Token.Env)
+		fmt.Fprintf(out, "      If you cancel the install, you should delete the job or log out of your session.\n")
 	case hasToken && generatorInput.Token.ServiceAccount:
-		fmt.Fprintf(out, "    * The pod will use the 'installer' service account. If this account does not exist\n")
+		fmt.Fprintf(out, "    * The job will use the 'installer' service account. If this account does not exist\n")
 		fmt.Fprintf(out, "      with sufficient permissions, you may need to ask a project admin set it up.\n")
 	case hasToken:
-		fmt.Fprintf(out, "    * The pod has access to your current session token. Please delete the pod if you cancel the install.\n")
+		fmt.Fprintf(out, "    * The job has access to your current session token. Please delete the job if you cancel the install.\n")
 	}
 	if hasToken {
 		if generatorInput.Token.ServiceAccount {
-			fmt.Fprintf(out, "--> WARNING: The pod requires access to the 'installer' service account to install this\n")
+			fmt.Fprintf(out, "--> WARNING: The job requires access to the 'installer' service account to install this\n")
 			fmt.Fprintf(out, "      image. Only grant access to images whose source you trust. The image will be able\n")
 			fmt.Fprintf(out, "      to act as an editor within this project.\n")
 		} else {
-			fmt.Fprintf(out, "--> WARNING: The pod requires access to your current session token to install this image. Only\n")
+			fmt.Fprintf(out, "--> WARNING: The job requires access to your current session token to install this image. Only\n")
 			fmt.Fprintf(out, "      grant access to images whose source you trust. The image will be able to perform any\n")
 			fmt.Fprintf(out, "      action you can take on the cluster.\n")
 		}

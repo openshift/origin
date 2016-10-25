@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"time"
 )
 
 var _ = g.Describe("[builds][Slow] s2i extended build", func() {
@@ -30,7 +31,7 @@ var _ = g.Describe("[builds][Slow] s2i extended build", func() {
 		// we have to wait until image stream tag will be available, otherwise
 		// `oc start-build` will fail with 'imagestreamtags "wildfly:10.0" not found' error.
 		// See this issue for details: https://github.com/openshift/origin/issues/10103
-		err = exutil.WaitForAnImageStreamTag(oc, "openshift", "wildfly", "10.0")
+		err = exutil.TimedWaitForAnImageStreamTag(oc, "openshift", "wildfly", "10.0", time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

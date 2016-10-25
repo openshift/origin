@@ -586,11 +586,11 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 		}
 	}
 
-	pod, secret, err := imageRef.InstallablePod(generatorInput, secretAccessor, serviceAccountName)
+	kjob, secret, err := imageRef.InstallableJob(generatorInput, secretAccessor, serviceAccountName)
 	if err != nil {
 		return nil, "", err
 	}
-	objects = append(objects, pod)
+	objects = append(objects, kjob)
 	if secret != nil {
 		objects = append(objects, secret)
 	}
@@ -601,7 +601,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 		})
 	}
 
-	describeGeneratedJob(c.Out, job, pod, secret, c.OriginNamespace)
+	describeGeneratedJob(c.Out, job, kjob, secret, c.OriginNamespace)
 
 	return objects, name, nil
 }

@@ -16,6 +16,7 @@ import (
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
+	"time"
 )
 
 const limitRangeName = "limits"
@@ -144,7 +145,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 		g.By(fmt.Sprintf("trying to tag a docker image below limit %v", limit))
 		err = oc.Run("import-image").Args("stream:dockerimage", "--confirm", "--insecure", "--from", tag2Image["tag1"].DockerImageReference).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "stream", "dockerimage")
+		err = exutil.TimedWaitForAnImageStreamTag(oc, oc.Namespace(), "stream", "dockerimage", time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
@@ -211,7 +212,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 		g.By(fmt.Sprintf("trying to import from repository %q below quota %v", s1ref.Exact(), limit))
 		err = oc.Run("import-image").Args("bulkimport", "--confirm", "--insecure", "--all", "--from", s1ref.Exact()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "bulkimport", "tag1")
+		err = exutil.TimedWaitForAnImageStreamTag(oc, oc.Namespace(), "bulkimport", "tag1", time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to import tags from repository %q exceeding quota %v", s2ref.Exact(), limit))
