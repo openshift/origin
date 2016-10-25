@@ -562,23 +562,3 @@ function os::util::base64decode() {
 	fi
 }
 readonly -f os::util::base64decode
-
-function os::util::get_object_assert() {
-	local object=$1
-	local request=$2
-	local expected=$3
-
-	res=$(eval oc get $object -o go-template=\"$request\")
-
-	if [[ "$res" =~ ^$expected$ ]]; then
-		echo "Successful get $object $request: $res"
-		return 0
-	else
-		echo "FAIL!"
-		echo "Get $object $request"
-		echo "  Expected: $expected"
-		echo "  Got:	$res"
-		return 1
-	fi
-}
-readonly -f os::util::get_object_assert
