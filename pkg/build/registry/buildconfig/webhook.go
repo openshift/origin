@@ -51,17 +51,17 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 	}
 
 	revision, envvars, proceed, err := plugin.Extract(config, secret, "", req)
-	switch err {
-	case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
-		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
-	case nil:
-	default:
-		return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))
-	}
-
 	if !proceed {
-		return nil
+		switch err {
+		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
+			return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
+		case nil:
+			return nil
+		default:
+			return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))
+		}
 	}
+	warning := err
 
 	buildTriggerCauses := generateBuildTriggerInfo(revision, hookType, secret)
 	request := &buildapi.BuildRequest{
@@ -73,7 +73,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 	if _, err := w.instantiator.Instantiate(config.Namespace, request); err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
 	}
-	return nil
+	return warning
 }
 
 func generateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secret string) (buildTriggerCauses []buildapi.BuildTriggerCause) {

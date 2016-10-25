@@ -11,6 +11,8 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 var mockBuildStrategy = api.BuildStrategy{
@@ -50,6 +52,24 @@ func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
 	req, _ := http.NewRequest("POST", "http://someurl.com", bytes.NewReader(data))
 	req.Header.Add("Content-Type", "application/json")
 	return req
+}
+
+func matchWarning(t *testing.T, err error, message string) {
+	status, ok := err.(*errors.StatusError)
+	if !ok {
+		t.Errorf("Expected %v to be a StatusError object", err)
+		return
+	}
+
+	if status.ErrStatus.Status != unversioned.StatusSuccess {
+		t.Errorf("Unexpected response status %v, expected %v", status.ErrStatus.Status, unversioned.StatusSuccess)
+	}
+	if status.ErrStatus.Code != http.StatusOK {
+		t.Errorf("Unexpected response code %v, expected %v", status.ErrStatus.Code, http.StatusOK)
+	}
+	if status.ErrStatus.Message != message {
+		t.Errorf("Unexpected response message %v, expected %v", status.ErrStatus.Message, message)
+	}
 }
 
 func TestVerifyRequestForMethod(t *testing.T) {
@@ -327,9 +347,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 	plugin := New()
 	build, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err != nil {
-		t.Errorf("Unexpected error when triggering build: %v", err)
-	}
+	matchWarning(t, err, `skipping build. Branch reference from "refs/heads/master" does not match configuration`)
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false' for unmatched refs")
 	}
@@ -471,9 +489,7 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 	plugin := New()
 	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err != nil {
-		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
-	}
+	matchWarning(t, err, `skipping build. None of the supplied refs matched "other"`)
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false'")
 	}
@@ -627,9 +643,7 @@ func TestGitlabPush(t *testing.T) {
 	plugin := New()
 	_, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err != nil {
-		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
-	}
+	matchWarning(t, err, "no git information found in payload, ignoring and continuing with build")
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
 	}
@@ -699,11 +713,113 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 	}
 	plugin := New()
 	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
-	if err != nil {
-		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
-	}
+	matchWarning(t, err, `error unmarshalling payload: invalid character '\x00' looking for beginning of value, ignoring payload and continuing with build`)
 	if !proceed {
 		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
+	}
+}
+
+func TestExtractWithUnmarshalErrorYAML(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://someurl.com", errJSON{})
+	req.Header.Add("Content-Type", "application/yaml")
+	buildConfig := &api.BuildConfig{
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+			},
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						Ref: "other",
+					},
+				},
+				Strategy: mockBuildStrategy,
+			},
+		},
+	}
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	matchWarning(t, err, "error converting payload to json: yaml: control characters are not allowed, ignoring payload and continuing with build")
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
+	}
+}
+
+func TestExtractWithBadContentType(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://someurl.com", errJSON{})
+	req.Header.Add("Content-Type", "bad")
+	buildConfig := &api.BuildConfig{
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+			},
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						Ref: "other",
+					},
+				},
+				Strategy: mockBuildStrategy,
+			},
+		},
+	}
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	matchWarning(t, err, "invalid Content-Type on payload, ignoring payload and continuing with build")
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
+	}
+}
+
+func TestExtractWithUnparseableContentType(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://someurl.com", errJSON{})
+	req.Header.Add("Content-Type", "bad//bad")
+	buildConfig := &api.BuildConfig{
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
+				},
+			},
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					Git: &api.GitBuildSource{
+						Ref: "other",
+					},
+				},
+				Strategy: mockBuildStrategy,
+			},
+		},
+	}
+	plugin := New()
+	revision, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	if err == nil || err.Error() != "error parsing Content-Type: mime: expected token after slash" {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
 	}
 	if revision != nil {
 		t.Error("Expected the 'revision' return value to be nil")
