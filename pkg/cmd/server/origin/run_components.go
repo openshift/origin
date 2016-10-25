@@ -304,7 +304,7 @@ func (c *MasterConfig) RunBuildPodController() {
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildImageChangeTriggerControllerClients()
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	bcIndex := &oscache.StoreToBuildConfigListerImpl{c.Informers.BuildConfigs().Indexer()}
+	bcIndex := &oscache.StoreToBuildConfigListerImpl{Indexer: c.Informers.BuildConfigs().Indexer()}
 	bcIndexSynced := c.Informers.BuildConfigs().Informer().HasSynced
 	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigIndex: bcIndex, BuildConfigIndexSynced: bcIndexSynced}
 	go func() {
