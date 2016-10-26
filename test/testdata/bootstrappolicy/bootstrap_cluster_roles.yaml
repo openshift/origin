@@ -3110,6 +3110,13 @@ items:
     - create
     - delete
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - get
 - apiVersion: v1
   kind: ClusterRole
   metadata:
