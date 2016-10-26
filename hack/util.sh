@@ -303,13 +303,13 @@ function delete_empty_logs() {
 }
 readonly -f delete_empty_logs
 
-# truncate_large_logs truncates large logs so we only download the last 20MB
+# truncate_large_logs truncates large logs so we only download the last 50MB
 function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
 	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +50M \))
 	for file in ${large_files}; do
 		mv "${file}" "${file}.tmp"
-		echo "LOGFILE TOO LONG $(du -h "${file}"), LAST 50M OF LOGFILE:" > "${file}"
+		echo "LOGFILE TOO LONG ($(du -h "${file}.tmp")), PREVIOUS BYTES TRUNCATED. LAST 50M OF LOGFILE:" > "${file}"
 		tail -c 50M "${file}.tmp" >> "${file}"
 		rm "${file}.tmp"
 	done
