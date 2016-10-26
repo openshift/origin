@@ -3931,7 +3931,7 @@ var _examplesJenkinsPipelineSamplepipelineJson = []byte(`{
         "strategy": {
           "type": "JenkinsPipeline",
           "jenkinsPipelineStrategy": {
-            "jenkinsfile": "node('nodejs') {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}' showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
+            "jenkinsfile": "node('nodejs') {\nstage 'build'\nopenshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')\nstage 'deploy'\nopenshiftDeploy(deploymentConfig: '${NAME}')\n}"
           }
         }
       }
