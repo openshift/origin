@@ -210,7 +210,7 @@ func matchPattern(pattern, s string) bool {
 // Generate a regular expression to match wildcard hosts (and paths if any)
 // for a [sub]domain.
 func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
-	subdomain := routeapi.GetSubdomainForHost(hostname)
+	subdomain := routeapi.GetDomainForHost(hostname)
 	if len(subdomain) == 0 {
 		glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
 		return fmt.Sprintf("%s%s", hostname, path)

@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -147,7 +146,7 @@ func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Ro
 
 		case watch.Deleted:
 			p.claimedHosts.RemoveRoute(route.Spec.Host, route)
-			wildcardKey := getDomain(route.Spec.Host)
+			wildcardKey := routeapi.GetDomainForHost(route.Spec.Host)
 			p.claimedWildcards.RemoveRoute(wildcardKey, route)
 			p.blockedWildcards.RemoveRoute(wildcardKey, route)
 		}
@@ -166,14 +165,6 @@ func (p *HostAdmitter) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
 
-func getDomain(hostname string) string {
-	index := strings.IndexRune(hostname, '.')
-	if index == -1 {
-		return ""
-	}
-	return hostname[index+1:]
-}
-
 // addRoute admits routes based on subdomain ownership - returns errors if the route is not admitted.
 func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	// Find displaced routes (or error if an existing route displaces us)
@@ -186,7 +177,7 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 
 	// Remove displaced routes
 	for _, displacedRoute := range displacedRoutes {
-		wildcardKey := getDomain(displacedRoute.Spec.Host)
+		wildcardKey := routeapi.GetDomainForHost(displacedRoute.Spec.Host)
 		p.claimedHosts.RemoveRoute(displacedRoute.Spec.Host, displacedRoute)
 		p.blockedWildcards.RemoveRoute(wildcardKey, displacedRoute)
 		p.claimedWildcards.RemoveRoute(wildcardKey, displacedRoute)
@@ -197,7 +188,7 @@ func (p *HostAdmitter) addRoute(route *routeapi.Route) error {
 	}
 
 	// Add the new route
-	wildcardKey := getDomain(route.Spec.Host)
+	wildcardKey := routeapi.GetDomainForHost(route.Spec.Host)
 
 	switch route.Spec.WildcardPolicy {
 	case routeapi.WildcardPolicyNone:
@@ -233,7 +224,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 		displaced = append(displaced, p.claimedHosts[newRoute.Spec.Host][i])
 	}
 
-	wildcardKey := getDomain(newRoute.Spec.Host)
+	wildcardKey := routeapi.GetDomainForHost(newRoute.Spec.Host)
 
 	// See if any existing wildcard routes block our domain, or if we displace them
 	for i, route := range p.claimedWildcards[wildcardKey] {

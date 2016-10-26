@@ -89,7 +89,7 @@ func TestRouteLessThan(t *testing.T) {
 	}
 }
 
-func TestGetSubdomainForHost(t *testing.T) {
+func TestGetDomainForHost(t *testing.T) {
 	tests := []struct {
 		name        string
 		host        string
@@ -101,24 +101,24 @@ func TestGetSubdomainForHost(t *testing.T) {
 			expectation: "host.test",
 		},
 		{
-			name:        "plain2 aceswild",
+			name:        "aceswild",
 			host:        "www777.aceswild.test",
 			expectation: "aceswild.test",
 		},
 		{
 			name:        "subdomain1",
 			host:        "one.test",
-			expectation: "one.test",
+			expectation: "test",
 		},
 		{
 			name:        "subdomain2",
 			host:        "two.test",
-			expectation: "two.test",
+			expectation: "test",
 		},
 		{
 			name:        "subdomain3",
 			host:        "three.org",
-			expectation: "three.org",
+			expectation: "org",
 		},
 		{
 			name:        "nested subdomain",
@@ -143,17 +143,12 @@ func TestGetSubdomainForHost(t *testing.T) {
 		{
 			name:        "tld1",
 			host:        "test",
-			expectation: "test",
+			expectation: "",
 		},
 		{
 			name:        "tld2",
 			host:        "org",
-			expectation: "org",
-		},
-		{
-			name:        "tld3",
-			host:        "com",
-			expectation: "com",
+			expectation: "",
 		},
 		{
 			name:        "semi-longish host",
@@ -163,7 +158,7 @@ func TestGetSubdomainForHost(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		subdomain := GetSubdomainForHost(tc.host)
+		subdomain := GetDomainForHost(tc.host)
 
 		if subdomain != tc.expectation {
 			t.Errorf("Test case %s expected %v got %v", tc.name, tc.expectation, subdomain)

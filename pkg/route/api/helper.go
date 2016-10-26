@@ -36,19 +36,12 @@ func RouteLessThan(route1, route2 *Route) bool {
 	return false
 }
 
-// GetSubdomainForHost returns the subdomain for the specified host.
-// This handles top-level domain names as well.
-// Example: acme.test and www.acme.test both return acme.test
-//          and www1.edge.acme.test returns edge.acme.test
-func GetSubdomainForHost(host string) string {
-	if len(host) == 0 {
-		return host
+// GetDomainForHost returns the domain for the specified host.
+// Note for top level domains, this will return an empty string.
+func GetDomainForHost(host string) string {
+	if idx := strings.IndexRune(host, '.'); idx > -1 {
+		return host[idx+1:]
 	}
 
-	parts := strings.SplitAfterN(host, ".", 3)
-	if len(parts) > 2 {
-		return parts[1] + parts[2]
-	}
-
-	return host
+	return ""
 }

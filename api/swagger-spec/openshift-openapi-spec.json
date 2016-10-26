@@ -51353,7 +51353,7 @@
       "$ref": "#/definitions/v1.RouteTargetReference"
      },
      "wildcardPolicy": {
-      "description": "Wildcard policy if any for the route.",
+      "description": "Wildcard policy if any for the route. Currently only 'Subdomain' or 'None' is allowed.",
       "type": "string"
      }
     }
