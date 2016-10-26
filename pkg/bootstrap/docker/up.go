@@ -604,7 +604,7 @@ func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
 		err = c.OpenShiftHelper().TestPorts(openshift.PortsWithAlternateDNS)
 		if err == nil {
 			c.DNSPort = openshift.AlternateDNSPort
-			fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may be not be resolvable from all clients.\n", openshift.AlternateDNSPort)
+			fmt.Fprintf(out, "WARNING: Binding DNS on port %d instead of 53, which may not be resolvable from all clients.\n", openshift.AlternateDNSPort)
 			return nil
 		}
 	}
