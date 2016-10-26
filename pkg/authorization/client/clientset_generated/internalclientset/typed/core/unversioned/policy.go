@@ -21,6 +21,7 @@ type PolicyInterface interface {
 	Get(name string) (*api.Policy, error)
 	List(opts pkg_api.ListOptions) (*api.PolicyList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Policy, err error)
 	PolicyExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *policies) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 		Resource("policies").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched policy.
+func (c *policies) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
+	result = &api.Policy{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("policies").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

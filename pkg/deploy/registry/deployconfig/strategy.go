@@ -38,6 +38,11 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+func (s strategy) Export(ctx kapi.Context, obj runtime.Object, exact bool) error {
+	s.PrepareForCreate(ctx, obj)
+	return nil
+}
+
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	dc := obj.(*api.DeploymentConfig)

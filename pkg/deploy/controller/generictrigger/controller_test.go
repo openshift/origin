@@ -34,6 +34,19 @@ var (
 		2*time.Minute,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
+	rcInformer = framework.NewSharedIndexInformer(
+		&cache.ListWatch{
+			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+				return (&ktestclient.Fake{}).ReplicationControllers(kapi.NamespaceAll).List(options)
+			},
+			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+				return (&ktestclient.Fake{}).ReplicationControllers(kapi.NamespaceAll).Watch(options)
+			},
+		},
+		&kapi.ReplicationController{},
+		2*time.Minute,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+	)
 	streamInformer = framework.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -54,7 +67,7 @@ var (
 func TestHandle_noTriggers(t *testing.T) {
 	fake := &testclient.Fake{}
 
-	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(1)
 	config.Namespace = kapi.NamespaceDefault
@@ -71,7 +84,7 @@ func TestHandle_noTriggers(t *testing.T) {
 func TestHandle_pausedConfig(t *testing.T) {
 	fake := &testclient.Fake{}
 
-	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(1)
 	config.Namespace = kapi.NamespaceDefault
@@ -95,7 +108,7 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 		return true, nil, nil
 	})
 
-	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
 	config.Namespace = kapi.NamespaceDefault
@@ -119,7 +132,7 @@ func TestHandle_imageChangeTrigger(t *testing.T) {
 		return true, nil, nil
 	})
 
-	controller := NewDeploymentTriggerController(dcInformer, streamInformer, fake, codec)
+	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
 	config := testapi.OkDeploymentConfig(0)
 	config.Namespace = kapi.NamespaceDefault

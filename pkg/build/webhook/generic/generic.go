@@ -42,68 +42,74 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return revision, envvars, false, err
 	}
 
-	if buildCfg.Spec.Source.Git == nil {
-		glog.V(4).Infof("No git source defined for BuildConfig %s/%s, but triggering anyway", buildCfg.Namespace, buildCfg.Name)
-		return revision, envvars, true, err
-	}
-
 	contentType := req.Header.Get("Content-Type")
 	if len(contentType) != 0 {
 		contentType, _, err = mime.ParseMediaType(contentType)
 		if err != nil {
-			return nil, envvars, false, fmt.Errorf("non-parseable Content-Type %s (%s)", contentType, err)
+			return revision, envvars, false, fmt.Errorf("error parsing Content-Type: %s", err)
 		}
 	}
 
-	if req.Body != nil && (contentType == "application/json" || contentType == "application/yaml") {
-		body, err := ioutil.ReadAll(req.Body)
+	if req.Body == nil {
+		return revision, envvars, true, nil
+	}
+
+	if contentType != "application/json" && contentType != "application/yaml" {
+		warning := webhook.NewWarning("invalid Content-Type on payload, ignoring payload and continuing with build")
+		return revision, envvars, true, warning
+	}
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return revision, envvars, false, err
+	}
+
+	if len(body) == 0 {
+		return revision, envvars, true, nil
+	}
+
+	var data api.GenericWebHookEvent
+	if contentType == "application/yaml" {
+		body, err = yaml.ToJSON(body)
 		if err != nil {
-			return nil, envvars, false, err
+			warning := webhook.NewWarning(fmt.Sprintf("error converting payload to json: %v, ignoring payload and continuing with build", err))
+			return revision, envvars, true, warning
 		}
+	}
+	if err = json.Unmarshal(body, &data); err != nil {
+		warning := webhook.NewWarning(fmt.Sprintf("error unmarshalling payload: %v, ignoring payload and continuing with build", err))
+		return revision, envvars, true, warning
+	}
+	if len(data.Env) > 0 && trigger.AllowEnv {
+		envvars = data.Env
+	}
+	if buildCfg.Spec.Source.Git == nil {
+		// everything below here is specific to git-based builds
+		return revision, envvars, true, nil
+	}
+	if data.Git == nil {
+		warning := webhook.NewWarning("no git information found in payload, ignoring and continuing with build")
+		return revision, envvars, true, warning
+	}
 
-		if len(body) == 0 {
-			return nil, envvars, true, nil
-		}
-
-		var data api.GenericWebHookEvent
-		if contentType == "application/yaml" {
-			body, err = yaml.ToJSON(body)
-			if err != nil {
-				glog.V(4).Infof("Error converting payload to json %v, but continuing with build", err)
-				return nil, envvars, true, nil
-			}
-		}
-		if err = json.Unmarshal(body, &data); err != nil {
-			glog.V(4).Infof("Error unmarshalling payload %v, but continuing with build", err)
-			return nil, envvars, true, nil
-		}
-		if len(data.Env) > 0 && trigger.AllowEnv {
-			envvars = data.Env
-		}
-		if data.Git == nil {
-			glog.V(4).Infof("No git information for the generic webhook found in %s/%s", buildCfg.Namespace, buildCfg.Name)
-			return nil, envvars, true, nil
-		}
-
-		if data.Git.Refs != nil {
-			for _, ref := range data.Git.Refs {
-				if webhook.GitRefMatches(ref.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-					revision = &api.SourceRevision{
-						Git: &ref.GitSourceRevision,
-					}
-					return revision, envvars, true, nil
+	if data.Git.Refs != nil {
+		for _, ref := range data.Git.Refs {
+			if webhook.GitRefMatches(ref.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
+				revision = &api.SourceRevision{
+					Git: &ref.GitSourceRevision,
 				}
+				return revision, envvars, true, nil
 			}
-			glog.V(2).Infof("Skipping build for BuildConfig %s/%s. None of the supplied refs matched %q", buildCfg.Namespace, buildCfg, buildCfg.Spec.Source.Git.Ref)
-			return nil, envvars, false, nil
 		}
-		if !webhook.GitRefMatches(data.Git.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-			glog.V(2).Infof("Skipping build for BuildConfig %s/%s. Branch reference from %q does not match configuration", buildCfg.Namespace, buildCfg.Name, data.Git.Ref)
-			return nil, envvars, false, nil
-		}
-		revision = &api.SourceRevision{
-			Git: &data.Git.GitSourceRevision,
-		}
+		warning := webhook.NewWarning(fmt.Sprintf("skipping build. None of the supplied refs matched %q", buildCfg.Spec.Source.Git.Ref))
+		return revision, envvars, false, warning
+	}
+	if !webhook.GitRefMatches(data.Git.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
+		warning := webhook.NewWarning(fmt.Sprintf("skipping build. Branch reference from %q does not match configuration", data.Git.Ref))
+		return revision, envvars, false, warning
+	}
+	revision = &api.SourceRevision{
+		Git: &data.Git.GitSourceRevision,
 	}
 	return revision, envvars, true, nil
 }

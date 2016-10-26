@@ -4,11 +4,13 @@
   "metadata": {
     "name": "rails-postgresql-example",
     "annotations": {
-      "description": "An example Rails application with a PostgreSQL database",
-      "tags": "quickstart,ruby,rails,postgresql",
+      "openshift.io/display-name": "Rails + PostgreSQL (Ephemeral)",
+      "description": "An example Rails application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,ruby,rails",
       "iconClass": "icon-ruby"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
   "labels": {
     "template": "rails-postgresql-example"
   },
@@ -19,7 +21,8 @@
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {

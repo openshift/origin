@@ -1,100 +1,93 @@
 package defaults
 
 import (
-	"io"
-
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func init() {
-	admission.RegisterPlugin("BuildDefaults", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
-
-		defaultsConfig, err := getConfig(config)
-		if err != nil {
-			return nil, err
-		}
-
-		glog.V(5).Infof("Initializing BuildDefaults plugin with config: %#v", defaultsConfig)
-		return NewBuildDefaults(defaultsConfig), nil
-	})
+type BuildDefaults struct {
+	config *defaultsapi.BuildDefaultsConfig
 }
 
-func getConfig(in io.Reader) (*defaultsapi.BuildDefaultsConfig, error) {
-	defaultsConfig := &defaultsapi.BuildDefaultsConfig{}
-	err := buildadmission.ReadPluginConfig(in, defaultsConfig)
+// NewBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
+func NewBuildDefaults(pluginConfig map[string]configapi.AdmissionPluginConfig) (BuildDefaults, error) {
+	config := &defaultsapi.BuildDefaultsConfig{}
+	err := buildadmission.ReadPluginConfig(pluginConfig, defaultsapi.BuildDefaultsPlugin, config)
 	if err != nil {
-		return nil, err
+		return BuildDefaults{}, err
 	}
-	errs := validation.ValidateBuildDefaultsConfig(defaultsConfig)
+	errs := validation.ValidateBuildDefaultsConfig(config)
 	if len(errs) > 0 {
-		return nil, errs.ToAggregate()
+		return BuildDefaults{}, errs.ToAggregate()
 	}
-	return defaultsConfig, nil
+	glog.V(4).Infof("Initialized build defaults plugin with config: %#v", *config)
+	return BuildDefaults{config: config}, nil
 }
 
-type buildDefaults struct {
-	*admission.Handler
-	defaultsConfig *defaultsapi.BuildDefaultsConfig
-}
-
-// NewBuildDefaults returns an admission control for builds that sets build defaults
-// based on the plugin configuration
-func NewBuildDefaults(defaultsConfig *defaultsapi.BuildDefaultsConfig) admission.Interface {
-	return &buildDefaults{
-		Handler:        admission.NewHandler(admission.Create),
-		defaultsConfig: defaultsConfig,
-	}
-}
-
-// Admit applies configured build defaults to a pod that is identified
-// as a build pod.
-func (a *buildDefaults) Admit(attributes admission.Attributes) error {
-	if a.defaultsConfig == nil {
+// ApplyDefaults applies configured build defaults to a build pod
+func (b BuildDefaults) ApplyDefaults(pod *kapi.Pod) error {
+	if b.config == nil {
 		return nil
 	}
-	if !buildadmission.IsBuildPod(attributes) {
-		return nil
-	}
-	build, version, err := buildadmission.GetBuild(attributes)
+
+	build, version, err := buildadmission.GetBuildFromPod(pod)
 	if err != nil {
 		return nil
 	}
 
-	glog.V(4).Infof("Handling build %s/%s", build.Namespace, build.Name)
+	glog.V(4).Infof("Applying defaults to build %s/%s", build.Namespace, build.Name)
 
-	a.applyBuildDefaults(build)
+	b.applyBuildDefaults(build)
 
-	err = buildadmission.SetBuildLogLevel(attributes, build)
+	b.applyPodDefaults(pod)
+
+	err = buildadmission.SetPodLogLevelFromBuild(pod, build)
 	if err != nil {
 		return err
 	}
 
-	return buildadmission.SetBuild(attributes, build, version)
+	return buildadmission.SetBuildInPod(pod, build, version)
 }
 
-func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
+func (b BuildDefaults) applyPodDefaults(pod *kapi.Pod) {
+	if len(b.config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+		// only apply nodeselector defaults if the pod has no nodeselector labels
+		// already.
+		pod.Spec.NodeSelector = map[string]string{}
+		for k, v := range b.config.NodeSelector {
+			addDefaultNodeSelector(k, v, pod.Spec.NodeSelector)
+		}
+	}
+
+	if len(b.config.Annotations) != 0 && pod.Annotations == nil {
+		pod.Annotations = map[string]string{}
+	}
+	for k, v := range b.config.Annotations {
+		addDefaultAnnotations(k, v, pod.Annotations)
+	}
+}
+
+func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	// Apply default env
 	buildEnv := getBuildEnv(build)
-	for _, envVar := range a.defaultsConfig.Env {
+	for _, envVar := range b.config.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
 		addDefaultEnvVar(envVar, buildEnv)
 	}
 
 	// Apply default labels
-	for _, lbl := range a.defaultsConfig.ImageLabels {
+	for _, lbl := range b.config.ImageLabels {
 		glog.V(5).Infof("Adding default image label %s=%s to build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
 		addDefaultLabel(lbl, &build.Spec.Output.ImageLabels)
 	}
 
-	sourceDefaults := a.defaultsConfig.SourceStrategyDefaults
+	sourceDefaults := b.config.SourceStrategyDefaults
 	sourceStrategy := build.Spec.Strategy.SourceStrategy
 	if sourceDefaults != nil && sourceDefaults.Incremental != nil && *sourceDefaults.Incremental &&
 		sourceStrategy != nil && sourceStrategy.Incremental == nil {
@@ -107,25 +100,25 @@ func (a *buildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	if build.Spec.Source.Git == nil {
 		return
 	}
-	if len(a.defaultsConfig.GitHTTPProxy) != 0 {
+	if len(b.config.GitHTTPProxy) != 0 {
 		if build.Spec.Source.Git.HTTPProxy == nil {
-			t := a.defaultsConfig.GitHTTPProxy
+			t := b.config.GitHTTPProxy
 			glog.V(5).Infof("Setting default Git HTTP proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.HTTPProxy = &t
 		}
 	}
 
-	if len(a.defaultsConfig.GitHTTPSProxy) != 0 {
+	if len(b.config.GitHTTPSProxy) != 0 {
 		if build.Spec.Source.Git.HTTPSProxy == nil {
-			t := a.defaultsConfig.GitHTTPSProxy
+			t := b.config.GitHTTPSProxy
 			glog.V(5).Infof("Setting default Git HTTPS proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.HTTPSProxy = &t
 		}
 	}
 
-	if len(a.defaultsConfig.GitNoProxy) != 0 {
+	if len(b.config.GitNoProxy) != 0 {
 		if build.Spec.Source.Git.NoProxy == nil {
-			t := a.defaultsConfig.GitNoProxy
+			t := b.config.GitNoProxy
 			glog.V(5).Infof("Setting default Git no proxy of build %s/%s to %s", build.Namespace, build.Name, t)
 			build.Spec.Source.Git.NoProxy = &t
 		}
@@ -167,4 +160,20 @@ func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.I
 	if !found {
 		*buildLabels = append(*buildLabels, defaultLabel)
 	}
+}
+
+func addDefaultNodeSelector(k, v string, selectors map[string]string) bool {
+	if _, ok := selectors[k]; !ok {
+		selectors[k] = v
+		return true
+	}
+	return false
+}
+
+func addDefaultAnnotations(k, v string, annotations map[string]string) bool {
+	if _, ok := annotations[k]; !ok {
+		annotations[k] = v
+		return true
+	}
+	return false
 }

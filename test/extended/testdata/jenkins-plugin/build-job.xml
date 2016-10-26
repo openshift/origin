@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <scm class="hudson.scm.NullSCM"/>
+    <canRoam>true</canRoam>
+    <disabled>false</disabled>
+    <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+    <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+    <triggers/>
+    <concurrentBuild>false</concurrentBuild>
+    <builders>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <depCfg>frontend</depCfg>
+            <namespace>PROJECT_NAME</namespace>
+            <replicaCount>0</replicaCount>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <bldCfg>frontend</bldCfg>
+            <namespace>PROJECT_NAME</namespace>
+            <authToken></authToken>
+            <followLog>true</followLog>
+            <checkForTriggeredDeployments>true</checkForTriggeredDeployments>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftBuilder>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <depCfg>frontend</depCfg>
+            <namespace>PROJECT_NAME</namespace>
+            <replicaCount>0</replicaCount>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <depCfg>frontend</depCfg>
+            <namespace>PROJECT_NAME</namespace>
+            <replicaCount>1</replicaCount>
+            <authToken></authToken>
+            <verifyReplicaCount>true</verifyReplicaCount>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftScaler>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <svcName>frontend</svcName>
+            <namespace>PROJECT_NAME</namespace>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftServiceVerifier>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <namespace>PROJECT_NAME</namespace>
+            <testStream>origin-nodejs-sample</testStream>
+            <testTag>latest</testTag>
+            <prodStream>origin-nodejs-sample</prodStream>
+            <prodTag>prod</prodTag>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftImageTagger>
+
+        <com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
+            <apiURL>https://openshift.default.svc.cluster.local</apiURL>
+            <depCfg>frontend-prod</depCfg>
+            <namespace>PROJECT_NAME</namespace>
+            <replicaCount>0</replicaCount>
+            <authToken></authToken>
+        </com.openshift.jenkins.plugins.pipeline.OpenShiftDeploymentVerifier>
+
+    </builders>
+    <publishers/>
+    <buildWrappers/>
+</project>

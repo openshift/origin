@@ -2,6 +2,7 @@ package integration
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,6 +69,42 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 	}
 }
 
+func TestBuildDefaultLabels(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
+	labels := []buildapi.ImageLabel{{Name: "KEY", Value: "VALUE"}}
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+		ImageLabels: labels,
+	})
+	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := build.Spec.Output.ImageLabels; !reflect.DeepEqual(labels, actual) {
+		t.Errorf("Resulting build did not get expected labels: %v", actual)
+	}
+}
+
+func TestBuildDefaultNodeSelectors(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
+	selectors := map[string]string{"KEY": "VALUE"}
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+		NodeSelector: selectors,
+	})
+	_, pod := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := pod.Spec.NodeSelector; !reflect.DeepEqual(selectors, actual) {
+		t.Errorf("Resulting pod did not get expected nodeselectors: %v", actual)
+	}
+}
+
+func TestBuildDefaultAnnotations(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
+	annotations := map[string]string{"KEY": "VALUE"}
+	oclient, kclient := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
+		Annotations: annotations,
+	})
+	_, pod := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := pod.Annotations; strings.Compare(actual["KEY"], annotations["KEY"]) != 0 {
+		t.Errorf("Resulting pod did not get expected annotations: actual: %v, expected: %v", actual["KEY"], annotations["KEY"])
+	}
+}
+
 func TestBuildOverrideForcePull(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
@@ -90,6 +127,42 @@ func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
 	}
 	if !build.Spec.Strategy.CustomStrategy.ForcePull {
 		t.Errorf("ForcePull was not set on resulting build")
+	}
+}
+
+func TestBuildOverrideLabels(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
+	labels := []buildapi.ImageLabel{{Name: "KEY", Value: "VALUE"}}
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+		ImageLabels: labels,
+	})
+	build, _ := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := build.Spec.Output.ImageLabels; !reflect.DeepEqual(labels, actual) {
+		t.Errorf("Resulting build did not get expected labels: %v", actual)
+	}
+}
+
+func TestBuildOverrideNodeSelectors(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
+	selectors := map[string]string{"KEY": "VALUE"}
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+		NodeSelector: selectors,
+	})
+	_, pod := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := pod.Spec.NodeSelector; !reflect.DeepEqual(selectors, actual) {
+		t.Errorf("Resulting build did not get expected nodeselectors: %v", actual)
+	}
+}
+
+func TestBuildOverrideAnnotations(t *testing.T) {
+	defer testutil.DumpEtcdOnFailure(t)
+	annotations := map[string]string{"KEY": "VALUE"}
+	oclient, kclient := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+		Annotations: annotations,
+	})
+	_, pod := runBuildPodAdmissionTest(t, oclient, kclient, buildPodAdmissionTestDockerBuild())
+	if actual := pod.Annotations; strings.Compare(actual["KEY"], annotations["KEY"]) != 0 {
+		t.Errorf("Resulting build did not get expected annotations: %v", actual)
 	}
 }
 
@@ -189,7 +262,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	master.KubernetesMasterConfig.AdmissionConfig.PluginConfig = pluginConfig
+	master.AdmissionConfig.PluginConfig = pluginConfig
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(master)
 	if err != nil {
 		t.Fatalf("%v", err)

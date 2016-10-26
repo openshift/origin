@@ -4,11 +4,13 @@
   "metadata": {
     "name": "django-psql-example",
     "annotations": {
-      "description": "An example Django application with a PostgreSQL database",
-      "tags": "quickstart,python,django,postgresql",
+      "openshift.io/display-name": "Django + PostgreSQL (Ephemeral)",
+      "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,python,django",
       "iconClass": "icon-python"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
   "labels": {
     "template": "django-psql-example"
   },
@@ -19,7 +21,8 @@
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {

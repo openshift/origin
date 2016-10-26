@@ -40,27 +40,6 @@ function ensure_iptables_or_die() {
 }
 readonly -f ensure_iptables_or_die
 
-# tryuntil loops, retrying an action until it succeeds or times out after 90 seconds.
-function tryuntil() {
-	timeout=$(($(date +%s) + 90))
-	echo "++ Retrying until success or timeout: ${@}"
-	while [ 1 ]; do
-		if eval "${@}" >/dev/null 2>&1; then
-			return 0
-		fi
-		if [[ $(date +%s) -gt $timeout ]]; then
-			# run it one more time so we can display the output
-			# for debugging, since above we /dev/null the output
-			if eval "${@}"; then
-				return 0
-			fi
-			echo "++ timed out"
-			return 1
-		fi
-	done
-}
-readonly -f tryuntil
-
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
 #
@@ -324,13 +303,13 @@ function delete_empty_logs() {
 }
 readonly -f delete_empty_logs
 
-# truncate_large_logs truncates large logs so we only download the last 20MB
+# truncate_large_logs truncates large logs so we only download the last 50MB
 function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
 	local large_files=$(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +50M \))
 	for file in ${large_files}; do
 		mv "${file}" "${file}.tmp"
-		echo "LOGFILE TOO LONG $(du -h "${file}"), LAST 50M OF LOGFILE:" > "${file}"
+		echo "LOGFILE TOO LONG ($(du -h "${file}.tmp")), PREVIOUS BYTES TRUNCATED. LAST 50M OF LOGFILE:" > "${file}"
 		tail -c 50M "${file}.tmp" >> "${file}"
 		rm "${file}.tmp"
 	done
@@ -565,41 +544,3 @@ function os::util::host_platform() {
 	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 readonly -f os::util::host_platform
-
-function os::util::sed() {
-	if LANG=C sed --help 2>&1 | grep -qs "GNU sed"; then
-		sed -i'' "$@"
-	else
-		sed -i '' "$@"
-	fi
-}
-readonly -f os::util::sed
-
-function os::util::base64decode() {
-	if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
-		base64 -D $@
-	else
-		base64 -d $@
-	fi
-}
-readonly -f os::util::base64decode
-
-function os::util::get_object_assert() {
-	local object=$1
-	local request=$2
-	local expected=$3
-
-	res=$(eval oc get $object -o go-template=\"$request\")
-
-	if [[ "$res" =~ ^$expected$ ]]; then
-		echo "Successful get $object $request: $res"
-		return 0
-	else
-		echo "FAIL!"
-		echo "Get $object $request"
-		echo "  Expected: $expected"
-		echo "  Got:	$res"
-		return 1
-	fi
-}
-readonly -f os::util::get_object_assert

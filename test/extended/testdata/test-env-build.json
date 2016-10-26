@@ -10,11 +10,7 @@
   "spec":{
     "triggers":[],
     "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/openshift/origin"
-      },
-      "contextDir":"test/extended/testdata/sti-environment-build-app"
+      "type":"Binary"
     },
     "strategy":{
       "type":"Source",

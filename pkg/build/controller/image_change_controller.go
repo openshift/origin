@@ -17,16 +17,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// ImageChangeControllerFatalError represents a fatal error while handling an image change
-type ImageChangeControllerFatalError struct {
-	Reason string
-	Err    error
-}
-
-func (e ImageChangeControllerFatalError) Error() string {
-	return fmt.Sprintf("fatal error handling ImageStream change: %s, root error was: %s", e.Reason, e.Err.Error())
-}
-
 // ImageChangeController watches for changes to ImageRepositories and triggers
 // builds when a new version of a tag referenced by a BuildConfig
 // is available.

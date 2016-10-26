@@ -23,11 +23,9 @@
       "spec": {
         "completionDeadlineSeconds": 5,
         "triggers": [],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
-          }
+        "source":{
+          "type":"Dockerfile",
+          "dockerfile":"FROM centos:7\nRUN sleep 10m"
         },
         "strategy": {
           "type": "Source",

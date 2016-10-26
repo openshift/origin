@@ -1,7 +1,6 @@
 package admission
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
 
@@ -48,22 +47,15 @@ func TestReadPluginConfig(t *testing.T) {
 	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &OtherTestConfig2{})
 	configapi.Scheme.AddKnownTypeWithName(configapiv1.SchemeGroupVersion.WithKind("OtherTestConfig2"), &OtherTestConfig2V2{})
 
-	configString := `apiVersion: v1
-kind: TestConfig
-item1: hello
-item2:
-- foo
-- bar
-`
-
 	config := &TestConfig{}
 
 	expected := &TestConfig{
 		Item1: "hello",
 		Item2: []string{"foo", "bar"},
 	}
+	pluginCfg := map[string]configapi.AdmissionPluginConfig{"testconfig": {"", expected}}
 	// The config should match the expected config object
-	err := ReadPluginConfig(bytes.NewBufferString(configString), config)
+	err := ReadPluginConfig(pluginCfg, "testconfig", config)
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
@@ -71,16 +63,17 @@ item2:
 		t.Errorf("config does not equal expected: %#v", config)
 	}
 
-	// Passing a nil reader, should not get an error
-	var nilBuffer *bytes.Buffer
-	err = ReadPluginConfig(nilBuffer, &TestConfig{})
+	// Passing a nil cfg, should not get an error
+	pluginCfg = map[string]configapi.AdmissionPluginConfig{}
+	err = ReadPluginConfig(pluginCfg, "testconfig", &TestConfig{})
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 
 	// Passing the wrong type of destination object should result in an error
 	config2 := &OtherTestConfig2{}
-	err = ReadPluginConfig(bytes.NewBufferString(configString), config2)
+	pluginCfg = map[string]configapi.AdmissionPluginConfig{"testconfig": {"", expected}}
+	err = ReadPluginConfig(pluginCfg, "testconfig", config2)
 	if err == nil {
 		t.Fatalf("expected error")
 	}

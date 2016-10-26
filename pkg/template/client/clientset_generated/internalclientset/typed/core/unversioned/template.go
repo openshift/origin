@@ -21,6 +21,7 @@ type TemplateInterface interface {
 	Get(name string) (*api.Template, error)
 	List(opts pkg_api.ListOptions) (*api.TemplateList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Template, err error)
 	TemplateExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *templates) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 		Resource("templates").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched template.
+func (c *templates) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Template, err error) {
+	result = &api.Template{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("templates").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

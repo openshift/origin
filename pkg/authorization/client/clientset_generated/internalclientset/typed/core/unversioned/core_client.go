@@ -54,7 +54,7 @@ func setConfigDefaults(config *restclient.Config) error {
 	if err != nil {
 		return err
 	}
-	config.APIPath = "/api"
+	config.APIPath = "/oapi"
 	if config.UserAgent == "" {
 		config.UserAgent = restclient.DefaultKubernetesUserAgent()
 	}

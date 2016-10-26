@@ -42,7 +42,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 				obj.JenkinsPipelineConfig.ServiceName = "jenkins"
 			}
 			if obj.JenkinsPipelineConfig.AutoProvisionEnabled == nil {
-				v := false
+				v := true
 				obj.JenkinsPipelineConfig.AutoProvisionEnabled = &v
 			}
 

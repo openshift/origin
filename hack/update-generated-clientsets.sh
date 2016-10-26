@@ -18,11 +18,7 @@ if [[ ! "$clientgen" ]]; then
   exit 1
 fi
 
-os::build::get_version_vars
-origin_version="v${OS_GIT_MAJOR}_${OS_GIT_MINOR%+}"
-
-exit 0
-
+# list of package to generate client set for
 packages=(
   github.com/openshift/origin/pkg/authorization
   github.com/openshift/origin/pkg/build
@@ -32,36 +28,36 @@ packages=(
   github.com/openshift/origin/pkg/project
   github.com/openshift/origin/pkg/route
   github.com/openshift/origin/pkg/sdn
-  github.com/openshift/origin/pkg/security
   github.com/openshift/origin/pkg/template
   github.com/openshift/origin/pkg/user
 )
 
-
 function generate_clientset_for() {
   local package="$1";shift
   local name="$1";shift
-  pushd ${OS_ROOT} >/dev/null
-  local common_args="--go-header-file=hack/boilerplate.txt"
+  echo "-- Generating ${name} client set for ${package} ..."
   $clientgen --clientset-path="${package}/client/clientset_generated" \
+             --clientset-api-path="/oapi"                             \
              --input-base="${package}/api"                            \
              --output-base="../../.."                                 \
              --clientset-name="${name}"                               \
-             $common_args                                             \
+             --go-header-file=hack/boilerplate.txt                    \
              "$@"
-  popd >/dev/null
 }
 
 verify="${VERIFY:-}"
 
+# remove the old client sets
 for pkg in "${packages[@]}"; do
   if [[ -z "${verify}" ]]; then
-    # Remove deprecated/old files
     go list -f '{{.Dir}}' "${pkg}/client/clientset_generated/..." | xargs rm -rf
   fi
 done
 
-os::build::setup_env
+# get the tag name for the current origin release
+os::build::get_version_vars
+origin_version="v${OS_GIT_MAJOR}_${OS_GIT_MINOR%+}"
+
 for pkg in "${packages[@]}"; do
   generate_clientset_for "${pkg}" "internalclientset" --input=api/ "$@"
   generate_clientset_for "${pkg}" "release_${origin_version}" --input=api/v1 "$@"

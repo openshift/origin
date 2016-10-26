@@ -28,6 +28,8 @@ import (
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
+	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -229,7 +231,7 @@ func (c *MasterConfig) RunProjectCache() {
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
-func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
+func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) error {
 	// initialize build controller
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
@@ -241,6 +243,15 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 	admissionControl := admission.InitPlugin("SecurityContextConstraint", clientadapter.FromUnversionedClient(c.PrivilegedLoopbackKubernetesClient), "")
 	if wantsInformers, ok := admissionControl.(cmdadmission.WantsInformers); ok {
 		wantsInformers.SetInformers(informers)
+	}
+
+	buildDefaults, err := builddefaults.NewBuildDefaults(c.Options.AdmissionConfig.PluginConfig)
+	if err != nil {
+		return err
+	}
+	buildOverrides, err := buildoverrides.NewBuildOverrides(c.Options.AdmissionConfig.PluginConfig)
+	if err != nil {
+		return err
 	}
 
 	osclient, kclient := c.BuildControllerClients()
@@ -264,12 +275,15 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) {
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: codec,
 		},
+		BuildDefaults:  buildDefaults,
+		BuildOverrides: buildOverrides,
 	}
 
 	controller := factory.Create()
 	controller.Run()
 	deleteController := factory.CreateDeleteController()
 	deleteController.Run()
+	return nil
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status
@@ -290,7 +304,7 @@ func (c *MasterConfig) RunBuildPodController() {
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildImageChangeTriggerControllerClients()
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	bcIndex := &oscache.StoreToBuildConfigListerImpl{c.Informers.BuildConfigs().Indexer()}
+	bcIndex := &oscache.StoreToBuildConfigListerImpl{Indexer: c.Informers.BuildConfigs().Indexer()}
 	bcIndexSynced := c.Informers.BuildConfigs().Informer().HasSynced
 	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigIndex: bcIndex, BuildConfigIndexSynced: bcIndexSynced}
 	go func() {
@@ -354,10 +368,11 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 // RunDeploymentTriggerController starts the deployment trigger controller process.
 func (c *MasterConfig) RunDeploymentTriggerController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
+	rcInformer := c.Informers.ReplicationControllers().Informer()
 	streamInformer := c.Informers.ImageStreams().Informer()
 	osclient := c.DeploymentTriggerControllerClient()
 
-	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, streamInformer, osclient, c.ExternalVersionCodec)
+	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, rcInformer, streamInformer, osclient, c.ExternalVersionCodec)
 	go controller.Run(5, utilwait.NeverStop)
 }
 

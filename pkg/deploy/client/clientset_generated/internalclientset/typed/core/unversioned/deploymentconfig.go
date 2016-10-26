@@ -21,6 +21,7 @@ type DeploymentConfigInterface interface {
 	Get(name string) (*api.DeploymentConfig, error)
 	List(opts pkg_api.ListOptions) (*api.DeploymentConfigList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error)
 	DeploymentConfigExpansion
 }
 
@@ -117,4 +118,18 @@ func (c *deploymentConfigs) Watch(opts pkg_api.ListOptions) (watch.Interface, er
 		Resource("deploymentconfigs").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched deploymentConfig.
+func (c *deploymentConfigs) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error) {
+	result = &api.DeploymentConfig{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

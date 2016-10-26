@@ -61,6 +61,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
+			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent

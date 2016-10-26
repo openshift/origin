@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -32,6 +33,15 @@ type BuildSpec struct {
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
 	TriggeredBy []BuildTriggerCause `json:"triggeredBy" protobuf:"bytes,2,rep,name=triggeredBy"`
+}
+
+// OptionalNodeSelector is a map that may also be left nil to distinguish between set and unset.
+// +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
+type OptionalNodeSelector map[string]string
+
+func (t OptionalNodeSelector) String() string {
+	return fmt.Sprintf("%v", map[string]string(t))
 }
 
 // CommonSpec encapsulates all the inputs necessary to represent a build.
@@ -66,6 +76,12 @@ type CommonSpec struct {
 	// be active on a node before the system actively tries to terminate the
 	// build; value must be positive integer
 	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty" protobuf:"varint,8,opt,name=completionDeadlineSeconds"`
+
+	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	// If nil, it can be overridden by default build nodeselector values for the cluster.
+	// If set to an empty map or a map with any values, default build nodeselector values
+	// are ignored.
+	NodeSelector OptionalNodeSelector `json:"nodeSelector" protobuf:"bytes,9,name=nodeSelector"`
 }
 
 // BuildTriggerCause holds information about a triggered build. It is used for

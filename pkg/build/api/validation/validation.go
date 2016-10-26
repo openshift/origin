@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/util/labelselector"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -190,6 +191,7 @@ func validateCommonSpec(spec *buildapi.CommonSpec, fldPath *field.Path) field.Er
 	allErrs = append(allErrs, validateOutput(&spec.Output, fldPath.Child("output"))...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy, fldPath.Child("strategy"))...)
 	allErrs = append(allErrs, validatePostCommit(spec.PostCommit, fldPath.Child("postCommit"))...)
+	allErrs = append(allErrs, ValidateNodeSelector(spec.NodeSelector, fldPath.Child("nodeSelector"))...)
 
 	// TODO: validate resource requirements (prereq: https://github.com/kubernetes/kubernetes/pull/7059)
 	return allErrs
@@ -722,4 +724,16 @@ func ValidateImageLabels(labels []buildapi.ImageLabel, fldPath *field.Path) (all
 	}
 
 	return
+}
+
+func ValidateNodeSelector(nodeSelector map[string]string, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for k, v := range nodeSelector {
+		_, err := labelselector.Parse(fmt.Sprintf("%s=%s", k, v))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Key(k),
+				nodeSelector[k], "must be a valid node selector"))
+		}
+	}
+	return allErrs
 }

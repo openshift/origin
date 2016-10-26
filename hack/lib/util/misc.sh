@@ -129,3 +129,39 @@ function os::util::find-go-binary() {
   done
 }
 readonly -f os::util::find-go-binary
+
+# os::util::sed attempts to make our Bash scripts agnostic to the platform
+# on which they run `sed` by glossing over a discrepancy in flag use in GNU.
+#
+# Globals:
+#  None
+# Arguments:
+#  - all: arguments to pass to `sed -i`
+# Return:
+#  None
+function os::util::sed() {
+	if LANG=C sed --help 2>&1 | grep -q "GNU sed"; then
+		sed -i'' "$@"
+	else
+		sed -i '' "$@"
+	fi
+}
+readonly -f os::util::sed
+
+# os::util::base64decode attempts to make our Bash scripts agnostic to the platform
+# on which they run `base64decode` by glossing over a discrepancy in flag use in GNU.
+#
+# Globals:
+#  None
+# Arguments:
+#  - all: arguments to pass to `base64decode`
+# Return:
+#  None
+function os::util::base64decode() {
+	if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
+		base64 -D "$@"
+	else
+		base64 -d "$@"
+	fi
+}
+readonly -f os::util::base64decode
