@@ -48,8 +48,8 @@ reset_tmp_dir
 
 os::log::system::start
 
-configure_os_server
-start_os_server
+os::start::configure_server
+os::start::server
 
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"

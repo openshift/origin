@@ -197,7 +197,7 @@ function os::start::internal::patch_master_config() {
 readonly -f os::start::internal::patch_master_config
 
 # os::start::server starts the OpenShift server, exports the PID of the OpenShift server and waits until openshift server endpoints are available
-# It is advised to use this function after a successful run of 'configure_os_server'
+# It is advised to use this function after a successful run of 'os::start::configure_server'
 #
 # Globals:
 #  - USE_SUDO
@@ -303,7 +303,7 @@ function os::start::master() {
 readonly -f os::start::master
 
 # os::start::all_in_one starts the OpenShift server all in one.
-# It is advised to use this function after a successful run of 'configure_os_server'
+# It is advised to use this function after a successful run of 'os::start::configure_server'
 #
 # Globals:
 #  - USE_SUDO

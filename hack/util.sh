@@ -2,21 +2,6 @@
 
 # Provides simple utility functions
 
-function start_os_server() {
-        os::log::warn "start_os_server is deprecated, please use os::start::server"
-        os::start::server "$@"
-}
-
-function configure_os_server() {
-        os::log::warn "configure_os_server is deprecated, please use os::start::configure_server"
-        os::start::configure_server "$@"
-}
-
-function start_os_master() {
-        os::log::warn "start_os_master is deprecated, please use os::start::master"
-        os::start::master "$@"
-}
-
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.
 function ensure_iptables_or_die() {
