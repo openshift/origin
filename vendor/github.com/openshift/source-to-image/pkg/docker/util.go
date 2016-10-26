@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/docker/docker/cliconfig"
 	"github.com/docker/engine-api/client"
 	"github.com/openshift/origin/pkg/image/reference"
 	"github.com/openshift/source-to-image/pkg/api"
@@ -283,14 +284,14 @@ func extractUser(userSpec string) string {
 	return strings.TrimSpace(user)
 }
 
-// IsReachable returns true if the Docker daemon is reachable from s2i
-func IsReachable(config *api.Config) bool {
+// CheckReachable returns if the Docker daemon is reachable from s2i
+func CheckReachable(config *api.Config) error {
 	d, err := New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
-		return false
+		return err
 	}
 	_, err = d.Version()
-	return err == nil
+	return err
 }
 
 func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config *api.Config, forcePull bool) (*PullResult, error) {
@@ -348,13 +349,23 @@ func GetRuntimeImage(config *api.Config, docker Docker) error {
 // provide defaults for our command line flags
 func GetDefaultDockerConfig() *api.DockerConfig {
 	cfg := &api.DockerConfig{}
+
 	if cfg.Endpoint = os.Getenv("DOCKER_HOST"); cfg.Endpoint == "" {
 		cfg.Endpoint = client.DefaultDockerHost
 	}
-	if certPath := os.Getenv("DOCKER_CERT_PATH"); certPath != "" {
-		cfg.CertFile = filepath.Join(certPath, "cert.pem")
-		cfg.KeyFile = filepath.Join(certPath, "key.pem")
-		cfg.CAFile = filepath.Join(certPath, "ca.pem")
+
+	certPath := os.Getenv("DOCKER_CERT_PATH")
+	if certPath == "" {
+		certPath = cliconfig.ConfigDir()
 	}
+
+	cfg.CertFile = filepath.Join(certPath, "cert.pem")
+	cfg.KeyFile = filepath.Join(certPath, "key.pem")
+	cfg.CAFile = filepath.Join(certPath, "ca.pem")
+
+	if tlsVerify := os.Getenv("DOCKER_TLS_VERIFY"); tlsVerify != "" {
+		cfg.TLSVerify = true
+	}
+
 	return cfg
 }
