@@ -12,7 +12,7 @@ if [[ -z "${oc}" ]]; then
 fi
 
 function build() {
-  eval "'${oc}' ex dockerbuild $2 $1 ${OS_BUILD_IMAGE_ARGS:-}"
+  eval "docker build ${OS_BUILD_IMAGE_ARGS:-} -t $1 $2"
 }
 
 # Build the images

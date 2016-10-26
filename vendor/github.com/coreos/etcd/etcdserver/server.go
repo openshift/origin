@@ -40,6 +40,7 @@ import (
 	"github.com/coreos/etcd/lease"
 	"github.com/coreos/etcd/mvcc"
 	"github.com/coreos/etcd/mvcc/backend"
+	"github.com/coreos/etcd/pkg/contention"
 	"github.com/coreos/etcd/pkg/fileutil"
 	"github.com/coreos/etcd/pkg/idutil"
 	"github.com/coreos/etcd/pkg/pbutil"
@@ -176,13 +177,24 @@ type EtcdServer struct {
 
 	snapCount uint64
 
-	w wait.Wait
+	w  wait.Wait
+	td *contention.TimeoutDetector
+
+	readMu sync.RWMutex
+	// read routine notifies etcd server that it waits for reading by sending an empty struct to
+	// readwaitC
+	readwaitc chan struct{}
+	// readNotifier is used to notify the read routine that it can process the request
+	// when there is no error
+	readNotifier *notifier
+
 	// stop signals the run goroutine should shutdown.
 	stop chan struct{}
 	// stopping is closed by run goroutine on shutdown.
 	stopping chan struct{}
 	// done is closed when all goroutines from start() complete.
-	done       chan struct{}
+	done chan struct{}
+
 	errorc     chan error
 	id         types.ID
 	attributes membership.Attributes
@@ -223,6 +235,8 @@ type EtcdServer struct {
 
 	msgSnapC chan raftpb.Message
 
+	// wgMu blocks concurrent waitgroup mutation while server stopping
+	wgMu sync.RWMutex
 	// wg is used to wait for the go routines that depends on the server state
 	// to exit when stopping the server.
 	wg sync.WaitGroup
@@ -380,17 +394,22 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 	sstats.Initialize()
 	lstats := stats.NewLeaderStats(id.String())
 
+	heartbeat := time.Duration(cfg.TickMs) * time.Millisecond
 	srv = &EtcdServer{
 		readych:   make(chan struct{}),
 		Cfg:       cfg,
 		snapCount: cfg.SnapCount,
-		errorc:    make(chan error, 1),
-		store:     st,
+		// set up contention detectors for raft heartbeat message.
+		// expect to send a heartbeat within 2 heartbeat intervals.
+		td:     contention.NewTimeoutDetector(2 * heartbeat),
+		errorc: make(chan error, 1),
+		store:  st,
 		r: raftNode{
 			Node:        n,
-			ticker:      time.Tick(time.Duration(cfg.TickMs) * time.Millisecond),
+			ticker:      time.Tick(heartbeat),
 			raftStorage: s,
 			storage:     NewStorage(w, ss),
+			readStateC:  make(chan raft.ReadState, 1),
 		},
 		id:            id,
 		attributes:    membership.Attributes{Name: cfg.Name, ClientURLs: cfg.ClientURLs.StringSlice()},
@@ -407,7 +426,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 	srv.applyV2 = &applierV2store{store: srv.store, cluster: srv.cluster}
 
 	srv.be = be
-	minTTL := time.Duration((3*cfg.ElectionTicks)/2) * time.Duration(cfg.TickMs) * time.Millisecond
+	minTTL := time.Duration((3*cfg.ElectionTicks)/2) * heartbeat
 
 	// always recover lessor before kv. When we recover the mvcc.KV it will reattach keys to its leases.
 	// If we recover mvcc.KV first, it will attach the keys to the wrong lessor before it recovers.
@@ -478,6 +497,7 @@ func (s *EtcdServer) Start() {
 	s.goAttach(s.purgeFile)
 	s.goAttach(func() { monitorFileDescriptor(s.stopping) })
 	s.goAttach(s.monitorVersions)
+	s.goAttach(s.linearizableReadLoop)
 }
 
 // start prepares and starts server in a new goroutine. It is no longer safe to
@@ -493,6 +513,8 @@ func (s *EtcdServer) start() {
 	s.done = make(chan struct{})
 	s.stop = make(chan struct{})
 	s.stopping = make(chan struct{})
+	s.readwaitc = make(chan struct{}, 1)
+	s.readNotifier = newNotifier()
 	if s.ClusterVersion() != nil {
 		plog.Infof("starting server... [version: %v, cluster version: %v]", version.Version, version.Cluster(s.ClusterVersion().String()))
 	} else {
@@ -556,12 +578,64 @@ type etcdProgress struct {
 	appliedi  uint64
 }
 
+// raftReadyHandler contains a set of EtcdServer operations to be called by raftNode,
+// and helps decouple state machine logic from Raft algorithms.
+// TODO: add a state machine interface to apply the commit entries and do snapshot/recover
+type raftReadyHandler struct {
+	leadershipUpdate func()
+	sendMessage      func(msgs []raftpb.Message)
+}
+
 func (s *EtcdServer) run() {
 	snap, err := s.r.raftStorage.Snapshot()
 	if err != nil {
 		plog.Panicf("get snapshot from raft storage error: %v", err)
 	}
-	s.r.start(s)
+
+	var (
+		smu   sync.RWMutex
+		syncC <-chan time.Time
+	)
+	setSyncC := func(ch <-chan time.Time) {
+		smu.Lock()
+		syncC = ch
+		smu.Unlock()
+	}
+	getSyncC := func() (ch <-chan time.Time) {
+		smu.RLock()
+		ch = syncC
+		smu.RUnlock()
+		return
+	}
+	rh := &raftReadyHandler{
+		leadershipUpdate: func() {
+			if !s.isLeader() {
+				if s.lessor != nil {
+					s.lessor.Demote()
+				}
+				if s.compactor != nil {
+					s.compactor.Pause()
+				}
+				setSyncC(nil)
+			} else {
+				setSyncC(s.SyncTicker)
+			}
+
+			// TODO: remove the nil checking
+			// current test utility does not provide the stats
+			if s.stats != nil {
+				s.stats.BecomeLeader()
+			}
+			if s.compactor != nil {
+				s.compactor.Resume()
+			}
+			if s.td != nil {
+				s.td.Reset()
+			}
+		},
+		sendMessage: func(msgs []raftpb.Message) { s.send(msgs) },
+	}
+	s.r.start(rh)
 
 	// asynchronously accept apply packets, dispatch progress in-order
 	sched := schedule.NewFIFOScheduler()
@@ -572,7 +646,9 @@ func (s *EtcdServer) run() {
 	}
 
 	defer func() {
+		s.wgMu.Lock() // block concurrent waitgroup adds in goAttach while stopping
 		close(s.stopping)
+		s.wgMu.Unlock()
 
 		sched.Stop()
 
@@ -641,6 +717,8 @@ func (s *EtcdServer) run() {
 			plog.Errorf("%s", err)
 			plog.Infof("the data-dir used by this member must be removed.")
 			return
+		case <-getSyncC():
+			s.sync(s.Cfg.ReqTimeout())
 		case <-s.stop:
 			return
 		}
@@ -1116,7 +1194,7 @@ func (s *EtcdServer) send(ms []raftpb.Message) {
 			ms[i].To = 0
 		}
 		if ms[i].Type == raftpb.MsgHeartbeat {
-			ok, exceed := s.r.td.Observe(ms[i].To)
+			ok, exceed := s.td.Observe(ms[i].To)
 			if !ok {
 				// TODO: limit request rate.
 				plog.Warningf("failed to send out heartbeat on time (exceeded the %dms timeout for %v)", s.Cfg.TickMs, exceed)
@@ -1195,6 +1273,11 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 		select {
 		case s.forceVersionC <- struct{}{}:
 		default:
+		}
+		// promote lessor when the local member is leader and finished
+		// applying all entries from the last term.
+		if s.isLeader() {
+			s.lessor.Promote(s.Cfg.electionTimeout())
 		}
 		return
 	}
@@ -1530,6 +1613,16 @@ func (s *EtcdServer) setCommittedIndex(v uint64) {
 // goAttach creates a goroutine on a given function and tracks it using
 // the etcdserver waitgroup.
 func (s *EtcdServer) goAttach(f func()) {
+	s.wgMu.RLock() // this blocks with ongoing close(s.stopping)
+	defer s.wgMu.RUnlock()
+	select {
+	case <-s.stopping:
+		plog.Warning("server has stopped (skipping goAttach)")
+		return
+	default:
+	}
+
+	// now safe to add since waitgroup wait has not started yet
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()

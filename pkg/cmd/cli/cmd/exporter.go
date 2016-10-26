@@ -26,6 +26,7 @@ import (
 	buildrest "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigrest "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployrest "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
@@ -143,14 +144,8 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		t.Secrets = newMountableSecrets
 
 	case *deployapi.DeploymentConfig:
-		// TODO: when internal refactor is completed use status reset
-		t.Status.LatestVersion = 0
-		t.Status.Details = nil
-		for i := range t.Spec.Triggers {
-			if p := t.Spec.Triggers[i].ImageChangeParams; p != nil {
-				p.LastTriggeredImage = ""
-			}
-		}
+		return deployrest.Strategy.Export(ctx, obj, exact)
+
 	case *buildapi.BuildConfig:
 		buildconfigrest.Strategy.PrepareForCreate(ctx, obj)
 		// TODO: should be handled by prepare for create

@@ -69,8 +69,6 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 	overrideapi.PluginName,
 	serviceadmit.ExternalIPPluginName,
 	"SecurityContextConstraint",
-	"BuildDefaults",
-	"BuildOverrides",
 	"SCCExecRestrictions",
 )
 

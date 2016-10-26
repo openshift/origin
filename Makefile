@@ -240,7 +240,7 @@ install-travis:
 # Example:
 #   make build-rpms
 build-rpms:
-	OS_ONLY_BUILD_PLATFORMS='linux/amd64' tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 0"'
+	OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
 .PHONY: build-rpms
 
 # Build RPMs for all architectures
@@ -248,8 +248,17 @@ build-rpms:
 # Example:
 #   make build-rpms-redistributable
 build-rpms-redistributable:
-	tito build --test --rpm --no-cleanup --rpmbuild-options='--define "make_redistributable 1"'
+	hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
+
+# Build a release of OpenShift using tito for linux/amd64 and the images that depend on it.
+#
+# Example:
+#   make release
+release-rpms: clean build-rpms
+	hack/build-images.sh
+	hack/extract-release.sh
+.PHONY: release
 
 # Vendor the Origin Web Console
 #

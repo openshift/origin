@@ -12,6 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
+	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/controller/policy"
@@ -29,6 +31,8 @@ type BuildController struct {
 	ImageStreamClient imageStreamClient
 	Recorder          record.EventRecorder
 	RunPolicies       []policy.RunPolicy
+	BuildDefaults     builddefaults.BuildDefaults
+	BuildOverrides    buildoverrides.BuildOverrides
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -186,6 +190,13 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		}
 		return fmt.Errorf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
+	if err := bc.BuildDefaults.ApplyDefaults(podSpec); err != nil {
+		return fmt.Errorf("failed to apply build defaults for build %s/%s: %v", build.Namespace, build.Name, err)
+	}
+	if err := bc.BuildOverrides.ApplyOverrides(podSpec); err != nil {
+		return fmt.Errorf("failed to apply build overrides for build %s/%s: %v", build.Namespace, build.Name, err)
+	}
+
 	glog.V(4).Infof("Pod %s for build %s/%s is about to be created", podSpec.Name, build.Namespace, build.Name)
 
 	if _, err := bc.PodManager.CreatePod(build.Namespace, podSpec); err != nil {

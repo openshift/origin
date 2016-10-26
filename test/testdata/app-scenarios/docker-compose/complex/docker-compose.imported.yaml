@@ -23,6 +23,7 @@ items:
     creationTimestamp: null
     name: nginx
   spec:
+    nodeSelector: null
     output:
       to:
         kind: ImageStreamTag
@@ -77,6 +78,7 @@ items:
     creationTimestamp: null
     name: web
   spec:
+    nodeSelector: null
     output:
       to:
         kind: ImageStreamTag

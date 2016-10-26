@@ -5,10 +5,15 @@
     "name": "mongodb-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "MongoDB database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "MongoDB (Ephemeral)",
+      "description": "MongoDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mongodb",
       "tags": "database,mongodb"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MONGODB_USER}\n       Password: ${MONGODB_PASSWORD}\n  Database Name: ${MONGODB_DATABASE}\n Connection URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.",
+  "labels": {
+    "template": "mongodb-ephemeral-template"
   },
   "objects": [
     {
@@ -217,9 +222,5 @@
       "value": "3.2",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mongodb-ephemeral-template"
-  },
-  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
+  ]
 }

@@ -2005,6 +2005,22 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
+		// 36
+		// invalid nodeselector
+		{
+			string(field.ErrorTypeInvalid) + "nodeSelector[A@B!]",
+			buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				NodeSelector: map[string]string{"A@B!": "C"},
+			},
+		},
 	}
 
 	for count, config := range errorCases {
@@ -2286,6 +2302,20 @@ func TestValidateCommonSpecSuccess(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		// 10
+		{
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				NodeSelector: map[string]string{"A": "B", "C": "D"},
 			},
 		},
 	}

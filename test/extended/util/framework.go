@@ -177,11 +177,18 @@ func DumpDeploymentLogs(dc string, oc *CLI) {
 				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s to see if it is affiliated with %s \n\n", pod.ObjectMeta.Name, dc)
 				if strings.Contains(pod.ObjectMeta.Name, dc) {
 					podName := pod.ObjectMeta.Name
+					fmt.Fprintf(g.GinkgoWriter, "\n\n Describing pod %s \n\n", podName)
+					descOutput, err := oc.Run("describe").Args("pod/" + podName).Output()
+					if err == nil {
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  description for pod %s : %s\n\n", podName, descOutput)
+					} else {
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on describing %s:  %v\n\n", podName, err)
+					}
 
 					fmt.Fprintf(g.GinkgoWriter, "\n\n dumping logs for pod %s \n\n", podName)
-					depOuput, err := oc.Run("logs").Args("pod/" + podName).Output()
+					depOutput, err := oc.Run("logs").Args("pod/" + podName).Output()
 					if err == nil {
-						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOuput)
+						fmt.Fprintf(g.GinkgoWriter, "\n\n  logs for pod %s : %s\n\n", podName, depOutput)
 					} else {
 						fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on dep logs for %s:  %v\n\n", podName, err)
 					}

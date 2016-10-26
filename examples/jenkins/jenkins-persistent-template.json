@@ -5,7 +5,8 @@
     "name": "jenkins-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, with persistent storage.\nYou must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "Jenkins (Persistent)",
+      "description": "Jenkins service, with persistent storage.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -106,6 +107,7 @@
                 "livenessProbe": {
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 120,
+                    "failureThreshold" : 30,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080

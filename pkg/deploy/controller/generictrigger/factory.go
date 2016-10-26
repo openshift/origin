@@ -1,6 +1,7 @@
 package generictrigger
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/golang/glog"
@@ -14,6 +15,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -28,7 +30,7 @@ const (
 )
 
 // NewDeploymentTriggerController returns a new DeploymentTriggerController.
-func NewDeploymentTriggerController(dcInformer, streamInformer framework.SharedIndexInformer, oc osclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
+func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer framework.SharedIndexInformer, oc osclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
 	c := &DeploymentTriggerController{
 		dn: oc,
 
@@ -37,18 +39,19 @@ func NewDeploymentTriggerController(dcInformer, streamInformer framework.SharedI
 		codec: codec,
 	}
 
-	c.dcStore.Indexer = dcInformer.GetIndexer()
 	dcInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
 		AddFunc:    c.addDeploymentConfig,
 		UpdateFunc: c.updateDeploymentConfig,
 	})
-	c.dcStoreSynced = dcInformer.HasSynced
-
 	streamInformer.AddEventHandler(framework.ResourceEventHandlerFuncs{
 		AddFunc:    c.addImageStream,
 		UpdateFunc: c.updateImageStream,
 	})
 
+	c.dcLister.Indexer = dcInformer.GetIndexer()
+	c.rcLister.Indexer = rcInformer.GetIndexer()
+	c.dcListerSynced = dcInformer.HasSynced
+	c.rcListerSynced = rcInformer.HasSynced
 	return c
 }
 
@@ -76,8 +79,8 @@ func (c *DeploymentTriggerController) Run(workers int, stopCh <-chan struct{}) {
 func (c *DeploymentTriggerController) waitForSyncedStore(ready chan<- struct{}, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 
-	for !c.dcStoreSynced() {
-		glog.V(4).Infof("Waiting for the deployment config cache to sync before starting the trigger controller workers")
+	for !c.dcListerSynced() || !c.rcListerSynced() {
+		glog.V(4).Infof("Waiting for the dc and rc caches to sync before starting the trigger controller workers")
 		select {
 		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
@@ -89,22 +92,62 @@ func (c *DeploymentTriggerController) waitForSyncedStore(ready chan<- struct{}, 
 
 func (c *DeploymentTriggerController) addDeploymentConfig(obj interface{}) {
 	dc := obj.(*deployapi.DeploymentConfig)
+
+	// No need to enqueue deployment configs that have no triggers or are paused.
 	if len(dc.Spec.Triggers) == 0 || dc.Spec.Paused {
 		return
 	}
+	// We don't want to compete with the main deployment config controller. Let's process this
+	// config once it's synced.
+	if !deployutil.HasSynced(dc, dc.Generation) {
+		return
+	}
+
 	c.enqueueDeploymentConfig(dc)
 }
 
 func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{}) {
-	// If there is no generation update for this deployment config,
-	// we have a good indication to not enqueue it.
 	newDc := cur.(*deployapi.DeploymentConfig)
 	oldDc := old.(*deployapi.DeploymentConfig)
-	if newDc.Generation == oldDc.Generation {
+
+	// A periodic relist will send update events for all known deployment configs.
+	if newDc.ResourceVersion == oldDc.ResourceVersion {
 		return
 	}
-
+	// No need to enqueue deployment configs that have no triggers or are paused.
 	if len(newDc.Spec.Triggers) == 0 || newDc.Spec.Paused {
+		return
+	}
+	// We don't want to compete with the main deployment config controller. Let's process this
+	// config once it's synced. Note that this does not eliminate conflicts between the two
+	// controllers because the main controller is constantly updating deployment configs as
+	// owning replication controllers and pods are updated.
+	if !deployutil.HasSynced(newDc, newDc.Generation) {
+		return
+	}
+	// Enqueue the deployment config if it hasn't been deployed yet.
+	if newDc.Status.LatestVersion == 0 {
+		c.enqueueDeploymentConfig(newDc)
+		return
+	}
+	// Compare deployment config templates before enqueueing. This reduces the amount of times
+	// we will try to instantiate a deployment config at the expense of duplicating some of the
+	// work that the instantiate endpoint is already doing but I think this is fine.
+	shouldInstantiate := true
+	latestRc, err := c.rcLister.ReplicationControllers(newDc.Namespace).Get(deployutil.LatestDeploymentNameForConfig(newDc))
+	if err != nil {
+		// If we get an error here it may be due to the rc cache lagging behind. In such a case
+		// just defer to the api server (instantiate REST) where we will retry this.
+		glog.V(2).Infof("Cannot get latest rc for dc %s:%d (%v) - will defer to instantiate", deployutil.LabelForDeploymentConfig(newDc), newDc.Status.LatestVersion, err)
+	} else {
+		initial, err := deployutil.DecodeDeploymentConfig(latestRc, c.codec)
+		if err != nil {
+			glog.V(2).Infof("Cannot decode dc from replication controller %s: %v", deployutil.LabelForDeployment(latestRc), err)
+			return
+		}
+		shouldInstantiate = !reflect.DeepEqual(newDc.Spec.Template, initial.Spec.Template)
+	}
+	if !shouldInstantiate {
 		return
 	}
 
@@ -115,10 +158,12 @@ func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{
 func (c *DeploymentTriggerController) addImageStream(obj interface{}) {
 	stream := obj.(*imageapi.ImageStream)
 	glog.V(4).Infof("Image stream %q added.", stream.Name)
-	dcList, err := c.dcStore.GetConfigsForImageStream(stream)
+	dcList, err := c.dcLister.GetConfigsForImageStream(stream)
 	if err != nil {
 		return
 	}
+	// TODO: We could check image stream tags here and enqueue only deployment configs
+	// with stale lastTriggeredImages.
 	for _, dc := range dcList {
 		c.enqueueDeploymentConfig(dc)
 	}
@@ -134,10 +179,12 @@ func (c *DeploymentTriggerController) updateImageStream(old, cur interface{}) {
 	}
 
 	glog.V(4).Infof("Image stream %q updated.", newStream.Name)
-	dcList, err := c.dcStore.GetConfigsForImageStream(newStream)
+	dcList, err := c.dcLister.GetConfigsForImageStream(newStream)
 	if err != nil {
 		return
 	}
+	// TODO: We could check image stream tags here and enqueue only deployment configs
+	// with stale lastTriggeredImages.
 	for _, dc := range dcList {
 		c.enqueueDeploymentConfig(dc)
 	}
@@ -183,7 +230,7 @@ func (c *DeploymentTriggerController) work() bool {
 }
 
 func (c *DeploymentTriggerController) getByKey(key string) (*deployapi.DeploymentConfig, error) {
-	obj, exists, err := c.dcStore.Indexer.GetByKey(key)
+	obj, exists, err := c.dcLister.Indexer.GetByKey(key)
 	if err != nil {
 		glog.Infof("Unable to retrieve deployment config %q from store: %v", key, err)
 		c.queue.Add(key)

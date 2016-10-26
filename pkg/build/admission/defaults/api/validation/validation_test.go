@@ -144,6 +144,38 @@ func TestValidateBuildDefaultsConfig(t *testing.T) {
 			errField:    "imageLabels[1].name",
 			errType:     field.ErrorTypeInvalid,
 		},
+		// 9: valid nodeselector
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				NodeSelector: map[string]string{"A": "B"},
+			},
+			errExpected: false,
+		},
+		// 10: invalid nodeselector
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				NodeSelector: map[string]string{"A@B!": "C"},
+			},
+			errExpected: true,
+			errField:    "nodeSelector[A@B!]",
+			errType:     field.ErrorTypeInvalid,
+		},
+		// 11: valid annotation
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				Annotations: map[string]string{"A": "B"},
+			},
+			errExpected: false,
+		},
+		// 12: invalid annotation
+		{
+			config: &defaultsapi.BuildDefaultsConfig{
+				Annotations: map[string]string{"A B": "C"},
+			},
+			errExpected: true,
+			errField:    "annotations",
+			errType:     field.ErrorTypeInvalid,
+		},
 	}
 
 	for i, tc := range tests {

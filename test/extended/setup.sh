@@ -258,7 +258,6 @@ readonly EXCLUDED_TESTS=(
 	SSH                     # TRIAGE
 	"\[Feature:Upgrade\]"   # TRIAGE
 	"SELinux relabeling"    # started failing
-	"schedule jobs on pod slaves use of jenkins with kubernetes plugin by creating slave from existing builder and adding it to Jenkins master" # https://github.com/openshift/origin/issues/7619
 	"openshift mongodb replication creating from a template" # flaking on deployment
 	"Update Demo should do a rolling update of a replication controller" # this is flaky and needs triaging
 

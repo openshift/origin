@@ -9,7 +9,7 @@ import (
 // ProjectsGetter has a method to return a ProjectInterface.
 // A group's client should implement this interface.
 type ProjectsGetter interface {
-	Projects(namespace string) ProjectInterface
+	Projects() ProjectInterface
 }
 
 // ProjectInterface has methods to work with Project resources.
@@ -21,20 +21,19 @@ type ProjectInterface interface {
 	Get(name string) (*api.Project, error)
 	List(opts pkg_api.ListOptions) (*api.ProjectList, error)
 	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
+	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Project, err error)
 	ProjectExpansion
 }
 
 // projects implements ProjectInterface
 type projects struct {
 	client *CoreClient
-	ns     string
 }
 
 // newProjects returns a Projects
-func newProjects(c *CoreClient, namespace string) *projects {
+func newProjects(c *CoreClient) *projects {
 	return &projects{
 		client: c,
-		ns:     namespace,
 	}
 }
 
@@ -42,7 +41,6 @@ func newProjects(c *CoreClient, namespace string) *projects {
 func (c *projects) Create(project *api.Project) (result *api.Project, err error) {
 	result = &api.Project{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("projects").
 		Body(project).
 		Do().
@@ -54,7 +52,6 @@ func (c *projects) Create(project *api.Project) (result *api.Project, err error)
 func (c *projects) Update(project *api.Project) (result *api.Project, err error) {
 	result = &api.Project{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("projects").
 		Name(project.Name).
 		Body(project).
@@ -66,7 +63,6 @@ func (c *projects) Update(project *api.Project) (result *api.Project, err error)
 // Delete takes name of the project and deletes it. Returns an error if one occurs.
 func (c *projects) Delete(name string, options *pkg_api.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("projects").
 		Name(name).
 		Body(options).
@@ -77,7 +73,6 @@ func (c *projects) Delete(name string, options *pkg_api.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *projects) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("projects").
 		VersionedParams(&listOptions, pkg_api.ParameterCodec).
 		Body(options).
@@ -89,7 +84,6 @@ func (c *projects) DeleteCollection(options *pkg_api.DeleteOptions, listOptions 
 func (c *projects) Get(name string) (result *api.Project, err error) {
 	result = &api.Project{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("projects").
 		Name(name).
 		Do().
@@ -101,7 +95,6 @@ func (c *projects) Get(name string) (result *api.Project, err error) {
 func (c *projects) List(opts pkg_api.ListOptions) (result *api.ProjectList, err error) {
 	result = &api.ProjectList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("projects").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Do().
@@ -113,8 +106,20 @@ func (c *projects) List(opts pkg_api.ListOptions) (result *api.ProjectList, err 
 func (c *projects) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
-		Namespace(c.ns).
 		Resource("projects").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
+}
+
+// Patch applies the patch and returns the patched project.
+func (c *projects) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Project, err error) {
+	result = &api.Project{}
+	err = c.client.Patch(pt).
+		Resource("projects").
+		SubResource(subresources...).
+		Name(name).
+		Body(data).
+		Do().
+		Into(result)
+	return
 }

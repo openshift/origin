@@ -5,7 +5,8 @@
     "name": "jenkins-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage.\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "Jenkins (Ephemeral)",
+      "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -89,6 +90,7 @@
                 "livenessProbe": {
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 120,
+                    "failureThreshold" : 30,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080

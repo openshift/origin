@@ -1171,6 +1171,15 @@ func autoConvert_v1_CommonSpec_To_api_CommonSpec(in *CommonSpec, out *api.Common
 		return err
 	}
 	out.CompletionDeadlineSeconds = in.CompletionDeadlineSeconds
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	} else {
+		out.NodeSelector = nil
+	}
 	return nil
 }
 
@@ -1205,6 +1214,15 @@ func autoConvert_api_CommonSpec_To_v1_CommonSpec(in *api.CommonSpec, out *Common
 		return err
 	}
 	out.CompletionDeadlineSeconds = in.CompletionDeadlineSeconds
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(OptionalNodeSelector, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	} else {
+		out.NodeSelector = nil
+	}
 	return nil
 }
 

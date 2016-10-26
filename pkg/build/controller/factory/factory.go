@@ -18,6 +18,8 @@ import (
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
+	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller"
@@ -73,6 +75,9 @@ type BuildControllerFactory struct {
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
+	BuildDefaults       builddefaults.BuildDefaults
+	BuildOverrides      buildoverrides.BuildOverrides
+
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -97,7 +102,9 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			SourceBuildStrategy: factory.SourceBuildStrategy,
 			CustomBuildStrategy: factory.CustomBuildStrategy,
 		},
-		Recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-controller"}),
+		Recorder:       eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-controller"}),
+		BuildDefaults:  factory.BuildDefaults,
+		BuildOverrides: factory.BuildOverrides,
 	}
 
 	return &controller.RetryController{
@@ -305,10 +312,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			retryFunc("ImageStream update", func(err error) bool {
-				_, isFatal := err.(buildcontroller.ImageChangeControllerFatalError)
-				return isFatal
-			}),
+			retryFunc("ImageStream update", nil),
 			flowcontrol.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {

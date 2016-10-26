@@ -91,7 +91,11 @@
                     "value": "${JENKINS_PASSWORD}"
                   }
                 ],
-                "resources": {},
+                "resources": {
+                  "limits": {
+                    "memory": "512Mi"
+                  }
+                },
                 "volumeMounts": [
                   {
                     "name": "${JENKINS_SERVICE_NAME}-data",
