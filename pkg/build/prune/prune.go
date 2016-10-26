@@ -47,6 +47,9 @@ type PrunerOptions struct {
 
 // NewPruner returns a Pruner over specified data using specified options.
 func NewPruner(options PrunerOptions) Pruner {
+	glog.V(1).Infof("Creating build pruner with keepYoungerThan=%v, orphans=%v, keepComplete=%v, keepFailed=%v",
+		options.KeepYoungerThan, options.Orphans, options.KeepComplete, options.KeepFailed)
+
 	filter := &andFilter{
 		filterPredicates: []FilterPredicate{NewFilterBeforePredicate(options.KeepYoungerThan)},
 	}
