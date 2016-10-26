@@ -12,6 +12,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	"k8s.io/kubernetes/pkg/api/resource"
 )
 
 func TestProxyDefaults(t *testing.T) {
@@ -361,6 +362,200 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 			if ev, ok := test.expected[k]; !ok || ev != v {
 				t.Errorf("%s: incorrect annotation value for key %s, expected %s, got %s", test.name, k, ev, v)
 			}
+		}
+	}
+}
+func TestResourceDefaults(t *testing.T) {
+	tests := map[string]struct {
+		DefaultResource  kapi.ResourceRequirements
+		BuildResource    kapi.ResourceRequirements
+		ExpectedResource kapi.ResourceRequirements
+	}{
+		"BuildDefaults plugin and Build object both defined resource limits and requests": {
+			DefaultResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+			BuildResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("40"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("4G"),
+				},
+			},
+			ExpectedResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("40"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("4G"),
+				},
+			},
+		},
+		"BuildDefaults plugin defined limits and requests, Build object defined resource requests": {
+			DefaultResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+			BuildResource: kapi.ResourceRequirements{
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				},
+			},
+			ExpectedResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				},
+			},
+		},
+		"BuildDefaults plugin defined limits and requests, Build object defined resource limits": {
+			DefaultResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+			BuildResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				},
+			},
+			ExpectedResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("3G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+				},
+			},
+		},
+		"BuildDefaults plugin defined nothing, Build object defined resource limits": {
+			DefaultResource: kapi.ResourceRequirements{},
+			BuildResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+			ExpectedResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+		},
+		"BuildDefaults plugin and Build object defined nothing": {
+			DefaultResource:  kapi.ResourceRequirements{},
+			BuildResource:    kapi.ResourceRequirements{},
+			ExpectedResource: kapi.ResourceRequirements{},
+		},
+		"BuildDefaults plugin defined limits and requests, Build object defined nothing": {
+			DefaultResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+			BuildResource: kapi.ResourceRequirements{},
+			ExpectedResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("20"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+		},
+		"BuildDefaults plugin defined part of limits and requests, Build object defined part of limits and  requests": {
+			DefaultResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU): resource.MustParse("10"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+			BuildResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU): resource.MustParse("30"),
+				},
+			},
+			ExpectedResource: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("1G"),
+				},
+				Requests: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("30"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("2G"),
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Resources: test.DefaultResource}}
+
+		build := u.Build().WithSourceStrategy().AsBuild()
+		build.Spec.Resources = test.BuildResource
+		pod := u.Pod().WithBuild(t, build, "v1")
+		err := defaults.ApplyDefaults((*kapi.Pod)(pod))
+		if err != nil {
+			t.Fatalf("%v :unexpected error: %v", name, err)
+		}
+		build, _, err = buildadmission.GetBuildFromPod((*kapi.Pod)(pod))
+		if err != nil {
+			t.Fatalf("%v :unexpected error: %v", name, err)
+		}
+		if !kapi.Semantic.DeepEqual(test.ExpectedResource, build.Spec.Resources) {
+			t.Fatalf("%v:Expected expected=actual, %v != %v", name, test.ExpectedResource, build.Spec.Resources)
 		}
 	}
 }

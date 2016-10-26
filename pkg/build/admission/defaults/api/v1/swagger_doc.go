@@ -15,6 +15,7 @@ var map_BuildDefaultsConfig = map[string]string{
 	"imageLabels":            "imageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
 	"nodeSelector":           "nodeSelector is a selector which must be true for the build pod to fit on a node",
 	"annotations":            "annotations are annotations that will be added to the build pod",
+	"resources":              "resources defines resource requirements to execute the build.",
 }
 
 func (BuildDefaultsConfig) SwaggerDoc() map[string]string {
