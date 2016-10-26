@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c852c00d50e6760d63de7b2ec9330391be6bac35
+%global commit b8694c9659e8b4336fcd96c4bd00e4539886acbc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.14+c852c00-118 OS_GIT_COMMIT=c852c00 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
+%global os_git_vars OS_GIT_TREE_STATE=clean OS_GIT_VERSION=v3.4.0.15+b8694c9-80 OS_GIT_COMMIT=b8694c9 OS_GIT_MAJOR=3 OS_GIT_MINOR=4+
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -46,7 +46,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.4.0.15
+Version:        3.4.0.16
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -480,6 +480,69 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Wed Oct 26 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.16
+- Merge remote-tracking branch upstream/master, bump origin-web-console c0704ca
+  (tdawson@redhat.com)
+- Migrated miscellaneous Bash utilities into the `hack/lib` library
+  (skuznets@redhat.com)
+- removing unused default variables (cdaley@redhat.com)
+- Removing ImageChangeControllerFatalError and it's associated references as it
+  is no longer used. (cdaley@redhat.com)
+- Switch back to using docker build with docker 1.12 (dmcphers@redhat.com)
+- deployments: set ActiveDeadlineSeconds in deployer hook pods correctly
+  (mfojtik@redhat.com)
+- Correctly report the size of overlarge log files (skuznets@redhat.com)
+- Updates template and image stream metadata (jacoblucky@gmail.com)
+- really re-enable jenkins autoprovisioning (bparees@redhat.com)
+- Start-build/env, exec, and multitag jenkins plugin tests
+  (jupierce@redhat.com)
+- oc: fix export for deployment configs (mkargaki@redhat.com)
+- WIP Fix bug 1373330 Invalid formatted generic webhook can trigger new-build
+  without warning (jminter@redhat.com)
+- serviceaccount: add secret informer to create_dockercfg_secret
+  (mfojtik@redhat.com)
+- Improve exec/attach error message (jliggitt@redhat.com)
+- Create storage-admin role (screeley@redhat.com)
+- support non-string template parameter substitution (bparees@redhat.com)
+- move jenkins related ext tests to image_ecosystem (gmontero@redhat.com)
+- Update ose_images.sh - 2016-10-24 (tdawson@redhat.com)
+- Remove `get_object_assert` utility from our Bash libraries
+  (skuznets@redhat.com)
+- specfile: fix specfile issues after openshift-sdn CNI plugin merge
+  (dcbw@redhat.com)
+- Removed the `tryuntil` utility from our Bash libraries (skuznets@redhat.com)
+- Update man pages (ffranz@redhat.com)
+- UPSTREAM: 35427: kubectl commands must not use the factory out of Run
+  (ffranz@redhat.com)
+- Fix OS_RELEASE=n for build-images.sh (ccoleman@redhat.com)
+- generated: resources (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Revert extra pod resources change (ccoleman@redhat.com)
+- Add additional utilities used during test-cmd (ccoleman@redhat.com)
+- Disable test for unwritable config file (ccoleman@redhat.com)
+- deploy: tweak enqueueing in the trigger controller (mkargaki@redhat.com)
+- extended: use timestamps in deployer logs (mkargaki@redhat.com)
+- add nodeselector and annotation build pod overrides and defaulters
+  (bparees@redhat.com)
+- deploy: cleanup dc controller (mkargaki@redhat.com)
+- Created a script to run tito builds and upack leftover artifacts
+  (skuznets@redhat.com)
+- Tests: don't clone openshift/origin where possible (mmilata@redhat.com)
+- bump(github.com/coreos/etcd):v3.1.0-rc.0 (ccoleman@redhat.com)
+- bump(google.golang.org/grpc):v1.0.2 (ccoleman@redhat.com)
+- Switch to using protobuf and etcd3 storage (ccoleman@redhat.com)
+- Fixes bug 1380555 - https://bugzilla.redhat.com/show_bug.cgi?id=1380555 Uses
+  registry.access.redhat.com/openshift3/ose as the default for ose builds
+  (cdaley@redhat.com)
+- Remove -a flag from `os::build::build_static_binaries` (mkhan@redhat.com)
+- Remove -a flag from hack/test-integration.sh (mkhan@redhat.com)
+- add integration that create project using 1.3 clientset (mfojtik@redhat.com)
+- regenerate clientsets for v1_3 (mfojtik@redhat.com)
+- make projects non-namespaced (mfojtik@redhat.com)
+- improve the client set generator script (mfojtik@redhat.com)
+- set the --clientset-api-path=/oapi for origin clients (mfojtik@redhat.com)
+- UPSTREAM: 32769: clientgen: allow to pass custom apiPath when generating
+  client sets (mfojtik@redhat.com)
+
 * Mon Oct 24 2016 Troy Dawson <tdawson@redhat.com> 3.4.0.15
 - Merge remote-tracking branch upstream/master, bump origin-web-console 9a90917
   (tdawson@redhat.com)
