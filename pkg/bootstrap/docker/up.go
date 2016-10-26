@@ -591,6 +591,12 @@ func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
 
 // CheckAvailablePorts ensures that ports used by OpenShift are available on the Docker host
 func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
+	for _, port := range openshift.RouterPorts {
+		err := c.OpenShiftHelper().TestPorts([]int{port})
+		if err != nil {
+			fmt.Fprintf(out, "WARNING: Port %d is already in use and may cause routing issues for applications.\n", port)
+		}
+	}
 	err := c.OpenShiftHelper().TestPorts(openshift.DefaultPorts)
 	if err == nil {
 		c.DNSPort = openshift.DefaultDNSPort
@@ -608,6 +614,7 @@ func (c *ClientStartConfig) CheckAvailablePorts(out io.Writer) error {
 			return nil
 		}
 	}
+
 	return errors.NewError("a port needed by OpenShift is not available").WithCause(err)
 }
 
