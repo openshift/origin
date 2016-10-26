@@ -210,7 +210,10 @@ specifying `--ginkgo.focus` and a regex filter:
 
 Extended tests should be Go tests in the `test/extended` directory that use the Ginkgo library. They
 must be able to be run remotely, and cannot depend on any local interaction with the filesystem or
-Docker. More information about running extended tests can be found in [test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
+Docker.
+
+More information about running extended tests can be found in
+[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
 
 
 ## Installing Godep
@@ -224,10 +227,64 @@ OpenShift is checked into this repository.  To install `godep` locally run:
 
 If you are not updating packages you should not need godep installed.
 
-## Cherry-picking an upstream commit into Origin
+## Cherry-picking an upstream commit into Origin: Why, how, and when.
 
-You can use `hack/cherry-pick.sh` to generate patches for Origin from upstream commits. To use
-this command, be sure to setup remote branches like https://gist.github.com/piscisaureus/3342247
+Origin carries patches inside of vendor/ on top of each rebase.  Thus, origin carries upstream patches in two ways.
+
+1. *periodic rebases* against a Kubernetes commit.
+Eventually, any code you have in upstream kubernetes will land in Openshift via this mechanism.
+
+2. Cherry-picked patches for important *bug fixes*.  We really try to limit feature back-porting entirely.
+
+### Manually
+
+You can manually try to cherry pick a commit (by using git apply). This can easily be done in a couple of steps.
+
+- wget the patch, i.e. `wget -O /tmp/mypatch https://github.com/kubernetes/kubernetes/pull/34624.patch`
+- PATCH=/tmp/mypatch git apply --directory vendor/k8s.io/kubernetes $PATCH
+
+If this fails, then it's possible you may need to pick multiple commits.
+
+### For Openshift newcomers: Pick my kubernetes fix into Openshift vs. wait for the next rebase?
+
+Assuming you read the bullets above... If your patch is really far behind, for example, if there have been 5 commits
+modifying the directory you care about, cherry picking will be increasingly difficult and you should consider waiting
+for the next rebase, which will likely include the commit you care about, or at least decrease the amount of cherry picks
+you need to do to merge.
+
+To really know the answer, you need to know *how many commits behind you are in a particular directory*, often.
+
+To do this, just use git log, like so (using pkg/scheduler/ as an example).
+
+```
+MYDIR=pkg/scheduler/algorithm git log --oneline -- vendor/k8s.io/kubernetes/${MYDIR} | grep UPSTREAM | cut -d' ' -f 4-10 | head -1
+```
+
+The commit message printed above will tell you:
+- what the LAST commit in Kubernetes was (which effected "/pkg/scheduler/algorithm")
+- directory, which will give you an intuition about how "hot" the code you are cherry picking is.
+If it has changed a lot, recently, then
+that means you probably will want to wait for a rebase to land.
+
+### Using hack/cherry-pick
+
+For convenience, you can use `hack/cherry-pick.sh` to generate patches for Origin from upstream commits.
+
+The purpose of this command is to allow you to pull individual commits from a local kubernetes repository
+into origin's vendored kuberenetes in a fully automated manner.
+
+To use this command, be sure to setup remote Pull Request branches in the kubernetes repository you are using
+(i.e. like https://gist.github.com/piscisaureus/3342247).  Specifically, you will be doing this, to the git config
+you probably already have for kubernetes:
+
+```
+[remote "origin"]
+        url = https://github.com/kubernetes/kubernetes
+        fetch = +refs/heads/*:refs/remotes/origin/*
+	### Add this line
+        fetch = +refs/pull/*/head:refs/remotes/origin/pr/*
+```
+
 so that `git show origin/pr/<number>` displays information about your branch after a `git fetch`.
 You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`),
 with openshift/kubernetes as a remote and fetched:
