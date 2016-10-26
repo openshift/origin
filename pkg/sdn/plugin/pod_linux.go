@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
 	"github.com/golang/glog"
@@ -35,8 +36,6 @@ const (
 	tearDownCmd = "teardown"
 	statusCmd   = "status"
 	updateCmd   = "update"
-
-	AssignMacvlanAnnotation string = "pod.network.openshift.io/assign-macvlan"
 
 	podInterfaceName = knetwork.DefaultInterfaceName
 )
@@ -72,12 +71,12 @@ func wantsMacvlan(pod *kapi.Pod) (bool, error) {
 		}
 	}
 
-	val, ok := pod.Annotations[AssignMacvlanAnnotation]
+	val, ok := pod.Annotations[sdnapi.AssignMacvlanAnnotation]
 	if !ok || val != "true" {
 		return false, nil
 	}
 	if !privileged {
-		return false, fmt.Errorf("pod has %q annotation but is not privileged", AssignMacvlanAnnotation)
+		return false, fmt.Errorf("pod has %q annotation but is not privileged", sdnapi.AssignMacvlanAnnotation)
 	}
 
 	return true, nil
