@@ -53,14 +53,14 @@ func TestVisitObjectStringsOnStruct(t *testing.T) {
 		},
 	}
 	for i := range samples {
-		VisitObjectStrings(&samples[i][0], func(in string) string {
+		VisitObjectStrings(&samples[i][0], func(in string) (string, bool) {
 			if len(in) == 0 {
-				return in
+				return in, true
 			}
-			return fmt.Sprintf("sample-%s", in)
+			return fmt.Sprintf("sample-%s", in), true
 		})
 		if !reflect.DeepEqual(samples[i][0], samples[i][1]) {
-			t.Errorf("Got %#v, expected %#v", samples[i][0], samples[i][1])
+			t.Errorf("[%d] Got:\n%#v\nExpected:\n%#v", i, samples[i][0], samples[i][1])
 		}
 	}
 }
@@ -82,8 +82,8 @@ func TestVisitObjectStringsOnMap(t *testing.T) {
 	}
 
 	for i := range samples {
-		VisitObjectStrings(&samples[i][0], func(in string) string {
-			return fmt.Sprintf("sample-%s", in)
+		VisitObjectStrings(&samples[i][0], func(in string) (string, bool) {
+			return fmt.Sprintf("sample-%s", in), true
 		})
 		if !reflect.DeepEqual(samples[i][0], samples[i][1]) {
 			t.Errorf("Got %#v, expected %#v", samples[i][0], samples[i][1])
@@ -100,8 +100,8 @@ func TestVisitObjectStringsOnArray(t *testing.T) {
 	}
 
 	for i := range samples {
-		VisitObjectStrings(&samples[i][0], func(in string) string {
-			return fmt.Sprintf("sample-%s", in)
+		VisitObjectStrings(&samples[i][0], func(in string) (string, bool) {
+			return fmt.Sprintf("sample-%s", in), true
 		})
 		if !reflect.DeepEqual(samples[i][0], samples[i][1]) {
 			t.Errorf("Got %#v, expected %#v", samples[i][0], samples[i][1])
