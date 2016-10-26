@@ -79,7 +79,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Ruby applications",
+              "openshift.io/display-name": "Ruby (Latest)",
+              "description": "Build and run Ruby applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.3/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby",
@@ -93,7 +94,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.0",
             "annotations": {
-              "description": "Build and run Ruby 2.0 applications",
+              "openshift.io/display-name": "Ruby 2.0",
+              "description": "Build and run Ruby 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.0,ruby",
@@ -108,7 +110,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.2",
             "annotations": {
-              "description": "Build and run Ruby 2.2 applications",
+              "openshift.io/display-name": "Ruby 2.2",
+              "description": "Build and run Ruby 2.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.2,ruby",
@@ -123,7 +126,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.3",
             "annotations": {
-              "description": "Build and run Ruby 2.3 applications",
+              "openshift.io/display-name": "Ruby 2.3",
+              "description": "Build and run Ruby 2.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.3,ruby",
@@ -149,7 +153,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run NodeJS applications",
+              "openshift.io/display-name": "Node.js (Latest)",
+              "description": "Build and run Node.js applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs",
@@ -163,7 +168,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "0.10",
             "annotations": {
-              "description": "Build and run NodeJS 0.10 applications",
+              "openshift.io/display-name": "Node.js 0.10",
+              "description": "Build and run Node.js 0.10 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:0.10,nodejs:0.1,nodejs",
@@ -178,7 +184,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "4",
             "annotations": {
-              "description": "Build and run NodeJS 4 applications",
+              "openshift.io/display-name": "Node.js 4",
+              "description": "Build and run Node.js 4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:4,nodejs",
@@ -204,7 +211,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Perl applications",
+              "openshift.io/display-name": "Perl (Latest)",
+              "description": "Build and run Perl applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl",
@@ -218,7 +226,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "5.16",
             "annotations": {
-              "description": "Build and run Perl 5.16 applications",
+              "openshift.io/display-name": "Perl 5.16",
+              "description": "Build and run Perl 5.16 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl:5.16,perl",
@@ -233,7 +242,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "5.20",
             "annotations": {
-              "description": "Build and run Perl 5.20 applications",
+              "openshift.io/display-name": "Perl 5.20",
+              "description": "Build and run Perl 5.20 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl:5.20,perl",
@@ -260,7 +270,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run PHP applications",
+              "openshift.io/display-name": "PHP (Latest)",
+              "description": "Build and run PHP applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php",
@@ -274,7 +285,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "5.5",
             "annotations": {
-              "description": "Build and run PHP 5.5 applications",
+              "openshift.io/display-name": "PHP 5.5",
+              "description": "Build and run PHP 5.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php:5.5,php",
@@ -289,7 +301,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "5.6",
             "annotations": {
-              "description": "Build and run PHP 5.6 applications",
+              "openshift.io/display-name": "PHP 5.6",
+              "description": "Build and run PHP 5.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php:5.6,php",
@@ -315,7 +328,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Python applications",
+              "openshift.io/display-name": "Python (Latest)",
+              "description": "Build and run Python applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -329,7 +343,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "3.3",
             "annotations": {
-              "description": "Build and run Python 3.3 applications",
+              "openshift.io/display-name": "Python 3.3",
+              "description": "Build and run Python 3.3 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.3,python",
@@ -344,7 +359,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.7",
             "annotations": {
-              "description": "Build and run Python 2.7 applications",
+              "openshift.io/display-name": "Python 2.7",
+              "description": "Build and run Python 2.7 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:2.7,python",
@@ -359,7 +375,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "3.4",
             "annotations": {
-              "description": "Build and run Python 3.4 applications",
+              "openshift.io/display-name": "Python 3.4",
+              "description": "Build and run Python 3.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.4/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.4,python",
@@ -374,7 +391,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "3.5",
             "annotations": {
-              "description": "Build and run Python 3.5 applications",
+              "openshift.io/display-name": "Python 3.5",
+              "description": "Build and run Python 3.5 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.5,python",
@@ -400,7 +418,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly",
+              "openshift.io/display-name": "WildFly (Latest)",
+              "description": "Build and run WildFly applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"jee,java",
@@ -414,7 +433,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "8.1",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly 8.1",
+              "openshift.io/display-name": "WildFly 8.1",
+              "description": "Build and run WildFly 8.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"wildfly:8.1,jee,java",
@@ -429,7 +449,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "9.0",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly 9.0",
+              "openshift.io/display-name": "WildFly 9.0",
+              "description": "Build and run WildFly 9.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"wildfly:9.0,jee,java",
@@ -444,7 +465,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "10.0",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly 10.0",
+              "openshift.io/display-name": "WildFly 10.0",
+              "description": "Build and run WildFly 10.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.0,jee,java",
@@ -459,7 +481,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "10.1",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly 10.1",
+              "openshift.io/display-name": "WildFly 10.1",
+              "description": "Build and run WildFly 10.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.1,jee,java",
@@ -485,7 +508,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MySQL database",
+              "openshift.io/display-name": "MySQL (Latest)",
+              "description": "Provides a MySQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql"
             },
@@ -497,7 +521,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "5.5",
             "annotations": {
-              "description": "Provides a MySQL v5.5 database",
+              "openshift.io/display-name": "MySQL 5.5",
+              "description": "Provides a MySQL 5.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.5/README.md.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql",
               "version": "5.5"
@@ -510,7 +535,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "5.6",
             "annotations": {
-              "description": "Provides a MySQL v5.6 database",
+              "openshift.io/display-name": "MySQL 5.6",
+              "description": "Provides a MySQL 5.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql",
               "version": "5.6"
@@ -534,7 +560,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MariaDB database",
+              "openshift.io/display-name": "MariaDB (Latest)",
+              "description": "Provides a MariaDB database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mariadb",
               "tags": "mariadb"
             },
@@ -546,7 +573,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "10.1",
             "annotations": {
-              "description": "Provides a MariaDB v10.1 database",
+              "openshift.io/display-name": "MariaDB 10.1",
+              "description": "Provides a MariaDB 10.1 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.",
               "iconClass": "icon-mariadb",
               "tags": "mariadb",
               "version": "10.1"
@@ -570,7 +598,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a PostgreSQL database",
+              "openshift.io/display-name": "PostgreSQL (Latest)",
+              "description": "Provides a PostgreSQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -582,7 +611,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "9.2",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.2 database",
+              "openshift.io/display-name": "PostgreSQL 9.2",
+              "description": "Provides a PostgreSQL 9.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.2"
@@ -595,7 +625,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "9.4",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.4 database",
+              "openshift.io/display-name": "PostgreSQL 9.4",
+              "description": "Provides a PostgreSQL 9.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.4"
@@ -608,7 +639,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "9.5",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.5 database",
+              "openshift.io/display-name": "PostgreSQL 9.5",
+              "description": "Provides a PostgreSQL 9.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.5"
@@ -632,7 +664,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MongoDB database",
+              "openshift.io/display-name": "MongoDB (Latest)",
+              "description": "Provides a MongoDB database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb"
             },
@@ -644,7 +677,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.4",
             "annotations": {
-              "description": "Provides a MongoDB v2.4 database",
+              "openshift.io/display-name": "MongoDB 2.4",
+              "description": "Provides a MongoDB 2.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "2.4"
@@ -657,7 +691,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.6",
             "annotations": {
-              "description": "Provides a MongoDB v2.6 database",
+              "openshift.io/display-name": "MongoDB 2.6",
+              "description": "Provides a MongoDB 2.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.6/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "2.6"
@@ -670,7 +705,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "3.2",
             "annotations": {
-              "description": "Provides a MongoDB v3.2 database",
+              "openshift.io/display-name": "MongoDB 3.2",
+              "description": "Provides a MongoDB 3.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "3.2"
@@ -694,7 +730,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a Jenkins server",
+              "openshift.io/display-name": "Jenkins (Latest)",
+              "description": "Provides a Jenkins server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-jenkins",
               "tags": "jenkins"
             },
@@ -706,7 +743,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "1",
             "annotations": {
-              "description": "Provides a Jenkins server",
+              "openshift.io/display-name": "Jenkins 1.X",
+              "description": "Provides a Jenkins 1.X server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
               "tags": "jenkins",
               "version": "1.x"
@@ -754,7 +792,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Ruby applications",
+              "openshift.io/display-name": "Ruby (Latest)",
+              "description": "Build and run Ruby applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.3/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby",
@@ -768,7 +807,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.0",
             "annotations": {
-              "description": "Build and run Ruby 2.0 applications",
+              "openshift.io/display-name": "Ruby 2.0",
+              "description": "Build and run Ruby 2.0 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.0/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.0,ruby",
@@ -783,7 +823,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.2",
             "annotations": {
-              "description": "Build and run Ruby 2.2 applications",
+              "openshift.io/display-name": "Ruby 2.2",
+              "description": "Build and run Ruby 2.2 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/2.2/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.2,ruby",
@@ -798,7 +839,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.3",
             "annotations": {
-              "description": "Build and run Ruby 2.3 applications",
+              "openshift.io/display-name": "Ruby 2.3",
+              "description": "Build and run Ruby 2.3 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.3/README.md.",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "supports": "ruby:2.3,ruby",
@@ -824,7 +866,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run NodeJS applications",
+              "openshift.io/display-name": "Node.js (Latest)",
+              "description": "Build and run Node.js applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs",
@@ -838,7 +881,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "0.10",
             "annotations": {
-              "description": "Build and run NodeJS 0.10 applications",
+              "openshift.io/display-name": "Node.js 0.10",
+              "description": "Build and run Node.js 0.10 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/0.10/README.md.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:0.10,nodejs:0.1,nodejs",
@@ -853,7 +897,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "4",
             "annotations": {
-              "description": "Build and run NodeJS 4.x applications",
+              "openshift.io/display-name": "Node.js 4",
+              "description": "Build and run Node.js 4 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/4/README.md.",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "supports":"nodejs:4,nodejs",
@@ -879,7 +924,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Perl applications",
+              "openshift.io/display-name": "Perl (Latest)",
+              "description": "Build and run Perl applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl",
@@ -893,7 +939,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "5.16",
             "annotations": {
-              "description": "Build and run Perl 5.16 applications",
+              "openshift.io/display-name": "Perl 5.16",
+              "description": "Build and run Perl 5.16 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.16/README.md.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl:5.16,perl",
@@ -908,7 +955,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "5.20",
             "annotations": {
-              "description": "Build and run Perl 5.20 applications",
+              "openshift.io/display-name": "Perl 5.20",
+              "description": "Build and run Perl 5.20 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.20/README.md.",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "supports":"perl:5.20,perl",
@@ -935,7 +983,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run PHP applications",
+              "openshift.io/display-name": "PHP (Latest)",
+              "description": "Build and run PHP applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php",
@@ -949,7 +998,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "5.5",
             "annotations": {
-              "description": "Build and run PHP 5.5 applications",
+              "openshift.io/display-name": "PHP 5.5",
+              "description": "Build and run PHP 5.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.5/README.md.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php:5.5,php",
@@ -964,7 +1014,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "5.6",
             "annotations": {
-              "description": "Build and run PHP 5.6 applications",
+              "openshift.io/display-name": "PHP 5.6",
+              "description": "Build and run PHP 5.6 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-php-container/blob/master/5.6/README.md.",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "supports":"php:5.6,php",
@@ -990,7 +1041,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run Python applications",
+              "openshift.io/display-name": "Python (Latest)",
+              "description": "Build and run Python applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -1004,7 +1056,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "3.3",
             "annotations": {
-              "description": "Build and run Python 3.3 applications",
+              "openshift.io/display-name": "Python 3.3",
+              "description": "Build and run Python 3.3 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.3/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.3,python",
@@ -1019,7 +1072,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.7",
             "annotations": {
-              "description": "Build and run Python 2.7 applications",
+              "openshift.io/display-name": "Python 2.7",
+              "description": "Build and run Python 2.7 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/2.7/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:2.7,python",
@@ -1034,7 +1088,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "3.4",
             "annotations": {
-              "description": "Build and run Python 3.4 applications",
+              "openshift.io/display-name": "Python 3.4",
+              "description": "Build and run Python 3.4 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.4/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.4,python",
@@ -1049,7 +1104,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "3.5",
             "annotations": {
-              "description": "Build and run Python 3.5 applications",
+              "openshift.io/display-name": "Python 3.5",
+              "description": "Build and run Python 3.5 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python:3.5,python",
@@ -1075,7 +1131,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MySQL database",
+              "openshift.io/display-name": "MySQL (Latest)",
+              "description": "Provides a MySQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql"
             },
@@ -1087,7 +1144,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "5.5",
             "annotations": {
-              "description": "Provides a MySQL v5.5 database",
+              "openshift.io/display-name": "MySQL 5.5",
+              "description": "Provides a MySQL 5.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.5/README.md.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql",
               "version": "5.5"
@@ -1100,7 +1158,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "5.6",
             "annotations": {
-              "description": "Provides a MySQL v5.6 database",
+              "openshift.io/display-name": "MySQL 5.6",
+              "description": "Provides a MySQL 5.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/tree/master/5.6/README.md.",
               "iconClass": "icon-mysql-database",
               "tags": "mysql",
               "version": "5.6"
@@ -1124,7 +1183,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MariaDB database",
+              "openshift.io/display-name": "MariaDB (Latest)",
+              "description": "Provides a MariaDB database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mariadb",
               "tags": "mariadb"
             },
@@ -1136,7 +1196,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "10.1",
             "annotations": {
-              "description": "Provides a MariaDB v10.1 database",
+              "openshift.io/display-name": "MariaDB 10.1",
+              "description": "Provides a MariaDB 10.1 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.1/README.md.",
               "iconClass": "icon-mariadb",
               "tags": "mariadb",
               "version": "10.1"
@@ -1160,7 +1221,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a PostgreSQL database",
+              "openshift.io/display-name": "PostgreSQL (Latest)",
+              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -1172,7 +1234,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "9.2",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.2 database",
+              "openshift.io/display-name": "PostgreSQL 9.2",
+              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.2"
@@ -1185,7 +1248,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "9.4",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.4 database",
+              "openshift.io/display-name": "PostgreSQL 9.4",
+              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.4"
@@ -1198,7 +1262,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "9.5",
             "annotations": {
-              "description": "Provides a PostgreSQL v9.5 database",
+              "openshift.io/display-name": "PostgreSQL 9.5",
+              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.5"
@@ -1222,7 +1287,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a MongoDB database",
+              "openshift.io/display-name": "MongoDB (Latest)",
+              "description": "Provides a MongoDB database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb"
             },
@@ -1234,7 +1300,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.4",
             "annotations": {
-              "description": "Provides a MongoDB v2.4 database",
+              "openshift.io/display-name": "MongoDB 2.4",
+              "description": "Provides a MongoDB 2.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.4/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "2.4"
@@ -1247,7 +1314,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.6",
             "annotations": {
-              "description": "Provides a MongoDB v2.6 database",
+              "openshift.io/display-name": "MongoDB 2.6",
+              "description": "Provides a MongoDB 2.6 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/2.6/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "2.6"
@@ -1260,7 +1328,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "3.2",
             "annotations": {
-              "description": "Provides a MongoDB v3.2 database",
+              "openshift.io/display-name": "MongoDB 3.2",
+              "description": "Provides a MongoDB 3.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/tree/master/3.2/README.md.",
               "iconClass": "icon-mongodb",
               "tags": "mongodb",
               "version": "3.2"
@@ -1284,7 +1353,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Provides a Jenkins server",
+              "openshift.io/display-name": "Jenkins (Latest)",
+              "description": "Provides a Jenkins server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-jenkins",
               "tags": "jenkins"
             },
@@ -1296,7 +1366,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "1",
             "annotations": {
-              "description": "Provides a Jenkins server",
+              "openshift.io/display-name": "Jenkins 1.X",
+              "description": "Provides a Jenkins 1.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
               "tags": "jenkins",
               "version": "1.x"
@@ -1334,10 +1405,15 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
   "metadata": {
     "name": "mariadb-ephemeral",
     "annotations": {
-      "description": "MariaDB database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "MariaDB (Ephemeral)",
+      "description": "MariaDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mariadb",
       "tags": "database,mariadb"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.",
+  "labels": {
+    "template": "mariadb-persistent-template"
   },
   "objects": [
     {
@@ -1507,10 +1583,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "value": "sampledb",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mariadb-persistent-template"
-  }
+  ]
 }
 `)
 
@@ -1535,10 +1608,15 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "mariadb-persistent",
     "annotations": {
-      "description": "MariaDB database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "MariaDB (Persistent)",
+      "description": "MariaDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mariadb",
       "tags": "database,mariadb"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.",
+  "labels": {
+    "template": "mariadb-persistent-template"
   },
   "objects": [
     {
@@ -1732,10 +1810,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "value": "1Gi",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mariadb-persistent-template"
-  }
+  ]
 }
 `)
 
@@ -1761,10 +1836,15 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
     "name": "mongodb-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "MongoDB database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "MongoDB (Ephemeral)",
+      "description": "MongoDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mongodb",
       "tags": "database,mongodb"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MONGODB_USER}\n       Password: ${MONGODB_PASSWORD}\n  Database Name: ${MONGODB_DATABASE}\n Connection URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.",
+  "labels": {
+    "template": "mongodb-ephemeral-template"
   },
   "objects": [
     {
@@ -1973,11 +2053,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "value": "3.2",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mongodb-ephemeral-template"
-  },
-  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
+  ]
 }
 `)
 
@@ -2003,10 +2079,15 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
     "name": "mongodb-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "MongoDB database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "MongoDB (Persistent)",
+      "description": "MongoDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mongodb",
       "tags": "database,mongodb"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MONGODB_USER}\n       Password: ${MONGODB_PASSWORD}\n  Database Name: ${MONGODB_DATABASE}\n Connection URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.",
+  "labels": {
+    "template": "mongodb-persistent-template"
   },
   "objects": [
     {
@@ -2239,11 +2320,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "value": "3.2",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mongodb-persistent-template"
-  },
-  "message": "You can connect to the database using MongoDB connection URL mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@${DATABASE_SERVICE_NAME}/${MONGODB_DATABASE}"
+  ]
 }
 `)
 
@@ -2268,10 +2345,15 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
   "metadata": {
     "name": "mysql-ephemeral",
     "annotations": {
-      "description": "MySQL database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "MySQL (Ephemeral)",
+      "description": "MySQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-mysql-database",
       "tags": "database,mysql"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.",
+  "labels": {
+    "template": "mysql-ephemeral-template"
   },
   "objects": [
     {
@@ -2469,10 +2551,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "value": "5.6",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mysql-ephemeral-template"
-  }
+  ]
 }
 `)
 
@@ -2497,10 +2576,15 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "mysql-persistent",
     "annotations": {
-      "description": "MySQL database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "MySQL (Persistent)",
+      "description": "MySQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mysql-database",
       "tags": "database,mysql"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${MYSQL_USER}\n       Password: ${MYSQL_PASSWORD}\n  Database Name: ${MYSQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:3306/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.6/README.md.",
+  "labels": {
+    "template": "mysql-persistent-template"
   },
   "objects": [
     {
@@ -2701,10 +2785,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "value": "5.6",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "mysql-persistent-template"
-  }
+  ]
 }
 `)
 
@@ -2730,10 +2811,15 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     "name": "postgresql-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "PostgreSQL database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "PostgreSQL (Ephemeral)",
+      "description": "PostgreSQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.",
+  "labels": {
+    "template": "postgresql-ephemeral-template"
   },
   "objects": [
     {
@@ -2930,10 +3016,7 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "value": "9.5",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "postgresql-ephemeral-template"
-  }
+  ]
 }
 `)
 
@@ -2959,10 +3042,15 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
     "name": "postgresql-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "PostgreSQL database service, with persistent storage.  Scaling to more than one replica is not supported.  You must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "PostgreSQL (Persistent)",
+      "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql"
     }
+  },
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.",
+  "labels": {
+    "template": "postgresql-persistent-template"
   },
   "objects": [
     {
@@ -3183,10 +3271,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "value": "9.5",
       "required": true
     }
-  ],
-  "labels": {
-    "template": "postgresql-persistent-template"
-  }
+  ]
 }
 `)
 
@@ -3212,7 +3297,8 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
     "name": "jenkins-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage.\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "openshift.io/display-name": "Jenkins (Ephemeral)",
+      "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -3497,7 +3583,8 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
     "name": "jenkins-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, with persistent storage.\nYou must have persistent volumes available in your cluster to use this template.",
+      "openshift.io/display-name": "Jenkins (Persistent)",
+      "description": "Jenkins service, with persistent storage.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins"
     }
@@ -4321,11 +4408,13 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
   "metadata": {
     "name": "cakephp-mysql-example",
     "annotations": {
-      "description": "An example CakePHP application with a MySQL database",
-      "tags": "quickstart,php,cakephp,mysql",
+      "openshift.io/display-name": "CakePHP + MySQL (Ephemeral)",
+      "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,php,cakephp",
       "iconClass": "icon-php"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
   "labels": {
     "template": "cakephp-mysql-example"
   },
@@ -4336,7 +4425,8 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {
@@ -4835,11 +4925,13 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
   "metadata": {
     "name": "dancer-mysql-example",
     "annotations": {
-      "description": "An example Dancer application with a MySQL database",
-      "tags": "quickstart,perl,dancer,mysql",
+      "openshift.io/display-name": "Dancer + MySQL (Ephemeral)",
+      "description": "An example Dancer application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,perl,dancer",
       "iconClass": "icon-perl"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
   "labels": {
     "template": "dancer-mysql-example"
   },
@@ -4850,7 +4942,8 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {
@@ -5314,11 +5407,13 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
   "metadata": {
     "name": "django-psql-example",
     "annotations": {
-      "description": "An example Django application with a PostgreSQL database",
-      "tags": "quickstart,python,django,postgresql",
+      "openshift.io/display-name": "Django + PostgreSQL (Ephemeral)",
+      "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,python,django",
       "iconClass": "icon-python"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
   "labels": {
     "template": "django-psql-example"
   },
@@ -5329,7 +5424,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {
@@ -5797,11 +5893,13 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
   "metadata": {
     "name": "nodejs-mongodb-example",
     "annotations": {
-      "description": "An example Node.js application with a MongoDB database",
-      "tags": "quickstart,nodejs,mongodb",
+      "openshift.io/display-name": "Node.js + MongoDB (Ephemeral)",
+      "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,nodejs",
       "iconClass": "icon-nodejs"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
   "labels": {
     "template": "nodejs-mongodb-example"
   },
@@ -5812,7 +5910,8 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {
@@ -6281,11 +6380,13 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
   "metadata": {
     "name": "rails-postgresql-example",
     "annotations": {
-      "description": "An example Rails application with a PostgreSQL database",
-      "tags": "quickstart,ruby,rails,postgresql",
+      "openshift.io/display-name": "Rails + PostgreSQL (Ephemeral)",
+      "description": "An example Rails application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,ruby,rails",
       "iconClass": "icon-ruby"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
   "labels": {
     "template": "rails-postgresql-example"
   },
@@ -6296,7 +6397,8 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {

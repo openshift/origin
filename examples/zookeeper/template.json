@@ -5,10 +5,15 @@
     "name": "zookeeper",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Example of replicated Zookeeper 3.4.6 server",
+      "openshift.io/display-name": "Zookeeper",
+      "description": "An example of a replicated Zookeeper 3.4.6 server. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/origin/blob/master/examples/zookeeper/README.md.",
       "iconClass": "icon-database",
       "tags": "database,zookeeper"
     }
+  },
+  "message": "The following service(s) have been created in your project: zookeeper.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/origin/blob/master/examples/zookeeper/README.md.",
+  "labels": {
+    "template": "zookeeper"
   },
   "objects": [
     {
@@ -440,8 +445,5 @@
       "description": "The name of Zookeeper Docker image to use",
       "value": "openshift/zookeeper-346-fedora20"
     }
-  ],
-  "labels": {
-    "template": "zookeeper"
-  }
+  ]
 }

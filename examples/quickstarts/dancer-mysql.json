@@ -4,11 +4,13 @@
   "metadata": {
     "name": "dancer-mysql-example",
     "annotations": {
-      "description": "An example Dancer application with a MySQL database",
-      "tags": "quickstart,perl,dancer,mysql",
+      "openshift.io/display-name": "Dancer + MySQL (Ephemeral)",
+      "description": "An example Dancer application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "tags": "quickstart,perl,dancer",
       "iconClass": "icon-perl"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
   "labels": {
     "template": "dancer-mysql-example"
   },
@@ -19,7 +21,8 @@
       "metadata": {
         "name": "${NAME}",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {

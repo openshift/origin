@@ -4,11 +4,13 @@
   "metadata": {
     "name": "wordpress-mysql-example",
     "annotations": {
-      "description": "An example wordpress application with a MySQL database.  Note: the MySQL service created by this template uses non-persistent storage.  To setup persisted storage, change this template to use a persistent volume claim instead of emptydir.",
-      "tags": "instant-app,php,wordpress,mysql",
+      "openshift.io/display-name": "WordPress + MySQL (Ephemeral)",
+      "description": "An example WordPress application with a MySQL database.For more information about using this template, including OpenShift considerations, see https://github.com/openshift/origin/blob/master/examples/wordpress/template/README.md.\n\nNOTE: The MySQL service created by this template uses non-persistent storage. To setup persisted storage, change this template to use a persistent volume claim instead of emptydir.",
+      "tags": "instant-app,php,wordpress",
       "iconClass": "icon-php"
     }
   },
+  "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/origin/blob/master/examples/wordpress/template/README.md.",
   "labels": {
     "template": "wordpress-mysql-example"
   },
@@ -19,7 +21,8 @@
       "metadata": {
         "name": "wordpress-mysql-example",
         "annotations": {
-          "description": "Exposes and load balances the application pods"
+          "description": "Exposes and load balances the application pods",
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${DATABASE_SERVICE_NAME}\", \"kind\": \"Service\"}]"
         }
       },
       "spec": {
