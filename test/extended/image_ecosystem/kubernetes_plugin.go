@@ -105,7 +105,7 @@ var _ = g.Describe("[image_ecosystem][jenkins] schedule jobs on pod slaves", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("grant service account in jenkins container access to API")
-			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+oc.Namespace()+":default", "-n", oc.Namespace()).Execute()
+			err = oc.Run("policy").Args("add-role-to-user", "edit", "system:serviceaccount:"+oc.Namespace()+":jenkins", "-n", oc.Namespace()).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("instantiate the master template")
@@ -131,11 +131,20 @@ var _ = g.Describe("[image_ecosystem][jenkins] schedule jobs on pod slaves", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(port).NotTo(o.BeEmpty())
 
-			jenkinsUri := fmt.Sprintf("http://%s:%s", serviceIP, port)
-			g.By(fmt.Sprintf("wait for jenkins to come up at %q", jenkinsUri))
+			g.By("get admin password")
 			password := getAdminPassword(oc)
 			o.Expect(password).ShouldNot(o.BeEmpty())
-			err = waitForJenkinsActivity(jenkinsUri, password, "", 200)
+
+			j := JenkinsRef{
+				oc:        oc,
+				host:      serviceIP,
+				port:      port,
+				password:  password,
+				namespace: oc.Namespace(),
+			}
+
+			g.By(fmt.Sprintf("wait for jenkins to come up at http://%s:%s", serviceIP, port))
+			_, err = j.waitForContent("", 200, 3*time.Minute, "")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("inspecting the Jenkins master logs the slave image should be registered")
@@ -144,7 +153,7 @@ var _ = g.Describe("[image_ecosystem][jenkins] schedule jobs on pod slaves", fun
 			o.Expect(out).To(o.ContainSubstring("Adding image ruby-22-centos7-jenkins-slave:latest as Kubernetes slave"))
 
 			g.By("kick the ruby-hello-world-test job")
-			immediateInteractionWithJenkins(fmt.Sprintf("%s/job/ruby-hello-world-test/build?delay=0sec", jenkinsUri), "POST", password, nil, 201)
+			j.startJob("ruby-hello-world-test")
 			verifyPodProvisioned := func() (bool, error) {
 				out, err := oc.Run("logs").Args("dc/jenkins").Output()
 				if err != nil {
