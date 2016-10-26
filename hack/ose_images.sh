@@ -470,7 +470,8 @@ show_dockerfile_diffs() {
       echo "  Ignore Option Selected - Not committing"
     else
       echo "(c)ontinue [replace old diff], (i)gnore [leave old diff], (q)uit [exit script] : "
-      read choice < /dev/tty
+      read choice_raw < /dev/tty
+      choice=$(echo "${choice_raw}" | awk '{print $1}')
       case ${choice} in
         c | C | continue )
           /bin/cp -f Dockerfile .osbs-logs/Dockerfile.last
