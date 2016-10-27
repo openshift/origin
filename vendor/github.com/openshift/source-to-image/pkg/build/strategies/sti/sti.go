@@ -202,12 +202,11 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 		glog.V(1).Infof("Running %q in %q", api.Assemble, config.Tag)
 	}
 	if err := builder.scripts.Execute(api.Assemble, config.AssembleUser, config); err != nil {
-		builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonAssembleFailed, utilstatus.ReasonMessageAssembleFailed)
 
 		switch e := err.(type) {
 		case errors.ContainerError:
 			if !isMissingRequirements(e.Output) {
-				builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonUnmetS2IDependencies, utilstatus.ReasonMessageUnmetS2IDependencies)
+				builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(utilstatus.ReasonAssembleFailed, utilstatus.ReasonMessageAssembleFailed)
 				return builder.result, err
 			}
 			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")

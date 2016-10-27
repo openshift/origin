@@ -125,12 +125,12 @@ type Client interface {
 	ContainerCreate(ctx context.Context, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, networkingConfig *dockernetwork.NetworkingConfig, containerName string) (dockertypes.ContainerCreateResponse, error)
 	ContainerInspect(ctx context.Context, containerID string) (dockertypes.ContainerJSON, error)
 	ContainerRemove(ctx context.Context, containerID string, options dockertypes.ContainerRemoveOptions) error
-	ContainerStart(ctx context.Context, containerID string) error
+	ContainerStart(ctx context.Context, containerID string, options dockertypes.ContainerStartOptions) error
 	ContainerWait(ctx context.Context, containerID string) (int, error)
 	CopyToContainer(ctx context.Context, container, path string, content io.Reader, opts dockertypes.CopyToContainerOptions) error
 	CopyFromContainer(ctx context.Context, container, srcPath string) (io.ReadCloser, dockertypes.ContainerPathStat, error)
 	ImageBuild(ctx context.Context, buildContext io.Reader, options dockertypes.ImageBuildOptions) (dockertypes.ImageBuildResponse, error)
-	ImageInspectWithRaw(ctx context.Context, imageID string, getSize bool) (dockertypes.ImageInspect, []byte, error)
+	ImageInspectWithRaw(ctx context.Context, imageID string) (dockertypes.ImageInspect, []byte, error)
 	ImagePull(ctx context.Context, ref string, options dockertypes.ImagePullOptions) (io.ReadCloser, error)
 	ImageRemove(ctx context.Context, imageID string, options dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDelete, error)
 	ServerVersion(ctx context.Context) (dockertypes.Version, error)
@@ -144,7 +144,7 @@ type stiDocker struct {
 func (d stiDocker) InspectImage(name string) (*dockertypes.ImageInspect, error) {
 	ctx, cancel := getDefaultContext()
 	defer cancel()
-	resp, _, err := d.client.ImageInspectWithRaw(ctx, name, true)
+	resp, _, err := d.client.ImageInspectWithRaw(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -274,17 +274,25 @@ type BuildImageOptions struct {
 	CGroupLimits *api.CGroupLimits
 }
 
-// New creates a new implementation of the STI Docker interface
-func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
+// NewEngineAPIClient creates a new Docker engine API client
+func NewEngineAPIClient(config *api.DockerConfig) (*dockerapi.Client, error) {
 	var httpClient *http.Client
 
-	if config.CertFile != "" && config.KeyFile != "" && config.CAFile != "" {
+	if config.UseTLS || config.TLSVerify {
 		tlscOptions := tlsconfig.Options{
-			CAFile:             config.CAFile,
-			CertFile:           config.CertFile,
-			KeyFile:            config.KeyFile,
-			InsecureSkipVerify: os.Getenv("DOCKER_TLS_VERIFY") == "",
+			InsecureSkipVerify: !config.TLSVerify,
 		}
+
+		if _, err := os.Stat(config.CAFile); !os.IsNotExist(err) {
+			tlscOptions.CAFile = config.CAFile
+		}
+		if _, err := os.Stat(config.CertFile); !os.IsNotExist(err) {
+			tlscOptions.CertFile = config.CertFile
+		}
+		if _, err := os.Stat(config.KeyFile); !os.IsNotExist(err) {
+			tlscOptions.KeyFile = config.KeyFile
+		}
+
 		tlsc, err := tlsconfig.Client(tlscOptions)
 		if err != nil {
 			return nil, err
@@ -296,8 +304,12 @@ func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
 			},
 		}
 	}
+	return dockerapi.NewClient(config.Endpoint, os.Getenv("DOCKER_API_VERSION"), httpClient, nil)
+}
 
-	client, err := dockerapi.NewClient(config.Endpoint, os.Getenv("DOCKER_API_VERSION"), httpClient, nil)
+// New creates a new implementation of the STI Docker interface
+func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
+	client, err := NewEngineAPIClient(config)
 	if err != nil {
 		return nil, err
 	}
@@ -995,7 +1007,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		glog.V(2).Infof("Starting container %q ...", container.ID)
 		ctx, cancel := getDefaultContext()
 		defer cancel()
-		err = d.client.ContainerStart(ctx, container.ID)
+		err = d.client.ContainerStart(ctx, container.ID, dockertypes.ContainerStartOptions{})
 		if err != nil {
 			return err
 		}

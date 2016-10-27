@@ -285,6 +285,12 @@ type DockerConfig struct {
 
 	// CAFile is the certificate authority file path for a TLS connection
 	CAFile string
+
+	// UseTLS indicates if TLS must be used
+	UseTLS bool
+
+	// TLSVerify indicates if TLS peer must be verified
+	TLSVerify bool
 }
 
 // AuthConfig is our abstraction of the Registry authorization information for whatever
