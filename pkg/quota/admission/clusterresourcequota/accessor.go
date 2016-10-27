@@ -1,6 +1,8 @@
 package clusterresourcequota
 
 import (
+	"bytes"
+	"fmt"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -56,6 +58,7 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	if err != nil {
 		return err
 	}
+	encoder := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Version: "v1"})
 	clusterQuota = e.checkCache(clusterQuota)
 
 	// make a copy
@@ -67,6 +70,10 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	clusterQuota = obj.(*quotaapi.ClusterResourceQuota)
 	clusterQuota.ObjectMeta = newQuota.ObjectMeta
 	clusterQuota.Namespace = ""
+
+	data1 := &bytes.Buffer{}
+	encoder.Encode(clusterQuota, data1)
+	fmt.Printf("#### original ns=%v\n %v\n", newQuota.Namespace, string(data1.Bytes()))
 
 	// determine change in usage
 	usageDiff := utilquota.Subtract(newQuota.Status.Used, clusterQuota.Status.Total.Used)
@@ -84,12 +91,20 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	newNamespaceTotals.Used = utilquota.Add(oldNamespaceTotals.Used, usageDiff)
 	clusterQuota.Status.Namespaces.Insert(newQuota.Namespace, newNamespaceTotals)
 
+	data := &bytes.Buffer{}
+	encoder.Encode(clusterQuota, data)
+	fmt.Printf("#### sending ns=%v\n %v\n", newQuota.Namespace, string(data.Bytes()))
+
 	updatedQuota, err := e.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(clusterQuota)
 	if err != nil {
+		fmt.Printf("#### err %v\n", err)
 		return err
 	}
 
-	e.updatedClusterQuotas.Add(clusterQuota.Name, updatedQuota)
+	fmt.Printf("#### caching %v\n", string(data.Bytes()))
+	if false {
+		e.updatedClusterQuotas.Add(clusterQuota.Name, updatedQuota)
+	}
 	return nil
 }
 
@@ -128,16 +143,21 @@ func (e *clusterQuotaAccessor) GetQuotas(namespaceName string) ([]kapi.ResourceQ
 			return nil, err
 		}
 
-		clusterQuota = e.checkCache(clusterQuota)
+		// clusterQuota = e.checkCache(clusterQuota)
 
 		// now convert to a ResourceQuota
 		convertedQuota := kapi.ResourceQuota{}
 		convertedQuota.ObjectMeta = clusterQuota.ObjectMeta
 		convertedQuota.Namespace = namespaceName
 		convertedQuota.Spec = clusterQuota.Spec.Quota
-		convertedQuota.Status = clusterQuota.Status.Total
+		convertedQuota.Status.Used = utilquota.Add(kapi.ResourceList{}, clusterQuota.Status.Total.Used)
+		convertedQuota.Status.Hard = utilquota.Add(kapi.ResourceList{}, clusterQuota.Status.Total.Hard)
 		resourceQuotas = append(resourceQuotas, convertedQuota)
 
+		encoder := kapi.Codecs.LegacyCodec(unversioned.GroupVersion{Version: "v1"})
+		data := &bytes.Buffer{}
+		encoder.Encode(clusterQuota, data)
+		fmt.Printf("#### found \n%v\n", string(data.Bytes()))
 	}
 
 	return resourceQuotas, nil

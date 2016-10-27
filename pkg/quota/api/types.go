@@ -115,6 +115,10 @@ func (o *ResourceQuotasStatusByNamespace) OrderedKeys() *list.List {
 	return o.orderedMap.OrderedKeys()
 }
 
+func (o *ResourceQuotasStatusByNamespace) Len() int {
+	return len(o.orderedMap.backingMap)
+}
+
 // orderedMap is a very simple ordering a map tracking insertion order.  It allows fast and stable serializations
 // for our encoding.  You could probably do something fancier with pointers to interfaces, but I didn't.
 type orderedMap struct {
@@ -159,7 +163,7 @@ func (o *orderedMap) Remove(key string) {
 // OrderedKeys returns back the ordered keys.  This can be used to build a stable serialization
 func (o *orderedMap) OrderedKeys() *list.List {
 	if o.orderedKeys == nil {
-		o.orderedKeys = list.New()
+		return list.New()
 	}
 	return o.orderedKeys
 }

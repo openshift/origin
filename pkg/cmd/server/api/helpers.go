@@ -295,8 +295,8 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 // client communications and increases the default QPS and burst. This is used to override
 // defaulted config supporting versions older than 1.3 for new configurations generated in 1.3+.
 func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
-	overrides.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
-	overrides.ContentType = "application/vnd.kubernetes.protobuf"
+	// overrides.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	// overrides.ContentType = "application/vnd.kubernetes.protobuf"
 	overrides.QPS *= 2
 	overrides.Burst *= 2
 }
