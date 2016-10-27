@@ -95,11 +95,6 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 	if err != nil {
 		return fmt.Errorf("Error fetching subnet for node %q for deletion: %v", nodeName, err)
 	}
-	_, ipnet, err := net.ParseCIDR(sub.Subnet)
-	if err != nil {
-		return fmt.Errorf("Error parsing subnet %q for node %q for deletion: %v", sub.Subnet, nodeName, err)
-	}
-	master.subnetAllocator.ReleaseNetwork(ipnet)
 	err = master.osClient.HostSubnets().Delete(nodeName)
 	if err != nil {
 		return fmt.Errorf("Error deleting subnet %v for node %q: %v", sub, nodeName, err)
@@ -209,6 +204,7 @@ func (master *OsdnMaster) watchSubnets() {
 		hs := delta.Object.(*osapi.HostSubnet)
 		name := hs.ObjectMeta.Name
 		hostIP := hs.HostIP
+		subnet := hs.Subnet
 
 		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
 		switch delta.Type {
@@ -231,7 +227,14 @@ func (master *OsdnMaster) watchSubnets() {
 				}
 			}
 		case cache.Deleted:
-			// ignore all deleted hostsubnets
+			if _, ok := hs.Annotations[osapi.AssignHostSubnetAnnotation]; !ok {
+				// release the subnet
+				_, ipnet, err := net.ParseCIDR(subnet)
+				if err != nil {
+					return fmt.Errorf("Error parsing subnet %q for node %q for deletion: %v", subnet, name, err)
+				}
+				master.subnetAllocator.ReleaseNetwork(ipnet)
+			}
 		}
 		return nil
 	})
