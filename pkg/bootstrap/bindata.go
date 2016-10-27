@@ -72,7 +72,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby"
+        "name": "ruby",
+        "annotations": {
+          "openshift.io/display-name": "Ruby"
+        }
       },
       "spec": {
         "tags": [
@@ -146,7 +149,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs"
+        "name": "nodejs",
+        "annotations": {
+          "openshift.io/display-name": "Node.js"
+        }
       },
       "spec": {
         "tags": [
@@ -204,7 +210,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "perl"
+        "name": "perl",
+        "annotations": {
+          "openshift.io/display-name": "Perl"
+        }
       },
       "spec": {
         "tags": [
@@ -263,7 +272,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "php"
+        "name": "php",
+        "annotations": {
+          "openshift.io/display-name": "PHP"
+        }
       },
       "spec": {
         "tags": [
@@ -321,7 +333,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "python"
+        "name": "python",
+        "annotations": {
+          "openshift.io/display-name": "Python"
+        }
       },
       "spec": {
         "tags": [
@@ -411,7 +426,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "wildfly"
+        "name": "wildfly",
+        "annotations": {
+          "openshift.io/display-name": "WildFly"
+        }
       },
       "spec": {
         "tags": [
@@ -501,7 +519,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mysql"
+        "name": "mysql",
+        "annotations": {
+          "openshift.io/display-name": "MySQL"
+        }
       },
       "spec": {
         "tags": [
@@ -553,7 +574,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mariadb"
+        "name": "mariadb",
+        "annotations": {
+          "openshift.io/display-name": "MariaDB"
+        }
       },
       "spec": {
         "tags": [
@@ -591,7 +615,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "postgresql"
+        "name": "postgresql",
+        "annotations": {
+          "openshift.io/display-name": "PostgreSQL"
+        }
       },
       "spec": {
         "tags": [
@@ -599,7 +626,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "name": "latest",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL (Latest)",
-              "description": "Provides a PostgreSQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
+              "description": "Provides a PostgreSQL database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -612,7 +639,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "name": "9.2",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.2",
-              "description": "Provides a PostgreSQL 9.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
+              "description": "Provides a PostgreSQL 9.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.2"
@@ -626,7 +653,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "name": "9.4",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.4",
-              "description": "Provides a PostgreSQL 9.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
+              "description": "Provides a PostgreSQL 9.4 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.4"
@@ -640,7 +667,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "name": "9.5",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.5",
-              "description": "Provides a PostgreSQL 9.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.",
+              "description": "Provides a PostgreSQL 9.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.5"
@@ -657,7 +684,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mongodb"
+        "name": "mongodb",
+        "annotations": {
+          "openshift.io/display-name": "MongoDB"
+        }
       },
       "spec": {
         "tags": [
@@ -723,7 +753,10 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins"
+        "name": "jenkins",
+        "annotations": {
+          "openshift.io/display-name": "Jenkins"
+        }
       },
       "spec": {
         "tags": [
@@ -785,7 +818,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby"
+        "name": "ruby",
+        "annotations": {
+          "openshift.io/display-name": "Ruby"
+        }
       },
       "spec": {
         "tags": [
@@ -859,7 +895,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs"
+        "name": "nodejs",
+        "annotations": {
+          "openshift.io/display-name": "Node.js"
+        }
       },
       "spec": {
         "tags": [
@@ -917,7 +956,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "perl"
+        "name": "perl",
+        "annotations": {
+          "openshift.io/display-name": "Perl"
+        }
       },
       "spec": {
         "tags": [
@@ -976,7 +1018,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "php"
+        "name": "php",
+        "annotations": {
+          "openshift.io/display-name": "PHP"
+        }
       },
       "spec": {
         "tags": [
@@ -1034,7 +1079,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "python"
+        "name": "python",
+        "annotations": {
+          "openshift.io/display-name": "Python"
+        }
       },
       "spec": {
         "tags": [
@@ -1124,7 +1172,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mysql"
+        "name": "mysql",
+        "annotations": {
+          "openshift.io/display-name": "MySQL"
+        }
       },
       "spec": {
         "tags": [
@@ -1176,7 +1227,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mariadb"
+        "name": "mariadb",
+        "annotations": {
+          "openshift.io/display-name": "MariaDB"
+        }
       },
       "spec": {
         "tags": [
@@ -1214,7 +1268,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "postgresql"
+        "name": "postgresql",
+        "annotations": {
+          "openshift.io/display-name": "PostgreSQL"
+        }
       },
       "spec": {
         "tags": [
@@ -1222,7 +1279,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "name": "latest",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL (Latest)",
-              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
+              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -1235,7 +1292,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "name": "9.2",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.2",
-              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
+              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.2"
@@ -1249,7 +1306,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "name": "9.4",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.4",
-              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
+              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.4"
@@ -1263,7 +1320,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "name": "9.5",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.5",
-              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.",
+              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.5"
@@ -1280,7 +1337,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mongodb"
+        "name": "mongodb",
+        "annotations": {
+          "openshift.io/display-name": "MongoDB"
+        }
       },
       "spec": {
         "tags": [
@@ -1346,7 +1406,10 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins"
+        "name": "jenkins",
+        "annotations": {
+          "openshift.io/display-name": "Jenkins"
+        }
       },
       "spec": {
         "tags": [
@@ -2812,12 +2875,12 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
     "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "PostgreSQL (Ephemeral)",
-      "description": "PostgreSQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "PostgreSQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql"
     }
   },
-  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.",
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.",
   "labels": {
     "template": "postgresql-ephemeral-template"
   },
@@ -3043,12 +3106,12 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
     "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "PostgreSQL (Persistent)",
-      "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
+      "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql"
     }
   },
-  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5/README.md.",
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: mysql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.",
   "labels": {
     "template": "postgresql-persistent-template"
   },

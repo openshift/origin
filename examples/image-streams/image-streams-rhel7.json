@@ -7,7 +7,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby"
+        "name": "ruby",
+        "annotations": {
+          "openshift.io/display-name": "Ruby"
+        }
       },
       "spec": {
         "tags": [
@@ -81,7 +84,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "nodejs"
+        "name": "nodejs",
+        "annotations": {
+          "openshift.io/display-name": "Node.js"
+        }
       },
       "spec": {
         "tags": [
@@ -139,7 +145,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "perl"
+        "name": "perl",
+        "annotations": {
+          "openshift.io/display-name": "Perl"
+        }
       },
       "spec": {
         "tags": [
@@ -198,7 +207,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "php"
+        "name": "php",
+        "annotations": {
+          "openshift.io/display-name": "PHP"
+        }
       },
       "spec": {
         "tags": [
@@ -256,7 +268,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "python"
+        "name": "python",
+        "annotations": {
+          "openshift.io/display-name": "Python"
+        }
       },
       "spec": {
         "tags": [
@@ -346,7 +361,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mysql"
+        "name": "mysql",
+        "annotations": {
+          "openshift.io/display-name": "MySQL"
+        }
       },
       "spec": {
         "tags": [
@@ -398,7 +416,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mariadb"
+        "name": "mariadb",
+        "annotations": {
+          "openshift.io/display-name": "MariaDB"
+        }
       },
       "spec": {
         "tags": [
@@ -436,7 +457,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "postgresql"
+        "name": "postgresql",
+        "annotations": {
+          "openshift.io/display-name": "PostgreSQL"
+        }
       },
       "spec": {
         "tags": [
@@ -444,7 +468,7 @@
             "name": "latest",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL (Latest)",
-              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
+              "description": "Provides a PostgreSQL database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql"
             },
@@ -457,7 +481,7 @@
             "name": "9.2",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.2",
-              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2/README.md.",
+              "description": "Provides a PostgreSQL 9.2 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.2.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.2"
@@ -471,7 +495,7 @@
             "name": "9.4",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.4",
-              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4/README.md.",
+              "description": "Provides a PostgreSQL 9.4 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.4.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.4"
@@ -485,7 +509,7 @@
             "name": "9.5",
             "annotations": {
               "openshift.io/display-name": "PostgreSQL 9.5",
-              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5/README.md.",
+              "description": "Provides a PostgreSQL 9.5 database on RHEL 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/tree/master/9.5.",
               "iconClass": "icon-postgresql",
               "tags": "postgresql",
               "version": "9.5"
@@ -502,7 +526,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "mongodb"
+        "name": "mongodb",
+        "annotations": {
+          "openshift.io/display-name": "MongoDB"
+        }
       },
       "spec": {
         "tags": [
@@ -568,7 +595,10 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "jenkins"
+        "name": "jenkins",
+        "annotations": {
+          "openshift.io/display-name": "Jenkins"
+        }
       },
       "spec": {
         "tags": [
