@@ -1,8 +1,10 @@
 package validation
 
 import (
+	kapi "k8s.io/kubernetes/pkg/api"
 	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
 	"k8s.io/kubernetes/pkg/api/validation"
+	utilquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -30,9 +32,12 @@ func ValidateClusterResourceQuota(clusterquota *quotaapi.ClusterResourceQuota) f
 	allErrs = append(allErrs, validation.ValidateResourceQuotaSpec(&clusterquota.Spec.Quota, field.NewPath("spec", "quota"))...)
 	allErrs = append(allErrs, validation.ValidateResourceQuotaStatus(&clusterquota.Status.Total, field.NewPath("status", "overall"))...)
 
+	namespaceTotal := kapi.ResourceList{}
 	for e := clusterquota.Status.Namespaces.OrderedKeys().Front(); e != nil; e = e.Next() {
 		namespace := e.Value.(string)
 		used, _ := clusterquota.Status.Namespaces.Get(namespace)
+
+		namespaceTotal = utilquota.Add(namespaceTotal, used.Used)
 
 		fldPath := field.NewPath("status", "namespaces").Key(namespace)
 		for k, v := range used.Used {
@@ -40,6 +45,10 @@ func ValidateClusterResourceQuota(clusterquota *quotaapi.ClusterResourceQuota) f
 			allErrs = append(allErrs, validation.ValidateResourceQuotaResourceName(string(k), resPath)...)
 			allErrs = append(allErrs, validation.ValidateResourceQuantityValue(string(k), v, resPath)...)
 		}
+	}
+
+	if !kapi.Semantic.DeepEqual(namespaceTotal, clusterquota.Status.Total.Used) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "total", "used"), clusterquota.Status.Total.Used, "must equal the sum of the namespace usage"))
 	}
 
 	return allErrs
