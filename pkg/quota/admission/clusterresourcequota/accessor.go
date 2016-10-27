@@ -16,6 +16,7 @@ import (
 	oclient "github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	"github.com/openshift/origin/pkg/quota/api/validation"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
@@ -56,7 +57,12 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	if err != nil {
 		return err
 	}
+
+	validation.CheckTotals(clusterQuota)
+
 	clusterQuota = e.checkCache(clusterQuota)
+
+	validation.CheckTotals(clusterQuota)
 
 	// make a copy
 	obj, err := kapi.Scheme.Copy(clusterQuota)
@@ -84,10 +90,14 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	newNamespaceTotals.Used = utilquota.Add(oldNamespaceTotals.Used, usageDiff)
 	clusterQuota.Status.Namespaces.Insert(newQuota.Namespace, newNamespaceTotals)
 
+	validation.CheckTotals(clusterQuota)
 	updatedQuota, err := e.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(clusterQuota)
 	if err != nil {
+		validation.CheckTotals(clusterQuota)
 		return err
 	}
+	validation.CheckTotals(clusterQuota)
+	validation.CheckTotals(updatedQuota)
 
 	e.updatedClusterQuotas.Add(clusterQuota.Name, updatedQuota)
 	return nil

@@ -23,6 +23,7 @@ import (
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	"github.com/openshift/origin/pkg/quota/api/validation"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
@@ -235,11 +236,15 @@ func (c *ClusterQuotaReconcilationController) worker() {
 
 // syncResourceQuotaFromKey syncs a quota key
 func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuota *quotaapi.ClusterResourceQuota, workItems []workItem) (error, []workItem /* to retry */) {
+	validation.CheckTotals(originalQuota)
+
 	obj, err := kapi.Scheme.Copy(originalQuota)
 	if err != nil {
 		return err, workItems
 	}
 	quota := obj.(*quotaapi.ClusterResourceQuota)
+
+	validation.CheckTotals(quota)
 
 	// get the list of namespaces that match this cluster quota
 	matchingNamespaceNamesList, quotaSelector := c.clusterQuotaMapper.GetNamespacesFor(quota.Name)
@@ -256,8 +261,10 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		if !matchingNamespaceNames.Has(namespaceName) {
 			if namespaceLoaded {
 				// remove this item from all totals
+				validation.CheckTotals(quota)
 				quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 				quota.Status.Namespaces.Remove(namespaceName)
+				validation.CheckTotals(quota)
 			}
 			continue
 		}
@@ -267,7 +274,9 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 			continue
 		}
 
+		validation.CheckTotals(quota)
 		actualUsage, err := quotaUsageCalculationFunc(namespaceName, quota.Spec.Quota.Scopes, quota.Spec.Quota.Hard, c.registry)
+		validation.CheckTotals(quota)
 		if err != nil {
 			// tally up errors, but calculate everything you can
 			reconcilationErrors = append(reconcilationErrors, err)
@@ -280,9 +289,11 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		}
 
 		// subtract old usage, add new usage
+		validation.CheckTotals(quota)
 		quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 		quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, recalculatedStatus.Used)
 		quota.Status.Namespaces.Insert(namespaceName, recalculatedStatus)
+		validation.CheckTotals(quota)
 	}
 
 	quota.Status.Total.Hard = quota.Spec.Quota.Hard
@@ -292,8 +303,13 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		return kutilerrors.NewAggregate(reconcilationErrors), retryItems
 	}
 
-	if _, err := c.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(quota); err != nil {
+	validation.CheckTotals(quota)
+	if updatedQuota, err := c.clusterQuotaClient.ClusterResourceQuotas().UpdateStatus(quota); err != nil {
+		validation.CheckTotals(quota)
 		return kutilerrors.NewAggregate(append(reconcilationErrors, err)), workItems
+	} else {
+		validation.CheckTotals(quota)
+		validation.CheckTotals(updatedQuota)
 	}
 
 	return kutilerrors.NewAggregate(reconcilationErrors), retryItems
